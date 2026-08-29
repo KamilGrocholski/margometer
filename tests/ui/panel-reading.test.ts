@@ -11,7 +11,11 @@ import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import type { PanelMetric } from "@/src/ui/panel-reading.ts";
-import { composeDrillReading, composePanelReading } from "@/src/ui/panel-reading.ts";
+import {
+    composeDrillReading,
+    composePairReading,
+    composePanelReading,
+} from "@/src/ui/panel-reading.ts";
 import { getWordsForDamageKind, HEALTH_LOSS_WORDS } from "@/src/ui/panel-words.ts";
 import {
     getRecordedCombatants,
@@ -604,4 +608,95 @@ Deno.test("a figure the rows already hold is a cut of them, not another part of 
     const dealtTogether = dealtRows.reduce((sum, one) => sum + one, 0);
     const pinnedShare = Number(apart.shareText.slice(0, -1));
     assertEquals(dealtTogether + pinnedShare, 100, "and there it is one of the parts of the whole");
+});
+
+/** The last rung: what passed between two of them, and what the protocol says about it. */
+Deno.test("a pair states what passed between the two, and nothing that did not", () => {
+    const { roster, statistics } = readFight(HILDUR);
+    const reading = composePanelReading(statistics, roster, "damageDealtApplied", "everyone", null);
+    const first = reading.rows[0];
+    assert(first !== undefined, "there is a row to open");
+    const drill = composeDrillReading(statistics, roster, "damageDealtApplied", first.combatantId);
+    assert(drill !== null, "and it opens");
+    const other = drill.byOpponent.rows.find((one) => one.opensPair);
+    assert(other !== undefined, "onto somebody the level under says something about");
+
+    const pair = composePairReading(
+        statistics,
+        roster,
+        "damageDealtApplied",
+        first.combatantId,
+        other.combatantId,
+    );
+    assert(pair !== null, "the pair opens");
+    assertEquals(pair.total, other.figure, "at the figure the row that opened it stated");
+    assertEquals(pair.otherName, other.name, "and about the combatant that row named");
+    const kinds = pair.byElement.rows.reduce((sum, one) => sum + one.figure, 0);
+    assertEquals(kinds, pair.total, "the kinds between them come to what passed between them");
+    const skills = pair.bySkill.rows.reduce((sum, one) => sum + one.figure, 0);
+    assertEquals(
+        skills + (pair.bySkill.plain?.figure ?? 0),
+        pair.total,
+        "and so do the skills announced for it and the blows nothing stood in front of",
+    );
+    // A count is stated where an announcement was made and nowhere else: the protocol says
+    // nothing about how many blows fell on one opponent rather than another.
+    assert(pair.bySkill.rows.every((one) => one.uses === null), "no row here counts anything");
+
+    // And the skills reach the pair at all: a cut whose every skill came to nothing would still
+    // add up, because the row that closes it is the remainder.
+    let named = 0;
+    for (const row of drill.byOpponent.rows) {
+        const held = composePairReading(
+            statistics,
+            roster,
+            "damageDealtApplied",
+            first.combatantId,
+            row.combatantId,
+        );
+        named += held?.bySkill.rows.reduce((sum, one) => sum + one.figure, 0) ?? 0;
+    }
+    assert(named > 0, "and what this combatant announced reaches the pairs it was announced on");
+
+    assertEquals(
+        composePairReading(statistics, roster, "healthGiven", first.combatantId, other.combatantId),
+        null,
+        "and a screen the protocol cuts by no pair opens none",
+    );
+});
+
+Deno.test("a pair that would only repeat the row above it does not open", () => {
+    const { roster, statistics } = readFight(HILDUR);
+    const reading = composePanelReading(statistics, roster, "damageTakenApplied", "everyone", null);
+    let closed = 0;
+    let opened = 0;
+    for (const row of reading.rows) {
+        const drill = composeDrillReading(
+            statistics,
+            roster,
+            "damageTakenApplied",
+            row.combatantId,
+        );
+        assert(drill !== null, "a row on this screen opens");
+        for (const other of drill.byOpponent.rows) {
+            const pair = composePairReading(
+                statistics,
+                roster,
+                "damageTakenApplied",
+                row.combatantId,
+                other.combatantId,
+            );
+            assert(pair !== null, "and every row of its cut names a pair");
+            // The level under a pair says something where it holds more than one row. Where it
+            // does not, it is the figure just pressed under another heading.
+            const rows = pair.byElement.rows.length + pair.bySkill.rows.length +
+                (pair.bySkill.plain === null ? 0 : 1);
+            if (other.opensPair) opened += 1;
+            else closed += 1;
+            assertEquals(other.opensPair, rows > 1, "which is what decides whether it opens");
+        }
+    }
+    // Both answers occur on this fight, so neither branch of the rule is being read on faith.
+    assert(opened > 0, "some pairs on this recording say more than the row above them");
+    assert(closed > 0, "and some say exactly it");
 });

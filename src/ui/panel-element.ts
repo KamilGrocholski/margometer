@@ -14,6 +14,7 @@ import { composeDecimalText } from "@/src/core/protocol-number.ts";
 import type {
     DrillReading,
     ElementRow,
+    PairReading,
     PanelMetric,
     PanelReading,
     PanelRow,
@@ -225,7 +226,7 @@ interface RowReading {
     /** Where it stands in the ranking, or null on a row that is a cut rather than a place. */
     rank: number | null;
     /** How many times, where a row states a count. Null everywhere a figure is the whole of it. */
-    uses?: number | undefined;
+    uses?: number | null | undefined;
 }
 
 /**
@@ -294,7 +295,8 @@ function composeRowElement(
     const share = composeElement(document, "span", CLASS.rowShare);
     // The count rides the same brackets as the share: they answer one question between them —
     // how much of the figure, and how many times it was announced.
-    const counted = reading.uses === undefined ? "" : ` · ${composeUsesText(reading.uses)}`;
+    const uses = reading.uses ?? null;
+    const counted = uses === null ? "" : ` · ${composeUsesText(uses)}`;
     share.textContent = `(${reading.shareText}${counted})`;
     value.append(share);
     parts.push(name, value);
@@ -532,14 +534,28 @@ function composeCrumbRegion(document: PanelDocument, view: PanelView): PanelElem
     assert(SCREEN_ORDER.includes(view.current), "and on a screen the strips draw");
     if (view.isOnShelf) return composeCrumbElement(document, PANEL_WORDS.fights);
     if (view.drill === null) return composeSlotElement(document);
-    return composeCrumbElement(document, view.drill.name ?? PANEL_WORDS.unknown);
+    // One rung at a time: the way back off a pair goes to the person it was opened from, and the
+    // way back off that goes to the roster.
+    if (view.pair === null) {
+        return composeCrumbElement(document, view.drill.name ?? PANEL_WORDS.unknown);
+    }
+    return composeCrumbElement(
+        document,
+        view.pair.otherName ?? PANEL_WORDS.unknown,
+        view.drill.name ?? PANEL_WORDS.unknown,
+    );
 }
 
-function composeCrumbElement(document: PanelDocument, said: string): PanelElement {
+function composeCrumbElement(
+    document: PanelDocument,
+    said: string,
+    /** Where the way back leads, where that is a person rather than the roster. */
+    from: string | null = null,
+): PanelElement {
     assert(said.length > 0, "what stands over the screen is named before the way back is drawn");
     const crumb = composeElement(document, "div", CLASS.crumb);
     const back = composeElement(document, "span", CLASS.crumbBack);
-    back.textContent = `${BACK_MARK}${PANEL_WORDS.back}`;
+    back.textContent = `${BACK_MARK}${from ?? PANEL_WORDS.back}`;
     back.setAttribute(BACK_ATTRIBUTE, PANEL_WORDS.back);
     const here = composeElement(document, "span", CLASS.crumbHere);
     here.textContent = said;
@@ -699,7 +715,10 @@ function composeOpponentSection(
                 share,
             },
         };
-        list.append(composeRowElement(document, composeCombatantReading(row, null), null, tip));
+        // A row opens where the level under it would say something this one does not — the rest
+        // are leaves, and a press on one of them is a press on nothing.
+        const opens = row.opensPair ? `${row.combatantId}` : null;
+        list.append(composeRowElement(document, composeCombatantReading(row, null), opens, tip));
     }
     if (cut.unnamed === null) return;
     // Which end is missing is the direction's: a given screen names no receiver, a received one
@@ -982,6 +1001,8 @@ export interface PanelView {
     isOnShelf: boolean;
     /** The row standing open over the screen, or nobody's. */
     drill: DrillReading | null;
+    /** The pair standing open over that, which is the last rung and opens nothing further. */
+    pair: PairReading | null;
     /** Where the fight is being fought, already in words. Null where the client would not say. */
     place: string | null;
     /** Folded to the title bar. What is under it is composed empty, never drawn and hidden. */
@@ -999,7 +1020,7 @@ export type PanelPress =
     | { kind: "copy" }
     | { kind: "shelf" };
 
-/** The shelf stands over an opened row, and an opened row over the screen it was opened on. */
+/** The shelf stands over an opened row, an opened row over the screen, and a pair over that. */
 function composeViewList(
     document: PanelDocument,
     view: PanelView,
@@ -1008,10 +1029,85 @@ function composeViewList(
     assert(SCREEN_ORDER.includes(view.current), "a view is on a screen the strip draws");
     assert(view.shelf.length >= 0, "and carries the fights behind it, however few");
     if (view.isOnShelf) return composeShelfElement(document, view, register);
+    if (view.pair !== null) return composePairElement(document, view, view.pair, register);
     if (view.drill !== null) {
         return composeDrillElement(document, view, view.drill, register);
     }
     return composeRankingElement(document, view.reading, view.current, register);
+}
+
+/**
+ * One pair opened: what one of them did to the other, cut by the skills announced for it and by
+ * what those blows carried. The last rung — nothing here opens any further.
+ */
+function composePairElement(
+    document: PanelDocument,
+    view: PanelView,
+    pair: PairReading,
+    register: TipRegister,
+): PanelElement {
+    const list = composeListElement(document, getRowsForPair(pair, view.reading.visibleRows));
+    const figure = getWordsForScreen(view.current);
+    assert(figure.length > 0, "a pair states what its figure is a figure of");
+    assert(pair.total >= 0, "and a figure that is not below nothing");
+    const share = PANEL_WORDS.shareOfFigure;
+    composePairSkills(document, list, pair, { register, figure, share });
+    composePairKinds(document, list, pair, { register, figure, share });
+    return list;
+}
+
+/** The skills one of them announced against the other, and what stood behind none. */
+function composePairSkills(
+    document: PanelDocument,
+    list: PanelElement,
+    pair: PairReading,
+    stated: { register: TipRegister; figure: string; share: string },
+): void {
+    const cut = pair.bySkill;
+    assert(cut.rows.length <= MAXIMUM_SKILLS, "a cut stays inside the bound it is kept to");
+    if (cut.rows.length === 0 && cut.plain === null) return;
+    const named = pair.otherName ?? PANEL_WORDS.unknown;
+    list.append(composeSectionElement(
+        document,
+        `${PANEL_WORDS.skillsAgainst} — ${named}`,
+        pair.total,
+    ));
+    for (const row of cut.rows) {
+        const tip = { ...stated, key: `pair-skill:${row.name}` };
+        list.append(composeRowElement(document, composeSkillRowReading(row), null, tip));
+    }
+    if (cut.plain === null) return;
+    const tip = { ...stated, key: "pair-skill:plain" };
+    const reading = composeUnnamedReading(cut.plain, PANEL_WORDS.plainBlow);
+    list.append(composeRowElement(document, reading, null, tip));
+}
+
+/** What the blows between the two carried, under the heading every damage cut wears. */
+function composePairKinds(
+    document: PanelDocument,
+    list: PanelElement,
+    pair: PairReading,
+    stated: { register: TipRegister; figure: string; share: string },
+): void {
+    const cut = pair.byElement;
+    assert(cut.rows.length <= MAXIMUM_KINDS, "a cut stays inside the bound it is kept to");
+    if (cut.rows.length === 0) return;
+    if (getIsRepetition(cut.rows, cut.unnamed, pair.total)) return;
+    list.append(composeSectionElement(document, PANEL_WORDS.damageKind, pair.total));
+    for (const row of cut.rows) {
+        const tip = { ...stated, key: `pair-kind:${row.element}` };
+        list.append(composeRowElement(document, composeElementReading(row, "damage"), null, tip));
+    }
+}
+
+/** The same arithmetic the level above uses: what the cuts need, never below the ranking's own. */
+function getRowsForPair(pair: PairReading, floor: number): number {
+    assert(floor > 0, "a list stands at a height of at least one row");
+    assert(pair.total >= 0, "and holds a figure that is not below nothing");
+    const skills = pair.bySkill.rows.length + (pair.bySkill.plain === null ? 0 : 1);
+    const kinds = pair.byElement.rows.length;
+    const needed = (skills === 0 ? 0 : skills + 1) + (kinds === 0 ? 0 : kinds + 1);
+    return Math.max(needed, floor);
 }
 
 /** One pinned figure, in a block of its own, so a failure is the size of one row. */

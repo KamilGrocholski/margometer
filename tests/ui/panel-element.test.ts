@@ -81,6 +81,7 @@ function draw(reading: PanelReading): FakeElement {
         shelf: [],
         isOnShelf: false,
         drill: null,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -147,6 +148,7 @@ Deno.test("the side strip is drawn where the client said which side is the reade
         shelf: [],
         isOnShelf: false,
         drill: null,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -183,6 +185,7 @@ Deno.test("no tab is marked while the shelf is up, and the shelf is on the bar",
         shelf: [],
         isOnShelf: true,
         drill: null,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -350,6 +353,7 @@ Deno.test("a press on a tab reaches the panel, and a press on anything else does
         shelf: [],
         isOnShelf: false,
         drill: null,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -379,6 +383,7 @@ Deno.test("a press on a side asks for that side, and on the shelf for the shelf"
         shelf: [],
         isOnShelf: false,
         drill: null,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -408,6 +413,7 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         shelf: [],
         isOnShelf: false,
         drill: null,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -422,6 +428,7 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         shelf: [],
         isOnShelf: false,
         drill: null,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -476,6 +483,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         shelf: [],
         isOnShelf: false,
         drill: null,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -518,6 +526,7 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
         shelf: [],
         isOnShelf: false,
         drill,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -525,8 +534,15 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
     const within = getElementsWithin(host);
     const crumbs = getTextsByClass(host, "crumb-here");
     assertEquals(crumbs, [opened.name], "the way back names whose row stands open");
-    const rows = within.filter((one) => one.className === "row leaf");
+    const rows = within.filter((one) => one.className.split(" ")[0] === "row");
     assertEquals(rows.length, countDrillRows(drill), "a row for each part of it, in each cut");
+    // A person opens where the pair says something; a kind and a skill open nothing at all.
+    const opening = rows.filter((one) => one.attributes.get("data-row") !== undefined);
+    assertEquals(
+        opening.length,
+        drill.byOpponent.rows.filter((one) => one.opensPair).length,
+        "and the ones that open are the people the level under them would say something about",
+    );
     const sections = getElementsWithin(host).filter((one) => one.className === "section-heading");
     assertEquals(
         sections.map((one) => one.children[0]?.textContent),
@@ -544,7 +560,12 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
     // The kinds this fight's top dealer carries, and none of them the physical one.
     assert(named.includes("ogień"), "and a kind is drawn in the reader's words");
     assert(!named.includes("dmgf"), "never under the token the protocol stated it on");
-    assert(rows.every((one) => one.attributes.get("data-row") === undefined), "opening no further");
+    const kinds = rows.filter((one) => one.className === "row leaf");
+    assert(kinds.length > 0, "a kind and a skill are leaves");
+    assert(
+        kinds.every((one) => one.attributes.get("data-row") === undefined),
+        "and neither of them opens any further",
+    );
     const crumb = within.filter((one) => one.className === "crumb");
     assertEquals(crumb.length, 1, "and one way back");
 });
@@ -605,6 +626,7 @@ Deno.test("a kind's row carries a bar of its own, measured against its own cut",
         shelf: [],
         isOnShelf: false,
         drill,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -652,6 +674,7 @@ Deno.test("a part of a figure no kind was stated for is drawn last, under the ki
                 unnamed: { figure: 140, fill: 0.1, shareText: "<1%" },
             },
         },
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -675,6 +698,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         shelf: [],
         isOnShelf: false,
         drill: null,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -693,6 +717,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         shelf: [],
         isOnShelf: false,
         drill,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -720,6 +745,7 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
         shelf: [],
         isOnShelf: false,
         drill: null,
+        pair: null,
         isCollapsed: false,
     };
     panel.show({ ...view, place: "Mapa (12, 34)" });
@@ -756,6 +782,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
         shelf: [],
         isOnShelf: false,
         drill: null,
+        pair: null,
         place: null,
         isCollapsed: false,
     };
@@ -812,6 +839,7 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
         shelf: [],
         isOnShelf: false,
         drill: null,
+        pair: null,
         isCollapsed: false,
         place: "Mapa (12, 34)",
     });
@@ -895,6 +923,7 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
         shelf: [],
         isOnShelf: false,
         drill,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -931,6 +960,7 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
         shelf: [{ openedAt: 17, place: "Bagno Wisielców (128, 74)", combatants: 11 }],
         isOnShelf: true,
         drill: null,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -1010,6 +1040,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
         shelf: [],
         isOnShelf: false,
         drill: null,
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -1080,6 +1111,7 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
             shelf: [],
             isOnShelf: false,
             drill,
+            pair: null,
             place: null,
             isCollapsed: false,
         });
@@ -1112,6 +1144,7 @@ Deno.test("a row opened on a screen its own figure is nothing on says so, about 
         // The same person, carried onto a screen they did nothing on: one press of a strip away,
         // because the strips carry an opened row from screen to screen.
         drill: { ...drill, total: 0, byOpponent: { rows: [], unnamed: null } },
+        pair: null,
         place: null,
         isCollapsed: false,
     });
@@ -1137,6 +1170,7 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
             shelf: [],
             isOnShelf: false,
             drill: open,
+            pair: null,
             place: null,
             isCollapsed: false,
         });
@@ -1194,6 +1228,7 @@ Deno.test("a cut that only repeats the figure above it is not drawn at all", () 
             shelf: [],
             isOnShelf: false,
             drill: open,
+            pair: null,
             place: null,
             isCollapsed: false,
         });
@@ -1245,6 +1280,7 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
             ...drill,
             bySkill: { rows: [], plain: { blows: 3, figure: 0, fill: 0, shareText: "0%" } },
         },
+        pair: null,
         place: null,
         isCollapsed: false,
     });

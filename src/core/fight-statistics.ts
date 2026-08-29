@@ -326,6 +326,7 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
         addToCut(dealer.damageDealtByElement, event.damage.element, amount);
         if (event.targetId !== null) {
             addToCut(dealer.damageDealtByOpponent, `${event.targetId}`, amount);
+            addToPairCut(dealer.damageDealtByOpponentAndKind, `${event.targetId}`, [event.damage]);
         }
     }
     if (event.targetId === null) {
@@ -336,7 +337,10 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
     if (event.actorId === null) target.damageTakenFromNobody += amount;
     target.damageTakenApplied += amount;
     addToCut(target.damageTakenByElement, event.damage.element, amount);
-    if (event.actorId !== null) addToCut(target.damageTakenByOpponent, `${event.actorId}`, amount);
+    if (event.actorId !== null) {
+        addToCut(target.damageTakenByOpponent, `${event.actorId}`, amount);
+        addToPairCut(target.damageTakenByOpponentAndKind, `${event.actorId}`, [event.damage]);
+    }
 }
 
 /**

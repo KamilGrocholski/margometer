@@ -312,23 +312,23 @@ commit that opens or closes one.
 
 1. **The add-on reads a fight, draws it, and keeps it.** Every key in `captures/` is read, the panel
    switches screens, pressing a row on any of them opens the figure cut by the other end of each
-   movement and — on three of the four — by what it was made of, a finished fight goes on a shelf
-   the reader can look back at, the header and every row on that shelf say where the fight was
-   fought, a ranking row wears its place, its profession's badge and a bar measured against the
-   biggest figure on screen, hovering a row opens the detail window that says in full what the row
-   had to cut, the bar says which build drew it and the host carries the same number for a
-   screenshot to be read by, the panel folds to that bar and comes back folded, a press on `{ }`
-   hands the reader the fight as a recording in the shape intake reads, a press on the copy control
-   hands them the figures as text, the panel carries the stylesheet `DESIGN.md` specifies and the
-   strip that always states the screen's own total, and `deno task build` writes the file they
-   install, `deno task preview` writes a page that runs it against the recordings, and
-   `deno task intake` redacts a recording and admits it to `captures/`. the header says how the
-   fight went, the strip under the list totals the two sides and what belongs to neither, a doubt is
-   said as a sentence under it, and the panel is moved by its bar and comes back where it was left.
-   What is not written: **the third level of the drill**, which is v1's cut by skill, and the detail
-   card that says what a combatant's figures are made of — both wait on figures `core/` does not
-   hold. The rest of the tools and the release plumbing — `README.md`, `CHANGELOG.md` and the
-   workflows — are unwritten.
+   movement, by what it was announced with and by what it was made of, pressing one of **those**
+   rows opens the pair and what passed between the two, a finished fight goes on a shelf the reader
+   can look back at, the header and every row on that shelf say where the fight was fought, a
+   ranking row wears its place, its profession's badge and a bar measured against the biggest figure
+   on screen, hovering a row opens the detail window that says in full what the row had to cut, the
+   bar says which build drew it and the host carries the same number for a screenshot to be read by,
+   the panel folds to that bar and comes back folded, a press on `{ }` hands the reader the fight as
+   a recording in the shape intake reads, a press on the copy control hands them the figures as
+   text, the panel carries the stylesheet `DESIGN.md` specifies and the strip that always states the
+   screen's own total, and `deno task build` writes the file they install, `deno task preview`
+   writes a page that runs it against the recordings, and `deno task intake` redacts a recording and
+   admits it to `captures/`. the header says how the fight went, the strip under the list totals the
+   two sides and what belongs to neither, a doubt is said as a sentence under it, and the panel is
+   moved by its bar and comes back where it was left. What is not written: **the third level of the
+   drill**, which is v1's cut by skill, and the detail card that says what a combatant's figures are
+   made of — both wait on figures `core/` does not hold. The rest of the tools and the release
+   plumbing — `README.md`, `CHANGELOG.md` and the workflows — are unwritten.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
@@ -355,10 +355,12 @@ commit that opens or closes one.
 7. **`docs/browser-support.md` describes a floor held over sources**, which is no longer how it is
    held once the bundle carries standard-library code. Accurate about v1, stale about v2 until the
    bundle-level guard lands.
-8. **There is no drill register.** v1's `docs/drill-levels.md` described panel behaviour this tree
-   does not have, and its guard measured it both ways from a tool that does not exist either. It is
-   readable at `git show develop:docs/drill-levels.md` and returns **generated**, not carried, when
-   there is a panel to measure.
+8. **There is no drill register.** The three levels are drawn — a ranking, a row opened onto its
+   cuts, and a pair opened onto what passed between the two — but nothing enumerates which rows open
+   and which do not, the way v1's `docs/drill-levels.md` did from a tool that measured it both ways.
+   That document is readable at `git show develop:docs/drill-levels.md`; the register here returns
+   **generated**, not carried, and one shape it names is still missing: v1 opens a skill under
+   `Leczenie dane` onto whom it reached, which needs healing cut by skill.
 9. **The `verify` skill names the Bun toolchain.** `.agents/skills/verify/SKILL.md` carries the
    procedural knowledge for driving the add-on in a browser and reading what the panel drew — worth
    keeping verbatim, since no tool regenerates it — but its commands (`bun run preview`,

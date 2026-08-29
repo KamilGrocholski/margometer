@@ -37,7 +37,12 @@ import { type KeptFight, readKeptFights, writeKeptFights } from "@/src/game/kept
 import { composeReportText } from "@/src/game/fight-report.ts";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
-import { composeDrillReading, composePanelReading, type ShelfRow } from "@/src/ui/panel-reading.ts";
+import {
+    composeDrillReading,
+    composePairReading,
+    composePanelReading,
+    type ShelfRow,
+} from "@/src/ui/panel-reading.ts";
 import {
     composeScreenState,
     getScreenFromName,
@@ -135,8 +140,9 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         return true;
     }
     if (press.kind === "back") {
-        // The shelf stands over an opened row, so the way back takes the topmost thing off first.
+        // One rung at a time, topmost first: the shelf stands over a pair, a pair over a row.
         if (screen.isOnShelf) screen.isOnShelf = false;
+        else if (screen.openPairId !== null) screen.openPairId = null;
         else screen.openRowId = null;
         return true;
     }
@@ -144,8 +150,10 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         const opened = getIntegerFromText(press.stated);
         if (opened === null) return false;
         // Not a toggle, unlike the shelf's tab: an opened row covers the screen it was opened on,
-        // so the row that would close it is not on the panel to be pressed a second time.
-        screen.openRowId = opened;
+        // so the row that would close it is not on the panel to be pressed a second time. A press
+        // inside an opened row is the rung under it — the pair of the two of them.
+        if (screen.openRowId === null) screen.openRowId = opened;
+        else screen.openPairId = opened;
         return true;
     }
     if (press.kind === "side") {
@@ -156,12 +164,16 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         // A side decides who is on the list, so a row opened before it was narrowed may not be
         // on the list any more — and a cut standing over a list nobody is on says nothing.
         screen.openRowId = null;
+        screen.openPairId = null;
         return true;
     }
     const reached = getScreenFromName(press.screen);
     if (reached === null) return false;
     screen.current = reached;
     screen.isOnShelf = false;
+    // The person stays and the pair does not: which end of a pair a figure belongs to is the
+    // direction's, so carrying one across the flip would open a pair on the wrong side of it.
+    screen.openPairId = null;
     // The opened row stays. A reader who went into somebody is reading **that somebody**, and the
     // strips are how they ask the next question about them: the combatant exists on every screen,
     // which is what makes this different from narrowing to a side they may not be on.
@@ -216,6 +228,13 @@ function showFight(
     const drill = screen.openRowId === null
         ? null
         : composeDrillReading(statistics, roster, screen.current, screen.openRowId);
+    const pair = drill === null || screen.openPairId === null ? null : composePairReading(
+        statistics,
+        roster,
+        screen.current,
+        drill.combatantId,
+        screen.openPairId,
+    );
     panel.show({
         reading,
         current: screen.current,
@@ -226,6 +245,7 @@ function showFight(
         shelf: composeShelfRows(kept),
         isOnShelf: screen.isOnShelf,
         drill,
+        pair,
         place: getPlaceWords(place),
         isCollapsed: screen.isCollapsed,
     });

@@ -49,6 +49,8 @@ export const PANEL_WORDS = {
     damageKind: "TYP OBRAŻEŃ",
     healthSource: "OD CZEGO",
     skills: "CZYM (UMIEJĘTNOŚCI)",
+    /** The same section one level down, where it is about one pair rather than about everybody. */
+    skillsAgainst: "CZYM",
     /** A blow nothing was announced before. The game does not tell it from a swing it granted. */
     plainBlow: "Zwykły cios",
     withoutKind: "Bez podanego typu",

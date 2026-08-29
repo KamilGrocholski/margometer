@@ -218,3 +218,40 @@ Deno.test("every cut of a combatant comes to that combatant's own total", () => 
         }
     }
 });
+
+/**
+ * Every cut of a figure is a cut **of that figure**: the two flat ones and the one that cuts by
+ * both ends at once have to come to the same total, or the panel is drawing a figure nobody has.
+ */
+Deno.test("a cut by both ends comes to the same figure as the cut by one", () => {
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        for (const [combatantId, figures] of statistics.byCombatantId) {
+            const where = `${path}: ${combatantId}`;
+            for (
+                const [flat, deep] of [
+                    [figures.damageDealtByOpponent, figures.damageDealtByOpponentAndKind],
+                    [figures.damageTakenByOpponent, figures.damageTakenByOpponentAndKind],
+                ] as const
+            ) {
+                for (const [other, amount] of flat) {
+                    const kinds = deep.get(other);
+                    assert(kinds !== undefined, `${where}: a pair cut by one end and not by both`);
+                    let total = 0;
+                    for (const figure of kinds.values()) total += figure;
+                    assertEquals(total, amount, `${where}: the two cuts disagree about ${other}`);
+                }
+            }
+            // And every skill is a part of what its announcer dealt, never more.
+            let bySkill = 0;
+            for (const skill of figures.damageDealtBySkill.values()) bySkill += skill.figure;
+            assert(bySkill <= figures.damageDealtApplied, `${where}: a skill dealt more than they`);
+            assert(
+                figures.blowsWithoutSkill <= figures.blowsStruck,
+                `${where}: more blows nothing announced than blows`,
+            );
+        }
+    }
+});

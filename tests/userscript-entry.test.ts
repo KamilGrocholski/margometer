@@ -436,18 +436,48 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
     assert(name !== undefined, "and a reader presses the name inside one");
     pressElement(host, "pointerdown", name);
     assert(getRegion("crumb") !== undefined, "which opens that row over the screen");
-    assert(getRegion("crumb-here") !== undefined, "saying whose row it is");
+    const person = getRegion("crumb-here")?.textContent;
+    assert(person !== undefined, "saying whose row it is");
     // Never a row count: an opened row is cut twice, and the two cuts together can come to more
     // rows than the screen it stands over. What tells them apart is that a cut opens no further.
     assert(rows() > 0, "and drawing the parts of one figure rather than the whole screen");
-    assertEquals(rowsThatOpen(), 0, "none of which opens any further");
+    // A person inside an opened row opens the pair of the two of them, which is the last rung.
+    assert(rowsThatOpen() > 0, "some of which open onto what passed between the two of them");
+    const other = getElementsWithin(host).find((one) => {
+        if (one.className !== "row-name") return false;
+        return one.attributes.get("data-row") !== undefined;
+    });
+    assert(other !== undefined, "there is somebody to open");
+    pressElement(host, "pointerdown", other);
+    assertEquals(rowsThatOpen(), 0, "and on that rung nothing opens any further");
+    const deep = getRegion("crumb-here");
+    assert(deep !== undefined, "which says whom it is about");
+    pressElement(host, "pointerdown", getRegion("crumb-back") ?? host);
+    assertEquals(
+        getRegion("crumb-here")?.textContent,
+        person,
+        "and the way back off it goes to the person it was opened from, one rung at a time",
+    );
 
     const crumb = getRegion("crumb-back");
     assert(crumb !== undefined, "the way back is there");
     pressElement(host, "pointerdown", crumb);
     assertEquals(getRegion("crumb"), undefined, "and pressing it closes the row");
     assertEquals(rows(), before, "leaving the screen as it was");
+    setScreenKept(host, getRegion, rows, before);
+});
 
+/**
+ * What survives a change of screen, and what does not: the person a reader went into stays,
+ * because the strips are how they ask the next question about them.
+ */
+function setScreenKept(
+    host: FakeElement,
+    getRegion: (className: string) => FakeElement | undefined,
+    rows: () => number,
+    before: number,
+): void {
+    assertEquals(rows(), before, "the screen is as it was before any of this");
     const again = getRegion("row-name");
     assert(again !== undefined, "a row opens a second time");
     pressElement(host, "pointerdown", again);
@@ -475,7 +505,7 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
             "narrowing to a side closes it, because that side may not hold them",
         );
     }
-});
+}
 
 Deno.test("a row belonging to nobody in the fight opens nothing", () => {
     const battle: Record<string, unknown> = { updateData: () => 1 };

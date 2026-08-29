@@ -84,11 +84,13 @@ export interface ScreenState {
     side: PanelSideChoice;
     /** Whether the shelf is showing. Pressing its control goes back to the figures, as v1's did. */
     isOnShelf: boolean;
-    /**
-     * Whose row is open, or nobody. A cut belongs to the screen it was opened on, so leaving that
-     * screen closes it: the same combatant on another screen is another figure entirely.
-     */
+    /** Whose row is open, or nobody. A reader who went into somebody is reading that somebody. */
     openRowId: number | null;
+    /**
+     * Which pair stands open over that row, or nobody. The last rung: what passed between the two
+     * is cut by nothing further, so nothing on it opens.
+     */
+    openPairId: number | null;
     /** Folded to the title bar. The reader chose it, so the entry reads it back next visit. */
     isCollapsed: boolean;
 }
@@ -100,10 +102,12 @@ export function composeScreenState(isCollapsed: boolean): ScreenState {
         side: "everyone",
         isOnShelf: false,
         openRowId: null,
+        openPairId: null,
         isCollapsed,
     };
     assert(SCREEN_ORDER.includes(state.current), "a panel opens on a screen it can draw");
     assert(state.openRowId === null, "and with every row closed");
+    assert(state.openPairId === null, "and no pair standing over one");
     assert(state.side === "everyone", "and listing everybody, before a reader has narrowed it");
     assert(state.isCollapsed === isCollapsed, "and folded exactly as the reader last left it");
     return state;

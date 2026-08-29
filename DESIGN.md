@@ -183,6 +183,18 @@ belong to no combatant. It is a row, not a footnote: same height, same shape —
 cutting it off the ranking and a hatched bar, because it is not a combatant and must not look like
 one at a glance.
 
+**Three levels, and the last one is last.** The ranking lists people; pressing one opens their own
+figure cut by the other end of each movement, by what it was announced with, and by what it was made
+of; pressing a person inside that opens the pair, and what passed between the two. Nothing on that
+rung opens: the protocol states no further cut of it. A row opens only where the level under it
+would say something the row does not — a pair whose every blow was unannounced and of one kind is
+the figure just pressed under another heading, and pressing it would spend a gesture on nothing.
+
+**A cut that only repeats the figure above it is not drawn.** The section a level is _about_ is
+always drawn; the cross-sections beside it answer to this. The exemption is the row that closes a
+skills section, and only where it counts something: `Zwykły cios 2 644 (100% · ×8)` says eight blows
+where the figure above says none.
+
 **Section heading.** Over each cut of an opened figure, carrying the figure it stands over, and
 stuck to the top of the list while its own section scrolls: a figure read under the wrong heading is
 the one thing a drill must never allow. Its quiet is a composited colour rather than an `opacity`,
