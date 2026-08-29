@@ -82,6 +82,7 @@ function draw(reading: PanelReading): FakeElement {
         isOnShelf: false,
         drill: null,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -149,6 +150,7 @@ Deno.test("the side strip is drawn where the client said which side is the reade
         isOnShelf: false,
         drill: null,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -186,6 +188,7 @@ Deno.test("no tab is marked while the shelf is up, and the shelf is on the bar",
         isOnShelf: true,
         drill: null,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -354,6 +357,7 @@ Deno.test("a press on a tab reaches the panel, and a press on anything else does
         isOnShelf: false,
         drill: null,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -384,6 +388,7 @@ Deno.test("a press on a side asks for that side, and on the shelf for the shelf"
         isOnShelf: false,
         drill: null,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -414,6 +419,7 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         isOnShelf: false,
         drill: null,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -429,6 +435,7 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         isOnShelf: false,
         drill: null,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -484,6 +491,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         isOnShelf: false,
         drill: null,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -527,6 +535,7 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
         isOnShelf: false,
         drill,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -627,6 +636,7 @@ Deno.test("a kind's row carries a bar of its own, measured against its own cut",
         isOnShelf: false,
         drill,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -675,6 +685,7 @@ Deno.test("a part of a figure no kind was stated for is drawn last, under the ki
             },
         },
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -699,6 +710,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         isOnShelf: false,
         drill: null,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -718,6 +730,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         isOnShelf: false,
         drill,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -746,6 +759,7 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
         isOnShelf: false,
         drill: null,
         pair: null,
+        skill: null,
         isCollapsed: false,
     };
     panel.show({ ...view, place: "Mapa (12, 34)" });
@@ -783,6 +797,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
         isOnShelf: false,
         drill: null,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     };
@@ -840,6 +855,7 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
         isOnShelf: false,
         drill: null,
         pair: null,
+        skill: null,
         isCollapsed: false,
         place: "Mapa (12, 34)",
     });
@@ -924,6 +940,7 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
         isOnShelf: false,
         drill,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -961,6 +978,7 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
         isOnShelf: true,
         drill: null,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -1041,6 +1059,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
         isOnShelf: false,
         drill: null,
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -1112,6 +1131,7 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
             isOnShelf: false,
             drill,
             pair: null,
+            skill: null,
             place: null,
             isCollapsed: false,
         });
@@ -1145,6 +1165,7 @@ Deno.test("a row opened on a screen its own figure is nothing on says so, about 
         // because the strips carry an opened row from screen to screen.
         drill: { ...drill, total: 0, byOpponent: { rows: [], unnamed: null } },
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -1171,6 +1192,7 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
             isOnShelf: false,
             drill: open,
             pair: null,
+            skill: null,
             place: null,
             isCollapsed: false,
         });
@@ -1229,6 +1251,7 @@ Deno.test("a cut that only repeats the figure above it is not drawn at all", () 
             isOnShelf: false,
             drill: open,
             pair: null,
+            skill: null,
             place: null,
             isCollapsed: false,
         });
@@ -1281,6 +1304,7 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
             bySkill: { rows: [], plain: { blows: 3, figure: 0, fill: 0, shareText: "0%" } },
         },
         pair: null,
+        skill: null,
         place: null,
         isCollapsed: false,
     });
@@ -1289,4 +1313,40 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
     assert(named.includes(PANEL_WORDS.plainBlow), "the closing row stands in its own section");
     const shares = getTextsByClass(host, "row-share");
     assert(shares.includes("(0% · ×3)"), "carrying the count only its absence of a skill states");
+});
+
+Deno.test("a skill that opens asks for itself by name, and the rest of them ask nothing", () => {
+    const { reading, drill } = openFirstRow();
+    const pressed: PanelPress[] = [];
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
+    const rows = [
+        { name: "Dotyk anioła", uses: 1, figure: 500, fill: 1, shareText: "50%", opensSkill: true },
+        { name: "Zmrrożenie", uses: 8, figure: 500, fill: 1, shareText: "50%", opensSkill: false },
+    ];
+    panel.show({
+        reading,
+        current: "healthGiven",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        drill: { ...drill, total: 1000, bySkill: { rows, plain: null } },
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const named = getElementsWithin(host).filter((one) => one.className === "row-name");
+    const opening = named.filter((one) => one.textContent === "Dotyk anioła");
+    assertEquals(opening.length, 1, "the skill that reached somebody else is drawn");
+    const marked = getElementsWithin(host).filter((one) => one.attributes.has("data-skill"));
+    assertEquals(marked.length, 1, "and it is the one thing on the screen that opens");
+    pressElement(host, "pointerdown", marked[0] ?? host);
+    assertEquals(
+        pressed.at(-1),
+        { kind: "skill", name: "Dotyk anioła" },
+        "asking for itself by the name it was announced under, which is not a number",
+    );
 });

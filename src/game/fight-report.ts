@@ -44,8 +44,10 @@ export interface ReportSubject {
 interface ReportSkill {
     name: string;
     uses: number;
-    figure: number;
-    byOpponent: Record<string, number>;
+    dealt: number;
+    dealtByOpponent: Record<string, number>;
+    restored: number;
+    restoredByOpponent: Record<string, number>;
 }
 
 type ReportRow = {
@@ -78,8 +80,10 @@ function composeReportSkills(
         written[key] = {
             name: skill.name,
             uses: skill.uses,
-            figure: skill.figure,
-            byOpponent: composeReportCut(skill.byOpponent),
+            dealt: skill.dealt,
+            dealtByOpponent: composeReportCut(skill.dealtByOpponent),
+            restored: skill.restored,
+            restoredByOpponent: composeReportCut(skill.restoredByOpponent),
         };
     }
     assert(Object.keys(written).length === skills.size, "and every one of them is written down");
@@ -120,7 +124,7 @@ function composeReportRow(figures: CombatantFigures): ReportRow {
         damageTakenByOpponent: composeReportCut(figures.damageTakenByOpponent),
         damageDealtByOpponentAndKind: composeReportPairCut(figures.damageDealtByOpponentAndKind),
         damageTakenByOpponentAndKind: composeReportPairCut(figures.damageTakenByOpponentAndKind),
-        damageDealtBySkill: composeReportSkills(figures.damageDealtBySkill),
+        skills: composeReportSkills(figures.skills),
         blowsStruck: figures.blowsStruck,
         blowsWithoutSkill: figures.blowsWithoutSkill,
     };

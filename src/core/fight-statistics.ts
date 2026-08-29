@@ -28,9 +28,12 @@ export interface SkillFigures {
     /** As the announcement wrote it. The key is the name, because an id is not always stated. */
     name: string;
     uses: number;
-    figure: number;
-    /** Whom it reached, so an opened skill can say who was on the other end of it. */
-    byOpponent: Map<string, number>;
+    /** What blows announced under it landed, and on whom. */
+    dealt: number;
+    dealtByOpponent: Map<string, number>;
+    /** What it put back, and into whom: one announcement can do both, and each is counted once. */
+    restored: number;
+    restoredByOpponent: Map<string, number>;
 }
 
 export interface CombatantFigures {
@@ -78,8 +81,11 @@ export interface CombatantFigures {
      */
     damageDealtByOpponentAndKind: Map<string, Map<string, number>>;
     damageTakenByOpponentAndKind: Map<string, Map<string, number>>;
-    /** What this combatant announced before a blow, and what those blows came to. */
-    damageDealtBySkill: Map<string, SkillFigures>;
+    /**
+     * What this combatant announced, and what came of it. One record per skill rather than one
+     * per screen: an announcement is a single event, so a count kept twice would be counted twice.
+     */
+    skills: Map<string, SkillFigures>;
     /**
      * How many blows they struck, and how many stood behind no announcement. The second is the
      * count the closing row of a skills section states — a figure alone cannot say it.
@@ -146,7 +152,7 @@ function composeCombatantFigures(): CombatantFigures {
         damageTakenByOpponent: new Map(),
         damageDealtByOpponentAndKind: new Map(),
         damageTakenByOpponentAndKind: new Map(),
-        damageDealtBySkill: new Map(),
+        skills: new Map(),
         blowsStruck: 0,
         blowsWithoutSkill: 0,
     };
@@ -183,20 +189,49 @@ function addToPairCut(
  * `captures/` on 2026-08-29 carry no id at all, and a row keyed by nothing is a row that would
  * merge two skills the game tells apart.
  */
-function addSkillFigure(
+function getSkillFigures(skills: Map<string, SkillFigures>, name: string): SkillFigures {
+    assert(name.length > 0, "a skill is kept under the name it was announced by");
+    const held = skills.get(name) ?? {
+        name,
+        uses: 0,
+        dealt: 0,
+        dealtByOpponent: new Map(),
+        restored: 0,
+        restoredByOpponent: new Map(),
+    };
+    skills.set(name, held);
+    assert(skills.size <= MAXIMUM_SKILLS, "a fight states no more skills than it is bounded to");
+    return held;
+}
+
+/** What one announcement's blow landed, on the row of whoever announced it. */
+function addSkillDealt(
     skills: Map<string, SkillFigures>,
     announced: AnnouncedSkill,
     amount: number,
     other: string | null,
 ): void {
-    assert(announced.skillName.length > 0, "an announcement names the skill it announces");
-    assert(amount >= 0, "and what it did is never below nothing");
-    const held = skills.get(announced.skillName) ??
-        { name: announced.skillName, uses: 0, figure: 0, byOpponent: new Map() };
-    held.figure += amount;
-    if (other !== null) addToCut(held.byOpponent, other, amount);
-    skills.set(announced.skillName, held);
-    assert(skills.size <= MAXIMUM_SKILLS, "a fight states no more skills than it is bounded to");
+    assert(amount >= 0, "what a blow lands is never below nothing");
+    assert(announced.skillName.length > 0, "and the announcement in front of it is named");
+    const held = getSkillFigures(skills, announced.skillName);
+    held.dealt += amount;
+    if (other !== null) addToCut(held.dealtByOpponent, other, amount);
+}
+
+/** What one announcement put back, on the row of whoever announced it. */
+function addSkillRestored(
+    build: StatisticsBuild,
+    announced: AnnouncedSkill,
+    amount: number,
+    healedId: number | null,
+): void {
+    assert(amount >= 0, "restored health is never below nothing");
+    assert(announced.skillName.length > 0, "and the announcement behind it is named");
+    if (announced.actorId === null) return;
+    const skills = getFiguresForCombatant(build.byCombatantId, announced.actorId).skills;
+    const held = getSkillFigures(skills, announced.skillName);
+    held.restored += amount;
+    if (healedId !== null) addToCut(held.restoredByOpponent, `${healedId}`, amount);
 }
 
 /** The count an announcement states, which a blow carrying that announcement does not repeat. */
@@ -204,11 +239,9 @@ function addSkillUse(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== "skill-used") return;
     if (event.actorId === null) return;
     assert(event.skillName.length > 0, "an announcement names the skill it announces");
-    const skills = getFiguresForCombatant(build.byCombatantId, event.actorId).damageDealtBySkill;
-    const held = skills.get(event.skillName) ??
-        { name: event.skillName, uses: 0, figure: 0, byOpponent: new Map() };
+    const skills = getFiguresForCombatant(build.byCombatantId, event.actorId).skills;
+    const held = getSkillFigures(skills, event.skillName);
     held.uses += 1;
-    skills.set(event.skillName, held);
     assert(held.uses > 0, "an announcement that was counted was counted at least once");
 }
 
@@ -282,10 +315,7 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
         dealer.damageDealtApplied += applied;
         dealer.blowsStruck += 1;
         if (event.announced === null) dealer.blowsWithoutSkill += 1;
-        else {
-            const other = getOtherEndKey(event.targetId);
-            addSkillFigure(dealer.damageDealtBySkill, event.announced, applied, other);
-        }
+        else addSkillDealt(dealer.skills, event.announced, applied, getOtherEndKey(event.targetId));
         for (const figure of event.applied) {
             addToCut(dealer.damageDealtByElement, figure.element, figure.amount);
         }
@@ -433,6 +463,9 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
     if (event.amount >= 0) {
         figures.healthRestored += event.amount;
         addRestoredSource(build, event.combatantId, event.source, event.amount);
+        if (event.announced !== null) {
+            addSkillRestored(build, event.announced, event.amount, event.combatantId);
+        }
         addGivenHealth(
             build,
             getGiverId(event.source, event.combatantId, event.announced),

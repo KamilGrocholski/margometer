@@ -91,6 +91,8 @@ export interface ScreenState {
      * is cut by nothing further, so nothing on it opens.
      */
     openPairId: number | null;
+    /** Or which skill does, which is the other last rung and is named rather than numbered. */
+    openSkillName: string | null;
     /** Folded to the title bar. The reader chose it, so the entry reads it back next visit. */
     isCollapsed: boolean;
 }
@@ -103,11 +105,13 @@ export function composeScreenState(isCollapsed: boolean): ScreenState {
         isOnShelf: false,
         openRowId: null,
         openPairId: null,
+        openSkillName: null,
         isCollapsed,
     };
     assert(SCREEN_ORDER.includes(state.current), "a panel opens on a screen it can draw");
     assert(state.openRowId === null, "and with every row closed");
     assert(state.openPairId === null, "and no pair standing over one");
+    assert(state.openSkillName === null, "and no skill standing over that");
     assert(state.side === "everyone", "and listing everybody, before a reader has narrowed it");
     assert(state.isCollapsed === isCollapsed, "and folded exactly as the reader last left it");
     return state;

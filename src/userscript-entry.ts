@@ -41,6 +41,7 @@ import {
     composeDrillReading,
     composePairReading,
     composePanelReading,
+    composeSkillReading,
     type ShelfRow,
 } from "@/src/ui/panel-reading.ts";
 import {
@@ -146,6 +147,11 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         else screen.openRowId = null;
         return true;
     }
+    if (press.kind === "skill") {
+        // The other last rung, reached from a skill rather than from a person.
+        screen.openSkillName = press.name;
+        return true;
+    }
     if (press.kind === "row") {
         const opened = getIntegerFromText(press.stated);
         if (opened === null) return false;
@@ -235,6 +241,13 @@ function showFight(
         drill.combatantId,
         screen.openPairId,
     );
+    const skill = drill === null || screen.openSkillName === null ? null : composeSkillReading(
+        statistics,
+        roster,
+        screen.current,
+        drill.combatantId,
+        screen.openSkillName,
+    );
     panel.show({
         reading,
         current: screen.current,
@@ -246,6 +259,7 @@ function showFight(
         isOnShelf: screen.isOnShelf,
         drill,
         pair,
+        skill,
         place: getPlaceWords(place),
         isCollapsed: screen.isCollapsed,
     });

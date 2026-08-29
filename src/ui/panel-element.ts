@@ -21,6 +21,7 @@ import type {
     PanelSides,
     PinnedRow,
     ShelfRow,
+    SkillReading,
     SkillRow,
     UnnamedRow,
 } from "@/src/ui/panel-reading.ts";
@@ -136,6 +137,8 @@ const SIDE_ATTRIBUTE = "data-side";
 /** A row says which combatant it is, and the crumb above an opened row says only that it is one. */
 const ROW_ATTRIBUTE = "data-row";
 const BACK_ATTRIBUTE = "data-back";
+/** Its own attribute, because a skill is named rather than numbered and one listener reads both. */
+const SKILL_ATTRIBUTE = "data-skill";
 /** Which row's detail the pointer is over, looked up in the register the draw filled. */
 const TIP_ATTRIBUTE = "data-tip";
 const TITLE_ATTRIBUTE = "title";
@@ -536,14 +539,10 @@ function composeCrumbRegion(document: PanelDocument, view: PanelView): PanelElem
     if (view.drill === null) return composeSlotElement(document);
     // One rung at a time: the way back off a pair goes to the person it was opened from, and the
     // way back off that goes to the roster.
-    if (view.pair === null) {
-        return composeCrumbElement(document, view.drill.name ?? PANEL_WORDS.unknown);
-    }
-    return composeCrumbElement(
-        document,
-        view.pair.otherName ?? PANEL_WORDS.unknown,
-        view.drill.name ?? PANEL_WORDS.unknown,
-    );
+    const opened = view.drill.name ?? PANEL_WORDS.unknown;
+    if (view.skill !== null) return composeCrumbElement(document, view.skill.name, opened);
+    if (view.pair === null) return composeCrumbElement(document, opened);
+    return composeCrumbElement(document, view.pair.otherName ?? PANEL_WORDS.unknown, opened);
 }
 
 function composeCrumbElement(
@@ -761,7 +760,11 @@ function composeSkillSection(
             figure: stated.figure,
             share,
         };
-        list.append(composeRowElement(document, composeSkillRowReading(row), null, tip));
+        const element = composeRowElement(document, composeSkillRowReading(row), null, tip);
+        // A skill opens onto who it reached, where that is anybody but the row it was opened
+        // from — every other skill row is a leaf.
+        if (row.opensSkill) setRowMarks([element], SKILL_ATTRIBUTE, row.name);
+        list.append(element);
     }
     if (cut.plain === null) return;
     const tip = { register: stated.register, key: "skill:plain", figure: stated.figure, share };
@@ -1003,6 +1006,8 @@ export interface PanelView {
     drill: DrillReading | null;
     /** The pair standing open over that, which is the last rung and opens nothing further. */
     pair: PairReading | null;
+    /** Or the skill standing open over it, which is the other last rung and opens nothing. */
+    skill: SkillReading | null;
     /** Where the fight is being fought, already in words. Null where the client would not say. */
     place: string | null;
     /** Folded to the title bar. What is under it is composed empty, never drawn and hidden. */
@@ -1014,6 +1019,7 @@ export type PanelPress =
     | { kind: "screen"; screen: string }
     | { kind: "side"; side: string }
     | { kind: "row"; stated: string }
+    | { kind: "skill"; name: string }
     | { kind: "back" }
     | { kind: "fold" }
     | { kind: "save" }
@@ -1029,11 +1035,35 @@ function composeViewList(
     assert(SCREEN_ORDER.includes(view.current), "a view is on a screen the strip draws");
     assert(view.shelf.length >= 0, "and carries the fights behind it, however few");
     if (view.isOnShelf) return composeShelfElement(document, view, register);
+    if (view.skill !== null) return composeSkillElement(document, view, view.skill, register);
     if (view.pair !== null) return composePairElement(document, view, view.pair, register);
     if (view.drill !== null) {
         return composeDrillElement(document, view, view.drill, register);
     }
     return composeRankingElement(document, view.reading, view.current, register);
+}
+
+/** One skill opened: who it reached. The other last rung, and nothing on it opens either. */
+function composeSkillElement(
+    document: PanelDocument,
+    view: PanelView,
+    skill: SkillReading,
+    register: TipRegister,
+): PanelElement {
+    const rows = skill.byOpponent.rows.length + (skill.byOpponent.unnamed === null ? 0 : 1);
+    assert(rows > 0, "a skill that opens reached somebody");
+    const list = composeListElement(document, Math.max(rows + 1, view.reading.visibleRows));
+    const figure = getWordsForScreen(view.current);
+    assert(skill.total >= 0, "a skill opened states a figure that is not below nothing");
+    assert(skill.name.length > 0, "and the name it was announced under");
+    const heading = `${PANEL_WORDS.dealtTo} — ${skill.name}`;
+    list.append(composeSectionElement(document, heading, skill.total));
+    const share = PANEL_WORDS.shareOfFigure;
+    for (const row of skill.byOpponent.rows) {
+        const tip = { register, key: `reached:${row.combatantId}`, figure, share };
+        list.append(composeRowElement(document, composeCombatantReading(row, null), null, tip));
+    }
+    return list;
 }
 
 /**
@@ -1074,7 +1104,11 @@ function composePairSkills(
     ));
     for (const row of cut.rows) {
         const tip = { ...stated, key: `pair-skill:${row.name}` };
-        list.append(composeRowElement(document, composeSkillRowReading(row), null, tip));
+        const element = composeRowElement(document, composeSkillRowReading(row), null, tip);
+        // A skill opens onto who it reached, where that is anybody but the row it was opened
+        // from — every other skill row is a leaf.
+        if (row.opensSkill) setRowMarks([element], SKILL_ATTRIBUTE, row.name);
+        list.append(element);
     }
     if (cut.plain === null) return;
     const tip = { ...stated, key: "pair-skill:plain" };
@@ -1138,6 +1172,8 @@ function getPressFromTarget(
     if (side !== null) return { kind: "side", side };
     const stated = target.getAttribute(ROW_ATTRIBUTE);
     if (stated !== null) return { kind: "row", stated };
+    const name = target.getAttribute(SKILL_ATTRIBUTE);
+    if (name !== null) return { kind: "skill", name };
     if (target.getAttribute(SAVE_ATTRIBUTE) !== null) return { kind: "save" };
     if (target.getAttribute(COPY_ATTRIBUTE) !== null) return { kind: "copy" };
     if (target.getAttribute(SHELF_ATTRIBUTE) !== null) return { kind: "shelf" };

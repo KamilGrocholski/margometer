@@ -244,10 +244,15 @@ Deno.test("a cut by both ends comes to the same figure as the cut by one", () =>
                     assertEquals(total, amount, `${where}: the two cuts disagree about ${other}`);
                 }
             }
-            // And every skill is a part of what its announcer dealt, never more.
-            let bySkill = 0;
-            for (const skill of figures.damageDealtBySkill.values()) bySkill += skill.figure;
-            assert(bySkill <= figures.damageDealtApplied, `${where}: a skill dealt more than they`);
+            // And every skill is a part of what its announcer dealt or put back, never more.
+            let dealt = 0;
+            let restored = 0;
+            for (const skill of figures.skills.values()) {
+                dealt += skill.dealt;
+                restored += skill.restored;
+            }
+            assert(dealt <= figures.damageDealtApplied, `${where}: a skill dealt more than they`);
+            assert(restored <= figures.healthGiven, `${where}: a skill put back more than they`);
             assert(
                 figures.blowsWithoutSkill <= figures.blowsStruck,
                 `${where}: more blows nothing announced than blows`,

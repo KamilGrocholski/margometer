@@ -15,6 +15,7 @@ import {
     composeDrillReading,
     composePairReading,
     composePanelReading,
+    composeSkillReading,
 } from "@/src/ui/panel-reading.ts";
 import { getWordsForDamageKind, HEALTH_LOSS_WORDS } from "@/src/ui/panel-words.ts";
 import {
@@ -699,4 +700,83 @@ Deno.test("a pair that would only repeat the row above it does not open", () => 
     // Both answers occur on this fight, so neither branch of the rule is being read on faith.
     assert(opened > 0, "some pairs on this recording say more than the row above them");
     assert(closed > 0, "and some say exactly it");
+});
+
+/**
+ * A shape the recordings do not carry, held by a fight built by hand.
+ *
+ * Measured over `captures/` on 2026-08-29: one announced heal restores anything at all, and it
+ * restores it to the combatant who announced it — a self-cast, which is the one case this level
+ * refuses to open. So the announcement reaching somebody else is written out here rather than
+ * waiting for a recording of it.
+ */
+Deno.test("a skill that reached somebody else opens onto whom, and a self-cast does not", () => {
+    const { roster } = readFight(HILDUR);
+    const [healer, healed] = [...roster.byId.keys()];
+    assert(healer !== undefined && healed !== undefined, "the fight holds two people");
+    const announced = { skillName: "Dotyk anioła", skillId: 77, actorId: healer };
+    const statistics = composeFightStatistics([
+        {
+            kind: "skill-used",
+            actorId: healer,
+            targetId: healed,
+            actorHealthPercent: null,
+            targetHealthPercent: null,
+            skillName: announced.skillName,
+            skillId: announced.skillId,
+            declared: [],
+        },
+        {
+            kind: "health-change",
+            combatantId: healed,
+            amount: 500,
+            healthPercent: null,
+            source: "heal_target",
+            declared: [],
+            announced,
+        },
+    ], new Map());
+
+    const drill = composeDrillReading(statistics, roster, "healthGiven", healer);
+    assert(drill !== null, "the healer's row opens");
+    const row = drill.bySkill.rows.find((one) => one.name === announced.skillName);
+    assert(row !== undefined, "onto the skill they announced");
+    assertEquals(row.figure, 500, "at what it put back");
+    assertEquals(row.uses, 1, "and how many times it was announced");
+    assert(row.opensSkill, "and it opens, because it reached somebody other than them");
+
+    const skill = composeSkillReading(
+        statistics,
+        roster,
+        "healthGiven",
+        healer,
+        announced.skillName,
+    );
+    assert(skill !== null, "the skill opens");
+    assertEquals(skill.total, 500, "at the figure the row that opened it stated");
+    assertEquals(skill.byOpponent.rows.length, 1, "onto the one person it reached");
+    assertEquals(skill.byOpponent.rows[0]?.combatantId, healed, "who is that person");
+    assert(!(skill.byOpponent.rows[0]?.opensPair ?? true), "and nothing on this rung opens");
+
+    // The same skill cast on nobody but the one who announced it: the level under it would name
+    // the reader back to themselves, so there is nothing to open.
+    const alone = composeFightStatistics([
+        {
+            kind: "health-change",
+            combatantId: healer,
+            amount: 500,
+            healthPercent: null,
+            source: "heal_target",
+            declared: [],
+            announced,
+        },
+    ], new Map());
+    const own = composeDrillReading(alone, roster, "healthGiven", healer);
+    assert(own !== null, "a self-cast still opens the healer's own row");
+    assert(!(own.bySkill.rows[0]?.opensSkill ?? true), "and the skill on it opens nothing");
+    assertEquals(
+        composeSkillReading(alone, roster, "healthGiven", healer, announced.skillName),
+        null,
+        "which is what asking for that level answers",
+    );
 });
