@@ -11,6 +11,7 @@
  */
 
 import { assert } from "@std/assert";
+import { BUILD_VERSION } from "@/src/build-version.ts";
 import { getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
 import { PreviewBuildError } from "@/tools/margometer-tool-error.ts";
 import { buildUserscript } from "@/tools/build-userscript.ts";
@@ -18,7 +19,6 @@ import { buildUserscript } from "@/tools/build-userscript.ts";
 const CAPTURE_DIRECTORY = "captures";
 const PREVIEW_FILE = "dist/preview.html";
 const USERSCRIPT_FILE = "dist/margometer.user.js";
-const DEVELOPMENT_VERSION = "0.0.0-dev";
 /** A fight holds twenty and a long one runs to thousands of calls; this is well past both. */
 const MAXIMUM_CALLS = 100000;
 
@@ -161,7 +161,7 @@ select { font: inherit; }
 
 export async function buildPreview(): Promise<string> {
     assert(PREVIEW_FILE.endsWith(".html"), "a page a browser opens is written as one");
-    await buildUserscript(DEVELOPMENT_VERSION);
+    await buildUserscript(BUILD_VERSION);
     const bundle = await Deno.readTextFile(USERSCRIPT_FILE);
     if (bundle.length === 0) {
         throw new PreviewBuildError("the built file says nothing");

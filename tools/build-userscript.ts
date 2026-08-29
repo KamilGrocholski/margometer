@@ -7,14 +7,13 @@
  */
 
 import { assert } from "@std/assert";
+import { BUILD_VERSION } from "@/src/build-version.ts";
 import { UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
 
 const BUNDLE_ENTRY = "src/userscript-boot.ts";
 const USERSCRIPT_FILE = "dist/margometer.user.js";
 const METADATA_FILE = "dist/margometer.meta.js";
 const HOMEPAGE = "https://github.com/KamilGrocholski/margometer";
-/** The version a release passes in. A build nobody released says so rather than claim a number. */
-const DEVELOPMENT_VERSION = "0.0.0-dev";
 
 /** Worlds live on per-world subdomains; these are the operator's own site, not a world. */
 const NON_GAME_HOSTS = ["www", "forum", "commons", "pomoc"];
@@ -77,6 +76,22 @@ export function getOutboundCallsInText(text: string): string[] {
     return found;
 }
 
+/**
+ * The version, written into the built text. This is the whole of what **S8** allows a build to
+ * generate, and it throws rather than passing the text through: a constant that stopped being
+ * found would ship every release with the panel claiming `0.0.0-dev`, which nothing else here
+ * would notice.
+ */
+export function setVersionInBundle(bundle: string, version: string): string {
+    assert(version.length > 0, "a build states the version it is");
+    assert(BUILD_VERSION.length > 0, "and the constant it writes over is spelled");
+    const parts = bundle.split(BUILD_VERSION);
+    if (parts.length < 2) {
+        throw new UserscriptBuildError(`the bundle states no version to write over: ${version}`);
+    }
+    return parts.join(version);
+}
+
 async function bundleUserscript(): Promise<string> {
     const bundling = new Deno.Command(Deno.execPath(), {
         args: [
@@ -103,17 +118,18 @@ export async function buildUserscript(version: string): Promise<string> {
     if (bundle.length === 0) {
         throw new UserscriptBuildError("the bundler wrote nothing");
     }
-    const outbound = getOutboundCallsInText(bundle);
+    const stamped = setVersionInBundle(bundle, version);
+    const outbound = getOutboundCallsInText(stamped);
     if (outbound.length > 0) {
         throw new UserscriptBuildError(`the file could leave: ${outbound}`);
     }
-    await Deno.writeTextFile(USERSCRIPT_FILE, `${banner}${bundle}`);
+    await Deno.writeTextFile(USERSCRIPT_FILE, `${banner}${stamped}`);
     await Deno.writeTextFile(METADATA_FILE, banner);
     return USERSCRIPT_FILE;
 }
 
 if (import.meta.main) {
-    const version = Deno.args[0] ?? DEVELOPMENT_VERSION;
+    const version = Deno.args[0] ?? BUILD_VERSION;
     const written = await buildUserscript(version);
     console.log(`${written} at ${version}`);
 }

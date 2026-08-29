@@ -9,6 +9,7 @@
  */
 
 import { assert } from "@std/assert";
+import { BUILD_VERSION } from "@/src/build-version.ts";
 import type {
     DrillReading,
     ElementRow,
@@ -85,7 +86,14 @@ export interface PanelRoot {
 const HOST_NAME = "MargoMeter-Panel";
 const TITLE_CLASS = CLASS.title;
 const TITLE_NAME_CLASS = CLASS.titleName;
+const TITLE_VERSION_CLASS = CLASS.titleVersion;
 const PLACE_CLASS = CLASS.place;
+/**
+ * Which build drew this, on the host where anything outside the root can read it — a screenshot
+ * of the panel is a report, and a report that does not say which build made it is a claim about
+ * no particular version of the add-on.
+ */
+const VERSION_ATTRIBUTE = "data-margometer-version";
 const BODY_CLASS = CLASS.body;
 const ROW_CLASS = CLASS.row;
 const ROW_NAME_CLASS = CLASS.rowName;
@@ -264,6 +272,10 @@ function composeTitleElement(document: PanelDocument, place: string | null): Pan
     name.textContent = PANEL_WORDS.title;
     bar.append(name);
     assert(name.textContent.length > 0, "the panel says whose it is before anything else");
+    const version = composeElement(document, "span", TITLE_VERSION_CLASS);
+    version.textContent = BUILD_VERSION;
+    bar.append(version);
+    assert(version.textContent.length > 0, "and which build of it a reader is looking at");
     if (place === null) return bar;
     assert(place.length > 0, "a place that is drawn says something");
     const where = composeElement(document, "span", PLACE_CLASS);
@@ -634,6 +646,7 @@ export function composePanelHost(
     const host = document.createElement("div");
     assert(HOST_NAME.startsWith("MargoMeter-"), "the host is named as ours before anything else");
     host.setAttribute("id", HOST_NAME);
+    host.setAttribute(VERSION_ATTRIBUTE, BUILD_VERSION);
     const root = host.attachShadow({ mode: "open" });
     // The sheet is put in once and never replaced: a region redrawn under it keeps its look, and
     // a browser re-parses nothing on a redraw.

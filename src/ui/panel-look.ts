@@ -59,6 +59,7 @@ export const CLASS = {
     tabs: "MargoMeter-tabs",
     body: "MargoMeter-body",
     titleName: "title-name",
+    titleVersion: "title-version",
     place: "place",
     tab: "tab",
     tabCurrent: "tab-current",
@@ -367,6 +368,11 @@ function composeVariables(): string {
  *
  * `all: initial` is the Guest Rule's own half: nothing the game's stylesheet says reaches in, and
  * because it resets `display` too, every region below states its own.
+ *
+ * The title bar is `space-between` over three things, so the version would land in the middle of
+ * it. `margin-right:auto` on the version takes the free space instead, which is what keeps it
+ * beside the name and the place against the far edge — and the place is the only one of the three
+ * whose length this panel does not choose, so it is the only one that gives way.
  */
 function composeFrameRules(): string {
     assert(PLACE.width.endsWith("px"), "the panel is as wide as it was told, in pixels");
@@ -383,8 +389,11 @@ function composeFrameRules(): string {
         `gap:var(${VARIABLE_PREFIX}small);padding:var(${VARIABLE_PREFIX}small);` +
         `background:var(${VARIABLE_PREFIX}raised);` +
         `border-bottom:1px solid var(${VARIABLE_PREFIX}border);}` +
-        `.${CLASS.titleName}{font-weight:600;}` +
-        `.${CLASS.place}{color:var(${VARIABLE_PREFIX}quiet);}` +
+        `.${CLASS.titleName}{font-weight:600;flex:none;}` +
+        `.${CLASS.titleVersion}{color:var(${VARIABLE_PREFIX}quiet);flex:none;` +
+        `margin-right:auto;}` +
+        `.${CLASS.place}{color:var(${VARIABLE_PREFIX}quiet);overflow:hidden;` +
+        `text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tabs}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);` +
         `padding:var(${VARIABLE_PREFIX}half) var(${VARIABLE_PREFIX}small);` +
         `border-bottom:1px solid var(${VARIABLE_PREFIX}border);}` +

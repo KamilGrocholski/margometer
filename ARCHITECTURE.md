@@ -37,6 +37,7 @@ deno.lock          What the gate is actually run against. A package the lock doe
 .gitignore         What never enters git, including the cache.
 
 src/
+  build-version.ts     Which build this is. The one constant a build writes over — ADR 0012.
   userscript-boot.ts   What runs when the browser loads the built file, and the one cast.
   userscript-entry.ts  Where the layers meet: the game found, the payloads read, the panel drawn.
   core/
@@ -65,7 +66,7 @@ src/
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
 tools/             Never ships. Each arrives with the question it answers.
   build-preview.ts     A page that runs the add-on against the recordings, so it can be seen.
-  build-userscript.ts  The file a reader installs, and the two checks over the built text.
+  build-userscript.ts  The file a reader installs, the version written in, and two checks.
   margometer-tool-error.ts  The abstract brand a terminal failure wears, and the build's own.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
 frozen/            Dated readings of the game, written by tooling.
@@ -303,11 +304,13 @@ commit that opens or closes one.
    the kind of damage it carried — a finished fight goes on a shelf the reader can look back at, the
    bar and every row on that shelf say where the fight was fought, a ranking row wears its
    profession and carries its share as a bar, hovering a row opens the detail window that says in
-   full what the row had to cut, the panel carries the stylesheet `DESIGN.md` specifies and the
-   strip that always states the screen's own total, and `deno task build` writes the file they
+   full what the row had to cut, the bar says which build drew it and the host carries the same
+   number for a screenshot to be read by, the panel carries the stylesheet `DESIGN.md` specifies and
+   the strip that always states the screen's own total, and `deno task build` writes the file they
    install, and `deno task preview` writes a page that runs it against the recordings. What is not
-   written: the rest of the tools, and the release plumbing — `README.md`, `CHANGELOG.md` and the
-   workflows.
+   written: **the title bar's controls**, which `DESIGN.md` states beside the version and this bar
+   has none of — v1 had three, at `git show develop:src/ui/panel-element.ts` — and the rest of the
+   tools, and the release plumbing — `README.md`, `CHANGELOG.md` and the workflows.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.

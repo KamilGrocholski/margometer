@@ -7,10 +7,12 @@
  */
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
+import { BUILD_VERSION } from "@/src/build-version.ts";
 import {
     buildUserscript,
     composeUserscriptBanner,
     getOutboundCallsInText,
+    setVersionInBundle,
 } from "@/tools/build-userscript.ts";
 import { UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
 
@@ -41,11 +43,31 @@ Deno.test("a reader of the built text flags what would leave the browser", () =>
     assertEquals(getOutboundCallsInText("new WebSocket(url)"), ["new WebSocket"], "and so is this");
 });
 
+Deno.test("a build writes its version over the constant, and refuses a text without one", () => {
+    const said = `const version = "${BUILD_VERSION}"; console.log("${BUILD_VERSION}");`;
+    const written = setVersionInBundle(said, "1.2.3");
+    assertEquals(
+        written,
+        'const version = "1.2.3"; console.log("1.2.3");',
+        "every place the bundler inlined it is written over, not the first",
+    );
+    assertEquals(setVersionInBundle(said, BUILD_VERSION), said, "and a dev build changes nothing");
+    assertThrows(
+        () => setVersionInBundle("const version = 1;", "1.2.3"),
+        UserscriptBuildError,
+        "1.2.3",
+    );
+});
+
 Deno.test("the file that would be installed carries the banner and no way out", async () => {
     const written = await buildUserscript("1.2.3");
     const built = await Deno.readTextFile(written);
     assert(built.startsWith("// ==UserScript==\n"), "the banner is first, where a manager looks");
     assert(built.includes("// @version      1.2.3"), "at the version it was built for");
+    assert(
+        !built.includes(BUILD_VERSION),
+        "and the panel below says that version, not the dev one",
+    );
     assertEquals(getOutboundCallsInText(built), [], "and nothing in it can leave the browser");
     assert(built.length > 1000, "the bundle is in there beneath it");
 

@@ -10,6 +10,7 @@ import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import { BUILD_VERSION } from "@/src/build-version.ts";
 import { composePanelHost, type PanelPress } from "@/src/ui/panel-element.ts";
 import {
     composeDrillReading,
@@ -452,6 +453,31 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
     panel.show({ ...view, place: null });
     assertEquals(getTextsByClass(host, "place"), [], "and nothing at all where nothing was said");
     assertEquals(getTextsByClass(host, "title-name"), [PANEL_WORDS.title], "the bar standing on");
+});
+
+Deno.test("the panel says which build drew it, in the bar and on the host", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    const host = panel.element as FakeElement;
+    assertEquals(
+        host.attributes.get("data-margometer-version"),
+        BUILD_VERSION,
+        "the host states it where anything outside the root can read it",
+    );
+    panel.show({
+        reading: readFight(),
+        current: "damageDealtApplied",
+        shelf: [],
+        isOnShelf: false,
+        drill: null,
+        place: "Mapa (12, 34)",
+    });
+    assertEquals(
+        getTextsByClass(host, "title-version"),
+        [BUILD_VERSION],
+        "and the bar says it once, beside the name",
+    );
+    assertEquals(getTextsByClass(host, "place"), ["Mapa (12, 34)"], "with the place still drawn");
 });
 
 /** Whatever the detail is saying right now, read back out of the root it stands in. */

@@ -109,7 +109,7 @@ everything below them is not, because nothing outside the shadow root can see th
 | `.sides`, `.sides-label`, `.sides-track`, `.sides-region`                  | the summary under the list                                  |
 | `.warning`                                                                 | a total that may be too low, and why                        |
 | `.undrawn`                                                                 | a region that could not be rendered at all                  |
-| `.titlebar-version`                                                        | the version, why reports can be screenshots                 |
+| `.title-version`                                                           | the version, why reports can be screenshots                 |
 | `.titlebar-copy`                                                           | `⧉` copy the report                                         |
 | `.titlebar-raw`                                                            | `{ }` save the recording                                    |
 | `.titlebar-button` (bare)                                                  | `—` collapse                                                |

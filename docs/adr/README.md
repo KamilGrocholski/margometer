@@ -71,3 +71,5 @@ edited to agree with the new rule.
 - [0010](0010-sizing-a-share-onto-a-side.md) — Sizing a share onto a side. **Accepted**
 - [0011](0011-wording-a-kind-of-damage.md) — Wording a kind of damage, and what carries none.
   **Accepted**
+- [0012](0012-the-version-is-written-into-the-bundle.md) — The version is written into the bundle,
+  not into the tree. **Accepted**
