@@ -29,6 +29,7 @@ ARCHITECTURE.md    This file.
 SECURITY.md        Reading boundary, guest rules, captured material.
 DESIGN.md          The panel's visual system.
 NOTICE.md          What here is somebody else's, and on what basis.
+CHANGELOG.md       What a player is told changed, release by release. The body of a release.
 LICENSE            MIT — covers what was written here, and nothing else.
 TODO.md            The maintainer's list, by hand. Never written to by a tool.
 deno.json          Tasks, formatter, linter, strictness, the `@/` alias.
@@ -359,9 +360,9 @@ commit that opens or closes one.
    fired and the statistics an attacker destroyed — because `core/` carries each of them on the
    events it produces — `+crit` among `PROC_KEYS`, the destroyed statistics on their own field, and
    every blow's own figures — and `fight-statistics.ts` aggregates none of the four. The rest of the
-   tools and the release plumbing — `README.md`, `CHANGELOG.md`, and the `check` and `release`
-   workflows — are unwritten; `.github/workflows/pages.yml` is the one that exists, and nothing yet
-   consumes the photographs it does not publish.
+   tools and the release plumbing — `README.md` and the `check` and `release` workflows — are
+   unwritten; `.github/workflows/pages.yml` is the one that exists, and nothing yet consumes the
+   photographs it does not publish.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
@@ -430,8 +431,10 @@ commit that opens or closes one.
     `tests/userscript-entry.test.ts`, which now carries a block body and a comment saying why. A
     false positive is worse than a blind spot, so this is the next thing that guard should learn;
     gap 10 is the other half of the same reader.
-14. **No release exists on this branch.** `README.md`, `CHANGELOG.md`, the workflows and the
-    screenshots are unwritten; the release contract above is inherited from v1 and unexercised here.
+14. **No release exists on this branch.** `CHANGELOG.md` is written, carried from v1 and opened with
+    what the rewrite changed for a player; the tool that lifts a section out of it, the workflows
+    and the screenshots are not, and the release contract above is inherited from v1 and unexercised
+    here.
 15. **Nothing says which side is the reader's.** `PanelRow.side` carries the game's own team number
     and nothing turns it into `ours` or `theirs`: that needs `Engine.hero.d.id` read against
     `warriorsList`, which `game/` has not done. The two tokens `DESIGN.md` states for it are unspent
