@@ -106,6 +106,7 @@ tests/
     protocol-message.test.ts  The grammar, over every message the recordings carry.
     unknown-reading.test.ts   What counts as a shape worth reading, list and null included.
   tools/
+    browser-support.test.ts   Every construct the sheet spells, against the register, both ways.
     build-preview.test.ts     The page, read back: the order of its scripts, and its escaping.
     build-userscript.test.ts  The built file, read back: the banner, and no way out.
     capture-intake.test.ts    What intake refuses, and every admitted recording as a fixed point.
@@ -355,9 +356,12 @@ commit that opens or closes one.
    tables `deno fmt` aligns but never wraps. The line-length guard names them as excluded rather
    than skipping them quietly; rewrapping is a large diff on material this tree carries rather than
    authors, and waits until each document is next edited for its own reasons.
-7. **`docs/browser-support.md` describes a floor held over sources**, which is no longer how it is
-   held once the bundle carries standard-library code. Accurate about v1, stale about v2 until the
-   bundle-level guard lands.
+7. **Half of `docs/browser-support.md` is held and half is not.** Its CSS register is guarded by
+   `tests/tools/browser-support.test.ts`, which enumerates what `composeStyleSheet()` spells and
+   holds the document to it in both directions. Its **JavaScript** floor is the unheld half: the
+   document describes one checked over sources, and the ES level that matters is the bundle's once
+   the bundle carries standard-library code. `tsconfig.userscript.json` holds our own sources and
+   nothing else, and the bundle-level guard has not landed.
 8. **A ranking row states a profession in its hue alone.** The eight hues are assigned by the game's
    own letter and are stable across fights, but six professions cannot be made mutually
    distinguishable by hue on the panel's background — `DESIGN.md` measures that. The row carried the

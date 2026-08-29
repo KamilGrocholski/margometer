@@ -56,10 +56,13 @@ What follows from it:
 
 ## CSS
 
-The stylesheet is one string, `composePanelStyleText()` in `src/ui/panel-look.ts`, so what it spells
-is enumerable: every property, every `property: value` pair, every function and every selector. The
-guard reads that enumeration and requires each one to appear below, in the table or in the settled
-list. A property added with no entry here fails the gate.
+The stylesheet is one string, `composeStyleSheet()` in `src/ui/panel-look.ts`, so what it spells is
+enumerable: every property, every `property: value` pair, every function and every selector. The
+guard reads that enumeration and requires each one to appear below, in a table or in the settled
+list. A property added with no entry here fails the gate, **and so does an entry here naming
+something the sheet no longer spells** — a register that only grows describes a panel that stopped
+existing. `line-height` and `first-of-type` outlived their rules that way, and were found by the
+guard's first run on 2026-08-29.
 
 ### What sets the floor
 
@@ -123,37 +126,37 @@ property is, so a third rule reaching for `user-select` cannot quietly leave Saf
 
 ### Settled
 
-Everything else `composePanelStyleText()` spells. Each predates both tiers in every engine in scope
-by years, so no version is quoted: the claim is only that it is below the floor, and the floor is
-set above.
+Everything else `composeStyleSheet()` spells. Each predates both tiers in every engine in scope by
+years, so no version is quoted: the claim is only that it is below the floor, and the floor is set
+above.
 
 Properties: `align-items` · `align-self` · `all` · `background` · `border` · `border-bottom` ·
 `border-radius` · `border-top` · `bottom` · `box-shadow` · `box-sizing` · `color` · `cursor` ·
 `display` · `flex` · `flex-direction` · `flex-wrap` · `font` · `font-size` · `font-style` ·
 `font-variant-numeric` · `font-weight` · `gap` · `height` · `justify-content` · `left` ·
-`letter-spacing` · `line-height` · `margin` · `margin-bottom` · `margin-left` · `margin-right` ·
-`margin-top` · `max-height` · `min-height` · `opacity` · `overflow` · `overflow-x` · `overflow-y` ·
-`padding` · `padding-bottom` · `padding-left` · `padding-right` · `padding-top` · `pointer-events` ·
-`position` · `right` · `text-align` · `text-overflow` · `text-transform` · `top` · `touch-action` ·
+`letter-spacing` · `margin` · `margin-bottom` · `margin-left` · `margin-right` · `margin-top` ·
+`max-height` · `min-height` · `opacity` · `overflow` · `overflow-x` · `overflow-y` · `padding` ·
+`padding-bottom` · `padding-left` · `padding-right` · `padding-top` · `pointer-events` · `position`
+· `right` · `text-align` · `text-overflow` · `text-transform` · `top` · `touch-action` ·
 `white-space` · `width` · `z-index`
 
 Pairs: `-webkit-user-select: none` · `align-items: baseline` · `align-items: center` ·
-`align-self: center` · `align-self: stretch` · `all: initial` · `background: transparent` ·
-`border: solid` · `border-bottom: none` · `border-top: dashed` · `border-top: solid` ·
-`box-shadow: inset` · `box-sizing: border-box` · `color: inherit` · `cursor: help` · `cursor: move`
-· `cursor: pointer` · `display: block` · `display: flex` · `flex: auto` · `flex: none` ·
-`flex-direction: column` · `flex-wrap: wrap` · `font: sans-serif` · `font: system-ui` ·
-`font-style: italic` · `font-variant-numeric: tabular-nums` · `justify-content: center` ·
-`justify-content: space-between` · `margin-left: auto` · `mask-image: transparent` ·
-`overflow: hidden` · `overflow-x: hidden` · `overflow-y: auto` · `pointer-events: none` ·
-`position: absolute` · `position: fixed` · `position: relative` · `position: sticky` ·
-`scrollbar-color: transparent` · `scrollbar-gutter: stable` · `scrollbar-width: thin` ·
-`text-align: center` · `text-overflow: ellipsis` · `text-transform: uppercase` ·
-`touch-action: none` · `user-select: none` · `white-space: nowrap`
+`align-self: center` · `align-self: stretch` · `all: initial` · `background: currentColor` ·
+`background: transparent` · `border: solid` · `border-bottom: none` · `border-top: dashed` ·
+`border-top: solid` · `box-shadow: inset` · `box-sizing: border-box` · `color: inherit` ·
+`cursor: help` · `cursor: move` · `cursor: pointer` · `display: block` · `display: flex` ·
+`display: none` · `flex: auto` · `flex: none` · `flex-direction: column` · `flex-wrap: wrap` ·
+`font: sans-serif` · `font: system-ui` · `font-style: italic` · `font-variant-numeric: tabular-nums`
+· `justify-content: center` · `justify-content: space-between` · `margin-left: auto` ·
+`mask-image: transparent` · `overflow: hidden` · `overflow-x: hidden` · `overflow-y: auto` ·
+`pointer-events: none` · `position: absolute` · `position: fixed` · `position: relative` ·
+`position: sticky` · `scrollbar-color: transparent` · `scrollbar-gutter: stable` ·
+`scrollbar-width: thin` · `text-align: center` · `text-overflow: ellipsis` ·
+`text-transform: uppercase` · `touch-action: none` · `user-select: none` · `white-space: nowrap`
 
-Functions: `calc` · `min` · `repeating-linear-gradient` · `rgb` · `var`
+Functions: `calc` · `clamp` · `min` · `repeating-linear-gradient` · `rgb` · `var`
 
-Selectors: `first-of-type` · `host` · `hover`
+Selectors: `host` · `hover`
 
 ## The DOM
 
