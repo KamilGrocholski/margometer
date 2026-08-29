@@ -16,6 +16,7 @@ import {
     composePanelReading,
     type PanelReading,
 } from "@/src/ui/panel-reading.ts";
+import { composeBarColour, getColourForProfession } from "@/src/ui/panel-look.ts";
 import { getScreenFromName, SCREEN_ORDER, SHELF_SCREEN } from "@/src/ui/panel-screen.ts";
 import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
 import {
@@ -305,6 +306,38 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
     assertEquals(crumb.length, 1, "and one way back");
 });
 
+Deno.test("a ranking row's bar is its profession's, and colourless without one", () => {
+    const reading = readFight();
+    const host = draw(reading);
+    const rows = getElementsWithin(host).filter((one) => one.className === "row");
+    assertEquals(rows.length, reading.rows.length, "a row for each combatant");
+    for (const [at, drawn] of rows.entries()) {
+        const row = reading.rows[at];
+        assert(row !== undefined, "a row drawn is a row the reading holds");
+        const hue = composeBarColour(getColourForProfession(row.profession));
+        const bar = drawn.attributes.get("style") ?? "";
+        assert(bar.includes(hue), `${row.profession}: the bar is drawn in that profession's hue`);
+        assert(bar.includes(`${row.share * 100}%`), "and stops where that row's share does");
+    }
+    const nobody = composeBarColour(getColourForProfession(null));
+    const colourless = rows.filter((one) => (one.attributes.get("style") ?? "").includes(nobody));
+    // Every combatant in `captures/` states a profession, measured 2026-08-29, so the colourless
+    // bar is reachable only through a roster that says nothing — which is what the next line does.
+    assertEquals(colourless, [], "this fight names a profession for everybody in it");
+    const unstated = draw({
+        ...reading,
+        rows: reading.rows.map((one) => ({ ...one, profession: null })),
+    });
+    const bars = getElementsWithin(unstated).filter((one) => one.className === "row");
+    assert(bars.length > 0, "there are rows to draw");
+    for (const one of bars) {
+        assert(
+            (one.attributes.get("style") ?? "").includes(nobody),
+            "each takes the colourless one",
+        );
+    }
+});
+
 Deno.test("a kind's row carries its share as the row's own background", () => {
     const { reading, drill } = openFirstRow();
     const document = composeFakeDocument();
@@ -323,10 +356,10 @@ Deno.test("a kind's row carries its share as the row's own background", () => {
     });
     assertEquals(
         barred.length,
-        drill.byElement.length,
-        "a bar for each kind, and for nothing else",
+        drill.byOpponent.length + drill.byElement.length,
+        "a bar on every row of both cuts, and on nothing that is not a row",
     );
-    const first = barred[0];
+    const first = barred[drill.byOpponent.length];
     assert(first !== undefined, "there is a kind to draw a bar for");
     const drawn = first.attributes.get("style") ?? "";
     assert(

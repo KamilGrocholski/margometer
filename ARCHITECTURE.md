@@ -365,10 +365,8 @@ commit that opens or closes one.
     gap 10 is the other half of the same reader.
 14. **No release exists on this branch.** `README.md`, `CHANGELOG.md`, the workflows and the
     screenshots are unwritten; the release contract above is inherited from v1 and unexercised here.
-15. **A ranking row draws no bar, because nothing can say what colour it should be.** A kind's row
-    carries its share as its own background in the element palette, which `DESIGN.md` states and the
-    kind's own word accompanies. A combatant's row has no such colour: `ours` and `theirs` are the
-    tokens for it, and which side is the reader's is not resolvable here — `PanelRow.side` carries
-    the game's own team number, and reading `Engine.hero.d.id` against `warriorsList` is work
-    `game/` has not done. Colour alone could not carry the side in any case, so what the row would
-    need beside the bar is open too.
+15. **Nothing says which side is the reader's.** `PanelRow.side` carries the game's own team number
+    and nothing turns it into `ours` or `theirs`: that needs `Engine.hero.d.id` read against
+    `warriorsList`, which `game/` has not done. The two tokens `DESIGN.md` states for it are unspent
+    — a ranking row is coloured by profession instead, which needs no side. Whatever spends them
+    will need a carrier that is not colour, so the two halves open together.

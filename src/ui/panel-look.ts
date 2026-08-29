@@ -33,8 +33,12 @@ export const SIGNAL = {
     unknown: "#8a8a80",
 } as const;
 
-/** Eight hues for the damage elements. The corpus states ten, so two of them share. */
-export const ELEMENT_COLOURS = [
+/**
+ * The eight hues, spent twice over: once on the kinds of damage and once on the professions.
+ * Neither list ever stands beside the other — a ranking row is a person and a cut row is a kind —
+ * so a hue meaning two things in two places costs a reader nothing.
+ */
+export const PALETTE_COLOURS = [
     "#3987e5",
     "#008300",
     "#d55181",
@@ -234,10 +238,10 @@ const ELEMENT_HUES: Record<string, number> = {
 
 export function getColourForElement(element: string): string {
     assert(element.length > 0, "an element is named");
-    assert(ELEMENT_COLOURS.length > 0, "the palette holds the hues the design states");
+    assert(PALETTE_COLOURS.length > 0, "the palette holds the hues the design states");
     const stated = ELEMENT_HUES[element];
     if (stated !== undefined) {
-        const held = ELEMENT_COLOURS[stated];
+        const held = PALETTE_COLOURS[stated];
         assert(held !== undefined, "a stated hue is a place inside the palette");
         return held;
     }
@@ -245,33 +249,63 @@ export function getColourForElement(element: string): string {
     let sum = 0;
     for (const character of element) sum += character.charCodeAt(0);
     assert(sum > 0, "a named key sums to something");
-    const colour = ELEMENT_COLOURS[sum % ELEMENT_COLOURS.length];
+    const colour = PALETTE_COLOURS[sum % PALETTE_COLOURS.length];
     assert(colour !== undefined, "a place inside the palette holds a colour");
     return colour;
 }
 
-function composeBarChannels(element: string): number[] {
-    const hue = getChannelsFromColour(getColourForElement(element));
+function composeBarChannels(hue: string): number[] {
+    const chosen = getChannelsFromColour(hue);
     const track = getChannelsFromColour(SURFACE.track);
-    assert(hue !== null, "the palette is written as colours");
+    assert(chosen !== null, "the palette is written as colours");
     assert(track !== null, "and so is the track they sit on");
-    assert(hue.length === track.length, "a hue and a track are mixed channel for channel");
-    return hue.map((channel, at) =>
+    assert(chosen.length === track.length, "a hue and a track are mixed channel for channel");
+    return chosen.map((channel, at) =>
         Math.round((track[at] ?? 0) * (1 - BAR_TINT) + channel * BAR_TINT)
     );
 }
 
 /** The bar is the row's own background, tinted over the track rather than laid on top of it. */
-export function composeBarColour(element: string): string {
-    assert(element.length > 0, "a bar is drawn for an element that is named");
-    const mixed = composeBarChannels(element);
+export function composeBarColour(hue: string): string {
+    assert(hue.length > 0, "a bar is drawn in a colour that was chosen");
+    const mixed = composeBarChannels(hue);
     assert(mixed.length === CHANNELS_IN_A_COLOUR, "a bar is three channels like any other");
     return `rgb(${mixed[0]} ${mixed[1]} ${mixed[2]})`;
 }
 
 /** The ink a figure printed over that bar takes, computed from the bar and not from the hue. */
-export function getInkForBar(element: string): string {
-    return getInkForChannels(composeBarChannels(element));
+export function getInkForBar(hue: string): string {
+    return getInkForChannels(composeBarChannels(hue));
+}
+
+/**
+ * Profession → hue, which is the pattern damage meters have used for twenty years: the bar says
+ * **what** somebody is and the name beside it says **who**. Two mages take one colour on purpose.
+ *
+ * The codes are the game's own single letters, kept as the game spells them. Carried from v1
+ * (`git show develop:src/ui/panel-look.ts`) rather than re-chosen: the same six letters get the
+ * same six hues, so a reader coming from that panel is not asked to relearn a colour. Every one
+ * of them is stated in `captures/` — 262 combatants over 28 recordings on 2026-08-29, none of
+ * them without a profession, `w` 91 of them and `b` 17.
+ */
+const PROFESSION_HUES: Record<string, number> = {
+    m: 0,
+    h: 1,
+    p: 2,
+    t: 3,
+    b: 4,
+    w: 5,
+};
+
+/** Colourless where the game named no profession: unknown is the absence of a category. */
+export function getColourForProfession(profession: string | null): string {
+    if (profession === null) return SIGNAL.unknown;
+    assert(profession.length > 0, "a profession that was stated says something");
+    const stated = PROFESSION_HUES[profession];
+    if (stated === undefined) return SIGNAL.unknown;
+    const held = PALETTE_COLOURS[stated];
+    assert(held !== undefined, "a stated hue is a place inside the palette");
+    return held;
 }
 
 /** Ours, because `all: initial` resets every property a page can set except a custom one. */

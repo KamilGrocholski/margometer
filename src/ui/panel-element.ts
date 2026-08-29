@@ -28,6 +28,8 @@ import {
     composeBarColour,
     composeShareBackground,
     composeStyleSheet,
+    getColourForElement,
+    getColourForProfession,
 } from "@/src/ui/panel-look.ts";
 import {
     composeCountedNoun,
@@ -130,6 +132,12 @@ function composeRowElement(
 ): PanelElement {
     assert(row.figure >= 0, "a row drawn states a figure that is not below nothing");
     const element = composeElement(document, "div", ROW_CLASS);
+    // The bar says what somebody is and the name beside it says who, so the colour is never the
+    // only thing carrying anything. A combatant the game named no profession for takes the
+    // colourless one, which is the absence of a category rather than a category of its own.
+    const hue = getColourForProfession(row.profession);
+    const bar = composeShareBackground(composeBarColour(hue), row.share);
+    element.setAttribute(STYLE_ATTRIBUTE, `background-image:${bar}`);
     const name = composeElement(document, "span", ROW_NAME_CLASS);
     name.textContent = row.name ?? PANEL_WORDS.unknown;
     const figure = composeElement(document, "span", ROW_FIGURE_CLASS);
@@ -262,7 +270,10 @@ function composeBodyElement(document: PanelDocument, reading: PanelReading): Pan
 function composeElementRowElement(document: PanelDocument, row: ElementRow): PanelElement {
     assert(row.figure >= 0, "a kind drawn states a figure that is not below nothing");
     const element = composeElement(document, "div", ROW_CLASS);
-    const bar = composeShareBackground(composeBarColour(row.element), row.share);
+    const bar = composeShareBackground(
+        composeBarColour(getColourForElement(row.element)),
+        row.share,
+    );
     element.setAttribute(STYLE_ATTRIBUTE, `background-image:${bar}`);
     const name = composeElement(document, "span", ROW_NAME_CLASS);
     name.textContent = getWordsForElement(row.element);

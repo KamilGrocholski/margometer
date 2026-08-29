@@ -11,11 +11,12 @@ import {
     composeBarColour,
     composeShareBackground,
     composeStyleSheet,
-    ELEMENT_COLOURS,
     getColourForElement,
+    getColourForProfession,
     getContrastRatio,
     getInkForBar,
     getInkForColour,
+    PALETTE_COLOURS,
     SIGNAL,
     SURFACE,
     TEXT,
@@ -24,6 +25,8 @@ import {
 /** WCAG AA for text at the size this panel prints figures, and for a mark that is not text. */
 const AA_TEXT_RATIO = 4.5;
 const AA_MARK_RATIO = 3;
+/** Every profession the recordings state, measured over `captures/` on 2026-08-29. */
+const PROFESSIONS = ["w", "m", "h", "t", "p", "b"];
 /** Every element the recordings state, measured over `captures/` on 2026-08-28. */
 const ELEMENTS = [
     "dmg",
@@ -62,36 +65,56 @@ Deno.test("text over every surface clears AA", () => {
     assert(getContrastRatio(TEXT.quiet, SURFACE.panel) >= AA_TEXT_RATIO, "and under a label");
 });
 
-Deno.test("a figure printed on a bar clears AA, whatever the element", () => {
+Deno.test("a figure printed on a bar clears AA, whatever the bar was drawn for", () => {
+    // Every hue the panel can put under a figure: a kind of damage in a cut, a profession on a
+    // ranking row, and the colourless one a combatant the game named no profession for takes.
+    const hues = [
+        ...ELEMENTS.map((one) => getColourForElement(one)),
+        ...PROFESSIONS.map((one) => getColourForProfession(one)),
+        getColourForProfession(null),
+    ];
     let lightest = 21;
-    for (const element of ELEMENTS) {
-        const bar = composeBarColour(element);
-        const ink = getInkForBar(element);
-        const ratio = getContrastRatio(ink, bar);
-        assert(ratio >= AA_TEXT_RATIO, `${element}: ${ratio.toFixed(2)} on ${bar}`);
+    for (const hue of hues) {
+        const bar = composeBarColour(hue);
+        const ratio = getContrastRatio(getInkForBar(hue), bar);
+        assert(ratio >= AA_TEXT_RATIO, `${hue}: ${ratio.toFixed(2)} on ${bar}`);
         lightest = Math.min(lightest, ratio);
     }
+    assert(hues.length > PALETTE_COLOURS.length, "more pairings were checked than there are hues");
     assert(lightest >= AA_TEXT_RATIO, "the worst pairing the panel can draw still clears it");
+});
+
+Deno.test("a profession keeps its colour, and one the game did not state is colourless", () => {
+    const taken = PROFESSIONS.map((one) => getColourForProfession(one));
+    assertEquals(new Set(taken).size, PROFESSIONS.length, "each of the six takes a hue of its own");
+    for (const one of taken) {
+        assert(PALETTE_COLOURS.some((hue) => hue === one), `${one} comes out of the palette`);
+    }
+    assertEquals(getColourForProfession("m"), getColourForProfession("m"), "the same every fight");
+    assertEquals(getColourForProfession(null), SIGNAL.unknown, "and none stated is colourless");
+    assertEquals(getColourForProfession("z"), SIGNAL.unknown, "as is one nobody has a hue for");
+    const eight: readonly string[] = PALETTE_COLOURS;
+    assert(!eight.includes(SIGNAL.unknown), "which is not one of the eight, so it reads apart");
 });
 
 Deno.test("an element keeps its colour, and the palette is smaller than the protocol", () => {
     assertEquals(getColourForElement("dmgf"), getColourForElement("dmgf"), "the same every fight");
-    const common = ELEMENTS.slice(0, ELEMENT_COLOURS.length);
+    const common = ELEMENTS.slice(0, PALETTE_COLOURS.length);
     const spread = new Set(common.map((one) => getColourForElement(one)));
-    assertEquals(spread.size, ELEMENT_COLOURS.length, "the eight most stated take a hue each");
+    assertEquals(spread.size, PALETTE_COLOURS.length, "the eight most stated take a hue each");
     const taken = new Set(ELEMENTS.map((one) => getColourForElement(one)));
-    assertEquals(taken.size, ELEMENT_COLOURS.length, "and the two rarest share with two of them");
-    assert(ELEMENTS.length > ELEMENT_COLOURS.length, "ten keys into eight hues means two share");
+    assertEquals(taken.size, PALETTE_COLOURS.length, "and the two rarest share with two of them");
+    assert(ELEMENTS.length > PALETTE_COLOURS.length, "ten keys into eight hues means two share");
     const unseen = getColourForElement("dmgx");
     assertEquals(unseen, getColourForElement("dmgx"), "a key nobody has seen still keeps a hue");
-    assert(ELEMENT_COLOURS.some((one) => one === unseen), "and takes one from the palette");
+    assert(PALETTE_COLOURS.some((one) => one === unseen), "and takes one from the palette");
 });
 
 Deno.test("the ink is computed, and at this tint every bar takes the light one", () => {
     assertEquals(getInkForColour("#ffffff"), TEXT.inkDark, "a light surface takes the dark ink");
     assertEquals(getInkForColour("#000000"), TEXT.inkLight, "and a dark one takes the light");
     assertEquals(getInkForColour("nothing"), TEXT.inkLight, "an unreadable colour takes the light");
-    const inks = new Set(ELEMENTS.map((one) => getInkForBar(one)));
+    const inks = new Set(ELEMENTS.map((one) => getInkForBar(getColourForElement(one))));
     // Measured, not designed: at a tint of 0.55 over this track no bar is light enough for the
     // dark ink, which is why that token is reachable only by a lighter bar than the panel draws.
     assertEquals([...inks], [TEXT.inkLight], "every bar the panel draws takes the light ink");
@@ -135,11 +158,11 @@ Deno.test("a value is written once, and every rule spends it by name", () => {
 });
 
 Deno.test("a bar is the row's own background, and it stops where the share does", () => {
-    const whole = composeShareBackground(ELEMENT_COLOURS[0] ?? "", 1);
+    const whole = composeShareBackground(PALETTE_COLOURS[0] ?? "", 1);
     assert(whole.includes("100%"), "a whole share runs the width of the row");
-    const none = composeShareBackground(ELEMENT_COLOURS[0] ?? "", 0);
+    const none = composeShareBackground(PALETTE_COLOURS[0] ?? "", 0);
     assert(none.includes("0%"), "and nothing measured draws nothing, which is not unknown");
-    const half = composeShareBackground(ELEMENT_COLOURS[0] ?? "", 0.5);
+    const half = composeShareBackground(PALETTE_COLOURS[0] ?? "", 0.5);
     assert(half.includes("50%"), "a half share stops halfway");
     assert(half.startsWith("linear-gradient("), "the bar is the background, not an element in it");
     assertEquals(half.split("transparent").length, 2, "and the row behind it shows past the stop");

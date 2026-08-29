@@ -26,6 +26,8 @@ export interface PanelRow {
     /** Null where the roster could not say, which the panel draws as unknown rather than blank. */
     name: string | null;
     side: number | null;
+    /** The game's own one-letter code, or null where it stated none. The bar is drawn from it. */
+    profession: string | null;
     figure: number;
     /** The row against the fight's total. Zero where the fight has no figure of that kind. */
     share: number;
@@ -95,6 +97,7 @@ export function composePanelReading(
             combatantId,
             name: held?.name ?? null,
             side: held?.side ?? null,
+            profession: held?.profession ?? null,
             share: total === 0 ? 0 : figure / total,
             figure,
         });
@@ -105,6 +108,7 @@ export function composePanelReading(
             combatantId: combatant.id,
             name: combatant.name,
             side: combatant.side,
+            profession: combatant.profession,
             figure: 0,
             share: 0,
         });
@@ -224,6 +228,7 @@ export function composeDrillReading(
             combatantId: other,
             name: held?.name ?? null,
             side: held?.side ?? null,
+            profession: held?.profession ?? null,
             figure,
             share: total === 0 ? 0 : figure / total,
         });

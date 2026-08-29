@@ -82,12 +82,18 @@ the two inks a bar gets is computed from the bar's colour, not chosen by hand.
 `ours` and `theirs` are **not** green-good and red-bad: they are two sides, and the panel takes no
 view on which one the reader should be pleased about.
 
-### Element palette
+### The palette
 
-Eight hues carry the damage elements, and they are assigned by key rather than by rank, so the same
-element is the same colour in every fight:
+Eight hues, spent twice over — once on the damage elements and once on the professions. Both are
+assigned by the game's own key rather than by rank, so the same element and the same profession are
+the same colour in every fight:
 
 `#3987e5` `#008300` `#d55181` `#c98500` `#199e70` `#d95926` `#9085e9` `#e66767`
+
+A hue means one thing on a ranking row and another in a cut, and an opened row does put the two
+lists one above the other — each under its own heading, and a warrior's orange sits above a fire
+row's orange there. It costs nothing, because in neither list is the colour what a reader reads: the
+name says **who** and the bar says **what** somebody is, while a cut row is worded outright.
 
 A bar is drawn at `barTint` `0.55` against `track`, which is what keeps eight saturated hues from
 competing with the figures printed over them.
