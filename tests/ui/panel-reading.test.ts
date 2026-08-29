@@ -116,7 +116,11 @@ Deno.test("a figure nobody can be charged with stands apart from the rows", () =
     // Zero on this recording, which is the boundary the other side of the same rule: a figure of
     // nothing is not pinned at all, because a row saying nothing was lost states a loss.
     assertEquals(statistics.takenByNobody, 0, "every blow in this fight found somebody");
-    assertEquals(taken.pinned, [], "so the taking side pins nothing");
+    assertEquals(
+        taken.pinned.map((one) => one.standing),
+        ["cut"],
+        "so the taking side pins only what its own rows already hold",
+    );
 });
 
 Deno.test("a fight with an unread key says every figure on it may be short", () => {
@@ -129,7 +133,7 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
         null,
     );
     assertEquals(whole.statistics.unreadMessages, 0, "every key this fight carries is read");
-    assert(!readable.isSuspect, "so nothing on the screen is marked as short");
+    assertEquals(readable.warnings, [], "so nothing on the screen is qualified");
 
     // A probe, because no recording carries an unread key any more: the next protocol change is
     // what this mark exists for.
@@ -141,7 +145,7 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
         "everyone",
         null,
     );
-    assert(short.isSuspect, "a key nobody has read leaves every figure beside it suspect");
+    assertEquals(short.warnings.length, 1, "a key nobody read qualifies the figure beside it");
     for (const metric of SCREENS) {
         const any = composePanelReading(
             composeFightStatistics(events, new Map()),
@@ -150,7 +154,7 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
             "everyone",
             null,
         );
-        assert(any.isSuspect, `${metric}: an unread key could have carried anything`);
+        assertEquals(any.warnings.length, 1, `${metric}: an unread key could carry anything`);
     }
 });
 
@@ -171,17 +175,18 @@ Deno.test("a cast nobody could place shortens the healing, and says so only ther
     for (const metric of SCREENS) {
         const reading = composePanelReading(unplaced, roster, metric, "everyone", null);
         if (metric === "healthRestored" || metric === "healthGiven") {
-            assert(
-                reading.isSuspect,
+            assertEquals(
+                reading.warnings.length,
+                1,
                 "what a cast puts back is health, so both halves of it may be short",
             );
             continue;
         }
-        assert(!reading.isSuspect, `${metric}: a cast cannot shorten a figure it never fed`);
+        assertEquals(reading.warnings, [], `${metric}: a cast never shortens what it never fed`);
     }
     assertEquals(
-        composePanelReading(statistics, roster, "healthRestored", "everyone", null).isSuspect,
-        false,
+        composePanelReading(statistics, roster, "healthRestored", "everyone", null).warnings,
+        [],
         "and a fight whose casts all placed says nothing",
     );
 });
@@ -481,7 +486,11 @@ Deno.test("healing given is a screen of its own, and the two halves come to one 
         "and every point given is a point somebody received",
     );
     assertEquals(given.pinned[0]?.end, "actor", "the giving side names the giver it could not");
-    assertEquals(received.pinned, [], "and the receiving side pins nothing at all");
+    assertEquals(given.pinned[0]?.standing, "apart", "as a figure no row above it holds");
+    // The same points from the other end: the rows there hold them, so the row saying so is a cut
+    // of the ranking rather than another part of it.
+    assertEquals(received.pinned.map((one) => one.standing), ["cut"], "and the receiving side");
+    assertEquals(received.pinned[0]?.figure, given.pinned[0]?.figure, "at the same figure");
 });
 
 Deno.test("healing given and received come to one figure in every recording", () => {
@@ -501,4 +510,80 @@ Deno.test("healing given and received come to one figure in every recording", ()
             `${path}: a point put back is counted once at each end`,
         );
     }
+});
+
+/**
+ * How a fight went is the one reading composed from the client's own word about the seat rather
+ * than from the protocol, which names both sides and says nothing about which is the reader's.
+ */
+Deno.test("a fight that ended says so from a seat, and says nothing without one", () => {
+    const { roster, statistics } = readFight(HILDUR);
+    const outcome = statistics.outcome;
+    assert(outcome !== null, "this fight states how it ended");
+    assert(outcome.wonNames.length > 0, "naming the side that won");
+    assert(outcome.lostNames.length > 0, "and the side that lost");
+    const sides = [...new Set([...roster.byId.values()].map((one) => one.side))];
+    const said = sides.map((side) =>
+        composePanelReading(statistics, roster, "damageDealtApplied", "everyone", side).outcome
+    );
+    assertEquals([...said].sort(), ["lost", "won"], "one seat won it and the other lost it");
+    const seatless = composePanelReading(
+        statistics,
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        null,
+    );
+    // Not a loss and not a win: a fight the panel cannot place is not a fight it may call either.
+    assertEquals(seatless.outcome, null, "a reader whose seat nobody stated is told nothing");
+});
+
+Deno.test("every recording states how it ended, and every seat in it reads a word", () => {
+    let stated = 0;
+    let seats = 0;
+    for (const path of getRecordingPaths()) {
+        const { roster, statistics } = readFight(path);
+        if (statistics.outcome !== null) stated += 1;
+        for (const side of new Set([...roster.byId.values()].map((one) => one.side))) {
+            const reading = composePanelReading(
+                statistics,
+                roster,
+                "healthGiven",
+                "everyone",
+                side,
+            );
+            assert(reading.outcome !== null, `${path}: a seat this fight named reads no word`);
+            seats += 1;
+        }
+    }
+    // 28 recordings, one of which carries no roster at all and so has no seat to read from.
+    assertEquals(stated, getRecordingPaths().length, "every recording carries an outcome");
+    assertEquals(seats, 54, "and 27 of them state two sides apiece");
+});
+
+/**
+ * The two ways a figure the protocol half-named can stand against the ranking, and the arithmetic
+ * that tells them apart: a cut is already inside the rows, so it takes no part of the hundred.
+ */
+Deno.test("a figure the rows already hold is a cut of them, not another part of the whole", () => {
+    const { roster, statistics } = readFight(HILDUR);
+    const taken = composePanelReading(statistics, roster, "damageTakenApplied", "everyone", null);
+    const cut = taken.pinned.find((one) => one.standing === "cut");
+    assert(cut !== undefined, "in this fight somebody was struck by nobody the game named");
+    assertEquals(cut.end, "actor", "and what it says is missing is who struck");
+    const rows = taken.rows.map((one) => Number(one.shareText.slice(0, -1)));
+    const together = rows.reduce((sum, one) => sum + one, 0);
+    // The rows come to the whole on their own: the cut states a share of the same whole and adds
+    // nothing to it, which is the overlap being drawn rather than hidden.
+    assertEquals(together, 100, "the ranked rows are the whole screen by themselves");
+    assert(cut.figure > 0, "while the cut still states a figure of its own");
+    assertEquals(taken.total, statistics.totals.damageTakenApplied, "and the total is the fight's");
+
+    const dealt = composePanelReading(statistics, roster, "damageDealtApplied", "everyone", null);
+    const apart = dealt.pinned.find((one) => one.standing === "apart");
+    assert(apart !== undefined, "the dealing side holds a figure no row above it does");
+    const dealtRows = dealt.rows.map((one) => Number(one.shareText.slice(0, -1)));
+    const dealtTogether = dealtRows.reduce((sum, one) => sum + one, 0);
+    const pinnedShare = Number(apart.shareText.slice(0, -1));
+    assertEquals(dealtTogether + pinnedShare, 100, "and there it is one of the parts of the whole");
 });

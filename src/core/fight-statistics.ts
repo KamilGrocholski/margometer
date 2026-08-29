@@ -35,10 +35,29 @@ export interface CombatantFigures {
      * is the panel's to fold and never to compute: adding one row's figure to another's is a
      * statistic across combatants, and these are one combatant's own.
      */
+    /**
+     * The same figures, kept apart by which end the protocol left out. A figure charged to a side
+     * is charged by the end the game **did** name, so the panel needs to know whose row holds it:
+     * these are that row's own share of what the fight-wide counts below hold.
+     */
+    damageTakenFromNobody: number;
+    damageDealtToNobody: number;
+    healthRestoredByNobody: number;
     damageDealtByElement: Map<string, number>;
     damageTakenByElement: Map<string, number>;
     damageDealtByOpponent: Map<string, number>;
     damageTakenByOpponent: Map<string, number>;
+}
+
+/**
+ * How the fight ended, as the protocol states it: the two sides by name, and the draw it states
+ * by naming nobody. Both lists rather than one, because which of them holds the reader is what
+ * decides the word — and a fight naming one side says nothing about who was on the other.
+ */
+export interface FightOutcome {
+    wonNames: string[];
+    lostNames: string[];
+    isDrawn: boolean;
 }
 
 export interface FightStatistics {
@@ -53,10 +72,17 @@ export interface FightStatistics {
     takenByNobody: number;
     /** Restored health no giver could be read for: 9.4% of it over `captures/`, 2026-08-29. */
     givenByNobody: number;
+    /**
+     * What the protocol named **neither** end of, which is the one figure no side can be charged
+     * with: it is inside `dealtByNobody` and `takenByNobody` both, and on nobody's row.
+     */
+    byNeitherEnd: number;
     /** Messages the decoder could not read, which is what makes a total suspect. */
     unreadMessages: number;
     /** Casts stated about a side that nobody could size onto its members, whole or in part. */
     castsUnplaced: number;
+    /** Null until the game says the fight is over, which it may never do on a fight left early. */
+    outcome: FightOutcome | null;
 }
 
 function composeCombatantFigures(): CombatantFigures {
@@ -69,6 +95,9 @@ function composeCombatantFigures(): CombatantFigures {
         damagePrevented: 0,
         healthRestored: 0,
         healthGiven: 0,
+        damageTakenFromNobody: 0,
+        damageDealtToNobody: 0,
+        healthRestoredByNobody: 0,
         damageDealtByElement: new Map(),
         damageTakenByElement: new Map(),
         damageDealtByOpponent: new Map(),
@@ -114,7 +143,24 @@ interface StatisticsBuild {
     dealtByNobody: number;
     takenByNobody: number;
     givenByNobody: number;
+    byNeitherEnd: number;
     unreadMessages: number;
+    outcome: FightOutcome | null;
+}
+
+/**
+ * How the fight ended, as it arrives: one message names the winners and another the losers, and a
+ * draw is the winners' key naming nobody. A later statement replaces an earlier one on its own
+ * side and leaves the other standing, because the two are separate claims about one fight.
+ */
+function addFightOutcome(build: StatisticsBuild, event: BattleEvent): void {
+    if (event.kind !== "fight-outcome") return;
+    const held = build.outcome ?? { wonNames: [], lostNames: [], isDrawn: false };
+    assert(event.combatantNames.every((one) => one.length > 0), "a side named is named in full");
+    if (event.result === "drawn") build.outcome = { ...held, isDrawn: true };
+    if (event.result === "won") build.outcome = { ...held, wonNames: [...event.combatantNames] };
+    if (event.result === "lost") build.outcome = { ...held, lostNames: [...event.combatantNames] };
+    assert(build.outcome !== null, "a fight that stated its end holds one");
 }
 
 function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
@@ -136,10 +182,11 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
         }
     }
     if (event.targetId === null) {
-        build.takenByNobody += applied;
+        addBlowWithNoTarget(build, event.actorId, applied);
         return;
     }
     const target = getFiguresForCombatant(build.byCombatantId, event.targetId);
+    if (event.actorId === null) target.damageTakenFromNobody += applied;
     target.damageTakenRaw += raw;
     target.damageTakenApplied += applied;
     for (const figure of event.applied) {
@@ -166,10 +213,11 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
         }
     }
     if (event.targetId === null) {
-        build.takenByNobody += amount;
+        addBlowWithNoTarget(build, event.actorId, amount);
         return;
     }
     const target = getFiguresForCombatant(build.byCombatantId, event.targetId);
+    if (event.actorId === null) target.damageTakenFromNobody += amount;
     target.damageTakenApplied += amount;
     addToCut(target.damageTakenByElement, event.damage.element, amount);
     if (event.actorId !== null) addToCut(target.damageTakenByOpponent, `${event.actorId}`, amount);
@@ -194,15 +242,40 @@ function getGiverId(
     return healedId;
 }
 
-/** The giving half of one movement, kept beside the receiving half so the two cannot drift. */
-function addGivenHealth(build: StatisticsBuild, giverId: number | null, amount: number): void {
+/**
+ * The giving half of one movement, kept beside the receiving half so the two cannot drift. Where
+ * no giver can be read the receiver's own row keeps the amount as well, because that row is the
+ * end the protocol **did** name — and the end it named is the only thing a side may be read from.
+ */
+function addGivenHealth(
+    build: StatisticsBuild,
+    giverId: number | null,
+    amount: number,
+    healedId: number | null,
+): void {
     assert(amount >= 0, "restored health is never below nothing");
     if (giverId === null) {
         build.givenByNobody += amount;
         assert(build.givenByNobody >= amount, "a total only grows by what it was handed");
+        if (healedId === null) return;
+        getFiguresForCombatant(build.byCombatantId, healedId).healthRestoredByNobody += amount;
         return;
     }
     getFiguresForCombatant(build.byCombatantId, giverId).healthGiven += amount;
+}
+
+/**
+ * A blow the protocol found no target for. Where it names no actor either, nobody's row holds it
+ * and no side can be charged with it: it is counted apart rather than folded into either count.
+ */
+function addBlowWithNoTarget(build: StatisticsBuild, actorId: number | null, amount: number): void {
+    assert(amount >= 0, "a blow lands no less than nothing");
+    build.takenByNobody += amount;
+    if (actorId === null) {
+        build.byNeitherEnd += amount;
+        return;
+    }
+    getFiguresForCombatant(build.byCombatantId, actorId).damageDealtToNobody += amount;
 }
 
 /** Health moving outside a blow. What restored it is the key, and the key says who gave it. */
@@ -213,6 +286,7 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
         if (event.amount >= 0) return;
         build.takenByNobody += -event.amount;
         build.dealtByNobody += -event.amount;
+        build.byNeitherEnd += -event.amount;
         return;
     }
     const figures = getFiguresForCombatant(build.byCombatantId, event.combatantId);
@@ -222,10 +296,12 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
             build,
             getGiverId(event.source, event.combatantId, event.announced),
             event.amount,
+            event.combatantId,
         );
         return;
     }
     figures.damageTakenApplied += -event.amount;
+    figures.damageTakenFromNobody += -event.amount;
     build.dealtByNobody += -event.amount;
     assert(figures.healthRestored >= 0, "a total of health restored never falls below nothing");
 }
@@ -238,7 +314,12 @@ function addNamedHealingEvent(build: StatisticsBuild, event: BattleEvent): void 
     figures.healthRestored += event.amount;
     // No announcement to ask: this figure rides a blow struck at somebody else, so the message's
     // own actor is the attacker rather than the healer.
-    addGivenHealth(build, getGiverId(event.source, event.targetId, null), event.amount);
+    addGivenHealth(
+        build,
+        getGiverId(event.source, event.targetId, null),
+        event.amount,
+        event.targetId,
+    );
     assert(figures.healthRestored >= event.amount, "a total only grows by what it was handed");
 }
 
@@ -257,7 +338,7 @@ function addTeamHeal(build: StatisticsBuild, heal: TeamHeal | undefined): void {
         getFiguresForCombatant(build.byCombatantId, combatantId).healthRestored += amount;
         // The one healing shape whose giver the protocol states outright: the caster stands in
         // the message's actor slot, and the recipients are what the sizing worked out.
-        addGivenHealth(build, heal.casterId, amount);
+        addGivenHealth(build, heal.casterId, amount, combatantId);
     }
     assert(build.castsUnplaced >= 0, "a count of casts never falls below nothing");
 }
@@ -311,6 +392,28 @@ function getRestoredBalance(build: StatisticsBuild): number {
 }
 
 /**
+ * What the fight-wide counts hold, against what the rows they were read off hold.
+ *
+ * Each of the three is the sum of one field across the rows plus what named neither end, and
+ * nothing else — which is what lets a side be charged from the row rather than from the count.
+ * A figure reaching one and not the other would be a figure charged to nobody or to everybody.
+ */
+function getHalfNamedBalance(build: StatisticsBuild): number {
+    let takenFromNobody = 0;
+    let dealtToNobody = 0;
+    let restoredByNobody = 0;
+    for (const figures of build.byCombatantId.values()) {
+        takenFromNobody += figures.damageTakenFromNobody;
+        dealtToNobody += figures.damageDealtToNobody;
+        restoredByNobody += figures.healthRestoredByNobody;
+    }
+    assert(build.byNeitherEnd >= 0, "what names neither end is never below nothing");
+    const dealt = build.dealtByNobody - takenFromNobody - build.byNeitherEnd;
+    const taken = build.takenByNobody - dealtToNobody - build.byNeitherEnd;
+    return Math.abs(dealt) + Math.abs(taken) + Math.abs(build.givenByNobody - restoredByNobody);
+}
+
+/**
  * The figures, and what a share stated about a side came to once it was sized. The sizing is
  * `combatant-health.ts`'s, because it needs three figures the protocol never states; totalling it
  * is this file's, because a total across combatants is never the panel's.
@@ -324,8 +427,10 @@ export function composeFightStatistics(
         dealtByNobody: 0,
         takenByNobody: 0,
         givenByNobody: 0,
+        byNeitherEnd: 0,
         unreadMessages: 0,
         castsUnplaced: 0,
+        outcome: null,
     };
     assert(events.length >= 0, "a fight decodes to a list");
     for (const event of events) {
@@ -335,18 +440,22 @@ export function composeFightStatistics(
         addNamedDamageEvent(build, event);
         addHealthChangeEvent(build, event);
         addNamedHealingEvent(build, event);
+        addFightOutcome(build, event);
     }
     assert(build.byCombatantId.size <= MAXIMUM_COMBATANTS, "a fight stays inside its bound");
     assert(build.unreadMessages <= events.length, "a message is counted unread once");
     assert(getAppliedBalance(build) === 0, "every point applied is counted once at each end");
     assert(getRestoredBalance(build) === 0, "and every point restored once at each of its own");
+    assert(getHalfNamedBalance(build) === 0, "and every half-named point is on the row it named");
     return {
         byCombatantId: build.byCombatantId,
         totals: composeTotals(build),
         dealtByNobody: build.dealtByNobody,
         takenByNobody: build.takenByNobody,
         givenByNobody: build.givenByNobody,
+        byNeitherEnd: build.byNeitherEnd,
         unreadMessages: build.unreadMessages,
         castsUnplaced: build.castsUnplaced,
+        outcome: build.outcome,
     };
 }

@@ -46,6 +46,7 @@ export interface TipRegister {
 const MAXIMUM_TIPS = 128;
 /** Ours, because `all: initial` resets every property a page can set except a custom one. */
 const TOP_VARIABLE = "--MargoMeter-tip-top";
+const LEFT_VARIABLE = "--MargoMeter-tip-left";
 const STYLE_ATTRIBUTE = "style";
 
 export function composeTipRegister(): TipRegister {
@@ -126,11 +127,12 @@ export function setTipHidden(tip: PanelElement, isHidden: boolean): void {
  * because `clientY` is fractional on a scaled display and half a pixel is nothing anybody can see
  * — while a declaration reading `292.33333333333px` is something a reader of the page can.
  */
-export function setTipTop(tip: PanelElement, clientY: number): void {
+export function setTipPlace(tip: PanelElement, clientY: number, left: number | null): void {
     assert(Number.isFinite(clientY), "a pointer states where it is");
     const top = Math.max(0, Math.round(clientY));
     assert(top >= 0, "and never above the top of the screen");
-    tip.setAttribute(STYLE_ATTRIBUTE, `${TOP_VARIABLE}:${top}px`);
+    const across = left === null ? "" : `;${LEFT_VARIABLE}:${Math.max(0, Math.round(left))}px`;
+    tip.setAttribute(STYLE_ATTRIBUTE, `${TOP_VARIABLE}:${top}px${across}`);
 }
 
 /** How the tip takes the place of the one standing, which is how every region of the panel does. */
@@ -159,6 +161,8 @@ export function composeTipHandle(
     document: PanelDocument,
     register: TipRegister,
     redraw: TipRedraw,
+    /** Which side of the panel the detail opens on, as a left edge, or null for the default. */
+    getLeft: () => number | null = () => null,
 ): TipHandle {
     let standing = composeTipElement(document, null);
     let openKey: string | null = null;
@@ -167,7 +171,7 @@ export function composeTipHandle(
         assert(reading.name.length > 0, "what the detail is put to names somebody");
         standing = redraw(standing, () => composeTipElement(document, reading));
         assert(standing.className.length > 0, "and what now stands there is a region of its own");
-        setTipTop(standing, openTop);
+        setTipPlace(standing, openTop, getLeft());
     };
     const hide = (): void => {
         assert(openTop >= 0, "the pointer was somewhere before it left");
@@ -186,7 +190,7 @@ export function composeTipHandle(
             }
             openTop = clientY;
             if (key === openKey) {
-                setTipTop(standing, openTop);
+                setTipPlace(standing, openTop, getLeft());
                 return;
             }
             const reading = register.get(key);

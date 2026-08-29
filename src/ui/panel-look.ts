@@ -70,6 +70,7 @@ export const CLASS = {
     header: "header",
     headerLine: "header-line",
     headerPlace: "header-place",
+    headerOutcome: "header-outcome",
     tabs: "tabs",
     tabsGap: "tabs-gap",
     tab: "tab",
@@ -93,10 +94,16 @@ export const CLASS = {
     pinned: "pinned-region",
     empty: "empty",
     undrawn: "undrawn",
+    warnings: "warnings",
     warning: "warning",
-    summary: "MargoMeter-summary",
-    summaryName: "summary-name",
-    summaryFigure: "summary-figure",
+    sides: "MargoMeter-sides",
+    sidesLine: "sides",
+    sidesLabel: "sides-label",
+    sidesSpare: "sides-spare",
+    sidesTrack: "sides-track",
+    sidesOurs: "sides-ours",
+    sidesTheirs: "sides-theirs",
+    sidesNobody: "sides-nobody",
     tip: "MargoMeter-tip",
     tipHidden: "tip-hidden",
     tipName: "tip-name",
@@ -416,6 +423,9 @@ function composeVariables(): string {
         composeVariable("text", TEXT.plain),
         composeVariable("quiet", TEXT.quiet),
         composeVariable("suspect", SIGNAL.suspect),
+        composeVariable("ours", SIGNAL.ours),
+        composeVariable("theirs", SIGNAL.theirs),
+        composeVariable("nobody", SIGNAL.unknown),
         composeVariable("heading", composeHeadingColour()),
         composeVariable("mask", MASK_INK),
         composeVariable("bar-tint", `${BAR_TINT}`),
@@ -509,15 +519,18 @@ function composeFrameRules(): string {
  */
 function composeRegionRules(): string {
     assert(SPACE.regionDown.endsWith("px"), "a region is inset by a length, in pixels");
-    assert(CLASS.list.length > 0, "and the one region that scrolls is named");
+    assert(CLASS.header.length > 0, "and every region it draws is named");
     const region = `var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across)`;
-    const rowCost = `(var(${VARIABLE_PREFIX}row-height) + var(${VARIABLE_PREFIX}half))`;
     return `.${CLASS.header}{display:block;padding:${region};padding-bottom:0;}` +
         `.${CLASS.headerLine}{display:flex;justify-content:space-between;align-items:baseline;}` +
         // A line of its own: beside the size and the outcome the place had about thirty
         // characters of a 260px panel, and a map's name plus a tile runs half again that.
         `.${CLASS.headerPlace}{color:var(${VARIABLE_PREFIX}quiet);font-size:10px;` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
+        // Shouted here and nowhere else: the shelf says the same word a row at a time, in the
+        // case it was composed in, so the upper case belongs to this rule rather than to a word.
+        `.${CLASS.headerOutcome}{color:var(${VARIABLE_PREFIX}quiet);text-transform:uppercase;` +
+        `font-size:10px;}` +
         `.${CLASS.tabs}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);` +
         `padding:${region};padding-bottom:0;}` +
         // Every strip after the first sits closer to it: they are one control, in rows.
@@ -533,8 +546,22 @@ function composeRegionRules(): string {
         `.${CLASS.crumbBack}{cursor:pointer;color:var(${VARIABLE_PREFIX}quiet);}` +
         `.${CLASS.crumbBack}:hover{color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.crumbHere}{font-weight:600;overflow:hidden;text-overflow:ellipsis;` +
-        `white-space:nowrap;}` +
-        `.${CLASS.list}{padding:${region};` +
+        `white-space:nowrap;}`;
+}
+
+/**
+ * The list and the two regions standing under it.
+ *
+ * The list's height is arithmetic rather than a number typed in — the rows it promises times what
+ * a row costs — so changing the type size cannot quietly break the promise. The count arrives as
+ * a custom property the draw writes.
+ */
+function composeListRules(): string {
+    assert(SPACE.large.endsWith("px"), "a list costs its rows and a step besides, in pixels");
+    assert(CLASS.list.length > 0, "and the one region that scrolls is named");
+    const region = `var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across)`;
+    const rowCost = `(var(${VARIABLE_PREFIX}row-height) + var(${VARIABLE_PREFIX}half))`;
+    return `.${CLASS.list}{padding:${region};` +
         `padding-bottom:var(${VARIABLE_PREFIX}region-across);` +
         `height:calc(var(${VARIABLE_PREFIX}rows,${ROWS_BY_DEFAULT}) * ${rowCost} + ` +
         `var(${VARIABLE_PREFIX}large));overflow-y:auto;overflow-x:hidden;` +
@@ -558,14 +585,38 @@ function composeRegionRules(): string {
         `padding:var(${VARIABLE_PREFIX}wide) var(${VARIABLE_PREFIX}half);}` +
         `.${CLASS.undrawn}{color:var(${VARIABLE_PREFIX}quiet);font-style:italic;` +
         `padding:var(${VARIABLE_PREFIX}small);}` +
-        `.${CLASS.summary}{display:flex;justify-content:space-between;align-items:center;` +
-        `gap:var(${VARIABLE_PREFIX}small);padding:0 var(${VARIABLE_PREFIX}small);` +
-        `height:var(${VARIABLE_PREFIX}row-height);background:var(${VARIABLE_PREFIX}raised);` +
-        `border-top:1px solid var(${VARIABLE_PREFIX}border);}` +
-        `.${CLASS.summaryName}{color:var(${VARIABLE_PREFIX}quiet);}` +
-        `.${CLASS.summaryFigure}{font-variant-numeric:tabular-nums;}` +
+        // The fight in two figures, whatever the ranking is narrowed to: what it answers is how
+        // the fight is going, and that question does not change when the list does. The gutter is
+        // the list's own, so the track below is a bar the same width as every row's.
+        `.${CLASS.sides}{padding:var(${VARIABLE_PREFIX}region-down) ` +
+        `var(${VARIABLE_PREFIX}region-across);` +
+        `padding-bottom:var(${VARIABLE_PREFIX}region-across);` +
+        `border-top:1px solid var(${VARIABLE_PREFIX}border);overflow:hidden;` +
+        `scrollbar-gutter:stable;scrollbar-width:thin;}` +
+        `.${CLASS.sidesLine}{display:flex;justify-content:space-between;align-items:baseline;` +
+        `font-variant-numeric:tabular-nums;font-weight:600;}` +
+        `.${CLASS.sidesLabel}{color:var(${VARIABLE_PREFIX}quiet);font-weight:400;opacity:0.8;}` +
+        // Quieter and smaller than the confrontation above it: it is the part of the fight with
+        // nobody to be on a side of, not a third team.
+        `.${CLASS.sidesSpare}{margin-top:var(${VARIABLE_PREFIX}small);font-size:10px;}` +
+        `.${CLASS.sidesSpare} .${CLASS.sidesLabel}{color:inherit;}` +
+        `.${CLASS.sidesTrack}{display:flex;height:4px;` +
+        `margin-top:var(${VARIABLE_PREFIX}small);` +
+        `border-radius:var(${VARIABLE_PREFIX}radius-small);overflow:hidden;` +
+        `background:var(${VARIABLE_PREFIX}track);}` +
+        // Which side a figure is, and which segment of the track is whose, said once: the ink is
+        // the token and a segment paints itself with it, so no colour is written onto an element.
+        `.${CLASS.sidesOurs}{color:var(${VARIABLE_PREFIX}ours);}` +
+        `.${CLASS.sidesTheirs}{color:var(${VARIABLE_PREFIX}theirs);}` +
+        `.${CLASS.sidesNobody}{color:var(${VARIABLE_PREFIX}nobody);}` +
+        `.${CLASS.sidesTrack}>*{background:currentColor;}` +
+        // A warning qualifies the whole reading rather than one figure, so it sits under the
+        // strip that totals the fight and never over the rows. The rule between them belongs to
+        // the block: a warning is one of however many, and only the block is always exactly one.
+        `.${CLASS.warnings}{border-top:1px solid var(${VARIABLE_PREFIX}border);` +
+        `padding-top:var(${VARIABLE_PREFIX}region-down);}` +
         `.${CLASS.warning}{color:var(${VARIABLE_PREFIX}suspect);` +
-        `padding:0 var(${VARIABLE_PREFIX}small);}`;
+        `padding:0 var(${VARIABLE_PREFIX}region-across) var(${VARIABLE_PREFIX}region-down);}`;
 }
 
 /**
@@ -643,8 +694,13 @@ function composeTipRules(): string {
     assert(TIP.heightMaximum.endsWith("px"), "and is clamped against the tallest it can be");
     const top = `clamp(${PLACE.inset},var(${VARIABLE_PREFIX}tip-top,${PLACE.inset}),` +
         `calc(100vh - ${TIP.heightMaximum} - ${PLACE.inset}))`;
+    // Across, the default is the corner the sheet anchors the panel to; a dragged panel writes a
+    // left of its own, because a detail that went on opening leftwards from the left edge of the
+    // screen would be drawn off it.
+    const left = `var(${VARIABLE_PREFIX}tip-left,calc(100vw - ${PLACE.inset} - ${PLACE.width} - ` +
+        `${TIP.width} - ${SPACE.small}))`;
     return `.${CLASS.tip}{position:fixed;box-sizing:border-box;pointer-events:none;` +
-        `right:calc(${PLACE.inset} + ${PLACE.width} + ${SPACE.small});top:${top};` +
+        `left:${left};top:${top};` +
         `width:${TIP.width};max-height:${TIP.heightMaximum};overflow:hidden;` +
         `padding:var(${VARIABLE_PREFIX}small);` +
         `background:var(${VARIABLE_PREFIX}raised);` +
@@ -664,8 +720,8 @@ function composeTipRules(): string {
  * a shadow root takes one `<style>` and this panel has one look.
  */
 export function composeStyleSheet(): string {
-    const sheet = `${composeFrameRules()}${composeRegionRules()}${composeRowRules()}` +
-        `${composeTipRules()}`;
+    const sheet = `${composeFrameRules()}${composeRegionRules()}${composeListRules()}` +
+        `${composeRowRules()}${composeTipRules()}`;
     assert(sheet.startsWith(":host{all:initial;"), "the sheet shuts the game out before anything");
     assert(!sheet.includes("}}"), "and closes each rule once");
     return sheet;

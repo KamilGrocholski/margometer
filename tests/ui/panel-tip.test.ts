@@ -11,7 +11,7 @@ import {
     composeTipHandle,
     composeTipRegister,
     setTipHidden,
-    setTipTop,
+    setTipPlace,
     type TipReading,
 } from "@/src/ui/panel-tip.ts";
 import { CLASS } from "@/src/ui/panel-look.ts";
@@ -74,19 +74,27 @@ Deno.test("hiding and showing write the class, and nothing else moves", () => {
     assertEquals(getTextsByClass(tip, CLASS.tipName), [HILDUR.name], "what it says is untouched");
 });
 
-Deno.test("where the detail sits is one property, in whole pixels", () => {
+Deno.test("where the detail sits is written in whole pixels, and across only when asked", () => {
     const document = composeFakeDocument();
     const tip = composeTipElement(document, HILDUR) as FakeElement;
-    setTipTop(tip, 292.33333333333);
+    setTipPlace(tip, 292.33333333333, null);
     assertEquals(
         tip.attributes.get("style"),
         "--MargoMeter-tip-top:292px",
         "a fractional `clientY` on a scaled display is not a place anybody can see",
     );
-    setTipTop(tip, 0);
+    setTipPlace(tip, 0, null);
     assertEquals(tip.attributes.get("style"), "--MargoMeter-tip-top:0px", "the top of the screen");
-    setTipTop(tip, -4);
+    setTipPlace(tip, -4, null);
     assertEquals(tip.attributes.get("style"), "--MargoMeter-tip-top:0px", "and never above it");
+    // A panel that has never been dragged keeps the side the sheet states, so nothing is written
+    // across: the one written here is the panel saying it has moved.
+    setTipPlace(tip, 100, 42.6);
+    assertEquals(
+        tip.attributes.get("style"),
+        "--MargoMeter-tip-top:100px;--MargoMeter-tip-left:43px",
+        "and a panel that has moved says which side the detail opens on",
+    );
 });
 
 /** The panel's own way of putting one region in the place of another, small enough to read. */

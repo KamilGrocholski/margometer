@@ -62,6 +62,7 @@ src/
     fight-report.ts      The figures as text a reader can paste, with what qualifies them.
     engine-warrior.ts    The client's own field names, and the only file that spells them.
   ui/
+    panel-drag.ts        Where the panel sits, and how a reader moves it.
     panel-element.ts     The panel drawn into a document it is handed, region by region.
     panel-look.ts        The panel's tokens, the classes its rules select, and the stylesheet.
     panel-reading.ts     One screen's worth of a fight, and one row's worth of a screen.
@@ -109,6 +110,7 @@ tests/
     build-userscript.test.ts  The built file, read back: the banner, and no way out.
     capture-intake.test.ts    What intake refuses, and every admitted recording as a fixed point.
   ui/
+    panel-drag.test.ts        A panel kept on the screen, and put back where it was left.
     panel-element.test.ts     What the panel puts on a page, read back out of it.
     panel-look.test.ts        Contrast by arithmetic, and a sheet that spends tokens only.
     panel-reading.test.ts     A screen of a real fight, through every layer under it.
@@ -320,10 +322,12 @@ commit that opens or closes one.
    the stylesheet `DESIGN.md` specifies and the strip that always states the screen's own total, and
    `deno task build` writes the file they install, `deno task preview` writes a page that runs it
    against the recordings, and `deno task intake` redacts a recording and admits it to `captures/`.
-   What is not written: **the panel is not draggable**, and `DESIGN.md`'s header says nothing about
-   how a fight went, no summary of the two sides stands under the list, and no warning sentence is
-   drawn — those wait on figures `core/` does not yet hold. The rest of the tools and the release
-   plumbing — `README.md`, `CHANGELOG.md` and the workflows — are unwritten.
+   the header says how the fight went, the strip under the list totals the two sides and what
+   belongs to neither, a doubt is said as a sentence under it, and the panel is moved by its bar and
+   comes back where it was left. What is not written: **the third level of the drill**, which is
+   v1's cut by skill, and the detail card that says what a combatant's figures are made of — both
+   wait on figures `core/` does not hold. The rest of the tools and the release plumbing —
+   `README.md`, `CHANGELOG.md` and the workflows — are unwritten.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld

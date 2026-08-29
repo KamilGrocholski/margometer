@@ -11,7 +11,7 @@
 
 import { assert } from "@std/assert";
 import { composeIntegerText } from "@/src/core/protocol-number.ts";
-import type { PanelMetric } from "@/src/ui/panel-reading.ts";
+import type { PanelMetric, PanelOutcome } from "@/src/ui/panel-reading.ts";
 import type { PanelNoun, PanelSideChoice } from "@/src/ui/panel-screen.ts";
 
 /** The three shapes a Polish noun takes after a number. */
@@ -33,12 +33,17 @@ export const PANEL_WORDS = {
     /** Where a fight states no side at all, in place of the headcount the header usually draws. */
     noSides: "brak składu",
     fights: "Walki",
+    /** The two sides of the bar under the ranking, and what belongs to neither of them. */
+    ourSide: "My",
+    theirSide: "Oni",
+    withoutSide: "Bez strony",
+    /** Said where the strip totals more than the list above it does, which is most screens. */
+    wholeFight: "Cała walka",
     openFights: "Pokaż albo schowaj zapisane walki",
     /** What a crumb goes back to: the list of everybody, which the game calls the roster. */
     back: "skład",
     shelfEmpty: "Nie ma jeszcze zapisanych walk",
     fightOver: "Walka skończona",
-    suspect: "Ta liczba może być zaniżona",
     dealtTo: "KOMU",
     takenFrom: "OD KOGO",
     damageKind: "TYP OBRAŻEŃ",
@@ -48,11 +53,29 @@ export const PANEL_WORDS = {
     combatants: "Postacie",
     share: "Udział w walce",
     shareOfFigure: "Udział w tej liczbie",
+    drag: "Przeciągnij, żeby przesunąć",
     collapse: "Zwiń okno",
     expand: "Rozwiń okno",
     saveRecording: "Do zgłoszeń: zapisz surowe dane walki prosto z gry",
     copyReport: "Do zgłoszeń: skopiuj policzone liczby z tej walki",
 } as const;
+
+/**
+ * How a fight went, in one word each. Lower case where they are composed, because the shelf says
+ * the same three words a row at a time; the header is what shouts them, and it does so in CSS.
+ */
+const OUTCOME_WORDS: Record<PanelOutcome, string> = {
+    won: "wygrana",
+    lost: "przegrana",
+    drawn: "remis",
+};
+
+export function getWordsForOutcome(outcome: PanelOutcome): string {
+    assert(outcome.length > 0, "an outcome is asked for by name");
+    const words = OUTCOME_WORDS[outcome];
+    assert(words.length > 0, "and a fight that ended somehow is a fight with a word for it");
+    return words;
+}
 
 /** Which quantity a screen shows, as the reader meets it on the upper strip. */
 const NOUN_WORDS: Record<PanelNoun, string> = {
@@ -121,6 +144,7 @@ export const ELEMENT_WORDS: Record<string, string> = {
 
 export const COUNTED_NOUNS = {
     messages: { one: "wiadomość", few: "wiadomości", many: "wiadomości" },
+    heals: { one: "uleczenie", few: "uleczenia", many: "uleczeń" },
     fights: { one: "walka", few: "walki", many: "walk" },
     combatants: { one: "postać", few: "postacie", many: "postaci" },
 } as const;
@@ -163,6 +187,28 @@ const THOUSAND_SEPARATOR = " ";
 /** A safe integer is sixteen digits, so five groups is past every figure the protocol states. */
 const MAXIMUM_THOUSAND_GROUPS = 5;
 
+/**
+ * What a reading could not be sure of, each as one sentence a player can act on.
+ *
+ * The count sits in an apposition rather than as the subject, so one sentence carries all three
+ * Polish forms without the verb having to agree with the number.
+ */
+export function composeUnreadWarning(count: number): string {
+    assert(count > 0, "a warning about what could not be read is said because something was not");
+    const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
+    assert(said.length > 0, "and it says how much of it there was");
+    return `Nie udało się odczytać wszystkiego — ${said} bez odczytu, ` +
+        "więc liczby mogą być zaniżone.";
+}
+
+export function composeUnplacedHealWarning(count: number): string {
+    assert(count > 0, "a warning about healing nobody could place is said because some was not");
+    const said = composeCountedNoun(count, COUNTED_NOUNS.heals);
+    assert(said.length > 0, "and it says how much of it there was");
+    return `Nie da się rozdzielić leczenia drużyny — ${said} bez podziału, ` +
+        "więc leczenie może być zaniżone.";
+}
+
 /** What each region of the panel is called, for the one sentence that names a region. */
 export const REGION_WORDS = {
     header: "nagłówka",
@@ -170,7 +216,8 @@ export const REGION_WORDS = {
     crumb: "ścieżki",
     list: "listy",
     pinned: "wiersza",
-    summary: "podsumowania",
+    sides: "podsumowania stron",
+    warnings: "ostrzeżenia",
 } as const;
 
 export type PanelRegion = keyof typeof REGION_WORDS;

@@ -17,6 +17,7 @@ import type {
     PanelMetric,
     PanelReading,
     PanelRow,
+    PanelSides,
     PinnedRow,
     ShelfRow,
     UnnamedRow,
@@ -45,9 +46,17 @@ import {
     composeUndrawnText,
     COUNTED_NOUNS,
     getWordsForElement,
+    getWordsForOutcome,
     PANEL_WORDS,
     type PanelRegion,
 } from "@/src/ui/panel-words.ts";
+import {
+    composeTipLeft,
+    type PanelPlacement,
+    type PanelPosition,
+    setGripMark,
+    setPanelDrag,
+} from "@/src/ui/panel-drag.ts";
 import {
     composeTipHandle,
     composeTipRegister,
@@ -55,7 +64,7 @@ import {
     type TipRegister,
 } from "@/src/ui/panel-tip.ts";
 
-/** The whole of the document this asks for. A browser's own satisfies it. */
+/** A browser's own document satisfies this, and nothing wider is asked for. */
 export interface PanelDocument {
     createElement(tag: string): PanelElement;
 }
@@ -63,9 +72,11 @@ export interface PanelDocument {
 /** What a delegated listener is handed. The target is where the pointer landed, or nobody. */
 export interface PanelEvent {
     target: { getAttribute(name: string): string | null } | null;
-    /** How far down the screen the pointer is. The detail follows it and nothing else. */
+    /** Where the pointer is: the detail follows the one, and a drag follows both. */
     clientY: number;
-    /** Which button, where the event has one. A press that states none is the primary one. */
+    clientX?: number | undefined;
+    /** Which pointer, so a drag can ask to keep it, and which button, where there is one. */
+    pointerId?: number | undefined;
     button?: number | undefined;
     /** The game's own menu, on the gesture that goes back. Absent where nothing can be stopped. */
     preventDefault?: (() => void) | undefined;
@@ -79,6 +90,9 @@ export interface PanelElement {
     replaceWith(other: PanelElement): void;
     setAttribute(name: string, value: string): void;
     attachShadow(options: { mode: "open" }): PanelRoot;
+    /** A drag keeping the pointer it has. Optional: a document offering neither still drags. */
+    setPointerCapture?(pointerId: number): void;
+    releasePointerCapture?(pointerId: number): void;
 }
 
 /**
@@ -132,8 +146,10 @@ const SHELF_MARK = "☰";
 const FOLD_MARK = "—";
 const UNFOLD_MARK = "+";
 const BACK_MARK = "‹ ";
+/** The grip, which is what says the bar can be taken hold of before anybody tries. */
+const GRIP_MARK = "⠿ ";
 /** More than colour, because colour never carries meaning by itself. */
-const SUSPECT_MARK = "△ ";
+const WARNING_MARK = "⚠ ";
 /** What the panel listens for: a press, not a click, so a drag never counts as one. */
 const PRESS_EVENT = "pointerdown";
 /** One gesture in, one gesture out: the way back works from anywhere on the panel. */
@@ -155,6 +171,8 @@ const MAXIMUM_ROWS = 20;
 const ROWS_WAITING = 11;
 /** What the statistics keep a cut inside. `captures/` states ten kinds in all, 2026-08-28. */
 const MAXIMUM_KINDS = 64;
+/** As wide as the sheet draws the detail window, which is what decides the side it opens on. */
+const TIP_WIDTH = 250;
 /** A bar is written to one place: a tenth of a 260-pixel row is a quarter of a pixel. */
 const FILL_PLACES = 1;
 const AS_PERCENT = 100;
@@ -424,7 +442,9 @@ function composeTitleElement(document: PanelDocument, isCollapsed: boolean): Pan
     const bar = composeElement(document, "div", CLASS.title);
     // Set before the controls are appended, not after: `textContent` replaces every child, so
     // the other order would wipe them.
-    bar.textContent = PANEL_WORDS.title;
+    bar.textContent = `${GRIP_MARK}${PANEL_WORDS.title}`;
+    bar.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.drag);
+    setGripMark(bar);
     assert(bar.textContent.length > 0, "the panel says whose it is before anything else");
     const version = composeElement(document, "span", CLASS.titleVersion);
     version.textContent = BUILD_VERSION;
@@ -459,6 +479,14 @@ function composeHeaderElement(document: PanelDocument, view: PanelView): PanelEl
     const who = composeElement(document, "span", "");
     who.textContent = composeSideCountsText(view.reading.sizes, view.reading.unplaced);
     line.append(who);
+    // Absent rather than empty where the game has not said, or has said nothing this seat can be
+    // read into: a fight the panel cannot place is not a fight it may call a loss.
+    const outcome = view.reading.outcome;
+    if (outcome !== null) {
+        const said = composeElement(document, "span", CLASS.headerOutcome);
+        said.textContent = getWordsForOutcome(outcome);
+        line.append(said);
+    }
     header.append(line);
     assert(who.textContent.length > 0, "a header says what the fight is, even where it is nothing");
     if (view.place === null) return header;
@@ -472,14 +500,26 @@ function composeHeaderElement(document: PanelDocument, view: PanelView): PanelEl
     return header;
 }
 
-/** The way back, and whose row stands open over the screen. */
-function composeCrumbElement(document: PanelDocument, drill: DrillReading): PanelElement {
+/**
+ * The way back, and what stands over the screen: whose row was opened, or the shelf. The shelf is
+ * not one of the fight's screens, so what it says is the shelf's own name rather than a figure.
+ */
+function composeCrumbRegion(document: PanelDocument, view: PanelView): PanelElement {
+    assert(typeof view.isOnShelf === "boolean", "a crumb is drawn for a panel that is somewhere");
+    assert(SCREEN_ORDER.includes(view.current), "and on a screen the strips draw");
+    if (view.isOnShelf) return composeCrumbElement(document, PANEL_WORDS.fights);
+    if (view.drill === null) return composeSlotElement(document);
+    return composeCrumbElement(document, view.drill.name ?? PANEL_WORDS.unknown);
+}
+
+function composeCrumbElement(document: PanelDocument, said: string): PanelElement {
+    assert(said.length > 0, "what stands over the screen is named before the way back is drawn");
     const crumb = composeElement(document, "div", CLASS.crumb);
     const back = composeElement(document, "span", CLASS.crumbBack);
     back.textContent = `${BACK_MARK}${PANEL_WORDS.back}`;
     back.setAttribute(BACK_ATTRIBUTE, PANEL_WORDS.back);
     const here = composeElement(document, "span", CLASS.crumbHere);
-    here.textContent = drill.name ?? PANEL_WORDS.unknown;
+    here.textContent = said;
     // It cuts the way a row does, and it names whatever was opened — so it is the one place a
     // reader can no longer see what they pressed.
     here.setAttribute(TITLE_ATTRIBUTE, here.textContent);
@@ -680,30 +720,101 @@ function composeDrillElement(
     return list;
 }
 
+/** One part of the track, or nothing where that part of the fight is nothing. */
+function composeSidesPart(
+    document: PanelDocument,
+    share: number,
+    className: string,
+): PanelElement | null {
+    assert(share >= 0, "a part of the track is never below nothing");
+    assert(className.length > 0, "and says whose part of it that is");
+    if (share <= 0) return null;
+    const part = composeElement(document, "span", className);
+    const width = composeDecimalText(Math.min(share, 1) * AS_PERCENT, FILL_PLACES);
+    // The length is data and the colour is not: the segment paints itself in its own ink.
+    part.setAttribute(STYLE_ATTRIBUTE, `width:${width}%`);
+    return part;
+}
+
 /**
- * The fight's own strip, and the one region that always draws. A doubt that names nobody is said
- * here, because no row can carry it — and only on a screen whose figure it could shorten.
+ * The fight in two figures and a track, and the one region that always draws where the client
+ * said which side is the reader's own.
+ *
+ * **Fight-scope even under a side tab and inside an opened row**: what it answers is how the
+ * fight is going, and that does not change when the ranking narrows — only the label does. The
+ * two colours are not good and bad: they are two sides, and each stands beside a figure and a
+ * label, so no meaning rides on the hue alone.
  */
-function composeSummaryElement(document: PanelDocument, view: PanelView): PanelElement {
-    const reading = view.reading;
-    const strip = composeElement(document, "div", CLASS.summary);
-    const name = composeElement(document, "span", CLASS.summaryName);
-    const total = composeElement(document, "span", CLASS.summaryFigure);
-    // The strip summarises whatever stands above it, and on the shelf that is the shelf.
-    name.textContent = view.isOnShelf ? PANEL_WORDS.fights : getWordsForScreen(view.current);
-    total.textContent = view.isOnShelf
-        ? composeFigureText(view.shelf.length)
-        : composeFigureText(reading.total);
-    strip.append(name);
-    strip.append(total);
-    assert(reading.total >= 0, "a fight's total is never below nothing");
-    assert(name.textContent.length > 0, "and the strip says which figure it is the total of");
-    if (view.isOnShelf) return strip;
-    if (!reading.isSuspect) return strip;
-    const mark = composeElement(document, "div", CLASS.warning);
-    mark.textContent = `${SUSPECT_MARK}${PANEL_WORDS.suspect}`;
-    strip.append(mark);
-    return strip;
+function composeSidesElement(document: PanelDocument, view: PanelView): PanelElement {
+    const sides = view.reading.sides;
+    assert(sides !== null, "a strip of two sides is drawn where there are two to tell apart");
+    const block = composeElement(document, "div", CLASS.sides);
+    assert(sides.ours >= 0, "a side's own figure is never below nothing");
+    assert(sides.theirs >= 0, "and neither is the other's");
+    const line = composeElement(document, "div", CLASS.sidesLine);
+    const ours = composeElement(document, "span", CLASS.sidesOurs);
+    ours.textContent = composeFigureText(sides.ours);
+    const label = composeElement(document, "span", CLASS.sidesLabel);
+    label.textContent = composeSidesLabel(view);
+    const theirs = composeElement(document, "span", CLASS.sidesTheirs);
+    theirs.textContent = composeFigureText(sides.theirs);
+    line.append(ours);
+    line.append(label);
+    line.append(theirs);
+    block.append(line);
+    composeSidesTrack(document, block, sides);
+    if (sides.nobody > 0) block.append(composeSidesSpare(document, sides.nobody));
+    return block;
+}
+
+/** Three parts and not two: what belongs to neither side is drawn rather than left out. */
+function composeSidesTrack(
+    document: PanelDocument,
+    block: PanelElement,
+    sides: PanelSides,
+): void {
+    const whole = sides.ours + sides.theirs + sides.nobody;
+    assert(whole >= 0, "a fight totals no less than nothing");
+    if (whole <= 0) return;
+    assert(sides.nobody >= 0, "and neither is what belongs to neither of them");
+    const track = composeElement(document, "div", CLASS.sidesTrack);
+    const parts: Array<[number, string]> = [
+        [sides.ours / whole, CLASS.sidesOurs],
+        [sides.theirs / whole, CLASS.sidesTheirs],
+        [sides.nobody / whole, CLASS.sidesNobody],
+    ];
+    for (const [share, className] of parts) {
+        const part = composeSidesPart(document, share, className);
+        if (part !== null) track.append(part);
+    }
+    block.append(track);
+}
+
+/** Below the track rather than beside the two figures: it is not a third contestant. */
+function composeSidesSpare(document: PanelDocument, figure: number): PanelElement {
+    assert(figure > 0, "what belongs to no side is drawn because there is some of it");
+    const spare = composeElement(
+        document,
+        "div",
+        `${CLASS.sidesLine} ${CLASS.sidesSpare} ${CLASS.sidesNobody}`,
+    );
+    const label = composeElement(document, "span", CLASS.sidesLabel);
+    label.textContent = PANEL_WORDS.withoutSide;
+    const stated = composeElement(document, "span", "");
+    stated.textContent = composeFigureText(figure);
+    spare.append(label);
+    spare.append(stated);
+    assert(label.textContent.length > 0, "what belongs to no side says so before it says how much");
+    return spare;
+}
+
+/** The strip totals the fight; the label says so wherever the list above it shows less. */
+function composeSidesLabel(view: PanelView): string {
+    const sides = `${PANEL_WORDS.ourSide} / ${PANEL_WORDS.theirSide}`;
+    assert(sides.length > 0, "the two sides are named before they are totalled");
+    assert(SCREEN_ORDER.includes(view.current), "and totalled on a screen the strips draw");
+    if (view.side === "everyone" && view.drill === null) return sides;
+    return `${PANEL_WORDS.wholeFight} · ${sides}`;
 }
 
 /**
@@ -886,7 +997,8 @@ interface PanelRegions {
     list: PanelElement;
     pinnedActor: PanelElement;
     pinnedTarget: PanelElement;
-    summary: PanelElement;
+    sides: PanelElement;
+    warnings: PanelElement;
 }
 
 function composePanelRegions(document: PanelDocument): PanelRegions {
@@ -899,10 +1011,11 @@ function composePanelRegions(document: PanelDocument): PanelRegions {
         list: composeSlotElement(document),
         pinnedActor: composeSlotElement(document),
         pinnedTarget: composeSlotElement(document),
-        summary: composeSlotElement(document),
+        sides: composeSlotElement(document),
+        warnings: composeSlotElement(document),
     };
     assert(regions.title.className === CLASS.title, "the bar is the bar before anything is drawn");
-    assert(regions.list.className === CLASS.slot, "and every other region begins as a slot");
+    assert(regions.warnings.className === CLASS.slot, "and every other begins as a slot");
     return regions;
 }
 
@@ -917,6 +1030,8 @@ export function composePanelHost(
     document: PanelDocument,
     handlePress: (press: PanelPress) => void,
     handleFailure: (failure: unknown) => void,
+    /** Where the panel sits, and where a reader may move it to. Null leaves it in its corner. */
+    placement: PanelPlacement | null = null,
 ): PanelHandle {
     const host = document.createElement("div");
     assert(HOST_NAME.startsWith("MargoMeter-"), "the host is named as ours before anything else");
@@ -938,7 +1053,8 @@ export function composePanelHost(
     for (const region of [regions.list, regions.pinnedActor, regions.pinnedTarget]) {
         panel.append(region);
     }
-    panel.append(regions.summary);
+    panel.append(regions.sides);
+    panel.append(regions.warnings);
     frame.append(panel);
     const redraw = (standing: PanelElement, region: PanelRegion, compose: () => PanelElement) => {
         return composeRegionInPlace(document, standing, region, compose, handleFailure);
@@ -946,15 +1062,25 @@ export function composePanelHost(
     // The detail is a region like the others and the last of them, so it stands over what it
     // describes. It is put in once and never replaced by a redraw of any other.
     const register = composeTipRegister();
+    // Where the panel is right now, which is what the detail is placed beside. Null until a drag
+    // writes one, and null for good on a panel that was never made movable.
+    let getPosition: () => PanelPosition | null = () => null;
     const tip: TipHandle = composeTipHandle(
         document,
         register,
         (standing, compose) => redraw(standing, "list", compose),
+        () => composeTipLeft(getPosition(), placement?.getViewport() ?? null, TIP_WIDTH),
     );
     root.append(regions.title);
     root.append(frame);
     root.append(tip.element);
     setPanelRootListeners(root, handlePress, (key, clientY) => tip.show(key, clientY));
+    // After the listeners that read a press, and on the same root: a drag is four more of them,
+    // and the bar is the only thing on the panel that starts one.
+    if (placement !== null) {
+        assert(typeof placement.getViewport === "function", "a panel is moved inside something");
+        getPosition = setPanelDrag(root, host, () => regions.title, placement, handleFailure);
+    }
     assert(host.className === "", "the host wears no class of the game's making");
     return {
         element: host,
@@ -972,7 +1098,7 @@ export function composePanelHost(
             if (view.isCollapsed) setPanelFolded(document, regions, redraw);
             else setPanelBody(document, regions, view, register, redraw);
             tip.refresh();
-            assert(regions.list !== regions.summary, "the regions are that many elements");
+            assert(regions.list !== regions.sides, "the regions are that many elements");
             assert(regions.title !== regions.header, "and none of them stands in for another");
         },
         showWaiting(isCollapsed: boolean): void {
@@ -990,7 +1116,7 @@ export function composePanelHost(
                 regions.list = redraw(regions.list, "list", () => composeWaitingElement(document));
             }
             tip.refresh();
-            assert(regions.summary.className === CLASS.slot, "with nothing standing under it");
+            assert(regions.sides.className === CLASS.slot, "with nothing standing under it");
             assert(regions.nouns.className === CLASS.slot, "and no strip of tabs over it");
         },
     };
@@ -1027,8 +1153,9 @@ function setPanelFolded(
         "pinned",
         () => composeSlotElement(document),
     );
-    regions.summary = redraw(regions.summary, "summary", () => composeSlotElement(document));
-    assert(regions.summary.className === CLASS.slot, "and every one of them is a slot after it");
+    regions.sides = redraw(regions.sides, "sides", () => composeSlotElement(document));
+    regions.warnings = redraw(regions.warnings, "warnings", () => composeSlotElement(document));
+    assert(regions.warnings.className === CLASS.slot, "and every one of them is a slot after it");
 }
 
 /** What stands under the bar: the header, the strips, the crumb, the list, what is pinned. */
@@ -1047,12 +1174,7 @@ function setPanelBody(
         "tabs",
         () => composeDirectionStripElement(document, view),
     );
-    const drill = view.drill;
-    regions.crumb = redraw(
-        regions.crumb,
-        "crumb",
-        () => drill === null ? composeSlotElement(document) : composeCrumbElement(document, drill),
-    );
+    regions.crumb = redraw(regions.crumb, "crumb", () => composeCrumbRegion(document, view));
     regions.list = redraw(regions.list, "list", () => composeViewList(document, view, register));
     const figure = getWordsForScreen(view.current);
     // A pinned row keeps a place of its own whether or not there is one to draw, so a failure
@@ -1070,9 +1192,41 @@ function setPanelBody(
                     : composePinnedElement(document, row, register, figure),
         );
     }
-    regions.summary = redraw(
-        regions.summary,
-        "summary",
-        () => composeSummaryElement(document, view),
+    // Drawn only where the client said which side is the reader's own — two sides nothing can
+    // tell apart are not two figures — and never over the shelf, which is a list of fights
+    // rather than a screen of one.
+    const hasSides = view.reading.sides !== null && !view.isOnShelf;
+    regions.sides = redraw(
+        regions.sides,
+        "sides",
+        () => hasSides ? composeSidesElement(document, view) : composeSlotElement(document),
     );
+    // Last and never a banner: a warning qualifies the whole reading rather than one figure, and
+    // there is nowhere else for a claim about the reading to sit. Nothing is drawn where the
+    // reading was clean, which is what keeps it from reading as furniture.
+    regions.warnings = redraw(
+        regions.warnings,
+        "warnings",
+        () =>
+            view.isOnShelf
+                ? composeSlotElement(document)
+                : composeWarningsElement(document, view.reading.warnings),
+    );
+}
+
+/** Every sentence the reading carries, each in a line of its own under the strip. */
+function composeWarningsElement(
+    document: PanelDocument,
+    warnings: readonly string[],
+): PanelElement {
+    assert(warnings.every((one) => one.length > 0), "a warning that is drawn says something");
+    if (warnings.length === 0) return composeSlotElement(document);
+    const block = composeElement(document, "div", CLASS.warnings);
+    for (const warning of warnings) {
+        const line = composeElement(document, "div", CLASS.warning);
+        line.textContent = `${WARNING_MARK}${warning}`;
+        block.append(line);
+    }
+    assert(block.className === CLASS.warnings, "the block is the one thing there is always one of");
+    return block;
 }

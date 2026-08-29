@@ -12,7 +12,7 @@ import { type CombatantRoster, composeCombatantRoster } from "@/src/core/combata
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/src/core/protocol-number.ts";
-import { getTextFromUnknown } from "@/src/core/unknown-reading.ts";
+import { getNumberFromUnknown, getTextFromUnknown } from "@/src/core/unknown-reading.ts";
 import {
     addPayloadToSession,
     type BattleSession,
@@ -35,13 +35,8 @@ import {
 import { type CapturedCombatant, composeSnapshotFromBattle } from "@/src/game/engine-warrior.ts";
 import { type KeptFight, readKeptFights, writeKeptFights } from "@/src/game/kept-fights.ts";
 import { composeReportText } from "@/src/game/fight-report.ts";
-import {
-    composePanelHost,
-    type PanelDocument,
-    type PanelElement,
-    type PanelHandle,
-    type PanelPress,
-} from "@/src/ui/panel-element.ts";
+import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
+import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
 import { composeDrillReading, composePanelReading, type ShelfRow } from "@/src/ui/panel-reading.ts";
 import {
     composeScreenState,
@@ -49,6 +44,13 @@ import {
     getSideFromName,
     type ScreenState,
 } from "@/src/ui/panel-screen.ts";
+import {
+    composeStoredTextFromPosition,
+    getPositionFromStoredText,
+    type PanelPlacement,
+    type PanelPosition,
+    type PanelViewport,
+} from "@/src/ui/panel-drag.ts";
 import { composePlaceWords } from "@/src/ui/panel-words.ts";
 
 /** Where a failure of ours is written, so the reader sees whose it is at a glance. */
@@ -62,6 +64,8 @@ const SHELF_KEY = "MargoMeter-fights";
 const FOLD_KEY = "MargoMeter-folded";
 /** Anything else reads as unfolded, which is the state a reader who stored nothing is in. */
 const FOLDED = "1";
+/** Where the reader dragged the panel to, kept beside the fold and dropped as readily. */
+const PLACE_KEY = "MargoMeter-place";
 
 export interface PanelMount {
     /** Puts this panel where the last one was. Replacing is the caller's, mounting is ours. */
@@ -70,6 +74,8 @@ export interface PanelMount {
 
 export interface UserscriptEnvironment {
     page: unknown;
+    /** How big the window is, or null where the page would not say. Nothing is measured. */
+    readViewport(): PanelViewport | null;
     document: PanelDocument;
     schedule: Scheduler;
     mount: PanelMount;
@@ -129,7 +135,9 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         return true;
     }
     if (press.kind === "back") {
-        screen.openRowId = null;
+        // The shelf stands over an opened row, so the way back takes the topmost thing off first.
+        if (screen.isOnShelf) screen.isOnShelf = false;
+        else screen.openRowId = null;
         return true;
     }
     if (press.kind === "row") {
@@ -229,6 +237,9 @@ function showFight(
  */
 export interface UserscriptWindow {
     document: UserscriptDocument;
+    /** How big the window is. Absent on a page that states neither, which clamps nothing. */
+    innerWidth?: number | undefined;
+    innerHeight?: number | undefined;
     setInterval(step: () => void, everyMs: number): number;
     clearInterval(handle: number): void;
     setTimeout(step: () => void, afterMs: number): number;
@@ -360,6 +371,19 @@ function writeTextToClipboard(page: UserscriptWindow, text: string): void {
 }
 
 /**
+ * How big the window is, or nothing at all. A page that states one and not the other states no
+ * viewport: half a size clamps a panel against a number nobody wrote.
+ */
+function getViewportFromPage(page: UserscriptWindow): PanelViewport | null {
+    const width = getNumberFromUnknown(page.innerWidth);
+    const height = getNumberFromUnknown(page.innerHeight);
+    if (width === null || height === null) return null;
+    assert(width >= 0, "a window is never narrower than nothing");
+    assert(height >= 0, "and never shorter than nothing");
+    return { width, height };
+}
+
+/**
  * Reads the globals a userscript is given and starts on them. The panel replaces the one before
  * it, so a fight redrawn leaves one panel on the page rather than a stack of them.
  */
@@ -381,6 +405,7 @@ export function startFromWindow(page: UserscriptWindow): GameAttachment {
                 shown = panel;
             },
         },
+        readViewport: () => getViewportFromPage(page),
         report: (line, failure) => page.console.error(line, failure),
         store: composeBrowserStore(page.localStorage),
         save: (name, text) => writeTextToFile(page, name, text),
@@ -486,6 +511,16 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     const kept = store === null ? [] : readKeptFights(store, SHELF_KEY);
     assert(SHELF_KEY.startsWith("MargoMeter-"), "every key this add-on writes is named as ours");
     assert(FOLD_KEY.startsWith("MargoMeter-"), "the fold included");
+    const placement: PanelPlacement = {
+        position: store === null ? null : getPositionFromStoredText(store.read(PLACE_KEY) ?? ""),
+        getViewport: () => environment.readViewport(),
+        // Once per drag rather than once per frame, and a refusal to write is an answer: the
+        // panel stays where it was put and only the next visit is the poorer for it.
+        handleMoved: (position: PanelPosition) => {
+            store?.write(PLACE_KEY, composeStoredTextFromPosition(position));
+        },
+    };
+    assert(PLACE_KEY.startsWith("MargoMeter-"), "and the place the reader dragged it to");
     let wasOver = false;
     assert(getFightFromSession(session) === null, "a session starts holding no fight");
     assert(FAILURE_LINE.startsWith("MargoMeter/"), "a failure of ours says whose it is first");
@@ -511,17 +546,22 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     // is the same fight: `composeNextCapture` clears on the key `addPayloadToSession` clears on.
     let capture = composeEmptyCapture();
     let combatantsBefore: CapturedCombatant[] = [];
-    const panel = composePanelHost(environment.document, (press) => {
-        if (press.kind === "save") saveRecording(environment, capture);
-        if (press.kind === "copy") copyReport(environment, session, place);
-        if (!handlePress(screen, press)) return;
-        // A refusal to write is an answer: the panel folds either way, and only the next visit
-        // is the poorer for it.
-        if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
-        // A panel with no fight in it still folds, and still says what it is waiting for.
-        if (getFightFromSession(session) === null) panel.showWaiting(screen.isCollapsed);
-        else showFight(session, screen, panel, kept, place);
-    }, (failure) => environment.report(FAILURE_LINE, failure));
+    const panel = composePanelHost(
+        environment.document,
+        (press) => {
+            if (press.kind === "save") saveRecording(environment, capture);
+            if (press.kind === "copy") copyReport(environment, session, place);
+            if (!handlePress(screen, press)) return;
+            // A refusal to write is an answer: the panel folds either way, and only the next visit
+            // is the poorer for it.
+            if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
+            // A panel with no fight in it still folds, and still says what it is waiting for.
+            if (getFightFromSession(session) === null) panel.showWaiting(screen.isCollapsed);
+            else showFight(session, screen, panel, kept, place);
+        },
+        (failure) => environment.report(FAILURE_LINE, failure),
+        placement,
+    );
     assert(!isMounted, "nothing is on the page until a payload arrives");
     return attachToGame(environment.page, environment.schedule, {
         handleAttached: () => {

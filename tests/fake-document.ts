@@ -47,6 +47,25 @@ export function pressElement(host: FakeElement, type: string, target: FakeElemen
     pointAtElement(host, type, target, SOMEWHERE_DOWN);
 }
 
+/** The same, with the pointer stated in full, for the one gesture that reads both coordinates. */
+export function dragOnElement(
+    host: FakeElement,
+    type: string,
+    target: FakeElement | null,
+    at: { clientX: number; clientY: number },
+): void {
+    const read = (name: string) => target?.attributes.get(name) ?? null;
+    for (const handle of host.rootListeners.get(type) ?? []) {
+        handle({
+            target: target === null ? null : { getAttribute: read },
+            clientX: at.clientX,
+            clientY: at.clientY,
+            pointerId: 1,
+            preventDefault: () => {},
+        });
+    }
+}
+
 export function composeFakeDocument(): PanelDocument & { created: FakeElement[] } {
     const created: FakeElement[] = [];
     return {

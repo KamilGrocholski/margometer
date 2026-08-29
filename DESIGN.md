@@ -213,10 +213,18 @@ Its scrollbar gutter is reserved whether or not a scrollbar shows, and the two r
 outside it reserve one too, so a bar means the same length in all three.
 
 **Tooltip.** `surfaceRaised`, fixed width, opens on hover and follows the cursor's vertical
-position. It opens to the panel's left, and which side is a constant because the panel is pinned; a
-draggable panel brings back the flip, which is a measurement. Its vertical position is clamped
-between the inset and the viewport's foot, against the height of the tallest tooltip rather than its
-own, so it stays on screen without being measured.
+position. It opens on whichever side of the panel has room for it — to the left while the panel sits
+in its corner, and to the right once the panel has been dragged far enough left that a leftward
+tooltip would be drawn off the screen. Its vertical position is clamped between the inset and the
+viewport's foot, against the height of the tallest tooltip rather than its own, so it stays on
+screen without being measured. **Nothing here is measured off the document**: the page states its
+own size, the pointer states where it is, and the two lengths that matter are tokens.
+
+**The panel is moved by its bar.** The grip says so before anybody tries it, and the whole bar is
+the handle — except its controls, where a press is that control's. A title bar's worth of the panel
+always stays on screen, because what goes off the edge with it is the thing you grab, and the only
+remedy left would be clearing storage. Where the reader put it survives a reload; a page that will
+not say how big it is is not dragged from a guessed origin at all.
 
 **Suspect mark.** Rides the row it was named for, at every drill level, in `suspect` plus a glyph.
 It says a figure may be short and never says by how much.

@@ -11,11 +11,16 @@
  */
 
 import { assert } from "@std/assert";
-import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
+import { type CombatantRoster, getCombatantIdByName } from "@/src/core/combatant-roster.ts";
 import type { CombatantFigures, FightStatistics, FigureCut } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/src/core/protocol-number.ts";
-import { type PanelSideChoice, SIDE_CHOICES } from "@/src/ui/panel-screen.ts";
-import { composeShareTexts } from "@/src/ui/panel-words.ts";
+import { type PanelSideChoice, SCREEN_ORDER, SIDE_CHOICES } from "@/src/ui/panel-screen.ts";
+import {
+    composeShareText,
+    composeShareTexts,
+    composeUnplacedHealWarning,
+    composeUnreadWarning,
+} from "@/src/ui/panel-words.ts";
 
 /** A fight holds twenty, and a list draws a row for each. */
 const MAXIMUM_ROWS = 20;
@@ -56,9 +61,21 @@ export interface PanelRow {
 /** Which end of a blow the protocol left out, on the row standing for what it could not place. */
 export type PanelUnnamedEnd = "actor" | "target";
 
-/** A figure belonging to nobody: on no row above, so it joins the whole and stands apart. */
+/**
+ * Where a figure the protocol half-named stands against the ranking above it, and there are two
+ * answers because there are two situations:
+ *
+ * - `apart` — no ranked row holds these points, so the figure joins the whole the screen divides
+ *   by and takes a share of it like any row.
+ * - `cut` — the rows hold the points already but cannot say this about them. The figure is a
+ *   slice of what is on screen, so it states a share and adds nothing to the whole.
+ */
+export type PinnedStanding = "apart" | "cut";
+
+/** A figure the protocol named one end of, on a row of its own below the ranking. */
 export interface PinnedRow {
     end: PanelUnnamedEnd;
+    standing: PinnedStanding;
     figure: number;
     fill: number;
     shareText: string;
@@ -72,8 +89,13 @@ export interface ShelfRow {
     combatants: number;
 }
 
+/** How a fight went, from the reader's own seat. A draw needs no seat: nobody won it. */
+export type PanelOutcome = "won" | "lost" | "drawn";
+
 export interface PanelReading {
     rows: PanelRow[];
+    /** Null where the game has not said, or said nothing this reader's seat can be read into. */
+    outcome: PanelOutcome | null;
     /** The fight as a headcount, the reader's own side first, and who could be placed on none. */
     sizes: number[];
     unplaced: number;
@@ -81,8 +103,10 @@ export interface PanelReading {
     total: number;
     /** What the log tied to no actor, and to no target: on no row, so each is a row of its own. */
     pinned: PinnedRow[];
-    /** Something feeding **this screen's** figure went unread or unplaced, so it may be short. */
-    isSuspect: boolean;
+    /** What could not be read or placed on **this screen's** figure, each as one sentence. */
+    warnings: string[];
+    /** The fight in two figures, or null where nothing said which side is the reader's own. */
+    sides: PanelSides | null;
     /** How many bars the list stands at, so opening a row cannot shorten the window. */
     visibleRows: number;
 }
@@ -95,20 +119,24 @@ function getFigure(figures: CombatantFigures, metric: PanelMetric): number {
 }
 
 /**
- * Whether this screen's own figure may be short.
+ * What may be short about this screen's own figure, said where its consequence is.
  *
- * A message nobody could read may have carried anything, so it shortens whatever screen is being
- * looked at. A cast nobody could place is narrower than that: what it puts back is health, so it
- * shortens both halves of the healing and neither half of the damage — marking a damage screen
- * for it would put a doubt on a figure that cannot carry it.
+ * A message nobody could read may have carried anything, so it qualifies whatever screen is being
+ * looked at. A cast nobody could place is narrower: what it puts back is health, so it shortens
+ * both halves of the healing and neither half of the damage — saying it on a damage screen would
+ * put a doubt on a figure that cannot carry it.
  */
-function getIsScreenSuspect(statistics: FightStatistics, metric: PanelMetric): boolean {
+function composeWarnings(statistics: FightStatistics, metric: PanelMetric): string[] {
     assert(statistics.unreadMessages >= 0, "a count of unread messages is never below nothing");
     assert(statistics.castsUnplaced >= 0, "and neither is a count of casts nobody could place");
-    if (statistics.unreadMessages > 0) return true;
-    if (metric === "healthRestored") return statistics.castsUnplaced > 0;
-    if (metric === "healthGiven") return statistics.castsUnplaced > 0;
-    return false;
+    const said: string[] = [];
+    assert(SCREEN_ORDER.includes(metric), "a screen is qualified by what could shorten its own");
+    if (statistics.unreadMessages > 0) said.push(composeUnreadWarning(statistics.unreadMessages));
+    const isHealing = metric === "healthRestored" || metric === "healthGiven";
+    if (isHealing && statistics.castsUnplaced > 0) {
+        said.push(composeUnplacedHealWarning(statistics.castsUnplaced));
+    }
+    return said;
 }
 
 /**
@@ -216,21 +244,53 @@ function composePinnedFigures(
     statistics: FightStatistics,
     metric: PanelMetric,
     choice: PanelSideChoice,
-): Array<{ end: PanelUnnamedEnd; figure: number }> {
+): Array<{ end: PanelUnnamedEnd; standing: PinnedStanding; figure: number }> {
     assert(SIDE_CHOICES.includes(choice), "a figure is pinned for a choice a reader could make");
     assert(statistics.dealtByNobody >= 0, "and one that is never below nothing");
     if (choice !== "everyone") return [];
-    const found: Array<{ end: PanelUnnamedEnd; figure: number }> = [];
-    if (metric === "damageDealtApplied" && statistics.dealtByNobody > 0) {
-        found.push({ end: "actor", figure: statistics.dealtByNobody });
+    const found: Array<{ end: PanelUnnamedEnd; standing: PinnedStanding; figure: number }> = [];
+    // What is charged to nobody on the screen being read, and where it stands against the rows.
+    if (metric === "damageDealtApplied") {
+        found.push({ end: "actor", standing: "apart", figure: statistics.dealtByNobody });
     }
-    if (metric === "healthGiven" && statistics.givenByNobody > 0) {
-        found.push({ end: "actor", figure: statistics.givenByNobody });
+    if (metric === "healthGiven") {
+        found.push({ end: "actor", standing: "apart", figure: statistics.givenByNobody });
     }
-    if (metric === "damageTakenApplied" && statistics.takenByNobody > 0) {
-        found.push({ end: "target", figure: statistics.takenByNobody });
+    if (metric === "damageTakenApplied") {
+        found.push({
+            end: "actor",
+            standing: "cut",
+            figure: getHalfNamedTotal(statistics, metric),
+        });
+        found.push({ end: "target", standing: "apart", figure: statistics.takenByNobody });
     }
-    return found;
+    if (metric === "healthRestored") {
+        found.push({
+            end: "actor",
+            standing: "cut",
+            figure: getHalfNamedTotal(statistics, metric),
+        });
+    }
+    return found.filter((one) => one.figure > 0);
+}
+
+/**
+ * As much of what the rows on this screen hold as the protocol named only one end of — the end
+ * being the row itself. It is what the received screens can say and the given ones cannot: a row
+ * that took damage holds the blow whether or not anybody was named for striking it.
+ *
+ * Not the same reading as the one the two sides are charged from, which asks the opposite
+ * question: there the named end is the row and the figure belongs to whoever is not on it.
+ */
+function getHalfNamedTotal(statistics: FightStatistics, metric: PanelMetric): number {
+    assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its stated bound");
+    assert(metric.length > 0, "and a screen asked for by name");
+    let total = 0;
+    for (const figures of statistics.byCombatantId.values()) {
+        if (metric === "damageTakenApplied") total += figures.damageTakenFromNobody;
+        if (metric === "healthRestored") total += figures.healthRestoredByNobody;
+    }
+    return total;
 }
 
 /** The bar every row on a screen is drawn against, pinned rows included. */
@@ -280,6 +340,67 @@ function composeHeadcount(
     return { sizes: sides.map(([, count]) => count), unplaced };
 }
 
+/** Whether any of those names belongs to somebody on the reader's own side. */
+function getIsOurSideNamed(
+    roster: CombatantRoster,
+    readerSide: number,
+    names: readonly string[],
+): boolean {
+    assert(Number.isFinite(readerSide), "a seat is read from a side the client stated");
+    assert(names.every((one) => one.length > 0), "and against names the protocol wrote out");
+    for (const name of names) {
+        const combatantId = getCombatantIdByName(roster, name);
+        if (combatantId === null) continue;
+        if (roster.byId.get(combatantId)?.side === readerSide) return true;
+    }
+    return false;
+}
+
+/**
+ * How the fight went **from the reader's seat**, or nothing at all.
+ *
+ * The protocol names both sides and says nothing about which is the reader's, so the answer is
+ * composed here. Where the client never said which side is the reader's own, or where no name
+ * resolves, the header says nothing: a fight the panel cannot place is not a fight it may call a
+ * loss. A draw is the one answer needing no seat — the game states it by naming nobody, so it is
+ * the same word for everybody in the fight.
+ */
+function getOutcomeForReader(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    readerSide: number | null,
+): PanelOutcome | null {
+    const outcome = statistics.outcome;
+    if (outcome === null) return null;
+    assert(outcome.wonNames.length >= 0, "a side that is named is named in full, or not at all");
+    if (outcome.isDrawn) return "drawn";
+    if (readerSide === null) return null;
+    if (getIsOurSideNamed(roster, readerSide, outcome.wonNames)) return "won";
+    if (getIsOurSideNamed(roster, readerSide, outcome.lostNames)) return "lost";
+    return null;
+}
+
+/**
+ * The pinned rows, each with the share its standing gives it: one apportioned with the ranking,
+ * one rounded on its own, because a cut and the rows it is a cut of overlap on purpose.
+ */
+function composePinnedRows(
+    pinned: ReadonlyArray<{ end: PanelUnnamedEnd; standing: PinnedStanding; figure: number }>,
+    apartShares: readonly string[],
+    whole: number,
+    largest: number,
+): PinnedRow[] {
+    assert(pinned.length <= 2, "a screen pins the two ends the protocol can leave out, at most");
+    assert(whole >= 0, "and divides by a whole that is never below nothing");
+    let taken = 0;
+    return pinned.map((one) => {
+        const shareText = one.standing === "apart"
+            ? apartShares[taken++] ?? ""
+            : composeShareText(whole === 0 ? 0 : one.figure / whole);
+        return { ...one, fill: getFill(one.figure, largest), shareText };
+    });
+}
+
 export function composePanelReading(
     statistics: FightStatistics,
     roster: CombatantRoster,
@@ -294,11 +415,13 @@ export function composePanelReading(
     listed.sort(compareRows);
     const total = getListedTotal(statistics, listed, metric, choice);
     const pinned = composePinnedFigures(statistics, metric, choice);
-    // A pinned figure is on no row above it, so it joins the whole the screen divides by.
-    const whole = pinned.reduce((sum, one) => sum + one.figure, total);
-    const figures = [...listed.map((row) => row.figure), ...pinned.map((one) => one.figure)];
-    const shares = composeShareTexts(figures, whole);
-    const largest = getLargestFigure(figures);
+    // Only a figure standing apart joins the whole: one standing as a cut is already inside the
+    // rows, so paying it out of the hundred would take a point off a row that owns one.
+    const apart = pinned.filter((one) => one.standing === "apart");
+    const whole = apart.reduce((sum, one) => sum + one.figure, total);
+    const shared = [...listed.map((row) => row.figure), ...apart.map((one) => one.figure)];
+    const shares = composeShareTexts(shared, whole);
+    const largest = getLargestFigure([...shared, ...pinned.map((one) => one.figure)]);
     const rows = listed.map((row, at) => ({
         ...row,
         fill: getFill(row.figure, largest),
@@ -310,16 +433,94 @@ export function composePanelReading(
     assert(!isEveryone || rows.length >= roster.byId.size, "everybody listed is everybody drawn");
     return {
         rows,
+        outcome: getOutcomeForReader(statistics, roster, readerSide),
         ...composeHeadcount(statistics, roster, readerSide),
         total,
-        pinned: pinned.map((one, at) => ({
-            ...one,
-            fill: getFill(one.figure, largest),
-            shareText: shares[listed.length + at] ?? "",
-        })),
-        isSuspect: getIsScreenSuspect(statistics, metric),
+        pinned: composePinnedRows(pinned, shares.slice(listed.length), whole, largest),
+        warnings: composeWarnings(statistics, metric),
+        sides: composePanelSides(statistics, roster, metric, readerSide),
         visibleRows: choice === "everyone" ? RANKING_ROWS : SIDE_ROWS,
     };
+}
+
+/**
+ * The fight in two figures and a remainder, whatever the list is narrowed to.
+ *
+ * What it answers is how the fight is going, and that question does not change when the ranking
+ * narrows — only the label does. Null where the client never said which side is the reader's own:
+ * two sides nothing can tell apart are not two figures.
+ */
+export interface PanelSides {
+    ours: number;
+    theirs: number;
+    /** What no side can be charged with: it named neither end, or the roster places nobody. */
+    nobody: number;
+}
+
+/** Which part of the bar a figure belongs to. `nobody` is a refusal, never a third side. */
+type PanelSidePart = "ours" | "theirs" | "nobody";
+
+function getPartOfSide(side: number | null, readerSide: number | null): PanelSidePart {
+    assert(side === null || Number.isFinite(side), "a side a row states is a number or nothing");
+    assert(readerSide === null || Number.isFinite(readerSide), "and so is the reader's own");
+    if (side === null) return "nobody";
+    if (readerSide === null) return "nobody";
+    return side === readerSide ? "ours" : "theirs";
+}
+
+/**
+ * Which side is charged with a figure the protocol left half-named — **the one inference this
+ * panel draws, and the only place it draws one. ADR 0013.**
+ *
+ * The known end is a side: the roster places the row the message did name. The unknown end is
+ * derived from it, and the derivation is the noun's — damage crosses, healing does not. What is
+ * never derived is a **name**: the pinned rows go on saying which end the game left out.
+ */
+function getPartCharged(part: PanelSidePart, metric: PanelMetric): PanelSidePart {
+    assert(metric.length > 0, "a figure is charged on a screen asked for by name");
+    assert(SCREEN_ORDER.includes(metric), "and one the strips draw");
+    if (part === "nobody") return part;
+    if (metric === "healthGiven") return part;
+    if (metric === "healthRestored") return part;
+    return part === "ours" ? "theirs" : "ours";
+}
+
+/** What one row holds of the figure whose other end the protocol did not name, on this screen. */
+function getHalfNamed(figures: CombatantFigures, metric: PanelMetric): number {
+    assert(figures.damageTakenFromNobody >= 0, "a half-named figure is never below nothing");
+    if (metric === "damageDealtApplied") return figures.damageTakenFromNobody;
+    if (metric === "damageTakenApplied") return figures.damageDealtToNobody;
+    if (metric === "healthGiven") return figures.healthRestoredByNobody;
+    return 0;
+}
+
+/** What names neither end, which belongs to no side at all and is only ever damage. */
+function getWithNeitherEnd(statistics: FightStatistics, metric: PanelMetric): number {
+    assert(statistics.byNeitherEnd >= 0, "what names neither end is never below nothing");
+    assert(SCREEN_ORDER.includes(metric), "and is asked about on a screen the strips draw");
+    if (metric === "damageDealtApplied") return statistics.byNeitherEnd;
+    if (metric === "damageTakenApplied") return statistics.byNeitherEnd;
+    return 0;
+}
+
+export function composePanelSides(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    metric: PanelMetric,
+    readerSide: number | null,
+): PanelSides | null {
+    if (readerSide === null) return null;
+    const totals: Record<PanelSidePart, number> = { ours: 0, theirs: 0, nobody: 0 };
+    assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its stated bound");
+    for (const [combatantId, figures] of statistics.byCombatantId) {
+        const part = getPartOfSide(roster.byId.get(combatantId)?.side ?? null, readerSide);
+        totals[part] += getFigure(figures, metric);
+        totals[getPartCharged(part, metric)] += getHalfNamed(figures, metric);
+    }
+    totals.nobody += getWithNeitherEnd(statistics, metric);
+    assert(totals.ours >= 0, "a side's own figure is never below nothing");
+    assert(totals.nobody >= 0, "and neither is what no side can be charged with");
+    return totals;
 }
 
 /** One kind of damage, and as much of a row's figure as the blows of that kind carried. */

@@ -29,10 +29,12 @@ import {
     composeFigureText,
     composeUndrawnText,
     getWordsForElement,
+    getWordsForOutcome,
     PANEL_WORDS,
 } from "@/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
+    dragOnElement,
     type FakeElement,
     getElementsWithin,
     getTextsByClass,
@@ -223,11 +225,13 @@ Deno.test("a fight draws a row for everybody in it, named", () => {
 Deno.test("a fight nothing has happened in says so, rather than drawing nothing", () => {
     const host = draw({
         rows: [],
+        outcome: null,
         sizes: [],
         unplaced: 0,
         total: 0,
         pinned: [],
-        isSuspect: false,
+        warnings: [],
+        sides: null,
         visibleRows: 11,
     });
     assertEquals(getTextsByClass(host, "empty"), [PANEL_WORDS.nothingYet], "it says so in words");
@@ -252,30 +256,61 @@ Deno.test("what nobody can be charged with is a row apart from the ranking", () 
     );
 });
 
-Deno.test("the fight's own strip always draws, and a doubt rides it rather than the rows", () => {
+Deno.test("the fight is totalled in two figures, and a doubt is said under them", () => {
     const reading = readFight();
-    const host = draw(reading);
-    const strip = getElementsWithin(host).filter((one) => one.className === "MargoMeter-summary");
+    const sides = { ours: 300, theirs: 700, nobody: 0 };
+    const host = draw({ ...reading, sides });
+    const strip = getElementsWithin(host).filter((one) => one.className === "MargoMeter-sides");
     assertEquals(strip.length, 1, "the strip is there whether or not anything went wrong");
+    const line = getElementsWithin(host).find((one) => one.className === "sides");
     assertEquals(
-        getTextsByClass(host, "summary-figure"),
-        [composeFigureText(reading.total)],
-        "carrying the fight's own total for the screen being read",
+        line?.children.map((one) => one.textContent),
+        [composeFigureText(300), "My / Oni", composeFigureText(700)],
+        "the reader's own side, what the two are, and the other side",
     );
+    const track = getElementsWithin(host).find((one) => one.className === "sides-track");
     assertEquals(
-        getTextsByClass(host, "warning"),
-        [],
-        "and nothing here is short, so none is said",
+        track?.children.map((one) => one.attributes.get("style")),
+        ["width:30.0%", "width:70.0%"],
+        "and a track split where the fight is split, with no segment for a part of nothing",
     );
+    assertEquals(getTextsByClass(host, "sides-spare"), [], "and nothing said about no side");
+    assertEquals(getTextsByClass(host, "warning"), [], "nothing here is short, so none is said");
 
-    const short = draw({ ...reading, isSuspect: true });
+    // Colour never carries a meaning alone: each figure stands beside its own label, in its own
+    // fixed place, and the ink is what the segment of the track paints itself with.
+    const ours = getElementsWithin(host).find((one) => one.className === "sides-ours");
+    assert(ours !== undefined, "the reader's own side is named as theirs");
+    assertEquals(ours.attributes.get("style"), undefined, "and no colour is written onto it");
+});
+
+Deno.test("what belongs to neither side is drawn as belonging to neither", () => {
+    const reading = readFight();
+    const host = draw({ ...reading, sides: { ours: 300, theirs: 600, nobody: 100 } });
+    assertEquals(
+        getTextsByClass(host, "sides-spare"),
+        [],
+        "not a line of its own text: the label and the figure are two cells inside it",
+    );
+    const spare = getElementsWithin(host).find((one) => one.className.includes("sides-spare"));
+    assertEquals(
+        spare?.children.map((one) => one.textContent),
+        [PANEL_WORDS.withoutSide, composeFigureText(100)],
+        "below the two, saying what cannot be charged and how much of it there is",
+    );
+    const track = getElementsWithin(host).find((one) => one.className === "sides-track");
+    assertEquals(track?.children.length, 3, "and the track states it as a third segment");
+});
+
+Deno.test("a doubt about the reading is said under the strip, in words and once", () => {
+    const reading = readFight();
+    const said = "Nie udało się odczytać wszystkiego.";
+    const short = draw({ ...reading, warnings: [said] });
     assertEquals(
         getTextsByClass(short, "warning"),
-        [`△ ${PANEL_WORDS.suspect}`],
-        "a doubt is said in words, behind a glyph, since colour never carries it alone",
+        [`⚠ ${said}`],
+        "in words, behind a glyph, since colour never carries a meaning alone",
     );
-    const marks = getElementsWithin(short).filter((one) => one.className === "warning");
-    assertEquals(marks.length, 1, "said once");
     const list = getElementsWithin(short).find((one) => one.className === "list");
     assert(list !== undefined, "the list is a region of its own");
     const under = getElementsWithin(list).filter((one) => one.className === "warning");
@@ -452,7 +487,10 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
     );
     assertEquals(host.shadow?.length, 4, "while the panel keeps its shape");
     const bar = getElementsWithin(host).find((one) => one.className === "MargoMeter-titlebar");
-    assertEquals(bar?.textContent, PANEL_WORDS.title, "the bar stands, saying whose panel it is");
+    assert(
+        bar?.textContent.endsWith(PANEL_WORDS.title),
+        "the bar stands, saying whose panel it is",
+    );
 });
 
 Deno.test("an opened row stands over the screen, and states whose it is", () => {
@@ -744,7 +782,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
     assertEquals(back.textContent, "+", "which now offers the way back rather than the way in");
     assertEquals(back.attributes.get("title"), PANEL_WORDS.expand, "and says so in the same words");
     const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
-    assertEquals(bar?.textContent, PANEL_WORDS.title, "the name standing on");
+    assert(bar?.textContent.endsWith(PANEL_WORDS.title), "the name standing on");
 });
 
 Deno.test("the panel says which build drew it, in the bar and on the host", () => {
@@ -918,10 +956,95 @@ Deno.test("a panel that has seen no fight says so, at the height a ranking stand
     assertEquals(getElementsWithin(host).filter((one) => one.className === "tabs"), [], "no tabs");
     assertEquals(getTextsByClass(host, "MargoMeter-summary"), [], "and no strip under it");
     const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
-    assertEquals(bar?.textContent, PANEL_WORDS.title, "while the bar stands as it always does");
+    assert(bar?.textContent.endsWith(PANEL_WORDS.title), "while the bar stands as it always does");
 
     panel.showWaiting(true);
     const folded = getElementsWithin(host).filter((one) => one.className.endsWith(CLASS.folded));
     assertEquals(folded.length, 1, "a reader who folded the panel away keeps it folded");
     assertEquals(getTextsByClass(host, "empty"), [], "and nothing under the bar is composed");
+});
+
+Deno.test("the header says how the fight went, and says nothing where nobody could tell", () => {
+    const reading = readFight();
+    const won = draw({ ...reading, outcome: "won" });
+    assertEquals(
+        getTextsByClass(won, "header-outcome"),
+        [getWordsForOutcome("won")],
+        "in the word the shelf uses too, shouted by the sheet rather than by the words",
+    );
+    const line = getElementsWithin(won).find((one) => one.className === "header-line");
+    assertEquals(line?.children.length, 2, "beside what the fight is, at the other end of it");
+    const unsaid = draw({ ...reading, outcome: null });
+    assertEquals(getTextsByClass(unsaid, "header-outcome"), [], "and nothing at all where none");
+    assertEquals(
+        getElementsWithin(unsaid).find((one) => one.className === "header-line")?.children.length,
+        1,
+        "no gap reserved for a word that was never said",
+    );
+});
+
+Deno.test("the bar is what moves the panel, and where it was let go is reported once", () => {
+    const document = composeFakeDocument();
+    const moved: Array<{ left: number; top: number }> = [];
+    const panel = composePanelHost(document, () => {}, () => {}, {
+        position: null,
+        getViewport: () => ({ width: 1280, height: 900 }),
+        handleMoved: (position) => moved.push(position),
+    });
+    const host = panel.element as FakeElement;
+    panel.show({
+        reading: readFight(),
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        drill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
+    assert(bar !== undefined, "the bar is drawn");
+    assertEquals(bar.attributes.get("data-grip"), "", "and it is what a drag is started from");
+
+    dragOnElement(host, "pointerdown", bar, { clientX: 1100, clientY: 20 });
+    dragOnElement(host, "pointermove", bar, { clientX: 1000, clientY: 120 });
+    // The first grab has no `left` to read, so it is derived from where the sheet already put
+    // the panel: 1280 less its own width less the inset it sits at.
+    assertEquals(
+        host.attributes.get("style"),
+        "left:912px;top:108px;--MargoMeter-panel-top:108px;right:auto",
+        "the panel follows the hand, by the distance the hand moved",
+    );
+    assertEquals(moved, [], "and nothing is stored while it is still being dragged");
+
+    dragOnElement(host, "pointerup", bar, { clientX: 1000, clientY: 120 });
+    assertEquals(moved, [{ left: 912, top: 108 }], "where it was let go is reported, once");
+
+    dragOnElement(host, "pointermove", bar, { clientX: 500, clientY: 500 });
+    assertEquals(
+        host.attributes.get("style"),
+        "left:912px;top:108px;--MargoMeter-panel-top:108px;right:auto",
+        "and a pointer moving with nothing held moves nothing",
+    );
+});
+
+Deno.test("a press on a control is not a drag, whatever the pointer does next", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {}, {
+        position: { left: 40, top: 40 },
+        getViewport: () => ({ width: 1280, height: 900 }),
+        handleMoved: () => {},
+    });
+    const host = panel.element as FakeElement;
+    panel.showWaiting(false);
+    const fold = getElementsWithin(host).find((one) => one.attributes.has("data-fold"));
+    assert(fold !== undefined, "the bar carries the control that folds the panel");
+    dragOnElement(host, "pointerdown", fold, { clientX: 100, clientY: 100 });
+    dragOnElement(host, "pointermove", fold, { clientX: 400, clientY: 400 });
+    assertEquals(
+        host.attributes.get("style"),
+        "left:40px;top:40px;--MargoMeter-panel-top:40px;right:auto",
+        "the panel stays where the reader left it: a press on a control is that control's",
+    );
 });

@@ -48,6 +48,8 @@ function composeEnvironment(page: unknown) {
         document,
         schedule: composeStillClock(),
         mount: { show: (panel) => shown.push(panel) },
+        // A window of a size, so a drag has something to be clamped against.
+        readViewport: () => ({ width: 1280, height: 900 }),
         report: (line) => reported.push(line),
         store: {
             read: (key) => held.get(key) ?? null,
@@ -326,15 +328,23 @@ Deno.test("the shelf has a screen of its own, and its control toggles", () => {
 
     pressElement(host, "pointerdown", shelfTab);
     assertEquals(rows().length, 1, "and on the shelf, with the one fight it has kept");
-    // The strip summarises whatever stands above it, and here that is the shelf: the live fight's
-    // own total under a list of fights already fought is a figure with no heading beside it.
-    const said = getElementsWithin(host).filter((one) => one.className === "summary-name");
-    const counted = getElementsWithin(host).filter((one) => one.className === "summary-figure");
-    assertEquals(said.map((one) => one.textContent), ["Walki"], "the strip says what it is over");
-    assertEquals(counted.map((one) => one.textContent), ["1"], "and how many are on it");
+    // The shelf is not one of the fight's screens, so it says its own name and totals nothing:
+    // the live fight's two sides under a list of fights already fought are figures about neither.
+    assertEquals(getTextsByClass(host, "crumb-here"), ["Walki"], "the shelf says what it is");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "MargoMeter-sides"),
+        [],
+        "and totals nothing, being a list of fights rather than a screen of one",
+    );
+
+    const back = getElementsWithin(host).find((one) => one.className === "crumb-back");
+    assert(back !== undefined, "the shelf carries the way back");
+    pressElement(host, "pointerdown", back);
+    assertEquals(rows().length, figures, "which gives the figures back");
 
     pressElement(host, "pointerdown", shelfTab);
-    assertEquals(rows().length, figures, "pressed again, the shelf gives the figures back");
+    pressElement(host, "pointerdown", shelfTab);
+    assertEquals(rows().length, figures, "and so does the control that put the shelf up");
 });
 
 Deno.test("a browser that will not have the shelf is answered, not argued with", () => {
