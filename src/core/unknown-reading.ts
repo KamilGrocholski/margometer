@@ -35,9 +35,11 @@ export function getValueFromJsonText(text: string): unknown {
 }
 
 /** Null where the value cannot be written — a cycle, or something with no text of its own. */
-export function composeJsonText(value: unknown): string | null {
+/** `indentSpaces` where a person will read the result; omitted where only a reader will. */
+export function composeJsonText(value: unknown, indentSpaces = 0): string | null {
+    assert(indentSpaces >= 0, "text is indented by nothing or by something");
     try {
-        const text: unknown = JSON.stringify(value);
+        const text: unknown = JSON.stringify(value, null, indentSpaces);
         assert(text === undefined || typeof text === "string", "writing answers text or nothing");
         return getTextFromUnknown(text);
     } catch {

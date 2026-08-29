@@ -154,9 +154,11 @@ client says nothing about the place, the bar says nothing in its stead: an empty
 states a place, and nothing was stated.
 
 **A control says what a press would do**, never what the panel already is, so its mark and its
-sentence both change with the state. Folded, the panel is this bar and nothing else: what stands
-under it is composed empty rather than composed and hidden, because a fight redraws every few
-seconds.
+sentence both change with the state — where it has one. Folded, the panel is this bar and nothing
+else: what stands under it is composed empty rather than composed and hidden, because a fight
+redraws every few seconds. Saving the fight has no state to say, so `{ }` reads the same always, and
+it stands left of the fold, which is the outermost thing on the bar in every window a reader has
+met.
 
 **Ranking row.** A name, a bar, a figure. The bar is the row's background at `barTint`, not a
 separate element, so the row height cannot disagree with the accent height.

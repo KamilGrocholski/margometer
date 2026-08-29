@@ -105,9 +105,16 @@ function resetSession(session: BattleSession): void {
     assert(session.combatants.length === 0, "and knowing nobody until its payload states them");
 }
 
+/** Whether a payload opens a fight, so a recording clears where the session does. */
+export function isFightStart(payload: unknown): boolean {
+    if (!isRecord(payload)) return false;
+    assert(FIGHT_OPENS_KEY.length > 0, "a fight is opened by a key with a name");
+    return FIGHT_OPENS_KEY in payload;
+}
+
 export function addPayloadToSession(session: BattleSession, payload: unknown): void {
     if (!isRecord(payload)) return;
-    if (FIGHT_OPENS_KEY in payload) resetSession(session);
+    if (isFightStart(payload)) resetSession(session);
     session.hasFight = true;
     session.payloads += 1;
     for (const combatant of getCombatantsFromPayload(payload)) session.combatants.push(combatant);

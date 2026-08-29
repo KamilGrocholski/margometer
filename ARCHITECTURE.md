@@ -45,6 +45,7 @@ src/
     combatant-health.ts  Health read from a stated share, and how far off it can be.
     combatant-roster.ts  Who is in the fight, and which names resolve to one of them.
     fight-decoder.ts     What a key means. One key of the corpus is still named unread.
+    game-build.ts        The build id the client states in its bundle's own filename.
     fight-statistics.ts  The figures a panel draws, with what nobody can be charged apart.
     margometer-error.ts  The abstract brand every failure that ships to the browser wears.
     protocol-message.ts  One message's grammar: both ends, then its parameters.
@@ -56,6 +57,7 @@ src/
     engine-attachment.ts   Getting the wrap onto the game, and off again.
     engine-battle-wrap.ts  The one function here that changes the running game.
     engine-place.ts      Where a fight happened, asked of the client's own state.
+    fight-capture.ts     The fight as it happened, in the shape a recording is admitted in.
     kept-fights.ts       The fights a reader can go back to: inputs kept, figures never.
     engine-warrior.ts    The client's own field names, and the only file that spells them.
   ui/
@@ -87,6 +89,7 @@ tests/
     engine-attachment.test.ts   A page with a game, without one, or with a reader on it.
     engine-battle-wrap.test.ts  The promise the add-on makes to the page.
     engine-place.test.ts      A page that says all of it, some of it, or nothing.
+    fight-capture.test.ts     The envelope, against the newest recording admitted.
     kept-fights.test.ts       A shelf that answers, refuses, or holds what nobody wrote.
     engine-warrior.test.ts    A payload's warriors, against the snapshots beside them.
   core/                    A test sits where its subject sits.
@@ -94,6 +97,7 @@ tests/
     combatant-health.test.ts  The arithmetic, against the client's own three figures.
     combatant-roster.test.ts  Two of a name, one of nobody, and every recording.
     fight-decoder.test.ts     The blows, and what is left unread beside them.
+    game-build.test.ts        Both names the client serves, and what is not one of them.
     health-witness.test.ts    What was read, against what the protocol says of itself.
     fight-statistics.test.ts  The figures, and the balance every point of damage keeps.
     protocol-message.test.ts  The grammar, over every message the recordings carry.
@@ -307,14 +311,15 @@ commit that opens or closes one.
    bar and every row on that shelf say where the fight was fought, a ranking row wears its
    profession and carries its share as a bar, hovering a row opens the detail window that says in
    full what the row had to cut, the bar says which build drew it and the host carries the same
-   number for a screenshot to be read by, the panel folds to that bar and comes back folded, the
-   panel carries the stylesheet `DESIGN.md` specifies and the strip that always states the screen's
-   own total, and `deno task build` writes the file they install, and `deno task preview` writes a
-   page that runs it against the recordings. What is not written: **two of the title bar's three
-   controls** — v1 had copy the report and save the recording beside the fold, at
-   `git show develop:src/ui/panel-element.ts`, and the second of them is what puts material in
-   `captures/` — and the rest of the tools, and the release plumbing — `README.md`, `CHANGELOG.md`
-   and the workflows.
+   number for a screenshot to be read by, the panel folds to that bar and comes back folded, a press
+   on `{ }` hands the reader the fight as a recording in the shape intake reads, the panel carries
+   the stylesheet `DESIGN.md` specifies and the strip that always states the screen's own total, and
+   `deno task build` writes the file they install, and `deno task preview` writes a page that runs
+   it against the recordings. What is not written: **the last of the title bar's three controls**,
+   which is v1's copy-the-report at `git show develop:src/ui/panel-element.ts`; **the intake tool**,
+   without which a recording this writes cannot be admitted, since `SECURITY.md` puts redaction
+   there and nowhere else; and the rest of the tools and the release plumbing — `README.md`,
+   `CHANGELOG.md` and the workflows.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.

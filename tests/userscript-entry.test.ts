@@ -12,6 +12,7 @@ import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import type { BrowserStore } from "@/src/game/browser-store.ts";
 import { readKeptFights } from "@/src/game/kept-fights.ts";
+import { getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
 import type { PanelElement } from "@/src/ui/panel-element.ts";
 import type { Scheduler } from "@/src/game/engine-attachment.ts";
 import {
@@ -38,6 +39,7 @@ function composeEnvironment(page: unknown) {
     const reported: string[] = [];
     const document = composeFakeDocument();
     const held = new Map<string, string>();
+    const saved: { name: string; text: string }[] = [];
     let ticks = 0;
     const environment: UserscriptEnvironment = {
         page,
@@ -52,12 +54,21 @@ function composeEnvironment(page: unknown) {
                 return true;
             },
         },
+        save: (name, text) => {
+            saved.push({ name, text });
+        },
+        readSurroundings: () => ({
+            world: "tempest",
+            gameBuild: "53XkBRxF",
+            capturedAt: "2026-08-29T10:00:00.000Z",
+            userAgent: "a browser that said so",
+        }),
         now: () => {
             ticks += 1;
             return ticks;
         },
     };
-    return { environment, shown, reported, held };
+    return { environment, shown, reported, held, saved };
 }
 
 Deno.test("a recording played through the add-on ends on the panel a reader would see", () => {
@@ -163,7 +174,7 @@ Deno.test("a reader folds the panel away, and it is still folded when they come 
     for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
     const host = first.shown[0] as FakeElement;
 
-    const control = () => getElementsWithin(host).find((one) => one.className === "control");
+    const control = () => getElementsWithin(host).find((one) => one.attributes.has("data-fold"));
     const rows = () => getElementsWithin(host).filter((one) => one.className === "row").length;
     assert(rows() > 0, "the panel opens drawing the fight");
     assertEquals(first.held.get("MargoMeter-folded"), undefined, "and nothing is stored yet");
@@ -189,7 +200,7 @@ Deno.test("a reader folds the panel away, and it is still folded when they come 
         "and the panel comes back folded, because that is what the reader left it",
     );
 
-    const unfolding = getElementsWithin(reopened).find((one) => one.className === "control");
+    const unfolding = getElementsWithin(reopened).find((one) => one.attributes.has("data-fold"));
     assert(unfolding !== undefined, "the bar still carries its control");
     pressElement(reopened, "pointerdown", unfolding);
     assert(
@@ -197,6 +208,84 @@ Deno.test("a reader folds the panel away, and it is still folded when they come 
         "which brings the fight back",
     );
     assertEquals(second.held.get("MargoMeter-folded"), "", "and stores the unfolding too");
+});
+
+/**
+ * A battle that carries what a running fight carries: a collection of combatants whose health the
+ * game moves **in place** while its own call runs. That is what makes the two snapshots in a
+ * recording the independent check `captures/AGENTS.md` calls them — and what a snapshot holding
+ * the game's own reference would show identically on both sides of a call.
+ */
+function composeRecordingBattle(): Record<string, unknown> {
+    const health: Record<string, unknown> = { max: 100, value: 100 };
+    const warriors = {
+        1: { id: 1, name: "somebody", team: 1, prof: "w", lvl: 60, hp: health },
+    };
+    return {
+        warriorsList: warriors,
+        updateData: () => {
+            health.value = 90;
+            return 1;
+        },
+    };
+}
+
+Deno.test("a reader asks for the fight, and gets the recording the intake tool reads", () => {
+    const battle = composeRecordingBattle();
+    const { environment, shown, saved, reported } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    assertEquals(reported, [], "and nothing of ours failed while it recorded");
+
+    const host = shown[0] as FakeElement;
+    const control = getElementsWithin(host).find((one) => one.attributes.has("data-save"));
+    assert(control !== undefined, "the bar carries the control that offers the fight");
+    assertEquals(saved.length, 0, "which has saved nothing until it is pressed");
+    pressElement(host, "pointerdown", control);
+    assertEquals(saved.length, 1, "and one file when it is");
+
+    const file = saved[0];
+    assert(file !== undefined, "a file was handed to the browser");
+    assertEquals(
+        file.name,
+        "margometer-tempest-2026-08-29T10-00-00-000Z.json",
+        "named for the world and the moment it was asked for",
+    );
+    const written = getValueFromJsonText(file.text);
+    assert(isRecord(written), "and it reads back as a recording");
+    assertEquals(written.swiat, "tempest", "which says where it came from");
+    assertEquals(written.build, "53XkBRxF", "and which client stated it");
+    const entries = written.wpisy;
+    assert(Array.isArray(entries), "carrying the calls the game made");
+    assert(entries.length > 0, "at least one of them");
+    // Every one of them, and that is the right answer: a recording on disk is already thinned,
+    // so each of its calls carries messages or a shape nobody had seen. What the thinning drops
+    // is shown in `tests/game/fight-capture.test.ts`, on calls that repeat.
+    assertEquals(
+        entries.length,
+        getRecordedEngineUpdates(HILDUR).length,
+        "every call, because material already thinned has nothing left to drop",
+    );
+    assertEquals(written.pominietych, 0, "and the file says nothing was dropped");
+    const first = entries[0];
+    assert(isRecord(first), "an entry is a record");
+    assertEquals(Object.keys(first), [
+        "nr",
+        "ladunek",
+        "komunikaty",
+        "wojownicyPrzed",
+        "wojownicyPo",
+    ], "in the shape every admitted recording carries");
+    const before = first.wojownicyPrzed;
+    const after = first.wojownicyPo;
+    assert(Array.isArray(before) && Array.isArray(after), "with a snapshot on either side");
+    assertEquals(
+        [isRecord(before[0]) ? before[0].hp : null, isRecord(after[0]) ? after[0].hp : null],
+        [{ max: 100, value: 100 }, { max: 100, value: 90 }],
+        "and they differ, which is only true if each was copied rather than referenced",
+    );
 });
 
 Deno.test("the shelf has a screen of its own, and its tab toggles", () => {

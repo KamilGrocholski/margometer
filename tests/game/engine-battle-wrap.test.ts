@@ -6,7 +6,20 @@
  */
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
-import { type EngineBattle, wrapEngineBattle } from "@/src/game/engine-battle-wrap.ts";
+import {
+    type EngineBattle,
+    type EngineBattleReader,
+    wrapEngineBattle,
+} from "@/src/game/engine-battle-wrap.ts";
+
+/** A reader that does nothing, so each test states only the half it is about. */
+function composeReader(said: Partial<EngineBattleReader>): EngineBattleReader {
+    return {
+        handleBeforeCall: said.handleBeforeCall ?? (() => {}),
+        handlePayload: said.handlePayload ?? (() => {}),
+        handleFirstFailure: said.handleFirstFailure ?? (() => {}),
+    };
+}
 
 function composeBattle(answer: unknown): EngineBattle {
     const calls: unknown[][] = [];
@@ -22,7 +35,10 @@ function composeBattle(answer: unknown): EngineBattle {
 Deno.test("the engine's own call runs first, and its value comes back untouched", () => {
     const battle = composeBattle("the engine's own answer");
     const seen: unknown[] = [];
-    const wrap = wrapEngineBattle(battle, (payload) => seen.push(payload), () => {});
+    const wrap = wrapEngineBattle(
+        battle,
+        composeReader({ handlePayload: (payload) => void seen.push(payload) }),
+    );
     assert(wrap !== null, "the wrap went on");
     const update = battle.updateData;
     assert(typeof update === "function", "and left a function behind it");
@@ -40,7 +56,10 @@ Deno.test("the order is the engine's call, then ours, and nothing between", () =
             return 1;
         },
     };
-    const wrap = wrapEngineBattle(battle, () => order.push("ours"), () => {});
+    const wrap = wrapEngineBattle(
+        battle,
+        composeReader({ handlePayload: () => void order.push("ours") }),
+    );
     assert(wrap !== null, "the wrap went on");
     const update = battle.updateData;
     assert(typeof update === "function", "and left a function behind it");
@@ -51,9 +70,15 @@ Deno.test("the order is the engine's call, then ours, and nothing between", () =
 Deno.test("a failure of ours never reaches the page, and is said once", () => {
     const battle = composeBattle(1);
     const reported: unknown[] = [];
-    const wrap = wrapEngineBattle(battle, () => {
-        throw new RangeError("a failure of ours");
-    }, (failure) => reported.push(failure));
+    const wrap = wrapEngineBattle(
+        battle,
+        composeReader({
+            handlePayload: () => {
+                throw new RangeError("a failure of ours");
+            },
+            handleFirstFailure: (failure) => void reported.push(failure),
+        }),
+    );
     assert(wrap !== null, "the wrap went on");
     const update = battle.updateData;
     assert(typeof update === "function", "and left a function behind it");
@@ -70,7 +95,7 @@ Deno.test("the engine's own failure is the engine's, and is not swallowed", () =
             throw new RangeError("the game's own");
         },
     };
-    const wrap = wrapEngineBattle(battle, () => {}, () => {});
+    const wrap = wrapEngineBattle(battle, composeReader({}));
     assert(wrap !== null, "the wrap went on");
     const update = battle.updateData;
     assert(typeof update === "function", "and left a function behind it");
@@ -79,11 +104,11 @@ Deno.test("the engine's own failure is the engine's, and is not swallowed", () =
 
 Deno.test("a second copy of the add-on stands down", () => {
     const battle = composeBattle(1);
-    const first = wrapEngineBattle(battle, () => {}, () => {});
+    const first = wrapEngineBattle(battle, composeReader({}));
     assert(first !== null, "the first wrap went on");
-    assertEquals(wrapEngineBattle(battle, () => {}, () => {}), null, "and the second stands down");
+    assertEquals(wrapEngineBattle(battle, composeReader({})), null, "and the second stands down");
     assertEquals(
-        wrapEngineBattle({}, () => {}, () => {}),
+        wrapEngineBattle({}, composeReader({})),
         null,
         "as does one with nothing to wrap",
     );
@@ -92,13 +117,13 @@ Deno.test("a second copy of the add-on stands down", () => {
 Deno.test("a detach puts back what was there, and only where ours is outermost", () => {
     const battle = composeBattle(1);
     const original = battle.updateData;
-    const wrap = wrapEngineBattle(battle, () => {}, () => {});
+    const wrap = wrapEngineBattle(battle, composeReader({}));
     assert(wrap !== null, "the wrap went on");
     wrap.detach();
     assertEquals(battle.updateData, original, "and came off again");
 
     const second = composeBattle(1);
-    const held = wrapEngineBattle(second, () => {}, () => {});
+    const held = wrapEngineBattle(second, composeReader({}));
     assert(held !== null, "a wrap that somebody else builds on");
     const somebodyElse = () => 2;
     second.updateData = somebodyElse;

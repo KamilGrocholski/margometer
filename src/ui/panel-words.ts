@@ -45,6 +45,7 @@ export const PANEL_WORDS = {
     shareOfFigure: "Udział w tej liczbie",
     collapse: "Zwiń okno",
     expand: "Rozwiń okno",
+    saveRecording: "Do zgłoszeń: zapisz surowe dane walki prosto z gry",
 } as const;
 
 /**

@@ -1,12 +1,13 @@
 /**
- * The combatants the game states in a payload, read into the roster's own shape.
+ * The combatants the game states, read two ways: into the roster's own shape, and into the
+ * snapshot a recording carries.
  *
- * This file spells the client's field names, and it is the only one that does: `w`, `hp`, `lvl`,
- * `prof`, `team`. Everything above it reads a `Combatant`, so a name the game changes is one
- * edit here rather than a field reading `undefined` in five places.
+ * This file spells the client's field names, and it is the only one that does. Everything above
+ * it reads a `Combatant` or a `CapturedCombatant`, so a name the game changes is one edit here
+ * rather than a field reading `undefined` in five places.
  *
- * A combatant missing any of them is refused rather than defaulted, and a payload that states
- * only what moved is most of them — the game repeats the whole warrior only when it must.
+ * A combatant missing what the roster needs is refused rather than defaulted; a snapshot refuses
+ * nothing, because it is evidence and an absent field is a fact about the fight.
  */
 
 import { assert } from "@std/assert";
@@ -18,6 +19,16 @@ const HEALTH_KEY = "hp";
 const HEALTH_MAXIMUM_KEY = "max";
 /** A side holds at most ten, so a fight holds twenty. The largest in `captures/` is 11. */
 const MAXIMUM_WARRIORS = 20;
+/**
+ * Where the running fight keeps its combatants, in the order tried. Each value receives every
+ * field of a payload's own `w` entry verbatim — `OneWarrior.js` on development build
+ * `1781609507010`: `for (var i in w) { _this[i] = w[i]; }`, and `this.warriorsList={}` appears on
+ * production `1786441768914` as well. `warriors` is tried after it because the client carries a
+ * collection under that name too; whichever answers with named combatants first is the one used.
+ */
+const WARRIOR_COLLECTIONS = ["warriorsList", "warriors"];
+const NAME_KEY = "name";
+const IDENTITY_KEYS = ["id", "originalId"];
 
 export function getCombatantFromWarrior(value: unknown): Combatant | null {
     if (!isRecord(value)) return null;
@@ -71,4 +82,85 @@ export function getCombatantsFromPayload(payload: unknown): Combatant[] {
     assert(found.every((one) => one.name.length > 0), "every combatant read is named");
     assert(found.every((one) => Number.isFinite(one.side)), "every combatant read has a side");
     return found;
+}
+
+/**
+ * One combatant as the running fight holds them, for a recording rather than a reading. Only the
+ * fields the recordings already carry, so new material and admitted material are the same kind of
+ * thing. `npc` is deliberately absent, as it is from every recording: it rides in the payload's
+ * own `w`, which is recorded whole.
+ */
+export interface CapturedCombatant {
+    id: number | null;
+    name: unknown;
+    team: unknown;
+    prof: unknown;
+    lvl: unknown;
+    hp: unknown;
+    mana: unknown;
+    energy: unknown;
+    ac: unknown;
+}
+
+/**
+ * A copy, because `hp` and `ac` are live objects the game goes on mutating: holding the reference
+ * would show the state after a call as the state before it. Never `structuredClone` of the
+ * combatant, which carries references to the page and to the engine itself.
+ */
+function composeShallowCopy(value: unknown): unknown {
+    if (!isRecord(value)) return value ?? null;
+    const copied = { ...value };
+    assert(copied !== value, "a snapshot holds a copy rather than what the game goes on changing");
+    assert(Object.keys(copied).length === Object.keys(value).length, "and loses nothing to it");
+    return copied;
+}
+
+function getIdentityFromWarrior(warrior: Record<string, unknown>): number | null {
+    for (const key of IDENTITY_KEYS) {
+        const stated = getNumberFromUnknown(warrior[key]);
+        if (stated !== null) return stated;
+    }
+    assert(IDENTITY_KEYS.length > 0, "there is a spelling of an id to try");
+    return null;
+}
+
+function composeCapturedCombatant(warrior: Record<string, unknown>): CapturedCombatant {
+    assert(NAME_KEY.length > 0, "a combatant put in a snapshot was found by a name");
+    assert(isRecord(warrior), "and is a record before any field is read off it");
+    return {
+        id: getIdentityFromWarrior(warrior),
+        name: warrior[NAME_KEY] ?? null,
+        team: warrior.team ?? null,
+        prof: warrior.prof ?? null,
+        lvl: warrior.lvl ?? null,
+        hp: composeShallowCopy(warrior[HEALTH_KEY]),
+        mana: warrior.mana ?? null,
+        energy: warrior.energy ?? null,
+        ac: composeShallowCopy(warrior.ac),
+    };
+}
+
+/** Every named combatant in a collection, or nothing where none of them is named. */
+function getNamedWarriors(collection: unknown): Record<string, unknown>[] {
+    if (!isRecord(collection)) return [];
+    const named: Record<string, unknown>[] = [];
+    for (const warrior of Object.values(collection)) {
+        if (!isRecord(warrior)) continue;
+        if (getTextFromUnknown(warrior[NAME_KEY]) === null) continue;
+        named.push(warrior);
+    }
+    assert(named.length <= MAXIMUM_WARRIORS, "a fight stays inside its stated bound");
+    return named;
+}
+
+/** An empty list where neither collection answers: a snapshot saying nothing, not a guess. */
+export function composeSnapshotFromBattle(battle: Record<string, unknown>): CapturedCombatant[] {
+    for (const field of WARRIOR_COLLECTIONS) {
+        const named = getNamedWarriors(battle[field]);
+        if (named.length === 0) continue;
+        assert(named.length > 0, "a collection that answered answered with somebody");
+        return named.map((warrior) => composeCapturedCombatant(warrior));
+    }
+    assert(WARRIOR_COLLECTIONS.length > 0, "there is a collection to look in");
+    return [];
 }

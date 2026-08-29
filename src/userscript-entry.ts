@@ -12,6 +12,7 @@ import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/src/core/protocol-number.ts";
+import { getTextFromUnknown } from "@/src/core/unknown-reading.ts";
 import {
     addPayloadToSession,
     type BattleSession,
@@ -20,7 +21,17 @@ import {
 } from "@/src/game/battle-session.ts";
 import { attachToGame, type GameAttachment, type Scheduler } from "@/src/game/engine-attachment.ts";
 import { type FightPlace, getPlaceFromPage } from "@/src/game/engine-place.ts";
+import { getGameBuildFromScriptName } from "@/src/core/game-build.ts";
 import { type BrowserStore, composeBrowserStore } from "@/src/game/browser-store.ts";
+import {
+    type CaptureSurroundings,
+    composeCaptureFileName,
+    composeCaptureText,
+    composeEmptyCapture,
+    composeNextCapture,
+    type FightCapture,
+} from "@/src/game/fight-capture.ts";
+import { type CapturedCombatant, composeSnapshotFromBattle } from "@/src/game/engine-warrior.ts";
 import { type KeptFight, readKeptFights, writeKeptFights } from "@/src/game/kept-fights.ts";
 import {
     composePanelHost,
@@ -62,6 +73,10 @@ export interface UserscriptEnvironment {
     mount: PanelMount;
     /** Null where the browser will not have one read, which is an answer and not a failure. */
     store: BrowserStore | null;
+    /** Where a recording goes when the reader asks for one. Null where the page offers no way. */
+    save: ((name: string, text: string) => void) | null;
+    /** What a recording says about where it came from, read at the moment one is asked for. */
+    readSurroundings(): CaptureSurroundings;
     /** The clock, handed in like everything else, so nothing here reaches for one. */
     now(): number;
     /** One branded line, and the failure itself, so a console shows whose it is first. */
@@ -95,6 +110,11 @@ function composeShelfRows(kept: readonly KeptFight[]): ShelfRow[] {
 function handlePress(screen: ScreenState, press: PanelPress): boolean {
     assert(press.kind.length > 0, "a press says what it asks for");
     assert(screen.current.length > 0, "and lands on a panel that is on a screen");
+    if (press.kind === "save") {
+        // Nothing on screen moves: a file is handed to the browser and the panel goes on drawing
+        // what it was drawing.
+        return false;
+    }
     if (press.kind === "fold") {
         screen.isCollapsed = !screen.isCollapsed;
         return true;
@@ -164,15 +184,106 @@ function showFight(
  * states far more than this, which is why `userscript-boot.ts` casts once at that boundary.
  */
 export interface UserscriptWindow {
-    document: PanelDocument & { body: { append(child: PanelElement): void } };
+    document: UserscriptDocument;
     setInterval(step: () => void, everyMs: number): number;
     clearInterval(handle: number): void;
+    setTimeout(step: () => void, afterMs: number): number;
     console: { error(line: string, failure: unknown): void };
     localStorage: {
         getItem(key: string): string | null;
         setItem(key: string, value: string): void;
     };
-    Date: { now(): number };
+    /** The moment as a number and as a word. A recording states the second of them. */
+    Date: { now(): number; new (atMs: number): { toISOString(): string } };
+    location: { hostname?: string | undefined };
+    navigator: { userAgent?: string | undefined };
+    URL: { createObjectURL(part: unknown): string; revokeObjectURL(url: string): void };
+    Blob: new (parts: readonly string[], options: { type: string }) => unknown;
+}
+
+/**
+ * The document as this file asks for it, which is wider than the panel's own — the panel is
+ * handed one and states its own surface.
+ *
+ * `createElement` answers an anchor for every tag, which is a shape only an anchor really has.
+ * Nothing here reads those members off anything but an `a`, and the boundary that asserts it is
+ * the one cast in `userscript-boot.ts`.
+ */
+export interface UserscriptDocument {
+    createElement(tag: string): DownloadAnchor;
+    body: { append(child: PanelElement): void };
+    /** Where the client's own bundle name is, which is where the build id is. */
+    querySelectorAll(selector: string): ArrayLike<{ src?: unknown }>;
+}
+
+/** What a browser is handed to save a file, and nothing wider. */
+export interface DownloadAnchor extends PanelElement {
+    href: string;
+    download: string;
+    click(): void;
+    remove(): void;
+}
+
+/** The one class a reader could meet outside the panel, so it is named as ours (`SECURITY.md`). */
+const DOWNLOAD_ANCHOR_CLASS = "MargoMeter-download";
+/** What the game's own bundle is served as, which is the only script whose name carries a build. */
+const SCRIPT_WITH_SOURCE = "script[src]";
+
+/**
+ * Which world a recording came from, or the word saying nobody knows.
+ *
+ * ⚠️ **`?? "unknown"` does not cover the case that happens.** A page with no hostname gives `""`,
+ * and `"".split(".")[0]` is `""` — not nullish, so a recording carried a world of nothing and the
+ * file was named `margometer--2026-…json`, with a hole where the answer goes. A value nobody
+ * wrote must never read as an answer. Seen on a `file://` page, in v1.
+ */
+function getWorldFromPage(page: UserscriptWindow): string {
+    const stated = page.location.hostname ?? "";
+    const world = stated.split(".")[0] ?? "";
+    assert(world.length >= 0, "a world read off a page is text");
+    if (world.length === 0) return "unknown";
+    return world;
+}
+
+function getGameBuildFromPage(page: UserscriptWindow): string | null {
+    const scripts = page.document.querySelectorAll(SCRIPT_WITH_SOURCE);
+    assert(scripts.length >= 0, "a page states the scripts it states, however few");
+    for (let at = 0; at < scripts.length; at += 1) {
+        const source = getTextFromUnknown(scripts[at]?.src) ?? "";
+        const build = getGameBuildFromScriptName(source);
+        if (build !== null) return build;
+    }
+    return null;
+}
+
+/**
+ * Hands a file to the browser, which puts it wherever the reader's downloads go.
+ *
+ * A file rather than the clipboard: a recording runs to hundreds of kilobytes. `@grant none` is
+ * no obstacle — a blob and an object URL are ordinary page APIs, not privileges, and nothing
+ * leaves the browser.
+ *
+ * ⚠️ **The anchor goes into the document, and the URL is released on the next tick.** Clicking a
+ * detached node and revoking synchronously is tolerated by Chromium and can abort the download in
+ * Firefox, which reads the blob after the click returns. That failure is the worst kind available
+ * here: nothing throws, the panel looks like it saved, and no file arrives. A fake document
+ * exercises none of it — `click()` there does nothing — so it is checked in a browser.
+ */
+function writeTextToFile(page: UserscriptWindow, name: string, text: string): void {
+    assert(name.length > 0, "a file handed to a browser is handed a name");
+    assert(text.length > 0, "and something to put in it");
+    const url = page.URL.createObjectURL(new page.Blob([text], { type: "application/json" }));
+    const anchor = page.document.createElement("a");
+    anchor.href = url;
+    anchor.download = name;
+    anchor.className = DOWNLOAD_ANCHOR_CLASS;
+    page.document.body.append(anchor);
+    try {
+        anchor.click();
+    } finally {
+        anchor.remove();
+        page.setTimeout(() => page.URL.revokeObjectURL(url), 0);
+    }
 }
 
 /**
@@ -199,6 +310,13 @@ export function startFromWindow(page: UserscriptWindow): GameAttachment {
         },
         report: (line, failure) => page.console.error(line, failure),
         store: composeBrowserStore(page.localStorage),
+        save: (name, text) => writeTextToFile(page, name, text),
+        readSurroundings: () => ({
+            world: getWorldFromPage(page),
+            gameBuild: getGameBuildFromPage(page),
+            capturedAt: new page.Date(page.Date.now()).toISOString(),
+            userAgent: page.navigator.userAgent ?? null,
+        }),
         now: () => page.Date.now(),
     });
 }
@@ -230,6 +348,26 @@ function keepFight(
 }
 
 /**
+ * The recording, handed to the browser as a file.
+ *
+ * Nothing here is redacted, and that is the design: the file carries real nicknames and the
+ * game's own prose, it never enters git, and intake is where both are dealt with once
+ * (`SECURITY.md`). A refusal to write leaves a mark rather than an empty file.
+ */
+function saveRecording(environment: UserscriptEnvironment, capture: FightCapture): void {
+    const save = environment.save;
+    if (save === null) return;
+    const surroundings = environment.readSurroundings();
+    const text = composeCaptureText(capture, surroundings);
+    if (text === null) {
+        environment.report(FAILURE_LINE, "a recording that would not be written as text");
+        return;
+    }
+    assert(text.length > 0, "a recording written as text says something");
+    save(composeCaptureFileName(surroundings), text);
+}
+
+/**
  * Starts reading, and hands back the way to stop. A second copy of the add-on stands down inside
  * the attachment, so nothing here has to know it was second.
  */
@@ -256,7 +394,12 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
         environment.mount.show(panel.element);
         isMounted = true;
     };
+    // The recording, and the state each call is entered with. Held beside the session because it
+    // is the same fight: `composeNextCapture` clears on the key `addPayloadToSession` clears on.
+    let capture = composeEmptyCapture();
+    let combatantsBefore: CapturedCombatant[] = [];
     const panel = composePanelHost(environment.document, (press) => {
+        if (press.kind === "save") saveRecording(environment, capture);
         if (!handlePress(screen, press)) return;
         // A refusal to write is an answer: the panel folds either way, and only the next visit
         // is the poorer for it.
@@ -265,8 +408,19 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     }, (failure) => environment.report(FAILURE_LINE, failure));
     assert(!isMounted, "nothing is on the page until a payload arrives");
     return attachToGame(environment.page, environment.schedule, {
-        handlePayload: (payload) => {
+        // The one place code of ours stands ahead of the game's own, and it reads and nothing
+        // else: the state a payload is about to change is only readable before it runs.
+        handleBeforeCall: (battle) => {
+            combatantsBefore = composeSnapshotFromBattle(battle);
+        },
+        handlePayload: (payload, battle) => {
             addPayloadToSession(session, payload);
+            capture = composeNextCapture(capture, {
+                payload,
+                messages: session.messagesByPayload.at(-1) ?? [],
+                combatantsBefore,
+                combatantsAfter: composeSnapshotFromBattle(battle),
+            });
             const fight = getFightFromSession(session);
             if (fight !== null && fight.payloads === 1) place = getPlaceFromPage(environment.page);
             // Once, on the call that ends it: a fight put on the shelf twice is two fights.

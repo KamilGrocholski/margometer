@@ -98,6 +98,9 @@ const CONTROL_CLASS = CLASS.control;
 const FOLDED_CLASS = CLASS.folded;
 /** What a control asks for. One attribute per control, so the listener never reads a class. */
 const FOLD_ATTRIBUTE = "data-fold";
+const SAVE_ATTRIBUTE = "data-save";
+/** Braces, because what it saves is the protocol as the game stated it and not a reading of it. */
+const SAVE_MARK = "{ }";
 /** Said the way a press would leave it: a folded panel offers to unfold, not to fold again. */
 const FOLD_MARK = "\u2014";
 const UNFOLD_MARK = "+";
@@ -290,6 +293,20 @@ function composeTitleControl(document: PanelDocument, isCollapsed: boolean): Pan
     return control;
 }
 
+/**
+ * The control that offers the fight as a file. It says nothing about the state, unlike the fold
+ * beside it: what it does is the same whatever the panel is showing.
+ */
+function composeSaveControl(document: PanelDocument): PanelElement {
+    const control = composeElement(document, "span", CONTROL_CLASS);
+    control.textContent = SAVE_MARK;
+    control.setAttribute(SAVE_ATTRIBUTE, "");
+    control.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.saveRecording);
+    assert(control.textContent.length > 0, "a control a reader could press wears a mark");
+    assert(control.className === CONTROL_CLASS, "and is a control by name before it is pressed");
+    return control;
+}
+
 function composeTitleElement(
     document: PanelDocument,
     place: string | null,
@@ -311,6 +328,9 @@ function composeTitleElement(
         bar.append(where);
     }
     // Last, so the bar reads the way `DESIGN.md` states it: name, version, place, controls.
+    // Saving stands left of the fold, which is the outermost thing on the bar in every window
+    // a reader has met.
+    bar.append(composeSaveControl(document));
     bar.append(composeTitleControl(document, isCollapsed));
     return bar;
 }
@@ -595,7 +615,8 @@ export type PanelPress =
     | { kind: "screen"; screen: string }
     | { kind: "row"; stated: string }
     | { kind: "back" }
-    | { kind: "fold" };
+    | { kind: "fold" }
+    | { kind: "save" };
 
 /** The shelf stands over an opened row, and an opened row over the screen it was opened on. */
 function composeViewBody(
@@ -635,6 +656,10 @@ function setPanelHostListeners(
         const stated = target.getAttribute(ROW_ATTRIBUTE);
         if (stated !== null) {
             handlePress({ kind: "row", stated });
+            return;
+        }
+        if (target.getAttribute(SAVE_ATTRIBUTE) !== null) {
+            handlePress({ kind: "save" });
             return;
         }
         if (target.getAttribute(FOLD_ATTRIBUTE) !== null) {

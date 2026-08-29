@@ -482,7 +482,13 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
     };
 
     panel.show(view);
-    const control = getElementsWithin(host).find((one) => one.className === CLASS.control);
+    // A block body, not an expression: the recursion guard reads a one-line named arrow as
+    // opening no brace, and so reads every line after it as this function's body — gap 13.
+    const controls = () => {
+        return getElementsWithin(host).filter((one) => one.className === CLASS.control);
+    };
+    assertEquals(controls().length, 2, "the bar carries the save and the fold, in that order");
+    const control = controls().find((one) => one.attributes.has("data-fold"));
     assert(control !== undefined, "an unfolded panel carries the control that folds it");
     assertEquals(control.textContent, "\u2014", "which says what a press would do");
     assertEquals(control.attributes.get("title"), PANEL_WORDS.collapse, "in the reader's words");
@@ -499,8 +505,8 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
         0,
         "and no row is composed for a screen nobody is looking at",
     );
-    const back = getElementsWithin(host).find((one) => one.className === CLASS.control);
-    assert(back !== undefined, "the bar is still a bar, and still carries its control");
+    const back = controls().find((one) => one.attributes.has("data-fold"));
+    assert(back !== undefined, "the bar is still a bar, and still carries its controls");
     assertEquals(back.textContent, "+", "which now offers the way back rather than the way in");
     assertEquals(back.attributes.get("title"), PANEL_WORDS.expand, "and says so in the same words");
     assertEquals(getTextsByClass(host, "title-name"), [PANEL_WORDS.title], "the name standing on");

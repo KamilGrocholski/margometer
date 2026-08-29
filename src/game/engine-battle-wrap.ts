@@ -19,6 +19,18 @@ export type EngineBattle = Record<string, unknown>;
 type EngineUpdate = (this: unknown, ...args: unknown[]) => unknown;
 type WrappedUpdate = EngineUpdate & { [WRAP_MARKER]?: unknown };
 
+/**
+ * What a wrap tells its reader. `handleBeforeCall` is the one place code of ours stands **ahead**
+ * of the game's own, for what only that moment can be read at, and it may alter nothing.
+ */
+export interface EngineBattleReader {
+    handleBeforeCall(battle: EngineBattle): void;
+    /** Handed the battle too: the state after a call is only readable off it. */
+    handlePayload(payload: unknown, battle: EngineBattle): void;
+    /** The first failure of ours, once; the wrap counts the rest. */
+    handleFirstFailure(failure: unknown): void;
+}
+
 export interface EngineBattleWrap {
     /** Puts back what was there, and only where ours is still the outermost layer. */
     detach(): void;
@@ -28,6 +40,8 @@ export interface EngineBattleWrap {
 
 /** By the marker's presence, whatever its value: any MargoMeter is a second count. */
 export function isEngineBattleWrapped(battle: EngineBattle): boolean {
+    assert(WRAPPED_METHOD.length > 0, "the method a wrap goes on is named");
+    assert(WRAP_MARKER.length > 0, "and the marker it would be found by");
     return hasMargoMeterWrap(battle[WRAPPED_METHOD]);
 }
 
@@ -42,8 +56,7 @@ function hasMargoMeterWrap(value: unknown): boolean {
  */
 export function wrapEngineBattle(
     battle: EngineBattle,
-    handlePayload: (payload: unknown) => void,
-    handleFirstFailure: (failure: unknown) => void,
+    reader: EngineBattleReader,
 ): EngineBattleWrap | null {
     const original = battle[WRAPPED_METHOD];
     if (typeof original !== "function") return null;
@@ -52,13 +65,26 @@ export function wrapEngineBattle(
     // the signature is what keeps the call below typed rather than silently untyped.
     const engineUpdate = original as EngineUpdate;
     let failures = 0;
+    const countFailure = (failure: unknown): void => {
+        failures += 1;
+        assert(failures > 0, "a failure that happened is counted");
+        assert(failures <= Number.MAX_SAFE_INTEGER, "and the count stays a number");
+        if (failures === 1) reader.handleFirstFailure(failure);
+    };
     const wrapper: WrappedUpdate = function (this: unknown, ...args: unknown[]): unknown {
+        // Its own guard, deliberately not shared with the reading below: one `try` around both
+        // would let a throw here skip the reading, so a collector failing would stop the meter
+        // counting — the one failure a tool for gathering material must not have.
+        try {
+            reader.handleBeforeCall(battle);
+        } catch (failure) {
+            countFailure(failure);
+        }
         const answer = engineUpdate.apply(this, args);
         try {
-            handlePayload(args[0]);
+            reader.handlePayload(args[0], battle);
         } catch (failure) {
-            failures += 1;
-            if (failures === 1) handleFirstFailure(failure);
+            countFailure(failure);
         }
         return answer;
     };

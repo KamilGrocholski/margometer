@@ -32,7 +32,9 @@ export interface Scheduler {
 }
 
 export interface AttachmentReport {
-    handlePayload(payload: unknown): void;
+    /** Handed the battle before the engine's own call, for what only that moment can be read at. */
+    handleBeforeCall(battle: EngineBattle): void;
+    handlePayload(payload: unknown, battle: EngineBattle): void;
     /** The first failure of ours, once. The wrap counts the rest. */
     handleFailure(failure: unknown): void;
     /** A MargoMeter was already reading, so this copy stands down and never counts. */
@@ -107,11 +109,11 @@ function look(page: unknown, report: AttachmentReport, schedule: Scheduler, sear
         return;
     }
     assert(!isEngineBattleWrapped(battle), "a game somebody else holds never reaches the wrap");
-    search.wrap = wrapEngineBattle(
-        battle,
-        (payload) => report.handlePayload(payload),
-        (failure) => report.handleFailure(failure),
-    );
+    search.wrap = wrapEngineBattle(battle, {
+        handleBeforeCall: (holding) => report.handleBeforeCall(holding),
+        handlePayload: (payload, holding) => report.handlePayload(payload, holding),
+        handleFirstFailure: (failure) => report.handleFailure(failure),
+    });
     if (search.wrap !== null) {
         stopLooking(search, schedule);
         return;

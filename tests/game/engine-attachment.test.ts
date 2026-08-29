@@ -26,7 +26,8 @@ function composeReport(): { report: AttachmentReport; told: Told } {
     return {
         told,
         report: {
-            handlePayload: (payload) => told.payloads.push(payload),
+            handleBeforeCall: () => {},
+            handlePayload: (payload: unknown) => told.payloads.push(payload),
             handleFailure: (failure) => told.failures.push(failure),
             handleAnotherReader: () => told.others += 1,
             handleRefusal: () => told.refusals += 1,
