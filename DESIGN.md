@@ -2,10 +2,10 @@
 
 ## What this document is
 
-**A specification, not a description.** No panel exists in this tree. The tokens below are carried
-from the panel v1 shipped (`git show develop:src/ui/panel-look.ts`) and the rules from what that
-panel had to satisfy. Nothing here is evidence that anything is drawn yet — `ARCHITECTURE.md`
-carries what exists.
+**A specification, not a description.** The tokens below are carried from the panel v1 shipped
+(`git show develop:src/ui/panel-look.ts`) and the rules from what that panel had to satisfy. Nothing
+here is evidence that anything is drawn yet — `ARCHITECTURE.md` carries what exists, and what of
+this document the tree does not yet meet.
 
 ## North star
 
@@ -116,6 +116,9 @@ legibility.
 | `rowHeight`      | `18px`                                                    |
 | `maxHeightShare` | `66vh`                                                    |
 | `tipWidth`       | fixed, so a tooltip never reflows against its own content |
+| `panelWidth`     | `260px` — narrow on purpose: the panel is a guest         |
+| `panelInset`     | `8px` from the corner it is anchored to                   |
+| `panelLayer`     | high enough to clear the game's own windows               |
 
 **Every row is the same height**, accent included. A row whose background is taller than its
 neighbour reads as a different kind of row, and it is not one.

@@ -7,7 +7,10 @@
 
 import { assert, assertEquals } from "@std/assert";
 import {
+    CLASS,
     composeBarColour,
+    composeShareBackground,
+    composeStyleSheet,
     ELEMENT_COLOURS,
     getColourForElement,
     getContrastRatio,
@@ -102,4 +105,42 @@ Deno.test("the two sides are told apart by more than a hue", () => {
         "a mark stands off its surface",
     );
     assertEquals(SIGNAL.unknown, "#8a8a80", "unknown is desaturated: the absence of a category");
+});
+
+Deno.test("the sheet shuts the game out, and every class it selects is one the panel wears", () => {
+    const sheet = composeStyleSheet();
+    assert(sheet.startsWith(":host{all:initial;"), "the reset comes before anything of ours");
+    for (const [name, spelling] of Object.entries(CLASS)) {
+        assert(sheet.includes(`.${spelling}`), `${name} is a class no rule selects`);
+    }
+    const opened = [...sheet].filter((one) => one === "{").length;
+    const closed = [...sheet].filter((one) => one === "}").length;
+    assertEquals(opened, closed, "every rule the sheet opens is closed");
+    assert(opened > 1, "and the sheet holds more than the host's own rule");
+});
+
+Deno.test("a value is written once, and every rule spends it by name", () => {
+    const sheet = composeStyleSheet();
+    // A value stated twice is the bug this catches, wherever the second one sits: the host's own
+    // declarations spend tokens like any other rule, so one occurrence is the whole allowance.
+    const twice: string[] = [];
+    for (const value of [...Object.values(SURFACE), ...Object.values(TEXT), SIGNAL.suspect]) {
+        const written = sheet.split(value).length - 1;
+        if (written > 1) twice.push(`${value} written ${written} times`);
+    }
+    assertEquals(twice, [], "a value the sheet writes more than once");
+    assert(sheet.includes(SURFACE.panel), "and the values it does write are the tokens");
+    assert(sheet.includes("var(--MargoMeter-"), "which a rule reaches by our own name");
+    assert(sheet.split("var(--MargoMeter-").length > 10, "and reaches by name many times over");
+});
+
+Deno.test("a bar is the row's own background, and it stops where the share does", () => {
+    const whole = composeShareBackground(ELEMENT_COLOURS[0] ?? "", 1);
+    assert(whole.includes("100%"), "a whole share runs the width of the row");
+    const none = composeShareBackground(ELEMENT_COLOURS[0] ?? "", 0);
+    assert(none.includes("0%"), "and nothing measured draws nothing, which is not unknown");
+    const half = composeShareBackground(ELEMENT_COLOURS[0] ?? "", 0.5);
+    assert(half.includes("50%"), "a half share stops halfway");
+    assert(half.startsWith("linear-gradient("), "the bar is the background, not an element in it");
+    assertEquals(half.split("transparent").length, 2, "and the row behind it shows past the stop");
 });

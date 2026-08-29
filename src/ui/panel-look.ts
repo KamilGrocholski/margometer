@@ -1,6 +1,10 @@
 /**
- * The panel's tokens, and the two things a rule cannot state: which ink a bar takes, and which
- * hue an element gets. Both are computed, so neither is a matter of taste at the call site.
+ * The panel's tokens, the classes its rules select, and the stylesheet built out of both.
+ *
+ * The rules live beside the values so that a rule can reach nothing else: a raw hex, pixel or
+ * radius in a rule is a bug, and holding that mechanically means there is one file to look in.
+ * A class is spelled here and imported by the file that wears it, because the failure when two
+ * spellings drift is an unstyled row rather than anything a compiler sees.
  *
  * `DESIGN.md` owns what these values are for; this file owns what they are.
  */
@@ -41,11 +45,48 @@ export const ELEMENT_COLOURS = [
     "#e66767",
 ] as const;
 
+/**
+ * The classes the rules select. A region a reader meets before the panel's contents carries the
+ * `MargoMeter-` prefix; what sits inside a region does not, because the game's stylesheet cannot
+ * reach behind the root.
+ */
+export const CLASS = {
+    title: "MargoMeter-titlebar",
+    tabs: "MargoMeter-tabs",
+    body: "MargoMeter-body",
+    titleName: "title-name",
+    place: "place",
+    tab: "tab",
+    tabCurrent: "tab-current",
+    row: "row",
+    rowName: "row-name",
+    rowFigure: "row-figure",
+    pinned: "pinned",
+    section: "section",
+    crumb: "crumb",
+    drillHead: "drill-head",
+    empty: "empty",
+    undrawn: "undrawn",
+    warning: "warning",
+} as const;
+
 export const SPACE = {
     half: "2px",
     small: "4px",
     rowHeight: "18px",
     heightShareMaximum: "66vh",
+} as const;
+
+/**
+ * Where the panel sits and how wide it is. Carried from v1, whose drag arithmetic needed the
+ * margin and the width as one pair (`git show develop:src/ui/panel-look.ts`). The layer is high
+ * enough to clear the game's own windows, which is the whole requirement — there is nothing of
+ * ours for it to be relative to.
+ */
+export const PLACE = {
+    inset: "8px",
+    width: "260px",
+    layer: "9999",
 } as const;
 
 export const SHAPE = {
@@ -228,4 +269,130 @@ export function composeBarColour(element: string): string {
 /** The ink a figure printed over that bar takes, computed from the bar and not from the hue. */
 export function getInkForBar(element: string): string {
     return getInkForChannels(composeBarChannels(element));
+}
+
+/** Ours, because `all: initial` resets every property a page can set except a custom one. */
+const VARIABLE_PREFIX = "--MargoMeter-";
+const SHARE_AS_PERCENT = 100;
+/** The system stack, so the panel asks a browser for no font and waits for no download. */
+const FONT_STACK = "system-ui, sans-serif";
+const FONT_SIZE = "11px";
+
+function composeVariable(name: string, value: string): string {
+    assert(name.length > 0, "a token is named");
+    assert(value.length > 0, "and carries a value");
+    return `${VARIABLE_PREFIX}${name}:${value};`;
+}
+
+/**
+ * Every token, as a custom property on the host. A rule below spends one of these and reaches
+ * nothing else, which is what makes a raw hex anywhere under it visible as the bug it is.
+ */
+function composeVariables(): string {
+    const stated = [
+        composeVariable("surface", SURFACE.panel),
+        composeVariable("raised", SURFACE.raised),
+        composeVariable("track", SURFACE.track),
+        composeVariable("border", SURFACE.border),
+        composeVariable("text", TEXT.plain),
+        composeVariable("quiet", TEXT.quiet),
+        composeVariable("suspect", SIGNAL.suspect),
+        composeVariable("half", SPACE.half),
+        composeVariable("small", SPACE.small),
+        composeVariable("row-height", SPACE.rowHeight),
+        composeVariable("radius", SHAPE.radius),
+        composeVariable("radius-small", SHAPE.radiusSmall),
+    ].join("");
+    assert(stated.length > 0, "the panel spends tokens rather than values");
+    assert(stated.startsWith(VARIABLE_PREFIX), "and every one of them is ours by name");
+    return stated;
+}
+
+/**
+ * The host and the three regions standing in it.
+ *
+ * `all: initial` is the Guest Rule's own half: nothing the game's stylesheet says reaches in, and
+ * because it resets `display` too, every region below states its own.
+ */
+function composeFrameRules(): string {
+    assert(PLACE.width.endsWith("px"), "the panel is as wide as it was told, in pixels");
+    assert(CLASS.title.startsWith("MargoMeter-"), "a region is named as ours before it is styled");
+    return `:host{all:initial;${composeVariables()}` +
+        `position:fixed;top:${PLACE.inset};right:${PLACE.inset};width:${PLACE.width};` +
+        `z-index:${PLACE.layer};display:flex;flex-direction:column;` +
+        `font-family:${FONT_STACK};font-size:${FONT_SIZE};` +
+        `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}surface);` +
+        `border:1px solid var(${VARIABLE_PREFIX}border);` +
+        `border-radius:var(${VARIABLE_PREFIX}radius);box-shadow:${SHAPE.windowShadow};` +
+        `max-height:${SPACE.heightShareMaximum};overflow:hidden;}` +
+        `.${CLASS.title}{display:flex;justify-content:space-between;align-items:center;` +
+        `gap:var(${VARIABLE_PREFIX}small);padding:var(${VARIABLE_PREFIX}small);` +
+        `background:var(${VARIABLE_PREFIX}raised);` +
+        `border-bottom:1px solid var(${VARIABLE_PREFIX}border);}` +
+        `.${CLASS.titleName}{font-weight:600;}` +
+        `.${CLASS.place}{color:var(${VARIABLE_PREFIX}quiet);}` +
+        `.${CLASS.tabs}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);` +
+        `padding:var(${VARIABLE_PREFIX}half) var(${VARIABLE_PREFIX}small);` +
+        `border-bottom:1px solid var(${VARIABLE_PREFIX}border);}` +
+        `.${CLASS.body}{overflow-y:auto;padding:var(${VARIABLE_PREFIX}half) 0;}`;
+}
+
+/**
+ * What sits inside the body. Every row is the same height, accent included: a row whose
+ * background is taller than its neighbour reads as a different kind of row, and it is not one.
+ */
+function composeRowRules(): string {
+    assert(SPACE.rowHeight.length > 0, "every row is drawn at one height");
+    assert(SHAPE.radiusSmall.endsWith("px"), "what sits in a row is rounded in pixels");
+    return `.${CLASS.row},.${CLASS.pinned},.${CLASS.drillHead}{display:flex;` +
+        `justify-content:space-between;gap:var(${VARIABLE_PREFIX}small);align-items:center;` +
+        `height:var(${VARIABLE_PREFIX}row-height);` +
+        `padding:0 var(${VARIABLE_PREFIX}small);` +
+        `border-radius:var(${VARIABLE_PREFIX}radius-small);` +
+        `background-color:var(${VARIABLE_PREFIX}track);background-repeat:no-repeat;}` +
+        `.${CLASS.rowName}{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
+        `.${CLASS.rowFigure}{font-variant-numeric:tabular-nums;flex:none;}` +
+        `.${CLASS.pinned}{color:var(${VARIABLE_PREFIX}quiet);` +
+        `margin-top:var(${VARIABLE_PREFIX}half);}` +
+        `.${CLASS.drillHead}{background-color:var(${VARIABLE_PREFIX}raised);font-weight:600;}` +
+        `.${CLASS.section}{color:var(${VARIABLE_PREFIX}quiet);` +
+        `height:var(${VARIABLE_PREFIX}row-height);line-height:var(${VARIABLE_PREFIX}row-height);` +
+        `padding:0 var(${VARIABLE_PREFIX}small);}` +
+        `.${CLASS.crumb}{color:var(${VARIABLE_PREFIX}quiet);cursor:pointer;` +
+        `height:var(${VARIABLE_PREFIX}row-height);line-height:var(${VARIABLE_PREFIX}row-height);` +
+        `padding:0 var(${VARIABLE_PREFIX}small);}` +
+        `.${CLASS.tab}{cursor:pointer;color:var(${VARIABLE_PREFIX}quiet);` +
+        `padding:0 var(${VARIABLE_PREFIX}small);` +
+        `border-radius:var(${VARIABLE_PREFIX}radius-small);}` +
+        `.${CLASS.tabCurrent}{color:var(${VARIABLE_PREFIX}text);` +
+        `background:var(${VARIABLE_PREFIX}raised);}` +
+        `.${CLASS.empty},.${CLASS.undrawn}{color:var(${VARIABLE_PREFIX}quiet);` +
+        `padding:var(${VARIABLE_PREFIX}small);}` +
+        `.${CLASS.warning}{color:var(${VARIABLE_PREFIX}suspect);` +
+        `padding:0 var(${VARIABLE_PREFIX}small);}`;
+}
+
+/**
+ * The whole sheet, composed once. A browser is handed text rather than a list of rules, because
+ * a shadow root takes one `<style>` and this panel has one look.
+ */
+export function composeStyleSheet(): string {
+    const sheet = `${composeFrameRules()}${composeRowRules()}`;
+    assert(sheet.startsWith(":host{all:initial;"), "the sheet shuts the game out before anything");
+    assert(!sheet.includes("}}"), "and closes each rule once");
+    return sheet;
+}
+
+/**
+ * A row's share, drawn as the row's own background rather than as an element inside it, so the
+ * row's height cannot disagree with the accent's. The colour stops where the share does.
+ */
+export function composeShareBackground(colour: string, share: number): string {
+    assert(colour.length > 0, "a bar is drawn in a colour");
+    assert(share >= 0, "a share is never below nothing");
+    assert(share <= 1, "and never more than the whole");
+    const percent = share * SHARE_AS_PERCENT;
+    const stop = `${percent}%`;
+    assert(stop.endsWith("%"), "a stop is written as a share of the row");
+    return `linear-gradient(to right, ${colour} ${stop}, transparent ${stop})`;
 }

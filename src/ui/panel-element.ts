@@ -24,6 +24,12 @@ import {
     SHELF_SCREEN,
 } from "@/src/ui/panel-screen.ts";
 import {
+    CLASS,
+    composeBarColour,
+    composeShareBackground,
+    composeStyleSheet,
+} from "@/src/ui/panel-look.ts";
+import {
     composeCountedNoun,
     COUNTED_NOUNS,
     getWordsForElement,
@@ -57,37 +63,35 @@ export interface PanelRoot {
 }
 
 const HOST_NAME = "MargoMeter-Panel";
-const TITLE_CLASS = "MargoMeter-titlebar";
-const TITLE_NAME_CLASS = "title-name";
-const PLACE_CLASS = "place";
-const BODY_CLASS = "MargoMeter-body";
-/**
- * The strip is one of the panel's own regions, so it is named as ours like the bar and the body.
- * What sits inside a region is not: the game's stylesheet cannot reach behind the root.
- */
-const ROW_CLASS = "row";
-const ROW_NAME_CLASS = "row-name";
-const ROW_FIGURE_CLASS = "row-figure";
-const TABS_CLASS = "MargoMeter-tabs";
-const TAB_CLASS = "tab";
+const TITLE_CLASS = CLASS.title;
+const TITLE_NAME_CLASS = CLASS.titleName;
+const PLACE_CLASS = CLASS.place;
+const BODY_CLASS = CLASS.body;
+const ROW_CLASS = CLASS.row;
+const ROW_NAME_CLASS = CLASS.rowName;
+const ROW_FIGURE_CLASS = CLASS.rowFigure;
+const TABS_CLASS = CLASS.tabs;
+const TAB_CLASS = CLASS.tab;
 /** More than colour, because colour never carries meaning by itself. */
-const TAB_CURRENT_CLASS = "tab tab-current";
+const TAB_CURRENT_CLASS = `${CLASS.tab} ${CLASS.tabCurrent}`;
 const TAB_CURRENT_MARK = "• ";
 const SCREEN_ATTRIBUTE = "data-screen";
 /** A row says which combatant it is, and the crumb above an opened row says only that it is one. */
 const ROW_ATTRIBUTE = "data-row";
 const BACK_ATTRIBUTE = "data-back";
-const CRUMB_CLASS = "crumb";
-const DRILL_HEAD_CLASS = "drill-head";
+const CRUMB_CLASS = CLASS.crumb;
+const DRILL_HEAD_CLASS = CLASS.drillHead;
 /** A heading over one cut, so two lists under one opened row do not read as one list. */
-const SECTION_CLASS = "section";
+const SECTION_CLASS = CLASS.section;
 const BACK_MARK = "\u2039 ";
 /** What the panel listens for: a press, not a click, so a drag never counts as one. */
 const PRESS_EVENT = "pointerdown";
-const UNDRAWN_CLASS = "undrawn";
-const EMPTY_CLASS = "empty";
-const PINNED_CLASS = "pinned";
-const SUSPECT_CLASS = "warning";
+const UNDRAWN_CLASS = CLASS.undrawn;
+const EMPTY_CLASS = CLASS.empty;
+const PINNED_CLASS = CLASS.pinned;
+const SUSPECT_CLASS = CLASS.warning;
+/** What a row's bar is written on, since a share is data rather than a token. */
+const STYLE_ATTRIBUTE = "style";
 /** A fight holds twenty, and a screen draws a row for each. */
 const MAXIMUM_ROWS = 20;
 /** What the statistics keep a cut inside. `captures/` states ten kinds in all, 2026-08-28. */
@@ -248,6 +252,8 @@ function composeBodyElement(document: PanelDocument, reading: PanelReading): Pan
 function composeElementRowElement(document: PanelDocument, row: ElementRow): PanelElement {
     assert(row.figure >= 0, "a kind drawn states a figure that is not below nothing");
     const element = composeElement(document, "div", ROW_CLASS);
+    const bar = composeShareBackground(composeBarColour(row.element), row.share);
+    element.setAttribute(STYLE_ATTRIBUTE, `background-image:${bar}`);
     const name = composeElement(document, "span", ROW_NAME_CLASS);
     name.textContent = getWordsForElement(row.element);
     const figure = composeElement(document, "span", ROW_FIGURE_CLASS);
@@ -396,6 +402,12 @@ export function composePanelHost(
     assert(HOST_NAME.startsWith("MargoMeter-"), "the host is named as ours before anything else");
     host.setAttribute("id", HOST_NAME);
     const root = host.attachShadow({ mode: "open" });
+    // The sheet is put in once and never replaced: a region redrawn under it keeps its look, and
+    // a browser re-parses nothing on a redraw.
+    const sheet = document.createElement("style");
+    sheet.textContent = composeStyleSheet();
+    root.append(sheet);
+    assert(sheet.textContent.length > 0, "the panel is handed its look before it draws anything");
     let title = composeElement(document, "div", TITLE_CLASS);
     let tabs = composeElement(document, "div", TABS_CLASS);
     let body = composeElement(document, "div", BODY_CLASS);

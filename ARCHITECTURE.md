@@ -58,7 +58,7 @@ src/
     engine-warrior.ts    The client's own field names, and the only file that spells them.
   ui/
     panel-element.ts     The panel drawn into a document it is handed, region by region.
-    panel-look.ts        The panel's tokens, and the ink a figure over a bar takes.
+    panel-look.ts        The panel's tokens, the classes its rules select, and the stylesheet.
     panel-reading.ts     One screen's worth of a fight, and one row's worth of a screen.
     panel-screen.ts      Which screen the panel is on, and the strip that says so.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
@@ -97,7 +97,7 @@ tests/
     build-userscript.test.ts  The built file, read back: the banner, and no way out.
   ui/
     panel-element.test.ts     What the panel puts on a page, read back out of it.
-    panel-look.test.ts        Contrast by arithmetic, over every pairing the panel draws.
+    panel-look.test.ts        Contrast by arithmetic, and a sheet that spends tokens only.
     panel-reading.test.ts     A screen of a real fight, through every layer under it.
     panel-screen.test.ts      The screens there are, against what a reading composes for.
     panel-words.test.ts       What the words must never say, and how Polish counts.
@@ -297,9 +297,10 @@ commit that opens or closes one.
 1. **The add-on reads a fight, draws it, and keeps it.** Every key in `captures/` is read, the panel
    switches screens, pressing a row opens the figure cut twice — by whom each blow reached and by
    the kind of damage it carried — a finished fight goes on a shelf the reader can look back at, the
-   bar and every row on that shelf say where the fight was fought, and `deno task build` writes the
-   file they install. What is not written: the tooltip, every tool but the build, and the release
-   plumbing — `README.md`, `CHANGELOG.md` and the workflows.
+   bar and every row on that shelf say where the fight was fought, the panel carries the stylesheet
+   `DESIGN.md` specifies, and `deno task build` writes the file they install. What is not written:
+   the tooltip, the bar on a ranking row, every tool but the build, and the release plumbing —
+   `README.md`, `CHANGELOG.md` and the workflows.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.
@@ -359,3 +360,10 @@ commit that opens or closes one.
     gap 10 is the other half of the same reader.
 14. **No release exists on this branch.** `README.md`, `CHANGELOG.md`, the workflows and the
     screenshots are unwritten; the release contract above is inherited from v1 and unexercised here.
+15. **A ranking row draws no bar, because nothing can say what colour it should be.** A kind's row
+    carries its share as its own background in the element palette, which `DESIGN.md` states and the
+    kind's own word accompanies. A combatant's row has no such colour: `ours` and `theirs` are the
+    tokens for it, and which side is the reader's is not resolvable here — `PanelRow.side` carries
+    the game's own team number, and reading `Engine.hero.d.id` against `warriorsList` is work
+    `game/` has not done. Colour alone could not carry the side in any case, so what the row would
+    need beside the bar is open too.

@@ -70,7 +70,7 @@ Deno.test("the panel goes into a shadow root, under a name of ours", () => {
     assertEquals(host.attributes.get("id"), "MargoMeter-Panel", "the host is named as ours");
     assert(host.shadow !== null, "and everything else is behind a root of its own");
     assertEquals(host.children.length, 0, "nothing is put beside the root");
-    assertEquals(host.shadow.length, 3, "the title bar, the strip of screens, and the body");
+    assertEquals(host.shadow.length, 4, "its look, the title bar, the strip of screens, the body");
 });
 
 Deno.test("every name a reader meets before the panel's contents is ours", () => {
@@ -234,7 +234,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
     const host = panel.element as FakeElement;
     assertEquals(failures.length, 1, "the failure is reported once");
     assertEquals(getTextsByClass(host, "undrawn"), [PANEL_WORDS.undrawn], "and marked in place");
-    assertEquals(host.shadow?.length, 3, "while the panel keeps its shape");
+    assertEquals(host.shadow?.length, 4, "while the panel keeps its shape");
     assertEquals(getTextsByClass(host, "title-name"), [PANEL_WORDS.title], "the title stands");
 });
 
@@ -270,6 +270,39 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
     assert(rows.every((one) => one.attributes.get("data-row") === undefined), "opening no further");
     const crumb = within.filter((one) => one.className === "crumb");
     assertEquals(crumb.length, 1, "and one way back");
+});
+
+Deno.test("a kind's row carries its share as the row's own background", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        shelf: [],
+        isOnShelf: false,
+        drill,
+        place: null,
+    });
+    const host = panel.element as FakeElement;
+    const barred = getElementsWithin(host).filter((one) => {
+        return one.attributes.get("style") !== undefined;
+    });
+    assertEquals(
+        barred.length,
+        drill.byElement.length,
+        "a bar for each kind, and for nothing else",
+    );
+    const first = barred[0];
+    assert(first !== undefined, "there is a kind to draw a bar for");
+    const drawn = first.attributes.get("style") ?? "";
+    assert(
+        drawn.startsWith("background-image:"),
+        "the bar is the row's background, not an element",
+    );
+    const largest = drill.byElement[0];
+    assert(largest !== undefined, "the largest kind is the first drawn");
+    assert(drawn.includes(`${largest.share * 100}%`), "and it stops where that kind's share does");
 });
 
 Deno.test("a part of a figure no kind was stated for is a row apart, below the kinds", () => {
