@@ -722,9 +722,8 @@ function composeOpponentSection(
 }
 
 /**
- * Drawn on the one screen the protocol states it for. What hit you is named and what the other
- * side chose never is, so a received screen has no such section — and the reading hands over an
- * empty cut rather than this being said twice.
+ * Drawn on the one screen the reading fills it for; on the others it is handed an empty cut,
+ * and `src/ui/panel-reading.ts` says which screen that is and why.
  */
 /**
  * What a part is called where it stands, and a key is worded from the screen's own table: the game

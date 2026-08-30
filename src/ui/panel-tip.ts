@@ -75,7 +75,7 @@ const NOTE_CHARACTERS_PER_LINE = 32;
  * 2026-08-30, so the bound is headroom rather than a limit anything has met.
  */
 const MAXIMUM_TIP_LINES = 64;
-/** Ours, because `all: initial` resets every property a page can set except a custom one. */
+/** A custom property, which is the one kind `src/ui/panel-look.ts`'s reset leaves standing. */
 const TOP_VARIABLE = "--MargoMeter-tip-top";
 const LEFT_VARIABLE = "--MargoMeter-tip-left";
 const LINES_VARIABLE = "--MargoMeter-tip-lines";

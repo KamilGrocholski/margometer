@@ -12,10 +12,10 @@ import { UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
 import { CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 
 const BUNDLE_ENTRY = "src/userscript-boot.ts";
-/** What the built file is called wherever it is served from, and not only under `dist/`. */
+/** The name the built file is served under anywhere, `dist/` included. */
 export const USERSCRIPT_NAME = "margometer.user.js";
 const USERSCRIPT_FILE = `dist/${USERSCRIPT_NAME}`;
-/** What the metadata file is called wherever it is served from, and not only under `dist/`. */
+/** The same for the metadata beside it, which 0.5.0 polls by this name. */
 export const METADATA_NAME = "margometer.meta.js";
 const METADATA_FILE = `dist/${METADATA_NAME}`;
 const HOMEPAGE = "https://github.com/KamilGrocholski/margometer";

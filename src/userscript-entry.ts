@@ -18,6 +18,7 @@ import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { getNumberFromUnknown, getTextFromUnknown } from "@/libs/unknown-reading.ts";
+import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import {
     addPayloadToSession,
     type BattleSession,
@@ -99,8 +100,6 @@ const SHELF_KEY = "MargoMeter-fights";
 const FOLD_KEY = "MargoMeter-folded";
 /** Anything else reads as unfolded, which is the state a reader who stored nothing is in. */
 const FOLDED = "1";
-/** A side holds at most ten, so a fight holds twenty — the bound `core/` states for a cast. */
-const MAXIMUM_COMBATANTS = 20;
 const PLACE_KEY = "MargoMeter-place";
 /**
  * Where the reader asked for the shelf to be kept, and it is kept beside the panel's own state
@@ -894,8 +893,9 @@ function composePanelPlacement(
     return {
         position: store === null ? null : getPositionFromStoredText(store.read(PLACE_KEY) ?? ""),
         getViewport: () => environment.readViewport(),
-        // Once per drag rather than once per frame, and a refusal to write is an answer: the
-        // panel stays where it was put and only the next visit is the poorer for it.
+        // Once per drag rather than once per frame. A refusal to write is an answer here as
+        // wherever this panel writes: the reader's choice stands, and only the next visit is the
+        // poorer for it.
         handleMoved: (position: PanelPosition) => {
             store?.write(PLACE_KEY, composeStoredTextFromPosition(position));
         },
@@ -977,8 +977,6 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
             if (press.kind === "copy") copyReport(environment, session, live.place);
             const isShelfPress = setShelfFromPress(shelf, press);
             if (!isShelfPress && !handlePress(screen, press)) return;
-            // A refusal to write is an answer: the panel folds either way, and only the next visit
-            // is the poorer for it.
             if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
             if (getFightFromSession(session) === null) panel.showWaiting(screen.isCollapsed);
             else draw();

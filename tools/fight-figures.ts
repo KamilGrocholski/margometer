@@ -186,8 +186,8 @@ function composeReadingLines(replay: FightReplay): string[] {
         ["taken by nobody", statistics.takenByNobody],
         ["given by nobody", statistics.givenByNobody],
         ["named neither end", statistics.byNeitherEnd],
-        // What never reached the decoder, which is a different failure from what it could not
-        // read — and which of the two somebody has to go and look at is what one number loses.
+        // Kept apart from what the decoder could not read, for the reason
+        // `src/game/fight-report.ts` gives where it prints the same two.
         ["messages lost", replay.reading.messagesLost],
     ];
     return [

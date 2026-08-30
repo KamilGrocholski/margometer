@@ -607,9 +607,8 @@ function composeTipRules(): string {
         `gap:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.tipLine}.${CLASS.tipStrong}{font-weight:600;}` +
         `.${CLASS.tipLine}.${CLASS.tipSub}{padding-left:var(${VARIABLE_PREFIX}wide);}` +
-        // Cut rather than wrapped, and it is the height arithmetic that asks: `getTipSize`
-        // counts a stat line as one line, so a label allowed to run onto a second would
-        // stand the card lower than it was measured for and hang it off the screen.
+        // Cut rather than wrapped, because a label that folded would stand the card wrong —
+        // `MAXIMUM_LABEL_CHARACTERS` in `src/ui/panel-words.ts` is where that arithmetic is.
         `.${CLASS.tipLabel}{color:var(${VARIABLE_PREFIX}quiet);min-width:0;` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipValue}{font-variant-numeric:tabular-nums;flex:none;}` +
