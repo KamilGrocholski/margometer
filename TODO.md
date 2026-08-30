@@ -32,6 +32,9 @@
 - [x] Preview panel resets its state, whenever I change the current caputred fight
 
 ## Later
+- [ ] Add views for: abilities ranking - uses, dmg, heal, etc; legbon ranking - procs;
+- [ ] Consider adding `turn` to stats - maybe I will find a solution to read turns after the latest fail
+- [ ] Add "ucieczka" as a new fight outcome
 - [ ] Add a thread about my add-ons and sites (MargoMeter, MargoStat) on Margonem's forum (I need 1 rep)
 - [ ] Get a recording carrying `frost` - the fourth of the `poison`/`fire`/`light` branch, unread and loud for want of material
 - [ ] Get a recording unwinding a pool past 40 000 from percentages with no snapshot - the entry-health floor's share term survives mutation for want of one
