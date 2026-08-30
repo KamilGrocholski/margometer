@@ -29,6 +29,8 @@ SECURITY.md        Reading boundary, guest rules, captured material.
 DESIGN.md          The panel's visual system.
 NOTICE.md          What here is somebody else's, and on what basis.
 CHANGELOG.md       What a player is told changed, release by release. The body of a release.
+README.md          What this is and how to install it, in Polish, which is what a player reads.
+README.en.md       The same, in English. The two are held to one set of pictures.
 LICENSE            MIT — covers what was written here, and nothing else.
 TODO.md            The maintainer's list, by hand. Never written to by a tool.
 deno.json          Tasks, formatter, linter, strictness, the `@/` alias.
@@ -185,6 +187,7 @@ tests/
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
     names.test.ts          File names, exported functions and exported types.
     protocol-keys.test.ts  The register help claims, re-counted against the frozen table.
+    readmes.test.ts        The two READMEs to one skeleton, and both to one set of shots.
     libraries.test.ts      `libs/` reaching no layer, and naming nothing of this project.
   recorded-fight.ts        The recordings, read through the constant that spells their fields.
   fake-document.ts         A document small enough to read, for a panel handed one.
@@ -492,8 +495,10 @@ commit that opens or closes one.
 12. **No release has been cut on this branch.** `CHANGELOG.md` is written, carried from v1 and
     opened with what the rewrite changed for a player; `tools/changelog.ts` composes the body of a
     release out of it, `.github/workflows/check.yml` is the run **G7** waits for, and
-    `.github/workflows/release.yml` publishes one. **None of it has run here.** `README.md` and the
-    screenshots are unwritten, and the release path is held by its tests alone.
+    `.github/workflows/release.yml` publishes one. **None of it has run here.** The release path is
+    held by its tests alone. What is written since is the front page: both READMEs, against a set of
+    pictures shot at the commit that drew them, and `tests/repository/readmes.test.ts` holding the
+    three to each other.
 13. **A ranking row does not say which side is the reader's.** The seat itself is read — the payload
     that opens a fight states it under `myteam`, `game/battle-session.ts` keeps it once seen, and it
     already decides the order of a shelf row's sides and whether a fight was won from that seat. It

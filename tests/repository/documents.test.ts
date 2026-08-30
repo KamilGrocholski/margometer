@@ -118,7 +118,9 @@ function getWordRuns(text: string, length: number): Set<string> {
  * rather than authors. ARCHITECTURE.md lists that under known gaps.
  */
 function getWrittenPaths(): string[] {
-    const found = [...CANONICAL, ...getSourcePaths()];
+    // The two READMEs are outside the canonical list because they are a front page rather than a
+    // rule, and inside this one because the column is about what a reader scrolls, not about rank.
+    const found = [...CANONICAL, ...getSourcePaths(), "README.md", "README.en.md"];
     for (const entry of Deno.readDirSync("docs/adr")) {
         if (entry.isFile && entry.name.endsWith(".md")) found.push(`docs/adr/${entry.name}`);
     }

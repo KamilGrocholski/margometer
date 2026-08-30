@@ -19,8 +19,12 @@ import { getNewestRecordedFight, getRecordedFights } from "@/tools/recorded-figh
 export const SHOT_DIRECTORY = "screenshots";
 /** What the set was taken from, beside the set. The guard reads it, and so does a reader. */
 export const SIDECAR_NAME = "taken-at.json";
-/** The sidecar is read by a person checking what a set was taken on, so it is indented. */
-const SIDECAR_INDENT_SPACES = 2;
+/**
+ * The sidecar is read by a person checking what a set was taken on, so it is indented — and at the
+ * width `deno.json` states, because the gate formats every JSON file it tracks. Written narrower,
+ * this tool left the tree unformatted after every run and `deno fmt` quietly widened it back.
+ */
+const SIDECAR_INDENT_SPACES = 4;
 const BROWSER_VARIABLE = "MARGOMETER_BROWSER";
 /** Chrome first: it is the browser Margonem is played in, and where the panel is measured. */
 const BROWSER_CANDIDATES = ["google-chrome", "google-chrome-stable", "chromium"];
