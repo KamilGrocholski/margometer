@@ -48,6 +48,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   Wcześniej obok niego stał drugi, który kopiował same liczby do schowka — teraz jeden plik niesie
   jedno i drugie, policzone liczby i surowy zapis prosto z gry. Do zgłoszeń wystarczy go załączyć.
 
+- **Nowość** — Na zakładce „otrzymane" widać wreszcie, czym cię trafili. Pod postacią, która ci
+  zadała obrażenia, stoi teraz lista jej umiejętności z liczbami — a to, czego gra niczym nie
+  zapowiedziała, zbiera się na dole w jednym wierszu „Zwykły cios". Dotąd ta zakładka mówiła tylko
+  kto i jakim typem obrażeń.
+
 - **Nowość** — Sześć rzeczy, które padały przy ciosach, ma wreszcie nazwy: cztery bonusy legendarne
   oraz dwie, których gra nie opisuje w poradniku. Dotąd stały w okienku postaci jako surowy zapis z
   gry, w rodzaju `-tenacity`. Teraz pyta o nie Twojego własnego klienta gry i pokazuje to, czym

@@ -36,11 +36,13 @@ const SCREENS: PanelMetric[] = [
     "healthRestored",
 ];
 /**
- * A fight where a pair says more than the row above it **and** one where it says exactly that. On
- * `HILDUR` every pair opens: the boss both strikes and wounds each member, so a wound's ticks put
- * a second kind under every opponent (`src/core/fight-statistics.ts`, ADR 0022).
+ * A fight where a pair says more than the row above it **and** one where it says exactly that.
+ * Most recordings hold only the first: a boss that both strikes and wounds puts a second kind
+ * under every opponent (`src/core/fight-statistics.ts`, ADR 0022), and an announcement opens a
+ * pair that has only one. Over `captures/` on 2026-08-31 this recording is the widest of the four
+ * that hold both, at 18 pairs that open against 1 that does not.
  */
-const BOTH_KINDS_OF_PAIR = "captures/2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none.json";
+const BOTH_KINDS_OF_PAIR = "captures/2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json";
 /** The one recording where health goes down on a key of its own, and nowhere near a blow. */
 const POISONED = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
 const POISONED_ID = -255967;
@@ -994,12 +996,14 @@ Deno.test("a pair that would only repeat the row above it does not open", () => 
                 other.combatantId,
             );
             assert(pair !== null, "and every row of its cut names a pair");
-            // The level under a pair says something where it holds more than one row. Where it
-            // does not, it is the figure just pressed under another heading.
-            const rows = pair.byElement.rows.length + pair.parts.length;
+            // The level under a pair says something where it holds more than one kind, or where
+            // an announcement names what the row above it does not. One kind beside one closing
+            // row is the figure just pressed under two headings.
+            const named = pair.parts.filter((one) => one.part.kind === "skill");
+            const says = pair.byElement.rows.length > 1 || named.length > 0;
             if (other.opensPair) opened += 1;
             else closed += 1;
-            assertEquals(other.opensPair, rows > 1, "which is what decides whether it opens");
+            assertEquals(other.opensPair, says, "which is what decides whether it opens");
         }
     }
     // Both answers occur on this fight, so neither branch of the rule is being read on faith.

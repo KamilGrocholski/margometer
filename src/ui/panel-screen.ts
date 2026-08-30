@@ -138,6 +138,11 @@ export function getNounForScreen(screen: PanelMetric): PanelNoun {
     return SCREEN_AXES[screen].noun;
 }
 
+export function getDirectionForScreen(screen: PanelMetric): PanelDirection {
+    assert(SCREEN_ORDER.includes(screen), "a screen asked about is one the strips draw");
+    return SCREEN_AXES[screen].direction;
+}
+
 export function getWordsForScreen(screen: PanelMetric): string {
     assert(screen.length > 0, "a screen is asked for by name");
     assert(SCREEN_ORDER.includes(screen), "and one the strips draw");

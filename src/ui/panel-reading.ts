@@ -16,9 +16,11 @@ import {
     type FightOutcome,
     type FightStatistics,
     type FigureCut,
+    type SkillFigures,
 } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import {
+    getDirectionForScreen,
     getNounForScreen,
     type PanelSideChoice,
     SCREEN_ORDER,
@@ -967,22 +969,27 @@ function composeSourceRows(cut: FigureCut): UnsharedSkill[] {
  * two healers both announcing `Leczenie ran` put health in under one name, and this screen has no
  * column that could tell the two apart. A combatant's own casts count — health somebody put into
  * themselves is health they received.
+ *
+ * The announcement is kept on the record of whoever made it, so a received figure is cut by
+ * walking everybody rather than by reading one row. Which cut of theirs answers is the caller's:
+ * `restoredByOpponent` where health arrived, `dealtByOpponent` where a blow did.
  */
 function composeSkillRowsReceived(
     statistics: FightStatistics,
     combatantId: number,
+    getCut: (skill: SkillFigures) => FigureCut,
 ): UnsharedSkill[] {
     assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its bound");
     const byName = new Map<string, number>();
     for (const held of statistics.byCombatantId.values()) {
         for (const skill of held.skills.values()) {
-            const figure = skill.restoredByOpponent.get(`${combatantId}`) ?? 0;
+            const figure = getCut(skill).get(`${combatantId}`) ?? 0;
             if (figure > 0) byName.set(skill.name, (byName.get(skill.name) ?? 0) + figure);
             assert(byName.size <= MAXIMUM_SKILLS, "a cut stays inside the skills bound");
         }
     }
     // No count: the announcement was somebody else's, and how many times it was made says
-    // nothing about how much of what it put back reached this row.
+    // nothing about how much of what came of it reached this row.
     return [...byName].map(([name, figure]) => ({
         part: { kind: "skill" as const, name },
         uses: null,
@@ -1010,9 +1017,14 @@ function composeSkillRows(
     assert(SCREEN_ORDER.includes(metric), "a cut is composed for a screen the strips draw");
     if (metric === "healthRestored") {
         return [
-            ...composeSkillRowsReceived(statistics, combatantId),
+            ...composeSkillRowsReceived(statistics, combatantId, (one) => one.restoredByOpponent),
             ...composeSourceRows(figures.healthRestoredWithoutSkillBySource),
         ];
+    }
+    // No keys beside them: what a blow was made of stands in a section of its own, and putting it
+    // here as well would draw it twice.
+    if (metric === "damageTakenApplied") {
+        return composeSkillRowsReceived(statistics, combatantId, (one) => one.dealtByOpponent);
     }
     const own = [...figures.skills.values()];
     if (metric === "healthGiven") {
@@ -1072,7 +1084,6 @@ function composeSkillCut(
     combatantId: number,
 ): SkillCut {
     assert(total >= 0, "a figure being cut is never below nothing");
-    if (metric === "damageTakenApplied") return { rows: [], plain: null };
     const stated = composeSkillRows(statistics, figures, metric, combatantId);
     stated.sort((one, other) =>
         getRankedOrder(
@@ -1242,13 +1253,8 @@ function getOpensPair(
     const kinds = getPairKinds(figures, metric, otherId);
     if (kinds !== null) {
         if (kinds.size > 1) return true;
-        // Asked on the one screen that draws them. On the screen about what reached this combatant
-        // these rows say what they dealt, so a pair would open onto the row above it and nothing.
-        if (metric !== "damageDealtApplied") return false;
-        for (const skill of figures.skills.values()) {
-            if ((skill.dealtByOpponent.get(`${otherId}`) ?? 0) > 0) return true;
-        }
-        return false;
+        const named = composePairPartFigures(statistics, metric, combatantId, otherId);
+        return named.some((one) => one.part.kind === "skill");
     }
     const total = getPairTotal(figures, metric, otherId);
     if (total === null) return false;
@@ -1332,7 +1338,7 @@ function getPairGivingEnd(
     otherId: number,
 ): { figures: CombatantFigures | undefined; subject: string } {
     assert(SCREEN_ORDER.includes(metric), "a pair is read for a screen the strips draw");
-    if (metric === "healthRestored") {
+    if (getDirectionForScreen(metric) === "received") {
         return { figures: statistics.byCombatantId.get(otherId), subject: `${combatantId}` };
     }
     return { figures: statistics.byCombatantId.get(combatantId), subject: `${otherId}` };
@@ -1352,18 +1358,18 @@ function composePairPartFigures(
     combatantId: number,
     otherId: number,
 ): UnsharedPart[] {
-    if (metric === "damageTakenApplied") return [];
     const end = getPairGivingEnd(statistics, metric, combatantId, otherId);
     if (end.figures === undefined) return [];
+    const isDamage = getNounForScreen(metric) === "damage";
     const stated: UnsharedPart[] = [];
     for (const skill of end.figures.skills.values()) {
-        const figure = metric === "damageDealtApplied"
+        const figure = isDamage
             ? skill.dealtByOpponent.get(end.subject) ?? 0
             : skill.restoredByOpponent.get(end.subject) ?? 0;
         if (figure > 0) stated.push({ part: { kind: "skill", name: skill.name }, figure });
     }
     assert(stated.length <= MAXIMUM_SKILLS, "a cut stays inside the skills bound");
-    if (metric === "damageDealtApplied") return stated;
+    if (isDamage) return stated;
     const cut = end.figures.healthGivenWithoutSkillByReceiverAndSource.get(end.subject);
     if (cut === undefined) return stated;
     for (const [source, figure] of cut) {
@@ -1380,9 +1386,7 @@ function composePairPartFigures(
  * the one thing a list of bars says without being read.
  *
  * The closing row carries no count: an announcement is counted where it was made, and the protocol
- * states no number of anything against one opponent rather than another. It is not drawn at all on
- * the screen about what reached this combatant: nothing announces a blow you take, so a section
- * there would be one row saying the figure just pressed under the word for an unannounced swing.
+ * states no number of anything against one opponent rather than another.
  */
 function composePairParts(
     statistics: FightStatistics,
@@ -1392,7 +1396,6 @@ function composePairParts(
     total: number,
 ): PairPartRow[] {
     assert(total >= 0, "a figure being cut is never below nothing");
-    if (metric === "damageTakenApplied") return [];
     const stated = composePairPartFigures(statistics, metric, combatantId, otherId);
     stated.sort((one, other) =>
         getRankedOrder(

@@ -406,6 +406,51 @@ Deno.test("a cut by both ends comes to the same figure as the cut by one", () =>
 });
 
 /**
+ * The inequality an opened pair on the screen about what reached this combatant rests on, over
+ * every recording. The announcements are the **attacker's**, so the panel reads them off that
+ * combatant's row and closes what is left against `Zwykły cios` — and a sum that overshot would
+ * leave `composePairParts` asserting rather than drawing.
+ *
+ * Both edges are counted as well as summed. An inequality passes trivially where the left side is
+ * always nothing, so a pair holding the whole of its figure under announcements and a pair holding
+ * none of it must both occur, or the rule is being read on faith.
+ */
+Deno.test("what one dealt another is the announcements aimed at them, and never more", () => {
+    let whole = 0;
+    let none = 0;
+    let between = 0;
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        for (const [combatantId, figures] of statistics.byCombatantId) {
+            for (const [other, kinds] of figures.damageTakenByOpponentAndKind) {
+                let total = 0;
+                for (const figure of kinds.values()) total += figure;
+                let held = 0;
+                for (
+                    const skill of statistics.byCombatantId.get(Number(other))?.skills.values() ??
+                        []
+                ) {
+                    held += skill.dealtByOpponent.get(`${combatantId}`) ?? 0;
+                }
+                assert(
+                    held <= total,
+                    `${path}: ${other} announced more against ${combatantId} than reached them`,
+                );
+                if (total === 0) continue;
+                if (held === 0) none += 1;
+                else if (held === total) whole += 1;
+                else between += 1;
+            }
+        }
+    }
+    assert(whole > 0, "some pair holds the whole of its figure under announcements");
+    assert(none > 0, "and some pair holds none of it, so the closing row has something to say");
+    assert(between > 0, "and some holds part, which is the case both edges leave out");
+});
+
+/**
  * The equation an opened healing pair rests on, over every recording.
  *
  * A section that came to less than the figure over it is a column of shares adding to

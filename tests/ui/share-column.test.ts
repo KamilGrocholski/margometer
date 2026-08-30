@@ -211,7 +211,7 @@ Deno.test("every column of shares the panel draws comes to a hundred", () => {
     }
     // The reader is proved by what it found as well as by what it passed: a sweep that stopped
     // reaching the rungs would agree with every screen it never opened.
-    assertEquals(drawn, 24_140, "every column the corpus draws, 2026-08-30");
+    assertEquals(drawn, 27_541, "every column the corpus draws, 2026-08-31");
 });
 
 function composeSection(where: string, rows: ShareRow[], total: number): Section {

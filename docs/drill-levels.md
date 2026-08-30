@@ -73,7 +73,11 @@ A verdict outside that list is refused rather than read as silence.
 | `damageTakenApplied` | `ranking` | `half-named` | `never`     |
 | `damageTakenApplied` | `opened`  | `person`     | `sometimes` |
 | `damageTakenApplied` | `opened`  | `half-named` | `never`     |
+| `damageTakenApplied` | `opened`  | `skill`      | `never`     |
+| `damageTakenApplied` | `opened`  | `closing`    | `never`     |
 | `damageTakenApplied` | `opened`  | `kind`       | `never`     |
+| `damageTakenApplied` | `pair`    | `skill`      | `never`     |
+| `damageTakenApplied` | `pair`    | `closing`    | `never`     |
 | `damageTakenApplied` | `pair`    | `kind`       | `never`     |
 | `healthGiven`        | `ranking` | `person`     | `always`    |
 | `healthGiven`        | `opened`  | `person`     | `sometimes` |
@@ -94,8 +98,9 @@ A verdict outside that list is refused rather than read as silence.
 
 **A person inside an opened row, on the damage screens.** The level under them is what passed
 between the two, and it opens where that says something the row does not: where the blows between
-them carried more than one kind, or — on the dealing screen, which is the only one that cuts a pair
-by skill — where an announcement named one for that pair. It stays shut where the level would be the
+them carried more than one kind, or where an announcement named one for that pair. Both screens ask
+it and both ask it of the **striker's** row, so the two answer alike — 429 pairs open and 7 do not,
+the same count on either, over `captures/` on 2026-08-31. It stays shut where the level would be the
 figure just pressed under another heading: every blow between them unannounced and of one type.
 
 **A person inside an opened row, on the healing screens.** The same question, answered by composing
@@ -128,9 +133,28 @@ in its section so the parts add up to the figure over them, and the two screens 
 
 **On the damage screens it closes into `Zwykły cios`**, and under `damageDealtApplied` that row
 carries how many blows — the question a plain attack raises, and a number the figure alone cannot
-state. **On the healing screens nothing closes at all**: health that moved outside an announcement
-still moved under a key the game named, so the section lists those keys as `source` rows.
-`DESIGN.md` owns that rule; `docs/protocol-keys.md` owns what each key means.
+state. The count is that screen's alone: the protocol states no number of anything against one
+opponent rather than another, and on `damageTakenApplied` the announcement was somebody else's, so a
+count read off the reader's own row would be their own swings under somebody else's heading. **On
+the healing screens nothing closes at all**: health that moved outside an announcement still moved
+under a key the game named, so the section lists those keys as `source` rows. `DESIGN.md` owns that
+rule; `docs/protocol-keys.md` owns what each key means.
+
+## An announcement is kept on the row that made it
+
+⚠️ **This document said the opposite until 2026-08-31, and the recordings said otherwise all
+along.** It read: _nothing announces a blow you take; the protocol names what hit you and never what
+the other side chose_ — which was a claim about the protocol standing on a fact about our own
+aggregation. The protocol does announce, on both sides: 25 of the 31 combatants on side 2 across
+`captures/` announce something, Amaimon, Hildur, Draugr, Centaur and Mamlambo among them, and 79.5%
+of all applied damage in the corpus stands under an announcement — 8,201,200 of 10,321,302, read
+2026-08-31.
+
+What is true is narrower. `SkillFigures` hangs off the record of whoever **made** the announcement,
+so a figure somebody received carries no announcement of its own. `damageTakenApplied` therefore
+reads its `skill` rows off the striker's row and closes the rest against `Zwykły cios` — the same
+walk `healthRestored` has always made over `restoredByOpponent`, `getPairGivingEnd` turning on the
+direction rather than on the noun.
 
 ## A section that is not drawn at all
 
@@ -139,13 +163,18 @@ in `src/ui/panel-element.ts` drops a whole cross-section whose one row would equ
 standing over it. `DESIGN.md` owns that rule and the two exemptions the skills section carries, so a
 row in the register above may be produced here and still not reach the panel.
 
+⚠️ **The rule reaches the kinds at both levels and the announcements only at the opened one.** A
+pair whose striker announced nothing draws its section all the same, holding one `closing` row at
+the whole of the figure above it — 42 of the 429 drawn pair sections on each damage screen, over
+`captures/` on 2026-08-31, and the same 42 pairs on either. Deliberate, and the cost of the other
+answer is what decided it: neither exemption fits — a pair states no count of blows — so dropping
+the section would be dropping the one place that says the game announced nothing here.
+
 ## What the code cannot draw
 
 Absent from the register because no input reaches them, and each is a decision written in the source
 rather than a gap in the material:
 
-- **`damageTakenApplied` has no `skill`, `source` or `closing` row, at either level.** Nothing
-  announces a blow you take: the protocol names what hit you and never what the other side chose.
 - **`healthGiven` has no `kind` cut**, and neither healing screen has one inside a pair. The keys
   the protocol names belong to whoever received the health.
 - **The damage screens have no `source` row.** Those are healing's, where a key names the cause.
