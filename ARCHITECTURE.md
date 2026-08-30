@@ -493,11 +493,21 @@ commit that opens or closes one.
    the row spending the two tokens, each with a cost of its own. The seat reaching the row is cheap;
    deciding what draws it is the open half.
 9. **A restatement in different words is unheld, and it is the worse kind.**
-   `tests/repository/sources.test.ts` holds C15's second half by comparing block text, so a comment
-   repeated word for word is a finding and one reworded is not — which is backwards from the cost,
-   since two copies that read differently drift without ever looking like copies. Found by reading
-   both sides: `src/ui/panel-look.ts` and `DESIGN.md` had disagreed for one release about whether a
-   hue says **who** somebody is or **what** they are, and three comments named three tab strips over
-   a panel that draws two. **ADR 0016.** C14 is unheld for the same reason and has no guard shape
-   yet; the one that would hold it counts declarations carrying a docblock, which needs a parser
-   this tree does not have.
+   `tests/repository/sources.test.ts` holds two bands of C15's second half now: a block standing
+   twice **verbatim**, and a block standing in two **files** whatever its length — the second added
+   after measuring found a bound on a fight's headcount word for word in three files and a tool's
+   docblock in two, none of which the first band could see. What neither band reaches is a passage
+   said again in **different words**, which is the band that costs most: two copies that read
+   differently drift without ever looking like copies.
+
+   **It is a large finding rather than a small one.** Measured 2026-08-30 over the comment blocks in
+   `libs/`, `project/`, `src/` and `tools/`, sixty-eight pairs of blocks share a run of eight words
+   or more, and the ones read by hand were real — the same explanation of why a pin on an unwritten
+   fight would be a control that does nothing, in `ui/panel-reading.ts` and in the entry; the two
+   error bases each spelling out that no base is ever thrown, which **E2** owns. Closing that band
+   is editorial work on sixty-eight passages, each needing a decision about which copy survives and
+   whether the second should cite instead, so it is not one round's work and is not pretended to be.
+
+   C14 is unheld for a different reason and has no guard shape yet: the one that would hold it
+   counts declarations carrying a docblock, which needs a parser this tree does not have and a
+   dependency **ADR 0001** is the reason it does not take.

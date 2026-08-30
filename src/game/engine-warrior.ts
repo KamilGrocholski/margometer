@@ -7,6 +7,7 @@
  */
 
 import { assert } from "@std/assert";
+import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
 import {
     getNumberFromUnknown,
@@ -31,8 +32,7 @@ export const WARRIOR_FIELDS = {
     level: "lvl",
 } as const;
 const HEALTH_MAXIMUM_KEY = "max";
-/** A side holds at most ten, so a fight holds twenty. The largest in `captures/` is 11. */
-const MAXIMUM_WARRIORS = 20;
+
 /**
  * Where the running fight keeps its combatants, in the order tried. Each value receives every
  * field of a payload's own `w` entry verbatim — `OneWarrior.js` on development build
@@ -78,7 +78,7 @@ function getWarriorsFromValue(value: unknown): unknown[] {
     if (!isRecord(value)) return [];
     const stated = Object.values(value);
     assert(stated.length <= Object.keys(value).length, "a keyed cast is read once per key");
-    assert(stated.length <= MAXIMUM_WARRIORS, "and stays inside the fight's stated bound");
+    assert(stated.length <= MAXIMUM_COMBATANTS, "and stays inside the fight's stated bound");
     return stated;
 }
 
@@ -91,7 +91,7 @@ export function getCombatantsFromPayload(payload: unknown): Combatant[] {
         if (combatant === null) continue;
         found.push(combatant);
     }
-    assert(found.length <= MAXIMUM_WARRIORS, "a payload stays inside the fight's stated bound");
+    assert(found.length <= MAXIMUM_COMBATANTS, "a payload stays inside the fight's stated bound");
     assert(new Set(found.map((one) => one.id)).size === found.length, "a combatant is read once");
     assert(found.every((one) => one.name.length > 0), "every combatant read is named");
     assert(found.every((one) => Number.isFinite(one.side)), "every combatant read has a side");
@@ -162,7 +162,7 @@ function getNamedWarriors(collection: unknown): Record<string, unknown>[] {
         if (getStatedTextFromUnknown(warrior[NAME_KEY]) === null) continue;
         named.push(warrior);
     }
-    assert(named.length <= MAXIMUM_WARRIORS, "a fight stays inside its stated bound");
+    assert(named.length <= MAXIMUM_COMBATANTS, "a fight stays inside its stated bound");
     return named;
 }
 

@@ -224,6 +224,50 @@ function getRepeatedBlocks(blocks: readonly string[]): string[] {
     return repeated;
 }
 
+/**
+ * The blocks standing in more than one **file**, whatever their length.
+ *
+ * `getRepeatedBlocks` skips a one-line block because one line said twice inside a file is a
+ * citation. Across two files it is not: it is one fact with two copies to keep true, and it was
+ * invisible here until this. Found by measuring — a bound on how many combatants a fight holds
+ * stood word for word in three files, and a tool's docblock in two.
+ */
+function getBlocksInTwoFiles(byPath: ReadonlyMap<string, readonly string[]>): string[] {
+    assert(byPath.size > 0, "there are files to read blocks out of");
+    const where = new Map<string, Set<string>>();
+    for (const [path, blocks] of byPath) {
+        for (const block of blocks) {
+            const held = where.get(block) ?? new Set<string>();
+            held.add(path);
+            where.set(block, held);
+        }
+    }
+    const shared: string[] = [];
+    for (const [block, paths] of where) {
+        if (paths.size > 1) shared.push(`${block.split("\n")[0] ?? ""} — ${[...paths].join(", ")}`);
+    }
+    assert(shared.length <= where.size, "no more shared blocks than there are blocks");
+    return shared.sort();
+}
+
+Deno.test("a comment block standing in two files is one fact with two copies", () => {
+    const sample = new Map<string, string[]>([
+        ["one.ts", ["/** said once. */", "// twice"]],
+        ["other.ts", ["/** said once. */"]],
+    ]);
+    assertEquals(getBlocksInTwoFiles(sample).length, 1, "the reader finds the shared block");
+    // The sample it must not flag: the same line twice inside one file, which is a citation.
+    const cited = new Map<string, string[]>([["one.ts", ["// twice", "// twice"]]]);
+    assertEquals(getBlocksInTwoFiles(cited), [], "and a line cited twice in one file is not one");
+
+    const byPath = new Map<string, string[]>();
+    for (const path of getSourcePaths()) {
+        if (!isShippedPath(path)) continue;
+        byPath.set(path, getCommentBlocks(Deno.readTextFileSync(path)));
+    }
+    assertEquals(getBlocksInTwoFiles(byPath), [], "C15: a block standing in two files");
+});
+
 Deno.test("a comment block written twice is a finding", () => {
     const twice = "// one\n// two\ncall();\n// one\n// two\ncall();";
     assertEquals(getRepeatedBlocks(getCommentBlocks(twice)).length, 1, "the reader finds a repeat");

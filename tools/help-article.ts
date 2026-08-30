@@ -467,7 +467,7 @@ export function getPhraseCounts(text: string, phrases: readonly string[]): [stri
     return counts;
 }
 
-/** A value written back as the text a reader will see, refusing rather than writing `null`. */
+/** One phrase's counts as the text they are frozen as, or a refusal branded as this tool's. */
 function requireWrittenPhraseText(value: unknown): string {
     const writing = composeJsonWriting(value);
     if (!writing.isOk) {

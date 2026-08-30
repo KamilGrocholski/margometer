@@ -322,7 +322,7 @@ export function getProtocolKeys(bundle: string): string[] {
     return distinct.sort();
 }
 
-/** A value written back as the text a reader will see, refusing rather than writing `null`. */
+/** The frozen table as the text it is written down as, or a refusal branded as this tool's. */
 function requireWrittenText(value: unknown): string {
     const writing = composeJsonWriting(value);
     if (!writing.isOk) {

@@ -28,7 +28,7 @@ export interface CombatantRoster {
 }
 
 /** A side holds at most ten, so a fight holds twenty. The largest in `captures/` is 11. */
-const MAXIMUM_COMBATANTS = 20;
+export const MAXIMUM_COMBATANTS = 20;
 const AMBIGUOUS = null;
 
 export function composeCombatantRoster(combatants: readonly Combatant[]): CombatantRoster {

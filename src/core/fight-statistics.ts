@@ -15,6 +15,7 @@ import type {
     HealthChangeEvent,
 } from "@/src/core/battle-event.ts";
 import type { TeamHeal } from "@/src/core/combatant-health.ts";
+import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import {
     CRITICAL_PROC_KEYS,
     getProcEnd,
@@ -22,9 +23,6 @@ import {
     WOUND_ANNOUNCEMENT_KEY,
     WOUND_TICK_KEY,
 } from "@/src/core/fight-decoder.ts";
-
-/** A side holds at most ten, so a fight holds twenty. The largest in `captures/` is 11. */
-const MAXIMUM_COMBATANTS = 20;
 
 /** A figure cut by something the protocol named: an element, or the other end of the blow. */
 export type FigureCut = ReadonlyMap<string, number>;
