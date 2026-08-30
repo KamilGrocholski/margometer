@@ -97,3 +97,5 @@ edited to agree with the new rule.
   card is the answer. **Accepted**
 - [0024](0024-the-panel-asks-the-client-only-where-it-has-no-word.md) — The panel asks the client
   only where it has no word. **Accepted**
+- [0025](0025-a-mark-is-the-answer-its-boundary-gives.md) — A mark is the answer its boundary gives,
+  and not every one is a console line. **Accepted**

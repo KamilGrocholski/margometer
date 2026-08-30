@@ -141,8 +141,10 @@ this language does not have would be**; each states what binds instead.
 - **E10.** Never substitute `0` for a failed read. Zero is a measurement. **Where the read could
   have carried the substitute** — `null` out of JSON, `undefined` written as no text at all — E9's
   `null` cannot say which happened, and the answer says whether it worked instead. **ADR 0021.**
-- **E11. No failure is discarded silently.** Every caught failure leaves a mark a reader can see and
-  exactly one branded console entry, once, not per render. An empty `catch` breaks this.
+- **E11. No failure is discarded silently.** Every caught failure leaves the mark **E5**'s table
+  names for its boundary, where a reader can see it. Where a failure also reaches the console it is
+  one branded entry, once, never per render, and the entry is the only place that holds a console.
+  An empty `catch` breaks this. **ADR 0025.**
 
 Who throws what. Where a broad catch is legal is **E5**'s table, not this one.
 
