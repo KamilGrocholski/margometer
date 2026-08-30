@@ -8,17 +8,27 @@
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
 import { getJsonReading } from "@/libs/json-text.ts";
+import { getIntegerFromText } from "@/libs/number-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
+import { PLACE, SPACE, TIP } from "@/src/ui/panel-look.ts";
 import { PanelShotError } from "@/tools/margometer-tool-error.ts";
 import {
     composeFrameFromReport,
     composePanelShots,
+    composeShotAddress,
     composeShotScript,
+    FRAME_PARAMETER,
     getBrowserAsked,
     getReportFromDom,
+    MEASURING_WIDTH,
     SHOT_DIRECTORY,
     SIDECAR_NAME,
 } from "@/tools/panel-screenshots.ts";
+
+/** A length off the panel's own stylesheet, which states them all in whole pixels. */
+function getSheetLength(stated: string): number {
+    return getIntegerFromText(stated.slice(0, -2))!;
+}
 
 /** What the directory holds against what the sidecar names, in both directions. */
 function getSetDisagreements(held: readonly string[], named: readonly string[]): string[] {
@@ -73,6 +83,45 @@ Deno.test("a state is reached by a press and never by a click", () => {
     assert(!script.includes(".click("), "a click fires nothing at all, and reports success");
     assert(script.includes("maxHeight"), "the height cap is lifted for the photograph");
     assert(script.includes("preview-strip"), "and the harness takes its own chrome out of frame");
+});
+
+Deno.test("the panel stands where it is photographed before anything is pressed", () => {
+    const script = composeShotScript(`setPressed("[data-row]", 0);`);
+    const taken = script.indexOf("setPanelInCorner();");
+    const pressed = script.indexOf(`setPressed("[data-row]", 0);`);
+    assert(taken > 0, "the panel is taken to the corner the frame is measured against");
+    assert(pressed > 0, "and the state is reached by the presses that were asked for");
+    assert(taken < pressed, "in that order: a card opens on the side the panel stood on");
+    assert(script.includes("[data-grip]"), "the panel is moved by its own bar");
+    assert(script.includes(`setPointer("pointerup"`), "and let go of, which is when it is kept");
+    assert(
+        script.includes(`get("${FRAME_PARAMETER}")`),
+        "to the corner of the frame it is taken at, which the address is what states",
+    );
+});
+
+Deno.test("the picture is taken at the address that was measured, told its frame", () => {
+    const measured = "http://localhost:8000/?fight=a&entry=2";
+    assertEquals(
+        composeShotAddress(measured, 276),
+        `${measured}&${FRAME_PARAMETER}=276`,
+        "the same fight at the same entry, and the width it will be photographed at",
+    );
+    assertThrows(
+        () => composeShotAddress(measured, 0),
+        Error,
+        undefined,
+        "a frame of no width is not a picture anybody asked for",
+    );
+});
+
+Deno.test("the window measured in holds the card beside the panel, not over it", () => {
+    const room = MEASURING_WIDTH - getSheetLength(PLACE.width) - getSheetLength(PLACE.inset) * 2 -
+        getSheetLength(SPACE.small);
+    assert(
+        room >= getSheetLength(TIP.width),
+        "a window with no room beside the panel flips the card onto the figures it explains",
+    );
 });
 
 Deno.test("every picture in the set is named once, and named as a picture", () => {

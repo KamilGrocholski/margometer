@@ -10,7 +10,9 @@
 import { assert } from "@std/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
+import { getIntegerFromText } from "@/libs/number-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
+import { PLACE, SPACE, TIP } from "@/src/ui/panel-look.ts";
 import { composeUserscriptFiles } from "@/tools/build-userscript.ts";
 import { PanelShotError } from "@/tools/margometer-tool-error.ts";
 import { setPreviewServer } from "@/tools/preview-server.ts";
@@ -28,17 +30,42 @@ const SIDECAR_INDENT_SPACES = 4;
 const BROWSER_VARIABLE = "MARGOMETER_BROWSER";
 /** Chrome first: it is the browser Margonem is played in, and where the panel is measured. */
 const BROWSER_CANDIDATES = ["google-chrome", "google-chrome-stable", "chromium"];
+/** A length the sheet states, as the whole pixels it states it in. */
+function getSheetPixels(stated: string): number {
+    assert(stated.endsWith("px"), "a length read off the sheet is stated in pixels");
+    const read = getIntegerFromText(stated.slice(0, -2));
+    if (read === null) throw new PanelShotError(`the sheet states no whole pixels in ${stated}`);
+    assert(read > 0, "and a length a frame is built from is a length");
+    return read;
+}
+
+/** `DESIGN.md`'s `panelInset`, read off the sheet that states it. */
+const PANEL_INSET = getSheetPixels(PLACE.inset);
 /**
- * What the measuring run is asked for, and the page says what it actually got: measured on
- * Chrome 152 (2026-08-29), `--dump-dom` floors the window at 500px wide while `--screenshot`
- * honours whatever it is given. So the frame is derived from the **viewport the page reported**,
- * never from this number — the two are the same only by accident.
+ * The floor a window is opened at whatever it is asked for, measured on Chrome 152 (2026-08-31).
+ * A picture is captured at the size asked for, so a frame under this is photographed after a
+ * resize the page lays out again for — which is why the panel is put in its corner on `resize`
+ * and not only on load.
  */
-const MEASURING_WIDTH = 500;
-/** `DESIGN.md`'s `panelInset`: the air the panel keeps from the corner it is anchored to. */
-const PANEL_INSET = 8;
+const BROWSER_FLOOR_WIDTH = 500;
+/**
+ * What the measuring run is asked for, and the page says what it actually got: the floor above
+ * makes the two differ wherever less is asked for, so the frame is derived from the **viewport
+ * the page reported** and never from this number.
+ *
+ * The card is what sets it. A card opens on whichever side of the panel has room for it
+ * (`src/ui/panel-drag.ts`), so a window wide enough for the panel alone flips it onto the figures
+ * it explains: 500 photographed a card cut off at the edge of the frame on 2026-08-30. Standing
+ * over the floor is what keeps the card's own placement, which is decided once when it opens,
+ * from being decided in a window the picture is not taken in.
+ */
+export const MEASURING_WIDTH = PANEL_INSET + getSheetPixels(TIP.width) +
+    getSheetPixels(SPACE.small) +
+    getSheetPixels(PLACE.width) + PANEL_INSET;
 /** More than any frame this repository photographs, so a measurement past it is a finding. */
 const MAXIMUM_FRAME_SIDE = 4000;
+/** What the page is told the picture will be taken at; the preview reads its own keys, not this. */
+export const FRAME_PARAMETER = "frame";
 
 /** One picture, and the presses that reach the state it is of. */
 export interface PanelShot {
@@ -125,24 +152,17 @@ var setHovered = function (selector, at) {
   return true;
 };
 
-${steps}
+${composeShotScriptCorner()}
 
-// The card region stands in the panel whether or not a card is open, and an unopened one
-// measures nothing — so a rect of no width is not a card to make room for.
 var strip = document.querySelector(".preview-strip");
 if (strip !== null) strip.style.display = "none";
 var intro = document.querySelector(".preview-intro");
 if (intro !== null) intro.style.display = "none";
 
+setPanelInCorner();
 var shownHost = getPanelHost();
-shownHost.style.maxHeight = "none";
-// Back into the corner the frame is measured against. A panel opens in the middle of the window
-// (src/ui/panel-drag.ts), and these pictures are of its regions rather than of where it opens:
-// anchored anywhere but the right edge, a frame carries half a screen of background.
-shownHost.style.left = "auto";
-shownHost.style.right = "${PANEL_INSET}px";
-shownHost.style.top = "${PANEL_INSET}px";
-shownHost.style.setProperty("--MargoMeter-panel-top", "${PANEL_INSET}px");
+
+${steps}
 
 var report = document.createElement("pre");
 report.id = "preview-report";
@@ -150,6 +170,8 @@ report.hidden = true;
 var box = shownHost.getBoundingClientRect();
 var card = shownHost.shadowRoot.querySelector(".MargoMeter-tip");
 var over = card === null ? null : card.getBoundingClientRect();
+// The card region stands in the panel whether or not a card is open, and an unopened one
+// measures nothing — so a rect of no width is not a card to make room for.
 if (over !== null && over.width === 0) over = null;
 report.textContent = JSON.stringify({
   viewport: window.innerWidth,
@@ -158,6 +180,43 @@ report.textContent = JSON.stringify({
   rows: shownHost.shadowRoot.querySelectorAll("[data-row]").length
 });
 document.body.append(report);`;
+}
+
+/**
+ * The panel taken to the corner the frame is measured against, by its own bar rather than by a
+ * style written onto the host. A panel opens in the middle of the window (`src/ui/panel-drag.ts`)
+ * and its card opens on the side of it with room; both read the position the panel keeps, which a
+ * `right` set behind its back does not move. That is what photographed a card over the panel.
+ */
+function composeShotScriptCorner(): string {
+    assert(PANEL_INSET > 0, "a panel in the corner keeps the air the sheet gives it");
+    assert(MEASURING_WIDTH >= BROWSER_FLOOR_WIDTH, "and in a window the browser opens as asked");
+    return `var setPanelInCorner = function () {
+  var host = getPanelHost();
+  var bar = host.shadowRoot.querySelector("[data-grip]");
+  if (bar === null) throw new ReferenceError("the panel has no bar to take hold of");
+  var box = host.getBoundingClientRect();
+  // The frame the picture is taken at, which is not the window the page is laid out in: under the
+  // browser's floor the two differ, and a panel put in the corner of the window it can measure is
+  // photographed in the wrong one. Nothing is asked of a resize, which arrives after the presses
+  // and would take the card down with it.
+  var across = Number(new URLSearchParams(window.location.search).get("${FRAME_PARAMETER}"));
+  if (!isFinite(across) || across <= 0) across = window.innerWidth;
+  var acrossBy = across - ${PANEL_INSET} - box.width - box.left;
+  var downBy = ${PANEL_INSET} - box.top;
+  var setPointer = function (type, left, top) {
+    bar.dispatchEvent(new PointerEvent(type, {
+      bubbles: true, composed: true, button: 0, clientX: left, clientY: top
+    }));
+  };
+  setPointer("pointerdown", box.left, box.top);
+  setPointer("pointermove", box.left + acrossBy, box.top + downBy);
+  // Where a drag ends is where the panel is written down as standing, so it is let go of.
+  setPointer("pointerup", box.left + acrossBy, box.top + downBy);
+  // After the move and never before it: a panel that moves writes its whole style attribute, so
+  // a cap lifted first is lifted onto the attribute the drag then replaces.
+  host.style.maxHeight = "none";
+};`;
 }
 
 /** The report the page wrote, read out of a dumped document by walking it — **C7**. */
@@ -193,9 +252,9 @@ function getEdgeFromReport(report: Record<string, unknown>, name: string): numbe
 /**
  * The frame the shot is taken at, from where the panel and its card landed while measuring.
  *
- * Everything measured is anchored to the right edge of the viewport — the panel put back at its
- * inset by the script above, the card at a fixed distance further left — so the distance from the
- * leftmost edge to that right edge is what a frame has to hold, whatever width it was measured at.
+ * Everything measured is anchored to the right edge of the viewport — the panel taken there by the
+ * script above, the card beside it on the side with room — so the distance from the leftmost edge
+ * to that right edge is what a frame has to hold, whatever width it was measured at.
  */
 export function composeFrameFromReport(report: Record<string, unknown>): [number, number] {
     const viewport = getEdgeFromReport(report, "viewport");
@@ -265,6 +324,17 @@ async function readBrowserOutput(browser: string, args: readonly string[]): Prom
 }
 
 /**
+ * The address the picture is taken at: the one that was measured, told the frame it will be taken
+ * at. Every address here already carries the recording and where in it to stand, so the frame
+ * joins them rather than opening a query of its own.
+ */
+export function composeShotAddress(address: string, frameWidth: number): string {
+    assert(address.includes("?"), "a shot address already asks the preview for a fight");
+    assert(frameWidth > 0, "and is photographed at a frame with a width");
+    return `${address}&${FRAME_PARAMETER}=${frameWidth}`;
+}
+
+/**
  * The panel measured, then photographed at the size it measured. Two runs rather than one: a
  * window taller than the panel photographs background, and nothing here can crop an image.
  */
@@ -277,7 +347,8 @@ async function writeShotOfAddress(browser: string, address: string, path: string
     ]);
     const [width, height] = composeFrameFromReport(getReportFromDom(dumped));
     const frame = `--window-size=${width},${height}`;
-    await readBrowserOutput(browser, [frame, `--screenshot=${path}`, address]);
+    const shown = composeShotAddress(address, width);
+    await readBrowserOutput(browser, [frame, `--screenshot=${path}`, shown]);
     assert(width > 0, "a picture was asked for at a frame something was measured into");
     assert(height > 0, "on both sides of it");
 }
