@@ -68,13 +68,20 @@ export interface CombatantFigures {
     damageDealtToNobody: number;
     healthRestoredByNobody: number;
     /**
-     * Health moving, cut by the other end and by the key it moved under. There is no cut of what
-     * a combatant **gave** by key: the keys the protocol names belong to whoever received the
+     * Health moving, cut by the other end and by the key it moved under. There is no flat cut of
+     * what a combatant **gave** by key: the keys the protocol names belong to whoever received the
      * health, so charging one to the giver would be wording their row with somebody else's cause.
      */
     healthRestoredByGiver: Map<string, number>;
     healthGivenByReceiver: Map<string, number>;
     healthRestoredBySource: Map<string, number>;
+    /**
+     * The one place a key may stand on the giver's row: cut by the receiver **as well**, where the
+     * pair names whose cause it is. It holds only what no announcement covered, which is what makes
+     * it addable to the skills announced for that pair without counting a point twice —
+     * `healthGivenByReceiver` above holds the whole of the pair.
+     */
+    healthGivenWithoutSkillByReceiverAndSource: Map<string, Map<string, number>>;
     damageDealtByElement: Map<string, number>;
     damageTakenByElement: Map<string, number>;
     damageDealtByOpponent: Map<string, number>;
@@ -181,6 +188,7 @@ export function composeCombatantFigures(): CombatantFigures {
         healthRestoredByGiver: new Map(),
         healthGivenByReceiver: new Map(),
         healthRestoredBySource: new Map(),
+        healthGivenWithoutSkillByReceiverAndSource: new Map(),
         damageDealtByElement: new Map(),
         damageTakenByElement: new Map(),
         damageDealtByOpponent: new Map(),
@@ -213,16 +221,21 @@ function addToCut(cut: Map<string, number>, key: string, amount: number): void {
     cut.set(key, (cut.get(key) ?? 0) + amount);
 }
 
+function getPairCut(cut: Map<string, Map<string, number>>, other: string): Map<string, number> {
+    assert(other.length > 0, "the other end of a movement is named before it is cut by");
+    assert(cut.size <= MAXIMUM_COMBATANTS, "a fight cuts by the people who are in it");
+    const held = cut.get(other) ?? new Map<string, number>();
+    cut.set(other, held);
+    return held;
+}
+
 function addToPairCut(
     cut: Map<string, Map<string, number>>,
     other: string,
     figures: readonly DamageFigure[],
 ): void {
-    assert(other.length > 0, "the other end of a blow is named before it is cut by");
-    assert(cut.size <= MAXIMUM_COMBATANTS, "a fight cuts by the people who are in it");
-    const held = cut.get(other) ?? new Map<string, number>();
+    const held = getPairCut(cut, other);
     for (const figure of figures) addToCut(held, figure.element, figure.amount);
-    cut.set(other, held);
 }
 
 /**
@@ -258,6 +271,18 @@ function addSkillDealt(
     if (other !== null) addToCut(held.dealtByOpponent, other, amount);
 }
 
+/**
+ * Whose skill row a restored figure is charged to, and nobody's where the announcement named no
+ * actor. Read twice — here and where the same figure is cut by key instead — because a movement
+ * lands on exactly one of the two, and two spellings of that condition would leave a section
+ * short of the figure over it or holding it twice.
+ */
+function getSkillOwnerId(announced: AnnouncedSkill | null): number | null {
+    if (announced === null) return null;
+    assert(announced.skillName.length > 0, "an announcement that was made is named");
+    return announced.actorId;
+}
+
 function addSkillRestored(
     build: StatisticsBuild,
     announced: AnnouncedSkill,
@@ -266,8 +291,9 @@ function addSkillRestored(
 ): void {
     assert(amount >= 0, "restored health is never below nothing");
     assert(announced.skillName.length > 0, "and the announcement behind it is named");
-    if (announced.actorId === null) return;
-    const skills = getFiguresForCombatant(build.byCombatantId, announced.actorId).skills;
+    const ownerId = getSkillOwnerId(announced);
+    if (ownerId === null) return;
+    const skills = getFiguresForCombatant(build.byCombatantId, ownerId).skills;
     const held = getSkillFigures(skills, announced.skillName);
     held.restored += amount;
     if (healedId !== null) addToCut(held.restoredByOpponent, `${healedId}`, amount);
@@ -537,14 +563,20 @@ function getGiverId(
  * The giving half of one movement, kept beside the receiving half so the two cannot drift. Where
  * no giver can be read the receiver's own row keeps the amount as well, because that row is the
  * end the protocol **did** name — and the end it named is the only thing a side may be read from.
+ *
+ * The key rides along for the pair's own cut: a movement no announcement covered is charged there
+ * by the word the protocol wrote it under, and one an announcement covered is on that skill's row
+ * instead. Exactly one of the two, which is what lets an opened pair add its rows to its figure.
  */
 function addGivenHealth(
     build: StatisticsBuild,
     giverId: number | null,
     amount: number,
     healedId: number | null,
+    stated: { source: string; announced: AnnouncedSkill | null },
 ): void {
     assert(amount >= 0, "restored health is never below nothing");
+    assert(stated.source.length > 0, "and comes under a key the protocol named");
     if (healedId !== null && giverId !== null) {
         const healed = getFiguresForCombatant(build.byCombatantId, healedId);
         addToCut(healed.healthRestoredByGiver, `${giverId}`, amount);
@@ -558,7 +590,11 @@ function addGivenHealth(
     }
     const giver = getFiguresForCombatant(build.byCombatantId, giverId);
     giver.healthGiven += amount;
-    if (healedId !== null) addToCut(giver.healthGivenByReceiver, `${healedId}`, amount);
+    if (healedId === null) return;
+    addToCut(giver.healthGivenByReceiver, `${healedId}`, amount);
+    if (getSkillOwnerId(stated.announced) !== null) return;
+    const cut = getPairCut(giver.healthGivenWithoutSkillByReceiverAndSource, `${healedId}`);
+    addToCut(cut, stated.source, amount);
 }
 
 /** What put the health back, on the row it was put back on: the key, as the protocol wrote it. */
@@ -612,6 +648,7 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
             getGiverId(event.source, event.combatantId, event.announced),
             event.amount,
             event.combatantId,
+            { source: event.source, announced: event.announced },
         );
         return;
     }
@@ -639,6 +676,7 @@ function addNamedHealingEvent(build: StatisticsBuild, event: BattleEvent): void 
         getGiverId(event.source, event.targetId, null),
         event.amount,
         event.targetId,
+        { source: event.source, announced: null },
     );
     assert(figures.healthRestored >= event.amount, "a total only grows by what it was handed");
 }
@@ -663,7 +701,10 @@ function addTeamHeal(
         addRestoredSource(build, combatantId, heal.source, amount);
         // The one healing shape whose giver the protocol states outright: the caster stands in
         // the message's actor slot, and the recipients are what the sizing worked out.
-        addGivenHealth(build, heal.casterId, amount, combatantId);
+        addGivenHealth(build, heal.casterId, amount, combatantId, {
+            source: heal.source,
+            announced,
+        });
         if (announced === null) continue;
         assert(announced.actorId === heal.casterId, "one combatant cast it and one announced it");
         addSkillRestored(build, announced, amount, combatantId);

@@ -14,6 +14,7 @@ import { BUILD_VERSION } from "@/src/build-version.ts";
 import { composePanelHost, type PanelPress } from "@/src/ui/panel-element.ts";
 import {
     composeDrillReading,
+    composePairReading,
     composePanelReading,
     NOTHING_MISSED,
     type PanelReading,
@@ -33,6 +34,7 @@ import {
     composeUndrawnText,
     getWordsForCardMetric,
     getWordsForDamageKind,
+    getWordsForHealthSource,
     getWordsForNothing,
     getWordsForOutcome,
     getWordsForStorage,
@@ -1640,5 +1642,76 @@ Deno.test("every row in a list draws the same cells before its name", () => {
         [...shapes.keys()].sort(),
         ["drilled: bar,bar-cap,row-rank", "ranking: bar,bar-cap,row-rank"],
         "a row on one screen is built of the cells a row on the other is",
+    );
+});
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur.json`, the combatant at 469657 and themselves: health they
+ * put back into themselves under one announcement and under `heal`, which nothing announced.
+ *
+ * One section, because the two kinds of row are two parts of one figure — drawn apart they would
+ * be two columns each coming to some fraction of a hundred.
+ */
+Deno.test("an opened healing pair draws its announcements and its keys as one section", () => {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const healer = 469657;
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const drill = composeDrillReading(statistics, roster, "healthGiven", healer);
+    assert(drill !== null, "the healer's row opens");
+    const pair = composePairReading(statistics, roster, "healthGiven", healer, healer);
+    assert(pair !== null, "and the person inside it opens onto the pair");
+    assert(pair.parts.length > 1, "which says more than the row that was pressed");
+
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "healthGiven" as const,
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill,
+        pair,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const headings = getElementsWithin(host).filter((one) => one.className === "section-heading");
+    assertEquals(headings.length, 1, "one section, holding the whole of what passed between them");
+    assertEquals(
+        headings[0]?.children[0]?.textContent,
+        `${PANEL_WORDS.skillsAgainst} — ${pair.otherName}`,
+        "saying what it cuts and whom it is about",
+    );
+    assertEquals(
+        headings[0]?.children[1]?.textContent,
+        composeFigureText(pair.total),
+        "and standing over the figure the row that opened it stated",
+    );
+    const rows = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row");
+    assertEquals(rows.length, pair.parts.length, "a row for each part, and no other");
+    assert(
+        rows.every((one) => one.attributes.get("data-row") === undefined),
+        "and nothing on this rung opens any further",
+    );
+    const named = getTextsByClass(host, "row-name");
+    assert(named.includes(getWordsForHealthSource("heal")), "a key is drawn in the reader's words");
+    assert(!named.includes("heal"), "never under the token the protocol stated it on");
+    assert(
+        named.some((one) => one === "Zdrowa atmosfera"),
+        "and an announcement under the name it was announced by",
     );
 });

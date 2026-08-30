@@ -118,8 +118,8 @@ function composeSectionsForScreenRow(
         const pair = composePairReading(statistics, roster, metric, at[0], at[1]);
         if (pair === null) continue;
         found.push({
-            where: `${metric}/pair.bySkill`,
-            rows: composeCutShares(pair.bySkill.rows, pair.bySkill.plain),
+            where: `${metric}/pair.parts`,
+            rows: composeCutShares(pair.parts, null),
             total: pair.total,
         });
         found.push({
@@ -210,7 +210,7 @@ Deno.test("every column of shares the panel draws comes to a hundred", () => {
     }
     // The reader is proved by what it found as well as by what it passed: a sweep that stopped
     // reaching the rungs would agree with every screen it never opened.
-    assertEquals(drawn, 19_178, "every column the corpus draws, 2026-08-30");
+    assertEquals(drawn, 24_140, "every column the corpus draws, 2026-08-30");
 });
 
 function composeSection(where: string, rows: ShareRow[], total: number): Section {

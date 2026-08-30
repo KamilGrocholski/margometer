@@ -713,8 +713,33 @@ export interface ElementCut {
 }
 
 /**
+ * One row of a pair's own section, and what it stands for. A discriminant rather than a name that
+ * may be a key: the two are worded from different tables, and `heal` is in both of them running
+ * opposite ways — named from the wrong one it reads as a kind of damage.
+ */
+export type PairPart =
+    | { kind: "skill"; name: string }
+    | { kind: "source"; source: string }
+    | { kind: "plain" };
+
+/**
+ * No count, whichever kind it is. An announcement is counted where it was made, and the protocol
+ * states no number of anything against one opponent rather than another.
+ */
+export interface PairPartRow {
+    part: PairPart;
+    figure: number;
+    fill: number;
+    shareText: string;
+}
+
+/**
  * The last rung. Nothing on it opens, in any screen: the protocol states no further cut of a pair
- * than the skills one of them announced and the kinds those blows carried.
+ * than what one of them announced, the key it moved under, and the kinds those blows carried.
+ *
+ * The parts are **one** list because they are drawn as one section, and a section accounts for the
+ * whole of the figure over it. Two lists would be two columns of shares each coming to some part
+ * of a hundred, and sorted apart they would put a large row under a small one.
  */
 export interface PairReading {
     combatantId: number;
@@ -722,7 +747,7 @@ export interface PairReading {
     otherName: string | null;
     otherProfession: string | null;
     total: number;
-    bySkill: SkillCut;
+    parts: PairPartRow[];
     byElement: ElementCut;
 }
 
@@ -1042,9 +1067,8 @@ function getOpensSkill(
 }
 
 /**
- * Null where the pair states nothing — a combatant the fight does not hold, or a screen whose
- * figure the protocol cuts by no pair at all. Healing is such a screen: the keys it names belong
- * to the row the health moved on, and a pair of a healer and the healed is cut by nothing else.
+ * Null where the pair states nothing: a combatant the fight does not hold, or two the screen's own
+ * figure never passed between.
  */
 export function composePairReading(
     statistics: FightStatistics,
@@ -1055,9 +1079,9 @@ export function composePairReading(
 ): PairReading | null {
     const figures = statistics.byCombatantId.get(combatantId);
     if (figures === undefined) return null;
+    const total = getPairTotal(figures, metric, otherId);
+    if (total === null) return null;
     const kinds = getPairKinds(figures, metric, otherId);
-    if (kinds === null) return null;
-    const total = getTotalFromCut(kinds);
     const held = roster.byId.get(otherId);
     assert(total >= 0, "what passed between two combatants is never below nothing");
     return {
@@ -1066,30 +1090,47 @@ export function composePairReading(
         otherName: held?.name ?? null,
         otherProfession: held?.profession ?? null,
         total,
-        bySkill: composePairSkillCut(figures, metric, otherId, total),
-        byElement: composeElementCut(kinds, total),
+        parts: composePairParts(statistics, metric, combatantId, otherId, total),
+        byElement: kinds === null ? { rows: [], unnamed: null } : composeElementCut(kinds, total),
     };
 }
 
 /**
- * It opens where an announcement named a skill for the pair, or where the blows between them
- * carried more than one kind. It does not where the level would be one row repeating the figure
- * just pressed — every blow between them unannounced and of one type.
+ * It opens where the level under it would say something the row does not, and stays shut where that
+ * level would be one row repeating the figure just pressed.
+ *
+ * Two branches, because the two screens draw a different number of sections. On damage the kinds
+ * stand in a section of their own beside the announcements, so more than one kind is already a
+ * level worth opening; on healing there is one section, and the honest answer is to compose it and
+ * count. Answered by composing the level rather than by a second rule about it: a predicate written
+ * alongside the composer is two spellings of one question, and the disagreement is silent — an
+ * arrow leading nowhere, or none where there was something to see.
  */
-function getOpensPair(figures: CombatantFigures, metric: PanelMetric, otherId: number): boolean {
+function getOpensPair(
+    statistics: FightStatistics,
+    figures: CombatantFigures,
+    metric: PanelMetric,
+    combatantId: number,
+    otherId: number,
+): boolean {
+    assert(Number.isSafeInteger(otherId), "the other end of a pair is named by a number");
     const kinds = getPairKinds(figures, metric, otherId);
-    if (kinds === null) return false;
-    assert(kinds.size >= 0, "a pair carries the kinds it carries, however few");
-    assert(Number.isSafeInteger(otherId), "and the other end of it is named by a number");
-    if (kinds.size > 1) return true;
-    // Asked on the one screen that draws them, which is the screen `composePairSkillCut` cuts
-    // for. On the screen about what reached this combatant these rows say what they dealt, so a
-    // pair would open onto a level holding the row above it and nothing else.
-    if (metric !== "damageDealtApplied") return false;
-    for (const skill of figures.skills.values()) {
-        if ((skill.dealtByOpponent.get(`${otherId}`) ?? 0) > 0) return true;
+    if (kinds !== null) {
+        if (kinds.size > 1) return true;
+        // Asked on the one screen that draws them. On the screen about what reached this combatant
+        // these rows say what they dealt, so a pair would open onto the row above it and nothing.
+        if (metric !== "damageDealtApplied") return false;
+        for (const skill of figures.skills.values()) {
+            if ((skill.dealtByOpponent.get(`${otherId}`) ?? 0) > 0) return true;
+        }
+        return false;
     }
-    return false;
+    const total = getPairTotal(figures, metric, otherId);
+    if (total === null) return false;
+    const stated = composePairPartFigures(statistics, metric, combatantId, otherId);
+    const held = getTotalFromParts(stated);
+    assert(held <= total, "what the parts came to is no more than what passed between the two");
+    return stated.length + (held < total ? 1 : 0) > 1;
 }
 
 function getPairKinds(
@@ -1107,6 +1148,27 @@ function getPairKinds(
     return null;
 }
 
+/**
+ * What passed between the two, on the screen being read — and null where nothing did, which is a
+ * pair that does not exist rather than one standing at nothing.
+ *
+ * On healing it is read off the flat cut the opponent row above it was drawn from, so an opened
+ * pair states the figure that was pressed rather than a sum of the rows under it. A cut of the
+ * skills would close against a figure nobody pressed: a pair no announcement covered would come to
+ * nothing and open onto an empty level.
+ */
+function getPairTotal(
+    figures: CombatantFigures,
+    metric: PanelMetric,
+    otherId: number,
+): number | null {
+    assert(Number.isSafeInteger(otherId), "the other end of a pair is named by a number");
+    const kinds = getPairKinds(figures, metric, otherId);
+    if (kinds !== null) return getTotalFromCut(kinds);
+    if (metric === "healthGiven") return figures.healthGivenByReceiver.get(`${otherId}`) ?? null;
+    return figures.healthRestoredByGiver.get(`${otherId}`) ?? null;
+}
+
 function getTotalFromCut(cut: FigureCut): number {
     let total = 0;
     for (const figure of cut.values()) total += figure;
@@ -1115,52 +1177,134 @@ function getTotalFromCut(cut: FigureCut): number {
     return total;
 }
 
+interface UnsharedPart {
+    part: PairPart;
+    figure: number;
+}
+
+/** The text a part is ordered by where two of them come to the same figure. */
+function getTextForPairPart(part: PairPart): string {
+    if (part.kind === "skill") return part.name;
+    if (part.kind === "source") return part.source;
+    return "";
+}
+
+function getTotalFromParts(parts: readonly UnsharedPart[]): number {
+    let total = 0;
+    for (const one of parts) {
+        assert(one.figure > 0, "a part that is drawn is a part with a figure in it");
+        total += one.figure;
+    }
+    assert(Number.isSafeInteger(total), "a total stays inside what a number holds exactly");
+    return total;
+}
+
 /**
- * The closing row carries no count here: a blow's announcement is counted where it was made, and
- * the protocol states no number of blows against one opponent.
+ * Whose row a pair's parts are read off, and how the cuts on it are keyed.
+ *
+ * It turns on the **direction** rather than on the quantity: mine where I gave it, theirs where I
+ * received it. Written as a test for damage it would read as a fact about damage and be a fact
+ * about giving, which is what kept healing off this rung.
  */
-function composePairSkillCut(
-    figures: CombatantFigures,
+function getPairGivingEnd(
+    statistics: FightStatistics,
     metric: PanelMetric,
+    combatantId: number,
+    otherId: number,
+): { figures: CombatantFigures | undefined; subject: string } {
+    assert(SCREEN_ORDER.includes(metric), "a pair is read for a screen the strips draw");
+    if (metric === "healthRestored") {
+        return { figures: statistics.byCombatantId.get(otherId), subject: `${combatantId}` };
+    }
+    return { figures: statistics.byCombatantId.get(combatantId), subject: `${otherId}` };
+}
+
+/**
+ * What an announcement put behind this one pair, and what the game named for it with nothing
+ * announced in front. Both on the same list because they make up one section: the keys hold what
+ * the announcements do not, and a reader adding the column gets the figure they pressed.
+ *
+ * The keys are healing's alone. On the damage screens what a blow was made of stands in a section
+ * of its own beside this one, and putting it here as well would draw it twice.
+ */
+function composePairPartFigures(
+    statistics: FightStatistics,
+    metric: PanelMetric,
+    combatantId: number,
+    otherId: number,
+): UnsharedPart[] {
+    if (metric === "damageTakenApplied") return [];
+    const end = getPairGivingEnd(statistics, metric, combatantId, otherId);
+    if (end.figures === undefined) return [];
+    const stated: UnsharedPart[] = [];
+    for (const skill of end.figures.skills.values()) {
+        const figure = metric === "damageDealtApplied"
+            ? skill.dealtByOpponent.get(end.subject) ?? 0
+            : skill.restoredByOpponent.get(end.subject) ?? 0;
+        if (figure > 0) stated.push({ part: { kind: "skill", name: skill.name }, figure });
+    }
+    assert(stated.length <= MAXIMUM_SKILLS, "a cut stays inside the skills bound");
+    if (metric === "damageDealtApplied") return stated;
+    const cut = end.figures.healthGivenWithoutSkillByReceiverAndSource.get(end.subject);
+    if (cut === undefined) return stated;
+    for (const [source, figure] of cut) {
+        if (figure > 0) stated.push({ part: { kind: "source", source }, figure });
+    }
+    return stated;
+}
+
+/**
+ * The section an opened pair is, sorted once over the whole of it.
+ *
+ * ⚠️ **Sorted here rather than where each kind of part was gathered.** Appending the keys after an
+ * ordered list of skills puts a key larger than every skill at the bottom of the column, which is
+ * the one thing a list of bars says without being read.
+ *
+ * The closing row carries no count: an announcement is counted where it was made, and the protocol
+ * states no number of anything against one opponent rather than another. It is not drawn at all on
+ * the screen about what reached this combatant: nothing announces a blow you take, so a section
+ * there would be one row saying the figure just pressed under the word for an unannounced swing.
+ */
+function composePairParts(
+    statistics: FightStatistics,
+    metric: PanelMetric,
+    combatantId: number,
     otherId: number,
     total: number,
-): SkillCut {
+): PairPartRow[] {
     assert(total >= 0, "a figure being cut is never below nothing");
-    if (metric !== "damageDealtApplied") return { rows: [], plain: null };
-    const stated = [...figures.skills.values()]
-        .map((one) => ({
-            name: one.name,
-            uses: null,
-            figure: one.dealtByOpponent.get(`${otherId}`) ?? 0,
-            opensSkill: false,
-        }))
-        .filter((one) => one.figure > 0);
-    stated.sort((one, other) => getRankedOrder(one.figure, other.figure, one.name, other.name));
-    const held = stated.reduce((sum, one) => sum + one.figure, 0);
-    assert(held <= total, "what the skills came to is no more than what passed between the two");
-    // The count is nothing here rather than nought: a blow's announcement is counted where it was
-    // made, and the protocol states no number of blows against one opponent.
-    const plain = total - held;
-    const shares = composeShareTexts(
-        plain > 0 ? [...stated.map((one) => one.figure), plain] : stated.map((one) => one.figure),
-        total,
+    if (metric === "damageTakenApplied") return [];
+    const stated = composePairPartFigures(statistics, metric, combatantId, otherId);
+    stated.sort((one, other) =>
+        getRankedOrder(
+            one.figure,
+            other.figure,
+            getTextForPairPart(one.part),
+            getTextForPairPart(other.part),
+        )
     );
-    const largest = getLargestFigure([...stated.map((one) => one.figure), plain]);
-    return {
-        rows: stated.map((one, at) => ({
-            ...one,
-            fill: getFill(one.figure, largest),
-            shareText: shares[at] ?? "",
-        })),
-        plain: plain > 0
-            ? {
-                blows: null,
-                figure: plain,
-                fill: getFill(plain, largest),
-                shareText: shares[stated.length] ?? "",
-            }
-            : null,
-    };
+    const held = getTotalFromParts(stated);
+    assert(held <= total, "what the parts came to is no more than what passed between the two");
+    const plain = total - held;
+    const figures = stated.map((one) => one.figure);
+    if (plain > 0) figures.push(plain);
+    const shares = composeShareTexts(figures, total);
+    const largest = getLargestFigure(figures);
+    const rows: PairPartRow[] = stated.map((one, at) => ({
+        part: one.part,
+        figure: one.figure,
+        fill: getFill(one.figure, largest),
+        shareText: shares[at] ?? "",
+    }));
+    if (plain > 0) {
+        rows.push({
+            part: { kind: "plain" },
+            figure: plain,
+            fill: getFill(plain, largest),
+            shareText: shares[stated.length] ?? "",
+        });
+    }
+    return rows;
 }
 
 export function composeDrillReading(
@@ -1182,7 +1326,7 @@ export function composeDrillReading(
         cuts.byOpponent,
         roster,
         total,
-        (otherId) => getOpensPair(figures, metric, otherId),
+        (otherId) => getOpensPair(statistics, figures, metric, combatantId, otherId),
     );
     const byElement = cuts.byElement === null
         ? { rows: [], unnamed: null }

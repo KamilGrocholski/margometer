@@ -117,6 +117,9 @@ function composeReportRow(figures: CombatantFigures): ReportRow {
         healthRestoredByGiver: composeReportCut(figures.healthRestoredByGiver),
         healthGivenByReceiver: composeReportCut(figures.healthGivenByReceiver),
         healthRestoredBySource: composeReportCut(figures.healthRestoredBySource),
+        healthGivenWithoutSkillByReceiverAndSource: composeReportPairCut(
+            figures.healthGivenWithoutSkillByReceiverAndSource,
+        ),
         damageDealtByElement: composeReportCut(figures.damageDealtByElement),
         damageTakenByElement: composeReportCut(figures.damageTakenByElement),
         damageDealtByOpponent: composeReportCut(figures.damageDealtByOpponent),

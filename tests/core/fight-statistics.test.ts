@@ -117,6 +117,43 @@ Deno.test("a restoring key credits whoever announced it, and names the skill on 
     assertEquals(healed?.healthGiven, 0, "which gave none of it");
 });
 
+/**
+ * What an opened pair adds up: an announcement's own row, or the key, and never both.
+ *
+ * The key stands on the giver's row here and nowhere else on it, because the pair names whoever
+ * received the health — which is whose cause the key is. A flat cut of a giver by key would word
+ * their row with somebody else's.
+ */
+Deno.test("health between two is charged to the skill that announced it, or to the key", () => {
+    const announced = "469657=95.78;445202=100.00;tspell=Leczenie ran;skillId=78;heal_target=11733";
+    const statistics = composeFightStatistics(
+        decodeFightMessages([announced, HEAL], null),
+        new Map(),
+    );
+    const healer = statistics.byCombatantId.get(469657);
+    assertEquals(healer?.healthGivenByReceiver.get("445202"), 11733, "the pair holds the figure");
+    assertEquals(
+        healer?.skills.get("Leczenie ran")?.restoredByOpponent.get("445202"),
+        11733,
+        "and the announcement's own row holds the whole of it",
+    );
+    assertEquals(
+        healer?.healthGivenWithoutSkillByReceiverAndSource.get("445202"),
+        undefined,
+        "so no key stands beside it, which would state the figure twice",
+    );
+    // The other branch, on a key the help calls the subject's own: nothing announced it, so the
+    // pair of them with themselves is where it stands.
+    const alone = statistics.byCombatantId.get(482845);
+    assertEquals(alone?.healthGivenByReceiver.get("482845"), 99, "a self-sourced pair is a pair");
+    assertEquals(
+        [...alone?.healthGivenWithoutSkillByReceiverAndSource.get("482845") ?? []],
+        [["heal", 99]],
+        "and the key the protocol wrote it under is what the pair holds",
+    );
+    assertEquals(alone?.skills.size, 0, "with no announcement to hold it instead");
+});
+
 /** The one healing shape whose giver the protocol names outright, in the actor slot of the cast. */
 Deno.test("a cast credits its caster with everything it put back, member by member", () => {
     const roster = composeCombatantRoster([
@@ -313,6 +350,58 @@ Deno.test("a cut by both ends comes to the same figure as the cut by one", () =>
             );
         }
     }
+});
+
+/**
+ * The equation an opened healing pair rests on, over every recording.
+ *
+ * A section that came to less than the figure over it is a column of shares adding to
+ * ninety-something, and a reader cannot tell a missing figure from one that was never there. The
+ * two branches are counted as well as summed: a writer that had stopped charging the keys would
+ * still balance, by charging everything to the skills.
+ */
+Deno.test("what one gave another is the skills announced for it plus the keys, exactly", () => {
+    let pairs = 0;
+    let announced = 0;
+    let stated = 0;
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        for (const [combatantId, figures] of statistics.byCombatantId) {
+            for (const [other, amount] of figures.healthGivenByReceiver) {
+                pairs += 1;
+                let held = 0;
+                for (const skill of figures.skills.values()) {
+                    const figure = skill.restoredByOpponent.get(other) ?? 0;
+                    if (figure > 0) announced += 1;
+                    held += figure;
+                }
+                const keys = figures.healthGivenWithoutSkillByReceiverAndSource.get(other);
+                for (const figure of keys?.values() ?? []) {
+                    stated += 1;
+                    held += figure;
+                }
+                assertEquals(
+                    held,
+                    amount,
+                    `${path}: ${combatantId} to ${other} is not what its parts hold`,
+                );
+            }
+            // And the other way round, so a pair written on one row and not the other is a
+            // finding rather than a section that quietly lists nobody.
+            for (const giver of figures.healthRestoredByGiver.keys()) {
+                const held = statistics.byCombatantId.get(Number(giver));
+                assert(
+                    held?.healthGivenByReceiver.has(`${combatantId}`) === true,
+                    `${path}: ${giver} healed ${combatantId} on one row only`,
+                );
+            }
+        }
+    }
+    assert(pairs > 0, "the corpus holds pairs to check this on");
+    assert(announced > 0, "some of them stand on an announcement");
+    assert(stated > 0, "and some on a key the game named with nothing announced in front of it");
 });
 
 /** `2026-08-06-tempest-grupa-vs-hildur.json`: a critical blow that pierced and destroyed armour. */

@@ -9,6 +9,7 @@ import { composeDecimalText } from "@/libs/number-text.ts";
 import type {
     DrillReading,
     ElementRow,
+    PairPart,
     PairReading,
     PanelMetric,
     PanelReading,
@@ -1005,36 +1006,59 @@ function composePairElement(
     assert(figure.length > 0, "a pair states what its figure is a figure of");
     assert(pair.total >= 0, "and a figure that is not below nothing");
     const share = PANEL_WORDS.shareOfFigure;
-    composePairSkills(document, list, pair, { metric: view.current, register, figure, share });
+    composePairParts(document, list, pair, { metric: view.current, register, figure, share });
     composePairKinds(document, list, pair, { register, figure, share });
     return list;
 }
 
-function composePairSkills(
+/**
+ * What a part is called where it stands, and the key names come from the screen's own table: the
+ * game states `heal` as a health gain and as a health loss both, and one label over the two would
+ * be two quantities under one word.
+ */
+function getWordsForPairPart(part: PairPart, metric: PanelMetric): string {
+    if (part.kind === "skill") return part.name;
+    if (part.kind === "plain") return getWordsForUnannounced(metric);
+    return getNounForScreen(metric) === "damage"
+        ? getWordsForDamageKind(part.source)
+        : getWordsForHealthSource(part.source);
+}
+
+/** One key per part, so a tip is kept apart from the one beside it under the same figure. */
+function getKeyForPairPart(part: PairPart): string {
+    if (part.kind === "skill") return `pair-skill:${part.name}`;
+    if (part.kind === "plain") return "pair-skill:plain";
+    return `pair-source:${part.source}`;
+}
+
+function composePairParts(
     document: PanelDocument,
     list: PanelElement,
     pair: PairReading,
     stated: { metric: PanelMetric; register: TipRegister; figure: string; share: string },
 ): void {
-    const cut = pair.bySkill;
-    assert(cut.rows.length <= MAXIMUM_SKILLS, "a cut stays inside the bound it is kept to");
-    if (cut.rows.length === 0 && cut.plain === null) return;
+    assert(pair.parts.length <= MAXIMUM_SKILLS, "a cut stays inside the bound it is kept to");
+    if (pair.parts.length === 0) return;
     const named = pair.otherName ?? PANEL_WORDS.unknown;
     list.append(composeSectionElement(
         document,
         `${PANEL_WORDS.skillsAgainst} — ${named}`,
         pair.total,
     ));
-    for (const [at, row] of cut.rows.entries()) {
-        const tip = { ...stated, key: `pair-skill:${row.name}` };
-        const element = composeRowElement(document, composeSkillRowReading(row, at + 1), null, tip);
-        if (row.opensSkill) setRowMarks([element], SKILL_ATTRIBUTE, row.name);
-        list.append(element);
+    for (const [at, row] of pair.parts.entries()) {
+        const tip = { ...stated, key: getKeyForPairPart(row.part) };
+        const reading = {
+            name: getWordsForPairPart(row.part, stated.metric),
+            figure: row.figure,
+            fill: row.fill,
+            shareText: row.shareText,
+            colour: getColourForProfession(null),
+            profession: null,
+            rank: at + 1,
+        };
+        assert(reading.name.length > 0, "a part of a pair is drawn under a name");
+        list.append(composeRowElement(document, reading, null, tip));
     }
-    if (cut.plain === null) return;
-    const tip = { ...stated, key: "pair-skill:plain" };
-    const reading = composeUnnamedReading(cut.plain, getWordsForUnannounced(stated.metric));
-    list.append(composeRowElement(document, reading, null, tip));
 }
 
 function composePairKinds(
@@ -1059,9 +1083,9 @@ function composePairKinds(
 function getRowsForPair(pair: PairReading, floor: number): number {
     assert(floor > 0, "a list stands at a height of at least one row");
     assert(pair.total >= 0, "and holds a figure that is not below nothing");
-    const skills = pair.bySkill.rows.length + (pair.bySkill.plain === null ? 0 : 1);
+    const parts = pair.parts.length;
     const kinds = pair.byElement.rows.length;
-    const needed = (skills === 0 ? 0 : skills + 1) + (kinds === 0 ? 0 : kinds + 1);
+    const needed = (parts === 0 ? 0 : parts + 1) + (kinds === 0 ? 0 : kinds + 1);
     return Math.max(needed, floor);
 }
 
