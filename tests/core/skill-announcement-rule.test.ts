@@ -90,6 +90,30 @@ Deno.test("a declaration rides a name the game did not take from its own table",
     }
 });
 
+/**
+ * ⚠️ **An announcement is not always the message before.** These three state their figure on the
+ * announcement itself, so a reading that only carried one message forward left every point of
+ * them with no giver and no name — 353,990 over `captures/`, until 2026-08-30.
+ */
+Deno.test("three keys state their figure on the announcement itself, and name an actor", () => {
+    const counted = new Map<string, number>();
+    for (const path of getRecordingPaths()) {
+        for (const message of getRecordedMessages(path)) {
+            const parsed = parseProtocolMessage(message);
+            const keys = parsed.parameters.map((one) => one.key);
+            for (const key of ["heal_target", "healall_per", "bandage"]) {
+                if (!keys.includes(key)) continue;
+                assert(isAnnouncement(keys), `${path}: ${key} on a message announcing no skill`);
+                assert(parsed.actor !== null, `${path}: ${key} on a message naming no actor`);
+                counted.set(key, (counted.get(key) ?? 0) + 1);
+            }
+        }
+    }
+    assertEquals(counted.get("heal_target"), 117, "every occurrence the material carries");
+    assertEquals(counted.get("healall_per"), 115, "for each of the three, 2026-08-30");
+    assertEquals(counted.get("bandage"), 1, "the last of them stated once");
+});
+
 Deno.test("the reducer of a side's healing stands on an announcement too", () => {
     let stated = 0;
     for (const path of getRecordingPaths()) {

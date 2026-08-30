@@ -36,6 +36,7 @@ import {
     getWordsForNothing,
     getWordsForOutcome,
     getWordsForStorage,
+    getWordsForUnannounced,
     PANEL_WORDS,
 } from "@/src/ui/panel-words.ts";
 import {
@@ -1325,7 +1326,7 @@ Deno.test("a press on a control is not a drag, whatever the pointer does next", 
     );
 });
 
-/** Healing opens like damage does, and the two cuts it opens onto are its own. */
+/** Healing opens onto who, what with, and — on the receiving side alone — under which key. */
 Deno.test("a healing row opens, and says whose the health was and what put it back", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
     const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
@@ -1367,12 +1368,16 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
     };
     assertEquals(
         open("healthRestored"),
-        [PANEL_WORDS.takenFrom, PANEL_WORDS.healthSource],
-        "health received is cut by who put it back and by the key it came under",
+        [PANEL_WORDS.takenFrom, PANEL_WORDS.skills, PANEL_WORDS.healthSource],
+        "health received is cut by who put it back, what put it back and the key it came under",
     );
-    // One cut, not two: the keys the protocol names belong to whoever received the health, so a
+    // No cut by key: the keys the protocol names belong to whoever received the health, so a
     // giver's row cut by one would be worded with somebody else's cause.
-    assertEquals(open("healthGiven"), [PANEL_WORDS.dealtTo], "and health given only by whom");
+    assertEquals(
+        open("healthGiven"),
+        [PANEL_WORDS.dealtTo, PANEL_WORDS.skills],
+        "and health given by whom it reached and what it was given with",
+    );
 });
 
 Deno.test("a row opened on a screen its own figure is nothing on says so, about them", () => {
@@ -1543,7 +1548,8 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
     });
     const host = panel.element as FakeElement;
     const named = getTextsByClass(host, "row-name");
-    assert(named.includes(PANEL_WORDS.plainBlow), "the closing row stands in its own section");
+    const closing = getWordsForUnannounced("damageDealtApplied");
+    assert(named.includes(closing), "the closing row stands in its own section");
     const shares = getTextsByClass(host, "row-share");
     assert(shares.includes("(0% · ×3)"), "carrying the count only its absence of a skill states");
 });

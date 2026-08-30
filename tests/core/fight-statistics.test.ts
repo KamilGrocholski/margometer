@@ -36,6 +36,35 @@ Deno.test("a blow lands on both of its ends, and raw stays apart from applied", 
     assertEquals(statistics.unreadMessages, 0, "nothing about this blow went unread");
 });
 
+/**
+ * `2026-08-12-experimental-tancerz-vs-wojownik.json`: damage stated against a name, on the
+ * announcement that dealt it. The name is resolved through a roster, so the sample carries one.
+ */
+const NAMED_DAMAGE =
+    "195782=96.83;114881=80.61;tspell=Zdruzgotanie;skillId=39;+oth_dmg=1529,a,Gracz 1(80.61%);" +
+    "combo-max=3";
+
+/**
+ * A figure stated against a name is damage its announcement dealt, and the skill row is the only
+ * place it can be read: it is not a swing, so no count of blows accounts for it, and a section
+ * that skipped it would close the whole of it into the row for a blow nothing announced.
+ */
+Deno.test("damage stated against a name is charged to the skill that announced it", () => {
+    const roster = composeCombatantRoster([
+        { id: 195782, name: "Gracz 2", side: 1, profession: "t", level: 100, healthMaximum: 5000 },
+        { id: 114881, name: "Gracz 1", side: 2, profession: "w", level: 100, healthMaximum: 5000 },
+    ]);
+    const events = decodeFightMessages([NAMED_DAMAGE], roster);
+    const statistics = composeFightStatistics(events, new Map());
+    const dealer = statistics.byCombatantId.get(195782);
+    assertEquals(dealer?.damageDealtApplied, 1529, "the figure reaches whoever announced it");
+    const skill = dealer?.skills.get("Zdruzgotanie");
+    assertEquals(skill?.dealt, 1529, "and the skill row holds the whole of it");
+    assertEquals(skill?.dealtByOpponent.get("114881"), 1529, "cut by the name it was stated of");
+    assertEquals(dealer?.blowsStruck, 0, "no blow was struck: this rides one aimed elsewhere");
+    assertEquals(dealer?.blowsWithoutSkill, 0, "so no blow is counted as standing behind nothing");
+});
+
 Deno.test("health moving without an attacker is taken by somebody and dealt by nobody", () => {
     const statistics = composeFightStatistics(decodeFightMessages([POISON], null), new Map());
     const bitten = statistics.byCombatantId.get(-255967);
@@ -70,6 +99,24 @@ Deno.test("a restoring key nothing announced and no help claims is charged to no
     assertEquals(statistics.givenByNobody, 40, "the whole of it stands apart, charged to nobody");
 });
 
+/**
+ * The same key with the announcement it was stated on, which is where the giver comes from
+ * (`docs/protocol-keys.md`, `_Cause:_ the announcement's actor`). The healer is not the healed
+ * here, so a reading that took the message's own slots would credit the wrong person.
+ */
+Deno.test("a restoring key credits whoever announced it, and names the skill on their row", () => {
+    const announced = "469657=95.78;445202=100.00;tspell=Leczenie ran;skillId=78;heal_target=11733";
+    const statistics = composeFightStatistics(decodeFightMessages([announced], null), new Map());
+    assertEquals(statistics.givenByNobody, 0, "nothing is left charged to nobody");
+    const healer = statistics.byCombatantId.get(469657);
+    assertEquals(healer?.healthGiven, 11733, "the announcer is credited with giving it");
+    assertEquals(healer?.healthRestored, 0, "and with receiving none of it");
+    assertEquals(healer?.skills.get("Leczenie ran")?.restored, 11733, "under the skill's own name");
+    const healed = statistics.byCombatantId.get(445202);
+    assertEquals(healed?.healthRestored, 11733, "the health reached the target slot");
+    assertEquals(healed?.healthGiven, 0, "which gave none of it");
+});
+
 /** The one healing shape whose giver the protocol names outright, in the actor slot of the cast. */
 Deno.test("a cast credits its caster with everything it put back, member by member", () => {
     const roster = composeCombatantRoster([
@@ -87,6 +134,9 @@ Deno.test("a cast credits its caster with everything it put back, member by memb
     assertEquals(statistics.byCombatantId.get(1)?.healthGiven, 900, "the caster gave both shares");
     assertEquals(statistics.byCombatantId.get(2)?.healthGiven, 0, "and the other member gave none");
     assertEquals(statistics.givenByNobody, 0, "with nothing left charged to nobody");
+    const cast = statistics.byCombatantId.get(1)?.skills.get("Fala leczenia");
+    assertEquals(cast?.restored, 900, "the skill that announced it holds what it put back");
+    assertEquals(cast?.restoredByOpponent.get("2"), 600, "cut by whom each share reached");
     assertEquals(
         statistics.totals.healthGiven,
         statistics.totals.healthRestored,
@@ -95,11 +145,15 @@ Deno.test("a cast credits its caster with everything it put back, member by memb
 });
 
 /**
- * The share of restored health a giver can be read for, over the whole corpus. A figure rather
+ * The share of restored health a giver can be read for, over the whole corpus. Figures rather
  * than an inequality, because what this pins is the reading rule and not a direction: a rule that
  * quietly stopped crediting the self-sourced keys would still satisfy "most of it".
+ *
+ * The material answers for every point, which is a claim about the material and not a law — the
+ * test above keeps the shape of a key nothing announces, so the nought here is a reading and not
+ * a branch that has gone dead.
  */
-Deno.test("the corpus says who gave nine points of health in ten", () => {
+Deno.test("the corpus says who gave every point of health it put back", () => {
     let restored = 0;
     let given = 0;
     let nobody = 0;
@@ -111,9 +165,9 @@ Deno.test("the corpus says who gave nine points of health in ten", () => {
         given += statistics.totals.healthGiven;
         nobody += statistics.givenByNobody;
     }
-    assertEquals(restored, 3_755_729, "the health the recordings put back, 2026-08-29");
-    assertEquals(given, 3_401_739, "of which this much has a giver the reading can name");
-    assertEquals(nobody, 353_990, "and the rest is `heal_target` and `bandage` nothing announced");
+    assertEquals(restored, 3_755_729, "the health the recordings put back, 2026-08-30");
+    assertEquals(given, 3_755_729, "all of which has a giver the reading can name");
+    assertEquals(nobody, 0, "and none of it is left charged to nobody");
     assertEquals(given + nobody, restored, "every point put back is counted once on each side");
 });
 

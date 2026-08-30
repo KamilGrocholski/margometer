@@ -55,6 +55,22 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   a jej nazwę — „Wojownik", „Mag" — mówi okienko, które otwiera się po najechaniu na wiersz. Dwie
   profesje o zbliżonym kolorze trudniej teraz rozróżnić na samej liście.
 
+- **Poprawka** — Każda sekcja w rozwiniętym wierszu sumuje się teraz do 100%. Na obu zakładkach
+  leczenia sekcja „czym" kończy się wierszem „Bez podanej umiejętności" — to życie, które gra
+  zapisała pod kluczem nienazywającym żadnej umiejętności, np. samoleczenie. Wcześniej takiej liczby
+  nie było gdzie zobaczyć i kolumna udziałów kończyła się na 94% albo 76%.
+
+- **Poprawka** — Sekcja „czym" na obrażeniach zadanych liczy teraz także obrażenia, które gra podaje
+  z imieniem — te, które przy ataku w jeden cel padają na kogoś obok. Dotąd całość szła pod „Zwykły
+  cios", choć gra przy nich nazywała umiejętność; u postaci, która nie wyprowadziła ani jednego
+  ciosu bez zapowiedzi, wiersz „Zwykły cios" potrafił stać z liczbą i zerem ciosów.
+
+- **Poprawka** — Leczenie mówi wreszcie, czym i od kogo. Wiersz rozwinięty na obu zakładkach
+  leczenia nie wymieniał żadnej umiejętności, a część przywróconego życia stała pod napisem
+  „Nieznany sprawca" — choć gra podawała nazwę umiejętności i tego, kto ją rzucił, w tej samej
+  wiadomości. Teraz „Leczenie dane" pokazuje, czym ktoś leczył i kogo, a „Leczenie otrzymane" — od
+  kogo życie przyszło i pod jaką nazwą.
+
 ## [0.10.1] — 2026-08-28
 
 - **Poprawka** — Górna belka panelu, ta z nazwą i przyciskami, znów mieści się w jednej linii. W

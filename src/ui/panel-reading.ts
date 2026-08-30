@@ -686,7 +686,8 @@ export interface SkillRow {
  * attack raises and the figure alone cannot answer it.
  */
 export interface PlainRow {
-    blows: number;
+    /** Null where nothing is counted: only a blow is counted, and health moving is not one. */
+    blows: number | null;
     figure: number;
     fill: number;
     shareText: string;
@@ -890,6 +891,30 @@ interface UnsharedSkill {
     opensSkill: boolean;
 }
 
+/**
+ * What reached this combatant, under the name it was announced by and never under whose it was:
+ * two healers both announcing `Leczenie ran` put health in under one name, and this screen has no
+ * column that could tell the two apart. A combatant's own casts count — health somebody put into
+ * themselves is health they received.
+ */
+function composeSkillRowsReceived(
+    statistics: FightStatistics,
+    combatantId: number,
+): UnsharedSkill[] {
+    assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its bound");
+    const byName = new Map<string, number>();
+    for (const held of statistics.byCombatantId.values()) {
+        for (const skill of held.skills.values()) {
+            const figure = skill.restoredByOpponent.get(`${combatantId}`) ?? 0;
+            if (figure > 0) byName.set(skill.name, (byName.get(skill.name) ?? 0) + figure);
+            assert(byName.size <= MAXIMUM_SKILLS, "a cut stays inside the skills bound");
+        }
+    }
+    // No count: the announcement was somebody else's, and how many times it was made says
+    // nothing about how much of what it put back reached this row.
+    return [...byName].map(([name, figure]) => ({ name, uses: null, figure, opensSkill: false }));
+}
+
 function composeSkillRows(
     statistics: FightStatistics,
     figures: CombatantFigures,
@@ -897,22 +922,7 @@ function composeSkillRows(
     combatantId: number,
 ): UnsharedSkill[] {
     assert(SCREEN_ORDER.includes(metric), "a cut is composed for a screen the strips draw");
-    if (metric === "healthRestored") {
-        const found: UnsharedSkill[] = [];
-        assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its bound");
-        for (const [ownerId, held] of statistics.byCombatantId) {
-            if (ownerId === combatantId) continue;
-            for (const skill of held.skills.values()) {
-                const figure = skill.restoredByOpponent.get(`${combatantId}`) ?? 0;
-                // No count: the announcement was somebody else's, and how many times they made
-                // it says nothing about how much of it reached this row.
-                if (figure > 0) {
-                    found.push({ name: skill.name, uses: null, figure, opensSkill: false });
-                }
-            }
-        }
-        return found;
-    }
+    if (metric === "healthRestored") return composeSkillRowsReceived(statistics, combatantId);
     const own = [...figures.skills.values()];
     if (metric === "healthGiven") {
         return own.filter((one) => one.restored > 0).map((one) => ({
@@ -931,9 +941,14 @@ function composeSkillRows(
 }
 
 /**
- * The closing row is the remainder rather than a second reading: every point dealt came from a
- * blow, and a blow either carried an announcement or did not — so what the skills do not hold is
- * what the plain ones did, and it is drawn with the count only an announcement's absence states.
+ * The closing row is the remainder rather than a second reading, and **every cut that is drawn
+ * carries one**: a section whose rows came to less than the figure over them would be a column of
+ * shares adding to ninety-something, which is a panel a reader cannot check.
+ *
+ * Only the dealing screen counts what stands in it. There the remainder is swings the game
+ * announced nothing before, and the count is what a figure alone cannot say; on the healing
+ * screens it is health that moved under a key naming no ability, which is not a number of
+ * anything.
  */
 function composeSkillCut(
     statistics: FightStatistics,
@@ -949,12 +964,10 @@ function composeSkillCut(
     const held = stated.reduce((sum, one) => sum + one.figure, 0);
     assert(held <= total, "what the skills came to is no more than the figure they are a cut of");
     // Drawn even where it landed nothing: three blows that were all blocked are three blows, and
-    // a section that skipped them would say the combatant never swung. Only the damage a
-    // combatant dealt closes this way — there is no such thing as a plain heal, and what no
-    // announcement covered on a healing screen is named by the key it moved under instead.
+    // a section that skipped them would say the combatant never swung.
     const plain = total - held;
-    const isClosing = metric === "damageDealtApplied";
-    const hasPlain = isClosing && (plain > 0 || figures.blowsWithoutSkill > 0);
+    const isCounted = metric === "damageDealtApplied";
+    const hasPlain = plain > 0 || (isCounted && figures.blowsWithoutSkill > 0);
     const figuresOnScreen = stated.map((one) => one.figure);
     if (hasPlain) figuresOnScreen.push(plain);
     const shares = composeShareTexts(figuresOnScreen, total);
@@ -967,7 +980,7 @@ function composeSkillCut(
         })),
         plain: hasPlain
             ? {
-                blows: figures.blowsWithoutSkill,
+                blows: isCounted ? figures.blowsWithoutSkill : null,
                 figure: Math.max(plain, 0),
                 fill: getFill(Math.max(plain, 0), largest),
                 shareText: shares[stated.length] ?? "",
@@ -1069,6 +1082,10 @@ function getOpensPair(figures: CombatantFigures, metric: PanelMetric, otherId: n
     assert(kinds.size >= 0, "a pair carries the kinds it carries, however few");
     assert(Number.isSafeInteger(otherId), "and the other end of it is named by a number");
     if (kinds.size > 1) return true;
+    // Asked on the one screen that draws them, which is the screen `composePairSkillCut` cuts
+    // for. On the screen about what reached this combatant these rows say what they dealt, so a
+    // pair would open onto a level holding the row above it and nothing else.
+    if (metric !== "damageDealtApplied") return false;
     for (const skill of figures.skills.values()) {
         if ((skill.dealtByOpponent.get(`${otherId}`) ?? 0) > 0) return true;
     }
@@ -1121,6 +1138,8 @@ function composePairSkillCut(
     stated.sort((one, other) => getRankedOrder(one.figure, other.figure, one.name, other.name));
     const held = stated.reduce((sum, one) => sum + one.figure, 0);
     assert(held <= total, "what the skills came to is no more than what passed between the two");
+    // The count is nothing here rather than nought: a blow's announcement is counted where it was
+    // made, and the protocol states no number of blows against one opponent.
     const plain = total - held;
     const shares = composeShareTexts(
         plain > 0 ? [...stated.map((one) => one.figure), plain] : stated.map((one) => one.figure),
@@ -1135,7 +1154,7 @@ function composePairSkillCut(
         })),
         plain: plain > 0
             ? {
-                blows: 0,
+                blows: null,
                 figure: plain,
                 fill: getFill(plain, largest),
                 shareText: shares[stated.length] ?? "",

@@ -641,11 +641,22 @@ function composeSkillUsedEvent(
     };
 }
 
-/** The announcement standing over a message is the one before it, and only for its own actor. */
+/**
+ * The announcement an effect rides: the message's own where it carries one, the one before it
+ * otherwise and only for its own actor.
+ *
+ * A message that announces a skill states the effect of that skill in the same breath — every
+ * `heal_target`, `healall_per` and `bandage` over `captures/` on 2026-08-30 arrives that way, and
+ * `docs/protocol-keys.md` says as much on each of the three. Reading only the message before
+ * leaves those figures with no giver and no name (`tests/core/skill-announcement-rule.test.ts`).
+ */
 function getAnnouncedForMessage(
     parsed: ProtocolMessage,
+    skill: SkillReading | null,
     standing: AnnouncedSkill | null,
 ): AnnouncedSkill | null {
+    const own = composeAnnouncedSkill(parsed, skill);
+    if (own !== null) return own;
     if (standing === null) return null;
     if (standing.actorId === null) return null;
     if (parsed.actor === null) return null;
@@ -725,7 +736,7 @@ function decodeOneMessage(
         return { events: [refused], announced: null };
     }
     const reading = composeAttackReading(parsed);
-    const announced = getAnnouncedForMessage(parsed, standing);
+    const announced = getAnnouncedForMessage(parsed, reading.skill, standing);
     const events: BattleEvent[] = [];
     // A proc rides a blow in every message in `captures/` that carries one, 2026-08-28. Where no
     // figure stands beside it the key is not read as one: a proc alone would be a claim this

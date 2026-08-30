@@ -151,7 +151,7 @@ export interface FightStatistics {
     totals: CombatantFigures;
     dealtByNobody: number;
     takenByNobody: number;
-    /** Restored health no giver could be read for: 9.4% of it over `captures/`, 2026-08-29. */
+    /** Restored health no giver could be read for: none of it over `captures/`, 2026-08-30. */
     givenByNobody: number;
     /**
      * What the protocol named **neither** end of, which is the one figure no side can be charged
@@ -488,6 +488,11 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
         dealer.damageDealtApplied += amount;
         dealer.damageDealtBlowLargest = getLargerBlow(dealer.damageDealtBlowLargest, amount);
         addToCut(dealer.damageDealtByElement, event.damage.element, amount);
+        // The announcement is spent and the count of blows is not, which is the same split the
+        // paragraph above draws: what a skill dealt is a figure, and a swing is a swing.
+        if (event.announced !== null) {
+            addSkillDealt(dealer.skills, event.announced, amount, getOtherEndKey(event.targetId));
+        }
         if (event.targetId !== null) {
             addToCut(dealer.damageDealtByOpponent, `${event.targetId}`, amount);
             addToPairCut(dealer.damageDealtByOpponentAndKind, `${event.targetId}`, [event.damage]);
@@ -510,9 +515,10 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
 
 /**
  * Who put the health back: whoever announced it, or the one healed where the key is theirs on the
- * published help's word. Null everywhere else — 353,990 of the 3,755,729 points restored across
- * `captures/` on 2026-08-29, all of it `heal_target` and `bandage` that nothing announced, and the
- * reason the panel draws a row for what no giver can be read for.
+ * published help's word. Null everywhere else, and every recording answers one of the two — no
+ * point of the 3,755,729 restored across `captures/` on 2026-08-30 is left without a giver. The
+ * branch stands for the material that would state a restoring key with nothing announcing it and
+ * no help claiming it, which the panel draws a row of its own for.
  */
 function getGiverId(
     source: string,
@@ -641,7 +647,11 @@ function addNamedHealingEvent(build: StatisticsBuild, event: BattleEvent): void 
  * What a cast put back, per member. A cast nobody could size, or one sized for only part of its
  * side, is counted as unplaced as well — a partial answer is never read as a whole one.
  */
-function addTeamHeal(build: StatisticsBuild, heal: TeamHeal | undefined): void {
+function addTeamHeal(
+    build: StatisticsBuild,
+    announced: AnnouncedSkill | null,
+    heal: TeamHeal | undefined,
+): void {
     if (heal === undefined) {
         build.castsUnplaced += 1;
         return;
@@ -654,6 +664,9 @@ function addTeamHeal(build: StatisticsBuild, heal: TeamHeal | undefined): void {
         // The one healing shape whose giver the protocol states outright: the caster stands in
         // the message's actor slot, and the recipients are what the sizing worked out.
         addGivenHealth(build, heal.casterId, amount, combatantId);
+        if (announced === null) continue;
+        assert(announced.actorId === heal.casterId, "one combatant cast it and one announced it");
+        addSkillRestored(build, announced, amount, combatantId);
     }
     assert(build.castsUnplaced >= 0, "a count of casts never falls below nothing");
 }
@@ -767,7 +780,9 @@ export function composeFightStatistics(
     assert(events.length >= 0, "a fight decodes to a list");
     for (const event of events) {
         if (event.kind === "unknown-message") build.unreadMessages += 1;
-        if (event.kind === "unaccounted-health") addTeamHeal(build, heals.get(event));
+        if (event.kind === "unaccounted-health") {
+            addTeamHeal(build, event.announced, heals.get(event));
+        }
         addAttackEvent(build, event);
         addNamedDamageEvent(build, event);
         addHealthChangeEvent(build, event);

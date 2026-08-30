@@ -219,6 +219,18 @@ rung opens: the protocol states no further cut of it. A row opens only where the
 would say something the row does not — a pair whose every blow was unannounced and of one kind is
 the figure just pressed under another heading, and pressing it would spend a gesture on nothing.
 
+**Every column of shares comes to a hundred.** A section that is drawn accounts for the whole of the
+figure over it, and what its named rows do not hold is drawn as the row that closes it —
+`Zwykły cios` where a swing carried no announcement, `Bez podanej umiejętności` where health moved
+under a key naming no ability. A reader who adds a column and gets ninety-four cannot tell a missing
+figure from a figure that was never there, and telling those two apart is what this panel is for.
+
+**A row states nothing as `0%` and anything at all as at least `<1%`**, and the two are never
+swapped: `0%` is a measurement — this combatant did nothing — and `<1%` is a figure too small to
+carry a point. A `<1%` row spends no point of the column, so the shares printed beside it still come
+to a hundred. Both rules are held by `tests/ui/share-column.test.ts`, over every recording, screen,
+seat and rung.
+
 **A cut that only repeats the figure above it is not drawn.** The section a level is _about_ is
 always drawn; the cross-sections beside it answer to this. The exemption is the row that closes a
 skills section, and only where it counts something: `Zwykły cios 2 644 (100% · ×8)` says eight blows

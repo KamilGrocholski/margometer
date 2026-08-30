@@ -123,6 +123,30 @@ Deno.test("the one key of the family that means the target", () => {
     assertEquals(events.filter((one) => one.kind === "unknown-message").length, 0, "nothing left");
 });
 
+/**
+ * The announcement is in the same breath as the figure, and reading only the message before loses
+ * it: `heal_target` is charged to the announcement's actor (`docs/protocol-keys.md`), so an
+ * announcement nothing picks up leaves the health with no giver and no name.
+ */
+Deno.test("a figure stated on an announcement rides that announcement, not the one before", () => {
+    const events = decodeFightMessages([HEAL_TARGET], null);
+    const restored = events.find((event) => event.kind === "health-change");
+    assert(restored?.kind === "health-change", "the healing is read");
+    assert(restored.announced !== null, "and it carries the announcement it was stated on");
+    assertEquals(restored.announced.skillName, "Leczenie ran", "by the name the game wrote");
+    assertEquals(restored.announced.skillId, 78, "with the id beside it");
+    assertEquals(restored.announced.actorId, 469657, "and the healer, off the actor slot");
+    assertEquals(restored.combatantId, 445202, "who is not the combatant the health reached");
+});
+
+/** The other side of it: a message announcing nothing carries no announcement of its own. */
+Deno.test("a figure on a message that announces nothing rides nothing", () => {
+    const events = decodeFightMessages([HEAL], null);
+    const restored = events.find((event) => event.kind === "health-change");
+    assert(restored?.kind === "health-change", "the healing is read all the same");
+    assertEquals(restored.announced, null, "and states no skill, because the message states none");
+});
+
 /** `2026-08-06-tempest-grupa-vs-hildur.json`: an announcement with no id, and the blow after it. */
 const ANNOUNCEMENT = "-10000249;0;tspell=Struna płomienna";
 const BLOW_AFTER = "-10000249=100.00;445202=87.34;+dmgf=2471;+dmgc=4967;+acdmg=50;-blok=2231;" +

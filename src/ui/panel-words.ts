@@ -42,8 +42,6 @@ export const PANEL_WORDS = {
     healthSource: "OD CZEGO",
     skills: "CZYM (UMIEJĘTNOŚCI)",
     skillsAgainst: "CZYM",
-    /** A blow nothing was announced before. The game does not tell it from a swing it granted. */
-    plainBlow: "Zwykły cios",
     withoutKind: "Bez podanego typu",
     undrawn: "nie dało się narysować",
     combatants: "Postacie",
@@ -81,6 +79,25 @@ export function getWordsForNothing(screen: PanelMetric): string {
     assert(screen.length > 0, "a screen is asked for by name");
     const words = NOTHING_WORDS[screen];
     assert(words.length > 0, "and a figure of nothing is said in words on every one of them");
+    return words;
+}
+
+/**
+ * The closing row of a skills section, which is the figure no announcement covered. Its name is
+ * the screen's, because what went unannounced is a different thing on each: a swing the game
+ * granted no ability to, and health that moved under a key naming no ability at all.
+ */
+const UNANNOUNCED_WORDS: Record<PanelMetric, string> = {
+    damageDealtApplied: "Zwykły cios",
+    damageTakenApplied: "Zwykły cios",
+    healthGiven: "Bez podanej umiejętności",
+    healthRestored: "Bez podanej umiejętności",
+};
+
+export function getWordsForUnannounced(screen: PanelMetric): string {
+    assert(screen.length > 0, "a screen is asked for by name");
+    const words = UNANNOUNCED_WORDS[screen];
+    assert(words.length > 0, "and every screen names what stood behind no announcement");
     return words;
 }
 

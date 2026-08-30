@@ -622,12 +622,66 @@ Deno.test("healing given is a screen of its own, and the two halves come to one 
         received.total,
         "and every point given is a point somebody received",
     );
-    assertEquals(given.pinned[0]?.end, "actor", "the giving side names the giver it could not");
-    assertEquals(given.pinned[0]?.standing, "apart", "as a figure no row above it holds");
-    // The same points from the other end: the rows there hold them, so the row saying so is a cut
-    // of the ranking rather than another part of it.
-    assertEquals(received.pinned.map((one) => one.standing), ["cut"], "and the receiving side");
-    assertEquals(received.pinned[0]?.figure, given.pinned[0]?.figure, "at the same figure");
+    // Nothing pinned on either side: every point this fight put back has a giver the reading can
+    // name, so the rows hold the whole of it. What no giver can be read for is the test below,
+    // which builds the figure rather than looking for one in material that no longer states it.
+    assertEquals(given.pinned, [], "the giving side names a giver for all of it");
+    assertEquals(received.pinned, [], "and so the receiving side has nothing to say it is short");
+});
+
+/**
+ * The rule the fight above no longer states, kept alive on a figure built for it: a restoring key
+ * nothing announced reaches somebody all the same, and the two screens say so differently — apart
+ * on the giving side, where no row holds it, and as a cut on the receiving side, where they do.
+ */
+Deno.test("healing no giver can be read for is apart on one screen and a cut on the other", () => {
+    const { roster } = readFight(HILDUR);
+    const [healed] = [...roster.byId.keys()];
+    assert(healed !== undefined, "the fight holds somebody to heal");
+    const statistics = composeFightStatistics([{
+        kind: "health-change",
+        combatantId: healed,
+        amount: 400,
+        healthPercent: null,
+        source: "bandage",
+        declared: [],
+        announced: null,
+    }], new Map());
+    const read = (metric: PanelMetric) =>
+        composePanelReading(statistics, roster, metric, "everyone", null, NOTHING_MISSED);
+    const given = read("healthGiven");
+    assertEquals(given.pinned.map((one) => one.standing), ["apart"], "no row above it holds it");
+    assertEquals(given.pinned[0]?.end, "actor", "and the end it could not name is the giver");
+    assertEquals(given.pinned[0]?.figure, 400, "at the whole of the figure");
+    const received = read("healthRestored");
+    assertEquals(received.pinned.map((one) => one.standing), ["cut"], "the rows there hold it");
+    assertEquals(received.pinned[0]?.figure, 400, "at the same figure, said once");
+});
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur.json` carries two healers announcing `Leczenie ran`, which
+ * is what makes the merge legible: the received screen has no column for whose cast it was, so
+ * two rows under one name would be two figures a reader cannot tell apart.
+ */
+Deno.test("what reached somebody is cut by the skill's name, whoever announced it", () => {
+    const { roster, statistics } = readFight(HILDUR);
+    const received = composePanelReading(
+        statistics,
+        roster,
+        "healthRestored",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const first = received.rows[0];
+    assert(first !== undefined, "somebody in this fight was healed");
+    const drill = composeDrillReading(statistics, roster, "healthRestored", first.combatantId);
+    assert(drill !== null, "and their row opens");
+    const names = drill.bySkill.rows.map((one) => one.name);
+    assertEquals(names.length, new Set(names).size, "no name is drawn twice");
+    assert(names.includes("Leczenie ran"), "the skill both healers announced is one row");
+    const held = drill.bySkill.rows.reduce((sum, one) => sum + one.figure, 0);
+    assert(held <= drill.total, "and the rows hold no more than the figure they cut");
 });
 
 Deno.test("healing given and received come to one figure in every recording", () => {
@@ -816,6 +870,25 @@ Deno.test("a pair states what passed between the two, and nothing that did not",
         null,
         "and a screen the protocol cuts by no pair opens none",
     );
+});
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur.json`, the combatant at 475890: twenty blows, every one of
+ * them announced, and damage stated against a name beside them. The closing row is the remainder
+ * of the figure rather than a second reading of it, so a cut that spent the announcement on the
+ * blows alone left this combatant a row counting nought blows with a third of their damage in it.
+ */
+Deno.test("what a skill dealt holds the figures stated against a name, not only the blows", () => {
+    const { roster, statistics } = readFight(HILDUR);
+    const combatantId = 475890;
+    const drill = composeDrillReading(statistics, roster, "damageDealtApplied", combatantId);
+    assert(drill !== null, "the row opens");
+    const held = drill.bySkill.rows.reduce((sum, one) => sum + one.figure, 0);
+    assertEquals(held, drill.total, "the skills hold the whole of what this combatant dealt");
+    assertEquals(drill.bySkill.plain, null, "so no row for a blow nothing announced is drawn");
+    const figures = statistics.byCombatantId.get(combatantId);
+    assertEquals(figures?.blowsWithoutSkill, 0, "which is the count that row would have stated");
+    assert((figures?.blowsStruck ?? 0) > 0, "and the blows themselves were struck all the same");
 });
 
 Deno.test("a pair that would only repeat the row above it does not open", () => {

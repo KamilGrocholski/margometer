@@ -50,6 +50,7 @@ import {
     getWordsForShelfOutcome,
     getWordsForShelfTime,
     getWordsForStorage,
+    getWordsForUnannounced,
     PANEL_WORDS,
     type PanelRegion,
     WARNING_MARK,
@@ -704,12 +705,12 @@ function composeSkillSection(
     document: PanelDocument,
     list: PanelElement,
     drill: DrillReading,
-    stated: { register: TipRegister; figure: string },
+    stated: { metric: PanelMetric; register: TipRegister; figure: string },
 ): void {
     const cut = drill.bySkill;
     assert(cut.rows.length <= MAXIMUM_SKILLS, "a cut stays inside the bound it is kept to");
     if (cut.rows.length === 0 && cut.plain === null) return;
-    const counts = cut.plain !== null && cut.plain.blows > 0;
+    const counts = (cut.plain?.blows ?? 0) > 0;
     if (!counts && getIsRepetition(cut.rows, cut.plain, drill.total)) return;
     list.append(composeSectionElement(document, PANEL_WORDS.skills, drill.total));
     const share = PANEL_WORDS.shareOfFigure;
@@ -727,7 +728,7 @@ function composeSkillSection(
     if (cut.plain === null) return;
     const tip = { register: stated.register, key: "skill:plain", figure: stated.figure, share };
     const reading = {
-        ...composeUnnamedReading(cut.plain, PANEL_WORDS.plainBlow),
+        ...composeUnnamedReading(cut.plain, getWordsForUnannounced(stated.metric)),
         uses: cut.plain.blows,
     };
     list.append(composeRowElement(document, reading, null, tip));
@@ -814,7 +815,7 @@ function composeDrillElement(
     const figure = getWordsForScreen(view.current);
     assert(figure.length > 0, "an opened row states what its figure is a figure of");
     composeOpponentSection(document, list, drill, { metric: view.current, register, figure });
-    composeSkillSection(document, list, drill, { register, figure });
+    composeSkillSection(document, list, drill, { metric: view.current, register, figure });
     composeElementSection(document, list, drill, { metric: view.current, register, figure });
     assert(drill.total >= 0, "a figure opened is never below nothing");
     if (drill.total === 0) {
@@ -1004,7 +1005,7 @@ function composePairElement(
     assert(figure.length > 0, "a pair states what its figure is a figure of");
     assert(pair.total >= 0, "and a figure that is not below nothing");
     const share = PANEL_WORDS.shareOfFigure;
-    composePairSkills(document, list, pair, { register, figure, share });
+    composePairSkills(document, list, pair, { metric: view.current, register, figure, share });
     composePairKinds(document, list, pair, { register, figure, share });
     return list;
 }
@@ -1013,7 +1014,7 @@ function composePairSkills(
     document: PanelDocument,
     list: PanelElement,
     pair: PairReading,
-    stated: { register: TipRegister; figure: string; share: string },
+    stated: { metric: PanelMetric; register: TipRegister; figure: string; share: string },
 ): void {
     const cut = pair.bySkill;
     assert(cut.rows.length <= MAXIMUM_SKILLS, "a cut stays inside the bound it is kept to");
@@ -1032,7 +1033,7 @@ function composePairSkills(
     }
     if (cut.plain === null) return;
     const tip = { ...stated, key: "pair-skill:plain" };
-    const reading = composeUnnamedReading(cut.plain, PANEL_WORDS.plainBlow);
+    const reading = composeUnnamedReading(cut.plain, getWordsForUnannounced(stated.metric));
     list.append(composeRowElement(document, reading, null, tip));
 }
 
