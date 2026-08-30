@@ -63,7 +63,8 @@ Deno.test("a caster never reports two different shares, in a fight or across the
 
 /**
  * ⚠️ **The register's sentence is older than the material.** It names one combatant declaring `8`
- * against everybody else's `5`, read 2026-08-19. `2026-08-27-luvia-grupa-vs-amaimon-2` brought a
+ * against everybody else's `5`, read 2026-08-19.
+ * `2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0` brought a
  * third value in, so the count is asserted rather than the two values named.
  */
 Deno.test("the share is neither the key's nor the fight's", () => {

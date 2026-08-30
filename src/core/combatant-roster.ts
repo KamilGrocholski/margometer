@@ -1,11 +1,10 @@
 /**
- * Who is in the fight, so that a combatant the protocol names can be matched to the one it
- * means.
+ * Who is in the fight, so that a combatant the protocol names can be matched to the one it means.
  *
  * The protocol names people two ways and reconciles neither: by id at a message's ends, and by
- * name inside a handful of values. A name is not unique — `2026-08-04-tempest-lowca-vs-odyncze`
- * fields two combatants called `Odyniec` — so an ambiguous name resolves to nobody. Charging a
- * real figure to the wrong combatant is the failure this project exists to prevent.
+ * name inside a handful of values. A name is not unique — the hunt of 2026-08-04 fields two
+ * combatants called `Odyniec` — so an ambiguous name resolves to nobody. Charging a real figure
+ * to the wrong combatant is the failure this project exists to prevent.
  */
 
 import { assert } from "@std/assert";

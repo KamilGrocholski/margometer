@@ -72,9 +72,13 @@ Deno.test("every recording opens on a payload that resets the session", () => {
  * the file carries, and asking that after the redaction step is the wrong way round.
  */
 Deno.test("a recording opens at a path, named for its file and not for where it sat", () => {
-    const path = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
+    const path = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
     const fight = getRecordedFightAt(path);
-    assertEquals(fight.name, "2026-08-06-tempest-grupa-vs-hildur", "the suffix is not a name");
+    assertEquals(
+        fight.name,
+        "2026-08-06-tempest-grupa-vs-hildur-1785244275300-none",
+        "the suffix is not a name",
+    );
     assertEquals(fight.calls, getRecordedFightCalls(fight.name), "both routes read one file");
 });
 

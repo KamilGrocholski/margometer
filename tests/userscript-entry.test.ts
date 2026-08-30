@@ -7,6 +7,7 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
+import { BUILD_VERSION } from "@/src/build-version.ts";
 import { startMargoMeter, type UserscriptEnvironment } from "@/src/userscript-entry.ts";
 import {
     addPayloadToSession,
@@ -29,11 +30,11 @@ import {
 } from "@/tests/fake-document.ts";
 import { getRecordedEngineUpdates, getRecordingPaths } from "@/tests/recorded-fight.ts";
 
-const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
+const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /** Another fight, so a shelf and a session can hold different figures at the same moment. */
-const ANOTHER = "captures/2026-08-04-tempest-lowca-vs-odyncze.json";
+const ANOTHER = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
 /** A third, so two fights are on the shelf at once while a fourth is the one going on. */
-const THIRD = "captures/2026-08-24-tempest-tropiciel-vs-centaur.json";
+const THIRD = "captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json";
 
 function composeStillClock(): Scheduler {
     return { every: () => 1, cancel: () => {} };
@@ -318,11 +319,11 @@ function composeSavedFight(): Record<string, unknown> {
 
 Deno.test("the fight is handed over counted as well as raw, and the two agree", () => {
     const written = composeSavedFight();
-    const entries = written.wpisy;
+    const entries = written.calls;
     assert(Array.isArray(entries), "the calls the game made are in the file");
     // What a reader hands over answers both "what did the game say" and "what did this make of
     // it", which is why the counted half travels with the raw one (ADR 0027).
-    const report = written.raport;
+    const report = written.report;
     assert(isRecord(report), "and the figures the panel drew from those calls stand beside them");
     assertEquals(report.payloads, entries.length, "built from every call the file carries");
     assertEquals(report.isOver, true, "of a fight this one saw the end of");
@@ -365,16 +366,16 @@ Deno.test("a reader asks for the fight, and gets the recording the intake tool r
     assert(file !== undefined, "a file was handed to the browser");
     assertEquals(
         file.name,
-        "margometer-tempest-2026-08-29T10-00-00-000Z.json",
-        "named for the world and the moment it was asked for",
+        `margometer-tempest-53XkBRxF-${BUILD_VERSION}-2026-08-29T10-00-00-000Z.json`,
+        "named for the world, both builds and the moment it was asked for",
     );
     const reading = getJsonReading(file.text);
     assert(reading.isOk, "and it reads back as JSON");
     const written = reading.value;
     assert(isRecord(written), "and it reads back as a recording");
-    assertEquals(written.swiat, "tempest", "which says where it came from");
-    assertEquals(written.build, "53XkBRxF", "and which client stated it");
-    const entries = written.wpisy;
+    assertEquals(written.world, "tempest", "which says where it came from");
+    assertEquals(written.gameBuild, "53XkBRxF", "and which client stated it");
+    const entries = written.calls;
     assert(Array.isArray(entries), "carrying the calls the game made");
     assert(entries.length > 0, "at least one of them");
     // Every one of them, and that is the right answer: a recording on disk is already thinned,
@@ -385,18 +386,18 @@ Deno.test("a reader asks for the fight, and gets the recording the intake tool r
         getRecordedEngineUpdates(HILDUR).length,
         "every call, because material already thinned has nothing left to drop",
     );
-    assertEquals(written.pominietych, 0, "and the file says nothing was dropped");
+    assertEquals(written.droppedCalls, 0, "and the file says nothing was dropped");
     const first = entries[0];
     assert(isRecord(first), "an entry is a record");
     assertEquals(Object.keys(first), [
-        "nr",
-        "ladunek",
-        "komunikaty",
-        "wojownicyPrzed",
-        "wojownicyPo",
+        "index",
+        "payload",
+        "messages",
+        "combatantsBefore",
+        "combatantsAfter",
     ], "in the shape every admitted recording carries");
-    const before = first.wojownicyPrzed;
-    const after = first.wojownicyPo;
+    const before = first.combatantsBefore;
+    const after = first.combatantsAfter;
     assert(Array.isArray(before) && Array.isArray(after), "with a snapshot on either side");
     assertEquals(
         [isRecord(before[0]) ? before[0].hp : null, isRecord(after[0]) ? after[0].hp : null],
@@ -419,8 +420,8 @@ Deno.test("a fight nobody has read is handed over as one, rather than as a fight
     assert(reading.isOk, "which reads back as JSON");
     const written = reading.value;
     assert(isRecord(written), "and as a recording");
-    assertEquals(written.raport, null, "saying no fight was read, which is an answer");
-    assertEquals(written.wpisy, [], "beside the calls it has, which are none");
+    assertEquals(written.report, null, "saying no fight was read, which is an answer");
+    assertEquals(written.calls, [], "beside the calls it has, which are none");
 });
 
 Deno.test("the shelf has a screen of its own, and its control toggles", () => {

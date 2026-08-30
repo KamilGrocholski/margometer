@@ -16,18 +16,31 @@ import {
 } from "@/tests/recorded-fight.ts";
 import { READER_SIDE_KEY } from "@/src/game/battle-session.ts";
 import { WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
+import { CAPTURE_FIELDS, NOTHING_STATED } from "@/src/game/fight-capture.ts";
 import { getNumberFromUnknown, getStatedTextFromUnknown } from "@/libs/unknown-reading.ts";
 
 const REGISTER_PATH = "docs/captured-fights.md";
 const BACKTICK = "`";
 const ROW_OPENER = "|";
-/** The recordings' own field names, which stop at this file and `tests/recorded-fight.ts`. */
-const WORLD_FIELD = "swiat";
-const BUILD_FIELD = "build";
 /** What the register writes where a recording states no build, which some of them do not. */
 const NO_BUILD = "none stated";
+/** The same absence in a filename, where a sentence has no room (`src/game/fight-capture.ts`). */
+const NO_BUILD_IN_NAME = NOTHING_STATED;
 /** Past the row count of any table here, so each walk carries a stated bound. */
 const MAXIMUM_ROWS = 256;
+
+/**
+ * A cell that is a count. Both tables state six cells per row, so the census row is told from a
+ * fight's row by what its last two hold: two counts there, a cast and a pool of health here.
+ */
+function isCountText(text: string): boolean {
+    assert(text.length >= 0, "a cell offered is text");
+    if (text.length === 0) return false;
+    for (const character of text) {
+        if (character < "0" || character > "9") return false;
+    }
+    return true;
+}
 
 /** Every backticked cell of a table row, in the order the row states them. */
 function getRowCells(line: string): string[] {
@@ -64,16 +77,47 @@ function getEnvelopeField(path: string, field: string): string {
     const stated = reading.value;
     assert(isRecord(stated), `${path}: a recording is a record`);
     const value = stated[field];
+    if (value === undefined) return NO_BUILD;
     if (value === null) return NO_BUILD;
     assert(typeof value === "string", `${path}: ${field} is stated as text or as nothing`);
     return value;
 }
 
+/** What a filename says of a version, where the register says `none stated`. */
+function composeVersionInName(stated: string): string {
+    assert(stated.length > 0, "a version read off a recording says something");
+    if (stated === NO_BUILD) return NO_BUILD_IN_NAME;
+    return stated;
+}
+
+/**
+ * A name is read by whoever picks a recording without opening it — the preview's list, an
+ * attachment on a report — so it is held to what the file says rather than to what a hand typed
+ * at intake. **ADR 0030.**
+ */
+Deno.test("a recording is filed under the two versions it states", () => {
+    const paths = getRecordingPaths();
+    assert(paths.length > 0, "there is material to check");
+    for (const path of paths) {
+        const build = composeVersionInName(getEnvelopeField(path, CAPTURE_FIELDS.gameBuild));
+        const addOn = composeVersionInName(getEnvelopeField(path, CAPTURE_FIELDS.addOnVersion));
+        assertEquals(
+            path.endsWith(`-${build}-${addOn}.json`),
+            true,
+            `${path}: is named for ${build} and ${addOn}, which is what it states`,
+        );
+    }
+});
+
 Deno.test("the reader knows a census row from every other line", () => {
-    const row = "| `captures/a.json` | `tempest` | `1` | `4` | `18` |";
+    const row = "| `captures/a.json` | `tempest` | `1` | `0.9.0` | `4` | `18` |";
     assertEquals(getRecordingRows(row).length, 1, "a row naming a recording is one");
     assertEquals(getRecordingRows("| `1 vs 1` | `3` |"), [], "a row naming no recording is not");
     assertEquals(getRecordingRows("prose about `captures/a.json`"), [], "and neither is prose");
+    // The sample the reader must not take for a census row: a fight's row states six cells too.
+    assertEquals(isCountText("18"), true, "a count is digits");
+    assertEquals(isCountText("1 NPC · m 1 · level 100"), false, "and a cast is not one");
+    assertEquals(isCountText(""), false, "nor is a cell that says nothing");
 });
 
 Deno.test("every recording is named by the register, and every row names one", () => {
@@ -96,20 +140,35 @@ Deno.test("what the register states of each recording is what the recording stat
     let checked = 0;
     for (const path of getRecordingPaths()) {
         const stated = rows.filter((cells) => cells[0] === path);
-        const counted = stated.find((cells) => cells.length === 5);
+        const counted = stated.find((cells) =>
+            cells.length === 6 && isCountText(cells[4] ?? "") && isCountText(cells[5] ?? "")
+        );
         assert(
             counted !== undefined,
-            `${path}: no row states its world, build, calls and messages`,
+            `${path}: no row states its world, both versions, calls and messages`,
         );
-        assertEquals(counted[1], getEnvelopeField(path, WORLD_FIELD), `${path}: the world`);
-        assertEquals(counted[2], getEnvelopeField(path, BUILD_FIELD), `${path}: the build`);
+        assertEquals(
+            counted[1],
+            getEnvelopeField(path, CAPTURE_FIELDS.world),
+            `${path}: the world`,
+        );
+        assertEquals(
+            counted[2],
+            getEnvelopeField(path, CAPTURE_FIELDS.gameBuild),
+            `${path}: the build of the game`,
+        );
         assertEquals(
             counted[3],
+            getEnvelopeField(path, CAPTURE_FIELDS.addOnVersion),
+            `${path}: the build of ours that wrote it`,
+        );
+        assertEquals(
+            counted[4],
             String(getRecordedEngineUpdates(path).length),
             `${path}: the calls the engine made`,
         );
         assertEquals(
-            counted[4],
+            counted[5],
             String(getRecordedMessages(path).length),
             `${path}: the messages they carried`,
         );

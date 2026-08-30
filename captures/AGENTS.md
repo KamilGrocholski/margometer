@@ -22,10 +22,13 @@ whitespace. There is no such thing as a cosmetic edit to evidence.
 
 ## Always
 
-- **Field names inside these files stay Polish** — `ladunek`, `komunikaty`,
-  `wojownicyPrzed` and the rest. Renaming them is editing the evidence. This is the
-  exception `AGENTS.md` **L2** names, and the boundary where it stops is the one reader
-  that parses them; nothing downstream sees a Polish name.
+- **The envelope is English and the payload is the game's** — `capturedAt`, `gameBuild`,
+  `calls` and the rest are this repository's own words (`src/game/fight-capture.ts`),
+  while everything inside `payload` is the client's and is never renamed. The one reader
+  that still takes the Polish envelope an older add-on writes is `tools/capture-intake.ts`.
+  **ADR 0030.**
+- **A file is named for the two versions it states** — the build of the game it came off
+  and the build of the add-on that wrote it, both read off the file at intake.
 - **Recordings are discovered by reading this directory**, never by a hand-maintained list
   of names.
 - **An empty directory here fails its own test.** A guard that silently passes over no

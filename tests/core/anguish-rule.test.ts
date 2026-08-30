@@ -24,7 +24,7 @@ const ANNOUNCEMENT_KEY = "+legbon_anguish";
  * refusal legible: with one applier, charging a tick to them cannot be told from charging it to
  * nobody.
  */
-const TWO_APPLIERS = "captures/2026-08-25-luvia-grupa-vs-draugr.json";
+const TWO_APPLIERS = "captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json";
 
 Deno.test("every tick names its victim in the actor slot and nobody at the other end", () => {
     let ticks = 0;

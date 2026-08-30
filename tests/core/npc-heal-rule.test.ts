@@ -17,7 +17,7 @@ import {
 } from "@/tests/recorded-fight.ts";
 
 const KEY = "npc_heal";
-const NPC_HEAL = "captures/2026-08-25-luvia-grupa-vs-mamlambo-auto.json";
+const NPC_HEAL = "captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json";
 /** A share of the pool, in points of the percentage the client states about the same combatant. */
 const POINTS_PER_CAST = 4;
 const TOLERANCE = 0.01;

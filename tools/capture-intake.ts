@@ -5,7 +5,7 @@
  *     deno run -A tools/capture-intake.ts <recording.json> --name <slug>
  *
  * ⚠️ **Neither redaction is complete, and no test can make one so.** Each knows one place — names
- * tied to a combatant id, and `ladunek.skills` — so a nickname belonging to nobody in the roster
+ * tied to a combatant id, and `payload.skills` — so a nickname belonging to nobody in the roster
  * walks through untouched, which is why this ends by naming the step that is a person's.
  */
 
@@ -13,14 +13,45 @@ import { assert } from "@std/assert";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
-import { CAPTURE_FIELDS } from "@/src/game/fight-capture.ts";
+import { CAPTURE_FIELDS, NOTHING_STATED } from "@/src/game/fight-capture.ts";
 import { WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
 import { CaptureIntakeError } from "@/tools/margometer-tool-error.ts";
 import { RECORDING_DIRECTORY, RECORDING_SUFFIX } from "@/project/repository-layout.ts";
 
 /** Written by this tool and by nothing else, which is why they are spelled here. */
-const SUBSTITUTED_COUNT = "pseudonimow";
-const REMOVED_COUNT = "opisow";
+const SUBSTITUTED_COUNT = "namesSubstituted";
+const REMOVED_COUNT = "descriptionsRemoved";
+
+/**
+ * How a recording written before **ADR 0030** spells the envelope, and the one place those words
+ * still live. A reader running an older add-on downloads one of these today, so this is not
+ * history: it is the format arriving at the door. Everything below this translation, and
+ * everything downstream of this tool, reads the English envelope only.
+ *
+ * ⚠️ **Envelope and call keys only.** `zrodlo`, `otwarcie` and the other words of older writers
+ * are left exactly as they are, and so is every key inside `payload`, which is the game's.
+ */
+const ENVELOPE_BEFORE_ENGLISH: Record<string, string> = {
+    wersja: CAPTURE_FIELDS.formatVersion,
+    dodatek: CAPTURE_FIELDS.addOnVersion,
+    przy: CAPTURE_FIELDS.capturedAt,
+    swiat: CAPTURE_FIELDS.world,
+    build: CAPTURE_FIELDS.gameBuild,
+    przegladarka: CAPTURE_FIELDS.userAgent,
+    raport: CAPTURE_FIELDS.report,
+    pominietych: CAPTURE_FIELDS.droppedCalls,
+    urwany: CAPTURE_FIELDS.isTruncated,
+    wpisy: CAPTURE_FIELDS.calls,
+    pseudonimow: SUBSTITUTED_COUNT,
+    opisow: REMOVED_COUNT,
+};
+const CALL_BEFORE_ENGLISH: Record<string, string> = {
+    nr: CAPTURE_FIELDS.index,
+    ladunek: CAPTURE_FIELDS.payload,
+    komunikaty: CAPTURE_FIELDS.messages,
+    wojownicyPrzed: CAPTURE_FIELDS.combatantsBefore,
+    wojownicyPo: CAPTURE_FIELDS.combatantsAfter,
+};
 /** The payload's ability list. Nothing in `src/` reads it, so this is where it is spelled. */
 const ABILITIES_KEY = "skills";
 const INDENT_SPACES = 2;
@@ -40,7 +71,8 @@ export const REMOVED_DESCRIPTION = "(description from the game — removed, NOTI
  * Every marker meaning "a description already came out here".
  *
  * ⚠️ **The second is Polish, and it is not a slip.** It is what an older tool wrote, and it sits
- * in `captures/2026-08-06-tempest-grupa-vs-hildur.json`. Knowing only the current marker would
+ * in `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`. Knowing only the
+ * current marker would
  * make this remove that one as if it were the game's prose — reporting descriptions taken out of
  * a file that has none left, and rewriting evidence to match today's spelling.
  */
@@ -50,7 +82,7 @@ const REMOVED_DESCRIPTIONS: readonly string[] = [
 ];
 
 /**
- * Fields of one ability inside `ladunek.skills`, and which of them is the prose.
+ * Fields of one ability inside `payload.skills`, and which of them is the prose.
  *
  * ⚠️ **A claim about the game**, measured on the recording of 2026-08-06 (world `tempest`, build
  * `1785244275300`): the array holds 70 fields for 7 abilities, and within a group come id, name,
@@ -76,6 +108,36 @@ function getCallsFromRecording(recording: unknown): Record<string, unknown>[] {
     }
     assert(calls.length <= stated.length, "a call is read once");
     return calls;
+}
+
+/** One record with its keys renamed where a name is known, in the order they arrived in. */
+function composeRenamedRecord(
+    value: Record<string, unknown>,
+    names: Record<string, string>,
+): Record<string, unknown> {
+    const renamed: Record<string, unknown> = {};
+    for (const [key, held] of Object.entries(value)) {
+        const wanted = names[key] ?? key;
+        renamed[wanted] = held;
+    }
+    assert(Object.keys(renamed).length <= Object.keys(value).length, "a field is renamed once");
+    return renamed;
+}
+
+/**
+ * The recording with its envelope spelled in English, whichever spelling it arrived in. A file
+ * already written that way passes through unchanged — every name is its own translation.
+ */
+export function composeRecordingInEnglish(recording: unknown): unknown {
+    if (!isRecord(recording)) return recording;
+    const envelope = composeRenamedRecord(recording, ENVELOPE_BEFORE_ENGLISH);
+    const stated = envelope[CAPTURE_FIELDS.calls];
+    if (!Array.isArray(stated)) return envelope;
+    envelope[CAPTURE_FIELDS.calls] = stated.map((call) =>
+        isRecord(call) ? composeRenamedRecord(call, CALL_BEFORE_ENGLISH) : call
+    );
+    assert(Array.isArray(envelope[CAPTURE_FIELDS.calls]), "a recording keeps its calls a list");
+    return envelope;
 }
 
 function getIdentityFromValue(value: unknown): number | null {
@@ -106,7 +168,7 @@ function setNameOnRoll(roll: Roll, id: number, name: unknown): void {
     roll.namesById.set(id, known);
 }
 
-/** `npc` rides only in `ladunek.w`, so that is the only place who is a person can be read. */
+/** `npc` rides only in `payload.w`, so that is the only place who is a person can be read. */
 function addPayloadToRoll(roll: Roll, call: Record<string, unknown>): void {
     assert(WARRIOR_FIELDS.nonPlayer.length > 0, "who is a person is read by a name of the game's");
     assert(CAPTURE_FIELDS.payload.length > 0, "out of the payload, which is asked for by one too");
@@ -167,7 +229,7 @@ function requireEveryCombatantDecided(roll: Roll): void {
     if (undecided.length === 0) return;
     throw new CaptureIntakeError(
         `cannot tell whether combatant ${undecided.join(", ")} is a player or a monster — ` +
-            "`npc` rides only in `ladunek.w` and those ids are not there",
+            "`npc` rides only in `payload.w` and those ids are not there",
     );
 }
 
@@ -298,7 +360,7 @@ export interface DescriptionRemoval {
 
 /**
  * The recording without the ability descriptions the game wrote. **Licensing, not caution**:
- * `ladunek.skills` carries whole sentences by the game's authors, which have no business in a
+ * `payload.skills` carries whole sentences by the game's authors, which have no business in a
  * public MIT repository. The ability's id, name, requirements, progress and parameters stay —
  * functional names, not prose.
  *
@@ -392,7 +454,9 @@ function getCarriedCount(envelope: Record<string, unknown>, field: string): numb
  * for whatever runs next to write it somewhere. Counts are summed rather than overwritten.
  */
 export function composeIntake(recording: unknown): Intake {
-    const counted = removeReport(recording);
+    // First of all, and before anything reads a field: the steps below ask for fields by their
+    // English names, and a recording from an older add-on states none of them.
+    const counted = removeReport(composeRecordingInEnglish(recording));
     const named = composePseudonymisedRecording(counted.recording);
     const described = removeSkillDescriptions(named.recording);
     if (!isRecord(described.recording)) {
@@ -439,6 +503,29 @@ export function isSlugText(text: string): boolean {
     return true;
 }
 
+/**
+ * A version as a name may carry it: letters either case, digits, dots and dashes, beginning and
+ * ending on none of the punctuation. Both versions come from outside — one off the game's own
+ * bundle name, one out of a file somebody may have edited — so neither is trusted into a path.
+ * Walked rather than matched (**C7**).
+ */
+export function isVersionText(text: string): boolean {
+    assert(text.length >= 0, "a version offered is text");
+    if (text.length === 0) return false;
+    for (const [at, character] of [...text].entries()) {
+        const isLetter = (character >= "a" && character <= "z") ||
+            (character >= "A" && character <= "Z");
+        const isDigit = character >= "0" && character <= "9";
+        const isPunctuation = character === "." || character === "-";
+        if (!isLetter && !isDigit && !isPunctuation) return false;
+        if (isPunctuation) {
+            if (at === 0) return false;
+            if (at === text.length - 1) return false;
+        }
+    }
+    return true;
+}
+
 /** The day part of a stated moment, walked rather than parsed: `YYYY-MM-DD` and nothing else. */
 function getDayFromMoment(text: string): string | null {
     const DAY_LENGTH = 10;
@@ -453,6 +540,24 @@ function getDayFromMoment(text: string): string | null {
         if (wanted === "d" && (character < "0" || character > "9")) return null;
     }
     return day;
+}
+
+/**
+ * What a recording states about a version, or `none`. Both are asked of the file rather than of a
+ * hand, so a name cannot say one build while its contents say another — and `none` is the word the
+ * register uses for a build nobody stated (`docs/captured-fights.md`). **ADR 0030.**
+ */
+function getVersionFromEnvelope(envelope: Record<string, unknown>, field: string): string {
+    const stated = envelope[field];
+    if (typeof stated !== "string") return NOTHING_STATED;
+    if (stated.length === 0) return NOTHING_STATED;
+    if (!isVersionText(stated)) {
+        throw new CaptureIntakeError(
+            `\`${field}\` is \`${stated}\`, which is not something a filename can carry`,
+        );
+    }
+    assert(stated.length > 0, "a version that is carried into a name says something");
+    return stated;
 }
 
 export function composeIntakePath(recording: unknown, slug: string): string {
@@ -473,8 +578,12 @@ export function composeIntakePath(recording: unknown, slug: string): string {
     if (!isSlugText(slug)) {
         throw new CaptureIntakeError(`\`--name ${slug}\` is not a kebab-case slug`);
     }
+    const build = getVersionFromEnvelope(envelope, CAPTURE_FIELDS.gameBuild);
+    const addOn = getVersionFromEnvelope(envelope, CAPTURE_FIELDS.addOnVersion);
     assert(day.length === 10, "a path is named for one day");
-    return `${RECORDING_DIRECTORY}/${day}-${world}-${slug}${RECORDING_SUFFIX}`;
+    assert(build.length > 0, "for the build of the game it came off");
+    assert(addOn.length > 0, "and for the build of ours that wrote it");
+    return `${RECORDING_DIRECTORY}/${day}-${world}-${slug}-${build}-${addOn}${RECORDING_SUFFIX}`;
 }
 
 function isPathTaken(path: string): boolean {
@@ -497,13 +606,16 @@ function writeIntake(source: string, slug: string): void {
             cause: reading.cause,
         });
     }
-    const target = composeIntakePath(reading.value, slug);
+    // Spelled before it is filed: a recording from an older add-on states its world and its
+    // moment under names this would otherwise look for and not find.
+    const recording = composeRecordingInEnglish(reading.value);
+    const target = composeIntakePath(recording, slug);
     // Material is never overwritten: a recording already here is evidence somebody has written a
     // test against.
     if (isPathTaken(target)) {
         throw new CaptureIntakeError(`${target} already exists — material is not overwritten`);
     }
-    const intake = composeIntake(reading.value);
+    const intake = composeIntake(recording);
     Deno.writeTextFileSync(target, intake.text);
     console.log(`wrote ${target}`);
     console.log(

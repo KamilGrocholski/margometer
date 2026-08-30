@@ -1,16 +1,16 @@
 {
-  "wersja": 1,
-  "dodatek": "0.8.1",
-  "przy": "2026-08-25T14:05:07.941Z",
-  "swiat": "luvia",
-  "build": null,
-  "przegladarka": "Mozilla/5.0 (X11; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0",
-  "pominietych": 0,
-  "urwany": false,
-  "wpisy": [
+  "formatVersion": 1,
+  "addOnVersion": "0.8.1",
+  "capturedAt": "2026-08-25T14:05:07.941Z",
+  "world": "luvia",
+  "gameBuild": null,
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0",
+  "droppedCalls": 0,
+  "isTruncated": false,
+  "calls": [
     {
-      "nr": 0,
-      "ladunek": {
+      "index": 0,
+      "payload": {
         "init": "1",
         "auto": "0",
         "battleground": "005.jpg",
@@ -601,14 +601,14 @@
           3
         ]
       },
-      "komunikaty": [
+      "messages": [
         "24570=98.82;0;poison_lowdmg_per-enemies=3",
         "-10042309;0;tspell=Letzhonco",
         "-10042309=100.00;43960=100.00;npc_heal=0",
         "-10042309=100.00;43960=84.03;+dmg=694;+dmgo=696;+acdmg=25;-dmg=410;-dmgo=390"
       ],
-      "wojownicyPrzed": [],
-      "wojownicyPo": [
+      "combatantsBefore": [],
+      "combatantsAfter": [
         {
           "id": 242,
           "name": "Gracz 1",
@@ -810,8 +810,8 @@
       ]
     },
     {
-      "nr": 1,
-      "ladunek": {
+      "index": 1,
+      "payload": {
         "w": {
           "15486": {
             "poolTime": {
@@ -854,8 +854,8 @@
           }
         }
       },
-      "komunikaty": [],
-      "wojownicyPrzed": [
+      "messages": [],
+      "combatantsBefore": [
         {
           "id": 242,
           "name": "Gracz 1",
@@ -1055,7 +1055,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 242,
           "name": "Gracz 1",
@@ -1257,12 +1257,12 @@
       ]
     },
     {
-      "nr": 2,
-      "ladunek": {
+      "index": 2,
+      "payload": {
         "auto": "1"
       },
-      "komunikaty": [],
-      "wojownicyPrzed": [
+      "messages": [],
+      "combatantsBefore": [
         {
           "id": 242,
           "name": "Gracz 1",
@@ -1462,7 +1462,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 242,
           "name": "Gracz 1",
@@ -1664,8 +1664,8 @@
       ]
     },
     {
-      "nr": 3,
-      "ladunek": {
+      "index": 3,
+      "payload": {
         "w": {
           "242": {
             "poolTime": {
@@ -2658,7 +2658,7 @@
         ],
         "close": 1
       },
-      "komunikaty": [
+      "messages": [
         "242=100.00;-10042309=100.00;tspell=Piętno bestii;skillId=264;+spell-taken_dmg-all",
         "24570=98.82;-10042309=100.00;tspell=Trujące pchnięcie;skillId=82",
         "24570=98.82;-10042309=99.22;+dmg=453;+dmgo=303;+acdmg=3;+taken_dmg=90;-dmg=185;-dmgo=61;-dmga=90",
@@ -2964,7 +2964,7 @@
         "0;0;loser=Mamlambo",
         "0;0;txt=Mamlambo: zdobyto Muluski zwój teleportujący III, Muluski zwój teleportujący IV, Młot podziemnego wodnika, Muluski zwój teleportujący III, Szafirowe łuskołapy, Ostre zęby jaszczura, Muluski zwój teleportujący V, Buciory rubinowej łuski, Ostre zęby jaszczura, Rubinowe łuskołapy"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 242,
           "name": "Gracz 1",
@@ -3164,9 +3164,9 @@
           }
         }
       ],
-      "wojownicyPo": []
+      "combatantsAfter": []
     }
   ],
-  "pseudonimow": 158,
-  "opisow": 0
+  "namesSubstituted": 158,
+  "descriptionsRemoved": 0
 }

@@ -14,9 +14,9 @@ import {
 import { getRecordedCombatants, getRecordingPaths } from "@/tests/recorded-fight.ts";
 
 /** Two boars called `Odyniec`, and one player nobody shares a name with. */
-const TWO_OF_A_NAME = "captures/2026-08-04-tempest-lowca-vs-odyncze.json";
+const TWO_OF_A_NAME = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
 /** One entry, no snapshot, and so no roster — the fight the panel can say nothing about. */
-const NOBODY = "captures/2026-08-24-tempest-tropiciel-vs-centaury-auto.json";
+const NOBODY = "captures/2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1.json";
 
 function composeTestCombatant(id: number, name: string): Combatant {
     return { id, name, side: 1, profession: "w", level: 40, healthMaximum: 745 };

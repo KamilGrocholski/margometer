@@ -12,7 +12,7 @@ import { getStatedHealthFromEvent } from "@/src/core/combatant-health.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { getRecordedCombatants, getRecordedMessages } from "@/tests/recorded-fight.ts";
 
-const WOUND = "captures/2026-08-24-tempest-tropiciel-vs-centaur.json";
+const WOUND = "captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json";
 const TICK_KEY = "wound";
 /** Two places of a percentage, so the reading is allowed the rounding the client did. */
 const TOLERANCE = 0.007;

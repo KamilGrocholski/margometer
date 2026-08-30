@@ -1,14 +1,14 @@
 {
-  "wersja": 1,
-  "przy": "2026-08-12T14:15:29.920Z",
-  "swiat": "experimental",
-  "build": "1781609507010",
-  "pominietych": 49,
-  "urwany": false,
-  "wpisy": [
+  "formatVersion": 1,
+  "capturedAt": "2026-08-12T14:15:29.920Z",
+  "world": "experimental",
+  "gameBuild": "1781609507010",
+  "droppedCalls": 49,
+  "isTruncated": false,
+  "calls": [
     {
-      "nr": 0,
-      "ladunek": {
+      "index": 0,
+      "payload": {
         "init": "1",
         "auto": "0",
         "battleground": "cc2.jpg",
@@ -525,7 +525,7 @@
           156
         ]
       },
-      "komunikaty": [
+      "messages": [
         "0;0;txt=Walka o Punkty Honoru.",
         "114881=100.00;195782=100.00;tspell=Trujące pchnięcie;skillId=82",
         "114881=100.00;195782=99.92;+dmg=1215;+dmgo=898;+acdmg=17;-endest=5;-legbon_facade=13;-dmg=19",
@@ -684,8 +684,8 @@
         "0;0;loser=Gracz 1",
         "0;0;+ph=84"
       ],
-      "wojownicyPrzed": [],
-      "wojownicyPo": [
+      "combatantsBefore": [],
+      "combatantsAfter": [
         {
           "id": 114881,
           "name": "Gracz 1",
@@ -726,13 +726,13 @@
       ]
     },
     {
-      "nr": 1,
-      "ladunek": {
+      "index": 1,
+      "payload": {
         "move": -1,
         "endBattle": 1
       },
-      "komunikaty": [],
-      "wojownicyPrzed": [
+      "messages": [],
+      "combatantsBefore": [
         {
           "id": 114881,
           "name": "Gracz 1",
@@ -771,7 +771,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 114881,
           "name": "Gracz 1",
@@ -812,14 +812,14 @@
       ]
     },
     {
-      "nr": 2,
-      "ladunek": {
+      "index": 2,
+      "payload": {
         "move": -1,
         "endBattle": 1,
         "close": 1
       },
-      "komunikaty": [],
-      "wojownicyPrzed": [
+      "messages": [],
+      "combatantsBefore": [
         {
           "id": 114881,
           "name": "Gracz 1",
@@ -858,9 +858,9 @@
           }
         }
       ],
-      "wojownicyPo": []
+      "combatantsAfter": []
     }
   ],
-  "pseudonimow": 30,
-  "opisow": 6
+  "namesSubstituted": 30,
+  "descriptionsRemoved": 6
 }

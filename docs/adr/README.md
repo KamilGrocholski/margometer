@@ -107,3 +107,5 @@ edited to agree with the new rule.
   the panel's state rides in the address. **Accepted**
 - [0029](0029-a-panel-nobody-has-moved-opens-in-the-middle.md) — A panel nobody has moved opens in
   the middle of the window. **Accepted**
+- [0030](0030-a-recording-says-who-wrote-it.md) — A recording is spelled in English, and says which
+  builds it stands between. **Accepted**

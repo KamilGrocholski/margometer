@@ -14,7 +14,8 @@ import {
 } from "@/tests/recorded-fight.ts";
 
 /** The one recording whose calls carry no snapshot at all, so nothing can be held against them. */
-const NO_SNAPSHOTS = "captures/2026-08-24-tempest-tropiciel-vs-centaury-auto.json";
+const NO_SNAPSHOTS =
+    "captures/2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1.json";
 
 Deno.test("a warrior missing what a row needs is refused, not filled in", () => {
     const whole = { id: 1, name: "Gracz 1", team: 2, prof: "w", lvl: 40, hp: { max: 745 } };

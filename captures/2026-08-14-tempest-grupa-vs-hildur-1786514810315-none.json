@@ -1,14 +1,14 @@
 {
-  "wersja": 1,
-  "przy": "2026-08-14T09:19:27.935Z",
-  "swiat": "tempest",
-  "build": "1786514810315",
-  "pominietych": 314,
-  "urwany": false,
-  "wpisy": [
+  "formatVersion": 1,
+  "capturedAt": "2026-08-14T09:19:27.935Z",
+  "world": "tempest",
+  "gameBuild": "1786514810315",
+  "droppedCalls": 314,
+  "isTruncated": false,
+  "calls": [
     {
-      "nr": 0,
-      "ladunek": {
+      "index": 0,
+      "payload": {
         "init": "1",
         "auto": "0",
         "battleground": "dd4.jpg",
@@ -655,14 +655,14 @@
           3
         ]
       },
-      "komunikaty": [
+      "messages": [
         "467968=100.00;0;poison_lowdmg_per-enemies=10",
         "-10000657;0;tspell=Śpiew zagłady",
         "-10000657=100.00;445202=61.33;+oth_dmg=9315,g,Gracz 4(61.33%);+oth_dmg=9613,g,Gracz 10(68.40%);+oth_dmg=9315,g,Gracz 8(64.41%);+oth_dmg=9315,g,Gracz 7(52.25%);+oth_dmg=10060,g,Gracz 1(61.85%);+oth_dmg=10060,g,Gracz 9(47.00%);+oth_dmg=10060,g,Gracz 2(37.60%);+oth_dmg=9613,g,Gracz 5(70.44%);+oth_dmg=9613,g,Gracz 6(67.09%);+oth_dmg=9613,g,Gracz 3(49.26%)",
         "467968=46.51;0;heal=-92"
       ],
-      "wojownicyPrzed": [],
-      "wojownicyPo": [
+      "combatantsBefore": [],
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -864,8 +864,8 @@
       ]
     },
     {
-      "nr": 1,
-      "ladunek": {
+      "index": 1,
+      "payload": {
         "w": {
           "475890": {
             "poolTime": {
@@ -908,8 +908,8 @@
           }
         }
       },
-      "komunikaty": [],
-      "wojownicyPrzed": [
+      "messages": [],
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -1109,7 +1109,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -1311,8 +1311,8 @@
       ]
     },
     {
-      "nr": 2,
-      "ladunek": {
+      "index": 2,
+      "payload": {
         "w": {
           "445202": {
             "poolTime": {
@@ -1499,7 +1499,7 @@
           10
         ]
       },
-      "komunikaty": [
+      "messages": [
         "467968=46.51;-10000657=100.00;tspell=Zatruta strzała;skillId=232",
         "467968=46.51;-10000657=99.89;+dmgd=1530;+acdmg=16;-absorb=201;-dmgd=373",
         "-10000657=100.00;0;heal=373",
@@ -1508,7 +1508,7 @@
         "-10000657=99.60;445202=31.78;+crit;-poison_lowdmg_per=10;+dmgf=3700;+dmgc=6694;+acdmg=50;-legbon_facade=20;-dmgf=2369;-dmgc=4750",
         "466063=60.15;0;heal=1541"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -1708,7 +1708,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -1910,8 +1910,8 @@
       ]
     },
     {
-      "nr": 3,
-      "ladunek": {
+      "index": 3,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -2326,11 +2326,11 @@
           12
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=90.15;466063=90.15;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
         "466476=97.54;0;heal=819"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -2530,7 +2530,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -2732,8 +2732,8 @@
       ]
     },
     {
-      "nr": 4,
-      "ladunek": {
+      "index": 4,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -3195,7 +3195,7 @@
           21
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466476=97.54;466476=97.54;tspell=Aura ochrony;skillId=76;aura-ac_per=20;aura-resall=15",
         "475890=100.00;0;heal=488",
         "475890=100.00;0;step",
@@ -3206,7 +3206,7 @@
         "441419=83.08;-10000657=99.60;tspell=Szadź;skillId=123;allslow_per=14",
         "439250=92.49;0;heal=168"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -3406,7 +3406,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -3608,8 +3608,8 @@
       ]
     },
     {
-      "nr": 5,
-      "ladunek": {
+      "index": 5,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -4006,7 +4006,7 @@
           33
         ]
       },
-      "komunikaty": [
+      "messages": [
         "439250=92.49;0;step",
         "459132=97.09;0;step",
         "445202=62.82;0;heal=249",
@@ -4020,7 +4020,7 @@
         "467968=76.06;-10000657=99.44;+dmgd=1732;+acdmg=16;-absorb=267;+injure=74;-dmgd=496",
         "466063=97.65;0;heal=1464"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -4220,7 +4220,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -4422,8 +4422,8 @@
       ]
     },
     {
-      "nr": 6,
-      "ladunek": {
+      "index": 6,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -4563,11 +4563,11 @@
           35
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=97.65;-10000657=99.44;tspell=Szadź;skillId=123;allslow_per=14",
         "441419=86.71;0;heal=687"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -4767,7 +4767,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -4969,8 +4969,8 @@
       ]
     },
     {
-      "nr": 7,
-      "ladunek": {
+      "index": 7,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -5113,12 +5113,12 @@
           38
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=86.71;-10000657=99.44;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "441419=86.71;-10000657=99.43;+dmgc=1602;+dmgl=560;+acdmg=12;+resdmg=1;+abdest_per=6033;+abmdest_per=3634;-absorbm=1089;-dmgc=23;-dmgl=8",
         "439250=93.09;0;heal=160"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -5318,7 +5318,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -5520,8 +5520,8 @@
       ]
     },
     {
-      "nr": 8,
-      "ladunek": {
+      "index": 8,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -5753,7 +5753,7 @@
           46
         ]
       },
-      "komunikaty": [
+      "messages": [
         "439250=93.09;0;step",
         "466476=100.00;0;heal=644",
         "466476=100.00;0;step",
@@ -5763,7 +5763,7 @@
         "-10000657=99.98;0;injure=74",
         "-10000657=99.57;0;poison=1317"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -5963,7 +5963,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -6165,8 +6165,8 @@
       ]
     },
     {
-      "nr": 9,
-      "ladunek": {
+      "index": 9,
+      "payload": {
         "w": {
           "441390": {
             "poolTime": {
@@ -6453,7 +6453,7 @@
           62
         ]
       },
-      "komunikaty": [
+      "messages": [
         "-10000657=99.57;0;prepare=Symfonia żywiołów(33%)",
         "445202=63.80;0;heal=237",
         "445202=63.80;445202=63.80;tspell=Osłona tarczą;skillId=206;active_block_per=15",
@@ -6471,7 +6471,7 @@
         "-10000657=99.57;0;prepare=Symfonia żywiołów(67%)",
         "466063=100.00;0;heal=458"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -6671,7 +6671,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -6873,8 +6873,8 @@
       ]
     },
     {
-      "nr": 10,
-      "ladunek": {
+      "index": 10,
+      "payload": {
         "w": {
           "466063": {
             "poolTime": {
@@ -7023,12 +7023,12 @@
           65
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=100.00;-10000657=99.57;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "466063=100.00;-10000657=99.50;+crit;+dmgc=1837;+dmgl=3704;+resdmg=3;+abdest_per=5700;+abmdest_per=3329;-absorbm=4030;-dmgc=37;-dmgl=215",
         "467968=75.21;0;heal=-78"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -7228,7 +7228,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -7430,8 +7430,8 @@
       ]
     },
     {
-      "nr": 11,
-      "ladunek": {
+      "index": 11,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -7576,12 +7576,12 @@
           68
         ]
       },
-      "komunikaty": [
+      "messages": [
         "467968=75.21;-10000657=99.50;tspell=Zatruta strzała;skillId=232",
         "467968=75.21;-10000657=99.23;+crit;+dmgd=2301;+acdmg=16;-absorb=463;+injure=129;-dmgd=860",
         "441419=90.14;0;heal=651"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -7781,7 +7781,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -7983,8 +7983,8 @@
       ]
     },
     {
-      "nr": 12,
-      "ladunek": {
+      "index": 12,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -8387,7 +8387,7 @@
           87
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=90.14;-10000657=99.23;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "441419=90.14;-10000657=99.20;+crit;+dmgc=2739;+dmgl=976;+acdmg=12;+resdmg=1;+abdest_per=5392;+abmdest_per=2961;-absorbm=2450;-dmgc=64;-dmgl=35",
         "466476=100.00;0;step",
@@ -8408,7 +8408,7 @@
         "445202=64.73;-10000657=99.16;tspell=Wyzywający okrzyk;skillId=188;shout=Hildur Muza Śmierci;active_decblock_per-enemies=10;alllowdmg=5",
         "441390=81.37;0;heal=701"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -8608,7 +8608,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -8810,8 +8810,8 @@
       ]
     },
     {
-      "nr": 13,
-      "ladunek": {
+      "index": 13,
+      "payload": {
         "w": {
           "441390": {
             "poolTime": {
@@ -8953,13 +8953,13 @@
           91
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441390=81.37;-10000657=99.05;+dmgd=1066;+dmgf=144;+dmgc=941;+resdmg=2;-absorb=168;-absorbm=562;+legbon_holytouch;-dmgd=311;-dmgc=19",
         "467968=74.82;0;heal=-74",
         "467968=74.82;-10000657=99.05;tspell=Zatruta strzała;skillId=232",
         "467968=74.82;-10000657=98.83;+dmgd=1751;+acdmg=16;-absorb=398;-dmgd=738"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -9159,7 +9159,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -9361,8 +9361,8 @@
       ]
     },
     {
-      "nr": 14,
-      "ladunek": {
+      "index": 14,
+      "payload": {
         "w": {
           "466063": {
             "poolTime": {
@@ -9463,13 +9463,13 @@
           95
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=100.00;466063=100.00;tspell=Chwila skupienia;skillId=69;mana=-307",
         "-10000657=100.00;0;heal=3818",
         "-10000657=99.96;0;injure=129",
         "-10000657=99.56;0;poison=1317"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -9669,7 +9669,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -9871,8 +9871,8 @@
       ]
     },
     {
-      "nr": 15,
-      "ladunek": {
+      "index": 15,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -10322,12 +10322,12 @@
           98
         ]
       },
-      "komunikaty": [
+      "messages": [
         "-10000657;0;tspell=Śpiew zagłady",
         "-10000657=99.56;445202=29.16;-poison_lowdmg_per=10;+oth_dmg=8570,g,Gracz 4(29.16%);-poison_lowdmg_per=10;+oth_dmg=8868,g,Gracz 10(70.85%);-poison_lowdmg_per=10;+oth_dmg=8570,g,Gracz 8(67.26%);-poison_lowdmg_per=10;+oth_dmg=8570,g,Gracz 7(56.07%);-poison_lowdmg_per=10;+oth_dmg=9315,g,Gracz 1(58.35%);-poison_lowdmg_per=10;+oth_dmg=9315,g,Gracz 9(25.74%);-poison_lowdmg_per=10;+oth_dmg=9315,g,Gracz 2(23.59%);-poison_lowdmg_per=10;+oth_dmg=8868,g,Gracz 5(72.73%);-poison_lowdmg_per=10;+oth_dmg=8868,g,Gracz 6(66.73%);-poison_lowdmg_per=10;+oth_dmg=8868,g,Gracz 3(43.34%)",
         "466476=70.07;0;heal=737"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -10527,7 +10527,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -10729,8 +10729,8 @@
       ]
     },
     {
-      "nr": 16,
-      "ladunek": {
+      "index": 16,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -10914,7 +10914,7 @@
           104
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466476=70.07;-10000657=99.56;tspell=Gniew bogów;skillId=108;active_decblock_per=11",
         "466476=70.07;-10000657=99.44;+dmg=2001;+dmgc=1129;+acdmg=8;+resdmg=1;-absorb=1039;-absorbm=736;-dmg=346;-dmgc=26",
         "475890=72.77;0;heal=586",
@@ -10922,7 +10922,7 @@
         "475890=72.77;-10000657=99.19;+dmg=3800;+acdmg=65;+acdmg_destroyed;-absorb=2420;-dmg=806",
         "441419=46.58;0;heal=615"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -11122,7 +11122,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -11325,8 +11325,8 @@
       ]
     },
     {
-      "nr": 17,
-      "ladunek": {
+      "index": 17,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -11739,10 +11739,10 @@
           105
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=76.58;441419=76.58;tspell=Zdrowa atmosfera;skillId=79;healall_per=30"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -11943,7 +11943,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -12146,8 +12146,8 @@
       ]
     },
     {
-      "nr": 18,
-      "ladunek": {
+      "index": 18,
+      "payload": {
         "w": {
           "445202": {
             "poolTime": {
@@ -12287,12 +12287,12 @@
           108
         ]
       },
-      "komunikaty": [
+      "messages": [
         "447544=100.00;-10000657=99.16;tspell=Ogłuszający cios;skillId=22;active_decblock_per=1;+oth_dmg=123,a,Hildur Muza Śmierci(99.16%);combo-max=1",
         "447544=100.00;-10000657=98.86;+dmg=4378;+stun;-absorb=2851;-dmg=950",
         "445202=60.03;0;heal=212"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -12493,7 +12493,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -12696,8 +12696,8 @@
       ]
     },
     {
-      "nr": 19,
-      "ladunek": {
+      "index": 19,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -12801,11 +12801,11 @@
           110
         ]
       },
-      "komunikaty": [
+      "messages": [
         "445202=60.03;0;step",
         "439250=88.89;0;heal=143"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -13006,7 +13006,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -13209,8 +13209,8 @@
       ]
     },
     {
-      "nr": 20,
-      "ladunek": {
+      "index": 20,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -13406,7 +13406,7 @@
           121
         ]
       },
-      "komunikaty": [
+      "messages": [
         "439250=88.89;-10000657=98.81;tspell=Ogłuszający cios;skillId=22;active_decblock_per=15;+oth_dmg=166,a,Hildur Muza Śmierci(98.81%);combo-max=1",
         "439250=88.89;-10000657=98.52;+dmg=4452;+stun;-absorb=2906;-dmg=969",
         "-10000657=100.00;0;heal=4832",
@@ -13419,7 +13419,7 @@
         "441390=57.69;0;heal=662",
         "441390=63.69;0;legbon_holytouch_heal=967"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -13620,7 +13620,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -13823,8 +13823,8 @@
       ]
     },
     {
-      "nr": 21,
-      "ladunek": {
+      "index": 21,
+      "payload": {
         "w": {
           "441390": {
             "poolTime": {
@@ -14011,7 +14011,7 @@
           129
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441390=63.69;-10000657=99.21;+dmgd=1096;+dmgf=148;+dmgc=941;+resdmg=2;-absorb=202;-absorbm=599;-dmgd=376;-dmgc=23",
         "459132=96.73;-10000657=99.16;tspell=Ogłuszający cios;skillId=22;active_decblock_per=4;+oth_dmg=143,a,Hildur Muza Śmierci(99.16%);combo-max=1",
         "459132=96.73;-10000657=98.69;+crit;+engback=30;+dmg=6699;+stun;-absorb=4586;-dmg=1529",
@@ -14021,7 +14021,7 @@
         "0;0;txt=Hildur Muza Śmierci - utrata tury (redukcja ogłuszenia 50%)",
         "466063=92.78;0;heal=1310"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -14222,7 +14222,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -14425,8 +14425,8 @@
       ]
     },
     {
-      "nr": 22,
-      "ladunek": {
+      "index": 22,
+      "payload": {
         "w": {
           "466063": {
             "poolTime": {
@@ -14524,11 +14524,11 @@
           131
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=92.78;-10000657=99.56;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "466063=92.78;-10000657=99.52;+dmgc=839;+dmgl=1750;+resdmg=3;+abdest_per=3643;+abmdest_per=2595;-absorbm=1827;-dmgc=21;-dmgl=112"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -14729,7 +14729,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -14932,8 +14932,8 @@
       ]
     },
     {
-      "nr": 23,
-      "ladunek": {
+      "index": 23,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -15115,14 +15115,14 @@
           136
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466476=100.00;-10000657=99.52;tspell=Pchnięcie mrozu;skillId=86;active_absorbdest_per=5",
         "466476=100.00;-10000657=99.40;+dmg=2051;+dmgc=1129;+resdmg=1;+abdest_per=3461;+abmdest_per=2374;-absorb=1122;-absorbm=765;-dmg=374;-dmgc=32",
         "475890=100.00;-10000657=99.40;tspell=Niszczycielski cios;skillId=23",
         "475890=100.00;-10000657=99.15;+dmg=3758;-absorb=2388;-dmg=796",
         "441419=79.63;0;heal=578"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -15323,7 +15323,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -15526,8 +15526,8 @@
       ]
     },
     {
-      "nr": 24,
-      "ladunek": {
+      "index": 24,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -15623,10 +15623,10 @@
           137
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=79.63;-10000657=99.15;tspell=Szadź;skillId=123;allslow_per=14"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -15827,7 +15827,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -16030,8 +16030,8 @@
       ]
     },
     {
-      "nr": 25,
-      "ladunek": {
+      "index": 25,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -16359,7 +16359,7 @@
           156
         ]
       },
-      "komunikaty": [
+      "messages": [
         "447544=100.00;-10000657=99.15;tspell=Niszczycielski cios;skillId=23",
         "447544=100.00;-10000657=98.93;+dmg=3408;-absorb=2128;-dmg=709",
         "445202=60.86;0;heal=199",
@@ -16380,7 +16380,7 @@
         "441390=73.55;-10000657=99.33;+pierce;+dmgd=1056;+dmgf=170;+dmgc=941;+resdmg=2;-absorb=370;-absorbm=1000;-dmgd=686;-dmgf=14;-dmgc=38",
         "466063=99.10;0;heal=1233"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -16581,7 +16581,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -16784,8 +16784,8 @@
       ]
     },
     {
-      "nr": 26,
-      "ladunek": {
+      "index": 26,
+      "payload": {
         "w": {
           "466063": {
             "poolTime": {
@@ -16883,11 +16883,11 @@
           158
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=99.10;-10000657=99.33;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "466063=99.10;-10000657=99.29;+dmgc=839;+dmgl=1793;+resdmg=3;+abdest_per=2810;+abmdest_per=2167;+freeze;-absorbm=1866;-dmgc=25;-dmgl=125"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -17088,7 +17088,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -17291,8 +17291,8 @@
       ]
     },
     {
-      "nr": 27,
-      "ladunek": {
+      "index": 27,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -17613,7 +17613,7 @@
           173
         ]
       },
-      "komunikaty": [
+      "messages": [
         "459132=96.73;-10000657=99.29;tspell=Niszczycielski cios;skillId=23",
         "459132=96.73;-10000657=99.10;+dmg=3058;-absorb=1868;-dmg=622",
         "-10000657=100.00;0;heal=2938",
@@ -17630,7 +17630,7 @@
         "447544=100.00;-10000657=97.40;+dmg=3738;-absorb=2373;-dmg=791",
         "441419=82.49;0;heal=542"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -17831,7 +17831,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -18034,8 +18034,8 @@
       ]
     },
     {
-      "nr": 28,
-      "ladunek": {
+      "index": 28,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -18138,11 +18138,11 @@
           175
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=82.49;441419=82.49;tspell=Chwila skupienia;skillId=69;mana=-279",
         "439250=89.87;0;heal=126"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -18343,7 +18343,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -18546,8 +18546,8 @@
       ]
     },
     {
-      "nr": 29,
-      "ladunek": {
+      "index": 29,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -18739,7 +18739,7 @@
           185
         ]
       },
-      "komunikaty": [
+      "messages": [
         "439250=89.87;-10000657=97.35;tspell=Ogłuszający cios;skillId=22;active_decblock_per=15;+oth_dmg=166,a,Hildur Muza Śmierci(97.35%);combo-max=1",
         "439250=89.87;-10000657=97.07;+dmg=4327;-absorb=2813;-dmg=937",
         "-10000657=98.96;0;heal=6157",
@@ -18751,7 +18751,7 @@
         "445202=52.03;-10000657=98.43;tspell=Wyzywający okrzyk;skillId=188;shout=Hildur Muza Śmierci;active_decblock_per-enemies=10;alllowdmg=5",
         "466063=100.00;0;heal=175"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -18952,7 +18952,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -19155,8 +19155,8 @@
       ]
     },
     {
-      "nr": 30,
-      "ladunek": {
+      "index": 30,
+      "payload": {
         "w": {
           "466063": {
             "poolTime": {
@@ -19301,12 +19301,12 @@
           188
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=100.00;-10000657=98.43;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "466063=100.00;-10000657=98.38;+dmgc=839;+dmgl=1835;+resdmg=3;+abdest_per=1638;+abmdest_per=1810;-absorbm=1903;-dmgc=27;-dmgl=135",
         "467968=54.43;0;heal=-55"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -19507,7 +19507,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -19710,8 +19710,8 @@
       ]
     },
     {
-      "nr": 31,
-      "ladunek": {
+      "index": 31,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -20164,7 +20164,7 @@
           211
         ]
       },
-      "komunikaty": [
+      "messages": [
         "467968=54.43;-10000657=98.07;+pierce;+dmgd=1551;-absorb=543;+injure=151;-dmgd=1008",
         "441390=77.18;0;heal=584",
         "441390=83.17;0;legbon_holytouch_heal=967",
@@ -20189,7 +20189,7 @@
         "-10000657=99.32;0;poison=1317",
         "0;0;txt=Hildur Muza Śmierci - utrata tury (redukcja ogłuszenia 50%)"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -20390,7 +20390,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -20593,8 +20593,8 @@
       ]
     },
     {
-      "nr": 32,
-      "ladunek": {
+      "index": 32,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -20690,10 +20690,10 @@
           212
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=100.00;-10000657=99.28;+dmgc=1602;+dmgl=588;+resdmg=1;-absorbm=1479;-dmgc=69;-dmgl=30"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -20894,7 +20894,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -21097,8 +21097,8 @@
       ]
     },
     {
-      "nr": 33,
-      "ladunek": {
+      "index": 33,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -21197,11 +21197,11 @@
           214
         ]
       },
-      "komunikaty": [
+      "messages": [
         "439250=100.00;-10000657=99.28;tspell=Niszczycielski cios;skillId=23",
         "439250=100.00;-10000657=99.09;+dmg=3059;-absorb=1868;-dmg=623"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -21402,7 +21402,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -21605,8 +21605,8 @@
       ]
     },
     {
-      "nr": 34,
-      "ladunek": {
+      "index": 34,
+      "payload": {
         "w": {
           "466063": {
             "poolTime": {
@@ -21751,12 +21751,12 @@
           217
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=100.00;-10000657=99.09;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "466063=100.00;-10000657=99.04;+dmgc=839;+dmgl=1878;+resdmg=3;+abdest_per=1048;+abmdest_per=1503;-absorbm=1941;+legbon_holytouch;-dmgc=31;-dmgl=151",
         "467968=84.16;0;heal=-51"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -21957,7 +21957,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -22160,8 +22160,8 @@
       ]
     },
     {
-      "nr": 35,
-      "ladunek": {
+      "index": 35,
+      "payload": {
         "w": {
           "441390": {
             "poolTime": {
@@ -22534,7 +22534,7 @@
           236
         ]
       },
-      "komunikaty": [
+      "messages": [
         "467968=84.16;-10000657=98.80;+dmgd=1726;-absorb=413;-dmgd=766",
         "-10000657=100.00;0;heal=3899",
         "-10000657=99.95;0;injure=151",
@@ -22555,7 +22555,7 @@
         "-10000657=99.81;0;poison=563",
         "-10000657=99.81;0;prepare=Tryptyk płonący(100%)"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -22756,7 +22756,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -22959,8 +22959,8 @@
       ]
     },
     {
-      "nr": 36,
-      "ladunek": {
+      "index": 36,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -23102,11 +23102,11 @@
           238
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=100.00;-10000657=99.78;+dmgc=1602;+dmgl=602;+resdmg=1;-absorbm=1491;-dmgc=77;-dmgl=33",
         "445202=75.86;0;heal=162"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -23307,7 +23307,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -23510,8 +23510,8 @@
       ]
     },
     {
-      "nr": 37,
-      "ladunek": {
+      "index": 37,
+      "payload": {
         "w": {
           "445202": {
             "poolTime": {
@@ -23615,11 +23615,11 @@
           240
         ]
       },
-      "komunikaty": [
+      "messages": [
         "445202=75.86;-10000657=99.78;tspell=Wyzywający okrzyk;skillId=188;shout=Hildur Muza Śmierci;active_decblock_per-enemies=10;alllowdmg=5",
         "466063=100.00;0;legbon_holytouch_heal=0"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -23820,7 +23820,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -24023,8 +24023,8 @@
       ]
     },
     {
-      "nr": 38,
-      "ladunek": {
+      "index": 38,
+      "payload": {
         "w": {
           "466063": {
             "poolTime": {
@@ -24174,12 +24174,12 @@
           243
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=100.00;-10000657=99.78;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "466063=100.00;-10000657=99.71;+dmgc=839;+dmgl=1921;+resdmg=3;+abdest_per=608;+abmdest_per=1208;-absorbm=1980;-dmgc=35;-dmgl=163",
         "467968=83.92;0;heal=-46"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -24380,7 +24380,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -24583,8 +24583,8 @@
       ]
     },
     {
-      "nr": 39,
-      "ladunek": {
+      "index": 39,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -24948,7 +24948,7 @@
           260
         ]
       },
-      "komunikaty": [
+      "messages": [
         "467968=83.92;-10000657=99.52;+dmgd=1526;-absorb=345;-dmgd=641",
         "439250=100.00;-10000657=99.32;+dmg=3212;-absorb=1982;-dmg=660",
         "-10000657=100.00;0;heal=2230",
@@ -24967,7 +24967,7 @@
         "459132=100.00;-10000657=99.78;tspell=Ogłuszający cios;skillId=22;active_decblock_per=4;+oth_dmg=143,a,Hildur Muza Śmierci(99.78%);combo-max=1",
         "459132=100.00;-10000657=99.55;+dmg=3590;-absorb=2263;-dmg=754"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -25168,7 +25168,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -25371,8 +25371,8 @@
       ]
     },
     {
-      "nr": 40,
-      "ladunek": {
+      "index": 40,
+      "payload": {
         "w": {
           "447544": {
             "poolTime": {
@@ -25516,13 +25516,13 @@
           264
         ]
       },
-      "komunikaty": [
+      "messages": [
         "447544=100.00;-10000657=99.55;tspell=Niszczycielski cios;skillId=23",
         "447544=100.00;-10000657=99.34;+dmg=3391;-absorb=2115;-dmg=705",
         "467968=83.70;0;heal=-41",
         "467968=83.70;-10000657=98.92;+crit;+dmgd=2421;-absorb=508;+injure=202;-dmgd=1352"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -25723,7 +25723,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -25926,8 +25926,8 @@
       ]
     },
     {
-      "nr": 41,
-      "ladunek": {
+      "index": 41,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -26030,11 +26030,11 @@
           266
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=100.00;445202=77.76;tspell=Leczenie ran;skillId=78;heal_target=12045",
         "445202=78.38;0;heal=149"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -26235,7 +26235,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -26438,8 +26438,8 @@
       ]
     },
     {
-      "nr": 42,
-      "ladunek": {
+      "index": 42,
+      "payload": {
         "w": {
           "445202": {
             "poolTime": {
@@ -26504,11 +26504,11 @@
           268
         ]
       },
-      "komunikaty": [
+      "messages": [
         "445202=79.78;445202=79.78;tspell=Osłona tarczą;skillId=206;active_block_per=15;heal_target=337;combo-max=1",
         "466063=100.00;0;legbon_holytouch_heal=0"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -26709,7 +26709,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -26912,8 +26912,8 @@
       ]
     },
     {
-      "nr": 43,
-      "ladunek": {
+      "index": 43,
+      "payload": {
         "w": {
           "466063": {
             "poolTime": {
@@ -27017,14 +27017,14 @@
           273
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=100.00;-10000657=98.92;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "466063=100.00;-10000657=98.77;+crit;+dmgc=1837;+dmgl=4260;+resdmg=3;+abdest_per=0;+abmdest_per=1011;-absorbm=4965;-dmgc=101;-dmgl=397",
         "-10000657=99.33;0;heal=1847",
         "-10000657=99.27;0;injure=202",
         "-10000657=99.10;0;poison=563"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -27225,7 +27225,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -27428,8 +27428,8 @@
       ]
     },
     {
-      "nr": 44,
-      "ladunek": {
+      "index": 44,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -27795,7 +27795,7 @@
           291
         ]
       },
-      "komunikaty": [
+      "messages": [
         "-10000657=99.10;445202=70.35;-poison_lowdmg_per=10;+dmgc=3884;+acdmg=50;-dmgc=2272",
         "439250=100.00;-10000657=98.45;+dmg=2692;-dmg=2127",
         "466476=100.00;-10000657=98.45;tspell=Pchnięcie mrozu;skillId=86;active_absorbdest_per=5",
@@ -27815,7 +27815,7 @@
         "447544=100.00;-10000657=91.85;+crit;+engback=22;+dmg=8011;-dmg=7425",
         "466063=100.00;0;legbon_holytouch_heal=0"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -28016,7 +28016,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -28219,8 +28219,8 @@
       ]
     },
     {
-      "nr": 45,
-      "ladunek": {
+      "index": 45,
+      "payload": {
         "w": {
           "466063": {
             "poolTime": {
@@ -28316,10 +28316,10 @@
           292
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=100.00;-10000657=91.85;tspell=Szadź;skillId=123;allslow_per=14"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -28520,7 +28520,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -28723,8 +28723,8 @@
       ]
     },
     {
-      "nr": 46,
-      "ladunek": {
+      "index": 46,
+      "payload": {
         "w": {
           "459132": {
             "poolTime": {
@@ -28823,11 +28823,11 @@
           294
         ]
       },
-      "komunikaty": [
+      "messages": [
         "459132=100.00;-10000657=91.85;tspell=Niszczycielski cios;skillId=23",
         "459132=100.00;-10000657=91.11;+dmg=2972;-dmg=2404"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -29028,7 +29028,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -29231,8 +29231,8 @@
       ]
     },
     {
-      "nr": 47,
-      "ladunek": {
+      "index": 47,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -29600,7 +29600,7 @@
           313
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=100.00;441419=100.00;tspell=Chwila skupienia;skillId=69;mana=-220",
         "-10000657=91.30;0;heal=616",
         "-10000657=91.24;0;injure=202",
@@ -29621,7 +29621,7 @@
         "447544=100.00;-10000657=85.47;tspell=Niszczycielski cios;skillId=23",
         "447544=100.00;-10000657=84.53;+dmg=3659;-dmg=3086"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -29822,7 +29822,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -30025,8 +30025,8 @@
       ]
     },
     {
-      "nr": 48,
-      "ladunek": {
+      "index": 48,
+      "payload": {
         "w": {
           "445202": {
             "poolTime": {
@@ -30127,10 +30127,10 @@
           314
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=100.00;445202=94.17;tspell=Leczenie ran;skillId=78;heal_target=12045"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -30331,7 +30331,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -30534,8 +30534,8 @@
       ]
     },
     {
-      "nr": 49,
-      "ladunek": {
+      "index": 49,
+      "payload": {
         "w": {
           "441390": {
             "poolTime": {
@@ -30635,12 +30635,12 @@
           317
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441390=100.00;-10000657=84.53;tspell=Podwójne trafienie;skillId=239",
         "441390=100.00;-10000657=84.36;+crit;+dmgd=994;+dmgf=145;+dmgc=1122;+resdmg=2;-absorbm=759;-dmgd=484;-dmgc=60",
         "441390=100.00;-10000657=84.24;+dmgd=859;+dmgf=108;+dmgc=790;+resdmg=2;-absorbm=467;-dmgd=363;-dmgc=38"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -30841,7 +30841,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -31044,8 +31044,8 @@
       ]
     },
     {
-      "nr": 50,
-      "ladunek": {
+      "index": 50,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -31143,11 +31143,11 @@
           319
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=100.00;-10000657=84.24;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "441419=100.00;-10000657=84.16;+crit;+dmgc=2739;+dmgl=1047;+resdmg=1;+abdest_per=0;+abmdest_per=442;-absorbm=2896;-dmgc=181;-dmgl=77"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -31348,7 +31348,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -31551,8 +31551,8 @@
       ]
     },
     {
-      "nr": 51,
-      "ladunek": {
+      "index": 51,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -31878,7 +31878,7 @@
           336
         ]
       },
-      "komunikaty": [
+      "messages": [
         "459132=100.00;-10000657=84.11;tspell=Ogłuszający cios;skillId=22;active_decblock_per=4;+oth_dmg=143,a,Hildur Muza Śmierci(84.11%);combo-max=1",
         "459132=100.00;-10000657=82.21;+crit;+engback=39;+dmg=6769;-dmg=6185",
         "467968=83.19;0;heal=-28",
@@ -31897,7 +31897,7 @@
         "-10000657=76.45;0;poison=1317",
         "0;0;txt=Hildur Muza Śmierci - utrata tury (redukcja ogłuszenia 50%)"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -32098,7 +32098,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -32301,8 +32301,8 @@
       ]
     },
     {
-      "nr": 52,
-      "ladunek": {
+      "index": 52,
+      "payload": {
         "w": {
           "466063": {
             "poolTime": {
@@ -32364,10 +32364,10 @@
           337
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=100.00;466063=100.00;tspell=Chwila skupienia;skillId=69;mana=-277"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -32568,7 +32568,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -32771,8 +32771,8 @@
       ]
     },
     {
-      "nr": 53,
-      "ladunek": {
+      "index": 53,
+      "payload": {
         "w": {
           "447544": {
             "poolTime": {
@@ -32918,12 +32918,12 @@
           340
         ]
       },
-      "komunikaty": [
+      "messages": [
         "447544=100.00;-10000657=76.45;tspell=Niszczycielski cios;skillId=23",
         "447544=100.00;-10000657=75.48;+dmg=3736;-dmg=3162",
         "467968=99.88;0;heal=-23"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -33124,7 +33124,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -33327,8 +33327,8 @@
       ]
     },
     {
-      "nr": 54,
-      "ladunek": {
+      "index": 54,
+      "payload": {
         "w": {
           "441390": {
             "poolTime": {
@@ -33467,11 +33467,11 @@
           342
         ]
       },
-      "komunikaty": [
+      "messages": [
         "467968=99.88;-10000657=74.88;+crit;+dmgd=2501;+injure=290;-dmgd=1939",
         "441390=100.00;-10000657=74.62;+crit;+dmgd=1293;+dmgf=200;+dmgc=1336;+resdmg=2;-absorbm=958;-dmgd=763;-dmgf=1;-dmgc=80"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -33672,7 +33672,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -33875,8 +33875,8 @@
       ]
     },
     {
-      "nr": 55,
-      "ladunek": {
+      "index": 55,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -33978,13 +33978,13 @@
           346
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=100.00;-10000657=74.62;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "441419=100.00;-10000657=74.54;+crit;+dmgc=2739;+dmgl=1071;+resdmg=1;+abdest_per=0;+abmdest_per=227;-absorbm=2918;-dmgc=189;-dmgl=79",
         "-10000657=74.45;0;injure=290",
         "-10000657=74.04;0;poison=1317"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -34185,7 +34185,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -34388,8 +34388,8 @@
       ]
     },
     {
-      "nr": 56,
-      "ladunek": {
+      "index": 56,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -34866,7 +34866,7 @@
           362
         ]
       },
-      "komunikaty": [
+      "messages": [
         "-10000657;0;tspell=Śpiew zagłady",
         "-10000657=74.04;445202=64.43;-poison_lowdmg_per=10;+oth_dmg=8570,g,Gracz 4(64.43%);-poison_lowdmg_per=10;+oth_dmg=8868,g,Gracz 10(70.85%);-poison_lowdmg_per=10;+oth_dmg=8570,g,Gracz 8(67.26%);-poison_lowdmg_per=10;+oth_dmg=8570,g,Gracz 7(56.07%);-poison_lowdmg_per=10;+oth_dmg=9315,g,Gracz 1(64.68%);-poison_lowdmg_per=10;+oth_dmg=9315,g,Gracz 9(50.80%);-poison_lowdmg_per=10;+oth_dmg=9315,g,Gracz 2(42.23%);-poison_lowdmg_per=10;+oth_dmg=8868,g,Gracz 5(72.73%);-poison_lowdmg_per=10;+oth_dmg=8868,g,Gracz 6(69.64%);-poison_lowdmg_per=10;+oth_dmg=8868,g,Gracz 3(53.20%)",
         "459132=69.64;-10000657=74.04;tspell=Niszczycielski cios;skillId=23",
@@ -34884,7 +34884,7 @@
         "475890=72.67;-10000657=70.33;+dmg=4257;-dmg=3681",
         "466063=61.60;0;heal=1079"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -35085,7 +35085,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -35288,8 +35288,8 @@
       ]
     },
     {
-      "nr": 57,
-      "ladunek": {
+      "index": 57,
+      "payload": {
         "w": {
           "466063": {
             "poolTime": {
@@ -35391,13 +35391,13 @@
           366
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=61.60;-10000657=70.33;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "466063=61.60;-10000657=70.19;+dmgc=839;+dmgl=2006;+resdmg=3;+abdest_per=0;+abmdest_per=70;-absorbm=1328;-dmgc=46;-dmgl=390",
         "-10000657=70.11;0;injure=256",
         "-10000657=69.94;0;poison=563"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -35598,7 +35598,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -35801,8 +35801,8 @@
       ]
     },
     {
-      "nr": 58,
-      "ladunek": {
+      "index": 58,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -35986,7 +35986,7 @@
           372
         ]
       },
-      "komunikaty": [
+      "messages": [
         "-10000657;0;tspell=Struna płomienna",
         "-10000657=69.94;445202=49.81;-poison_lowdmg_per=10;+dmgf=1979;+dmgc=3609;+acdmg=50;-dmgf=1171;-dmgc=2462",
         "447544=73.66;0;heal=302",
@@ -35994,7 +35994,7 @@
         "447544=73.66;-10000657=68.85;+dmg=3894;-dmg=3320",
         "441419=55.87;0;heal=506"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -36195,7 +36195,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -36398,8 +36398,8 @@
       ]
     },
     {
-      "nr": 59,
-      "ladunek": {
+      "index": 59,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -36814,11 +36814,11 @@
           374
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=78.37;441419=78.37;tspell=Zdrowa atmosfera;skillId=79;healall_per=22.5",
         "441390=68.10;0;heal=545"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -37019,7 +37019,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -37222,8 +37222,8 @@
       ]
     },
     {
-      "nr": 60,
-      "ladunek": {
+      "index": 60,
+      "payload": {
         "w": {
           "441390": {
             "poolTime": {
@@ -37411,7 +37411,7 @@
           381
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441390=68.10;-10000657=68.35;+crit;+dmgd=1265;+dmgf=187;+dmgc=1336;+resdmg=2;-dmgd=737;-dmgf=4;-dmgc=864",
         "467968=73.13;0;heal=-14",
         "467968=73.13;-10000657=67.99;+dmgd=1714;-dmgd=1168",
@@ -37420,7 +37420,7 @@
         "-10000657=67.91;0;injure=256",
         "-10000657=67.74;0;poison=563"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -37621,7 +37621,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -37824,8 +37824,8 @@
       ]
     },
     {
-      "nr": 61,
-      "ladunek": {
+      "index": 61,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -38294,7 +38294,7 @@
           393
         ]
       },
-      "komunikaty": [
+      "messages": [
         "-10000657=67.74;445202=61.39;-poison_lowdmg_per=10;+dmgc=4341;+acdmg=50;-dmgc=2730",
         "459132=92.14;-10000657=67.70;tspell=Ogłuszający cios;skillId=22;active_decblock_per=4;+oth_dmg=143,a,Hildur Muza Śmierci(67.70%);combo-max=1",
         "459132=92.14;-10000657=66.66;+dmg=3950;+stun;-dmg=3375",
@@ -38308,7 +38308,7 @@
         "475890=96.89;-10000657=62.99;+crit;+engback=24;+dmg=10099;-dmg=9511",
         "466063=89.24;0;heal=1002"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -38509,7 +38509,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -38712,8 +38712,8 @@
       ]
     },
     {
-      "nr": 62,
-      "ladunek": {
+      "index": 62,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -38947,7 +38947,7 @@
           404
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=89.24;-10000657=62.99;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "466063=89.24;-10000657=61.31;+crit;+dmgc=1837;+dmgl=4446;+resdmg=3;-dmgc=1318;-dmgl=4153",
         "-10000657=61.23;0;injure=256",
@@ -38960,7 +38960,7 @@
         "467968=73.08;-10000657=59.55;+pierce;+dmgd=1749;+injure=262;-dmgd=1749",
         "441419=80.85;0;heal=470"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -39161,7 +39161,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -39364,8 +39364,8 @@
       ]
     },
     {
-      "nr": 63,
-      "ladunek": {
+      "index": 63,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -39467,13 +39467,13 @@
           408
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=80.85;-10000657=59.55;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "441419=80.85;-10000657=59.09;+dmgc=1602;+dmgl=644;+resdmg=1;-dmgc=1133;-dmgl=379",
         "-10000657=59.01;0;injure=262",
         "-10000657=58.84;0;poison=563"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -39674,7 +39674,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -39877,8 +39877,8 @@
       ]
     },
     {
-      "nr": 64,
-      "ladunek": {
+      "index": 64,
+      "payload": {
         "w": {
           "441390": {
             "poolTime": {
@@ -40196,7 +40196,7 @@
           423
         ]
       },
-      "komunikaty": [
+      "messages": [
         "-10000657;0;tspell=Struna płomienna",
         "-10000657=58.84;445202=55.35;-poison_lowdmg_per=10;+dmgf=1868;+dmgc=3884;+acdmg=50;-blok=1725;-dmgf=288;-dmgc=1167",
         "441390=71.24;0;heal=506",
@@ -40213,7 +40213,7 @@
         "459132=92.14;-10000657=55.45;+dmg=2825;-dmg=2259",
         "466063=93.98;0;heal=925"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -40414,7 +40414,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -40617,8 +40617,8 @@
       ]
     },
     {
-      "nr": 65,
-      "ladunek": {
+      "index": 65,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -40757,12 +40757,12 @@
           426
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=93.98;-10000657=55.45;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "466063=93.98;-10000657=54.74;+dmgc=839;+dmgl=2091;+resdmg=3;-dmgc=521;-dmgl=1803",
         "439250=88.42;0;heal=101"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -40963,7 +40963,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -41166,8 +41166,8 @@
       ]
     },
     {
-      "nr": 66,
-      "ladunek": {
+      "index": 66,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -41313,7 +41313,7 @@
           432
         ]
       },
-      "komunikaty": [
+      "messages": [
         "439250=88.42;-10000657=54.59;tspell=Ogłuszający cios;skillId=22;active_decblock_per=15;+oth_dmg=498,a,Hildur Muza Śmierci(54.59%);combo-max=3",
         "439250=88.42;-10000657=53.37;+dmg=4533;+stun;-dmg=3955",
         "-10000657=53.29;0;injure=262",
@@ -41321,7 +41321,7 @@
         "0;0;txt=Hildur Muza Śmierci - utrata tury (redukcja ogłuszenia 50%)",
         "447544=97.88;0;heal=272"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -41522,7 +41522,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -41725,8 +41725,8 @@
       ]
     },
     {
-      "nr": 67,
-      "ladunek": {
+      "index": 67,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -41918,7 +41918,7 @@
           441
         ]
       },
-      "komunikaty": [
+      "messages": [
         "447544=97.88;-10000657=53.12;tspell=Niszczycielski cios;skillId=23",
         "447544=97.88;-10000657=50.77;+crit;+engback=22;+dmg=8226;-dmg=7640",
         "467968=73.06;0;heal=-5",
@@ -41929,7 +41929,7 @@
         "0;0;txt=Hildur Muza Śmierci - utrata tury",
         "441419=83.14;0;heal=434"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -42130,7 +42130,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -42333,8 +42333,8 @@
       ]
     },
     {
-      "nr": 68,
-      "ladunek": {
+      "index": 68,
+      "payload": {
         "w": {
           "441390": {
             "poolTime": {
@@ -42472,12 +42472,12 @@
           444
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=83.14;-10000657=49.96;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "441419=83.14;-10000657=49.00;+crit;+dmgc=2739;+dmgl=1119;+resdmg=1;-dmgc=2278;-dmgl=840",
         "441390=74.14;0;heal=467"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -42678,7 +42678,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -42881,8 +42881,8 @@
       ]
     },
     {
-      "nr": 69,
-      "ladunek": {
+      "index": 69,
+      "payload": {
         "w": {
           "441390": {
             "poolTime": {
@@ -43067,7 +43067,7 @@
           451
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441390=74.14;-10000657=49.00;tspell=Podwójne trafienie;skillId=239",
         "441390=74.14;-10000657=48.47;+pierce;+dmgd=838;+dmgf=146;+dmgc=790;+resdmg=2;-dmgd=838;-dmgf=146;-dmgc=751",
         "441390=74.14;-10000657=48.07;+crit;+dmgd=993;+dmgf=178;+dmgc=1122;+resdmg=2;+legbon_holytouch;-dmgd=483;-dmgf=1;-dmgc=818",
@@ -43076,7 +43076,7 @@
         "466476=99.45;-10000657=47.35;+dmg=2062;+dmgc=1129;+resdmg=1;-dmg=1507;-dmgc=833",
         "466063=98.32;0;heal=848"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -43277,7 +43277,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -43480,8 +43480,8 @@
       ]
     },
     {
-      "nr": 70,
-      "ladunek": {
+      "index": 70,
+      "payload": {
         "w": {
           "466063": {
             "poolTime": {
@@ -43581,12 +43581,12 @@
           454
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=98.32;-10000657=47.35;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "466063=98.32;-10000657=46.61;+dmgc=839;+dmgl=2134;+resdmg=3;-dmgc=566;-dmgl=1846",
         "-10000657=46.21;0;poison=1317"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -43787,7 +43787,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -43990,8 +43990,8 @@
       ]
     },
     {
-      "nr": 71,
-      "ladunek": {
+      "index": 71,
+      "payload": {
         "w": {
           "445202": {
             "poolTime": {
@@ -44144,7 +44144,7 @@
           461
         ]
       },
-      "komunikaty": [
+      "messages": [
         "-10000657;0;tspell=Struna płomienna",
         "-10000657=46.21;445202=39.11;-poison_lowdmg_per=10;+dmgf=2742;+dmgc=4341;+acdmg=50;-dmgf=1461;-dmgc=2539",
         "-10000657=46.21;0;prepare=Symfonia żywiołów(0%)",
@@ -44153,7 +44153,7 @@
         "475890=100.00;-10000657=45.21;+dmg=3832;-dmg=3258",
         "445202=39.42;0;heal=75"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -44354,7 +44354,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -44557,8 +44557,8 @@
       ]
     },
     {
-      "nr": 72,
-      "ladunek": {
+      "index": 72,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -44878,7 +44878,7 @@
           473
         ]
       },
-      "komunikaty": [
+      "messages": [
         "445202=40.82;445202=40.82;tspell=Osłona tarczą;skillId=206;active_block_per=15;heal_target=337;combo-max=1",
         "459132=92.14;-10000657=45.16;tspell=Ogłuszający cios;skillId=22;active_decblock_per=4;+oth_dmg=143,a,Hildur Muza Śmierci(45.16%);combo-max=1",
         "459132=92.14;-10000657=44.14;+dmg=3885;-dmg=3311",
@@ -44892,7 +44892,7 @@
         "-10000657=40.12;0;prepare=Symfonia żywiołów(33%)",
         "441419=85.24;0;heal=398"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -45093,7 +45093,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -45296,8 +45296,8 @@
       ]
     },
     {
-      "nr": 73,
-      "ladunek": {
+      "index": 73,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -45441,12 +45441,12 @@
           476
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=85.24;-10000657=40.12;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "441419=85.24;-10000657=39.59;+dmgc=1602;+dmgl=672;-dmgc=1317;-dmgl=406",
         "466476=100.00;0;heal=143"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -45647,7 +45647,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -45850,8 +45850,8 @@
       ]
     },
     {
-      "nr": 74,
-      "ladunek": {
+      "index": 74,
+      "payload": {
         "w": {
           "441390": {
             "poolTime": {
@@ -46039,7 +46039,7 @@
           482
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466476=100.00;-10000657=39.59;tspell=Pchnięcie mrozu;skillId=86;active_absorbdest_per=5",
         "466476=100.00;-10000657=38.87;+dmg=2032;+dmgc=1129;-dmg=1478;-dmgc=850",
         "441390=76.79;0;heal=428",
@@ -46047,7 +46047,7 @@
         "441390=82.79;441390=82.79;tspell=Podwójny dech;skillId=89;aura-sa_per=20",
         "466063=100.00;0;heal=327"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -46248,7 +46248,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -46451,8 +46451,8 @@
       ]
     },
     {
-      "nr": 75,
-      "ladunek": {
+      "index": 75,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -46787,10 +46787,10 @@
           483
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=100.00;445202=63.32;tspell=Zdrowa atmosfera;skillId=79;healall_per=22.5"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -46991,7 +46991,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -47194,8 +47194,8 @@
       ]
     },
     {
-      "nr": 76,
-      "ladunek": {
+      "index": 76,
+      "payload": {
         "w": {
           "445202": {
             "poolTime": {
@@ -47346,13 +47346,13 @@
           487
         ]
       },
-      "komunikaty": [
+      "messages": [
         "475890=100.00;-10000657=38.87;tspell=Niszczycielski cios;skillId=23",
         "475890=100.00;-10000657=37.81;+dmg=4034;-dmg=3459",
         "-10000657=37.41;0;poison=1317",
         "-10000657=37.41;0;prepare=Symfonia żywiołów(67%)"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -47553,7 +47553,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -47756,8 +47756,8 @@
       ]
     },
     {
-      "nr": 77,
-      "ladunek": {
+      "index": 77,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -48037,7 +48037,7 @@
           498
         ]
       },
-      "komunikaty": [
+      "messages": [
         "467968=95.55;-10000657=36.89;+crit;+dmgd=2250;+injure=253;-dmgd=1692",
         "445202=63.58;0;heal=62",
         "445202=63.58;-10000657=36.89;tspell=Wyzywający okrzyk;skillId=188;shout=Hildur Muza Śmierci;active_decblock_per-enemies=10;alllowdmg=5",
@@ -48050,7 +48050,7 @@
         "-10000657=31.37;0;poison=1317",
         "-10000657=31.37;0;prepare=Symfonia żywiołów(100%)"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -48251,7 +48251,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -48454,8 +48454,8 @@
       ]
     },
     {
-      "nr": 78,
-      "ladunek": {
+      "index": 78,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -48601,12 +48601,12 @@
           501
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=100.00;-10000657=31.37;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "441419=100.00;-10000657=30.83;+dmgc=1602;+dmgl=686;-dmgc=1317;-dmgl=419",
         "467968=95.55;-10000657=30.14;+crit;+pierce;+dmgd=2248;-dmgd=2248"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -48807,7 +48807,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -49010,8 +49010,8 @@
       ]
     },
     {
-      "nr": 79,
-      "ladunek": {
+      "index": 79,
+      "payload": {
         "w": {
           "466063": {
             "poolTime": {
@@ -49073,10 +49073,10 @@
           502
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=100.00;466063=100.00;tspell=Chwila skupienia;skillId=69;mana=-249"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -49277,7 +49277,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -49480,8 +49480,8 @@
       ]
     },
     {
-      "nr": 80,
-      "ladunek": {
+      "index": 80,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -49974,7 +49974,7 @@
           526
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466476=100.00;466476=100.00;tspell=Fala leczenia;skillId=199;healall_per=15",
         "475890=100.00;-10000657=30.06;tspell=Ogłuszający cios;skillId=22;active_decblock_per=2;+oth_dmg=260,a,Hildur Muza Śmierci(30.06%);combo-max=2",
         "475890=100.00;-10000657=28.79;+dmg=4705;-dmg=4127",
@@ -50000,7 +50000,7 @@
         "459132=65.35;-10000657=22.98;+crit;+engback=39;+dmg=6798;-dmg=6214",
         "466063=39.01;0;heal=693"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -50201,7 +50201,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -50404,8 +50404,8 @@
       ]
     },
     {
-      "nr": 81,
-      "ladunek": {
+      "index": 81,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -50820,11 +50820,11 @@
           528
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=54.01;466063=54.01;tspell=Zdrowa atmosfera;skillId=79;healall_per=15",
         "441419=66.58;0;heal=361"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -51025,7 +51025,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -51228,8 +51228,8 @@
       ]
     },
     {
-      "nr": 82,
-      "ladunek": {
+      "index": 82,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -51694,7 +51694,7 @@
           538
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=81.57;441419=81.57;tspell=Zdrowa atmosfera;skillId=79;healall_per=15",
         "-10000657=22.81;0;poison=563",
         "-10000657=22.81;445202=42.70;+crit;-poison_lowdmg_per=10;+dmgc=5758;+acdmg=50;-dmgc=3246",
@@ -51706,7 +51706,7 @@
         "441390=65.63;0;heal=389",
         "441390=71.62;0;legbon_holytouch_heal=967"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -51907,7 +51907,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -52110,8 +52110,8 @@
       ]
     },
     {
-      "nr": 83,
-      "ladunek": {
+      "index": 83,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -52439,7 +52439,7 @@
           554
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441390=71.62;-10000657=19.77;+dmgd=1020;+dmgf=123;+dmgc=941;+legbon_holytouch;-dmgd=508;-dmgc=666",
         "467968=66.71;-10000657=19.46;+dmgd=1538;-dmgd=998",
         "445202=42.85;0;heal=37",
@@ -52457,7 +52457,7 @@
         "-10000657=14.77;0;prepare=Tryptyk płonący(0%)",
         "466063=72.17;0;heal=616"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -52658,7 +52658,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -52862,8 +52862,8 @@
       ]
     },
     {
-      "nr": 84,
-      "ladunek": {
+      "index": 84,
+      "payload": {
         "w": {
           "441419": {
             "poolTime": {
@@ -53177,7 +53177,7 @@
           563
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=72.17;445202=60.55;tspell=Leczenie ran;skillId=78;heal_target=9034",
         "467968=66.71;-10000657=14.77;tspell=Zatruta strzała;skillId=232",
         "467968=66.71;-10000657=14.41;+dmgd=1703;+injure=173;-dmgd=1157",
@@ -53188,7 +53188,7 @@
         "466476=79.97;-10000657=11.65;+crit;+engback=18;+dmg=3327;+dmgc=1570;-dmg=2756;-dmgc=1285",
         "441419=83.29;0;heal=325"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -53390,7 +53390,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -53594,8 +53594,8 @@
       ]
     },
     {
-      "nr": 85,
-      "ladunek": {
+      "index": 85,
+      "payload": {
         "w": {
           "441390": {
             "poolTime": {
@@ -53845,7 +53845,7 @@
           578
         ]
       },
-      "komunikaty": [
+      "messages": [
         "441419=83.29;-10000657=11.65;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "441419=83.29;-10000657=11.12;+dmgc=1602;+dmgl=700;-dmgc=1317;-dmgl=433",
         "475890=99.19;0;heal=401",
@@ -53862,7 +53862,7 @@
         "441390=79.80;-10000657=7.47;+dmgd=840;+dmgf=99;+dmgc=790;-dmgd=346;-dmgc=519",
         "441390=79.80;-10000657=7.21;+dmgd=827;+dmgf=102;+dmgc=790;-dmgd=335;-dmgc=519"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -54064,7 +54064,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -54268,8 +54268,8 @@
       ]
     },
     {
-      "nr": 86,
-      "ladunek": {
+      "index": 86,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -54544,7 +54544,7 @@
           589
         ]
       },
-      "komunikaty": [
+      "messages": [
         "467968=66.71;-10000657=6.87;+dmgd=1646;-dmgd=1102",
         "447544=100.00;-10000657=6.87;tspell=Niszczycielski cios;skillId=23",
         "447544=100.00;-10000657=5.94;+dmg=3595;-dmg=3022",
@@ -54557,7 +54557,7 @@
         "439250=85.44;-10000657=4.83;+dmg=2696;-dmg=2131",
         "466063=74.93;0;heal=539"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -54759,7 +54759,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -54963,8 +54963,8 @@
       ]
     },
     {
-      "nr": 87,
-      "ladunek": {
+      "index": 87,
+      "payload": {
         "w": {
           "466063": {
             "poolTime": {
@@ -55103,12 +55103,12 @@
           592
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466063=74.93;-10000657=4.83;tspell=Lodowy pocisk;skillId=58;active_absorbdest_per=5",
         "466063=74.93;-10000657=2.99;+crit;+dmgc=1837;+dmgl=4724;-dmgc=1550;-dmgl=4430",
         "466476=81.53;0;heal=409"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -55310,7 +55310,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -55514,8 +55514,8 @@
       ]
     },
     {
-      "nr": 88,
-      "ladunek": {
+      "index": 88,
+      "payload": {
         "w": {
           "439250": {
             "poolTime": {
@@ -55930,7 +55930,7 @@
           608
         ]
       },
-      "komunikaty": [
+      "messages": [
         "466476=81.53;-10000657=2.99;tspell=Pchnięcie mrozu;skillId=86;active_absorbdest_per=5",
         "466476=81.53;-10000657=2.25;+dmg=2107;+dmgc=1129;-dmg=1551;-dmgc=850",
         "475890=100.00;0;heal=247",
@@ -55948,7 +55948,7 @@
         "441390;0;afterheal=750",
         "0;0;txt=Hildur Muza Śmierci: zdobyto Orle pazury II, Amulet niespodziewanych przypływów II, Złote sanktuarium II, Okrętowe blachy II, Kamień z runą ansuz II, Amulet niespodziewanych przypływów II, Ciepłochron II, Postrach obcych łajb II, Postrach obcych łajb II, Lśniące szpony rosomaka II"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -56150,7 +56150,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -56354,13 +56354,13 @@
       ]
     },
     {
-      "nr": 89,
-      "ladunek": {
+      "index": 89,
+      "payload": {
         "move": -1,
         "endBattle": 1
       },
-      "komunikaty": [],
-      "wojownicyPrzed": [
+      "messages": [],
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -56562,7 +56562,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -56766,14 +56766,14 @@
       ]
     },
     {
-      "nr": 90,
-      "ladunek": {
+      "index": 90,
+      "payload": {
         "move": -1,
         "endBattle": 1,
         "close": 1
       },
-      "komunikaty": [],
-      "wojownicyPrzed": [
+      "messages": [],
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -56975,9 +56975,9 @@
           }
         }
       ],
-      "wojownicyPo": []
+      "combatantsAfter": []
     }
   ],
-  "pseudonimow": 1962,
-  "opisow": 5
+  "namesSubstituted": 1962,
+  "descriptionsRemoved": 5
 }

@@ -1,16 +1,16 @@
 {
-  "wersja": 1,
-  "dodatek": "0.8.1",
-  "przy": "2026-08-24T06:09:16.389Z",
-  "swiat": "tempest",
-  "build": "1786514810315",
-  "przegladarka": "Mozilla/5.0 (X11; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0",
-  "pominietych": 0,
-  "urwany": false,
-  "wpisy": [
+  "formatVersion": 1,
+  "addOnVersion": "0.8.1",
+  "capturedAt": "2026-08-24T06:09:16.389Z",
+  "world": "tempest",
+  "gameBuild": "1786514810315",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0",
+  "droppedCalls": 0,
+  "isTruncated": false,
+  "calls": [
     {
-      "nr": 0,
-      "ladunek": {
+      "index": 0,
+      "payload": {
         "init": "1",
         "auto": "1",
         "battleground": "009.jpg",
@@ -306,7 +306,7 @@
         ],
         "close": 1
       },
-      "komunikaty": [
+      "messages": [
         "440640=94.95;-279202=100.00;tspell=Płonąca strzała;skillId=26",
         "440640=94.95;-279202=73.58;+dmgd=929;+dmgf=1465;+acdmg=9;-dmgd=183;-dmgf=1000",
         "-279214=100.00;440640=93.81;+dmgd=700;-absorb=25;-dmgd=202",
@@ -331,10 +331,10 @@
         "0;0;+exp=10170",
         "0;0;txt=Dodatkowe punkty doświadczenia z przedmiotów +5085."
       ],
-      "wojownicyPrzed": [],
-      "wojownicyPo": []
+      "combatantsBefore": [],
+      "combatantsAfter": []
     }
   ],
-  "pseudonimow": 3,
-  "opisow": 5
+  "namesSubstituted": 3,
+  "descriptionsRemoved": 5
 }

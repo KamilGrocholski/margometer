@@ -15,25 +15,39 @@ import {
     getRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
-/** `2026-08-06-tempest-grupa-vs-hildur.json`: a blow absorption stood in front of. */
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: a blow absorption stood in front
+ * of.
+ */
 const ABSORBED =
     "467968=100.00;-10000249=99.69;+pierce;+dmgd=1557;+acdmg=16;-absorb=545;-dmgd=1012";
 /**
  * A probe, and it has to be: no recording carries an unread key any more. The shape is a real
- * announcement from `2026-08-06-tempest-grupa-vs-hildur.json` with a key the register has never
+ * announcement from `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` with a key the
+ * register has never
  * seen put beside it, which is what the next protocol change will look like.
  */
 const UNREAD = "469657=87.63;469657=87.63;tspell=Zdrowa atmosfera;skillId=79;whatever_per=30";
-/** `2026-08-12-experimental-tancerz-vs-wojownik.json`: the pair the family rule cannot reach. */
+/**
+ * `2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`: the pair the family rule
+ * cannot reach.
+ */
 const THIRD_BLOW = "114881=80.80;195782=98.67;+dmg=1210;+dmgo=896;+thirdatt=1168;+acdmg=90;" +
     "-blok=363;-dmg=0;-thirdatt=59";
-/** `2026-08-04-tempest-lowca-vs-odyncze.json`: health moving with nobody at the other end. */
+/**
+ * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: health moving with nobody at the
+ * other end.
+ */
 const HEAL = "482845=100.00;0;heal=99";
 const POISON = "-255967=19.27;0;poison=140,14";
-/** `2026-08-12-tempest-grupa-vs-hildur-1.json`: the client's own `heal` stating a loss. */
+/**
+ * `2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json`: the client's own `heal` stating a
+ * loss.
+ */
 const NEGATIVE_HEAL = "467968=99.52;0;heal=-92";
 /**
- * `2026-08-06-tempest-grupa-vs-hildur.json`: the one key read off the target slot. Chosen from
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the one key read off the target
+ * slot. Chosen from
  * the 41 of its 117 occurrences whose two ends are different people — on the other 76 a reader
  * that took the actor would pass, which is what a first draft of this test did.
  */
@@ -147,7 +161,10 @@ Deno.test("a figure on a message that announces nothing rides nothing", () => {
     assertEquals(restored.announced, null, "and states no skill, because the message states none");
 });
 
-/** `2026-08-06-tempest-grupa-vs-hildur.json`: an announcement with no id, and the blow after it. */
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: an announcement with no id, and the
+ * blow after it.
+ */
 const ANNOUNCEMENT = "-10000249;0;tspell=Struna płomienna";
 const BLOW_AFTER = "-10000249=100.00;445202=87.34;+dmgf=2471;+dmgc=4967;+acdmg=50;-blok=2231;" +
     "-legbon_facade=20;-dmgf=829;-dmgc=2193";
@@ -155,7 +172,10 @@ const BLOW_AFTER = "-10000249=100.00;445202=87.34;+dmgf=2471;+dmgc=4967;+acdmg=5
 const ANNOUNCEMENT_ELSEWHERE = "441390=100.00;441390=100.00;tspell=Podwójny dech;skillId=89;" +
     "aura-sa_per=20";
 const BLOW_BY_ANOTHER = "467968=100.00;-10000249=99.41;+dmgd=1553;-absorb=354;+injure=98;-dmgd=658";
-/** `2026-08-25-luvia-grupa-vs-draugr.json`: a name the game did not take from its skill table. */
+/**
+ * `2026-08-25-luvia-grupa-vs-draugr-none-none.json`: a name the game did not take from its skill
+ * table.
+ */
 const CUSTOM = "47010=100.00;47010=100.00;tcustom=Przelotna elfia kołysanka;healall_per=10";
 
 Deno.test("an announcement is an event, and its id may be missing", () => {
@@ -205,14 +225,17 @@ Deno.test("a name the game did not take from its table is read where one is name
 });
 
 /**
- * `2026-08-06-tempest-grupa-vs-hildur.json`: one blow stating ten figures against ten names. The
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: one blow stating ten figures
+ * against ten names. The
  * message's own target is `Gracz 4`; the other nine are named here and nowhere else.
  */
 const AGAINST_NAMES = "-10000249=99.57;445202=36.65;-poison_lowdmg_per=10;" +
     "+oth_dmg=8570,g,Gracz 4(36.65%);-poison_lowdmg_per=10;+oth_dmg=8868,g,Gracz 10(70.85%)";
-/** `2026-08-15-tempest-grupa-vs-draugr-1.json`: the element member written blank. */
+/**
+ * `2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none.json`: the element member written blank.
+ */
 const BLANK_ELEMENT = "-10000542=2.12;439807=0.00;+oth_dmg=2579, ,Gracz 1(8.97%)";
-const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
+const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 
 Deno.test("damage stated against a name reaches the person it names", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
@@ -243,13 +266,22 @@ Deno.test("a blank element is the plain one, not an element of its own", () => {
     assertEquals(hits[0].damage.element, "dmg", "the same element the family's own keys carry");
 });
 
-/** `2026-08-12-tempest-grupa-vs-draugr-1.json`: a blow with a figure no total counts beside it. */
+/**
+ * `2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none.json`: a blow with a figure no total
+ * counts beside it.
+ */
 const DECLARED_ON_BLOW = "477718=100.00;-10000234=95.59;+dmgd=924;+dmgc=766;+acdmg=18;" +
     "+taken_dmg=254;-dmgd=291;-dmgc=295;-dmga=254";
-/** `2026-08-06-tempest-grupa-vs-hildur.json`: what an announcement states about its skill. */
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: what an announcement states about
+ * its skill.
+ */
 const DECLARED_ON_SKILL = "445202=81.04;445202=81.04;tspell=Osłona tarczą;skillId=206;" +
     "active_block_per=15;heal_target=334;combo-max=1";
-/** `2026-08-04-tempest-lowca-vs-odyncze.json`: a line for the client's own log, and a step. */
+/**
+ * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: a line for the client's own log,
+ * and a step.
+ */
 const LOG_LINE = "0;0;txt=Locha: zdobyto Skóra z dzika";
 const STEP_TAKEN = "-255967=100.00;0;step";
 
@@ -302,7 +334,10 @@ Deno.test("a key read only while it states nothing goes unread once it states so
     assertEquals(unread.unreadKeys, ["+legbon_holytouch"], "it is reported, loudly");
 });
 
-/** `2026-08-04-tempest-lowca-vs-odyncze.json`: how that fight ended, on the two keys it takes. */
+/**
+ * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: how that fight ended, on the two
+ * keys it takes.
+ */
 const WON = "0;0;winner=Gracz 1";
 const LOST = "0;0;loser=Odyniec, Odyniec, Locha";
 
@@ -427,13 +462,14 @@ function getCorpusTally(): CorpusTally {
 }
 
 /**
- * `2026-08-23-tempest-grupa-vs-hildur-auto.json`: one group blow dropping two holders below the
+ * `2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json`: one group blow dropping two
+ * holders below the
  * threshold at once. A reader counting messages rather than segments loses the second.
  */
 const TWO_HEALED = "-10005001=74.30;466747=0.00;legbon_lastheal=10564,Gracz 8(42.00%);" +
     "+oth_dmg=9315,g,Gracz 8(42.00%);legbon_lastheal=10550,Gracz 5(44.00%);" +
     "+oth_dmg=9613,g,Gracz 5(44.00%);+oth_dmg=9613,g,Gracz 9(0.00%)";
-const AUTO = "captures/2026-08-23-tempest-grupa-vs-hildur-auto.json";
+const AUTO = "captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json";
 
 Deno.test("healing stated by name is read from the value, never from a slot", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(AUTO));

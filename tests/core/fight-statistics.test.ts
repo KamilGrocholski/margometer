@@ -17,10 +17,16 @@ import {
     getRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
-/** `2026-08-06-tempest-grupa-vs-hildur.json`: a blow absorption stood in front of. */
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: a blow absorption stood in front
+ * of.
+ */
 const ABSORBED =
     "467968=100.00;-10000249=99.69;+pierce;+dmgd=1557;+acdmg=16;-absorb=545;-dmgd=1012";
-/** `2026-08-04-tempest-lowca-vs-odyncze.json`: health moving with nobody at the other end. */
+/**
+ * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: health moving with nobody at the
+ * other end.
+ */
 const POISON = "-255967=19.27;0;poison=140,14";
 const HEAL = "482845=100.00;0;heal=99";
 
@@ -37,7 +43,8 @@ Deno.test("a blow lands on both of its ends, and raw stays apart from applied", 
 });
 
 /**
- * `2026-08-12-experimental-tancerz-vs-wojownik.json`: damage stated against a name, on the
+ * `2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`: damage stated against a
+ * name, on the
  * announcement that dealt it. The name is resolved through a roster, so the sample carries one.
  */
 const NAMED_DAMAGE =
@@ -69,10 +76,14 @@ Deno.test("damage stated against a name is charged to the skill that announced i
 /** An announcement of the game's own that nothing of the damage family follows. */
 const AURA =
     "466476=94.30;466476=94.30;tspell=Aura ochrony;skillId=76;aura-ac_per=20;aura-resall=15";
-/** `2026-08-06-tempest-grupa-vs-hildur.json`: the announcement `ABSORBED` swings under. */
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the announcement `ABSORBED` swings
+ * under.
+ */
 const ANNOUNCED = "467968=100.00;-10000249=100.00;tspell=Zatruta strzała;skillId=232";
 /**
- * `2026-08-12-experimental-tancerz-vs-wojownik.json`: the same shape with a block in front of it,
+ * `2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`: the same shape with a
+ * block in front of it,
  * so the swing went out and landed nothing.
  */
 const BLOCKED = [
@@ -463,7 +474,10 @@ Deno.test("what one gave another is the skills announced for it plus the keys, e
     assert(stated > 0, "and some on a key the game named with nothing announced in front of it");
 });
 
-/** `2026-08-06-tempest-grupa-vs-hildur.json`: a critical blow that pierced and destroyed armour. */
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: a critical blow that pierced and
+ * destroyed armour.
+ */
 const CRITICAL = "467968=100.00;-10000249=99.69;+crit;+pierce;+dmgd=1557;+acdmg=16;-dmgd=1012";
 /** The same shape with the defending side's own flag on it, which is not the striker's. */
 const EVADED = "467968=100.00;-10000249=99.69;-evade;+dmgd=900;-dmgd=0";

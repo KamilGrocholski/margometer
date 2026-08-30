@@ -23,13 +23,14 @@ import {
 } from "@/src/game/fight-capture.ts";
 
 /**
- * The newest recording, and the newest envelope. **`wersja` does not identify the shape**:
- * measured over `captures/` on 2026-08-29, all 28 recordings state `wersja: 1` and four different
+ * The newest recording, and the newest envelope. **`formatVersion` does not identify the shape**:
+ * measured over `captures/` on 2026-08-30, all 28 recordings state `1` and four different
  * envelopes exist among them — the oldest carries `otwarcie`, `zrodlo` and `odchudzonych`, which
- * nothing writes any more, and only the five newest carry `dodatek` and `przegladarka`. So the
- * contract this holds itself to is the newest, and it is named rather than found.
+ * nothing writes any more and the migration to English left alone, and only the five newest carry
+ * `addOnVersion` and `userAgent`. So the contract this holds itself to is the newest, and it is
+ * named rather than found.
  */
-const NEWEST = "captures/2026-08-27-luvia-grupa-vs-amaimon.json";
+const NEWEST = "captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json";
 
 const SURROUNDINGS: CaptureSurroundings = {
     world: "tempest",
@@ -66,43 +67,47 @@ Deno.test("the envelope is the one every admitted recording already carries", ()
     );
     // Two keys an admitted recording gains at intake and this never writes: the counts of what
     // was substituted. Everything else is written here, in the same spelling.
-    const atIntake = ["pseudonimow", "opisow"];
+    const atIntake = ["namesSubstituted", "descriptionsRemoved"];
     const owed = Object.keys(admitted).filter((key) => !atIntake.includes(key));
     const composed = Object.keys(written);
     // The one key that goes the other way: intake takes the counted figures back off a recording
     // before admitting it, so an admitted one carries none (ADR 0027).
-    assertEquals(composed.filter((key) => key !== "raport"), owed, "the same keys, in that order");
+    assertEquals(composed.filter((key) => key !== "report"), owed, "the same keys, in that order");
     assertEquals(
-        composed[composed.indexOf("raport") + 1],
-        "pominietych",
+        composed[composed.indexOf("report") + 1],
+        "droppedCalls",
         "and the figures stand above the calls, where a reader opening the file meets them",
     );
-    assertEquals(written.wersja, 2, "the envelope that may carry them says which one it is");
-    assertEquals(written.dodatek, BUILD_VERSION, "with the build that wrote it, not the format's");
-    assertEquals(written.swiat, "tempest", "the world it was taken on");
-    assertEquals(written.build, "53XkBRxF", "the client's own build");
-    assertEquals(written.urwany, false, "and a tail nothing was cut off");
+    assertEquals(written.formatVersion, 3, "the envelope that may carry them says which one it is");
+    assertEquals(
+        written.addOnVersion,
+        BUILD_VERSION,
+        "with the build that wrote it, not the format's",
+    );
+    assertEquals(written.world, "tempest", "the world it was taken on");
+    assertEquals(written.gameBuild, "53XkBRxF", "the client's own build");
+    assertEquals(written.isTruncated, false, "and a tail nothing was cut off");
 });
 
 Deno.test("a recording that could not read its surroundings says so rather than inventing", () => {
     const blind = { ...SURROUNDINGS, gameBuild: null, userAgent: null };
     const written = readCapture(composeCaptureText(composeEmptyCapture(), blind, null) ?? "");
-    assertEquals(written.build, null, "a build nobody stated is absent, never a stand-in");
-    assertEquals(written.przegladarka, null, "and so is a browser that said nothing of itself");
+    assertEquals(written.gameBuild, null, "a build nobody stated is absent, never a stand-in");
+    assertEquals(written.userAgent, null, "and so is a browser that said nothing of itself");
 });
 
 Deno.test("the figures travel with the calls, and nothing is written where none were read", () => {
     const blank = readCapture(composeCaptureText(composeEmptyCapture(), SURROUNDINGS, null) ?? "");
-    assertEquals(blank.raport, null, "a fight nobody read is said to be none, never an empty one");
+    assertEquals(blank.report, null, "a fight nobody read is said to be none, never an empty one");
 
     const subject = composeEmptySubject();
     const text = composeCaptureText(composeEmptyCapture(), SURROUNDINGS, subject) ?? "";
     const written = readCapture(text);
-    const report = written.raport;
+    const report = written.report;
     assert(isRecord(report), "a fight that was read is written into the recording beside it");
     assertEquals(report.payloads, 1, "with what it was built from");
     assertEquals(report.combatants, {}, "and a cast of nobody, which is a reading and not a gap");
-    assert(!("dodatek" in report), "what qualifies the numbers stands once, in the envelope");
+    assert(!("addOnVersion" in report), "what qualifies the numbers stands once, in the envelope");
     assert(!text.includes('MargoMeter"'), "so the add-on's name is not in the file twice");
 });
 
@@ -175,8 +180,14 @@ Deno.test("what the game goes on changing is copied, not held by reference", () 
     );
 });
 
-Deno.test("a file is named for a world and a moment, and no colon reaches the name", () => {
+Deno.test("a file is named for the world, both versions and the moment", () => {
     const name = composeCaptureFileName(SURROUNDINGS);
-    assertEquals(name, "margometer-tempest-2026-08-29T10-11-12-345Z.json", "world, then moment");
-    assert(!name.slice(0, -".json".length).includes("."), "nothing a file extension is read from");
+    assertEquals(
+        name,
+        `margometer-tempest-53XkBRxF-${BUILD_VERSION}-2026-08-29T10-11-12-345Z.json`,
+        "the world, the game's build, ours, then the moment",
+    );
+    const blind = composeCaptureFileName({ ...SURROUNDINGS, gameBuild: null });
+    assert(blind.includes("-none-"), "a build the page never stated is said to be none");
+    assert(!name.slice(0, -".json".length).includes(":"), "no colon reaches a file's name");
 });

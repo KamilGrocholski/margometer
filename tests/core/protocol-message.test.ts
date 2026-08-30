@@ -13,12 +13,17 @@ import {
 } from "@/src/core/protocol-message.ts";
 import { getRecordedMessages, getRecordingPaths } from "@/tests/recorded-fight.ts";
 
-/** `2026-08-04-tempest-lowca-vs-odyncze.json`, the fight this file's samples are taken from. */
+/**
+ * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`, the fight this file's samples are
+ * taken from.
+ */
 const HIT = "482845=100.00;-161518=70.07;+dmgd=466;+acdmg=5;-dmgd=223";
 const KILLING_HIT = "482845=100.00;-161518=0.00;+dmgd=485;+acdmg=5;-dmgd=248";
 const STEP = "-255967=100.00;0;step";
 const OUTCOME = "0;0;winner=Gracz 1";
-/** `2026-08-06-tempest-grupa-vs-hildur.json`: a side stated without a percentage. */
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: a side stated without a percentage.
+ */
 const ANNOUNCEMENT = "-10000249;0;tspell=Struna płomienna";
 
 Deno.test("both ends are read, with the health each states", () => {

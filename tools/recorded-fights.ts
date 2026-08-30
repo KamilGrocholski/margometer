@@ -124,9 +124,9 @@ export function getRecordedFights(): RecordedFight[] {
  * the screenshots then show the same fight, and a recording admitted tomorrow changes none of
  * them. Chosen over the corpus on 2026-08-30 for what the panel can draw off it — 33 announced
  * skills, 18 elements, every one of the eleven with healing, five with a prevented figure — where
- * `2026-08-27-luvia-grupa-vs-amaimon-2` carries more calls and less to look at.
+ * `2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0` carries more calls and less to look at.
  */
-export const PREVIEW_FIGHT_NAME = "2026-08-27-luvia-grupa-vs-amaimon";
+export const PREVIEW_FIGHT_NAME = "2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0";
 
 /** Loudly (**E7**): a preview opening on some other fight is worse than one that does not open. */
 export function getPreviewRecordedFight(fights: readonly RecordedFight[]): RecordedFight {

@@ -22,7 +22,8 @@ import {
 } from "@/tests/recorded-fight.ts";
 
 /** The one recording whose calls carry no snapshot, so its roster can only come from a payload. */
-const NO_SNAPSHOTS = "captures/2026-08-24-tempest-tropiciel-vs-centaury-auto.json";
+const NO_SNAPSHOTS =
+    "captures/2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1.json";
 
 function replay(path: string) {
     const session = composeBattleSession();

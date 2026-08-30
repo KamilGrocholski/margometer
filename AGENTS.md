@@ -253,9 +253,10 @@ TypeScript idiom, with the naming rules stated here.
 ## Language
 
 - **L1.** Write English — code, comments, tests, documents, commits.
-- **L2.** Two exceptions: field names inside captured material, which stay Polish
-  (`captures/AGENTS.md`), and **the text a person who plays the game reads**, which is Polish
-  wherever it is composed. Identifiers around a Polish string stay English.
+- **L2.** One exception: **the text a person who plays the game reads**, which is Polish wherever it
+  is composed. Identifiers around a Polish string stay English. What arrives from the game keeps the
+  game's own spelling — a payload's keys, a message's words — and is nobody here's to rename
+  (`captures/AGENTS.md`). **ADR 0030.**
 - **L3.** A Polish sentence never carries our vocabulary or a key of the game's: a player is told
   what cannot be known, not why our reader cannot know it.
 

@@ -1,16 +1,16 @@
 {
-  "wersja": 1,
-  "dodatek": "0.8.1",
-  "przy": "2026-08-26T09:17:30.991Z",
-  "swiat": "luvia",
-  "build": "53XkBRxF",
-  "przegladarka": "Mozilla/5.0 (X11; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0",
-  "pominietych": 83,
-  "urwany": false,
-  "wpisy": [
+  "formatVersion": 1,
+  "addOnVersion": "0.8.1",
+  "capturedAt": "2026-08-26T09:17:30.991Z",
+  "world": "luvia",
+  "gameBuild": "53XkBRxF",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:154.0) Gecko/20100101 Firefox/154.0",
+  "droppedCalls": 83,
+  "isTruncated": false,
+  "calls": [
     {
-      "nr": 0,
-      "ladunek": {
+      "index": 0,
+      "payload": {
         "init": "1",
         "auto": "0",
         "battleground": "dd4.jpg",
@@ -1070,7 +1070,7 @@
           211
         ]
       },
-      "komunikaty": [
+      "messages": [
         "17246=100.00;0;poison_lowdmg_per-enemies=10",
         "-10021458=100.00;25015=58.75;+crit;+dmg=5924;+acdmg=96;+crush_physical=30;-dmg=5041;-dmga=1512",
         "-10021458=100.00;0;prepare=Osobisty rozrachunek(0%)",
@@ -1284,8 +1284,8 @@
         "17246=29.37;-10021458=62.82;+dmgd=795;+taken_dmg=191;-dmgd=380;-dmga=191",
         "9065=29.97;0;heal=166"
       ],
-      "wojownicyPrzed": [],
-      "wojownicyPo": [
+      "combatantsBefore": [],
+      "combatantsAfter": [
         {
           "id": 9065,
           "name": "Gracz 1",
@@ -1489,8 +1489,8 @@
       ]
     },
     {
-      "nr": 1,
-      "ladunek": {
+      "index": 1,
+      "payload": {
         "w": {
           "9065": {
             "poolTime": {
@@ -2289,7 +2289,7 @@
           486
         ]
       },
-      "komunikaty": [
+      "messages": [
         "9065=29.97;-10021458=62.82;tspell=Podwójne trafienie;skillId=239",
         "9065=29.97;-10021458=61.64;+crit;+dmgd=1103;+dmgl=1270;+resdmg=1;+taken_dmg=570;-dmgd=668;-dmgl=945;-dmga=570",
         "9065=29.97;-10021458=60.04;+crit;+pierce;+dmgd=1175;+dmgl=1294;+resdmg=1;+taken_dmg=593;-dmgd=1175;-dmgl=1190;-dmga=593",
@@ -2566,7 +2566,7 @@
         "0;0;loser=Draugr Zastępowy",
         "0;0;txt=Draugr Zastępowy: zdobyto Kapelusz odkrywcy I, Ciepłochron I, Mundur zamożnego wikinga I, Kamień z runą dagaz I, Kamień z runą ansuz I, Rogata ochrona dłoni I, Mundur zamożnego wikinga I, Kamień z runą ansuz I, Ciepłochron I, Kapelusz odkrywcy I"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 9065,
           "name": "Gracz 1",
@@ -2768,7 +2768,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 9065,
           "name": "Gracz 1",
@@ -2972,14 +2972,14 @@
       ]
     },
     {
-      "nr": 2,
-      "ladunek": {
+      "index": 2,
+      "payload": {
         "auto": "1",
         "move": -1,
         "endBattle": 1
       },
-      "komunikaty": [],
-      "wojownicyPrzed": [
+      "messages": [],
+      "combatantsBefore": [
         {
           "id": 9065,
           "name": "Gracz 1",
@@ -3181,7 +3181,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 9065,
           "name": "Gracz 1",
@@ -3385,6 +3385,6 @@
       ]
     }
   ],
-  "pseudonimow": 184,
-  "opisow": 4
+  "namesSubstituted": 184,
+  "descriptionsRemoved": 4
 }

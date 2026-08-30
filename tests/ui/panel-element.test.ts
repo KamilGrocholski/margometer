@@ -54,13 +54,13 @@ import {
 import { getRecordedCombatants, getRecordedPayloads } from "@/tests/recorded-fight.ts";
 import { getDeclaration, getRuleBody } from "@/tests/style-sheet.ts";
 
-const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
+const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /**
  * A fight whose hardest-hit row opens onto both kinds of opponent: one the level under says more
  * about, and one it says exactly the row again about. On `HILDUR` every pair opens, because the
  * boss both strikes and wounds each member (`src/core/fight-statistics.ts`, ADR 0022).
  */
-const BOTH_KINDS_OF_PAIR = "captures/2026-08-12-tempest-grupa-vs-hildur-1.json";
+const BOTH_KINDS_OF_PAIR = "captures/2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json";
 
 function readFight(): PanelReading {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
@@ -1719,7 +1719,8 @@ Deno.test("every row in a list draws the same cells before its name", () => {
 });
 
 /**
- * `2026-08-06-tempest-grupa-vs-hildur.json`, the healer at 469657: two announced skills and
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, the healer at 469657: two announced
+ * skills and
  * health that moved under `heal`, which nothing announced.
  *
  * The key is drawn under the reader's own word for it and never under the token, and never under
@@ -1774,7 +1775,8 @@ Deno.test("a healing section draws the key the game named, not a row saying it d
 });
 
 /**
- * `2026-08-06-tempest-grupa-vs-hildur.json`, the combatant at 469657 and themselves: health they
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, the combatant at 469657 and
+ * themselves: health they
  * put back into themselves under one announcement and under `heal`, which nothing announced.
  *
  * One section, because the two kinds of row are two parts of one figure — drawn apart they would

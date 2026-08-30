@@ -2,8 +2,8 @@
  * The fight as it happened, kept so a reader can write it to a file.
  *
  * **The shape is a contract, not an invention:** what this composes is what every recording in
- * `captures/` already is, Polish field names and all (`captures/AGENTS.md`), plus the `raport`
- * intake takes back off it.
+ * `captures/` already is (`captures/AGENTS.md`), plus the `report` intake takes back off it. The
+ * envelope is ours and English; what is inside `payload` is the game's. **ADR 0030.**
  *
  * ⚠️ **Nothing is redacted here, and that is the design.** The file carries real nicknames and
  * the game's own prose, and never enters git — intake deals with both, once (`SECURITY.md`).
@@ -18,31 +18,30 @@ import { composeReportFight, type ReportSubject } from "@/src/game/fight-report.
 import { isFightStart } from "@/src/game/battle-session.ts";
 
 /**
- * 2 is the envelope that may carry `raport`, and intake strips that block: measured over
- * `captures/` 2026-08-30, every recording admitted states 1 and none will ever carry one. The
- * number says which writer wrote a file, never what shape it is in. **ADR 0027.**
+ * 3 is the envelope in English; 2 was Polish and carried `raport`, 1 Polish without it. The number
+ * says which writer wrote a file — `tools/capture-intake.ts` still takes 1 and 2. **ADR 0030.**
  */
-const CAPTURE_FORMAT_VERSION = 2;
+const CAPTURE_FORMAT_VERSION = 3;
 /**
  * The envelope's own field names, spelled here and read by whatever reads a recording back —
  * **N13**, which is why they are a constant rather than a string literal in each of two files.
  */
 export const CAPTURE_FIELDS = {
-    formatVersion: "wersja",
-    addOnVersion: "dodatek",
-    capturedAt: "przy",
-    world: "swiat",
-    gameBuild: "build",
-    userAgent: "przegladarka",
-    report: "raport",
-    droppedCalls: "pominietych",
-    isFull: "urwany",
-    calls: "wpisy",
-    index: "nr",
-    payload: "ladunek",
-    messages: "komunikaty",
-    combatantsBefore: "wojownicyPrzed",
-    combatantsAfter: "wojownicyPo",
+    formatVersion: "formatVersion",
+    addOnVersion: "addOnVersion",
+    capturedAt: "capturedAt",
+    world: "world",
+    gameBuild: "gameBuild",
+    userAgent: "userAgent",
+    report: "report",
+    droppedCalls: "droppedCalls",
+    isTruncated: "isTruncated",
+    calls: "calls",
+    index: "index",
+    payload: "payload",
+    messages: "messages",
+    combatantsBefore: "combatantsBefore",
+    combatantsAfter: "combatantsAfter",
 } as const;
 /**
  * Where collecting stops. It **stops** rather than dropping the oldest: a recording without the
@@ -51,6 +50,8 @@ export const CAPTURE_FIELDS = {
 export const MAXIMUM_CALLS = 2000;
 /** So a difference between two recordings is something a person can read. */
 const INDENT_SPACES = 2;
+/** In a name, where the register writes `none stated` in a sentence (`docs/captured-fights.md`). */
+export const NOTHING_STATED = "none";
 
 export interface CapturedCall {
     index: number;
@@ -64,7 +65,7 @@ export interface FightCapture {
     calls: readonly CapturedCall[];
     droppedCalls: number;
     /** Whether the ceiling was reached, so the file says its tail is missing. */
-    isFull: boolean;
+    isTruncated: boolean;
     shapesSeen: ReadonlySet<string>;
     statesSeen: ReadonlySet<string>;
 }
@@ -83,12 +84,12 @@ export function composeEmptyCapture(): FightCapture {
     const capture: FightCapture = {
         calls: [],
         droppedCalls: 0,
-        isFull: false,
+        isTruncated: false,
         shapesSeen: new Set(),
         statesSeen: new Set(),
     };
     assert(capture.calls.length === 0, "a recording starts holding no call");
-    assert(!capture.isFull, "and with room for every one that arrives");
+    assert(!capture.isTruncated, "and with room for every one that arrives");
     return capture;
 }
 
@@ -140,7 +141,7 @@ export function composeNextCapture(
     const previous = isFightStart(call.payload) ? composeEmptyCapture() : capture;
     assert(previous.calls.length <= MAXIMUM_CALLS, "a recording stays inside its stated bound");
     if (previous.calls.length >= MAXIMUM_CALLS) {
-        return { ...previous, isFull: true, droppedCalls: previous.droppedCalls + 1 };
+        return { ...previous, isTruncated: true, droppedCalls: previous.droppedCalls + 1 };
     }
     const shape = composeShapeKey(call.payload);
     const state = composeStateKey(call.combatantsAfter);
@@ -160,20 +161,19 @@ export function composeNextCapture(
     return {
         calls: [...previous.calls, kept],
         droppedCalls: previous.droppedCalls,
-        isFull: false,
+        isTruncated: false,
         shapesSeen: new Set([...previous.shapesSeen, shape]),
         statesSeen: new Set([...previous.statesSeen, state]),
     };
 }
 
 /**
- * The recording as the file on disk. The field names are the game's own Polish, because they are
- * the format the recordings are in.
+ * The recording as the file on disk.
  *
  * **Two fields are about the reader rather than the fight**, and they are here because the file
- * arrives in a report: `dodatek` is which build wrote it, `przegladarka` what the browser said of
- * itself. `raport` is the one derived thing here, travelling with the calls it came from so a
- * figure that looks wrong is read beside its material. **ADR 0027.**
+ * arrives in a report: `addOnVersion` is which build of ours wrote it, `userAgent` what the browser
+ * said of itself. `report` is the one derived thing here, travelling with the calls it came from so
+ * a figure that looks wrong is read beside its material. **ADR 0027.**
  */
 export function composeCaptureText(
     capture: FightCapture,
@@ -197,7 +197,7 @@ export function composeCaptureText(
         // Above the calls, which run to hundreds of kilobytes. Null says no fight was read.
         [CAPTURE_FIELDS.report]: subject === null ? null : composeReportFight(subject),
         [CAPTURE_FIELDS.droppedCalls]: capture.droppedCalls,
-        [CAPTURE_FIELDS.isFull]: capture.isFull,
+        [CAPTURE_FIELDS.isTruncated]: capture.isTruncated,
         [CAPTURE_FIELDS.calls]: capture.calls.map((call) => ({
             [CAPTURE_FIELDS.index]: call.index,
             [CAPTURE_FIELDS.payload]: call.payload,
@@ -211,12 +211,17 @@ export function composeCaptureText(
     return writing.text;
 }
 
-/** Names the world and the moment, so two recordings never collide in one folder. */
+/**
+ * Names the world, both versions and the moment: which build a recording came off and which wrote
+ * it are what is asked of an attachment, and the moment keeps two from colliding. **ADR 0030.**
+ */
 export function composeCaptureFileName(surroundings: CaptureSurroundings): string {
     assert(surroundings.world.length > 0, "a file is named for the world it came from");
+    assert(BUILD_VERSION.length > 0, "and for the build of ours that wrote it");
     const at = surroundings.capturedAt.split(":").join("-").split(".").join("-");
     assert(!at.includes(":"), "and for a moment no file system objects to");
     assert(!at.includes("."), "nor one a file's own extension could be read out of");
     assert(at.length > 0, "and a moment that says something");
-    return `margometer-${surroundings.world}-${at}.json`;
+    const build = surroundings.gameBuild ?? NOTHING_STATED;
+    return `margometer-${surroundings.world}-${build}-${BUILD_VERSION}-${at}.json`;
 }

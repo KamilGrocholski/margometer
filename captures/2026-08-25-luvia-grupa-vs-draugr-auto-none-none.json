@@ -1,14 +1,14 @@
 {
-  "wersja": 1,
-  "przy": "2026-08-25T19:59:17.651Z",
-  "swiat": "luvia",
-  "build": null,
-  "pominietych": 130,
-  "urwany": false,
-  "wpisy": [
+  "formatVersion": 1,
+  "capturedAt": "2026-08-25T19:59:17.651Z",
+  "world": "luvia",
+  "gameBuild": null,
+  "droppedCalls": 130,
+  "isTruncated": false,
+  "calls": [
     {
-      "nr": 0,
-      "ladunek": {
+      "index": 0,
+      "payload": {
         "init": "1",
         "auto": "1",
         "battleground": "dd4.jpg",
@@ -1534,7 +1534,7 @@
           461
         ]
       },
-      "komunikaty": [
+      "messages": [
         "38635=96.82;0;poison_lowdmg_per-enemies=10",
         "7692=100.00;0;poison_lowdmg_per-enemies=8",
         "-10119238;0;tspell=Szarpnięcie kością",
@@ -1998,8 +1998,8 @@
         "0;0;winner=Draugr Zastępowy",
         "0;0;loser=Gracz 2, Gracz 1, Gracz 5, Gracz 6, Gracz 4, Gracz 7, Gracz 9, Gracz 3, Gracz 10, Gracz 8"
       ],
-      "wojownicyPrzed": [],
-      "wojownicyPo": [
+      "combatantsBefore": [],
+      "combatantsAfter": [
         {
           "id": 7692,
           "name": "Gracz 1",
@@ -2203,14 +2203,14 @@
       ]
     },
     {
-      "nr": 1,
-      "ladunek": {
+      "index": 1,
+      "payload": {
         "auto": "1",
         "move": -1,
         "endBattle": 1
       },
-      "komunikaty": [],
-      "wojownicyPrzed": [
+      "messages": [],
+      "combatantsBefore": [
         {
           "id": 7692,
           "name": "Gracz 1",
@@ -2412,7 +2412,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 7692,
           "name": "Gracz 1",
@@ -2616,15 +2616,15 @@
       ]
     },
     {
-      "nr": 2,
-      "ladunek": {
+      "index": 2,
+      "payload": {
         "auto": "1",
         "move": -1,
         "endBattle": 1,
         "close": 1
       },
-      "komunikaty": [],
-      "wojownicyPrzed": [
+      "messages": [],
+      "combatantsBefore": [
         {
           "id": 7692,
           "name": "Gracz 1",
@@ -2826,9 +2826,9 @@
           }
         }
       ],
-      "wojownicyPo": []
+      "combatantsAfter": []
     }
   ],
-  "pseudonimow": 202,
-  "opisow": 3
+  "namesSubstituted": 202,
+  "descriptionsRemoved": 3
 }

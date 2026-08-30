@@ -1,14 +1,14 @@
 {
-  "wersja": 1,
-  "przy": "2026-08-04T12:28:13.631Z",
-  "swiat": "tempest",
-  "build": "1785244275300",
+  "formatVersion": 1,
+  "capturedAt": "2026-08-04T12:28:13.631Z",
+  "world": "tempest",
+  "gameBuild": "1785244275300",
   "otwarcie": null,
   "odchudzonych": 565,
-  "wpisy": [
+  "calls": [
     {
-      "nr": 0,
-      "ladunek": {
+      "index": 0,
+      "payload": {
         "init": "1",
         "auto": "0",
         "battleground": "009.jpg",
@@ -244,13 +244,13 @@
           "left": 120
         }
       },
-      "komunikaty": [],
+      "messages": [],
       "render": [
         "<div class=\"battle-msg txt\" style=\"opacity: 1;\">Rozpoczęła się walka pomiędzy Gracz 1 (40h) a Locha (40w), Odyniec (41w), Odyniec (41w)</div>",
         "<div class=\"battle-msg txt\">Rozpoczęła się walka pomiędzy Gracz 1 (40h) a Locha (40w), Odyniec (41w), Odyniec (41w)</div>"
       ],
-      "wojownicyPrzed": [],
-      "wojownicyPo": [
+      "combatantsBefore": [],
+      "combatantsAfter": [
         {
           "id": 482845,
           "name": "Gracz 1",
@@ -326,8 +326,8 @@
       ]
     },
     {
-      "nr": 1,
-      "ladunek": {
+      "index": 1,
+      "payload": {
         "w": {
           "482845": {
             "poolTime": {
@@ -372,9 +372,9 @@
           }
         }
       },
-      "komunikaty": [],
+      "messages": [],
       "render": [],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 482845,
           "name": "Gracz 1",
@@ -448,7 +448,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 482845,
           "name": "Gracz 1",
@@ -524,8 +524,8 @@
       ]
     },
     {
-      "nr": 2,
-      "ladunek": {
+      "index": 2,
+      "payload": {
         "w": {
           "482845": {
             "poolTime": {
@@ -648,7 +648,7 @@
           17
         ]
       },
-      "komunikaty": [
+      "messages": [
         "482845=100.00;-161518=70.07;+dmgd=466;+acdmg=5;-dmgd=223",
         "482845=100.00;-161518=21.34;+crit;+dmgd=612;+acdmg=5;-dmgd=363",
         "-255967=100.00;0;step",
@@ -706,7 +706,7 @@
         "<div class=\"battle-msg exp\">Zwycięzca zdobył łącznie 3973 punktów doświadczenia<br></div>",
         "<div class=\"battle-msg txt\">Locha: zdobyto Skóra z dzika</div>"
       ],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 482845,
           "name": "Gracz 1",
@@ -780,7 +780,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 482845,
           "name": "Gracz 1",
@@ -856,14 +856,14 @@
       ]
     },
     {
-      "nr": 3,
-      "ladunek": {
+      "index": 3,
+      "payload": {
         "move": -1,
         "endBattle": 1
       },
-      "komunikaty": [],
+      "messages": [],
       "render": [],
-      "wojownicyPrzed": [
+      "combatantsBefore": [
         {
           "id": 482845,
           "name": "Gracz 1",
@@ -937,7 +937,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 482845,
           "name": "Gracz 1",
@@ -1013,5 +1013,5 @@
       ]
     }
   ],
-  "pseudonimow": 34
+  "namesSubstituted": 34
 }

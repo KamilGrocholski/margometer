@@ -33,6 +33,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Zmiana** — Plik z walką, który zapisuje `⭳`, ma teraz w nazwie wersję gry i wersję dodatku, a w
+  środku nazwy pól po angielsku — `gameBuild`, `addOnVersion`, `capturedAt` zamiast skrótów. Widać z
+  samej nazwy załącznika, z czego pochodzi, bez otwierania go.
+
 - **Zmiana** — Panel otwiera się na środku ekranu, a nie w prawym górnym rogu. Jest tam, gdzie i tak
   patrzysz, a przeciągnięty raz zostaje tam, gdzie go postawisz — tak samo jak dotąd.
 

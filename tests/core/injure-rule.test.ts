@@ -23,7 +23,7 @@ import {
 } from "@/tests/recorded-fight.ts";
 
 /** A victim wounded by three different attackers, which is what makes *freshest* a claim. */
-const THREE_ATTACKERS = "captures/2026-08-15-tempest-grupa-vs-hildur-3.json";
+const THREE_ATTACKERS = "captures/2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none.json";
 
 Deno.test("every tick lands on a victim already wounded, stating what that wound announced", () => {
     let ticks = 0;

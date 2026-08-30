@@ -244,11 +244,11 @@ segment order is not the order of events: the heal comes first and the damage th
 under the threshold follows it, both carrying the health the holder is left on afterwards. It only
 becomes visible where the same combatant is struck **again** in the same message, because then a
 third figure states a different percentage — and until
-`captures/2026-08-23-tempest-grupa-vs-hildur-auto` no recording carried one. There combatant 466747
-takes 2 798, is healed 7 987 beside a 2 416 hit stating the same 40.00%, and is then struck for 2
-971 more; charging that last hit to the heal's own gap put the reading 2 971 out on a pool of
-29 823. So the damage that pairs with the bonus is the segments stating the bonus's own percentage
-and nothing past them (`tests/core/last-heal-rule.test.ts`).
+`captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none` no recording carried one.
+There combatant 466747 takes 2 798, is healed 7 987 beside a 2 416 hit stating the same 40.00%, and
+is then struck for 2 971 more; charging that last hit to the heal's own gap put the reading 2 971
+out on a pool of 29 823. So the damage that pairs with the bonus is the segments stating the bonus's
+own percentage and nothing past them (`tests/core/last-heal-rule.test.ts`).
 
 ⚠️ **One message can state it twice.** A group blow can drop two holders below the threshold at
 once, and the same recording carries the first — 466476 and 447544 healed in one message. A reader
@@ -367,11 +367,11 @@ into its own damage total — `updateStat("damage-fire", …)` beside `damageSum
 The help at article view,372 (read 2026-08-09) documents `fire` as a damage type carried by weapons
 and set on a monster by its profession, which settles what it is and not what the key reports. The
 captures settle that: all 12 occurrences sit on one combatant in
-`2026-08-15-tempest-grupa-vs-draugr-1`, against a pool of 184 680, and before it was read the
-witness disagreed on every one of them and on nothing else. Reading it closed all 12 first try. That
-the type is overwritten rather than extended is the same article's table of damage over time (read
-2026-08-19), and the absence of `+fire` from the client's list is `frozen/protocol-keys.ts`,
-re-earned by `tests/repository/protocol-keys.test.ts`.
+`2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none`, against a pool of 184 680, and before it
+was read the witness disagreed on every one of them and on nothing else. Reading it closed all 12
+first try. That the type is overwritten rather than extended is the same article's table of damage
+over time (read 2026-08-19), and the absence of `+fire` from the client's list is
+`frozen/protocol-keys.ts`, re-earned by `tests/repository/protocol-keys.test.ts`.
 
 ⚠️ **`frost` shares that branch in the client and is not read.** No capture carries one, so an entry
 for it would be a verdict with nothing behind it — it stays unread and loud (§3), which is the only
@@ -408,11 +408,11 @@ damage type carried by weapons, and once in the list of effects a monster's prof
 beside `poison` and `wound` — which settles what it is and not what the key reports. The captures
 settle that, by the only evidence this repository takes for a key that moves health: the 27
 occurrences it had then all sat on one combatant in
-`captures/2026-08-23-tempest-grupa-vs-hildur.json` against a pool of 279 072, and before it was read
-the witness disagreed 195 times, on that combatant and on nothing else in the corpus. The 12 that
-`captures/2026-08-26-luvia-grupa-vs-draugr.json` added on 2026-08-26 are the same shape — one
-victim, the recording's single opponent — and the witness judges that fight and agrees. Reading it
-closed every one first try and introduced no disagreement anywhere
+`captures/2026-08-23-tempest-grupa-vs-hildur-1786514810315-none.json` against a pool of 279 072, and
+before it was read the witness disagreed 195 times, on that combatant and on nothing else in the
+corpus. The 12 that `captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json` added on
+2026-08-26 are the same shape — one victim, the recording's single opponent — and the witness judges
+that fight and agrees. Reading it closed every one first try and introduced no disagreement anywhere
 (`tests/core/health-witness.test.ts`). The absence of `+light` from the client's list is
 `frozen/protocol-keys.ts`, re-earned by `tests/repository/protocol-keys.test.ts`.
 
@@ -431,22 +431,22 @@ _Shape:_ 70 occurrences; alone in its message; a whole number
 _Help:_ names `anguish`
 
 _Evidence:_ the health witness reaches this key's fight and closes on it — 421 comparisons in
-`captures/2026-08-25-luvia-grupa-vs-mamlambo-auto.json`, all agreeing, and flipping either the sign
-or the slot breaks them (`tests/core/health-witness.test.ts`). The figure is legible without that
-too: in that recording every one of the eleven ticks states 184 against a pool of 43 092 and moves
-the stated percentage down by 0.42 to 0.43 points, which is what 184 of that pool comes to. The
-published help documents the effect at article `view,372` under the engine name `anguish` (read
-2026-08-25) — a legendary bonus applying bleeding damage to the target of a blow, spread over five
-turns, occurring only where the blow met no evade, `arrowblock` or `parry`, with the damage given by
-a formula over the item's apparent level and the character's base attributes. Production build
-`1786514810315` composes it from the actor slot off `c.tmpHpp` and splits the value on the same
-comma `poison` and `fire` split on; no occurrence here carries a second member. What this reading
-rests on beyond the arithmetic — that a tick is charged to its victim and never to whoever applied
-it — is measured by `tests/core/anguish-rule.test.ts`. Three recordings carry it as the set stood
-2026-08-25, and the two against a Draugr are what make the refusal legible rather than theoretical:
-in `captures/2026-08-25-luvia-grupa-vs-draugr.json` two combatants apply the bleed to the same
-victim and 25 ticks come back off it, each stating one of several figures and none of them
-announced.
+`captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json`, all agreeing, and flipping
+either the sign or the slot breaks them (`tests/core/health-witness.test.ts`). The figure is legible
+without that too: in that recording every one of the eleven ticks states 184 against a pool of 43
+092 and moves the stated percentage down by 0.42 to 0.43 points, which is what 184 of that pool
+comes to. The published help documents the effect at article `view,372` under the engine name
+`anguish` (read 2026-08-25) — a legendary bonus applying bleeding damage to the target of a blow,
+spread over five turns, occurring only where the blow met no evade, `arrowblock` or `parry`, with
+the damage given by a formula over the item's apparent level and the character's base attributes.
+Production build `1786514810315` composes it from the actor slot off `c.tmpHpp` and splits the value
+on the same comma `poison` and `fire` split on; no occurrence here carries a second member. What
+this reading rests on beyond the arithmetic — that a tick is charged to its victim and never to
+whoever applied it — is measured by `tests/core/anguish-rule.test.ts`. Three recordings carry it as
+the set stood 2026-08-25, and the two against a Draugr are what make the refusal legible rather than
+theoretical: in `captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json` two combatants apply the
+bleed to the same victim and 25 ticks come back off it, each stating one of several figures and none
+of them announced.
 
 ### `heal_target` — decoded
 
@@ -499,8 +499,8 @@ them (`tests/core/health-witness.test.ts`). The two occurrences stating 1724 eac
 stated percentage by exactly 4.00 points of a 43 092 pool, and the third states `0` and moves
 nothing — the zero being the reason `tests/core/npc-heal-rule.test.ts` exists, since a key read only
 above zero passes every arithmetic check here and still loses a restoration the game reported.
-Carried by `captures/2026-08-25-luvia-grupa-vs-mamlambo-auto.json` and by no other as the set stood
-2026-08-25.
+Carried by `captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json` and by no other as the
+set stood 2026-08-25.
 
 ### `legbon_holytouch_heal` — decoded
 
@@ -565,15 +565,16 @@ hand-built fights instead.
 
 ⚠️ **The key is carried, and read, and what it buys is a refusal with a side on it.** It was unread
 while no capture carried it — reading a shape this repository had never seen would have been
-describing a message we had never met (§5) — and `captures/2026-08-27-luvia-grupa-vs-amaimon-2.json`
-ended that on 2026-08-27. It now has its own entry below and is decoded as the skill declaration it
-always was. What its absence buys is the right to size the casts around it; what its presence buys
-is the right to refuse **the casts on the sides its caster faced**, which the help scopes and the
-protocol names. In that recording the reducer is one of ours cast at the monster, so nothing of ours
-was reduced and all three of its casts are sized — and twenty of their figures are checked against
-the snapshots of the calls they stood alone in, exactly
-(`docs/adr/0010-sizing-a-share-onto-a-side.md`, `tests/core/combatant-health.test.ts`). A cast on
-the side a reduction _did_ reach is refused, and no recording anywhere holds one.
+describing a message we had never met (§5) — and
+`captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json` ended that on 2026-08-27. It now
+has its own entry below and is decoded as the skill declaration it always was. What its absence buys
+is the right to size the casts around it; what its presence buys is the right to refuse **the casts
+on the sides its caster faced**, which the help scopes and the protocol names. In that recording the
+reducer is one of ours cast at the monster, so nothing of ours was reduced and all three of its
+casts are sized — and twenty of their figures are checked against the snapshots of the calls they
+stood alone in, exactly (`docs/adr/0010-sizing-a-share-onto-a-side.md`,
+`tests/core/combatant-health.test.ts`). A cast on the side a reduction _did_ reach is refused, and
+no recording anywhere holds one.
 
 ⚠️ **One shape of this key's own value is unmet and would be misread.** The same production build
 splits the value on a comma and composes a different sentence when there are two members —
@@ -584,24 +585,25 @@ two-member value and refuses to size the cast — the safe direction, and stated
 the one that would otherwise be found by a wrong figure rather than by a missing one.
 
 ⚠️ **Two captures took a second reading to reach**, and they are the interesting ones:
-`2026-08-15-tempest-grupa-vs-draugr-1` and `2026-08-15-tempest-grupa-vs-hildur-1` open with a
-payload carrying 297 and 354 messages and no snapshot beside it, so the first snapshot sits _after_
-eight casts nothing could size. Unwinding the snapshot alone refused both outright. The messages in
-that opening state health percentages of their own, and in both captures every one of the eleven
-combatants is stated before the first cast — so the entry health is unwound from the first statement
-about each combatant, and the snapshot is the fallback rather than the anchor. Five of those eleven
-are stated by a `step` or a skill announcement, which is why those two events now carry a health
-percentage they have no figure of their own to go beside.
+`2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none` and
+`2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none` open with a payload carrying 297 and 354
+messages and no snapshot beside it, so the first snapshot sits _after_ eight casts nothing could
+size. Unwinding the snapshot alone refused both outright. The messages in that opening state health
+percentages of their own, and in both captures every one of the eleven combatants is stated before
+the first cast — so the entry health is unwound from the first statement about each combatant, and
+the snapshot is the fallback rather than the anchor. Five of those eleven are stated by a `step` or
+a skill announcement, which is why those two events now carry a health percentage they have no
+figure of their own to go beside.
 
 ⚠️ **The health witness stopped skipping these calls, and agrees.** It used to decline every engine
 call carrying this key, because health moved by an amount nothing could size. It now judges them and
 the arithmetic closes: coverage rose in thirteen of the fourteen fights carrying the key — 790 → 945
-comparisons on `2026-08-06-tempest-grupa-vs-hildur`, 392 → 624 on
-`2026-08-12-tempest-grupa-vs-draugr-1` — with no disagreement anywhere. The fourteenth carries all
-of its casts in an opening call with no snapshot in front of it, which the replay could never judge
-whatever the call contained. That is the protocol's own stated percentages confirming a figure
-derived from something else entirely, which is the only evidence this repository accepts for a key
-that moves health.
+comparisons on `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none`, 392 → 624 on
+`2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none` — with no disagreement anywhere. The
+fourteenth carries all of its casts in an opening call with no snapshot in front of it, which the
+replay could never judge whatever the call contained. That is the protocol's own stated percentages
+confirming a figure derived from something else entirely, which is the only evidence this repository
+accepts for a key that moves health.
 
 _Health:_ moves health
 
@@ -650,9 +652,9 @@ as above; the article does not print the bare key, and the phrase counted for th
 there inside that name. Production build `53XkBRxF` composes `msg_aura-bandage %val% %name%`, with a
 `msg_aura-bandage-multi %val% %val2%` branch where the value splits on a comma — the two branches
 `heal`, `poison` and `injure` each take. The figure is health of this protocol's units: on
-`captures/2026-08-27-luvia-grupa-vs-amaimon.json` the single occurrence states 2488 against a pool
-of 15 553 and raises its subject's stated percentage from 36.84 to 52.83, where 2488 of that pool is
-16.00 points. `tests/core/bandage-rule.test.ts` re-earns it.
+`captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json` the single occurrence states 2488
+against a pool of 15 553 and raises its subject's stated percentage from 36.84 to 52.83, where 2488
+of that pool is 16.00 points. `tests/core/bandage-rule.test.ts` re-earns it.
 
 ### `?dmg*` — decoded
 
@@ -699,10 +701,11 @@ _Shape:_ 24 occurrences; on a blow; a whole number
 _Help:_ names `thirdatt`
 
 _Evidence:_ ⚠️ **earned on the health arithmetic, not on the help.** While both halves went unread,
-`tests/core/health-witness.test.ts` disagreed eight times in `2026-08-12-tempest-grupa-vs-draugr-2`,
-every one in the direction of too little damage decoded. Reading this half closes all eight and
-opens no disagreement anywhere else. That is the protocol's own stated percentages settling it,
-which is the only evidence this file accepts for a key that moves health.
+`tests/core/health-witness.test.ts` disagreed eight times in
+`2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none`, every one in the direction of too little
+damage decoded. Reading this half closes all eight and opens no disagreement anywhere else. That is
+the protocol's own stated percentages settling it, which is the only evidence this file accepts for
+a key that moves health.
 
 ### `-absorb` — decoded
 
@@ -716,9 +719,9 @@ _Evidence:_ the game's published help, article view,372, at the engine name `abs
 2026-08-09), describes it as a reduction of the physical damage a character is taking at that
 moment, capped at a share of the blow and drawn from a pool that runs out — which is why the figure
 is sometimes far below that cap. Production build `1785244275300`: the branch appends to a log slot
-and assigns nothing. 45 occurrences on `captures/2026-08-06-tempest-grupa-vs-hildur.json`, every one
-with a value that reads as an integer — which the `*Shape:*` line above re-earns over every
-recording since.
+and assigns nothing. 45 occurrences on
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, every one with a value that
+reads as an integer — which the `*Shape:*` line above re-earns over every recording since.
 
 ### `-absorbm` — decoded
 
@@ -731,7 +734,7 @@ _Help:_ names `absorbm`
 
 _Evidence:_ article view,372 at the engine name `absorbm` (read 2026-08-09), and the same branch
 shape in production build `1785244275300`. 27 occurrences on
-`captures/2026-08-06-tempest-grupa-vs-hildur.json`.
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`.
 
 ### `-blok` — decoded
 
@@ -744,8 +747,8 @@ _Help:_ names `blok`
 
 _Evidence:_ article view,372 at the engine name `blok` (read 2026-08-09), and production build
 `1785244275300`, where the branch has the same shape as the absorption pair. 9 occurrences on
-`captures/2026-08-06-tempest-grupa-vs-hildur.json` — too few to measure alone, which is why it is
-grouped with them.
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` — too few to measure alone,
+which is why it is grouped with them.
 
 ### `+crit` — decoded
 
@@ -833,7 +836,7 @@ _Help:_ names `stun`
 
 _Evidence:_ article view,372 at the engine name `stun` (read 2026-08-09), the shared measurement
 above, and production build `1785244275300`. 9 occurrences on
-`captures/2026-08-06-tempest-grupa-vs-hildur.json`.
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`.
 
 ### `+stun2-d` — decoded
 
@@ -849,9 +852,10 @@ _Evidence:_ article `view,372` at the engine name `stun2` (read 2026-08-24) give
 statistic deciding the chance of the Ogłuszenie event, fired while the monster attacks and costing
 the Player two turns, during which no block, evade, parry or arrow-block can occur. Production build
 `1786514810315` composes `msg_+stun2-d` with no `%val%`, on the same switch as `msg_+stun` and
-`msg_+acdmg_destroyed`. 4 occurrences on `captures/2026-08-24-tempest-tropiciel-vs-centaur.json`,
-and none elsewhere as the set stood 2026-08-24. Two of the other four have arrived since — `+stun2`
-and `+stun2-c`, each in one recording — and `-f` and `-l` are in none.
+`msg_+acdmg_destroyed`. 4 occurrences on
+`captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json`, and none elsewhere as
+the set stood 2026-08-24. Two of the other four have arrived since — `+stun2` and `+stun2-c`, each
+in one recording — and `-f` and `-l` are in none.
 
 ### `+stun2` — decoded
 
@@ -867,9 +871,10 @@ _Evidence:_ article `view,372` at the engine name `stun2` (read 2026-08-25) give
 statistic deciding the chance of the Ogłuszenie event, fired while the monster attacks and costing
 the Player two turns, during which no block, evade, parry or arrow-block can occur. Production build
 `1786514810315` composes `msg_+stun2` with no `%val%`, on the same switch as `msg_+stun` and
-`msg_+acdmg_destroyed`. 4 occurrences on `captures/2026-08-25-luvia-grupa-vs-mamlambo-auto.json`,
-and none elsewhere as the set stood 2026-08-25. Three of the five are in some recording now — this
-one, `+stun2-d` and `+stun2-c` — and `-f` and `-l` are in none.
+`msg_+acdmg_destroyed`. 4 occurrences on
+`captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json`, and none elsewhere as the set
+stood 2026-08-25. Three of the five are in some recording now — this one, `+stun2-d` and `+stun2-c`
+— and `-f` and `-l` are in none.
 
 ### `+stun2-c` — decoded
 
@@ -880,11 +885,11 @@ blow it rides already reports its damage.
 ⚠️ **The material cannot say which variant this is, and the production bundle cannot either.** The
 two recordings carrying the key are the two against the same monster, and every one of that
 monster's blows carries `+dmgc` in both — 23 of 23 on
-`captures/2026-08-27-luvia-grupa-vs-amaimon.json`, 20 of 20 on
-`captures/2026-08-27-luvia-grupa-vs-amaimon-2.json` — so nothing there distinguishes a frost-shaped
-stun from any other, and production states only that the key composes a sentence. A second recording
-did not settle it and a third against this monster would not either. The variant is the development
-build's answer — see the evidence below.
+`captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`, 20 of 20 on
+`captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json` — so nothing there distinguishes
+a frost-shaped stun from any other, and production states only that the key composes a sentence. A
+second recording did not settle it and a third against this monster would not either. The variant is
+the development build's answer — see the evidence below.
 
 _Shape:_ 9 occurrences; on a blow; no value
 
@@ -897,10 +902,10 @@ switch that composes `msg_+stun2` and `msg_+stun2-d` the same way. Which of the 
 comes from the development build `1781609507010`, which keeps each branch's rendered sentence in a
 comment beside it: production cannot confirm that half at all, because the wording is not in the
 bundle — the client fetches it (§7.6). 4 occurrences on
-`captures/2026-08-27-luvia-grupa-vs-amaimon.json` and 5 on
-`captures/2026-08-27-luvia-grupa-vs-amaimon-2.json`, and none elsewhere as the set stood 2026-08-27
-— both against the same monster, which is the only one in the material with the statistic; of the
-five variants three are now in some recording and `-f` and `-l` are in none.
+`captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json` and 5 on
+`captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json`, and none elsewhere as the set
+stood 2026-08-27 — both against the same monster, which is the only one in the material with the
+statistic; of the five variants three are now in some recording and `-f` and `-l` are in none.
 
 ### `+freeze` — decoded
 
@@ -912,7 +917,7 @@ _Shape:_ 67 occurrences; on a blow; no value
 _Help:_ names `freeze`
 
 _Evidence:_ article view,372 at the engine name `freeze` (read 2026-08-09), and the shared
-measurement. 3 occurrences on `captures/2026-08-06-tempest-grupa-vs-hildur.json`.
+measurement. 3 occurrences on `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`.
 
 ### `+legbon_verycrit` — decoded
 
@@ -928,7 +933,7 @@ _Help:_ names `verycrit`
 
 _Evidence:_ article view,372 at the engine name `verycrit` (read 2026-08-09) for the effect and for
 whose it is; the shared measurement, and production build `1785244275300`. 3 occurrences on
-`captures/2026-08-06-tempest-grupa-vs-hildur.json`.
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`.
 
 ### `+legbon_curse` — decoded
 
@@ -961,7 +966,7 @@ _Help:_ names `cleanse`
 
 _Evidence:_ article view,372 at the engine name `cleanse` (read 2026-08-09) for the effect and for
 its trigger, which is what places it on the struck combatant; the shared measurement. 5 occurrences
-on `captures/2026-08-06-tempest-grupa-vs-hildur.json`.
+on `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`.
 
 ### `-legbon_glare` — decoded
 
@@ -1059,9 +1064,10 @@ _Shape:_ 43 occurrences; on a blow; no value
 _Help:_ names nothing of `superspell-dispel`, `dispel`, `superspell`
 
 _Evidence:_ the shared measurement, and production build `1785244275300`, where the branch reads
-`msg_+dispel`. 3 occurrences on `captures/2026-08-06-tempest-grupa-vs-hildur.json`. The stem that
-worked for the four above was tried here too: `dispel` is the name the client's own sentence uses,
-and the article carries neither it nor `superspell`.
+`msg_+dispel`. 3 occurrences on
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`. The stem that worked for the
+four above was tried here too: `dispel` is the name the client's own sentence uses, and the article
+carries neither it nor `superspell`.
 
 ### `+acdmg_destroyed` — decoded
 
@@ -1073,9 +1079,10 @@ _Shape:_ 43 occurrences; on a blow; no value
 _Help:_ names nothing of `acdmg_destroyed`, `destroyed`
 
 _Evidence:_ the shared measurement. 2 occurrences on
-`captures/2026-08-06-tempest-grupa-vs-hildur.json`, both on a message that also carries `+acdmg`.
-The stem rule does not rescue this one and is worth saying so: stripping to `acdmg` lands on the
-article for the _figure_ key below, which is a different key and would document the wrong thing.
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, both on a message that also
+carries `+acdmg`. The stem rule does not rescue this one and is worth saying so: stripping to
+`acdmg` lands on the article for the _figure_ key below, which is a different key and would document
+the wrong thing.
 
 ### `+acdmg` — decoded
 
@@ -1092,9 +1099,10 @@ _Evidence:_ article view,372 at the engine name `acdmg` (read 2026-08-09), which
 the figure on the target: the key carries `+`, and the help still describes it as lowering the
 _attacked_ combatant's armour. Production build `1785244275300`: the branch interpolates the value
 into a log slot and assigns nothing. 41 occurrences across the two recordings held when it was read,
-`captures/2026-08-04-tempest-lowca-vs-odyncze.json` and
-`captures/2026-08-06-tempest-grupa-vs-hildur.json`. The shape rule for damage does not reach it —
-characters 1 to 3 are `acd`, not `dmg` — so nothing was reading it as a figure before.
+`captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json` and
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`. The shape rule for damage
+does not reach it — characters 1 to 3 are `acd`, not `dmg` — so nothing was reading it as a figure
+before.
 
 ### `+resdmg` — decoded
 
@@ -1107,7 +1115,8 @@ _Shape:_ 1176 occurrences; on a blow; a whole number
 _Help:_ names `resdmg`
 
 _Evidence:_ article view,372 at the engine name `resdmg` (read 2026-08-09), and production build
-`1785244275300`. 61 occurrences on `captures/2026-08-06-tempest-grupa-vs-hildur.json`.
+`1785244275300`. 61 occurrences on
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`.
 
 ### `+abdest_per` — decoded
 
@@ -1124,15 +1133,15 @@ separates them but which pool they empty.
 
 _Shape:_ 257 occurrences; on a blow; a whole number
 
-_Evidence:_ both entries, measured on `captures/2026-08-06-tempest-grupa-vs-hildur.json`: 18
-occurrences each, every one on a blow, never apart from the other — which holds across every
-recording since, 186 each and not one apart (read 2026-08-19) — and values from 6017 down to 0 —
-which is what rules out a percentage and is why the suffix is not trusted. The help documents the
-_effect_ rather than these keys, at the engine name `active_absorbdest_per` (read 2026-08-09): a
-passive destroying a share of the opponent's current absorption and magical absorption, applied
-before the attack is reduced by any form of damage reduction, and unable to take absorption below
-zero. That floor is visible here — `+abmdest_per` reaches 0 and the protocol still reports it rather
-than falling silent.
+_Evidence:_ both entries, measured on
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: 18 occurrences each, every
+one on a blow, never apart from the other — which holds across every recording since, 186 each and
+not one apart (read 2026-08-19) — and values from 6017 down to 0 — which is what rules out a
+percentage and is why the suffix is not trusted. The help documents the _effect_ rather than these
+keys, at the engine name `active_absorbdest_per` (read 2026-08-09): a passive destroying a share of
+the opponent's current absorption and magical absorption, applied before the attack is reduced by
+any form of damage reduction, and unable to take absorption below zero. That floor is visible here —
+`+abmdest_per` reaches 0 and the protocol still reports it rather than falling silent.
 
 ### `tspell` — decoded
 
@@ -1191,8 +1200,9 @@ comment on that branch naming the thing used as a special potion — what the re
 and the weaker of the two claims (§7.6). Article view,372 (read 2026-08-25) documents neither the
 key nor its parenthesised form, which is expected rather than surprising: the help describes
 mechanics, and this is how a message is assembled. Measured over every recording as the set stood
-2026-08-26: seven occurrences, five in `captures/2026-08-25-luvia-grupa-vs-draugr.json` and two in
-`captures/2026-08-26-luvia-grupa-vs-draugr.json`, each naming one combatant in both slots.
+2026-08-26: seven occurrences, five in `captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json`
+and two in `captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json`, each naming one
+combatant in both slots.
 
 ⚠️ **The second recording is where this key stopped being a curiosity.** Its two occurrences are the
 only messages in the whole corpus that state a declaration under a name the game did not take from
@@ -1218,9 +1228,9 @@ Checked against the group fight, which carries nine applications: the floor of t
 all nine announced figures, among them 1638 taken → 245 announced and 658 → 98, where rounding
 instead of flooring would miss the second. Seven of the nine are followed by exactly three ticks of
 their own amount; the two that are not are the ones
-`captures/2026-08-06-tempest-grupa-vs-hildur.json` cuts short — call 82 announces 178, one tick
-follows, and call 91 replaces it with the smaller 157, which is the overwrite showing itself; the
-last application lands with the target at 0.94% and the fight ends.
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` cuts short — call 82 announces
+178, one tick follows, and call 91 replaces it with the smaller 157, which is the overwrite showing
+itself; the last application lands with the target at 0.94% and the fight ends.
 
 ### `-poison_lowdmg_per` — decoded
 
@@ -1258,14 +1268,16 @@ _Shape:_ 465 occurrences; on a skill announcement; a whole number
 _Help:_ names `active_absorbdest_per`
 
 _Evidence:_ the help, article view,372, at that engine name (read 2026-08-09) — the description
-quoted under `+abdest_per` above. Measured on `captures/2026-08-06-tempest-grupa-vs-hildur.json`: 43
-occurrences, every value `5`, every one on a skill announcement. **The share is the caster's, not
-the key's and not the fight's** — three group fights field one combatant declaring `8` while
-everybody else declares `5` (`2026-08-12-tempest-grupa-vs-draugr-1`,
-`2026-08-14-tempest-grupa-vs-draugr-2` and `2026-08-15-tempest-grupa-vs-draugr-2`, read 2026-08-19),
-which is what a reading off one recording would have missed. Held by
-`tests/core/absorption-destruction-rule.test.ts`, which groups by caster for that reason and refuses
-a second distinct value inside one caster's own reports.
+quoted under `+abdest_per` above. Measured on
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: 43 occurrences, every value
+`5`, every one on a skill announcement. **The share is the caster's, not the key's and not the
+fight's** — three group fights field one combatant declaring `8` while everybody else declares `5`
+(`2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none`,
+`2026-08-14-tempest-grupa-vs-draugr-2-1786514810315-none` and
+`2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none`, read 2026-08-19), which is what a reading
+off one recording would have missed. Held by `tests/core/absorption-destruction-rule.test.ts`, which
+groups by caster for that reason and refuses a second distinct value inside one caster's own
+reports.
 
 ### `combo-max` — decoded
 
@@ -1280,11 +1292,11 @@ _Help:_ names `combo-max`
 _Evidence:_ the help never documents the key on its own — article view,372 (read 2026-08-09)
 mentions it only inside six other effects, each saying it spends accumulated combination points up
 to the number this parameter sets, which is where the reading comes from. Measured on
-`captures/2026-08-06-tempest-grupa-vs-hildur.json`: 31 occurrences, values `1` (15), `2` (15) and
-`3` (1), and **every one on a skill announcement** — none anywhere else, which holds across every
-recording since (read 2026-08-19). Held by `tests/core/skill-announcement-rule.test.ts`, which also
-refuses a figure in the range the protocol's quantities occupy, so a cap and a count of points
-cannot be confused with one.
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: 31 occurrences, values `1`
+(15), `2` (15) and `3` (1), and **every one on a skill announcement** — none anywhere else, which
+holds across every recording since (read 2026-08-19). Held by
+`tests/core/skill-announcement-rule.test.ts`, which also refuses a figure in the range the
+protocol's quantities occupy, so a cap and a count of points cannot be confused with one.
 
 ### `+engback` — decoded
 
@@ -1293,11 +1305,12 @@ Energy returned to the attacker by this blow. Rides the blow, states a whole num
 `+of_crit`.
 
 ⚠️ **This entry said `+crit` alone, and the material had already refuted it.** That was true of the
-13 occurrences `captures/2026-08-06-tempest-grupa-vs-hildur.json` carried and of nothing since: read
-2026-08-19, `+of_crit` without `+crit` accounts for 29 occurrences, and no occurrence anywhere
-arrives beside neither. A count in prose goes stale silently (AGENTS.md §5) — this entry's own two
-did, twice over, which is why they now name what they were taken on — but so does a universal beside
-it, and nothing here re-measures a claim about which keys a key arrives _with_.
+13 occurrences `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` carried and of
+nothing since: read 2026-08-19, `+of_crit` without `+crit` accounts for 29 occurrences, and no
+occurrence anywhere arrives beside neither. A count in prose goes stale silently (AGENTS.md §5) —
+this entry's own two did, twice over, which is why they now name what they were taken on — but so
+does a universal beside it, and nothing here re-measures a claim about which keys a key arrives
+_with_.
 
 _Shape:_ 347 occurrences; on a blow; a whole number
 
@@ -1469,7 +1482,8 @@ that combine additively with `sa_per`, `aura-sa_per`, `allslow_per` and `critslo
 build `1786514810315` composes `msg_+critsa %val%`.
 
 ⚠️ **The figure is not whole, and the entry said it was.** Every occurrence stated `11` or `20`
-beside `+of_crit` until `captures/2026-08-24-tempest-tropiciel-vs-centaury-auto.json` recorded `5.5`
+beside `+of_crit` until
+`captures/2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1.json` recorded `5.5`
 beside `+crit` — so the shape line above reads _a number_, and the decoder reads a declaration with
 either spelling rather than refusing the blow it rides (`src/core/fight-decoder.ts`). What it cost
 while the reader was narrower is worth stating: the message carried five damage figures and none of
@@ -1547,11 +1561,12 @@ absence.
 
 ⚠️ **Three occurrences, two recordings, and the same value on every one of them.** Two sit on the
 same announced ability, cast by the same combatant, in
-`captures/2026-08-17-tempest-grupa-vs-hildur.json` — the ability goes unnamed here because its name
-is the game's own (§5) — where each states 15 while `-absorbm` beside them states 2 247 and 1 774;
-the third states 15 as well, in `captures/2026-08-23-tempest-grupa-vs-hildur-auto.json`. That is far
-too little material to read a rule off, and none is read: the verdict rests on the unit, the way
-`-endest`'s does, and the unit is what makes the figure safe to show and impossible to total.
+`captures/2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json` — the ability goes unnamed
+here because its name is the game's own (§5) — where each states 15 while `-absorbm` beside them
+states 2 247 and 1 774; the third states 15 as well, in
+`captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json`. That is far too little
+material to read a rule off, and none is read: the verdict rests on the unit, the way `-endest`'s
+does, and the unit is what makes the figure safe to show and impossible to total.
 
 ### `+absorb` — decoded
 
@@ -1586,9 +1601,9 @@ _Shape:_ 305 occurrences; on a skill announcement; a whole number
 _Help:_ names `active_decblock_per`
 
 _Evidence:_ article view,372 (read 2026-08-09) names it among the effects that lower block chance.
-On `captures/2026-08-06-tempest-grupa-vs-hildur.json`, 26 occurrences with values 1, 2, 4 and 11.
-The client hides the key: production build `1785244275300` gives it an empty `break` in the battle
-switch, beside `active_absorbdest_per`.
+On `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 26 occurrences with values
+1, 2, 4 and 11. The client hides the key: production build `1785244275300` gives it an empty `break`
+in the battle switch, beside `active_absorbdest_per`.
 
 ### `active_decblock_per-enemies` — decoded
 
@@ -1600,8 +1615,8 @@ _Shape:_ 107 occurrences; on a skill announcement; a whole number
 _Help:_ names `active_decblock_per-enemies`
 
 _Evidence:_ article view,372 (read 2026-08-09), which lists it beside `decblock_per` and
-`active_decblock_per`. On `captures/2026-08-06-tempest-grupa-vs-hildur.json`, 11 occurrences, every
-value `10` — and `10` is the only value any recording states (read 2026-08-19).
+`active_decblock_per`. On `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 11
+occurrences, every value `10` — and `10` is the only value any recording states (read 2026-08-19).
 
 ### `active_block_per` — decoded
 
@@ -1613,8 +1628,8 @@ _Help:_ names `active_block_per`
 
 _Evidence:_ article view,372 (read 2026-08-09) at the engine name `active_block_per`, described as
 raising block chance and applied at the initiation layer. On
-`captures/2026-08-06-tempest-grupa-vs-hildur.json`, 10 occurrences, every value `15`. The recordings
-since state `11` and `20` as well, one value per fight (read 2026-08-19).
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 10 occurrences, every value
+`15`. The recordings since state `11` and `20` as well, one value per fight (read 2026-08-19).
 
 ### `alllowdmg` — decoded
 
@@ -1626,8 +1641,8 @@ _Help:_ names `alllowdmg`
 
 _Evidence:_ article view,372 (read 2026-08-09) at the engine name `alllowdmg`, described as lowering
 the damage of all characters in the opposing team by the share the parameter sets. On
-`captures/2026-08-06-tempest-grupa-vs-hildur.json`, 11 occurrences, every value `5` — and `5` is the
-only value any recording states (read 2026-08-19).
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 11 occurrences, every value
+`5` — and `5` is the only value any recording states (read 2026-08-19).
 
 ### `allslow_per` — decoded
 
@@ -1638,8 +1653,9 @@ _Shape:_ 104 occurrences; on a skill announcement; a whole number
 _Help:_ names `allslow_per`
 
 _Evidence:_ article view,372 (read 2026-08-09), which lists it among the effects combining
-additively to change attack speed. On `captures/2026-08-06-tempest-grupa-vs-hildur.json`, 5
-occurrences, every value `14`. Three recordings since state `12` as well (read 2026-08-19).
+additively to change attack speed. On
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 5 occurrences, every value
+`14`. Three recordings since state `12` as well (read 2026-08-19).
 
 ### `aura-ac_per` — decoded
 
@@ -1650,8 +1666,8 @@ _Shape:_ 41 occurrences; on a skill announcement; a whole number
 _Help:_ names `aura-ac_per`
 
 _Evidence:_ article view,372 (read 2026-08-09), which lists it among the effects that raise armour.
-On `captures/2026-08-06-tempest-grupa-vs-hildur.json`, 4 occurrences, every value `20` — and `20` is
-the only value any recording states (read 2026-08-19).
+On `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 4 occurrences, every value
+`20` — and `20` is the only value any recording states (read 2026-08-19).
 
 ### `aura-resall` — decoded
 
@@ -1662,8 +1678,8 @@ _Shape:_ 41 occurrences; on a skill announcement; a whole number
 _Help:_ names `aura-resall`
 
 _Evidence:_ article view,372 (read 2026-08-09) at the engine name `aura-resall`. On
-`captures/2026-08-06-tempest-grupa-vs-hildur.json`, 4 occurrences, every value `15` — and `15` is
-the only value any recording states (read 2026-08-19).
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 4 occurrences, every value
+`15` — and `15` is the only value any recording states (read 2026-08-19).
 
 ### `aura-sa_per` — decoded
 
@@ -1674,8 +1690,8 @@ _Shape:_ 75 occurrences; on a skill announcement; a whole number
 _Help:_ names `aura-sa_per`
 
 _Evidence:_ article view,372 (read 2026-08-09), which lists it among the attack-speed effects. On
-`captures/2026-08-06-tempest-grupa-vs-hildur.json`, 4 occurrences, every value `20` — and `20` is
-the only value any recording states (read 2026-08-19).
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 4 occurrences, every value
+`20` — and `20` is the only value any recording states (read 2026-08-19).
 
 ### `lowheal_per-enemies` — decoded
 
@@ -1708,13 +1724,13 @@ and fired on the initiation layer at the opponent, and names `healall_per`, `hea
 `combo_heal_per` as the three it reduces. Production build `1786514810315` composes it into the
 battle log with a figure in it, which is what lets a fight that never mentions it be read as a fight
 where the reduction was not applied. All 4 occurrences are on
-`captures/2026-08-27-luvia-grupa-vs-amaimon-2.json`, every value `27`, each cast by one of ours at
-the monster. That recording also states what the reduction is **not**: its three `healall_per`
-shares are 30, 30 and 22.5, and 22.5 is 30 less a quarter of it — the article's own rule that each
-further use of an ability carrying such an effect gives back 25% of the base less, and not `27`
-applied to anything. Held by `tests/core/combatant-health.test.ts`, which reads the declaring side
-off that fight and pins each reason a cast is refused on a fight built by hand, and by
-`tests/core/skill-announcement-rule.test.ts` for the placement.
+`captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json`, every value `27`, each cast by
+one of ours at the monster. That recording also states what the reduction is **not**: its three
+`healall_per` shares are 30, 30 and 22.5, and 22.5 is 30 less a quarter of it — the article's own
+rule that each further use of an ability carrying such an effect gives back 25% of the base less,
+and not `27` applied to anything. Held by `tests/core/combatant-health.test.ts`, which reads the
+declaring side off that fight and pins each reason a cast is refused on a fight built by hand, and
+by `tests/core/skill-announcement-rule.test.ts` for the placement.
 
 ### `mana` — decoded
 
@@ -1726,9 +1742,9 @@ _Shape:_ 128 occurrences; on a skill announcement; a whole number
 _Help:_ names `mana`
 
 _Evidence:_ article view,372 (read 2026-08-09) documents mana as a resource some skills consume. On
-`captures/2026-08-06-tempest-grupa-vs-hildur.json`, 15 occurrences, all negative, 10 of them beside
-`energy`. Every occurrence in every recording is negative; 22 of them sit beside `energy` (read
-2026-08-19).
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 15 occurrences, all negative,
+10 of them beside `energy`. Every occurrence in every recording is negative; 22 of them sit beside
+`energy` (read 2026-08-19).
 
 ### `energy` — decoded
 
@@ -1740,9 +1756,9 @@ _Shape:_ 70 occurrences; on a skill announcement; a whole number
 _Help:_ names `energy`
 
 _Evidence:_ article view,372 (read 2026-08-09) documents energy as a resource some skills consume.
-On `captures/2026-08-06-tempest-grupa-vs-hildur.json`, 10 occurrences, every one beside `mana` and
-every one stating `0`. The recordings since carry negative figures too, and 22 of the 46 occurrences
-sit beside `mana` (read 2026-08-19).
+On `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 10 occurrences, every one
+beside `mana` and every one stating `0`. The recordings since carry negative figures too, and 22 of
+the 46 occurrences sit beside `mana` (read 2026-08-19).
 
 ### `shout` — decoded
 
@@ -1792,8 +1808,8 @@ the initiation layer and triggered at the damage layer. The same article names t
 as `eng_game_only_val_critval-allies %val%`, through the branch it shares with `+crush`,
 `+taken_dmg`, `+critpierce` and the three other members of the `critval`/`critmval` family — a line
 that states a figure and nothing else. The single occurrence rides a `tcustom` announcement in
-`captures/2026-08-26-luvia-grupa-vs-draugr.json`, stating `25` beside `critmval-allies`, which
-states the same.
+`captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json`, stating `25` beside
+`critmval-allies`, which states the same.
 
 ### `critmval-allies` — decoded
 
@@ -1862,7 +1878,7 @@ as a passive removing the slow-over-time effects an opponent's skills and the ch
 equipment laid on the party, and states its variable as none. Production build `53XkBRxF` composes
 it through a branch of its own, `msg_removeslow-allies`, interpolating nothing. The one occurrence
 rides an announcement carrying `removestun-allies` beside it, in
-`captures/2026-08-25-luvia-grupa-vs-draugr.json`.
+`captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json`.
 
 ### `removestun-allies` — decoded
 
@@ -1894,7 +1910,7 @@ agree that no value ever arrives. Article view,372 (read 2026-08-25) prints `rem
 `removeslow-allies` and `removestun-allies` and no `removedot` of any spelling; the stem is what was
 searched, since `allies` says whom the effect reaches rather than what it is
 (`tests/repository/protocol-keys.test.ts`). Both occurrences are in
-`captures/2026-08-25-luvia-grupa-vs-draugr.json`, each alone with its announcement.
+`captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json`, each alone with its announcement.
 
 ⚠️ **A turn is not found in any key of these, or of any other** — measured over every recording on
 2026-08-19, against every key the client branches on (`frozen/protocol-keys.ts`). Nothing here
@@ -2064,15 +2080,15 @@ _Health:_ moves health
 _Cause:_ nobody
 
 ⚠️ **The health witness cannot judge the one fight that carries this key, and the reading does not
-rest on it.** `2026-08-24-tempest-tropiciel-vs-centaur` arrives as a single engine call with no
-opening snapshot, so the replay in `tests/core/health-witness.test.ts` seeds no running total and
-produces no comparison for it either way — the route `fire` and `light` came in by is simply not
-available here. What stands in its place is the same body of evidence chained from a percentage the
-protocol states rather than from a snapshot, measured by `tests/core/wound-rule.test.ts`: every
-tick's stated percentage is the one stated immediately before it for that combatant, less the tick's
-own figure over the combatant's maximum health. Fourteen of the fifteen close inside 0.007
-percentage points; the fifteenth is the killing tick, where the figure would take the player past
-zero and the game states zero.
+rest on it.** `2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none` arrives as a single
+engine call with no opening snapshot, so the replay in `tests/core/health-witness.test.ts` seeds no
+running total and produces no comparison for it either way — the route `fire` and `light` came in by
+is simply not available here. What stands in its place is the same body of evidence chained from a
+percentage the protocol states rather than from a snapshot, measured by
+`tests/core/wound-rule.test.ts`: every tick's stated percentage is the one stated immediately before
+it for that combatant, less the tick's own figure over the combatant's maximum health. Fourteen of
+the fifteen close inside 0.007 percentage points; the fifteenth is the killing tick, where the
+figure would take the player past zero and the game states zero.
 
 _Shape:_ 42 occurrences; alone in its message; a whole number
 
@@ -2084,8 +2100,8 @@ _Evidence:_ as above, and production build `1786514810315` composes `msg_wound %
 the damage at article `view,372` (read 2026-08-19): the weapon attribute under the engine names
 `wound1, of_wound1`, applied for five turns after a hit doing non-zero damage, and the type's
 behaviour in the table of damage over time. Carried by one recording,
-`captures/2026-08-24-tempest-tropiciel-vs-centaur.json`, and by no other as the set stood
-2026-08-24.
+`captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json`, and by no other as the
+set stood 2026-08-24.
 
 ### `+wound` — decoded
 
@@ -2102,8 +2118,8 @@ a value, on the switch that composes `+injure` with one. The published help docu
 under the weapon attribute `wound1, of_wound1` and the event in its table of damage over time —
 article `view,372` (read 2026-08-19) — and prints no separate entry for either announcing form, as
 it prints none for `+injure` or `+critwound`. Every occurrence rides a blow of the monster's in
-`captures/2026-08-24-tempest-tropiciel-vs-centaur.json`, the one recording carrying either half of
-this pair as the set stood 2026-08-24.
+`captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json`, the one recording
+carrying either half of this pair as the set stood 2026-08-24.
 
 ### `+legbon_anguish` — decoded
 
@@ -2128,9 +2144,9 @@ _Evidence:_ the help prints no entry for the announcing form, as it prints none 
 `anguish` (read 2026-08-25) — the stem this prefixed key was searched by, the full key occurring
 nowhere. Every occurrence rides a blow naming both ends, and three recordings carry this pair as the
 set stood 2026-08-25 — all three of that day. Two of them hold one applier each;
-`captures/2026-08-25-luvia-grupa-vs-draugr.json` holds two, applying to the same victim, which is
-the material the absent figure is worst in: it is what a tick would have to be matched by, and every
-announcement states nothing.
+`captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json` holds two, applying to the same victim,
+which is the material the absent figure is worst in: it is what a tick would have to be matched by,
+and every announcement states nothing.
 
 ### `+swing` — investigated
 

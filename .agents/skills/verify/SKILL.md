@@ -13,7 +13,7 @@ the suite and builds the bundle, and every one of those can be green while the p
 ```bash
 deno task preview                     # http://localhost:4173
 deno task preview --port 8080
-deno task preview --fight 2026-08-23-tempest-grupa-vs-hildur
+deno task preview --fight 2026-08-23-tempest-grupa-vs-hildur-1786514810315-none
 ```
 
 It builds into a temporary file, so nothing has to be built first and `dist/` is never touched. The

@@ -21,9 +21,9 @@ import {
     getRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
-const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
+const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /** The one recording whose snapshots are both empty: a fight fought on auto arrives whole. */
-const AUTO = "captures/2026-08-24-tempest-tropiciel-vs-centaury-auto.json";
+const AUTO = "captures/2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1.json";
 
 Deno.test("a replay states the figures the panel's own route states", () => {
     const replay = composeFightReplay(getRecordedFightAt(HILDUR));

@@ -378,8 +378,10 @@ change carries an explicit migration:
   good.
 - **The engine wrap's semantics.** Original first, its return value untouched, one layer, and a
   detach that removes only ours.
-- **The captured-fight file format.** Field names inside those files are Polish and stay that way;
-  renaming is editing the evidence.
+- **The captured-fight file format.** The envelope is spelled in English, a file is named for the
+  two versions it states, and `formatVersion` says which writer wrote it. Renaming a field again
+  means migrating `captures/` in the same commit and leaving `tools/capture-intake.ts` able to read
+  the older spelling — which is what ADR 0030 did, and the migration it names is the precedent.
 - **Stored reader preferences.** A stored value whose meaning changes needs a migration or a new
   key, because the old one is already in browsers.
 - **`main` is always exactly the newest `v*` tag.** That is what lets the published preview and the
@@ -465,13 +467,14 @@ commit that opens or closes one.
    protocol states about a combatant and the movement decoded from its own messages agrees inside
    the reading's tolerance, bar three kinds: a killing blow landing more than the health that was
    left, health restored by a share the decoder states without an amount, and **one payload that
-   moves health with nothing saying so** — entry 83 of `2026-08-06-tempest-grupa-vs-hildur`, where
-   the boss loses 8,062 of a 325,584 pool while both messages of that payload are about other
-   people. Nothing in the protocol accounts for it and only the snapshots show it, which is what the
-   snapshots are for. `tests/core/health-witness.test.ts` is where the counts are, and it pins the
-   last of the three at one so a second cannot arrive unnoticed. The figures stood here too until
-   2026-08-30, in a second reckoning that counted the first two kinds as disagreements where the
-   test does not — two numbers for one measurement, which **V5** is the rule against.
+   moves health with nothing saying so** — entry 83 of
+   `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none`, where the boss loses 8,062 of a 325,584
+   pool while both messages of that payload are about other people. Nothing in the protocol accounts
+   for it and only the snapshots show it, which is what the snapshots are for.
+   `tests/core/health-witness.test.ts` is where the counts are, and it pins the last of the three at
+   one so a second cannot arrive unnoticed. The figures stood here too until 2026-08-30, in a second
+   reckoning that counted the first two kinds as disagreements where the test does not — two numbers
+   for one measurement, which **V5** is the rule against.
 7. **No release has been cut on this branch.** `CHANGELOG.md` is written, carried from v1 and opened
    with what the rewrite changed for a player; `tools/changelog.ts` composes the body of a release
    out of it, `.github/workflows/check.yml` is the run **G7** waits for, and

@@ -10,7 +10,7 @@ import { composeFigureReport } from "@/tools/fight-figures.ts";
 import { composeFightReplay, composeReplayedMaterial } from "@/tools/fight-replay.ts";
 import { getRecordedFightAt } from "@/tools/recorded-fights.ts";
 
-const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
+const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /** A fight of one call, so a report over a fight with nothing in it is still a report. */
 const EMPTY = { name: "a fight nobody recorded", calls: [{ init: 1, m: [] }] };
 
@@ -20,7 +20,10 @@ function getReportOf(path: string): string[] {
 
 Deno.test("the report is headed by the recording and states both sides", () => {
     const lines = getReportOf(HILDUR);
-    assert(lines.includes("=== 2026-08-06-tempest-grupa-vs-hildur ==="), "named for its file");
+    assert(
+        lines.includes("=== 2026-08-06-tempest-grupa-vs-hildur-1785244275300-none ==="),
+        "named for its file",
+    );
     assert(lines.some((line) => line.includes("—— side 1 (10) ——")), "one side, with its count");
     assert(lines.some((line) => line.includes("—— side 2 (1) ——")), "and the other");
     // Neither side is called ours: the reader's own is stated once, as the client's answer.

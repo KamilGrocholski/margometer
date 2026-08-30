@@ -24,7 +24,7 @@ import { getRecordedFightAt } from "@/tools/recorded-fights.ts";
 import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 
 const REGISTER_PATH = "docs/drill-levels.md";
-const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
+const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 
 /**
  * One row of the register, as the document writes it. The heading is not a row and neither is the
@@ -205,7 +205,10 @@ Deno.test("the report is the composition, and states the material it was taken o
 Deno.test("a recording walked row by row names whom each level was opened from", () => {
     const replay = composeFightReplay(getRecordedFightAt(HILDUR));
     const lines = composeDrillReport(replay, ["healthGiven"]);
-    assert(lines.includes("=== 2026-08-06-tempest-grupa-vs-hildur ==="), "named for its file");
+    assert(
+        lines.includes("=== 2026-08-06-tempest-grupa-vs-hildur-1785244275300-none ==="),
+        "named for its file",
+    );
     assert(lines.includes("  --- healthGiven ---"), "and for the screen it walked");
     assert(lines.some((line) => line.includes("person  opens")), "some rows of it open");
     assert(lines.some((line) => line.includes("person  leaf")), "and some do not");

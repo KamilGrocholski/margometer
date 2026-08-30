@@ -18,7 +18,7 @@ import {
 } from "@/tests/recorded-fight.ts";
 
 const KEY = "bandage";
-const BANDAGE = "captures/2026-08-27-luvia-grupa-vs-amaimon.json";
+const BANDAGE = "captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json";
 const TOLERANCE = 0.01;
 
 Deno.test("the figure is health, and raises the percentage stated before it by its share", () => {

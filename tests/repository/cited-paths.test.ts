@@ -45,6 +45,14 @@ const CITED_WHILE_ABSENT: Record<string, string> = {
     "src/core/unknown-reading.ts": "docs/adr/0020-a-shared-address-for-what-knows-nothing.md",
     // ADR 0017's Context: the tool the decision replaced, named in the past tense.
     "tools/build-preview.ts": "docs/adr/0017-the-panel-is-served-and-published.md",
+    // ADR 0022's measurements, taken on two recordings under the names they were filed as before
+    // ADR 0030 renamed every one of them after the two versions it states. An ADR is a dated
+    // snapshot and is never edited to agree with the tree it now sits in
+    // (`docs/adr/README.md`); the same material is in `captures/` under a longer name.
+    "captures/2026-08-06-tempest-grupa-vs-hildur.json":
+        "docs/adr/0022-a-tick-belongs-to-the-wound-that-is-ticking.md",
+    "captures/2026-08-15-tempest-grupa-vs-hildur-3.json":
+        "docs/adr/0022-a-tick-belongs-to-the-wound-that-is-ticking.md",
 };
 
 function getDocumentPaths(): string[] {

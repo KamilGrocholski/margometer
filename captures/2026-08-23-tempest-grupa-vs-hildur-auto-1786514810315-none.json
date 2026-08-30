@@ -1,14 +1,14 @@
 {
-  "wersja": 1,
-  "przy": "2026-08-23T18:30:43.798Z",
-  "swiat": "tempest",
-  "build": "1786514810315",
-  "pominietych": 82,
-  "urwany": false,
-  "wpisy": [
+  "formatVersion": 1,
+  "capturedAt": "2026-08-23T18:30:43.798Z",
+  "world": "tempest",
+  "gameBuild": "1786514810315",
+  "droppedCalls": 82,
+  "isTruncated": false,
+  "calls": [
     {
-      "nr": 0,
-      "ladunek": {
+      "index": 0,
+      "payload": {
         "init": "1",
         "auto": "1",
         "battleground": "dd4.jpg",
@@ -1345,7 +1345,7 @@
           357
         ]
       },
-      "komunikaty": [
+      "messages": [
         "467968=100.00;0;poison_lowdmg_per-enemies=10",
         "-10005001;0;tspell=Struna płomienna",
         "-10005001=100.00;445202=34.48;+crit;+legbon_verycrit;+dmgf=7568;+dmgc=13691;+acdmg=50;-legbon_facade=20;-dmgf=5447;-dmgc=10338",
@@ -1705,8 +1705,8 @@
         "0;0;winner=Hildur Muza Śmierci",
         "0;0;loser=Gracz 5, Gracz 8, Gracz 9, Gracz 7, Gracz 6, Gracz 1, Gracz 3, Gracz 2, Gracz 10, Gracz 4"
       ],
-      "wojownicyPrzed": [],
-      "wojownicyPo": [
+      "combatantsBefore": [],
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -1909,14 +1909,14 @@
       ]
     },
     {
-      "nr": 1,
-      "ladunek": {
+      "index": 1,
+      "payload": {
         "auto": "1",
         "move": -1,
         "endBattle": 1
       },
-      "komunikaty": [],
-      "wojownicyPrzed": [
+      "messages": [],
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -2117,7 +2117,7 @@
           }
         }
       ],
-      "wojownicyPo": [
+      "combatantsAfter": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -2320,15 +2320,15 @@
       ]
     },
     {
-      "nr": 2,
-      "ladunek": {
+      "index": 2,
+      "payload": {
         "auto": "1",
         "move": -1,
         "endBattle": 1,
         "close": 1
       },
-      "komunikaty": [],
-      "wojownicyPrzed": [
+      "messages": [],
+      "combatantsBefore": [
         {
           "id": 439250,
           "name": "Gracz 1",
@@ -2529,9 +2529,9 @@
           }
         }
       ],
-      "wojownicyPo": []
+      "combatantsAfter": []
     }
   ],
-  "pseudonimow": 162,
-  "opisow": 5
+  "namesSubstituted": 162,
+  "descriptionsRemoved": 5
 }

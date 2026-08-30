@@ -27,7 +27,7 @@ import {
     getRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
-const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
+const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /** Every screen there is, so a claim about one of them is checked against the other three. */
 const SCREENS: PanelMetric[] = [
     "damageDealtApplied",
@@ -40,13 +40,14 @@ const SCREENS: PanelMetric[] = [
  * `HILDUR` every pair opens: the boss both strikes and wounds each member, so a wound's ticks put
  * a second kind under every opponent (`src/core/fight-statistics.ts`, ADR 0022).
  */
-const BOTH_KINDS_OF_PAIR = "captures/2026-08-15-tempest-grupa-vs-hildur-3.json";
+const BOTH_KINDS_OF_PAIR = "captures/2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none.json";
 /** The one recording where health goes down on a key of its own, and nowhere near a blow. */
-const POISONED = "captures/2026-08-04-tempest-lowca-vs-odyncze.json";
+const POISONED = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
 const POISONED_ID = -255967;
 const POISON = "-255967=19.27;0;poison=140,14";
 /**
- * `2026-08-12-experimental-tancerz-vs-wojownik.json`: an announcement and the swing under it,
+ * `2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`: an announcement and the
+ * swing under it,
  * which a block stopped in full.
  */
 const BLOCKED = [
@@ -675,7 +676,8 @@ Deno.test("healing no giver can be read for is apart on one screen and a cut on 
 });
 
 /**
- * `2026-08-06-tempest-grupa-vs-hildur.json` carries two healers announcing `Leczenie ran`, which
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` carries two healers announcing
+ * `Leczenie ran`, which
  * is what makes the merge legible: the received screen has no column for whose cast it was, so
  * two rows under one name would be two figures a reader cannot tell apart.
  */
@@ -944,7 +946,8 @@ Deno.test("a pair states what passed between the two, and nothing that did not",
 });
 
 /**
- * `2026-08-06-tempest-grupa-vs-hildur.json`, the combatant at 475890: twenty blows, every one of
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, the combatant at 475890: twenty
+ * blows, every one of
  * them announced, and damage stated against a name beside them. The closing row is the remainder
  * of the figure rather than a second reading of it, so a cut that spent the announcement on the
  * blows alone left this combatant a row counting nought blows with a third of their damage in it.
@@ -1094,7 +1097,8 @@ Deno.test("a healing section names the keys the game stated, and closes against 
 });
 
 /**
- * `2026-08-06-tempest-grupa-vs-hildur.json`: five healers, four announced skills between them,
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: five healers, four announced skills
+ * between them,
  * and health moving under `heal` with nothing announced in front of it.
  *
  * The pair is read off the giving end whichever way round the screen asks, so the two screens see
