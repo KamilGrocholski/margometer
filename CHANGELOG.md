@@ -35,8 +35,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 - **Nowość** — Na obu zakładkach leczenia można wejść głębiej. W rozwiniętym wierszu naciśnięcie
   postaci pokazuje, co przeszło między tą dwójką: umiejętności, którymi ktoś kogoś leczył, i — obok
-  nich — życie, które gra zapisała pod własnym kluczem, bez żadnej zapowiedzi. Wiersz otwiera się
-  tylko wtedy, gdy jest tam więcej niż jedna pozycja; inaczej powtarzałby liczbę z wiersza nad nim.
+  nich — życie, które gra zapisała pod własnym kluczem, bez żadnej zapowiedzi. Nie otwiera się
+  wiersz, pod którym stałby sam klucz gry — te same klucze widać sekcję wyżej, pod „od czego".
 
 - **Nowość** — Okienko postaci mówi teraz, ile obrażeń padło przed redukcją, obok liczby, która
   naprawdę weszła. Pod liczbami stoi zdanie, że różnicy nie zatrzymała obrona — pancerza ani

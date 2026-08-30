@@ -998,10 +998,16 @@ Deno.test("a healing pair says what passed between the two, and says it from bot
     assertEquals(given.parts, received.parts, "made of the same parts, in the same order");
 });
 
-/** The same rule as on the damage screens, over the whole corpus and on both healing screens. */
+/**
+ * A single row is a repetition only where it adds no name. An announcement names the ability, which
+ * the person row above it does not — and on the screen about what reached this combatant nothing
+ * else says which of them cast which. A key adds no such name, and every single-key pair in the
+ * corpus is somebody and themselves, whose keys `OD CZEGO` one rung up already lists.
+ */
 Deno.test("a healing pair that would only repeat the row above it does not open", () => {
     let closed = 0;
     let opened = 0;
+    let named = 0;
     for (const path of getRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         for (const metric of ["healthGiven", "healthRestored"] as const) {
@@ -1019,10 +1025,21 @@ Deno.test("a healing pair that would only repeat the row above it does not open"
                     assert(pair !== null, "a row of the cut names a pair");
                     if (other.opensPair) opened += 1;
                     else closed += 1;
+                    const holds = pair.parts.length > 1 ||
+                        pair.parts.some((one) => one.part.kind === "skill");
+                    if (other.opensPair && pair.parts.length === 1) named += 1;
                     assertEquals(
                         other.opensPair,
-                        pair.parts.length > 1,
+                        holds,
                         `${path}: which is what decides whether it opens`,
+                    );
+                    // A row that opens on its own is an announcement and never a key: the key
+                    // would be the figure just pressed under a word already on the screen above.
+                    if (pair.parts.length !== 1) continue;
+                    assertEquals(
+                        other.opensPair,
+                        pair.parts[0]?.part.kind === "skill",
+                        `${path}: a lone row opens where it names an ability and not otherwise`,
                     );
                 }
             }
@@ -1030,6 +1047,7 @@ Deno.test("a healing pair that would only repeat the row above it does not open"
     }
     assert(opened > 0, "some healing pairs in the corpus say more than the row above them");
     assert(closed > 0, "and some say exactly it");
+    assert(named > 0, "and some open on one row, because that row names the ability");
 });
 
 /**

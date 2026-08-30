@@ -1105,6 +1105,13 @@ export function composePairReading(
  * count. Answered by composing the level rather than by a second rule about it: a predicate written
  * alongside the composer is two spellings of one question, and the disagreement is silent — an
  * arrow leading nowhere, or none where there was something to see.
+ *
+ * ⚠️ **A single row is a repetition only where it adds no name.** An announcement names the ability
+ * the health moved under, which the person row above it does not — and on the screen about what
+ * reached this combatant nothing else states which of them cast which ability. A key adds no such
+ * name: over `captures/` on 2026-08-30 every one of the 240 single-key pairs is somebody and
+ * themselves, and `OD CZEGO` one rung up already lists those keys. 550 of the 558 single-ability
+ * pairs are between two different people.
  */
 function getOpensPair(
     statistics: FightStatistics,
@@ -1130,7 +1137,8 @@ function getOpensPair(
     const stated = composePairPartFigures(statistics, metric, combatantId, otherId);
     const held = getTotalFromParts(stated);
     assert(held <= total, "what the parts came to is no more than what passed between the two");
-    return stated.length + (held < total ? 1 : 0) > 1;
+    if (stated.length + (held < total ? 1 : 0) > 1) return true;
+    return stated.some((one) => one.part.kind === "skill");
 }
 
 function getPairKinds(
