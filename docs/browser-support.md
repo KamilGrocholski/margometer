@@ -1,8 +1,9 @@
 # Browser support
 
-What the shipped userscript needs from a browser, measured off the tree rather than assumed. The CSS
-half is held to it by `tests/tools/browser-support.test.ts`; the JavaScript half is held by nothing
-here, which the section on it states.
+What the shipped userscript needs from a browser, measured off the tree rather than assumed.
+`tests/tools/browser-support.test.ts` holds the CSS half to the stylesheet, both halves' rows to the
+files they name, and the floor to the arithmetic over them. What it cannot hold is a **new**
+construct reaching past the floor in JavaScript, which the section on it states.
 
 The register exists because nothing else could notice. `tools/build-userscript.ts` bundles with
 `minify: false` and no `target`, so **the ES level of the source is the ES level a player's browser
@@ -204,16 +205,22 @@ to refuse.
 
 ## JavaScript
 
-⚠️ **Held by nothing in this tree, and the floor below is a claim rather than a check.** Two lines
-would hold it: a `lib` deciding which library **members** exist, and a `target` deciding which
-**syntax** is allowed. `deno.json` states `lib` as `esnext` and no `target` at all, so a round that
-reaches past this floor for either passes the gate without a word. `ARCHITECTURE.md` carries it as a
-known gap. The two constructs that decide where the floor is:
+⚠️ **A construct reaching past this floor still passes the gate, and neither compiler option that
+would stop it works here.** Measured 2026-08-30 by probing `libs/number-text.ts` and restoring it
+from a copy: `deno check` **ignores** `target` in `deno.json` and prints that it did, so the syntax
+half cannot be pinned at all; and narrowing `lib` from `esnext` to `es2022` still accepts
+`findLast`, which is ES2023, so the member half is not pinned either. Unlike the stylesheet, the
+sources are not one enumerable string, so nothing can list what they reach for.
+
+What **is** held is the register going stale, which is the failure that has happened twice:
+`tests/tools/browser-support.test.ts` requires each row below to name a construct the file beside it
+still spells, and re-earns both tiers at the top as the maximum over the rows under them.
+`ARCHITECTURE.md` carries the rest as a known gap. The one construct that decides where the floor
+is:
 
 | Construct      | Where                          | Chrome / Edge | Firefox | Safari |
 | -------------- | ------------------------------ | ------------- | ------- | ------ |
 | `ErrorOptions` | `src/core/margometer-error.ts` | 93            | 91      | 15     |
-| `replaceAll`   | `src/game/fight-capture.ts`    | 85            | 77      | 13.1   |
 
 `ErrorOptions` is why the lib is ES2022 and not ES2021, and it is a **type** dependency rather than
 a runtime one: the base class accepts and forwards `options`, and no shipped caller passes a

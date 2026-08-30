@@ -445,14 +445,15 @@ commit that opens or closes one.
    quietly, and the counts are its to state rather than this file's (**V5**); rewrapping is a large
    diff, on carried material or on a generated register, and waits until each is next edited for its
    own reasons.
-4. **Half of `docs/browser-support.md` is held and half is not.** Its CSS register is guarded by
-   `tests/tools/browser-support.test.ts`, which enumerates what `composeStyleSheet()` spells and
-   holds the document to it in both directions. Its **JavaScript** floor is the unheld half: the
-   document describes one checked over sources, and the ES level that matters is the bundle's once
-   the bundle carries standard-library code. **Neither level is held here.** v1 pinned its own
-   sources with a `tsconfig.userscript.json`; this tree has none, and `deno.json` states `lib` as
-   `esnext` with no `target` at all — so a round reaching past the floor for a member or for a
-   syntax passes the gate without a word. The document says so at the section itself.
+4. **A JavaScript construct past the floor still passes the gate.**
+   `tests/tools/browser-support.test.ts` holds `docs/browser-support.md`'s CSS half against the one
+   string the stylesheet is, holds both halves' rows to the files they name, and re-earns both tiers
+   as the maximum over the rows under them. What it cannot do is notice a **new** construct: the
+   sources are not enumerable the way the sheet is, and neither compiler option that would stand in
+   works here — measured 2026-08-30, `deno check` ignores `target` in `deno.json` and says so, and
+   narrowing `lib` to `es2022` still accepts `findLast`, which is ES2023. v1 pinned its sources with
+   a `tsconfig.userscript.json`; a tsc of our own is a dependency, and **ADR 0001** is why this tree
+   has one toolchain. The document says all of this at the section itself.
 5. **Every key in `captures/` is read, and no recording is short.** `healall_per` was the last, and
    ADR 0010 carries how a share stated about a whole side is sized onto its members. Measured over
    `captures/` on 2026-08-29: 115 casts across 22 recordings, every one of them whole, and no

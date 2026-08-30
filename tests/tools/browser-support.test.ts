@@ -9,6 +9,7 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
+import { getDecimalFromText } from "@/libs/number-text.ts";
 import { composeStyleSheet } from "@/src/ui/panel-look.ts";
 
 const REGISTER = "docs/browser-support.md";
@@ -345,4 +346,122 @@ Deno.test("the reader finds its subject, and does not find what is not there", (
     assertEquals(getValueWords("calc(5px - 2px)"), [], "arithmetic states no keyword");
     assertEquals(getValueWords("-45deg"), [], "and neither does a signed unit");
     assertEquals(removeTokenReferences("var(--a) none"), "  none", "a reference leaves a gap");
+});
+
+/**
+ * The JavaScript half, and the arithmetic that ties both halves to the floor at the top.
+ *
+ * ⚠️ **This is not the CSS half's guard and cannot be.** The stylesheet is one string, so what it
+ * spells is enumerable and a construct arriving with no entry fails. The sources are not, and
+ * neither compiler option that would hold them works here: `deno check` **ignores** `target` in
+ * `deno.json` and says so, and narrowing `lib` to `es2022` still accepts `findLast`, which is
+ * ES2023 — both measured on 2026-08-30 by probing `libs/number-text.ts` and restoring it from a
+ * copy. So a **new** construct reaching past the floor still passes, and `ARCHITECTURE.md` carries
+ * that. What is held here is the register going stale, which is the failure that has actually
+ * happened: a row naming a construct nothing spells any more, and a floor that stopped being the
+ * maximum over the rows under it.
+ */
+const ENGINES = ["Chrome / Edge", "Firefox", "Safari"];
+/** Rows above this floor are not the tier arithmetic's — the document says so at the table. */
+const PREFIXED_HEADING = "### Prefixed";
+const TIERS = ["**Runs correctly**", "**Looks as designed**"];
+
+interface FloorRow {
+    construct: string;
+    second: string;
+    versions: number[];
+}
+
+/** `| \`name\` | second | a | b | c |`, with a version read as a number so it can be compared. */
+function getFloorRows(section: string): FloorRow[] {
+    const rows: FloorRow[] = [];
+    for (const line of section.split("\n")) {
+        if (!line.startsWith("| `")) continue;
+        const cells = line.split("|").map((one) => one.trim()).filter((one) => one !== "");
+        if (cells.length !== 2 + ENGINES.length) continue;
+        const versions = cells.slice(2).map((one) => getDecimalFromText(one) ?? 0);
+        const construct = getQuotedNames(cells[0] ?? "")[0] ?? "";
+        rows.push({ construct, second: cells[1] ?? "", versions });
+    }
+    assert(rows.length > 0, "a floor table names constructs");
+    return rows;
+}
+
+function getSection(document: string, from: string, to: string): string {
+    const start = document.indexOf(from);
+    assert(start !== -1, `${from} is a section of the register`);
+    const end = document.indexOf(to, start);
+    assert(end > start, `${from} ends where ${to} starts`);
+    return document.slice(start, end);
+}
+
+function getStyleFloorRows(document: string): FloorRow[] {
+    return getFloorRows(getSection(document, "### What sets the floor", PREFIXED_HEADING));
+}
+
+function getScriptFloorRows(document: string): FloorRow[] {
+    return getFloorRows(getSection(document, "## JavaScript", "### Patterns"));
+}
+
+/** What the tier tables at the top state, read back as numbers. */
+function getStatedFloor(document: string, tier: string): number[] {
+    const section = getSection(document, "## The floor", "## The one it is developed against");
+    for (const line of section.split("\n")) {
+        if (!line.startsWith(`| ${tier}`)) continue;
+        const cells = line.split("|").map((one) => one.trim()).filter((one) => one !== "");
+        return cells.slice(1).map((one) => getDecimalFromText(one) ?? 0);
+    }
+    return [];
+}
+
+function getHighest(rows: readonly FloorRow[]): number[] {
+    return ENGINES.map((_, at) => Math.max(...rows.map((row) => row.versions[at] ?? 0)));
+}
+
+Deno.test("every construct the JavaScript register names is still spelled where it says", () => {
+    const rows = getScriptFloorRows(Deno.readTextFileSync(REGISTER));
+    assert(rows.length > 0, "the register names what decides the floor");
+    for (const row of rows) {
+        const path = getQuotedNames(row.second)[0] ?? "";
+        assert(path.startsWith("src/"), `${row.construct} names a file that ships`);
+        const source = Deno.readTextFileSync(path);
+        assert(source.includes(row.construct), `${path} no longer spells ${row.construct}`);
+        assert(
+            row.versions.every((one) => one > 0),
+            `${row.construct} states a version per engine`,
+        );
+    }
+});
+
+/**
+ * The floor at the top, re-earned rather than remembered. `Runs correctly` is the maximum over the
+ * rows a failure would break, and `Looks as designed` over every row there is — the prefixed pair
+ * excluded, which the document states at that table and this reads from the section boundary.
+ */
+Deno.test("each tier is the highest version the rows under it ask for", () => {
+    const document = Deno.readTextFileSync(REGISTER);
+    const style = getStyleFloorRows(document);
+    const script = getScriptFloorRows(document);
+    const runs = style.filter((row) => row.second === "runs");
+    assert(runs.length > 0, "some style rows are a matter of running correctly");
+    assertEquals(
+        getStatedFloor(document, TIERS[0] ?? ""),
+        getHighest([...runs, ...script]),
+        "what runs correctly is the highest the correctness rows ask for",
+    );
+    assertEquals(
+        getStatedFloor(document, TIERS[1] ?? ""),
+        getHighest([...style, ...script]),
+        "and what looks as designed is the highest anything asks for",
+    );
+});
+
+Deno.test("the floor reader finds its subject, and reads a version rather than a word", () => {
+    const sample = "| `replaceAll` | `src/game/fight-capture.ts` | 85 | 77 | 13.1 |";
+    const [row] = getFloorRows(sample);
+    assert(row !== undefined, "a row is read out of a table line");
+    assertEquals(row.construct, "replaceAll", "the construct is the first cell");
+    assertEquals(row.versions, [85, 77, 13.1], "and a fractional version is a number");
+    // The sample it must not read: a tier row names no construct and sets no floor of its own.
+    assertEquals(getFloorRows(`${sample}\n| **Runs correctly** | 93 | 91 | 16 |`).length, 1, "one");
 });
