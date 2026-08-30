@@ -20,16 +20,18 @@ the entry that completes a partial implementation, which is a different and late
 |                       | Chrome / Edge | Firefox | Safari |
 | --------------------- | ------------- | ------- | ------ |
 | **Runs correctly**    | 93            | 91      | 16     |
-| **Looks as designed** | 121           | 97      | 26.2   |
+| **Looks as designed** | 121           | 91      | 18.2   |
 
 Two tiers because they answer different questions and one number would lose a true fact either way.
 Between the rows the panel counts correctly, draws every figure and every warning, and differs only
 in the scrollbar and one hatch — so calling those browsers unsupported would be false, and calling
 them fully supported would be too.
 
-Every current desktop release clears both. The gap that lasted longest is Safari's:
-`scrollbar-color` reached it in 26.2, and before that the panel's list carries the platform
-scrollbar instead of the thin tinted one.
+Every current desktop release clears both. In Firefox the two rows are now one number: nothing
+cosmetic asks for more than `ErrorOptions` already does, so there is no Firefox where the panel
+counts correctly and draws wrongly. Chrome's upper row is `scrollbar-width` at 121 and Safari's is
+the same property at 18.2; below either, the list draws the platform scrollbar and pays its width
+out of the rows.
 
 ⚠️ **One property is spelled twice, once with a `-webkit-` prefix**, because Safari answers it under
 no other name — see `### Prefixed` below.
@@ -73,9 +75,7 @@ guard's first run on 2026-08-29.
 | `overscroll-behavior`          | runs  | 63            | 59      | 16     |
 | `overscroll-behavior: contain` | runs  | 63            | 59      | 16     |
 | `mask-image`                   | looks | 120           | 53      | 15.4   |
-| `scrollbar-gutter`             | looks | 94            | 97      | 18.2   |
 | `scrollbar-width`              | looks | 121           | 64      | 18.2   |
-| `scrollbar-color`              | looks | 121           | 64      | 26.2   |
 
 What each one looks like below its floor, which is the whole content of a cosmetic floor and the
 reason the tier column is not enough on its own:
@@ -94,17 +94,13 @@ reason the tier column is not enough on its own:
   spelled. That is where the line sits: below its floor this property degrades and the row still
   reads, so a prefix would buy back a hatch — while the one property that is prefixed buys back a
   defect.
-- **`scrollbar-gutter: stable`** (on `.list`, `.pinned` and `.sides-region`). The gutter is no
-  longer reserved, so rows shift sideways when the scrollbar appears and disappears between two
-  payloads — the exact jump the comment above that declaration was written to prevent. The three
-  regions still agree with each other, which is the other thing the declaration is for: only `.list`
-  can ever show a scrollbar, and the two below it reserve the same gutter so that a bar is one
-  length wherever it is drawn. Below the floor none of them reserves anything, so the bars stay
-  equal and what is lost is the list's jump alone.
-- **`scrollbar-width` / `scrollbar-color`**. The platform scrollbar, at platform width and platform
-  colour, instead of the thin tinted one. The width is the gutter's as well, and all three regions
-  ask for it in the same words, so a platform gutter widens their insets together rather than one of
-  them.
+- **`scrollbar-width: none`** (on `.list`). The platform scrollbar is drawn, and it takes its width
+  out of the rows: 15px in Chrome 152, 12px in Firefox 140.13.0esr, both read on 2026-08-31. It is
+  taken only while the list overflows, so a payload that fills the list and one that does not walk
+  the rows sideways between them, and `.pinned` and `.sides-region` — which draw a bar of their own
+  and never scroll — do not walk with them, so a bar means two lengths for as long as the platform
+  bar is up. That is the worst degradation on this page, and it is bought deliberately: above the
+  floor no region gives up anything and the rows are inset equally on both sides. **ADR 0031.**
 
 ### Prefixed
 
@@ -152,9 +148,9 @@ Pairs: `-webkit-user-select: none` · `align-items: baseline` · `align-items: c
 · `justify-content: center` · `justify-content: space-between` · `margin-left: auto` ·
 `mask-image: transparent` · `overflow: hidden` · `overflow-x: hidden` · `overflow-y: auto` ·
 `pointer-events: none` · `position: absolute` · `position: fixed` · `position: relative` ·
-`position: sticky` · `scrollbar-color: transparent` · `scrollbar-gutter: stable` ·
-`scrollbar-width: thin` · `text-align: center` · `text-align: right` · `text-overflow: ellipsis` ·
-`text-transform: uppercase` · `touch-action: none` · `user-select: none` · `white-space: nowrap`
+`position: sticky` · `scrollbar-width: none` · `text-align: center` · `text-align: right` ·
+`text-overflow: ellipsis` · `text-transform: uppercase` · `touch-action: none` · `user-select: none`
+· `white-space: nowrap`
 
 Functions: `calc` · `clamp` · `min` · `repeating-linear-gradient` · `rgb` · `var`
 

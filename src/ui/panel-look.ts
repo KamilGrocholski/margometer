@@ -472,8 +472,7 @@ function composeListRules(): string {
         `padding-bottom:${belowRows};` +
         `height:calc(var(${VARIABLE_PREFIX}rows,${ROWS_BY_DEFAULT}) * ${rowCost});` +
         `overflow-y:auto;overflow-x:hidden;` +
-        `scrollbar-gutter:stable;overscroll-behavior:contain;scrollbar-width:thin;` +
-        `scrollbar-color:var(${VARIABLE_PREFIX}border) transparent;}` +
+        `overscroll-behavior:contain;scrollbar-width:none;}` +
         // The background and the layer are not decoration: a row's bar is positioned and comes
         // later in the tree, so without both the bars paint over the sticky heading.
         `.${CLASS.section}{position:sticky;` +
@@ -492,8 +491,7 @@ function composeListRules(): string {
         `padding:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.sides}{padding:var(${VARIABLE_PREFIX}region-down) ` +
         `var(${VARIABLE_PREFIX}region-across);` +
-        `border-top:1px solid var(${VARIABLE_PREFIX}border);overflow:hidden;` +
-        `scrollbar-gutter:stable;scrollbar-width:thin;}` +
+        `border-top:1px solid var(${VARIABLE_PREFIX}border);overflow:hidden;}` +
         `.${CLASS.sidesLine}{display:flex;justify-content:space-between;align-items:baseline;` +
         `font-variant-numeric:tabular-nums;font-weight:600;}` +
         `.${CLASS.sidesLabel}{color:var(${VARIABLE_PREFIX}quiet);font-weight:400;opacity:0.8;}` +
@@ -558,8 +556,7 @@ function composeRowRules(): string {
         `.${CLASS.pinned}{margin:0 var(${VARIABLE_PREFIX}region-across);` +
         `padding:var(${VARIABLE_PREFIX}region-down) 0 ` +
         `${composeInsetUnderRows(VARIABLE_PREFIX + "region-down")};` +
-        `border-top:1px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;` +
-        `scrollbar-gutter:stable;scrollbar-width:thin;}` +
+        `border-top:1px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;}` +
         `.${CLASS.pinned} .${CLASS.bar}{opacity:0.4;mask-image:repeating-linear-gradient(` +
         `-45deg,var(${VARIABLE_PREFIX}mask) 0 4px,transparent 4px 8px);}` +
         `.${CLASS.pinned} .${CLASS.barCap}{opacity:0.7;}`;

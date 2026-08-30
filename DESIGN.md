@@ -299,9 +299,10 @@ ranking it was opened from, so pressing a row cannot shorten the window under th
 region says the same thing at any height, so there is nothing to take off them. Its height is
 arithmetic — the rows it promises times what a row costs — so changing the type size cannot quietly
 break the promise: eleven bars under everybody, ten under a side, and never fewer once a row is
-opened, because pressing a row must not shorten the window under the hand. Its scrollbar gutter is
-reserved whether or not a scrollbar shows, and the two regions drawing a bar outside it reserve one
-too, so a bar means the same length in all three.
+opened, because pressing a row must not shorten the window under the hand. It scrolls without
+drawing a scrollbar, so it gives up no width to one, and neither does either region that draws a bar
+outside it: a row is inset equally on both sides and a bar means the same length in all three. **ADR
+0031.**
 
 **Tooltip.** `surfaceRaised`, fixed width, opens on hover and follows the cursor's vertical
 position. It states its own type and its own ink, because `all: initial` on the host reaches it and

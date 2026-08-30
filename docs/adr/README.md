@@ -109,3 +109,5 @@ edited to agree with the new rule.
   the middle of the window. **Accepted**
 - [0030](0030-a-recording-says-who-wrote-it.md) — A recording is spelled in English, and says which
   builds it stands between. **Accepted**
+- [0031](0031-the-list-scrolls-without-drawing-a-scrollbar.md) — The list scrolls without drawing a
+  scrollbar, and no region reserves a gutter. **Accepted**

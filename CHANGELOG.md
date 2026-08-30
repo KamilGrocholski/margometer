@@ -33,6 +33,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Zmiana** — Lista w panelu nie ma już paska przewijania przy prawej krawędzi. Przewija się
+  dokładnie tak samo, kółkiem i palcem, a miejsce po pasku dostały nazwy postaci — mieści się ich
+  więcej, zanim zostaną ucięte. To, że lista sięga dalej w dół, widać teraz dopiero po przewinięciu.
+
 - **Zmiana** — Plik z walką, który zapisuje `⭳`, ma teraz w nazwie wersję gry i wersję dodatku, a w
   środku nazwy pól po angielsku — `gameBuild`, `addOnVersion`, `capturedAt` zamiast skrótów. Widać z
   samej nazwy załącznika, z czego pochodzi, bez otwierania go.
