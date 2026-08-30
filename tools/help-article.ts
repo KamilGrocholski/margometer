@@ -13,7 +13,7 @@
 import { assert } from "@std/assert";
 import { getEndOfRun } from "@/libs/text-walk.ts";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
-import { isRecord } from "@/libs/unknown-reading.ts";
+import { getNumberFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { HelpArticleError } from "@/tools/margometer-tool-error.ts";
 
@@ -323,7 +323,7 @@ export function requireCachedHelpArticle(value: unknown, article: string): Cache
     if (stated !== article) {
         throw new HelpArticleError(`cache manifest for ${article} says it holds ${stated}`);
     }
-    const textLength = getIntegerFromText(String(value["textLength"] ?? ""));
+    const textLength = getNumberFromUnknown(value["textLength"]);
     if (textLength === null) {
         throw new HelpArticleError(`cache manifest for ${article}: textLength is not a number`);
     }

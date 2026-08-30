@@ -14,7 +14,12 @@ import type { FightOutcome } from "@/src/core/fight-statistics.ts";
 import type { BrowserStore } from "@/src/game/browser-store.ts";
 import type { FightPlace } from "@/src/game/engine-place.ts";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
-import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
+import {
+    getNumberFromUnknown,
+    getStatedTextFromUnknown,
+    getTextFromUnknown,
+    isRecord,
+} from "@/libs/unknown-reading.ts";
 
 /** A shelf holds this many fights and no more, oldest dropped first. */
 const MAXIMUM_KEPT = 20;
@@ -87,7 +92,7 @@ function getKeptCombatantFromValue(value: unknown): Combatant | null {
     if (!isRecord(value)) return null;
     const id = getNumberFromUnknown(value.id);
     if (id === null) return null;
-    const name = getTextFromUnknown(value.name);
+    const name = getStatedTextFromUnknown(value.name);
     if (name === null) return null;
     const side = getNumberFromUnknown(value.side);
     if (side === null) return null;
@@ -96,7 +101,7 @@ function getKeptCombatantFromValue(value: unknown): Combatant | null {
         id,
         name,
         side,
-        profession: getTextFromUnknown(value.profession),
+        profession: getStatedTextFromUnknown(value.profession),
         level: getNumberFromUnknown(value.level),
         healthMaximum: getNumberFromUnknown(value.healthMaximum),
     };
@@ -122,7 +127,7 @@ function getCombatantsFromValue(value: unknown): Combatant[] | null {
 function getKeptPlaceFromValue(value: unknown): FightPlace | null {
     if (!isRecord(value)) return null;
     const place: FightPlace = {
-        mapName: getTextFromUnknown(value.mapName),
+        mapName: getStatedTextFromUnknown(value.mapName),
         x: getNumberFromUnknown(value.x),
         y: getNumberFromUnknown(value.y),
     };
@@ -138,7 +143,7 @@ function getKeptNamesFromValue(value: unknown): string[] | null {
     assert(value.length >= 0, "a side kept is a list with a length");
     const names: string[] = [];
     for (const stated of value) {
-        const name = getTextFromUnknown(stated);
+        const name = getStatedTextFromUnknown(stated);
         if (name === null) return null;
         names.push(name);
     }
@@ -179,6 +184,8 @@ function getKeptFightFromValue(value: unknown): KeptFight | null {
         readerSide: getNumberFromUnknown(value.readerSide),
         outcome: getKeptOutcomeFromValue(value.outcome),
         isPinned: value.isPinned === true,
+        // A default across shelves written before this field existed, not a measurement: the
+        // version gate lets those through, and a fight with no count was watched whole.
         messagesLost: getNumberFromUnknown(value.messagesLost) ?? 0,
         hasJoinedInProgress: value.hasJoinedInProgress === true,
     };

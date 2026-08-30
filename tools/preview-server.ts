@@ -220,7 +220,9 @@ async function composeScriptResponse(state: PreviewState): Promise<Response> {
 function composePageResponse(state: PreviewState, address: URL): Response {
     const fight = getFightByName(state.fights, address.searchParams.get("fight"));
     if (fight === null) return new Response("no such recording", { status: 404 });
-    const asked = getIntegerFromText(address.searchParams.get("entry") ?? "0") ?? 0;
+    const stated = address.searchParams.get("entry");
+    const asked = stated === null ? 0 : getIntegerFromText(stated);
+    if (asked === null) return new Response("entry is not a number", { status: 400 });
     const entryIndex = getValueWithin(asked, 0, fight.calls.length);
     assert(entryIndex >= 0, "a replay stops at or after the first call");
     assert(entryIndex <= fight.calls.length, "and at or before the last");

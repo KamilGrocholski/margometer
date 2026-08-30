@@ -137,8 +137,12 @@ export function composeTipLeft(
     assert(tipWidth > 0, "a detail window is as wide as it was told");
     if (position === null) return null;
     if (viewport === null) return null;
-    const width = getIntegerFromText(PLACE.width.slice(0, -2)) ?? 0;
-    const gap = getIntegerFromText(SPACE.small.slice(0, -2)) ?? 0;
+    // Both are this panel's own tokens, so a reading that fails is a token that changed shape
+    // rather than anything a page did — zero would place the window against the wrong edge.
+    const width = getIntegerFromText(PLACE.width.slice(0, -2));
+    const gap = getIntegerFromText(SPACE.small.slice(0, -2));
+    assert(width !== null, "the panel's own width is stated in whole pixels");
+    assert(gap !== null, "and so is the gap beside it");
     const beside = position.left - tipWidth - gap;
     if (beside >= 0) return beside;
     const other = position.left + width + gap;

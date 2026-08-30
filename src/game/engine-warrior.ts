@@ -8,7 +8,11 @@
 
 import { assert } from "@std/assert";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
-import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
+import {
+    getNumberFromUnknown,
+    getStatedTextFromUnknown,
+    isRecord,
+} from "@/libs/unknown-reading.ts";
 
 const WARRIORS_KEY = "w";
 const HEALTH_KEY = "hp";
@@ -41,7 +45,7 @@ export function getCombatantFromWarrior(value: unknown): Combatant | null {
     if (!isRecord(value)) return null;
     const id = getNumberFromUnknown(value.id);
     if (id === null) return null;
-    const name = getTextFromUnknown(value.name);
+    const name = getStatedTextFromUnknown(value.name);
     if (name === null) return null;
     const side = getNumberFromUnknown(value.team);
     if (side === null) return null;
@@ -54,7 +58,7 @@ export function getCombatantFromWarrior(value: unknown): Combatant | null {
         id,
         name,
         side,
-        profession: getTextFromUnknown(value.prof),
+        profession: getStatedTextFromUnknown(value.prof),
         level: getNumberFromUnknown(value.lvl),
         healthMaximum,
     };
@@ -152,7 +156,7 @@ function getNamedWarriors(collection: unknown): Record<string, unknown>[] {
     const named: Record<string, unknown>[] = [];
     for (const warrior of Object.values(collection)) {
         if (!isRecord(warrior)) continue;
-        if (getTextFromUnknown(warrior[NAME_KEY]) === null) continue;
+        if (getStatedTextFromUnknown(warrior[NAME_KEY]) === null) continue;
         named.push(warrior);
     }
     assert(named.length <= MAXIMUM_WARRIORS, "a fight stays inside its stated bound");

@@ -313,10 +313,8 @@ answer says whether it worked and the value sits behind it (**E10**, **ADR 0021*
   before it is taken: digits are proved to be digits, then the result is proved to be a safe
   integer, so no figure downstream is a neighbour of the one the game stated.
   `src/core/protocol-number.ts` states the width `captures/` carries and delegates the arithmetic,
-  so the row keeps one address. Measured 2026-08-30, one spelling stands outside it:
-  `tools/help-article.ts` wraps a manifest field in `String()` before reading an integer from it,
-  which is `String()` over an **unknown** and not over a number — the reading that field wants is
-  `getTextFromUnknown`, and until it gets one this row cannot say the owner is alone.
+  so the row keeps one address. Measured 2026-08-30, the owner is the only file that spells any of
+  the three.
 - `parseInt`, `parseFloat`, unary `+` — **planned**, named at its first consumer.
 - `JSON.parse` — `libs/json-text.ts`, inside `getJsonReading`. Its result is `unknown` and is walked
   with a predicate and `Array.isArray`; C13 forbids the cast that would skip that. Measured

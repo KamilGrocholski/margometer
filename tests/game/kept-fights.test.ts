@@ -296,3 +296,23 @@ Deno.test("what a reading was short of goes on the shelf with the fight", () => 
         "and reads back as a fight watched whole, which is what it claimed by saying nothing",
     );
 });
+
+/**
+ * A message the game sent as empty text is text, and a shelf carrying one used to vanish whole:
+ * the reader folded "text saying nothing" into "not text", and a payload that would not read
+ * back whole took its fight with it. The live path drops such a message and keeps the fight.
+ */
+Deno.test("a shelf carrying a message that says nothing keeps its fight", () => {
+    const written = composeJsonWriting({
+        version: 2,
+        fights: [{ openedAt: 9, combatants: [], payloads: [["0;0;txt=a", ""]] }],
+    });
+    assert(written.isOk, "a shelf holding an empty message is text");
+    const store = composeStore();
+    store.write(KEY, written.text);
+
+    const kept = readKeptFights(store, KEY);
+    assertEquals(kept.length, 1, "the fight is still on the shelf");
+    assertEquals(kept[0]?.payloads[0]?.length, 2, "with the payload read back whole");
+    assertEquals(kept[0]?.payloads[0]?.[1], "", "the message saying nothing included");
+});

@@ -8,7 +8,12 @@
 import { assert } from "@std/assert";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { ENGINE_SPELLINGS, getEnginesFromPage } from "@/src/game/engine-attachment.ts";
-import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
+import {
+    getNumberFromUnknown,
+    getStatedTextFromUnknown,
+    getTextFromUnknown,
+    isRecord,
+} from "@/libs/unknown-reading.ts";
 
 /**
  * Carried from v1's reading of production build `53XkBRxF` and development build
@@ -58,7 +63,7 @@ export function getPlaceFromEngine(engine: unknown): FightPlace | null {
         const map = getDataFromEngineField(engine, ENGINE_MAP_FIELD);
         const hero = getDataFromEngineField(engine, ENGINE_HERO_FIELD);
         const place: FightPlace = {
-            mapName: map === null ? null : getTextFromUnknown(map[MAP_NAME_FIELD]),
+            mapName: map === null ? null : getStatedTextFromUnknown(map[MAP_NAME_FIELD]),
             x: hero === null ? null : getCoordinateFromValue(hero[HERO_X_FIELD]),
             y: hero === null ? null : getCoordinateFromValue(hero[HERO_Y_FIELD]),
         };

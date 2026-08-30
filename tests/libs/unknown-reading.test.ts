@@ -6,7 +6,12 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
+import {
+    getNumberFromUnknown,
+    getStatedTextFromUnknown,
+    getTextFromUnknown,
+    isRecord,
+} from "@/libs/unknown-reading.ts";
 
 Deno.test("a record is keyed, so nothing and a list are not records", () => {
     assertEquals(isRecord({ m: [] }), true, "a keyed object is one");
@@ -25,8 +30,16 @@ Deno.test("a number is read only where a number was stated", () => {
     assertEquals(getNumberFromUnknown(Number.POSITIVE_INFINITY), null, "nor what has no end");
 });
 
-Deno.test("text is read only where text says something", () => {
-    assertEquals(getTextFromUnknown("Gracz 1"), "Gracz 1", "a name is text");
-    assertEquals(getTextFromUnknown(""), null, "an empty name is no name");
-    assertEquals(getTextFromUnknown(745), null, "and a number is not one either");
+Deno.test("text is read wherever text was stated, saying something or not", () => {
+    assertEquals(getTextFromUnknown("Gracz 1"), "Gracz 1", "text is text");
+    assertEquals(getTextFromUnknown(""), "", "and text saying nothing is text saying nothing");
+    assertEquals(getTextFromUnknown(745), null, "while a number is not text at all");
+    assertEquals(getTextFromUnknown(null), null, "and neither is nothing");
+});
+
+Deno.test("whether text states anything is a second question, asked separately", () => {
+    assertEquals(getStatedTextFromUnknown("Gracz 1"), "Gracz 1", "text that says something");
+    assertEquals(getStatedTextFromUnknown(""), null, "text saying nothing states nothing");
+    assertEquals(getStatedTextFromUnknown(" "), " ", "though a space is something said");
+    assertEquals(getStatedTextFromUnknown(745), null, "and a number states no text");
 });
