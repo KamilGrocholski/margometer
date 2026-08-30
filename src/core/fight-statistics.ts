@@ -688,9 +688,9 @@ function getWoundAttackerId(build: StatisticsBuild, event: HealthChangeEvent): n
 }
 
 /**
- * A tick on both rows: the attacker dealt it and the victim took it, cut by the other end and by
- * the key it moved under. It reaches neither count of blows and neither hardest blow — what ticks
- * after a swing is not a swing, and those two figures name one. **ADR 0022.**
+ * A tick on both rows, into the same cuts a blow reaches. It reaches neither count of blows and
+ * neither hardest blow — what ticks after a swing is not a swing, and those two name one.
+ * **ADR 0022.**
  */
 function addWoundTick(
     build: StatisticsBuild,

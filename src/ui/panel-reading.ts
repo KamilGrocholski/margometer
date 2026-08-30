@@ -216,9 +216,8 @@ function composeWarnings(
 /**
  * A combatant with no side belongs to neither, so a one-side list leaves them out rather than
  * putting them on the side that happens to be showing; they are drawn under everybody, where
- * saying nothing about their side costs nothing. Where the client never said which side is the
- * reader's own, every list is everybody: a filter that cannot tell the two apart is a filter that
- * would guess.
+ * saying nothing about their side costs nothing. With no seat to read from, every list is
+ * everybody: a filter that cannot tell the two apart is a filter that would guess.
  */
 function getIsRowListed(
     side: number | null,
@@ -488,10 +487,9 @@ function getIsOurSideNamed(
  * How the fight went **from the reader's seat**, or nothing at all.
  *
  * The protocol names both sides and says nothing about which is the reader's, so the answer is
- * composed here. Where the client never said which side is the reader's own, or where no name
- * resolves, the header says nothing: a fight the panel cannot place is not a fight it may call a
- * loss. A draw is the one answer needing no seat — the game states it by naming nobody, so it is
- * the same word for everybody in the fight.
+ * composed here. Without a seat, or where no name resolves, the header says nothing: a fight the
+ * panel cannot place is not a fight it may call a loss. A draw is the one answer needing no seat
+ * — the game states it by naming nobody, so it is the same word for everybody in the fight.
  */
 function getOutcomeForReader(
     statistics: FightStatistics,
@@ -583,10 +581,7 @@ export function composePanelReading(
     };
 }
 
-/**
- * Null where the client never said which side is the reader's own: two sides nothing can tell
- * apart are not two figures.
- */
+/** Null without a seat: two sides nothing can tell apart are not two figures. */
 export interface PanelSides {
     ours: number;
     theirs: number;
@@ -693,9 +688,8 @@ export interface SkillRow {
     part: NamedPart;
     opensSkill: boolean;
     /**
-     * How many times it was announced, and null where nothing states a count: an announcement is
-     * counted where it was made, and the protocol says nothing about how many blows fell on one
-     * opponent rather than another.
+     * How many times it was announced, and null where a count would be a claim the protocol
+     * never makes — the section below says under which heading that happens.
      */
     uses: number | null;
     figure: number;
@@ -794,11 +788,8 @@ interface MetricCuts {
     byElement: FigureCut | null;
 }
 
-/**
- * Healing given has no cut by key and the empty map says so outright: the keys the protocol
- * names belong to whoever received the health, so putting one under the giver's row would word
- * their figure with a cause that is not theirs.
- */
+/** Healing given has no cut by key, and the empty map says so outright — whose those keys are
+ * is `core/fight-statistics.ts`'s to state, and it does. */
 function getCutsForMetric(figures: CombatantFigures, metric: PanelMetric): MetricCuts {
     assert(metric.length > 0, "a screen is asked for by name");
     assert(figures.damageDealtApplied >= 0, "a figure that could be cut is not below nothing");

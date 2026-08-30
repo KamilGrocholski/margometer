@@ -175,7 +175,7 @@ const UNPINNED_MARK = "☆";
 const ROWS_WAITING = 11;
 /** What the statistics keep a cut inside. `captures/` states ten kinds in all, 2026-08-28. */
 const MAXIMUM_KINDS = 64;
-/** And what one combatant's own skills are kept inside: 81 names over `captures/`, 2026-08-29. */
+/** And the bound on a combatant's own skills, measured in `src/ui/panel-reading.ts`. */
 const MAXIMUM_SKILLS = 256;
 const TIP_WIDTH = 250;
 /** A bar is written to one place: a tenth of a 260-pixel row is a quarter of a pixel. */
