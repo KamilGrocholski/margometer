@@ -143,7 +143,7 @@ const STORAGE_ATTRIBUTE = "data-storage";
 const LIVE_FIGHT = "live";
 const TIP_ATTRIBUTE = "data-tip";
 const TITLE_ATTRIBUTE = "title";
-/** What a row's bar and a badge are written on, since a length and a hue are data, not tokens. */
+/** What a row's bar is written on, since a length and a hue are data rather than tokens. */
 const STYLE_ATTRIBUTE = "style";
 const ROWS_VARIABLE = "--MargoMeter-rows";
 /** Braces, because what it saves is the protocol as the game stated it and not a reading of it. */

@@ -401,12 +401,12 @@ commit that opens or closes one.
    fight goes on a shelf that says when each was, how big, where and how it went — a press reads one
    back off what was kept of it, a pin keeps one out of the rotation's reach, and a strip says where
    the shelf itself is kept — the header and every row on that shelf say where the fight was fought,
-   a ranking row wears its place, its profession's badge and a bar measured against the biggest
-   figure on screen, hovering a ranking row opens the card that states all four of a combatant's
-   figures with the screen's own in bold, the part of each the protocol named one end of, how they
-   fought and what qualifies the lot — and hovering any other row opens the name its own cell had to
-   cut, the bar says which build drew it and the host carries the same number for a screenshot to be
-   read by, the panel folds to that bar and comes back folded, a press on `{ }` hands the reader the
+   a ranking row wears its place, its profession's hue and a bar measured against the biggest figure
+   on screen, hovering a ranking row opens the card that states all four of a combatant's figures
+   with the screen's own in bold, the part of each the protocol named one end of, how they fought
+   and what qualifies the lot — and hovering any other row opens the name its own cell had to cut,
+   the bar says which build drew it and the host carries the same number for a screenshot to be read
+   by, the panel folds to that bar and comes back folded, a press on `{ }` hands the reader the
    fight as a recording in the shape intake reads, a press on the copy control hands them the
    figures as text, the panel carries the stylesheet `DESIGN.md` specifies and the strip that always
    states the screen's own total, and `deno task build` writes the file they install,
@@ -453,26 +453,21 @@ commit that opens or closes one.
    sources with a `tsconfig.userscript.json`; this tree has none, and `deno.json` states `lib` as
    `esnext` with no `target` at all — so a round reaching past the floor for a member or for a
    syntax passes the gate without a word. The document says so at the section itself.
-7. **A ranking row states a profession in its hue alone.** The eight hues are assigned by the game's
-   own letter and are stable across fights, but six professions cannot be made mutually
-   distinguishable by hue on the panel's background — `DESIGN.md` measures that. The row carried the
-   letter as a second channel until 2026-08-29 and no longer does, so a reader who cannot separate
-   two hues cannot tell those two professions apart at all. Nothing replaces it yet.
-8. **Two commands in the `verify` skill still name v1.** `.agents/skills/verify/SKILL.md` carries
+7. **Two commands in the `verify` skill still name v1.** `.agents/skills/verify/SKILL.md` carries
    the procedural knowledge for driving the add-on in a browser and reading what the panel drew, and
    its preview, screenshot and selector halves were corrected against this tree on 2026-08-29. What
    is left naming modules that do not exist here is `tools/fight-dump-parser.ts` and
    `tools/fight-report.ts`. Corrected module by module as each lands.
-9. **A function declaration whose arrow sits on the next line is not counted.** `isFunctionOpener`
+8. **A function declaration whose arrow sits on the next line is not counted.** `isFunctionOpener`
    in `tests/repository/sources.test.ts` reads a declaration from one line, so a named arrow wrapped
    across two is invisible to S4 and S5. The limit is pinned by a test rather than left to be
    discovered, and closes when a file in this tree is written that way.
-10. **Every key in `captures/` is read, and no recording is short.** `healall_per` was the last, and
-    ADR 0010 carries how a share stated about a whole side is sized onto its members. Measured over
-    `captures/` on 2026-08-29: 115 casts across 22 recordings, every one of them whole, and no
-    message anywhere unread — so the doubt mark never fires on the material this repository holds.
-    It is held by probes only, and the next protocol change is what it exists for.
-11. **A payload can move health with no message stating it.** Every comparison between the health
+9. **Every key in `captures/` is read, and no recording is short.** `healall_per` was the last, and
+   ADR 0010 carries how a share stated about a whole side is sized onto its members. Measured over
+   `captures/` on 2026-08-29: 115 casts across 22 recordings, every one of them whole, and no
+   message anywhere unread — so the doubt mark never fires on the material this repository holds. It
+   is held by probes only, and the next protocol change is what it exists for.
+10. **A payload can move health with no message stating it.** Every comparison between the health
     the protocol states about a combatant and the movement decoded from its own messages agrees
     inside the reading's tolerance, bar three kinds: a killing blow landing more than the health
     that was left, health restored by a share the decoder states without an amount, and **one
@@ -484,26 +479,34 @@ commit that opens or closes one.
     at one so a second cannot arrive unnoticed. The figures stood here too until 2026-08-30, in a
     second reckoning that counted the first two kinds as disagreements where the test does not — two
     numbers for one measurement, which **V5** is the rule against.
-12. **The recursion guard misreads a one-line named arrow.** `getFunctionBodies` in
+11. **The recursion guard misreads a one-line named arrow.** `getFunctionBodies` in
     `tests/repository/sources.test.ts` collects lines until the brace depth returns to zero, and a
     `const name = () => expression;` opens no brace — so every line after it is read as that
     function's body, and a later call to it reads as a call to itself. Found by writing one in
     `tests/userscript-entry.test.ts`, which now carries a block body and a comment saying why. A
     false positive is worse than a blind spot, so this is the next thing that guard should learn;
-    gap 10 is the other half of the same reader.
-13. **No release has been cut on this branch.** `CHANGELOG.md` is written, carried from v1 and
+    gap 9 is the other half of the same reader.
+12. **No release has been cut on this branch.** `CHANGELOG.md` is written, carried from v1 and
     opened with what the rewrite changed for a player; `tools/changelog.ts` composes the body of a
     release out of it, `.github/workflows/check.yml` is the run **G7** waits for, and
     `.github/workflows/release.yml` publishes one. **None of it has run here.** `README.md` and the
     screenshots are unwritten, and the release path is held by its tests alone.
-14. **A ranking row does not say which side is the reader's.** The seat itself is read — the payload
+13. **A ranking row does not say which side is the reader's.** The seat itself is read — the payload
     that opens a fight states it under `myteam`, `game/battle-session.ts` keeps it once seen, and it
     already decides the order of a shelf row's sides and whether a fight was won from that seat. It
     is `PanelRow.side` that stops short: it carries the game's own team number and nothing turns it
-    into `ours` or `theirs`. The two tokens `DESIGN.md` states for it are unspent — a ranking row is
-    coloured by profession instead, which needs no side. Whatever spends them will need a carrier
-    that is not colour, so the two halves open together.
-15. **A restatement in different words is unheld, and it is the worse kind.**
+    into `ours` or `theirs`. `ours` and `theirs` are spent on the totals strip and on no row.
+
+    **The lightness of the name is not the carrier, and that is measured rather than argued.** A
+    ranking row's name sits over its own bar, so it is held to the AA floor `DESIGN.md` states for
+    text on a bar. Measured over the whole palette on 2026-08-30: the plain ink `#e7e7ea` clears the
+    worst bar at 5.09, the quiet ink `#9a9aa6` reaches 2.26 against a floor of 4.5, and sweeping the
+    neutral greys puts the last one that clears AA at about `#dfdfdf` — indistinguishable from the
+    plain ink at a glance. **There is no room in that channel over a bar.** What is left is a
+    carrier that is not ink and not hue: the edge the bar grows from, the slope of the name, or a
+    rule under the row spending the two tokens, each with a cost of its own. The seat reaching the
+    row is cheap; deciding what draws it is the open half.
+14. **A restatement in different words is unheld, and it is the worse kind.**
     `tests/repository/sources.test.ts` holds C15's second half by comparing block text, so a comment
     repeated word for word is a finding and one reworded is not — which is backwards from the cost,
     since two copies that read differently drift without ever looking like copies. Found by reading
@@ -512,7 +515,7 @@ commit that opens or closes one.
     over a panel that draws two. **ADR 0016.** C14 is unheld for the same reason and has no guard
     shape yet; the one that would hold it counts declarations carrying a docblock, which needs a
     parser this tree does not have.
-16. **The cast column of `docs/captured-fights.md` is held by reading.**
+15. **The cast column of `docs/captured-fights.md` is held by reading.**
     `tests/tools/captured-fight-register.test.ts` re-earns the set of recordings both ways and, for
     each, the world, the build, the calls and the messages. What it does not compose is the
     professions, their counts and the level range, so a row stating those wrongly passes the gate.

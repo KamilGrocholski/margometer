@@ -184,10 +184,11 @@ text sits. **Its length is the row against the biggest figure on screen**, never
 the top row of a ten-person fight is a full bar, and the share in brackets is what states the
 fraction.
 
-⚠️ **The row says a profession in its hue and in nothing else.** Six professions cannot be made
-mutually distinguishable by hue on this background, so a reader who cannot separate two of them has
-nothing else in the row to read: the answer is stated once, in the one channel colour vision
-carries. `ARCHITECTURE.md` carries this under its known gaps.
+⚠️ **The row says a profession in its hue and in nothing else, and that is a decision.** Six
+professions cannot be made mutually distinguishable by hue on this background, so the hue is a hint
+and the card a reader opens by pointing is the answer — it names the profession in words. A second
+channel in the row was tried and removed on 2026-08-29: a letter beside every name took width from
+the one cell that has to shorten, to say a thing the card already said. **ADR 0023.**
 
 **Pinned row.** Stands apart from the ranking, below it and outside the list, for figures that
 belong to no combatant. It is a row, not a footnote: same height, same shape — with a dashed rule

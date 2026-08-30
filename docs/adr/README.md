@@ -93,3 +93,5 @@ edited to agree with the new rule.
   behind it. **Accepted**
 - [0022](0022-a-tick-belongs-to-the-wound-that-is-ticking.md) — A tick belongs to the wound that is
   ticking, and to the attacker who left it. **Accepted**
+- [0023](0023-a-profession-is-said-in-one-channel.md) — A profession is said in one channel, and the
+  card is the answer. **Accepted**
