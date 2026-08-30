@@ -413,17 +413,17 @@ commit that opens or closes one.
    `deno task preview` serves it over a recording and reloads it on a change under `src/`,
    `deno task preview:site` writes the same page down for somebody with no clone,
    `deno task screenshots` photographs it, and `deno task intake` redacts a recording and admits it
-   to `captures/`. the header says how the fight went, the strip under the list totals the two sides
+   to `captures/`. The header says how the fight went, the strip under the list totals the two sides
    and what belongs to neither, a doubt is said as a sentence under it, and the panel is moved by
-   its bar and comes back where it was left. What is not written: **the third level of the drill**,
-   which is v1's cut by skill. The card that says what a combatant's figures are made of is written,
-   and so is the run of it the screen decides: the criticals against the blows struck, the hardest
-   blow, what fired beside one and what it destroyed on the other side, and on the screen about
-   being struck what a defence stopped, cut by the defence (**ADR 0019**). Two proc keys reach no
-   row — `-tenacity` and `+superspell-dispel`, whose end article view,372 does not settle — and they
-   are decoded and charged to nobody until material does. What is left of the release plumbing is
-   `README.md`, which is unwritten, and nothing yet consumes the photographs
-   `.github/workflows/pages.yml` does not publish.
+   its bar and comes back where it was left. Which rows of all that open and which are the last is
+   `docs/drill-levels.md`'s to say, measured rather than claimed here. The card that says what a
+   combatant's figures are made of is written, and so is the run of it the screen decides: the
+   criticals against the blows struck, the hardest blow, what fired beside one and what it destroyed
+   on the other side, and on the screen about being struck what a defence stopped, cut by the
+   defence (**ADR 0019**). Two proc keys reach no row — `-tenacity` and `+superspell-dispel`, whose
+   end article view,372 does not settle — and they are decoded and charged to nobody until material
+   does. What is left of the release plumbing is `README.md`, which is unwritten, and nothing yet
+   consumes the photographs `.github/workflows/pages.yml` does not publish.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
