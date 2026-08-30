@@ -14,7 +14,6 @@ import {
     composeCombatantRoster,
 } from "@/src/core/combatant-roster.ts";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
-import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { getNumberFromUnknown, getTextFromUnknown } from "@/libs/unknown-reading.ts";
@@ -49,7 +48,9 @@ import {
     composeKeptRotation,
     getIsEverySlotPinned,
     type KeptFight,
+    MAXIMUM_KEPT,
     readKeptFights,
+    type ShelfWriting,
     writeKeptFights,
 } from "@/src/game/kept-fights.ts";
 import { composeReportText } from "@/src/game/fight-report.ts";
@@ -87,6 +88,7 @@ import {
     CHOICE_REFUSED_WARNING,
     composePlaceWords,
     EVERY_SLOT_PINNED_WARNING,
+    STORE_MADE_ROOM_WARNING,
     STORE_REFUSED_WARNING,
 } from "@/src/ui/panel-words.ts";
 
@@ -154,16 +156,65 @@ function composeShelfSizes(combatants: readonly Combatant[], readerSide: number 
     return sides.map(([, count]) => count);
 }
 
+interface FightFigures {
+    fight: FightReading;
+    roster: CombatantRoster;
+    statistics: FightStatistics;
+}
+
+interface KeptFigures {
+    read(fight: KeptFight): FightFigures;
+    forget(openedAt: number): void;
+    keepOnly(fights: readonly KeptFight[]): void;
+}
+
 /**
- * The three sentences it can say are the three ways keeping a fight goes wrong, and each is a
- * different remedy: make room, unpin something, or nothing at all.
+ * The figures of a fight on the shelf, derived once and held for as long as the tab is.
+ *
+ * A row states an outcome and the sizes of the sides, and `draw()` runs on every payload the game
+ * delivers — 117 per fight over `captures/`, 2026-08-30. Twenty rows derived cost 34.5 ms there,
+ * so a shelf drawn without this is four seconds of decoding per fight. In memory and never in the
+ * store: a figure that survives a reload is a figure an older version computed. **ADR 0026.**
+ */
+function composeKeptFigureMemo(): KeptFigures {
+    const held = new Map<number, FightFigures>();
+    return {
+        read(fight: KeptFight): FightFigures {
+            assert(fight.openedAt >= 0, "a fight is looked up by the moment it opened");
+            const before = held.get(fight.openedAt);
+            if (before !== undefined) return before;
+            const figures = composeKeptFigures(fight);
+            held.set(fight.openedAt, figures);
+            assert(held.size <= MAXIMUM_KEPT, "no more is held than the shelf holds");
+            return figures;
+        },
+        forget(openedAt: number): void {
+            held.delete(openedAt);
+        },
+        keepOnly(fights: readonly KeptFight[]): void {
+            for (const openedAt of [...held.keys()]) {
+                if (fights.some((one) => one.openedAt === openedAt)) continue;
+                held.delete(openedAt);
+            }
+            assert(held.size <= fights.length, "what is held is held for a fight on the shelf");
+        },
+    };
+}
+
+/**
+ * The sentences it can say are the ways keeping a fight goes wrong, and each is a different
+ * remedy: unpin something, pin what is worth keeping, or nothing at all. A store that took the
+ * fight and asked for room is not the same answer as one that took nothing.
  */
 interface ShelfKeeper {
     fights: KeptFight[];
     choice: PanelStorageChoice;
     hasStoreRefused: boolean;
+    hasStoreMadeRoom: boolean;
     isEverySlotPinned: boolean;
     hasChoiceRefused: boolean;
+    /** Derived through the live chain and memoised, never read out of the store. */
+    readFigures(fight: KeptFight): FightFigures;
     keep(fight: KeptFight): void;
     setPinned(openedAt: number): void;
     setChoice(choice: PanelStorageChoice): void;
@@ -173,7 +224,9 @@ function composeShelfWarnings(keeper: ShelfKeeper): string[] {
     const warnings: string[] = [];
     if (keeper.isEverySlotPinned) warnings.push(EVERY_SLOT_PINNED_WARNING);
     if (keeper.hasStoreRefused) warnings.push(STORE_REFUSED_WARNING);
+    if (keeper.hasStoreMadeRoom) warnings.push(STORE_MADE_ROOM_WARNING);
     if (keeper.hasChoiceRefused) warnings.push(CHOICE_REFUSED_WARNING);
+    assert(!keeper.hasStoreRefused || !keeper.hasStoreMadeRoom, "one write, one answer");
     assert(warnings.length <= 3, "a shelf says at most the three things that can go wrong");
     return warnings;
 }
@@ -184,12 +237,23 @@ function composeShelfKeeper(environment: UserscriptEnvironment): ShelfKeeper {
     const answered = settings === null ? "" : settings.read(STORAGE_KEY) ?? "";
     const choice = getStorageFromName(answered) ?? STORAGE_DEFAULT;
     let store = environment.composeShelfStore(choice);
+    const figures = composeKeptFigureMemo();
+    const setWritten = (writing: ShelfWriting, offered: number): void => {
+        keeper.hasStoreRefused = !writing.isOk;
+        // What went down is what is drawn: a store that asked for less leaves the panel showing
+        // the shelf a reload will find, not the one it was handed.
+        keeper.hasStoreMadeRoom = writing.isOk && writing.fights.length < offered;
+        if (writing.isOk) keeper.fights = writing.fights;
+        figures.keepOnly(keeper.fights);
+    };
     const keeper: ShelfKeeper = {
         fights: readKeptFights(store, SHELF_KEY),
         choice,
         hasStoreRefused: false,
+        hasStoreMadeRoom: false,
         isEverySlotPinned: false,
         hasChoiceRefused: false,
+        readFigures: (fight: KeptFight) => figures.read(fight),
         keep(fight: KeptFight): void {
             assert(fight.openedAt >= 0, "a fight goes on the shelf under the moment it opened");
             // A fight kept a second time keeps the pin it was given: that is the reader's answer
@@ -201,14 +265,19 @@ function composeShelfKeeper(environment: UserscriptEnvironment): ShelfKeeper {
             if (keeper.isEverySlotPinned) return;
             keeper.fights = composeKeptRotation(next);
             assert(keeper.fights.length > 0, "a shelf that took a fight holds one");
-            keeper.hasStoreRefused = !writeKeptFights(store, SHELF_KEY, keeper.fights);
+            // Unreachable while `now()` is monotonic, and kept because keeping the pin above
+            // defends the reader against that very case: two fights under one moment.
+            figures.forget(fight.openedAt);
+            const offered = keeper.fights.length;
+            setWritten(writeKeptFights(store, SHELF_KEY, keeper.fights), offered);
         },
         setPinned(openedAt: number): void {
             assert(Number.isSafeInteger(openedAt), "a fight is pinned by the moment it opened");
             keeper.fights = keeper.fights.map((one) =>
                 one.openedAt === openedAt ? { ...one, isPinned: !one.isPinned } : one
             );
-            keeper.hasStoreRefused = !writeKeptFights(store, SHELF_KEY, keeper.fights);
+            const offered = keeper.fights.length;
+            setWritten(writeKeptFights(store, SHELF_KEY, keeper.fights), offered);
         },
         setChoice(next: PanelStorageChoice): void {
             assert(next.length > 0, "a shelf is moved to a place that is named");
@@ -225,7 +294,8 @@ function composeShelfKeeper(environment: UserscriptEnvironment): ShelfKeeper {
             store.remove(SHELF_KEY);
             keeper.choice = next;
             store = environment.composeShelfStore(next);
-            keeper.hasStoreRefused = !writeKeptFights(store, SHELF_KEY, keeper.fights);
+            const offered = keeper.fights.length;
+            setWritten(writeKeptFights(store, SHELF_KEY, keeper.fights), offered);
         },
     };
     assert(keeper.fights.length >= 0, "a shelf read back holds the fights it holds");
@@ -246,6 +316,7 @@ function composeShelfRows(
     } | null,
     chosenId: number | null,
     readClock: (atMs: number) => { hour: number; minute: number } | null,
+    readFigures: (fight: KeptFight) => FightFigures,
 ): ShelfRow[] {
     assert(typeof readClock === "function", "a shelf row is timed by the reader's own clock");
     assert(kept.length >= 0, "and a shelf holds the fights it holds");
@@ -269,12 +340,16 @@ function composeShelfRows(
     }
     for (const one of [...kept].sort((first, other) => other.openedAt - first.openedAt)) {
         if (one.openedAt === alsoKept?.openedAt) continue;
+        const figures = readFigures(one);
         rows.push({
             openedAt: one.openedAt,
             at: readClock(one.openedAt),
-            sizes: composeShelfSizes(one.combatants, one.readerSide),
+            sizes: composeShelfSizes(
+                [...figures.roster.byId.values()],
+                figures.fight.readerSide,
+            ),
             place: getPlaceWords(one.place),
-            outcome: getOutcomeForKept(one),
+            outcome: getOutcomeForFigures(figures),
             isLive: false,
             isChosen: chosenId === one.openedAt,
             isPinned: one.isPinned,
@@ -291,14 +366,6 @@ function getOutcomeForFigures(figures: FightFigures): PanelOutcome | null {
     const outcome = figures.statistics.outcome;
     if (outcome === null) return null;
     return getOutcomeForSeat(outcome, figures.roster, figures.fight.readerSide);
-}
-
-function getOutcomeForKept(kept: KeptFight): PanelOutcome | null {
-    assert(kept.openedAt >= 0, "a fight kept was kept at a moment");
-    assert(kept.combatants.length >= 0, "and by a cast, however small");
-    if (kept.outcome === null) return null;
-    const roster = composeCombatantRoster(kept.combatants);
-    return getOutcomeForSeat(kept.outcome, roster, kept.readerSide);
 }
 
 /**
@@ -393,35 +460,17 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
     return true;
 }
 
-interface FightFigures {
-    fight: FightReading;
-    roster: CombatantRoster;
-    statistics: FightStatistics;
-}
-
-/** A fight off the shelf: the cast and the messages, decoded the way `game/kept-fights.ts`
- * says a kept fight is read back. */
+/**
+ * A fight off the shelf, through the chain the live one goes through: the payloads were kept, so
+ * the figures are this version's rather than the version that watched the fight. **ADR 0026.**
+ */
 function composeKeptFigures(kept: KeptFight): FightFigures {
-    assert(kept.combatants.length <= MAXIMUM_COMBATANTS, "a fight kept stays inside the bound");
-    const roster = composeCombatantRoster(kept.combatants);
-    const events = kept.payloads.flatMap((one) => decodeFightMessages([...one], roster));
-    assert(kept.payloads.length >= 0, "a fight kept was kept payload by payload");
-    assert(events.length >= 0, "and decodes to a list, however short");
-    return {
-        fight: {
-            roster,
-            events,
-            messagesByPayload: kept.payloads,
-            // Kept rather than recounted: replaying what arrived cannot show what did not.
-            messagesLost: kept.messagesLost,
-            hasJoinedInProgress: kept.hasJoinedInProgress,
-            isOver: true,
-            payloads: kept.payloads.length,
-            readerSide: kept.readerSide,
-        },
-        roster,
-        statistics: composeFightStatistics(events, composeTeamHeals(events, roster)),
-    };
+    assert(kept.payloads.length > 0, "a fight kept was kept from something");
+    const session = composeBattleSession();
+    for (const payload of kept.payloads) addPayloadToSession(session, payload);
+    const figures = composeFightFigures(session);
+    assert(figures !== null, "and every payload kept was one the session reads");
+    return figures;
 }
 
 /**
@@ -456,7 +505,7 @@ function showFight(
     const chosen = screen.openFightId === null
         ? null
         : shelf.fights.find((one) => one.openedAt === screen.openFightId) ?? null;
-    const figures = chosen === null ? live : composeKeptFigures(chosen);
+    const figures = chosen === null ? live : shelf.readFigures(chosen);
     const { fight, roster, statistics } = figures;
     const reading = composePanelReading(
         statistics,
@@ -485,6 +534,7 @@ function showFight(
             },
             screen.openFightId,
             readClock,
+            (one) => shelf.readFigures(one),
         ),
         storage: shelf.choice,
         shelfWarnings: composeShelfWarnings(shelf),
@@ -772,33 +822,28 @@ export function startFromWindow(page: UserscriptWindow): GameAttachment {
 }
 
 /**
- * Puts a finished fight on the shelf, once. What is kept is what the game said — the cast and the
- * messages — so a reading off the shelf is derived by the code that is running.
+ * Puts a finished fight on the shelf, once. What is kept is what the game delivered — the
+ * recording's own calls, thinned by the one rule that thins them — so every figure a row states is
+ * derived by the code that is running. **ADR 0026.**
  */
 function keepFight(
     session: BattleSession,
     shelf: ShelfKeeper,
-    place: FightPlace | null,
-    openedAt: number,
+    live: LiveFight,
+    gameBuild: string | null,
 ): void {
     const fight = getFightFromSession(session);
     if (fight === null) return;
     if (!fight.isOver) return;
-    const combatants = [...fight.roster.byId.values()];
-    assert(fight.isOver, "a fight is kept once it is over and not before");
-    assert(openedAt >= 0, "a fight is kept under the moment it opened");
+    assert(live.openedAt >= 0, "a fight is kept under the moment it opened");
+    assert(live.capture.calls.length > 0, "and from the calls a recording of it would carry");
+    assert(gameBuild !== "", "a build the page did not say is absent, never empty");
     shelf.keep({
-        openedAt,
-        combatants,
-        payloads: fight.messagesByPayload,
-        place,
-        // What the client said and what the game said, kept as they were said: a row on the shelf
-        // states how the fight went, and deriving that would mean decoding it again to draw it.
-        readerSide: fight.readerSide,
-        outcome: composeFightFigures(session)?.statistics.outcome ?? null,
+        openedAt: live.openedAt,
+        payloads: live.capture.calls.map((call) => call.payload),
+        place: live.place,
+        gameBuild,
         isPinned: false,
-        messagesLost: fight.messagesLost,
-        hasJoinedInProgress: fight.hasJoinedInProgress,
     });
 }
 
@@ -926,7 +971,7 @@ function readPayloadIntoLive(
     // Once, on the call that ends it: a fight put on the shelf twice is two fights.
     if (fight !== null && fight.isOver && !live.wasOver) {
         live.wasOver = true;
-        keepFight(session, shelf, live.place, live.openedAt);
+        keepFight(session, shelf, live, environment.readSurroundings().gameBuild);
     }
     if (fight !== null && !fight.isOver) live.wasOver = false;
 }

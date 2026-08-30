@@ -73,7 +73,7 @@ src/
     engine-place.ts      Where a fight happened, asked of the client's own state.
     fight-capture.ts     The fight as it happened, in the shape a recording is admitted in.
     game-dictionary.ts   What the player's own client calls a key this repository has no word for.
-    kept-fights.ts       The fights a reader can go back to: inputs kept, figures never.
+    kept-fights.ts       The fights a reader can go back to: the payloads kept, figures never.
     fight-report.ts      The figures as text a reader can paste, with what qualifies them.
     engine-warrior.ts    The client's own field names, and the only file that spells them.
   ui/
@@ -124,7 +124,7 @@ tests/
     engine-battle-wrap.test.ts  The promise the add-on makes to the page.
     engine-place.test.ts      A page that says all of it, some of it, or nothing.
     fight-capture.test.ts     The envelope, against the newest recording admitted.
-    kept-fights.test.ts       A shelf that answers, refuses, or holds what nobody wrote.
+    kept-fights.test.ts       A shelf that answers, refuses, runs out of room, or reads back.
     engine-warrior.test.ts    A payload's warriors, against the snapshots beside them.
     game-dictionary.test.ts   The shape of an entry, and a client that answers, misses or throws.
   core/                    A test sits where its subject sits.

@@ -8,8 +8,11 @@
 
 import { assert, assertEquals } from "@std/assert";
 import { startMargoMeter, type UserscriptEnvironment } from "@/src/userscript-entry.ts";
-import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import {
+    addPayloadToSession,
+    composeBattleSession,
+    getFightFromSession,
+} from "@/src/game/battle-session.ts";
 import type { BrowserStore } from "@/src/game/browser-store.ts";
 import { readKeptFights } from "@/src/game/kept-fights.ts";
 import { getJsonReading } from "@/libs/json-text.ts";
@@ -24,15 +27,13 @@ import {
     getTextsByClass,
     pressElement,
 } from "@/tests/fake-document.ts";
-import {
-    getRecordedEngineUpdates,
-    getRecordedPayloads,
-    getRecordingPaths,
-} from "@/tests/recorded-fight.ts";
+import { getRecordedEngineUpdates, getRecordingPaths } from "@/tests/recorded-fight.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
 /** Another fight, so a shelf and a session can hold different figures at the same moment. */
 const ANOTHER = "captures/2026-08-04-tempest-lowca-vs-odyncze.json";
+/** A third, so two fights are on the shelf at once while a fourth is the one going on. */
+const THIRD = "captures/2026-08-24-tempest-tropiciel-vs-centaur.json";
 
 function composeStillClock(): Scheduler {
     return { every: () => 1, cancel: () => {} };
@@ -186,18 +187,52 @@ Deno.test("a fight that ends goes on the shelf, once, and comes back after a rel
     assert(shelf !== undefined, "the fight was written where a reload will look for it");
     const kept = readKeptFights(composeHeldStore(first.getShelf("local")), "MargoMeter-fights");
     assertEquals(kept.length, 1, "one fight, however many calls said it was over");
-    assertEquals(kept[0]?.combatants.length, 11, "with the cast the payloads stated");
-    const messages = kept[0]?.payloads.flat() ?? [];
-    assertEquals(messages.length, getRecordedPayloads(HILDUR).flat().length, "and every message");
+    assertEquals(kept[0]?.gameBuild, "53XkBRxF", "under the build the page stated it on");
 
-    // What is kept is what the game said, so the fight reads the same off the shelf as it did
-    // live: the figures are derived again by the code that is running.
-    const roster = composeCombatantRoster(kept[0]?.combatants ?? []);
-    const events = (kept[0]?.payloads ?? []).flatMap((one) =>
-        decodeFightMessages([...one], roster)
-    );
-    const live = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
-    assertEquals(events.length, live.length, "the same fight, read again");
+    // What is kept is what the game delivered, so the fight reads the same off the shelf as it
+    // did live: every figure is derived again by the code that is running. ADR 0026.
+    const offShelf = composeBattleSession();
+    for (const payload of kept[0]?.payloads ?? []) addPayloadToSession(offShelf, payload);
+    const watched = composeBattleSession();
+    for (const payload of getRecordedEngineUpdates(HILDUR)) addPayloadToSession(watched, payload);
+    const read = getFightFromSession(offShelf);
+    const live = getFightFromSession(watched);
+    assert(read !== null, "a fight off the shelf is a fight");
+    assert(live !== null, "and so is the one that was watched");
+    assertEquals(read.roster.byId.size, 11, "with the cast the payloads stated");
+    assertEquals(read.events, live.events, "the same fight, read again");
+    assertEquals(read.readerSide, live.readerSide, "the reader's own side included");
+});
+
+/**
+ * Two fights on the shelf, each row stating its own figures.
+ *
+ * A row's outcome and the sizes of its sides are derived through the live chain and held for as
+ * long as the tab is (**ADR 0026**), so a memo that answered with the wrong fight's figures would
+ * draw two rows that agree — which is what this reads back and refuses.
+ */
+Deno.test("each fight on the shelf says its own size, not the one before it", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    // Three fights, because the newest is drawn as the live row and never looked up: two of them
+    // have to be on the shelf at once for two lookups to be told apart.
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    for (const payload of getRecordedEngineUpdates(ANOTHER)) update(payload);
+    for (const payload of getRecordedEngineUpdates(THIRD)) update(payload);
+    const host = shown[0] as FakeElement;
+
+    const shelfTab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assert(shelfTab !== undefined, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", shelfTab);
+
+    const sizes = getTextsByClass(host, "row-size");
+    assertEquals(sizes.length, 3, "three fights were fought, so the shelf draws three rows");
+    assertEquals(sizes[0], "1×1", "the newest, which is the live row and the tracker's duel");
+    assertEquals(sizes[1], "1×3", "the hunter against three of them");
+    assertEquals(sizes[2], "10×1", "and the group against Hildur, oldest and still its own size");
 });
 
 Deno.test("a reader folds the panel away, and it is still folded when they come back", () => {

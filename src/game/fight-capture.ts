@@ -41,7 +41,7 @@ export const CAPTURE_FIELDS = {
  * Where collecting stops. It **stops** rather than dropping the oldest: a recording without the
  * start of the fight is useless, one without the end still carries material.
  */
-const MAXIMUM_CALLS = 2000;
+export const MAXIMUM_CALLS = 2000;
 /** So a difference between two recordings is something a person can read. */
 const INDENT_SPACES = 2;
 

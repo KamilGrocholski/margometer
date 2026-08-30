@@ -515,6 +515,10 @@ export const STORE_REFUSED_WARNING =
     "Przeglądarka nie przyjęła tej walki — nie została zapisana. " +
     "Odepnij którąś, żeby zrobić miejsce.";
 
+export const STORE_MADE_ROOM_WARNING =
+    "Zabrakło miejsca w przeglądarce — najstarsze walki zostały usunięte, żeby zmieścić tę. " +
+    "Przypnij te, które chcesz zachować.";
+
 export const EVERY_SLOT_PINNED_WARNING =
     "Wszystkie miejsca są zajęte przez przypięte walki — ta się nie zapisała.";
 

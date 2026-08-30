@@ -1,122 +1,70 @@
 /**
  * The fights a reader can go back to, and what of one is worth keeping.
  *
- * **Inputs, never figures.** What is stored is what the game said, so a reading is re-derived by
- * the code that is running rather than restored from an older version's arithmetic. The store is
- * handed in and never reached for, and a refusal to write is an answer rather than an error.
+ * **The payloads, never a figure.** What is stored is what the game delivered, thinned by the rule
+ * a recording is thinned by, so every number a row states is derived by the code that is running
+ * and a decoder that learns a key reaches back over the whole shelf. **ADR 0026.**
  *
- * Everything read back is validated: a shelf that cannot be understood is dropped.
+ * The store is handed in and never reached for, a shelf that will not fit asks for less rather
+ * than assuming a quota, and everything read back is validated.
  */
 
 import { assert } from "@std/assert";
-import type { Combatant } from "@/src/core/combatant-roster.ts";
-import type { FightOutcome } from "@/src/core/fight-statistics.ts";
 import type { BrowserStore } from "@/src/game/browser-store.ts";
 import type { FightPlace } from "@/src/game/engine-place.ts";
+import { MAXIMUM_CALLS } from "@/src/game/fight-capture.ts";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import {
     getNumberFromUnknown,
     getStatedTextFromUnknown,
-    getTextFromUnknown,
     isRecord,
 } from "@/libs/unknown-reading.ts";
 
-/** A shelf holds this many fights and no more, oldest dropped first. */
-const MAXIMUM_KEPT = 20;
+/** A shelf holds this many fights and no more, the oldest nobody pinned dropped first. */
+export const MAXIMUM_KEPT = 20;
 /**
- * Two, because a shelf written by the version before this one carries no seat and no outcome, and
- * a row drawn from it would say nothing about how the fight went. A shelf of another version is
- * dropped whole rather than read in halves.
+ * Three, because a shelf written by the version before this one holds this repository's reading of
+ * a fight — the messages, and a cast we extracted — where this one holds what the game sent. The
+ * two are not halves of one shape, so a shelf of another version is dropped whole. **ADR 0026.**
  */
-const SHELF_VERSION = 2;
+const SHELF_VERSION = 3;
 
 export interface KeptFight {
     /** Stated by the caller, which owns the clock. Zero is a moment like any other. */
     openedAt: number;
-    combatants: Combatant[];
-    /** One list per call the engine made, so a replay is the fight as it was delivered. */
-    payloads: readonly (readonly string[])[];
+    /**
+     * One payload per call the game made, thinned as `game/fight-capture.ts` thins a recording,
+     * and read back the way a recording's calls are: the shelf and `captures/` hold one thing.
+     */
+    payloads: readonly unknown[];
     place: FightPlace | null;
-    /**
-     * Which side was the reader's, and how the game said the fight ended — **inputs, like the
-     * messages beside them.** A row on the shelf says how a fight went, and working that out of
-     * the payloads would mean decoding twenty fights to draw twenty rows.
-     */
-    readerSide: number | null;
-    outcome: FightOutcome | null;
-    /**
-     * Kept by the reader against the rotation. A shelf written before pins existed carries none,
-     * and reads back as a shelf with nothing pinned — which is what it was.
-     */
+    /** Which client it was read off, so a fight re-read later says what it was recorded on. */
+    gameBuild: string | null;
+    /** Kept by the reader against the rotation. */
     isPinned: boolean;
-    /**
-     * Inputs again, and they have to be: neither survives the payloads, because a message that
-     * never arrived was never kept. A shelf written before these reads back as having lost none.
-     */
-    messagesLost: number;
-    hasJoinedInProgress: boolean;
 }
 
-function getMessagesFromValue(value: unknown): string[] | null {
-    if (!Array.isArray(value)) return null;
-    assert(value.length >= 0, "a list of messages has a length, however short");
-    const messages: string[] = [];
-    for (const message of value) {
-        const text = getTextFromUnknown(message);
-        if (text === null) return null;
-        messages.push(text);
-    }
-    assert(messages.length === value.length, "a payload kept is a payload read back whole");
-    return messages;
-}
-
-function getPayloadsFromValue(value: unknown): string[][] | null {
-    if (!Array.isArray(value)) return null;
-    assert(value.length >= 0, "a list of payloads has a length, however short");
-    const payloads: string[][] = [];
-    for (const stated of value) {
-        const messages = getMessagesFromValue(stated);
-        if (messages === null) return null;
-        payloads.push(messages);
-    }
-    assert(payloads.length === value.length, "a fight kept is a fight read back whole");
-    return payloads;
-}
+/** What a write left on the shelf, which is not always what it was handed. **ADR 0021**. */
+export type ShelfWriting =
+    | { isOk: true; fights: KeptFight[] }
+    | { isOk: false; error: "unwritable" | "refused" };
 
 /**
- * Our own names, not the client's. A shelf is written by this repository and read back by it, so
- * reading it with the reader for the game's fields would tie every stored fight to the client's
- * spelling — and a rename of theirs would quietly empty shelves that are perfectly readable.
+ * A payload nobody can read is a fight dropped, not a payload skipped: a gap in the middle of a
+ * fight decodes to figures that look like a fight and are not one.
  */
-function getKeptCombatantFromValue(value: unknown): Combatant | null {
-    if (!isRecord(value)) return null;
-    const id = getNumberFromUnknown(value.id);
-    if (id === null) return null;
-    const name = getStatedTextFromUnknown(value.name);
-    if (name === null) return null;
-    const side = getNumberFromUnknown(value.side);
-    if (side === null) return null;
-    assert(name.length > 0, "a name kept says something");
-    return {
-        id,
-        name,
-        side,
-        profession: getStatedTextFromUnknown(value.profession),
-        level: getNumberFromUnknown(value.level),
-        healthMaximum: getNumberFromUnknown(value.healthMaximum),
-    };
-}
-
-function getCombatantsFromValue(value: unknown): Combatant[] | null {
+function getKeptPayloadsFromValue(value: unknown): unknown[] | null {
     if (!Array.isArray(value)) return null;
-    const combatants: Combatant[] = [];
+    if (value.length === 0) return null;
+    if (value.length > MAXIMUM_CALLS) return null;
+    const payloads: unknown[] = [];
     for (const stated of value) {
-        const combatant = getKeptCombatantFromValue(stated);
-        if (combatant === null) return null;
-        combatants.push(combatant);
+        if (!isRecord(stated)) return null;
+        payloads.push(stated);
     }
-    assert(combatants.length === value.length, "a cast kept is a cast read back whole");
-    return combatants;
+    assert(payloads.length === value.length, "a fight kept is a fight read back whole");
+    assert(payloads.length <= MAXIMUM_CALLS, "and stays inside the bound a recording states");
+    return payloads;
 }
 
 /**
@@ -138,56 +86,21 @@ function getKeptPlaceFromValue(value: unknown): FightPlace | null {
     return place;
 }
 
-function getKeptNamesFromValue(value: unknown): string[] | null {
-    if (!Array.isArray(value)) return null;
-    assert(value.length >= 0, "a side kept is a list with a length");
-    const names: string[] = [];
-    for (const stated of value) {
-        const name = getStatedTextFromUnknown(stated);
-        if (name === null) return null;
-        names.push(name);
-    }
-    assert(names.length === value.length, "a side kept is a side read back whole");
-    return names;
-}
-
-/**
- * How the fight ended, or nothing. A fight kept before it ended has none, and so has one whose
- * outcome does not read back — which is a row that says when and where and stops there.
- */
-function getKeptOutcomeFromValue(value: unknown): FightOutcome | null {
-    if (!isRecord(value)) return null;
-    const wonNames = getKeptNamesFromValue(value.wonNames);
-    const lostNames = getKeptNamesFromValue(value.lostNames);
-    if (wonNames === null || lostNames === null) return null;
-    assert(wonNames.length >= 0, "a side that was kept is a list, however short");
-    assert(lostNames.length >= 0, "and so is the other");
-    return { wonNames, lostNames, isDrawn: value.isDrawn === true };
-}
-
 /** Null for anything a reader of this version does not recognise, whole fight and all. */
 function getKeptFightFromValue(value: unknown): KeptFight | null {
     if (!isRecord(value)) return null;
     const openedAt = getNumberFromUnknown(value.openedAt);
     if (openedAt === null) return null;
-    const combatants = getCombatantsFromValue(value.combatants);
-    if (combatants === null) return null;
-    const payloads = getPayloadsFromValue(value.payloads);
+    const payloads = getKeptPayloadsFromValue(value.payloads);
     if (payloads === null) return null;
-    assert(combatants.length >= 0, "a cast kept is a list, however short");
     assert(openedAt >= 0, "a moment kept is not before the epoch");
+    assert(payloads.length > 0, "a fight kept was kept from something");
     return {
         openedAt,
-        combatants,
         payloads,
         place: getKeptPlaceFromValue(value.place),
-        readerSide: getNumberFromUnknown(value.readerSide),
-        outcome: getKeptOutcomeFromValue(value.outcome),
+        gameBuild: getStatedTextFromUnknown(value.gameBuild),
         isPinned: value.isPinned === true,
-        // A default across shelves written before this field existed, not a measurement: the
-        // version gate lets those through, and a fight with no count was watched whole.
-        messagesLost: getNumberFromUnknown(value.messagesLost) ?? 0,
-        hasJoinedInProgress: value.hasJoinedInProgress === true,
     };
 }
 
@@ -214,27 +127,41 @@ export function readKeptFights(store: BrowserStore, key: string): KeptFight[] {
 }
 
 /**
+ * The shelf with its oldest unpinned fight gone, or nothing where every fight left is pinned.
+ *
+ * A pin is the one thing on the shelf that outranks the rotation, and it outranks the store's
+ * refusal for the same reason: it is the reader's own answer.
+ */
+function composeShelfWithoutOldestUnpinned(fights: readonly KeptFight[]): KeptFight[] | null {
+    for (let at = 0; at < fights.length; at += 1) {
+        const fight = fights[at];
+        if (fight === undefined) continue;
+        if (fight.isPinned) continue;
+        const held = [...fights];
+        held.splice(at, 1);
+        assert(held.length + 1 === fights.length, "dropping the oldest drops exactly one");
+        return held;
+    }
+    return null;
+}
+
+/**
  * What a shelf keeps when it is full: the newest, and everything the reader pinned.
  *
- * A pin is the one thing on the shelf that outranks the rotation, so the oldest **unpinned**
- * fight is what goes. Where every slot is pinned there is nothing to drop, and the newest fight
- * is the one that does not arrive — which the shelf says outright rather than dropping a fight
- * the reader asked it to hold.
+ * Where every slot is pinned there is nothing to drop, and the newest fight is the one that does
+ * not arrive — which the shelf says outright rather than dropping a fight the reader asked it to
+ * hold.
  */
 export function composeKeptRotation(fights: readonly KeptFight[]): KeptFight[] {
     assert(fights.length >= 0, "a shelf holds the fights it holds");
     if (fights.length <= MAXIMUM_KEPT) return [...fights];
-    const held = [...fights];
-    let over = held.length - MAXIMUM_KEPT;
-    for (let at = 0; at < held.length && over > 0; at += 1) {
-        const fight = held[at];
-        if (fight === undefined) continue;
-        if (fight.isPinned) continue;
-        held.splice(at, 1);
-        at -= 1;
-        over -= 1;
+    let held = [...fights];
+    for (let dropped = 0; dropped < fights.length; dropped += 1) {
+        if (held.length <= MAXIMUM_KEPT) break;
+        const shorter = composeShelfWithoutOldestUnpinned(held);
+        if (shorter === null) break;
+        held = shorter;
     }
-    // Every slot pinned: the newest is what does not arrive, because nothing else may go.
     assert(held.length >= MAXIMUM_KEPT, "a rotation drops no more than it had to");
     return held.length <= MAXIMUM_KEPT ? held : held.slice(0, MAXIMUM_KEPT);
 }
@@ -246,13 +173,29 @@ export function getIsEverySlotPinned(fights: readonly KeptFight[]): boolean {
     return fights.length - unpinned >= MAXIMUM_KEPT;
 }
 
-export function writeKeptFights(store: BrowserStore, key: string, fights: KeptFight[]): boolean {
+/**
+ * The shelf written, and what of it went down. A refusal is answered by asking for less rather
+ * than by holding a constant chosen against a quota `SECURITY.md` forbids assuming: the oldest
+ * fight nobody pinned goes, and the same shelf is offered again. **ADR 0026.**
+ */
+export function writeKeptFights(
+    store: BrowserStore,
+    key: string,
+    fights: KeptFight[],
+): ShelfWriting {
     assert(key.length > 0, "a shelf is written by name");
-    const held = composeKeptRotation(fights);
+    let held = composeKeptRotation(fights);
     assert(held.length <= MAXIMUM_KEPT, "a shelf written stays inside its stated bound");
     assert(held.length <= fights.length, "keeping the newest never invents one");
-    const writing = composeJsonWriting({ version: SHELF_VERSION, fights: held });
-    if (!writing.isOk) return false;
-    assert(writing.text.length > 0, "a shelf written as text says something");
-    return store.write(key, writing.text);
+    for (let offered = 0; offered <= MAXIMUM_KEPT; offered += 1) {
+        const writing = composeJsonWriting({ version: SHELF_VERSION, fights: held });
+        if (!writing.isOk) return { isOk: false, error: "unwritable" };
+        assert(writing.text.length > 0, "a shelf written as text says something");
+        if (store.write(key, writing.text)) return { isOk: true, fights: held };
+        const shorter = composeShelfWithoutOldestUnpinned(held);
+        if (shorter === null) return { isOk: false, error: "refused" };
+        held = shorter;
+    }
+    assert(held.length === 0, "a shelf offered once per fight it holds has nothing left to drop");
+    return { isOk: false, error: "refused" };
 }

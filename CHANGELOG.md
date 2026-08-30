@@ -62,6 +62,15 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   liczba. Na leczeniu nie ma jej wcale — gra po tej stronie nie podaje tyle, żeby było co napisać.
   Cztery liczby postaci, jej nazwa i ostrzeżenia stoją jak stały, na każdej zakładce.
 
+- **Zmiana** — Zapisane walki są od teraz trzymane tak, jak przysłała je gra, a nie jako gotowe
+  liczby. Dzięki temu poprawka w odczycie sięga też walk sprzed niej: stara walka z listy pokazuje
+  liczby policzone przez wersję, którą masz teraz, a nie przez tę, która ją zapisała. Cena jest
+  jedna i jednorazowa — po aktualizacji lista zapisanych walk zaczyna się pusta.
+
+- **Zmiana** — Kiedy w przeglądarce brakuje miejsca, najstarsze walki ustępują nowej, zamiast nowej
+  nie zapisać w ogóle. Przypięte zostają, a panel mówi wprost, że musiał zrobić miejsce, i
+  przypomina, żeby przypiąć te, których nie chcesz stracić.
+
 - **Zmiana** — „Przywracanie życia" nazywa się w panelu po imieniu. Sekcja „czym" na obu zakładkach
   leczenia nie kończy się już wierszem „Bez podanej umiejętności": w jego miejscu stoją wiersze z
   nazwą tego, co gra podała. Największy z nich to regeneracja z ekwipunku — pomoc gry mówi o niej,
