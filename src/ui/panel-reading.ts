@@ -837,10 +837,16 @@ function compareElementRows(one: { element: string; figure: number }, other: {
 }
 
 /**
- * The remainder is health that moved down outside a blow: the message carries the movement and no
- * kind, so there is nothing to charge it to. Over `captures/` on 2026-08-29 that is 45 of 530
- * combatant-and-screen pairs, in 28 of the recordings, and every one of them on damage taken —
- * which is where the protocol states a bare movement and the dealing side never is.
+ * ⚠️ **The remainder here is nothing, on every screen, and the row for it is unreached.** Each
+ * writer of a figure in `src/core/fight-statistics.ts` writes the kind it moved under in the same
+ * breath — a blow's elements beside its applied damage, a bare movement's key beside the health it
+ * took, a restoring key beside what it put back — so a kind cut comes to the figure it is a cut
+ * of. Measured over `captures/` on 2026-08-30: 0 of 1,060 combatant-and-screen readings.
+ *
+ * It stays rather than becoming an assertion, unlike the one `composeSkillCut` keeps. That
+ * invariant is one condition over one movement; this one is four call sites agreeing, and a fifth
+ * that forgot the cut should leave a reader a row saying so rather than a region that failed to
+ * draw.
  */
 function composeElementCut(cut: FigureCut, total: number): ElementCut {
     assert(total >= 0, "a figure being cut is never below nothing");
@@ -878,6 +884,13 @@ function composeElementCut(cut: FigureCut, total: number): ElementCut {
     };
 }
 
+/**
+ * The remainder is a figure whose other end the protocol never named: health that moved down
+ * outside a blow carries the movement and no attacker, so there is nobody to charge it to. Over
+ * `captures/` on 2026-08-30 that is 45 of 1,060 combatant-and-screen readings, in 28 of the
+ * recordings, and every one of them on damage taken — which is where the protocol states a bare
+ * movement and the dealing side never is.
+ */
 function composeOpponentCut(
     cut: FigureCut,
     roster: CombatantRoster,
