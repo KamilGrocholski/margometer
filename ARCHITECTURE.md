@@ -500,13 +500,13 @@ commit that opens or closes one.
    said again in **different words**, which is the band that costs most: two copies that read
    differently drift without ever looking like copies.
 
-   **It is a large finding rather than a small one.** Measured 2026-08-30 over the comment blocks in
-   `libs/`, `project/`, `src/` and `tools/`, sixty-eight pairs of blocks share a run of eight words
-   or more, and the ones read by hand were real — the same explanation of why a pin on an unwritten
-   fight would be a control that does nothing, in `ui/panel-reading.ts` and in the entry; the two
-   error bases each spelling out that no base is ever thrown, which **E2** owns. Closing that band
-   is editorial work on sixty-eight passages, each needing a decision about which copy survives and
-   whether the second should cite instead, so it is not one round's work and is not pretended to be.
+   **It is a large finding rather than a small one.** Measured over the comment blocks in `libs/`,
+   `project/`, `src/` and `tools/` on 2026-08-30, sixty-eight pairs of blocks shared a run of eight
+   words or more, and fifty-five do after the heaviest nine were decided. The ones read by hand were
+   real: the same explanation of why a pin on an unwritten fight would be a control that does
+   nothing, in `ui/panel-reading.ts` and in the entry; the two error bases each spelling out that no
+   base is ever thrown, which **E2** owns. Each is editorial work — which copy survives, and whether
+   the second should cite instead — so the band closes a few at a time rather than in one round.
 
    C14 is unheld for a different reason and has no guard shape yet: the one that would hold it
    counts declarations carrying a docblock, which needs a parser this tree does not have and a
