@@ -939,6 +939,54 @@ Deno.test("a pair that would only repeat the row above it does not open", () => 
 });
 
 /**
+ * A level closes against the row that opened it, one rung deeper than the columns do.
+ *
+ * Health somebody put into themselves is health they gave, and it is inside the figure on the skill
+ * row — so a level that left the caster out stated a smaller number than the row just pressed and
+ * said nothing about the difference. Over `captures/` on 2026-08-30 that was 31 of the 74 levels a
+ * reader can reach, 143,888 points, the largest single drop 13,167.
+ */
+Deno.test("a skill opened states the figure of the row that opened it, self-casts included", () => {
+    let levels = 0;
+    let withSelf = 0;
+    for (const path of getRecordingPaths()) {
+        const { roster, statistics } = readFight(path);
+        for (const combatantId of statistics.byCombatantId.keys()) {
+            const drill = composeDrillReading(statistics, roster, "healthGiven", combatantId);
+            if (drill === null) continue;
+            for (const row of drill.bySkill.rows) {
+                if (!row.opensSkill) continue;
+                if (row.part.kind !== "skill") continue;
+                const skill = composeSkillReading(
+                    statistics,
+                    roster,
+                    "healthGiven",
+                    combatantId,
+                    row.part.name,
+                );
+                assert(skill !== null, `${path}: a skill marked as opening opens`);
+                levels += 1;
+                assertEquals(
+                    skill.total,
+                    row.figure,
+                    `${path}: ${row.part.name} states the figure of the row it was opened from`,
+                );
+                const held = skill.byOpponent.rows.reduce((sum, one) => sum + one.figure, 0);
+                assertEquals(
+                    held + (skill.byOpponent.unnamed?.figure ?? 0),
+                    skill.total,
+                    `${path}: and the people under it come to the whole of it`,
+                );
+                const own = skill.byOpponent.rows.find((one) => one.combatantId === combatantId);
+                if (own !== undefined) withSelf += 1;
+            }
+        }
+    }
+    assert(levels > 0, "the corpus holds skills a reader can open");
+    assert(withSelf > 0, "and some of them put health into whoever announced them");
+});
+
+/**
  * What no announcement covered is named by the key the game stated it under, so a healing section
  * has nothing left to close against.
  *

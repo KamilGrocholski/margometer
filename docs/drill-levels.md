@@ -111,6 +111,11 @@ of those reached. It opens where it reached somebody other than the combatant it
 and does not where the only person it healed was them — a self-cast, whose level would name the
 reader back to themselves.
 
+⚠️ **That condition decides whether it opens and never what it lists.** Once open the level names
+everybody the skill reached, whoever announced it included: health somebody put into themselves is
+health they gave, and it stands inside the figure on the row that was pressed. A level built from
+the same narrowing closed against a smaller number and said nothing about the difference.
+
 **A skill under `healthRestored` is `never`, and not by an absent condition.** The level there is
 narrowed to the pair it was entered through, so it can only ever hold one row bearing the reader's
 own name and the figure they pressed. `composeSkillReading` answers `null` for every screen but

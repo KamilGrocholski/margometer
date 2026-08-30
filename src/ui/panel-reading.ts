@@ -1133,18 +1133,34 @@ export function composeSkillReading(
     if (metric !== "healthGiven") return null;
     const skill = statistics.byCombatantId.get(combatantId)?.skills.get(name);
     if (skill === undefined) return null;
-    const reached = composeReachedCut(skill.restoredByOpponent, combatantId);
-    if (reached.size === 0) return null;
-    const total = getTotalFromCut(reached);
-    assert(total >= 0, "what a skill put back is never below nothing");
+    // Whether it opens is asked of everybody **but** the one who announced it; what it lists once
+    // open is everybody, themselves included. The two are different questions, and answering the
+    // second with the first left the level short of the row that was pressed.
+    if (composeReachedCut(skill.restoredByOpponent, combatantId).size === 0) return null;
+    assert(skill.restored >= 0, "what a skill put back is never below nothing");
     return {
         name: skill.name,
-        total,
-        byOpponent: composeOpponentCut(reached, roster, total, () => false),
+        total: skill.restored,
+        byOpponent: composeOpponentCut(
+            skill.restoredByOpponent,
+            roster,
+            skill.restored,
+            () => false,
+        ),
     };
 }
 
-/** Everybody but the one who announced it: a level naming them back to themselves says none. */
+/**
+ * Everybody but the one who announced it, and it answers one question: whether the level under a
+ * skill row says anything. A skill cast on nobody else opens onto the reader's own name and the
+ * figure they pressed, which is that row twice.
+ *
+ * ⚠️ **Never what the level lists.** Health somebody put into themselves is health they gave, and
+ * it is inside the figure on the row above — so a level built from this closed against a smaller
+ * number than the row that opened it and said nothing about the difference. Over `captures/` on
+ * 2026-08-30 that was 31 of the 74 levels a reader can reach, 143,888 points, the largest single
+ * drop 13,167.
+ */
 function composeReachedCut(cut: FigureCut, combatantId: number): FigureCut {
     const reached = new Map<string, number>();
     assert(cut.size <= MAXIMUM_ROWS, "a skill reaches the people a fight holds, at most");

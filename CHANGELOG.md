@@ -72,6 +72,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   a jej nazwę — „Wojownik", „Mag" — mówi okienko, które otwiera się po najechaniu na wiersz. Dwie
   profesje o zbliżonym kolorze trudniej teraz rozróżnić na samej liście.
 
+- **Poprawka** — Po wejściu w umiejętność na zakładce „leczenie dane" liczba w nagłówku zgadza się z
+  wierszem, który się nacisnęło. Wcześniej potrafiła być mniejsza bez słowa wyjaśnienia: brakowało
+  tego, co postać wyleczyła sama sobie tą umiejętnością. Teraz stoi tam jako zwykły wiersz, obok
+  pozostałych.
+
 - **Poprawka** — Każda sekcja w rozwiniętym wierszu sumuje się teraz do 100%. Na obu zakładkach
   leczenia w sekcji „czym" stoi obok umiejętności to życie, którego żadna z nich nie zapowiedziała —
   po jednym wierszu na to, co gra sama nazwała: „przywracanie życia", „ostatni ratunek", „dotyk
