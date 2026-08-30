@@ -7,6 +7,7 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
+import { USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
 import {
     composePreviewPage,
     PREVIEW_GAME_SCRIPT_NAME,
@@ -94,8 +95,24 @@ Deno.test("the page is opened where the caller said, and the empty panel stays r
     const opened = composePreviewPage({ ...composeOptions(CALLS), entryIndex: 1 });
     assert(opened.includes(`"entryIndex":1`), "the entry the caller clamped is the one carried");
     assert(opened.includes(`"entryCount":1`), "beside the length it was clamped against");
-    assert(opened.includes("#start"), "and the state before the first call has an address");
+    assert(opened.includes("composePreviewStateHashAt(0)"), "the state before the first call has");
     assert(opened.includes("location.reload()"), "reached by opening the page again, not a replay");
+    assert(
+        opened.includes("PREVIEW_STATE.entry === null ? PREVIEW.entryIndex"),
+        "and an address that carried an entry of its own is the one that wins",
+    );
+});
+
+Deno.test("the store the add-on is lent starts holding what the address carried", () => {
+    const page = composePreviewPage(composeOptions(CALLS));
+    const state = page.indexOf("PREVIEW_STATE =");
+    const store = page.indexOf("PREVIEW_STORE =");
+    const bundle = page.indexOf(`src="/${USERSCRIPT_NAME}"`);
+    assert(state > 0, "the address is read");
+    assert(state < store, "before the store is stood up");
+    assert(store < bundle, "and both stand before the add-on that reads the store");
+    assert(page.includes("PREVIEW_STATE.store"), "what the address carried is what it holds");
+    assert(page.includes("history.replaceState"), "and what is shown is written back to it");
 });
 
 Deno.test("the second half of the driver is the caller's, and so is the sentence over it", () => {

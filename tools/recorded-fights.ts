@@ -119,12 +119,22 @@ export function getRecordedFights(): RecordedFight[] {
     return fights;
 }
 
-/** The one a page opens on: the newest, since the oldest here is a solo hunt of two rows. */
-export function getNewestRecordedFight(fights: readonly RecordedFight[]): RecordedFight {
-    const newest = fights.at(-1);
-    if (newest === undefined) {
-        throw new PreviewBuildError("there is no recording to open on");
+/**
+ * The one every preview opens on, named rather than derived: the server, the published site and
+ * the screenshots then show the same fight, and a recording admitted tomorrow changes none of
+ * them. Chosen over the corpus on 2026-08-30 for what the panel can draw off it — 33 announced
+ * skills, 18 elements, every one of the eleven with healing, five with a prevented figure — where
+ * `2026-08-27-luvia-grupa-vs-amaimon-2` carries more calls and less to look at.
+ */
+export const PREVIEW_FIGHT_NAME = "2026-08-27-luvia-grupa-vs-amaimon";
+
+/** Loudly (**E7**): a preview opening on some other fight is worse than one that does not open. */
+export function getPreviewRecordedFight(fights: readonly RecordedFight[]): RecordedFight {
+    assert(PREVIEW_FIGHT_NAME.length > 0, "the fight a preview opens on is named");
+    const found = fights.find((fight) => fight.name === PREVIEW_FIGHT_NAME);
+    if (found === undefined) {
+        throw new PreviewBuildError(`${PREVIEW_FIGHT_NAME} is not among the recordings`);
     }
-    assert(newest.calls.length > 0, "the fight a page opens on has something to play");
-    return newest;
+    assert(found.calls.length > 0, "the fight a page opens on has something to play");
+    return found;
 }

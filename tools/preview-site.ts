@@ -18,7 +18,7 @@ import {
     type PreviewWords,
 } from "@/tools/preview-page.ts";
 import {
-    getNewestRecordedFight,
+    getPreviewRecordedFight,
     getRecordedFights,
     type RecordedFight,
 } from "@/tools/recorded-fights.ts";
@@ -117,7 +117,7 @@ function composePageOfFight(fight: RecordedFight, links: readonly PreviewFightLi
 export function composePreviewSitePages(): PreviewSiteFile[] {
     const fights = getRecordedFights();
     const links = composeFightLinks(fights);
-    const landing = getNewestRecordedFight(fights);
+    const landing = getPreviewRecordedFight(fights);
     const pages: PreviewSiteFile[] = [
         { name: "index.html", text: composePageOfFight(landing, links) },
     ];

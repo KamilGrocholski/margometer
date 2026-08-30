@@ -8,7 +8,7 @@
 
 import { assert, assertEquals } from "@std/assert";
 import { composePreviewSitePages } from "@/tools/preview-site.ts";
-import { getNewestRecordedFight, getRecordedFights } from "@/tools/recorded-fights.ts";
+import { getPreviewRecordedFight, getRecordedFights } from "@/tools/recorded-fights.ts";
 
 Deno.test("there is a page for every recording, and one a visitor lands on", () => {
     const pages = composePreviewSitePages();
@@ -21,14 +21,19 @@ Deno.test("there is a page for every recording, and one a visitor lands on", () 
     }
 });
 
-Deno.test("the page a visitor lands on is the newest fight, finished", () => {
+Deno.test("the page a visitor lands on is the fight every preview opens on, finished", () => {
     const pages = composePreviewSitePages();
     const landing = pages.find((page) => page.name === "index.html");
     assert(landing !== undefined, "there is a landing page");
-    const newest = getNewestRecordedFight(getRecordedFights());
-    assert(landing.text.includes(newest.name), "and it draws the newest recording");
+    const opened = getPreviewRecordedFight(getRecordedFights());
+    assert(landing.text.includes(opened.name), "and it draws the recording the tools all name");
+    assertEquals(
+        landing.text,
+        pages.find((page) => page.name === `${opened.name}.html`)?.text,
+        "which is the same page under its own name, so a visitor lands where a link points",
+    );
     assert(
-        landing.text.includes(`"entryIndex":${newest.calls.length}`),
+        landing.text.includes(`"entryIndex":${opened.calls.length}`),
         "opened at the end of it, which is the thing the add-on is for",
     );
 });

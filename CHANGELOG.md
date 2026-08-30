@@ -33,6 +33,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Zmiana** — Panel otwiera się na środku ekranu, a nie w prawym górnym rogu. Jest tam, gdzie i tak
+  patrzysz, a przeciągnięty raz zostaje tam, gdzie go postawisz — tak samo jak dotąd.
+
 - **Zmiana** — Na belce jest teraz jeden przycisk zamiast dwóch: `⭳` zapisuje walkę do pliku.
   Wcześniej obok niego stał drugi, który kopiował same liczby do schowka — teraz jeden plik niesie
   jedno i drugie, policzone liczby i surowy zapis prosto z gry. Do zgłoszeń wystarczy go załączyć.

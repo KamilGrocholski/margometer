@@ -1293,24 +1293,30 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
     assert(bar !== undefined, "the bar is drawn");
     assertEquals(bar.attributes.get("data-grip"), "", "and it is what a drag is started from");
 
-    dragOnElement(host, "pointerdown", bar, { clientX: 1100, clientY: 20 });
-    dragOnElement(host, "pointermove", bar, { clientX: 1000, clientY: 120 });
-    // The first grab has no `left` to read, so it is derived from where the sheet already put
-    // the panel: 1280 less its own width less the inset it sits at.
+    // Nobody has moved this one, so it stands in the middle of the window from the first frame,
+    // which is also the place the first grab starts from.
     assertEquals(
         host.attributes.get("style"),
-        "left:912px;top:108px;--MargoMeter-panel-top:108px;right:auto",
+        "left:510px;top:153px;--MargoMeter-panel-top:153px;right:auto",
+        "a panel nobody has moved is put in the middle of the window it was drawn into",
+    );
+
+    dragOnElement(host, "pointerdown", bar, { clientX: 1100, clientY: 20 });
+    dragOnElement(host, "pointermove", bar, { clientX: 1000, clientY: 120 });
+    assertEquals(
+        host.attributes.get("style"),
+        "left:410px;top:253px;--MargoMeter-panel-top:253px;right:auto",
         "the panel follows the hand, by the distance the hand moved",
     );
     assertEquals(moved, [], "and nothing is stored while it is still being dragged");
 
     dragOnElement(host, "pointerup", bar, { clientX: 1000, clientY: 120 });
-    assertEquals(moved, [{ left: 912, top: 108 }], "where it was let go is reported, once");
+    assertEquals(moved, [{ left: 410, top: 253 }], "where it was let go is reported, once");
 
     dragOnElement(host, "pointermove", bar, { clientX: 500, clientY: 500 });
     assertEquals(
         host.attributes.get("style"),
-        "left:912px;top:108px;--MargoMeter-panel-top:108px;right:auto",
+        "left:410px;top:253px;--MargoMeter-panel-top:253px;right:auto",
         "and a pointer moving with nothing held moves nothing",
     );
 });

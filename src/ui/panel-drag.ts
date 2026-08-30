@@ -58,18 +58,25 @@ export function composeClampedPosition(
 }
 
 /**
- * Where the sheet has already put the panel. The corner is stated as `top` and `right`, so no
- * `left` can be read off the host until something writes one: the first grab derives it from the
- * two numbers the sheet was built from, and answers null where the page states no width — a drag
- * from a guessed origin snatches the panel out from under the hand.
+ * The middle of the window, where a panel nobody has moved opens (`DESIGN.md`). It is centred on
+ * the **tallest** body the sheet allows rather than the one it has: a panel centred on its waiting
+ * bar walks down the screen as rows arrive, and this one stands still.
+ *
+ * Null where the page states no size, because a position derived from a guess snatches the panel
+ * out from under the hand — the sheet's own corner then stands, which is a place and not a guess.
  */
 export function composeDefaultPosition(viewport: PanelViewport | null): PanelPosition | null {
     if (viewport === null) return null;
     const width = getIntegerFromText(PLACE.width.slice(0, -2));
-    const inset = getIntegerFromText(PLACE.inset.slice(0, -2));
+    const share = getIntegerFromText(SPACE.heightShareMaximum.slice(0, -2));
     assert(width !== null, "the panel is as wide as the sheet says, in whole pixels");
-    assert(inset !== null, "and sits as far from the corner as it says, in whole pixels");
-    return composeClampedPosition({ left: viewport.width - width - inset, top: inset }, viewport);
+    assert(share !== null, "and as tall as the share of the window the sheet allows it");
+    const height = viewport.height * share / 100;
+    assert(height >= 0, "a window a panel is centred in has a height");
+    return composeClampedPosition({
+        left: (viewport.width - width) / 2,
+        top: (viewport.height - height) / 2,
+    }, viewport);
 }
 
 function composeDraggedPosition(
@@ -220,7 +227,10 @@ export function setPanelDrag(
 ): () => PanelPosition | null {
     assert(typeof placement.getViewport === "function", "a drag is clamped against something");
     assert(typeof getBar === "function", "and starts from the bar as it stands now");
-    let position = placement.position;
+    // The reader's place, or the middle of the window: a position from the first frame is what
+    // lets the detail window and the card answer the side the panel is on (**ADR 0019**), where a
+    // panel left on the sheet's corner has no `left` for either of them to read.
+    let position = placement.position ?? composeDefaultPosition(placement.getViewport());
     let grab: PanelGrab | null = null;
     const setHostPosition = (next: PanelPosition): void => {
         assert(Number.isSafeInteger(next.left), "a panel is put at a whole pixel across");

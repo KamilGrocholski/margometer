@@ -7,7 +7,11 @@
 
 import { assert, assertEquals } from "@std/assert";
 import { setPreviewServer } from "@/tools/preview-server.ts";
-import { getRecordedFightNames } from "@/tools/recorded-fights.ts";
+import {
+    getPreviewRecordedFight,
+    getRecordedFightNames,
+    getRecordedFights,
+} from "@/tools/recorded-fights.ts";
 
 const BUNDLE = "window.__margometerPreviewBundle = 1;\n";
 
@@ -37,6 +41,43 @@ Deno.test("the page route draws what it was asked for, and refuses what nobody f
         const missing = await fetch(`${preview.url}/?fight=nobody-recorded-this`);
         assertEquals(missing.status, 404, "and a name nobody filed is refused");
         await missing.body?.cancel();
+    } finally {
+        await preview.stop();
+    }
+});
+
+Deno.test("an address that names no entry opens on the finished fight", async () => {
+    const preview = composeTestServer();
+    try {
+        const answer = await fetch(`${preview.url}/`);
+        const page = await answer.text();
+        assertEquals(answer.status, 200, "the address a reader is handed draws");
+        const fight = getPreviewRecordedFight(getRecordedFights());
+        assert(page.includes(fight.name), "the one fight every preview opens on");
+        assert(
+            page.includes(`"entryIndex":${fight.calls.length}`),
+            "counted to the end, which is what somebody starting this came to look at",
+        );
+        assert(fight.calls.length > 0, "and the end of a fight is past its first call");
+    } finally {
+        await preview.stop();
+    }
+});
+
+Deno.test("a rebuild reloads the page carrying what the harness had on screen", async () => {
+    const preview = composeTestServer();
+    try {
+        const answer = await fetch(`${preview.url}/`);
+        const page = await answer.text();
+        assert(page.includes(`new EventSource("/reload")`), "a served page listens for a rebuild");
+        assert(
+            page.includes(`"/?fight=" + encodeURIComponent(name) + composePreviewStateHash()`),
+            "and comes back on the fight it was on, carrying the state it was in",
+        );
+        assert(
+            !page.includes(`+ "&entry=" + fedCount`),
+            "the entry rides in that hash, not beside it",
+        );
     } finally {
         await preview.stop();
     }

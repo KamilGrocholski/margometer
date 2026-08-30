@@ -136,11 +136,18 @@ legibility.
 | `tipWidth`       | fixed, so a tooltip never reflows against its own content       |
 | `lineHeight`     | `15px` — whole pixels, and what a counted card is multiplied by |
 | `panelWidth`     | `260px` — narrow on purpose: the panel is a guest               |
-| `panelInset`     | `8px` from the corner it is anchored to                         |
+| `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against |
 | `panelLayer`     | high enough to clear the game's own windows                     |
 
 **Every row is the same height**, accent included. A row whose background is taller than its
 neighbour reads as a different kind of row, and it is not one.
+
+**A panel nobody has moved opens in the middle of the window.** It is the reader's own screen and
+the panel is the thing they came for, so it is put where they are already looking rather than in a
+corner they have to find. It is centred on `maxHeightShare` and not on the height it happens to
+have: a panel centred on its waiting bar walks down the screen as the rows arrive. Dragged once, it
+is wherever they left it, and that is what is kept. Where the page states no size there is nothing
+to centre against, and the sheet's own corner at `panelInset` stands instead. **ADR 0029.**
 
 **The `66vh` cap is real and binds in play.** It is lifted only for a screenshot, and that is the
 whole of the licence — see _The Frame Is Not A Screen Rule_.
@@ -300,10 +307,10 @@ too, so a bar means the same length in all three.
 position. It states its own type and its own ink, because `all: initial` on the host reaches it and
 the panel's own rules do not — a region hanging off the root that paints a ground and leaves the
 rest to inheritance is drawn in the browser's serif, in black. It opens on whichever side of the
-panel has room for it — to the left while the panel sits in its corner, and to the right once the
-panel has been dragged far enough left that a leftward tooltip would be drawn off the screen. Its
-vertical position is clamped between the inset and the viewport's foot, and where the two cross the
-top edge wins: a window hanging off the bottom beats one whose first line is off the top.
+panel has room for it — to the left while there is room there, and to the right once the panel
+stands far enough left that a leftward tooltip would be drawn off the screen. Its vertical position
+is clamped between the inset and the viewport's foot, and where the two cross the top edge wins: a
+window hanging off the bottom beats one whose first line is off the top.
 
 **Nothing here is measured off the document.** The page states its own size, the pointer states
 where it is, and the height is arithmetic — the lines the draw counted times what a line costs, plus

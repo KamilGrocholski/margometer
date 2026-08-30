@@ -45,11 +45,16 @@ Deno.test("a position is kept inside the window, with the grab area still on scr
     );
 });
 
-Deno.test("the first grab starts where the stylesheet already put the panel", () => {
+Deno.test("a panel nobody has moved opens in the middle of the window", () => {
     assertEquals(
         composeDefaultPosition(WINDOW),
-        { left: 1012, top: 8 },
-        "the corner the sheet anchors to, as a left this arithmetic can move",
+        { left: 510, top: 153 },
+        "centred across, and centred on the tallest body the sheet allows down",
+    );
+    assertEquals(
+        composeDefaultPosition({ width: 200, height: 40 }),
+        { left: 0, top: 0 },
+        "a window smaller than the panel puts it against the corner rather than off the screen",
     );
     // Not a guess: a drag from a guessed origin snatches the panel out from under the hand.
     assertEquals(composeDefaultPosition(null), null, "and nothing where the page states no size");

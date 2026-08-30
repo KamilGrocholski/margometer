@@ -103,3 +103,7 @@ edited to agree with the new rule.
   payloads, and a figure is memoised rather than stored. **Accepted**
 - [0027](0027-the-fight-is-handed-over-in-one-file.md) — The fight is handed over in one file, and
   intake takes the counted figures back off it. **Accepted**
+- [0028](0028-a-preview-opens-on-one-finished-fight.md) — A preview opens on one finished fight, and
+  the panel's state rides in the address. **Accepted**
+- [0029](0029-a-panel-nobody-has-moved-opens-in-the-middle.md) — A panel nobody has moved opens in
+  the middle of the window. **Accepted**

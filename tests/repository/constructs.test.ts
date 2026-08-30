@@ -47,6 +47,7 @@ const SEARCHED: Record<string, string> = {
 const WRITTEN_FOR_SOMEBODY_ELSE: Record<string, string> = {
     "tools/preview-server.ts": "an HTTP body",
     "tools/preview-page.ts": "a value escaped into a tag, and browser script emitted as text",
+    "tools/preview-state.ts": "browser script emitted as text",
     "tools/panel-screenshots.ts": "browser script emitted as text",
 };
 

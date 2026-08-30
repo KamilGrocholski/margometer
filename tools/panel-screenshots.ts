@@ -14,7 +14,7 @@ import { isRecord } from "@/libs/unknown-reading.ts";
 import { composeUserscriptFiles } from "@/tools/build-userscript.ts";
 import { PanelShotError } from "@/tools/margometer-tool-error.ts";
 import { setPreviewServer } from "@/tools/preview-server.ts";
-import { getNewestRecordedFight, getRecordedFights } from "@/tools/recorded-fights.ts";
+import { getPreviewRecordedFight, getRecordedFights } from "@/tools/recorded-fights.ts";
 
 export const SHOT_DIRECTORY = "screenshots";
 /** What the set was taken from, beside the set. The guard reads it, and so does a reader. */
@@ -136,6 +136,13 @@ if (intro !== null) intro.style.display = "none";
 
 var shownHost = getPanelHost();
 shownHost.style.maxHeight = "none";
+// Back into the corner the frame is measured against. A panel opens in the middle of the window
+// (src/ui/panel-drag.ts), and these pictures are of its regions rather than of where it opens:
+// anchored anywhere but the right edge, a frame carries half a screen of background.
+shownHost.style.left = "auto";
+shownHost.style.right = "${PANEL_INSET}px";
+shownHost.style.top = "${PANEL_INSET}px";
+shownHost.style.setProperty("--MargoMeter-panel-top", "${PANEL_INSET}px");
 
 var report = document.createElement("pre");
 report.id = "preview-report";
@@ -186,9 +193,9 @@ function getEdgeFromReport(report: Record<string, unknown>, name: string): numbe
 /**
  * The frame the shot is taken at, from where the panel and its card landed while measuring.
  *
- * Everything drawn is anchored to the right edge of the viewport — the panel at its inset, the
- * card at a fixed distance further left — so the distance from the leftmost edge to that right
- * edge is what a frame has to hold, whatever width it was measured at.
+ * Everything measured is anchored to the right edge of the viewport — the panel put back at its
+ * inset by the script above, the card at a fixed distance further left — so the distance from the
+ * leftmost edge to that right edge is what a frame has to hold, whatever width it was measured at.
  */
 export function composeFrameFromReport(report: Record<string, unknown>): [number, number] {
     const viewport = getEdgeFromReport(report, "viewport");
@@ -329,7 +336,7 @@ async function setShotsMovedIn(staging: string, record: PanelShotRecord): Promis
  */
 export async function writePanelShots(browser: string): Promise<PanelShotRecord> {
     const commit = await getCommitForShots();
-    const fight = getNewestRecordedFight(getRecordedFights());
+    const fight = getPreviewRecordedFight(getRecordedFights());
     const shots = composePanelShots();
     const built = await composeUserscriptFiles(BUILD_VERSION);
     const staging = await Deno.makeTempDir({ prefix: "margometer-shots-" });

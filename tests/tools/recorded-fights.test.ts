@@ -9,11 +9,12 @@
 import { assert, assertEquals, assertThrows } from "@std/assert";
 import { isFightStart } from "@/src/game/battle-session.ts";
 import {
-    getNewestRecordedFight,
+    getPreviewRecordedFight,
     getRecordedFightAt,
     getRecordedFightCalls,
     getRecordedFightNames,
     getRecordedFights,
+    PREVIEW_FIGHT_NAME,
 } from "@/tools/recorded-fights.ts";
 import { PreviewBuildError, RecordingReadError } from "@/tools/margometer-tool-error.ts";
 
@@ -37,19 +38,24 @@ Deno.test("a recording nothing filed is refused rather than read as empty", () =
     assert(refused instanceof Error, "and it is an error, whatever the reading tripped on");
 });
 
-Deno.test("every fight carries its calls, and the newest is the one a page opens on", () => {
+Deno.test("every fight carries its calls, and one of them is the one a preview opens on", () => {
     const fights = getRecordedFights();
     assert(fights.length > 1, "there is more than one fight to choose between");
     for (const fight of fights) {
         assert(fight.calls.length > 0, `${fight.name} carries the calls the add-on would see`);
     }
-    const newest = getNewestRecordedFight(fights);
-    assertEquals(newest, fights[fights.length - 1], "the last by name is the newest by date");
+    const opened = getPreviewRecordedFight(fights);
+    assertEquals(opened.name, PREVIEW_FIGHT_NAME, "the named recording is the one handed back");
+    assertEquals(
+        fights.filter((fight) => fight.name === PREVIEW_FIGHT_NAME).length,
+        1,
+        "and the directory carries it exactly once",
+    );
     assertThrows(
-        () => getNewestRecordedFight([]),
+        () => getPreviewRecordedFight(fights.filter((fight) => fight.name !== PREVIEW_FIGHT_NAME)),
         PreviewBuildError,
-        undefined,
-        "and nothing to open on is a refusal, not a page drawing nobody",
+        PREVIEW_FIGHT_NAME,
+        "a set without it is a refusal, not a preview quietly opening on something else",
     );
 });
 

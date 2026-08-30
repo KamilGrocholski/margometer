@@ -95,6 +95,7 @@ tools/             Never ships. Each arrives with the question it answers.
   fight-figures.ts     What a fight adds up to, per combatant, as a table at a terminal.
   drill-report.ts      Which rows of the panel open, measured level by level over a fight.
   preview-page.ts      The harness page, whole, as one string. It speaks neither language.
+  preview-state.ts     What the harness carries between two pages, in the address and nowhere else.
   preview-server.ts    That page served, rebuilt on a change under `src/`, and reloaded.
   preview-site.ts      That page written down, one per recording, for somebody with no clone.
   panel-screenshots.ts The panel photographed, at a frame measured off the panel itself.
@@ -156,6 +157,7 @@ tests/
     fight-figures.test.ts     The table read back, and the reading block that prints at zero.
     drill-report.test.ts      The register against every level drawn, both ways round.
     preview-page.test.ts      The page, read back: the order of its scripts, and its escaping.
+    preview-state.test.ts     Both halves of the address, run rather than searched for words.
     preview-server.test.ts    Every route, against a bundle handed in rather than built.
     preview-site.test.ts      A page per recording, addressed relatively and asking nothing.
     panel-screenshots.test.ts The set against its sidecar, and the frame a report sizes.

@@ -20,7 +20,7 @@ import {
     type PreviewWords,
 } from "@/tools/preview-page.ts";
 import {
-    getNewestRecordedFight,
+    getPreviewRecordedFight,
     getRecordedFights,
     type RecordedFight,
 } from "@/tools/recorded-fights.ts";
@@ -57,6 +57,9 @@ const PREVIEW_WORDS: PreviewWords = {
  * page: a published page saying `build ok` in green asserts something about a build nobody ran.
  * A rebuild that **fails** must not reload — the page would go blank over a syntax error
  * mid-keystroke, and the panel you were looking at is the thing you were looking at.
+ *
+ * A rebuild that succeeds reloads carrying the address the harness composed, so the panel comes
+ * back where it stood, folded as it stood, on the screen it was on (`tools/preview-state.ts`).
  */
 const RELOAD_SCRIPT = `var buildLabel = getPreviewElement("preview-build");
 var buildLog = getPreviewElement("preview-log");
@@ -76,7 +79,7 @@ renderBuild("build ok", true);
 var reloads = new EventSource("/reload");
 reloads.addEventListener("rebuilt", function handleRebuilt() {
   var name = shownFight === null ? PREVIEW.fightName : shownFight.name;
-  window.location.href = "/?fight=" + encodeURIComponent(name) + "&entry=" + fedCount;
+  window.location.href = "/?fight=" + encodeURIComponent(name) + composePreviewStateHash();
 });
 reloads.addEventListener("failed", function handleFailed(event) {
   renderBuild("build failed", false);
@@ -122,9 +125,10 @@ interface PreviewState {
     appendedScript: string | null;
 }
 
+/** No entry stated, which is the whole fight: an address is shorter than the state it opens on. */
 function composeFightAddress(name: string): string {
     assert(name.length > 0, "a fight is addressed by name");
-    return `/?fight=${encodeURIComponent(name)}&entry=0`;
+    return `/?fight=${encodeURIComponent(name)}`;
 }
 
 /**
@@ -142,7 +146,7 @@ function getFightByName(
 ): RecordedFight | null {
     assert(fights.length > 0, "a server with no recording never started");
     assert(name === null || name.length > 0, "and a fight is asked for by a name or not at all");
-    if (name === null) return getNewestRecordedFight(fights);
+    if (name === null) return getPreviewRecordedFight(fights);
     return fights.find((fight) => fight.name === name) ?? null;
 }
 
@@ -221,7 +225,10 @@ function composePageResponse(state: PreviewState, address: URL): Response {
     const fight = getFightByName(state.fights, address.searchParams.get("fight"));
     if (fight === null) return new Response("no such recording", { status: 404 });
     const stated = address.searchParams.get("entry");
-    const asked = stated === null ? 0 : getIntegerFromText(stated);
+    // The finished fight where nothing says otherwise, as the published pages open
+    // (`tools/preview-site.ts`): the empty panel is a state worth reaching and `to start` reaches
+    // it, but it is not the one somebody starting this server came to look at.
+    const asked = stated === null ? fight.calls.length : getIntegerFromText(stated);
     if (asked === null) return new Response("entry is not a number", { status: 400 });
     const entryIndex = getValueWithin(asked, 0, fight.calls.length);
     assert(entryIndex >= 0, "a replay stops at or after the first call");

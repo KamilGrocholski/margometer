@@ -9,6 +9,7 @@
 
 import { assert } from "@std/assert";
 import { USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
+import { composePreviewStateReading, composePreviewStateWriting } from "@/tools/preview-state.ts";
 
 /**
  * A build id in the shape `src/core/game-build.ts` reads. The tag naming it loads nothing: only
@@ -95,6 +96,7 @@ ${composePreviewStyle()}
 <body>
 ${introduction}
 ${composePreviewStrip(options.words)}
+<script>${composePreviewStateReading()}</script>
 <script>${composePreviewStore()}</script>
 <script>${composePreviewGame(options.words)}</script>
 <script src="${options.scriptDirectory}${PREVIEW_GAME_SCRIPT_NAME}"></script>
@@ -102,6 +104,7 @@ ${composePreviewStrip(options.words)}
 <script id="preview-settings" type="application/json">${settings}</script>
 <script>
 ${composePreviewDriver()}
+${composePreviewStateWriting()}
 ${composePreviewPicks()}
 ${options.appendedScript ?? ""}
 </script>
@@ -179,26 +182,35 @@ function composePreviewStrip(words: PreviewWords): string {
  * a published preview is left holding somebody's demo fight — and a second visit opens onto it.
  * An engine that will not give the property up leaves its own store in place, which is no worse
  * than the page was before, and never a reason to stop drawing.
+ *
+ * What it starts holding is what the address carried (`tools/preview-state.ts`), and one store
+ * answers to both names: the add-on writes to whichever it was sent to, and the harness has one
+ * place to read rather than a choice to follow.
  */
 function composePreviewStore(): string {
-    const stood = `(function setNothingKept() {
-  var composeForgettingStore = function () {
-    var held = {};
-    return {
-      getItem: function (key) {
-        return Object.prototype.hasOwnProperty.call(held, key) ? held[key] : null;
-      },
-      setItem: function (key, value) { held[key] = value; },
-      removeItem: function (key) { delete held[key]; }
-    };
+    const stood = `var PREVIEW_STORE = (function composeForgettingStore() {
+  var held = PREVIEW_STATE.store;
+  return {
+    getItem: function (key) {
+      return Object.prototype.hasOwnProperty.call(held, key) ? held[key] : null;
+    },
+    setItem: function (key, value) { held[key] = String(value); },
+    removeItem: function (key) { delete held[key]; },
+    readAll: function () {
+      var copy = {};
+      var names = Object.keys(held);
+      for (var at = 0; at < names.length; at += 1) {
+        copy[names[at]] = held[names[at]];
+      }
+      return copy;
+    }
   };
+})();
+(function setNothingKept() {
   var names = ["localStorage", "sessionStorage"];
   for (var at = 0; at < names.length; at += 1) {
     try {
-      Object.defineProperty(window, names[at], {
-        value: composeForgettingStore(),
-        configurable: true
-      });
+      Object.defineProperty(window, names[at], { value: PREVIEW_STORE, configurable: true });
     } catch (refusal) {
       void refusal;
     }
@@ -206,6 +218,7 @@ function composePreviewStore(): string {
 })();`;
     assert(stood.includes("localStorage"), "the store a browser lends is taken away");
     assert(stood.includes("sessionStorage"), "and so is the other one the add-on may be sent to");
+    assert(stood.includes("PREVIEW_STATE.store"), "and it starts holding what the address carried");
     return stood;
 }
 
@@ -251,7 +264,6 @@ function composePreviewGame(words: PreviewWords): string {
 function composePreviewDriver(): string {
     const driver =
         `var PREVIEW = JSON.parse(document.getElementById("preview-settings").textContent);
-var START_HASH = "#start";
 var fedCount = 0;
 var playTimer = null;
 var shownFight = null;
@@ -318,7 +330,10 @@ function composePreviewPicks(): string {
         composePreviewPicksHandlers(),
         composePreviewPicksBindings(),
     ].join("\n\n");
-    assert(picks.includes("START_HASH"), "the state before the first call is reachable");
+    assert(
+        picks.includes("composePreviewStateHashAt(0)"),
+        "the state before the first call is reachable",
+    );
     assert(picks.includes("renderPicker()"), "and every recording is in the picker before it is");
     return picks;
 }
@@ -349,14 +364,16 @@ var setFightShown = function (fight, calls) {
   fedCount = 0;
   document.title = PREVIEW.words.title + " \\u2014 " + fight.name;
   setFedTo(calls.length);
+  setPreviewStateWritten();
 };
 
 var setStartOpened = function () {
+  var opened = composePreviewStateHashAt(0);
   if (shownFight !== null) {
-    window.location.href = shownFight.address + START_HASH;
+    window.location.href = shownFight.address + opened;
     return;
   }
-  window.location.hash = START_HASH;
+  window.location.hash = opened;
   window.location.reload();
 };`;
     assert(readers.includes("getFightByAddress"), "a recording is found by the address it wears");
@@ -383,7 +400,7 @@ var handlePick = function () {
   if (chosen === null) return null;
   setPlayStopped();
   if (chosen.callsAddress === null) {
-    window.location.href = chosen.address;
+    window.location.href = chosen.address + composePreviewStateHash();
     return null;
   }
   return window.fetch(chosen.callsAddress).then(function handleAnswer(answer) {
@@ -391,7 +408,7 @@ var handlePick = function () {
   }).then(function handleCallsRead(calls) {
     setFightShown(chosen, calls);
   }, function handleCallsRefused() {
-    window.location.href = chosen.address;
+    window.location.href = chosen.address + composePreviewStateHash();
   });
 };`;
     assert(handlers.includes("handlePlay"), "playing is one control, and it stops itself");
@@ -420,8 +437,8 @@ getPreviewElement("preview-start").addEventListener("click", setStartOpened);
 picker.addEventListener("change", handlePick);
 
 renderPicker();
-setFedTo(window.location.hash === START_HASH ? 0 : PREVIEW.entryIndex);`;
+setFedTo(PREVIEW_STATE.entry === null ? PREVIEW.entryIndex : PREVIEW_STATE.entry);`;
     assert(bindings.includes("addEventListener"), "every control reaches what it does");
-    assert(bindings.includes("setFedTo"), "and the page opens on the entry it was asked for");
+    assert(bindings.includes("PREVIEW_STATE.entry"), "and opens on the entry the address carried");
     return bindings;
 }
