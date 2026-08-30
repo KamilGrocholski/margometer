@@ -8,10 +8,6 @@ description: Run the built userscript against a captured fight in a real browser
 The add-on's surface is a browser page. `deno task check` is not that surface: it typechecks, runs
 the suite and builds the bundle, and every one of those can be green while the panel is broken.
 
-> **Two commands here still name v1.** `tools/fight-dump-parser.ts` and `tools/fight-report.ts` do
-> not exist in this tree; each is corrected when the module lands. `ARCHITECTURE.md` carries that
-> under known gaps. Everything else on this page runs today.
-
 ## The server
 
 ```bash

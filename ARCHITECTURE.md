@@ -188,6 +188,7 @@ tests/
     names.test.ts          File names, exported functions and exported types.
     protocol-keys.test.ts  The register help claims, re-counted against the frozen table.
     readmes.test.ts        The two READMEs to one skeleton, and both to one set of shots.
+    cited-paths.test.ts    Every rooted path a document names, against the tree it names into.
     libraries.test.ts      `libs/` reaching no layer, and naming nothing of this project.
   recorded-fight.ts        The recordings, read through the constant that spells their fields.
   fake-document.ts         A document small enough to read, for a panel handed one.
@@ -436,22 +437,13 @@ commit that opens or closes one.
    rules here would be a second list going stale against the first.
 3. **The construct register has no owners**, so the rule it encodes is unenforced. A row is added
    with its first consumer.
-4. **Carried documents cite v1 module paths that do not exist here.** `docs/protocol-keys.md`,
-   `docs/captured-fights.md` and `docs/browser-support.md` reference files such as
-   `src/ui/panel-look.ts` and `tests/core/health-witness.test.ts`. Capture paths were rewritten to
-   `captures/` and every cited recording was checked to exist; module citations are stale until the
-   modules land. Closed by `tests/repository/cited-paths.test.ts`, which must tell **three kinds of
-   citation** apart, because a guard that treats them alike fails on all of them: a **real** path,
-   which must exist; a **target** path, which must not exist yet and appears only in a section this
-   document marks as target; and a **counter-example**, cited precisely because it is forbidden —
-   `utils.ts`, `../core/fight-decoder.ts`, a filename template. Established by running the check by
-   hand.
-5. **The carried documents run past 100 columns.** `docs/protocol-keys.md` (7 lines),
-   `docs/captured-fights.md` (60), `docs/browser-support.md` (5) and the `verify` skill (16) hold
-   tables `deno fmt` aligns but never wraps. The line-length guard names them as excluded rather
-   than skipping them quietly; rewrapping is a large diff on material this tree carries rather than
-   authors, and waits until each document is next edited for its own reasons.
-6. **Half of `docs/browser-support.md` is held and half is not.** Its CSS register is guarded by
+4. **Some documents run past 100 columns.** `docs/protocol-keys.md`, `docs/captured-fights.md`,
+   `docs/browser-support.md`, `docs/drill-levels.md` and the `verify` skill hold tables `deno fmt`
+   aligns but never wraps. The line-length guard names them as excluded rather than skipping them
+   quietly, and the counts are its to state rather than this file's (**V5**); rewrapping is a large
+   diff, on carried material or on a generated register, and waits until each is next edited for its
+   own reasons.
+5. **Half of `docs/browser-support.md` is held and half is not.** Its CSS register is guarded by
    `tests/tools/browser-support.test.ts`, which enumerates what `composeStyleSheet()` spells and
    holds the document to it in both directions. Its **JavaScript** floor is the unheld half: the
    document describes one checked over sources, and the ES level that matters is the bundle's once
@@ -459,47 +451,41 @@ commit that opens or closes one.
    sources with a `tsconfig.userscript.json`; this tree has none, and `deno.json` states `lib` as
    `esnext` with no `target` at all — so a round reaching past the floor for a member or for a
    syntax passes the gate without a word. The document says so at the section itself.
-7. **Two commands in the `verify` skill still name v1.** `.agents/skills/verify/SKILL.md` carries
-   the procedural knowledge for driving the add-on in a browser and reading what the panel drew, and
-   its preview, screenshot and selector halves were corrected against this tree on 2026-08-29. What
-   is left naming modules that do not exist here is `tools/fight-dump-parser.ts` and
-   `tools/fight-report.ts`. Corrected module by module as each lands.
-8. **A function declaration whose arrow sits on the next line is not counted.** `isFunctionOpener`
+6. **A function declaration whose arrow sits on the next line is not counted.** `isFunctionOpener`
    in `tests/repository/sources.test.ts` reads a declaration from one line, so a named arrow wrapped
    across two is invisible to S4 and S5. The limit is pinned by a test rather than left to be
    discovered, and closes when a file in this tree is written that way.
-9. **Every key in `captures/` is read, and no recording is short.** `healall_per` was the last, and
+7. **Every key in `captures/` is read, and no recording is short.** `healall_per` was the last, and
    ADR 0010 carries how a share stated about a whole side is sized onto its members. Measured over
    `captures/` on 2026-08-29: 115 casts across 22 recordings, every one of them whole, and no
    message anywhere unread — so the doubt mark never fires on the material this repository holds. It
    is held by probes only, and the next protocol change is what it exists for.
-10. **A payload can move health with no message stating it.** Every comparison between the health
-    the protocol states about a combatant and the movement decoded from its own messages agrees
-    inside the reading's tolerance, bar three kinds: a killing blow landing more than the health
-    that was left, health restored by a share the decoder states without an amount, and **one
-    payload that moves health with nothing saying so** — entry 83 of
-    `2026-08-06-tempest-grupa-vs-hildur`, where the boss loses 8,062 of a 325,584 pool while both
-    messages of that payload are about other people. Nothing in the protocol accounts for it and
-    only the snapshots show it, which is what the snapshots are for.
-    `tests/core/health-witness.test.ts` is where the counts are, and it pins the last of the three
-    at one so a second cannot arrive unnoticed. The figures stood here too until 2026-08-30, in a
-    second reckoning that counted the first two kinds as disagreements where the test does not — two
-    numbers for one measurement, which **V5** is the rule against.
-11. **The recursion guard misreads a one-line named arrow.** `getFunctionBodies` in
-    `tests/repository/sources.test.ts` collects lines until the brace depth returns to zero, and a
-    `const name = () => expression;` opens no brace — so every line after it is read as that
-    function's body, and a later call to it reads as a call to itself. Found by writing one in
-    `tests/userscript-entry.test.ts`, which now carries a block body and a comment saying why. A
-    false positive is worse than a blind spot, so this is the next thing that guard should learn;
-    gap 9 is the other half of the same reader.
-12. **No release has been cut on this branch.** `CHANGELOG.md` is written, carried from v1 and
+8. **A payload can move health with no message stating it.** Every comparison between the health the
+   protocol states about a combatant and the movement decoded from its own messages agrees inside
+   the reading's tolerance, bar three kinds: a killing blow landing more than the health that was
+   left, health restored by a share the decoder states without an amount, and **one payload that
+   moves health with nothing saying so** — entry 83 of `2026-08-06-tempest-grupa-vs-hildur`, where
+   the boss loses 8,062 of a 325,584 pool while both messages of that payload are about other
+   people. Nothing in the protocol accounts for it and only the snapshots show it, which is what the
+   snapshots are for. `tests/core/health-witness.test.ts` is where the counts are, and it pins the
+   last of the three at one so a second cannot arrive unnoticed. The figures stood here too until
+   2026-08-30, in a second reckoning that counted the first two kinds as disagreements where the
+   test does not — two numbers for one measurement, which **V5** is the rule against.
+9. **The recursion guard misreads a one-line named arrow.** `getFunctionBodies` in
+   `tests/repository/sources.test.ts` collects lines until the brace depth returns to zero, and a
+   `const name = () => expression;` opens no brace — so every line after it is read as that
+   function's body, and a later call to it reads as a call to itself. Found by writing one in
+   `tests/userscript-entry.test.ts`, which now carries a block body and a comment saying why. A
+   false positive is worse than a blind spot, so this is the next thing that guard should learn; gap
+   7 is the other half of the same reader.
+10. **No release has been cut on this branch.** `CHANGELOG.md` is written, carried from v1 and
     opened with what the rewrite changed for a player; `tools/changelog.ts` composes the body of a
     release out of it, `.github/workflows/check.yml` is the run **G7** waits for, and
     `.github/workflows/release.yml` publishes one. **None of it has run here.** The release path is
     held by its tests alone. What is written since is the front page: both READMEs, against a set of
     pictures shot at the commit that drew them, and `tests/repository/readmes.test.ts` holding the
     three to each other.
-13. **A ranking row does not say which side is the reader's.** The seat itself is read — the payload
+11. **A ranking row does not say which side is the reader's.** The seat itself is read — the payload
     that opens a fight states it under `myteam`, `game/battle-session.ts` keeps it once seen, and it
     already decides the order of a shelf row's sides and whether a fight was won from that seat. It
     is `PanelRow.side` that stops short: it carries the game's own team number and nothing turns it
@@ -514,7 +500,7 @@ commit that opens or closes one.
     carrier that is not ink and not hue: the edge the bar grows from, the slope of the name, or a
     rule under the row spending the two tokens, each with a cost of its own. The seat reaching the
     row is cheap; deciding what draws it is the open half.
-14. **A restatement in different words is unheld, and it is the worse kind.**
+12. **A restatement in different words is unheld, and it is the worse kind.**
     `tests/repository/sources.test.ts` holds C15's second half by comparing block text, so a comment
     repeated word for word is a finding and one reworded is not — which is backwards from the cost,
     since two copies that read differently drift without ever looking like copies. Found by reading
@@ -523,7 +509,7 @@ commit that opens or closes one.
     over a panel that draws two. **ADR 0016.** C14 is unheld for the same reason and has no guard
     shape yet; the one that would hold it counts declarations carrying a docblock, which needs a
     parser this tree does not have.
-15. **The cast column of `docs/captured-fights.md` is held by reading.**
+13. **The cast column of `docs/captured-fights.md` is held by reading.**
     `tests/tools/captured-fight-register.test.ts` re-earns the set of recordings both ways and, for
     each, the world, the build, the calls and the messages. What it does not compose is the
     professions, their counts and the level range, so a row stating those wrongly passes the gate.

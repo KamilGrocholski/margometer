@@ -393,6 +393,7 @@ the same thing a second way.
 | `tests/repository/names.test.ts`         | N1, N11, each with a sample                        |
 | `tests/repository/protocol-keys.test.ts` | the register help claims against the frozen counts |
 | `tests/repository/readmes.test.ts`       | the two READMEs, and both against the shot set     |
+| `tests/repository/cited-paths.test.ts`   | every rooted path a document cites                 |
 | `tests/repository/libraries.test.ts`     | `libs/` and `project/` reaching into no layer      |
 | `tests/tools/drill-report.test.ts`       | `docs/drill-levels.md` against every level drawn   |
 | `tests/ui/blow-vocabulary.test.ts`       | N13 for what a blow carried, against `captures/`   |
