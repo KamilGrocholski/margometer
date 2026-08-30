@@ -9,6 +9,7 @@
 
 import { assert } from "@std/assert";
 import { composeJsonWriting } from "@/libs/json-text.ts";
+import { composeIntegerText } from "@/libs/number-text.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import type {
     CombatantFigures,
@@ -143,7 +144,7 @@ function composeReportCombatants(statistics: FightStatistics): Record<string, Re
     const written: Record<string, ReportRow> = {};
     for (const [id, figures] of statistics.byCombatantId) {
         assert(Number.isSafeInteger(id), "a row belongs to an id that was read");
-        written[String(id)] = composeReportRow(figures);
+        written[composeIntegerText(id)] = composeReportRow(figures);
     }
     assert(
         Object.keys(written).length === statistics.byCombatantId.size,

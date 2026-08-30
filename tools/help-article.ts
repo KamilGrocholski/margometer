@@ -14,7 +14,7 @@ import { assert } from "@std/assert";
 import { getEndOfRun } from "@/libs/text-walk.ts";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
-import { composeIntegerText, getIntegerFromText } from "@/src/core/protocol-number.ts";
+import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { HelpArticleError } from "@/tools/margometer-tool-error.ts";
 
 const HELP_HOST = "https://pomoc.margonem.pl";

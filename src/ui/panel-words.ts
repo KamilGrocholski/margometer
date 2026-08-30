@@ -4,7 +4,7 @@
  */
 
 import { assert } from "@std/assert";
-import { composeIntegerText } from "@/src/core/protocol-number.ts";
+import { composeIntegerText } from "@/libs/number-text.ts";
 import type { PanelMetric, PanelOutcome } from "@/src/ui/panel-reading.ts";
 import type { PanelNoun, PanelSideChoice, PanelStorageChoice } from "@/src/ui/panel-screen.ts";
 

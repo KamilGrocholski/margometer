@@ -12,7 +12,7 @@
 import { assert } from "@std/assert";
 import { getEndOfRun, isDigitAt } from "@/libs/text-walk.ts";
 import { composeJsonWriting } from "@/libs/json-text.ts";
-import { composeIntegerText, getIntegerFromText } from "@/src/core/protocol-number.ts";
+import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { getCachedBundle, getCachedClientSource } from "@/tools/game-client-source.ts";
 import { ProtocolKeyTableError } from "@/tools/margometer-tool-error.ts";
 

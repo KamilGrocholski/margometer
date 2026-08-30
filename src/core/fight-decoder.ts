@@ -29,11 +29,8 @@ import {
     type ProtocolMessage,
     ProtocolMessageFormatError,
 } from "@/src/core/protocol-message.ts";
-import {
-    getHealthPercentFromText,
-    getIntegerFromText,
-    getShareFromText,
-} from "@/src/core/protocol-number.ts";
+import { getIntegerFromText } from "@/libs/number-text.ts";
+import { getHealthPercentFromText, getShareFromText } from "@/src/core/protocol-number.ts";
 
 /**
  * The client's default branch reads characters 1 to 3 of a key: `+` is raw, the rest applied.

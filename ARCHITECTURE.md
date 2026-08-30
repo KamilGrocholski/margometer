@@ -43,6 +43,7 @@ deno.lock          What the gate is actually run against. A package the lock doe
 
 libs/              Knows nothing of this project. Imports `@std/` and its own siblings.
   json-text.ts     JSON both ways, each answering whether it worked rather than with `null`.
+  number-text.ts   Numbers read out of text and written back into it, refusing before reading.
   text-walk.ts     Walking text a character at a time, by a predicate the caller hands over.
   unknown-reading.ts   Reading a value nobody typed, answering null rather than throwing.
 project/           Knows this project, belongs to no layer of it. Reads `libs/` only.
@@ -60,7 +61,7 @@ src/
     fight-statistics.ts  The figures a panel draws, with what nobody can be charged apart.
     margometer-error.ts  The abstract brand every failure that ships to the browser wears.
     protocol-message.ts  One message's grammar: both ends, then its parameters.
-    protocol-number.ts   The numbers the protocol states, read out of its text.
+    protocol-number.ts   The shapes a percentage and a share are written in — a measurement.
   game/
     battle-session.ts    One fight, accumulated payload by payload, in the order they arrive.
     browser-store.ts     The store a browser lends, wrapped so a refusal is an answer.
@@ -123,6 +124,7 @@ tests/
     health-witness.test.ts    What was read, against what the protocol says of itself.
     fight-statistics.test.ts  The figures, and the balance every point of damage keeps.
     protocol-message.test.ts  The grammar, over every message the recordings carry.
+    protocol-number.test.ts   The width a percentage is written at, and a share's two forms.
     absorption-destruction-rule.test.ts  Whose the share is: the caster's, across fights.
     anguish-rule.test.ts      The bleed charged to its victim, and the announcement with no figure.
     bandage-rule.test.ts      The figure as health, against the percentage stated before it.
@@ -157,6 +159,7 @@ tests/
     panel-words.test.ts       What the words must never say, and how Polish counts.
   libs/                    A test sits where its subject sits.
     json-text.test.ts         Both directions, over the answers `null` used to stand for.
+    number-text.test.ts       Text that looks like a number, against text that is one.
     unknown-reading.test.ts   What counts as a shape worth reading, list and null included.
   repository/              Guards whose subject is this repository, not a layer of it.
     documents.test.ts      The rule documents and the guard register.
@@ -302,9 +305,14 @@ Reading returns `null` and throws nothing — the caller picks assert, error or 
 asserts, because the number is ours. Where the value read could itself have been the `null`, the
 answer says whether it worked and the value sits behind it (**E10**, **ADR 0021**).
 
-- `Number()`, `toFixed`, `String()` on a number — `src/core/protocol-number.ts`. Every reading is
-  refused before it is taken: digits are proved to be digits, then the result is proved to be a safe
+- `Number()`, `toFixed`, `String()` on a number — `libs/number-text.ts`. Every reading is refused
+  before it is taken: digits are proved to be digits, then the result is proved to be a safe
   integer, so no figure downstream is a neighbour of the one the game stated.
+  `src/core/protocol-number.ts` states the width `captures/` carries and delegates the arithmetic,
+  so the row keeps one address. Measured 2026-08-30, one spelling stands outside it:
+  `tools/help-article.ts` wraps a manifest field in `String()` before reading an integer from it,
+  which is `String()` over an **unknown** and not over a number — the reading that field wants is
+  `getTextFromUnknown`, and until it gets one this row cannot say the owner is alone.
 - `parseInt`, `parseFloat`, unary `+` — **planned**, named at its first consumer.
 - `JSON.parse` — `libs/json-text.ts`, inside `getJsonReading`. Its result is `unknown` and is walked
   with a predicate and `Array.isArray`; C13 forbids the cast that would skip that. Measured

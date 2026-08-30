@@ -11,13 +11,8 @@
 
 import { assert } from "@std/assert";
 import { MargoMeterError } from "@/src/core/margometer-error.ts";
-import {
-    composeHealthPercentText,
-    composeIntegerText,
-    getHealthPercentFromText,
-    getIntegerFromText,
-    isIntegerText,
-} from "@/src/core/protocol-number.ts";
+import { composeIntegerText, getIntegerFromText, isIntegerText } from "@/libs/number-text.ts";
+import { composeHealthPercentText, getHealthPercentFromText } from "@/src/core/protocol-number.ts";
 
 /**
  * Named because the decoder catches exactly this and turns it into a message it could not read.

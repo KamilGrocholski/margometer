@@ -1,34 +1,19 @@
 /**
- * The numbers the protocol states, read out of its text.
+ * The numbers the protocol states, in the shapes it states them in.
  *
- * `Number("")` answers 0 and `Number("12abc")` answers NaN, so nothing here reaches a caller
- * before its text has been walked. A reading answers null and throws nothing; writing asserts,
- * because by then the number is ours.
+ * The arithmetic is `libs/number-text.ts`'s; what is here is the shape a percentage and a share
+ * are written in, which is a measurement over `captures/` and not a property of numbers.
  */
 
 import { assert } from "@std/assert";
-import { getEndOfRun, isDigitAt } from "@/libs/text-walk.ts";
+import { composeDecimalText, getDecimalFromText } from "@/libs/number-text.ts";
+import { isDigitRun } from "@/libs/text-walk.ts";
 
 /** Every percentage in `captures/` is written to two places, 18215 of them, 2026-08-28. */
 export const HEALTH_PERCENT_PLACES = 2;
 
-function isDigitRun(text: string): boolean {
-    if (text.length === 0) return false;
-    const end = getEndOfRun(text, 0, isDigitAt);
-    assert(end <= text.length, "a run of digits ends inside the text it was read from");
-    assert(text.length > 0, "a digit run holds at least one digit");
-    return end === text.length;
-}
-
-export function isIntegerText(text: string): boolean {
-    const digits = text.startsWith("-") ? text.slice(1) : text;
-    assert(digits.length <= text.length, "dropping a sign never grows the text");
-    assert(!digits.startsWith("-"), "a sign is dropped once");
-    return isDigitRun(digits);
-}
-
 /** `70.07` — a whole part, a point, and exactly the two places the protocol writes. */
-export function isHealthPercentText(text: string): boolean {
+function isHealthPercentText(text: string): boolean {
     const point = text.indexOf(".");
     if (point === -1) return false;
     const fraction = text.slice(point + 1);
@@ -39,20 +24,10 @@ export function isHealthPercentText(text: string): boolean {
     return isDigitRun(fraction);
 }
 
-/** Null where the text is not an integer, and where it states one no number holds exactly. */
-export function getIntegerFromText(text: string): number | null {
-    if (!isIntegerText(text)) return null;
-    const value = Number(text);
-    if (!Number.isSafeInteger(value)) return null;
-    assert(Number.isFinite(value), "an integer read from digits is a number");
-    assert(String(value).length <= text.length, "reading a number never lengthens its text");
-    return value;
-}
-
 export function getHealthPercentFromText(text: string): number | null {
     if (!isHealthPercentText(text)) return null;
-    const value = Number(text);
-    assert(Number.isFinite(value), "a percentage read from digits is a number");
+    const value = getDecimalFromText(text);
+    assert(value !== null, "text of the stated width is text a decimal is read from");
     assert(value >= 0, "a percentage read from digits is never below nothing");
     return value;
 }
@@ -62,41 +37,11 @@ export function getHealthPercentFromText(text: string): number | null {
  * `captures/`. Null for anything else, so a value nobody wrote never becomes a figure.
  */
 export function getShareFromText(text: string): number | null {
-    const point = text.indexOf(".");
-    if (point === -1) {
-        if (!isDigitRun(text)) return null;
-        return Number(text);
-    }
-    if (!isDigitRun(text.slice(0, point))) return null;
-    if (!isDigitRun(text.slice(point + 1))) return null;
-    const value = Number(text);
-    assert(Number.isFinite(value), "a share read from digits is a number");
-    assert(value >= 0, "and never below nothing");
-    return value;
-}
-
-export function composeIntegerText(value: number): string {
-    assert(Number.isSafeInteger(value), "an integer written back is an integer that was read");
-    const text = String(value);
-    assert(text.length > 0, "a number is written as at least one character");
-    return text;
-}
-
-/**
- * A number written to a fixed number of places, for a declaration a browser is handed as text.
- *
- * Through a writer rather than through interpolation: a share of a tenth comes out as
- * `10.000000000000002` in template text, and a value that is not a number at all reaches the
- * declaration as `NaN` with nothing marked.
- */
-export function composeDecimalText(value: number, places: number): string {
-    assert(Number.isFinite(value), "a number written back is a number");
-    assert(Number.isSafeInteger(places), "and is written to a whole number of places");
-    return value.toFixed(places);
+    return getDecimalFromText(text);
 }
 
 export function composeHealthPercentText(value: number): string {
     assert(Number.isFinite(value), "a percentage written back is a number");
     assert(value >= 0, "a percentage written back is never below nothing");
-    return value.toFixed(HEALTH_PERCENT_PLACES);
+    return composeDecimalText(value, HEALTH_PERCENT_PLACES);
 }

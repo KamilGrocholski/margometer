@@ -5,7 +5,7 @@
 
 import { assert } from "@std/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
-import { composeDecimalText } from "@/src/core/protocol-number.ts";
+import { composeDecimalText } from "@/libs/number-text.ts";
 import type {
     DrillReading,
     ElementRow,

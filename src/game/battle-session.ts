@@ -15,7 +15,7 @@ import {
     composeCombatantRoster,
 } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
-import { getIntegerFromText } from "@/src/core/protocol-number.ts";
+import { getIntegerFromText } from "@/libs/number-text.ts";
 import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import { getCombatantsFromPayload } from "@/src/game/engine-warrior.ts";
 

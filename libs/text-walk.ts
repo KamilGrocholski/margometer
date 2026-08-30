@@ -31,3 +31,12 @@ export function getEndOfRun(
     assert(at <= text.length, "and never past the end of what it walked");
     return at;
 }
+
+/** Whether the text is digits and nothing else. Empty text is no run, so it is not one. */
+export function isDigitRun(text: string): boolean {
+    if (text.length === 0) return false;
+    const end = getEndOfRun(text, 0, isDigitAt);
+    assert(end <= text.length, "a run of digits ends inside the text it was read from");
+    assert(text.length > 0, "a digit run holds at least one digit");
+    return end === text.length;
+}

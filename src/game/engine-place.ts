@@ -6,7 +6,7 @@
  */
 
 import { assert } from "@std/assert";
-import { getIntegerFromText } from "@/src/core/protocol-number.ts";
+import { getIntegerFromText } from "@/libs/number-text.ts";
 import { ENGINE_SPELLINGS, getEnginesFromPage } from "@/src/game/engine-attachment.ts";
 import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 

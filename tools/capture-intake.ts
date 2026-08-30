@@ -12,7 +12,7 @@
 import { assert } from "@std/assert";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
-import { getIntegerFromText } from "@/src/core/protocol-number.ts";
+import { getIntegerFromText } from "@/libs/number-text.ts";
 import { CAPTURE_FIELDS } from "@/src/game/fight-capture.ts";
 import { WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
 import { CaptureIntakeError } from "@/tools/margometer-tool-error.ts";

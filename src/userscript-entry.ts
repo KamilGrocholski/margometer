@@ -16,7 +16,7 @@ import {
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
-import { getIntegerFromText } from "@/src/core/protocol-number.ts";
+import { getIntegerFromText } from "@/libs/number-text.ts";
 import { getNumberFromUnknown, getTextFromUnknown } from "@/libs/unknown-reading.ts";
 import {
     addPayloadToSession,

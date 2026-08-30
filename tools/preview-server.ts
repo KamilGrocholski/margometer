@@ -10,7 +10,7 @@
 
 import { assert } from "@std/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
-import { getIntegerFromText } from "@/src/core/protocol-number.ts";
+import { getIntegerFromText } from "@/libs/number-text.ts";
 import { composeUserscriptFiles, USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
 import { UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
 import {

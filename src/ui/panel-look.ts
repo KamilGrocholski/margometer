@@ -8,7 +8,7 @@
  */
 
 import { assert } from "@std/assert";
-import { getIntegerFromText } from "@/src/core/protocol-number.ts";
+import { getIntegerFromText } from "@/libs/number-text.ts";
 
 export const SURFACE = {
     panel: "#17171c",

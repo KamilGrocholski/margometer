@@ -1,7 +1,7 @@
 /** Where the panel sits, and how a reader moves it. Nothing here measures the document. */
 
 import { assert } from "@std/assert";
-import { composeIntegerText, getIntegerFromText } from "@/src/core/protocol-number.ts";
+import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { getNumberFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import type { PanelElement, PanelEvent, PanelRoot } from "@/src/ui/panel-element.ts";

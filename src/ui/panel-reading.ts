@@ -16,7 +16,7 @@ import {
     type FightStatistics,
     type FigureCut,
 } from "@/src/core/fight-statistics.ts";
-import { getIntegerFromText } from "@/src/core/protocol-number.ts";
+import { getIntegerFromText } from "@/libs/number-text.ts";
 import { type PanelSideChoice, SCREEN_ORDER, SIDE_CHOICES } from "@/src/ui/panel-screen.ts";
 import {
     composeJoinedInProgressWarning,
