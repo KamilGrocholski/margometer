@@ -1,5 +1,5 @@
 /**
- * A line of TypeScript with its string literals taken out.
+ * A line of TypeScript, read for what it is: its code without strings, and whether it is comment.
  *
  * A guard that reads source for a forbidden spelling reads its own samples too, and a
  * scanner that meets an apostrophe in prose runs to the end of the line believing it is
@@ -9,6 +9,14 @@
 import { assert } from "@std/assert";
 
 const QUOTES = "\"'`";
+const COMMENT_OPENERS = ["//", "/*", "*/", "*"];
+
+/** Whether a line carries comment and nothing a reader of code should count. */
+export function isCommentLine(line: string): boolean {
+    const trimmed = line.trimStart();
+    assert(trimmed.length <= line.length, "trimming never lengthens a line");
+    return COMMENT_OPENERS.some((opener) => trimmed.startsWith(opener));
+}
 
 /** Code only: comments dropped, string bodies blanked, quotes kept so offsets survive. */
 export function getCodeOutsideStrings(line: string): string {

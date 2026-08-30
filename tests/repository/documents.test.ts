@@ -7,11 +7,14 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
+import { isCommentLine } from "@/tests/source-line.ts";
 import { getSourcePaths } from "@/tests/source-paths.ts";
 import { CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 
 const RULE_PREFIXES = "SAENCLVWG";
 const GUARD_DIRECTORY = "tests/repository";
+/** What a test names when it reads a document of this repository rather than its code. */
+const DOCUMENT_ENDING = '.md"';
 /** Deeper than this is the description column, not another level of the tree. */
 const MAXIMUM_INDENT = 6;
 const AGENTS = Deno.readTextFileSync("AGENTS.md");
@@ -248,16 +251,46 @@ Deno.test("the guard register names what exists, and nothing else", () => {
     assertEquals(missing, [], "the register claims a guard that is not there");
 });
 
+/**
+ * Whether a test reads a document of this repository, off its code and never its own prose.
+ *
+ * ⚠️ **A docblock naming a document is not a guard over it.** Every guard here opens by saying
+ * which document it holds, so a reader that counted comment would call every test a guard and
+ * the register would fill with names nobody holds.
+ */
+function hasDocumentRead(text: string): boolean {
+    for (const line of text.split("\n")) {
+        if (isCommentLine(line)) continue;
+        if (line.includes(DOCUMENT_ENDING)) return true;
+    }
+    return false;
+}
+
+/** A test is a guard where it sits in the guard directory, or where it reads a document. */
+function isGuardPath(path: string, text: string): boolean {
+    assert(path.endsWith(".test.ts"), "only a test is asked whether it guards");
+    if (path.startsWith(`${GUARD_DIRECTORY}/`)) return true;
+    return hasDocumentRead(text);
+}
+
 Deno.test("every guard in the tree is in the register", () => {
+    const reads = 'const REGISTER = "docs/drill-levels.md";';
+    assert(hasDocumentRead(reads), "the reader finds a document being read");
+    const cites = " * The guard `docs/drill-levels.md` names in its first sentence.";
+    assert(!hasDocumentRead(cites), "and does not find a document merely named in prose");
+    assert(isGuardPath("tests/repository/names.test.ts", ""), "the directory alone says guard");
+    const unit = isGuardPath("tests/core/wound-rule.test.ts", "const key = 1;");
+    assert(!unit, "and a test that reads no document is not a guard");
+
     const registered = getRegisteredGuards(AGENTS);
     const unregistered: string[] = [];
-    for (const entry of Deno.readDirSync(GUARD_DIRECTORY)) {
-        if (!entry.name.endsWith(".test.ts")) continue;
-        const path = `${GUARD_DIRECTORY}/${entry.name}`;
+    for (const path of getSourcePaths()) {
+        if (!path.endsWith(".test.ts")) continue;
+        if (!isGuardPath(path, Deno.readTextFileSync(path))) continue;
         if (!registered.includes(path)) unregistered.push(path);
     }
     assert(registered.length > 0, "there is a register to check against");
-    assertEquals(unregistered, [], "a guard runs that the register never claims");
+    assertEquals(unregistered.sort(), [], "a guard runs that the register never claims");
 });
 
 function existsAsFile(path: string): boolean {

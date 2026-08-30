@@ -379,25 +379,27 @@ that has stopped finding its subject; only the second catches one that finds too
 counted one mark more than the document carried, stayed green for a round, and was found by counting
 the same thing a second way.
 
-| Guard                                    | Holds                                              |
-| ---------------------------------------- | -------------------------------------------------- |
-| `deno check`                             | S7, S10, C12 in part                               |
-| `deno lint`                              | S10, S12 in part                                   |
-| `deno fmt --check`                       | C6 indentation and prose wrapping                  |
-| `deno.json` fmt exclusion                | `TODO.md` against the formatter                    |
-| `deno test`                              | every guard below                                  |
-| `tests/repository/documents.test.ts`     | the rule documents and this register               |
-| `tests/repository/decisions.test.ts`     | the decision records                               |
-| `tests/repository/sources.test.ts`       | S1, S2, C5, C8, C15 in part, C16, S4, S5           |
-| `tests/repository/errors.test.ts`        | E1, E2, E11, each with a sample                    |
-| `tests/repository/names.test.ts`         | N1, N11, each with a sample                        |
-| `tests/repository/protocol-keys.test.ts` | the register help claims against the frozen counts |
-| `tests/repository/readmes.test.ts`       | the two READMEs, and both against the shot set     |
-| `tests/repository/cited-paths.test.ts`   | every rooted path a document cites                 |
-| `tests/repository/constructs.test.ts`    | the construct register, both ways                  |
-| `tests/repository/libraries.test.ts`     | `libs/` and `project/` reaching into no layer      |
-| `tests/tools/drill-report.test.ts`       | `docs/drill-levels.md` against every level drawn   |
-| `tests/ui/blow-vocabulary.test.ts`       | N13 for what a blow carried, against `captures/`   |
+| Guard                                         | Holds                                            |
+| --------------------------------------------- | ------------------------------------------------ |
+| `deno check`                                  | S7, S10, C12 in part                             |
+| `deno lint`                                   | S10, S12 in part                                 |
+| `deno fmt --check`                            | C6 indentation and prose wrapping                |
+| `deno.json` fmt exclusion                     | `TODO.md` against the formatter                  |
+| `deno test`                                   | every guard below                                |
+| `tests/repository/documents.test.ts`          | the rule documents and this register             |
+| `tests/repository/decisions.test.ts`          | the decision records                             |
+| `tests/repository/sources.test.ts`            | S1, S2, C5, C8, C15 in part, C16, S4, S5         |
+| `tests/repository/errors.test.ts`             | E1, E2, E11, each with a sample                  |
+| `tests/repository/names.test.ts`              | N1, N11, each with a sample                      |
+| `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts   |
+| `tests/repository/readmes.test.ts`            | the two READMEs, and both against the shot set   |
+| `tests/repository/cited-paths.test.ts`        | every rooted path a document cites               |
+| `tests/repository/constructs.test.ts`         | the construct register, both ways                |
+| `tests/repository/libraries.test.ts`          | `libs/` and `project/` reaching into no layer    |
+| `tests/tools/browser-support.test.ts`         | `docs/browser-support.md` against the stylesheet |
+| `tests/tools/captured-fight-register.test.ts` | `docs/captured-fights.md` against `captures/`    |
+| `tests/tools/drill-report.test.ts`            | `docs/drill-levels.md` against every level drawn |
+| `tests/ui/blow-vocabulary.test.ts`            | N13 for what a blow carried, against `captures/` |
 
 A guard joins this table in the commit that makes it pass, and the known-gaps list shrinks by the
 same rules in that commit.
