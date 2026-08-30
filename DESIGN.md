@@ -212,14 +212,16 @@ stand in the order they keep longest, behind a word that says what they answer, 
 choices side by side are three words nobody can order without being told what they are about. It is
 the only strip drawn while the shelf is up, and it is about the list rather than about a fight.
 
-**Four levels, and the last two are last.** The ranking lists people; pressing one opens their own
-figure cut by the other end of each movement, by what it was announced with, and by what it was made
-of; pressing a person inside that opens the pair and what passed between the two, and pressing an
-announcement opens whom it reached. Nothing on either of those rungs opens: the protocol states no
-further cut of them. A row opens only where the level under it would say something the row does not
-— a pair whose every blow was unannounced and of one kind is the figure just pressed under another
-heading, and pressing it would spend a gesture on nothing. Which kind of row that comes to on each
-screen is `docs/drill-levels.md`'s to say, and it is measured rather than claimed.
+**Three levels, and the third has two shapes.** The ranking lists people; pressing one opens their
+own figure cut by the other end of each movement, by what it was announced with, and by what it was
+made of; and pressing a row inside **that** opens the third — the pair and what passed between the
+two, where a person was pressed, or whom it reached, where an announcement was. Both are entered
+from the second level and neither from the other, so the panel is never more than three deep.
+Nothing on the third opens: the protocol states no further cut of it. A row opens only where the
+level under it would say something the row does not — a pair whose every blow was unannounced and of
+one kind is the figure just pressed under another heading, and pressing it would spend a gesture on
+nothing. Which kind of row that comes to on each screen is `docs/drill-levels.md`'s to say, and it
+is measured rather than claimed.
 
 **A row that opens says so, and a row that does not stays silent about it.** Half the rows of one
 section leading somewhere and none of them saying which is a panel that teaches a reader to stop

@@ -16,18 +16,23 @@ deno task drill captures/<file>.json       # one recording, level by level
 deno task drill --screen healthGiven       # one screen of it
 ```
 
-## The four levels
+## The four views, at three levels
 
-| level     | what it lists                                | how a reader gets there                |
-| --------- | -------------------------------------------- | -------------------------------------- |
-| `ranking` | one row per combatant, by the chosen figure  | the screen a tab opens on              |
-| `opened`  | that combatant's figure, in up to three cuts | pressing a ranking row                 |
-| `pair`    | what passed between two of them              | pressing a person inside an opened row |
-| `skill`   | whom one announcement reached                | pressing a skill inside an opened row  |
+**The panel is three levels deep, and the third has two shapes.** `pair` and `skill` are both a
+press away from `opened` and neither is reachable from the other, so a reader counting how far down
+they can go counts three.
 
-`pair` and `skill` are the last rungs: **nothing on either opens**, on any screen. They are reached
-by different presses — a person carries `data-row`, a skill carries `data-skill` — which is why a
-skill row wears the leaf's cursor while still opening something.
+| view      | level | what it lists                                | how a reader gets there                |
+| --------- | ----- | -------------------------------------------- | -------------------------------------- |
+| `ranking` | 1     | one row per combatant, by the chosen figure  | the screen a tab opens on              |
+| `opened`  | 2     | that combatant's figure, in up to three cuts | pressing a ranking row                 |
+| `pair`    | 3     | what passed between two of them              | pressing a person inside an opened row |
+| `skill`   | 3     | whom one announcement reached                | pressing a skill inside an opened row  |
+
+**Nothing on the third level opens**, in either shape and on any screen. The two are entered by
+different marks — a person carries `data-row`, a skill carries `data-skill`, set at the one place in
+`src/ui/panel-element.ts` that sets it — which is why a skill row wears the leaf's cursor while
+still opening something.
 
 ## The kinds of row
 
