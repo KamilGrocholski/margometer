@@ -311,9 +311,9 @@ function requireHelpArticleField(value: unknown, field: string, article: string)
 }
 
 /**
- * The manifest dates every claim made from this dump, so a field it does not carry stops here.
- * Cast instead and a truncated file passes as provenance, with `fetchedAt` arriving as
- * `undefined` at the age check that exists to catch exactly that.
+ * The manifest dates every claim made from this dump, so a `fetchedAt` it does not carry stops
+ * here rather than reaching the age check as `undefined`. **C13**, over a manifest, as in
+ * `tools/game-client-source.ts`.
  */
 export function requireCachedHelpArticle(value: unknown, article: string): CachedHelpArticle {
     if (!isRecord(value)) {

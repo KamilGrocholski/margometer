@@ -110,9 +110,9 @@ function requireClientSourceField(value: unknown, field: string, channel: GameCh
 }
 
 /**
- * The manifest decides whether the cache is stale, so a field it does not carry stops here. Cast
- * instead and a truncated file passes as provenance, with `build` arriving as `undefined` at the
- * comparison that exists to catch exactly that.
+ * The manifest decides whether the cache is stale, so a `build` it does not carry stops here
+ * rather than reaching the comparison as `undefined`. **C13** is the rule, and this is one of the
+ * two places in `tools/` that keeps it over a manifest.
  */
 export function requireCachedClientSource(
     value: unknown,

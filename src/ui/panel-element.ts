@@ -1303,9 +1303,8 @@ export function composePanelHost(
     handlePress: (press: PanelPress) => void,
     handleFailure: (failure: unknown) => void,
     placement: PanelPlacement | null = null,
-    // Once per mount, because the dictionary is built with the page and not with the fight, and a
-    // page without one never grows one. Null is the panel drawing its own words, which is what
-    // every test and every browser without the game sees.
+    // Null is the panel drawing its own words, which is what every test and every browser
+    // without the game sees. Who asks the client, and how often, is the entry's — ADR 0024.
     translate: TranslateLabel | null = null,
 ): PanelHandle {
     const { host, root } = composePanelShadow(document);

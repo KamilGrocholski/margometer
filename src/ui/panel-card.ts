@@ -138,10 +138,9 @@ function composeCardCounterLines(detail: RowDetail): TipLine[] {
 /**
  * Parts sharing a word are one row, and the word is what decides it.
  *
- * Five keys are worded `ogłuszenie` because they are one event from five sources — which is what
- * `+stun2-d`'s entry in `docs/protocol-keys.md` says. Drawn a key at a time they made two lines
- * reading the same word against different counts, which a reader can only take as a panel that
- * cannot add: nothing on screen says which stun either line is.
+ * `ui/panel-words.ts` is where several keys come to share one, and why. Drawn a key at a time
+ * they made two lines reading that word against different counts, which a reader can only take
+ * as a panel that cannot add: nothing on screen says which of them either line is.
  */
 function composeCardWordedParts(
     parts: readonly CutPart[],

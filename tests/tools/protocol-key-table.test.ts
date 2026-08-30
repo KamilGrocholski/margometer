@@ -10,7 +10,11 @@ import { assert, assertEquals, assertThrows } from "@std/assert";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { getRecordedMessages, getRecordingPaths } from "@/tests/recorded-fight.ts";
-import { getComputedKeyFamily, getProtocolKeys } from "@/tools/protocol-key-table.ts";
+import {
+    FROZEN_KEY_BANNER,
+    getComputedKeyFamily,
+    getProtocolKeys,
+} from "@/tools/protocol-key-table.ts";
 import { ProtocolKeyTableError } from "@/tools/margometer-tool-error.ts";
 
 /** The literal-second spelling, which is how build `53XkBRxF` writes the default branch. */
@@ -82,4 +86,22 @@ Deno.test("every key a real fight carried is one the client knows", () => {
         .filter((key) => key.slice(markerAt, markerAt + markerLength) !== marker)
         .sort();
     assertEquals(unrecognised, [], "the material carries a key the client does not branch on");
+});
+
+/**
+ * The frozen file against the generator that writes it. The keys need the cached client and CI has
+ * none, but the banner does not — and the banner is where the two drifted: it was edited in the
+ * tool and the file kept the old one, with nothing to say so.
+ */
+Deno.test("the frozen table stands under the banner its generator writes", () => {
+    const frozen = Deno.readTextFileSync("frozen/protocol-keys.ts");
+    assert(FROZEN_KEY_BANNER.length > 0, "the generator states a banner");
+    assert(
+        frozen.startsWith(FROZEN_KEY_BANNER),
+        "frozen/protocol-keys.ts was written by an older version of its generator",
+    );
+    assert(
+        frozen.includes(FROZEN_PROTOCOL_KEYS.gameBuild),
+        "and states the build it was lifted at",
+    );
 });

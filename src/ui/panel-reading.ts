@@ -737,10 +737,7 @@ export interface ElementCut {
 /** The same, plus the row that closes a section against the figure over it. */
 export type PairPart = NamedPart | { kind: "plain" };
 
-/**
- * No count, whichever kind it is. An announcement is counted where it was made, and the protocol
- * states no number of anything against one opponent rather than another.
- */
+/** No count, whichever kind it is, and the section below says why one would be wrong. */
 export interface PairPartRow {
     part: PairPart;
     figure: number;

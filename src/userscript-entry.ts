@@ -264,8 +264,7 @@ function composeShelfRows(
             isLive: true,
             isChosen: chosenId === null || chosenId === alsoKept?.openedAt,
             isPinned: alsoKept?.isPinned ?? false,
-            // A fight nothing has written down yet is not in the store and the rotation has never
-            // seen it, so a pin on it would be a control that does nothing.
+            // Whether a fight can be pinned at all is `ui/panel-reading.ts`'s to say, and why.
             isPinnable: alsoKept !== undefined,
         });
     }
@@ -401,10 +400,8 @@ interface FightFigures {
     statistics: FightStatistics;
 }
 
-/**
- * A fight off the shelf, read from what was kept of it: the cast and the messages, decoded by the
- * code that is running rather than restored from an older version's arithmetic.
- */
+/** A fight off the shelf: the cast and the messages, decoded the way `game/kept-fights.ts`
+ * says a kept fight is read back. */
 function composeKeptFigures(kept: KeptFight): FightFigures {
     assert(kept.combatants.length <= MAXIMUM_COMBATANTS, "a fight kept stays inside the bound");
     const roster = composeCombatantRoster(kept.combatants);
@@ -807,11 +804,10 @@ function keepFight(
 }
 
 /**
- * The recording, handed to the browser as a file.
+ * The recording, handed to the browser as a file — unredacted by design, which
+ * `game/fight-capture.ts` states along with what deals with that and where.
  *
- * Nothing here is redacted, and that is the design: the file carries real nicknames and the
- * game's own prose, it never enters git, and intake is where both are dealt with once
- * (`SECURITY.md`). A refusal to write leaves a mark rather than an empty file.
+ * A refusal to write leaves a mark rather than an empty file.
  */
 function saveRecording(environment: UserscriptEnvironment, capture: FightCapture): void {
     const save = environment.save;
@@ -827,11 +823,8 @@ function saveRecording(environment: UserscriptEnvironment, capture: FightCapture
 }
 
 /**
- * The report, handed to the clipboard.
- *
- * Handed over even where nothing has been read: a report saying there is no fight is a true
- * statement and a useful one — it says the add-on is attached and reading nothing, which is
- * otherwise the thing whoever receives it has to guess at.
+ * The report, handed to the clipboard — including where nothing has been read, which
+ * `game/fight-report.ts` says is worth handing over and why.
  */
 function copyReport(
     environment: UserscriptEnvironment,
