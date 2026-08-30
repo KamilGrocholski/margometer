@@ -26,6 +26,9 @@ export const WARRIOR_FIELDS = {
     identity: "id",
     name: "name",
     nonPlayer: "npc",
+    side: "team",
+    profession: "prof",
+    level: "lvl",
 } as const;
 const HEALTH_MAXIMUM_KEY = "max";
 /** A side holds at most ten, so a fight holds twenty. The largest in `captures/` is 11. */
@@ -43,11 +46,11 @@ const IDENTITY_KEYS = ["id", "originalId"];
 
 export function getCombatantFromWarrior(value: unknown): Combatant | null {
     if (!isRecord(value)) return null;
-    const id = getNumberFromUnknown(value.id);
+    const id = getNumberFromUnknown(value[WARRIOR_FIELDS.identity]);
     if (id === null) return null;
-    const name = getStatedTextFromUnknown(value.name);
+    const name = getStatedTextFromUnknown(value[WARRIOR_FIELDS.name]);
     if (name === null) return null;
-    const side = getNumberFromUnknown(value.team);
+    const side = getNumberFromUnknown(value[WARRIOR_FIELDS.side]);
     if (side === null) return null;
     const health = isRecord(value[HEALTH_KEY]) ? value[HEALTH_KEY] : null;
     assert(Number.isFinite(id), "an id that was read is a number");
@@ -58,8 +61,8 @@ export function getCombatantFromWarrior(value: unknown): Combatant | null {
         id,
         name,
         side,
-        profession: getStatedTextFromUnknown(value.prof),
-        level: getNumberFromUnknown(value.lvl),
+        profession: getStatedTextFromUnknown(value[WARRIOR_FIELDS.profession]),
+        level: getNumberFromUnknown(value[WARRIOR_FIELDS.level]),
         healthMaximum,
     };
 }

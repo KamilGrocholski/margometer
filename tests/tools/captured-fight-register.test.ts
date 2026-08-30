@@ -14,6 +14,9 @@ import {
     getRecordedMessages,
     getRecordingPaths,
 } from "@/tests/recorded-fight.ts";
+import { READER_SIDE_KEY } from "@/src/game/battle-session.ts";
+import { WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
+import { getNumberFromUnknown, getStatedTextFromUnknown } from "@/libs/unknown-reading.ts";
 
 const REGISTER_PATH = "docs/captured-fights.md";
 const BACKTICK = "`";
@@ -113,4 +116,146 @@ Deno.test("what the register states of each recording is what the recording stat
         checked += 1;
     }
     assertEquals(checked, getRecordingPaths().length, "every recording was re-earned");
+});
+
+/**
+ * The cast column, composed rather than read.
+ *
+ * `docs/captured-fights.md` states who fought on each side, in what profession and at what level,
+ * and until now that was held by reading alone: a row stating it wrongly passed the gate. The
+ * shape column and the census above it were unheld for the same reason, and they are the same
+ * arithmetic — a shape is how many of ours against how many of theirs.
+ */
+const CENSUS_HEADING = "## Shapes";
+const CAST_HEADING = "## The fights";
+const RECORDINGS_HEADING = "## The recordings";
+/** How the register writes a range, and it is an en dash rather than a hyphen. */
+const RANGE_MARK = "–";
+const PART_MARK = " · ";
+
+interface RecordedWarrior {
+    side: number;
+    profession: string;
+    level: number;
+    isPlayer: boolean;
+}
+
+/** Every warrior a recording's payloads state, by id, so one person is counted once. */
+function getRecordedWarriors(path: string): Map<number, RecordedWarrior> {
+    const found = new Map<number, RecordedWarrior>();
+    for (const update of getRecordedEngineUpdates(path)) {
+        if (!isRecord(update)) continue;
+        const warriors = update[WARRIOR_FIELDS.warriors];
+        if (!isRecord(warriors)) continue;
+        for (const stated of Object.values(warriors)) {
+            if (!isRecord(stated)) continue;
+            const id = getNumberFromUnknown(stated[WARRIOR_FIELDS.identity]);
+            const side = getNumberFromUnknown(stated[WARRIOR_FIELDS.side]);
+            const level = getNumberFromUnknown(stated[WARRIOR_FIELDS.level]);
+            const profession = getStatedTextFromUnknown(stated[WARRIOR_FIELDS.profession]);
+            if (id === null || side === null || level === null || profession === null) continue;
+            const nonPlayer = getNumberFromUnknown(stated[WARRIOR_FIELDS.nonPlayer]);
+            found.set(id, { side, profession, level, isPlayer: nonPlayer === 0 });
+        }
+    }
+    assert(found.size > 0, `${path}: no warrior was read out of its payloads`);
+    assert(found.size <= MAXIMUM_ROWS, `${path}: stays inside the bound this file walks by`);
+    return found;
+}
+
+function getReaderSide(path: string): number {
+    let found: number | null = null;
+    for (const update of getRecordedEngineUpdates(path)) {
+        if (found !== null) break;
+        if (!isRecord(update)) continue;
+        found = getNumberFromUnknown(update[READER_SIDE_KEY]);
+    }
+    assert(found !== null, `${path}: no payload states the reader's own side`);
+    return found;
+}
+
+/** `10 players · h 1, m 2, p 2, t 1, w 4 · levels 93–120`, in the register's own words. */
+function composeCastText(cast: readonly RecordedWarrior[]): string {
+    assert(cast.length > 0, "a side with nobody on it is not a side this register writes");
+    const players = cast.filter((one) => one.isPlayer).length;
+    // Every side in `captures/` is all people or all monsters, so the register has one noun for
+    // it. A side that mixed them would need a word this document does not have.
+    assert(players === 0 || players === cast.length, "a side is all players or all NPCs");
+    const noun = players === cast.length ? "player" : "NPC";
+    const counted = `${cast.length} ${noun}${cast.length === 1 ? "" : "s"}`;
+    const byProfession = new Map<string, number>();
+    for (const one of cast) {
+        byProfession.set(one.profession, (byProfession.get(one.profession) ?? 0) + 1);
+    }
+    const professions = [...byProfession].sort(([one], [other]) => one < other ? -1 : 1)
+        .map(([letter, count]) => `${letter} ${count}`).join(", ");
+    const levels = cast.map((one) => one.level);
+    const lowest = Math.min(...levels);
+    const highest = Math.max(...levels);
+    const stated = lowest === highest
+        ? `level ${lowest}`
+        : `levels ${lowest}${RANGE_MARK}${highest}`;
+    return [counted, professions, stated].join(PART_MARK);
+}
+
+function getSection(text: string, from: string, to: string): string {
+    const start = text.indexOf(from);
+    assert(start !== -1, `${from} is a section of the register`);
+    const end = text.indexOf(to, start);
+    assert(end > start, `${from} ends where ${to} starts`);
+    return text.slice(start, end);
+}
+
+/** Every backticked row of a table, whatever its first cell names. */
+function getTableRows(section: string): string[][] {
+    const found: string[][] = [];
+    for (const line of section.split("\n")) {
+        const cells = getRowCells(line);
+        if (cells.length === 0) continue;
+        found.push(cells);
+    }
+    assert(found.length > 0, "a section this guard reads carries a table");
+    assert(found.length <= MAXIMUM_ROWS, "and stays inside the bound this file walks by");
+    return found;
+}
+
+Deno.test("the cast each row states is the cast the recording's payloads state", () => {
+    const register = Deno.readTextFileSync(REGISTER_PATH);
+    const rows = getRecordingRows(getSection(register, CAST_HEADING, RECORDINGS_HEADING));
+    let checked = 0;
+    for (const path of getRecordingPaths()) {
+        const row = rows.find((cells) => cells[0] === path);
+        assert(row !== undefined, `${path}: no row states its cast`);
+        const seat = getReaderSide(path);
+        const cast = [...getRecordedWarriors(path).values()];
+        const ours = cast.filter((one) => one.side === seat);
+        const theirs = cast.filter((one) => one.side !== seat);
+        assertEquals(row[1], `${ours.length} vs ${theirs.length}`, `${path}: the shape`);
+        assertEquals(row[3], composeCastText(ours), `${path}: who was on the reader's side`);
+        assertEquals(row[4], composeCastText(theirs), `${path}: and who was on the other`);
+        checked += 1;
+    }
+    assertEquals(checked, getRecordingPaths().length, "every recording's cast was re-earned");
+});
+
+Deno.test("the census of shapes is the shapes the recordings actually are", () => {
+    const register = Deno.readTextFileSync(REGISTER_PATH);
+    const counted = new Map<string, number>();
+    for (const path of getRecordingPaths()) {
+        const seat = getReaderSide(path);
+        const cast = [...getRecordedWarriors(path).values()];
+        const ours = cast.filter((one) => one.side === seat).length;
+        const shape = `${ours} vs ${cast.length - ours}`;
+        counted.set(shape, (counted.get(shape) ?? 0) + 1);
+    }
+    const stated = getTableRows(getSection(register, CENSUS_HEADING, CAST_HEADING));
+    assertEquals(
+        stated.map((cells) => cells.join(" ")).sort(),
+        [...counted].map(([shape, count]) => `${shape} ${count}`).sort(),
+        "the census counts the shapes the material holds, and no others",
+    );
+    assert(
+        counted.size > 1,
+        "the material holds more than one shape, so the census says something",
+    );
 });

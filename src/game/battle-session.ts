@@ -41,7 +41,8 @@ const MESSAGE_COUNT_KEY = "mi";
  * the payload that opens a fight in all 28 recordings and on none of the others, 2026-08-29 — so
  * it is kept once seen, and a later payload saying nothing about it never takes it away.
  */
-const READER_SIDE_KEY = "myteam";
+/** The client's own name for the reader's side, spelled here and read from here — **N13**. */
+export const READER_SIDE_KEY = "myteam";
 /** The longest fight in `captures/` decodes to 811 events, 2026-08-28. */
 const MAXIMUM_EVENTS = 65536;
 

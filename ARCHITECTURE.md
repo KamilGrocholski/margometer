@@ -501,8 +501,3 @@ commit that opens or closes one.
    a panel that draws two. **ADR 0016.** C14 is unheld for the same reason and has no guard shape
    yet; the one that would hold it counts declarations carrying a docblock, which needs a parser
    this tree does not have.
-10. **The cast column of `docs/captured-fights.md` is held by reading.**
-    `tests/tools/captured-fight-register.test.ts` re-earns the set of recordings both ways and, for
-    each, the world, the build, the calls and the messages. What it does not compose is the
-    professions, their counts and the level range, so a row stating those wrongly passes the gate.
-    The shape column and the census of shapes above it are unheld for the same reason.

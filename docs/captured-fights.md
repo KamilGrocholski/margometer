@@ -14,9 +14,9 @@ refuses a row naming a recording that is not there, or a recording no row names.
 re-earns the world, the build, the calls the engine made and the messages they carried, so a line of
 those that stops being true fails the gate.
 
-⚠️ **The cast column is not among them.** The professions, their counts and the level range are
-still held by reading: the guard does not compose that shape, so a row stating it wrongly passes.
-`ARCHITECTURE.md` carries it as a known gap.
+The cast column is composed the same way: every warrior the payloads state, grouped by the side the
+recording player was on, counted by profession and by level range, and the census of shapes above is
+re-earned from the same reading.
 
 Two words the tables use in this repository's sense and not the game's: **side** is the team number
 as the game states it, and _ours_ is the side the recording player was on (`myteam`); **NPC** is
