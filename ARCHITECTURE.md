@@ -189,6 +189,7 @@ tests/
     protocol-keys.test.ts  The register help claims, re-counted against the frozen table.
     readmes.test.ts        The two READMEs to one skeleton, and both to one set of shots.
     cited-paths.test.ts    Every rooted path a document names, against the tree it names into.
+    constructs.test.ts     The construct register, against the files it says own each reading.
     libraries.test.ts      `libs/` reaching no layer, and naming nothing of this project.
   recorded-fight.ts        The recordings, read through the constant that spells their fields.
   fake-document.ts         A document small enough to read, for a panel handed one.
@@ -330,8 +331,7 @@ answer says whether it worked and the value sits behind it (**E10**, **ADR 0021*
   before it is taken: digits are proved to be digits, then the result is proved to be a safe
   integer, so no figure downstream is a neighbour of the one the game stated.
   `src/core/protocol-number.ts` states the width `captures/` carries and delegates the arithmetic,
-  so the row keeps one address. Measured 2026-08-30, the owner is the only file that spells any of
-  the three.
+  so the row keeps one address.
 - `parseInt`, `parseFloat`, unary `+` — **planned**, named at its first consumer.
 - `JSON.parse` — `libs/json-text.ts`, inside `getJsonReading`. Its result is `unknown` and is walked
   with a predicate and `Array.isArray`; C13 forbids the cast that would skip that. Measured
@@ -353,13 +353,17 @@ answer says whether it worked and the value sits behind it (**E10**, **ADR 0021*
 - `localeCompare` — **nobody**, spelled nowhere. Bringing a collated order back means a caller
   first, then a reader, then a row here, in that order.
 
-A row names an owner so a reading has one address. **No guard holds this register yet**, and
-measuring it on 2026-08-30 found three rows stale: `JSON.parse` named a file that had stopped
-spelling it, and `JSON.stringify` and `Date.parse` both said "planned" while carrying consumers.
-Whether "nowhere else" extends to `tests/` is open and is what a guard has to settle first:
-`Number()` stands in its owner and in twelve test sites that read a written figure back, which is
-the test doing its job rather than the owner losing its address. An owner that owns nothing stops
-guarding, which is why a row is added when its first consumer arrives and not before.
+A row names an owner so a reading has one address. `tests/repository/constructs.test.ts` reads this
+section and holds it both ways. **It binds where the program is** — `libs/`, `project/`, `src/` and
+`tools/`, the scope **S5** measures — because a test spelling `Number()` to read a written figure
+back is the test doing its job rather than the owner losing its address; the register asked that
+question and this is the answer. An owner that owns nothing stops guarding, which is why a row is
+added when its first consumer arrives and not before.
+
+Measuring by hand on 2026-08-30 found three rows stale — `JSON.parse` named a file that had stopped
+spelling it, and `JSON.stringify` and `Date.parse` both said "planned" while carrying consumers —
+and writing the guard found a fourth: `tools/fight-figures.ts` put a cut's key back through `Number`
+rather than through the owner, so a key that is not an id asked the roster about `NaN`.
 
 ## Protected contracts
 
@@ -435,15 +439,13 @@ commit that opens or closes one.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.
-3. **The construct register has no owners**, so the rule it encodes is unenforced. A row is added
-   with its first consumer.
-4. **Some documents run past 100 columns.** `docs/protocol-keys.md`, `docs/captured-fights.md`,
+3. **Some documents run past 100 columns.** `docs/protocol-keys.md`, `docs/captured-fights.md`,
    `docs/browser-support.md`, `docs/drill-levels.md` and the `verify` skill hold tables `deno fmt`
    aligns but never wraps. The line-length guard names them as excluded rather than skipping them
    quietly, and the counts are its to state rather than this file's (**V5**); rewrapping is a large
    diff, on carried material or on a generated register, and waits until each is next edited for its
    own reasons.
-5. **Half of `docs/browser-support.md` is held and half is not.** Its CSS register is guarded by
+4. **Half of `docs/browser-support.md` is held and half is not.** Its CSS register is guarded by
    `tests/tools/browser-support.test.ts`, which enumerates what `composeStyleSheet()` spells and
    holds the document to it in both directions. Its **JavaScript** floor is the unheld half: the
    document describes one checked over sources, and the ES level that matters is the bundle's once
@@ -451,12 +453,12 @@ commit that opens or closes one.
    sources with a `tsconfig.userscript.json`; this tree has none, and `deno.json` states `lib` as
    `esnext` with no `target` at all — so a round reaching past the floor for a member or for a
    syntax passes the gate without a word. The document says so at the section itself.
-6. **Every key in `captures/` is read, and no recording is short.** `healall_per` was the last, and
+5. **Every key in `captures/` is read, and no recording is short.** `healall_per` was the last, and
    ADR 0010 carries how a share stated about a whole side is sized onto its members. Measured over
    `captures/` on 2026-08-29: 115 casts across 22 recordings, every one of them whole, and no
    message anywhere unread — so the doubt mark never fires on the material this repository holds. It
    is held by probes only, and the next protocol change is what it exists for.
-7. **A payload can move health with no message stating it.** Every comparison between the health the
+6. **A payload can move health with no message stating it.** Every comparison between the health the
    protocol states about a combatant and the movement decoded from its own messages agrees inside
    the reading's tolerance, bar three kinds: a killing blow landing more than the health that was
    left, health restored by a share the decoder states without an amount, and **one payload that
@@ -467,14 +469,14 @@ commit that opens or closes one.
    last of the three at one so a second cannot arrive unnoticed. The figures stood here too until
    2026-08-30, in a second reckoning that counted the first two kinds as disagreements where the
    test does not — two numbers for one measurement, which **V5** is the rule against.
-8. **No release has been cut on this branch.** `CHANGELOG.md` is written, carried from v1 and opened
+7. **No release has been cut on this branch.** `CHANGELOG.md` is written, carried from v1 and opened
    with what the rewrite changed for a player; `tools/changelog.ts` composes the body of a release
    out of it, `.github/workflows/check.yml` is the run **G7** waits for, and
    `.github/workflows/release.yml` publishes one. **None of it has run here.** The release path is
    held by its tests alone. What is written since is the front page: both READMEs, against a set of
    pictures shot at the commit that drew them, and `tests/repository/readmes.test.ts` holding the
    three to each other.
-9. **A ranking row does not say which side is the reader's.** The seat itself is read — the payload
+8. **A ranking row does not say which side is the reader's.** The seat itself is read — the payload
    that opens a fight states it under `myteam`, `game/battle-session.ts` keeps it once seen, and it
    already decides the order of a shelf row's sides and whether a fight was won from that seat. It
    is `PanelRow.side` that stops short: it carries the game's own team number and nothing turns it
@@ -489,16 +491,16 @@ commit that opens or closes one.
    that is not ink and not hue: the edge the bar grows from, the slope of the name, or a rule under
    the row spending the two tokens, each with a cost of its own. The seat reaching the row is cheap;
    deciding what draws it is the open half.
-10. **A restatement in different words is unheld, and it is the worse kind.**
-    `tests/repository/sources.test.ts` holds C15's second half by comparing block text, so a comment
-    repeated word for word is a finding and one reworded is not — which is backwards from the cost,
-    since two copies that read differently drift without ever looking like copies. Found by reading
-    both sides: `src/ui/panel-look.ts` and `DESIGN.md` had disagreed for one release about whether a
-    hue says **who** somebody is or **what** they are, and three comments named three tab strips
-    over a panel that draws two. **ADR 0016.** C14 is unheld for the same reason and has no guard
-    shape yet; the one that would hold it counts declarations carrying a docblock, which needs a
-    parser this tree does not have.
-11. **The cast column of `docs/captured-fights.md` is held by reading.**
+9. **A restatement in different words is unheld, and it is the worse kind.**
+   `tests/repository/sources.test.ts` holds C15's second half by comparing block text, so a comment
+   repeated word for word is a finding and one reworded is not — which is backwards from the cost,
+   since two copies that read differently drift without ever looking like copies. Found by reading
+   both sides: `src/ui/panel-look.ts` and `DESIGN.md` had disagreed for one release about whether a
+   hue says **who** somebody is or **what** they are, and three comments named three tab strips over
+   a panel that draws two. **ADR 0016.** C14 is unheld for the same reason and has no guard shape
+   yet; the one that would hold it counts declarations carrying a docblock, which needs a parser
+   this tree does not have.
+10. **The cast column of `docs/captured-fights.md` is held by reading.**
     `tests/tools/captured-fight-register.test.ts` re-earns the set of recordings both ways and, for
     each, the world, the build, the calls and the messages. What it does not compose is the
     professions, their counts and the level range, so a row stating those wrongly passes the gate.

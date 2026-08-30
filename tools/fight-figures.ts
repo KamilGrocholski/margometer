@@ -17,7 +17,7 @@ import type {
     FigureCut,
     SkillFigures,
 } from "@/src/core/fight-statistics.ts";
-import { composeIntegerText } from "@/libs/number-text.ts";
+import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { composeReplayedMaterial, type FightReplay } from "@/tools/fight-replay.ts";
 
 const NAME_WIDTH = 26;
@@ -44,7 +44,10 @@ function composeCutText(cut: FigureCut, roster: CombatantRoster | null): string 
     assert(cut.size >= 0, "a cut with nothing in it is still a cut");
     if (cut.size === 0) return NOTHING;
     const written = [...cut].sort(getCutOrder).map(([key, amount]) => {
-        const named = roster === null ? null : roster.byId.get(Number(key));
+        // Through the owner rather than through `Number`: a key that is not an id — an element,
+        // a protocol key — reads as nothing rather than as `NaN` asking the roster a question.
+        const id = getIntegerFromText(key);
+        const named = roster === null || id === null ? null : roster.byId.get(id);
         return `${named?.name ?? key} ${composeIntegerText(amount)}`;
     });
     assert(written.length === cut.size, "every member of the cut is written down");
