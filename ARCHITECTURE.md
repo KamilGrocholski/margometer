@@ -432,9 +432,9 @@ commit that opens or closes one.
    on the other side, and on the screen about being struck what a defence stopped, cut by the
    defence (**ADR 0019**). Two proc keys reach no row — `-tenacity` and `+superspell-dispel`, whose
    end article view,372 does not settle — and they are decoded and charged to nobody until material
-   does, though the player's own client names them and five others on the card (**ADR 0024**). What
-   is left of the release plumbing is `README.md`, which is unwritten, and nothing yet consumes the
-   photographs `.github/workflows/pages.yml` does not publish.
+   does, though the player's own client names them and five others on the card (**ADR 0024**). Both
+   READMEs are written and show the set `deno task screenshots` takes, so the release plumbing is
+   whole and unrun — which is what the gap below it is about.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
