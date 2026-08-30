@@ -186,7 +186,11 @@ export const CARD_WORDS = {
      */
     damageNote: "Surowe to obrażenia przed redukcją. Różnicy nie zatrzymała obrona — " +
         "pancerza ani odporności gra nie podaje.",
-    /** The right press is not named: on the last rung it reaches nothing. */
+    /**
+     * The one instruction the panel gives, and it stands wherever pressing leads somewhere —
+     * `DESIGN.md` owns that rule. The right press is not named beside it: it goes back, from
+     * anywhere, and a reader on the ranking has nothing to go back to.
+     */
     gesture: "LPM — rozbicie",
 } as const;
 

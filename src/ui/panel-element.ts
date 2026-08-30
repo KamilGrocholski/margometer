@@ -38,6 +38,7 @@ import {
 } from "@/src/ui/panel-screen.ts";
 import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
 import {
+    CARD_WORDS,
     composeFigureText,
     composeShelfSizeText,
     composeSideCountsText,
@@ -201,6 +202,12 @@ interface RowTip {
     figure: string;
     share: string | null;
     compose?: TipCompose | undefined;
+    /**
+     * Whether pressing the row leads anywhere, where that cannot be read off the mark it wears.
+     * One kind of row needs it: a skill opens by `data-skill`, which its caller sets afterwards,
+     * so the row itself is built saying it states nothing.
+     */
+    opens?: boolean | undefined;
 }
 
 interface RowReading {
@@ -235,7 +242,16 @@ function composeBarElements(document: PanelDocument, reading: RowReading): Panel
     return [bar, cap];
 }
 
-function composeRowTipReading(reading: RowReading, tip: RowTip): TipReading {
+/**
+ * The tip a row falls back on where it has no card, and the one instruction the panel gives.
+ *
+ * ⚠️ **A row that opens says so, at every level and not only on the ranking.** The note used to be
+ * the card's alone, and the card is drawn on a ranking row and nowhere else — so of the rows a
+ * reader meets inside an opened one, the 1,576 that open (`captures/`, 2026-08-30) were told apart
+ * from the 588 that do not by the cursor and by nothing else. Half a section being pressable and
+ * silent about it teaches a reader that none of it is.
+ */
+function composeRowTipReading(reading: RowReading, tip: RowTip, opens: boolean): TipReading {
     assert(reading.name.length > 0, "a row that says nothing else at least names itself");
     assert(tip.figure.length > 0, "and says what the figure beside the name is a figure of");
     const lines: TipLine[] = [{
@@ -247,17 +263,22 @@ function composeRowTipReading(reading: RowReading, tip: RowTip): TipReading {
     if (tip.share !== null) {
         lines.push({ kind: "stat", label: tip.share, stated: reading.shareText, isStrong: false });
     }
+    if (opens) lines.push({ kind: "note", text: CARD_WORDS.gesture, isWarning: false });
     return { name: reading.name, subtitle: null, groups: [{ lines }] };
 }
 
 function composeRowElement(
     document: PanelDocument,
     reading: RowReading,
-    opens: string | null,
+    stated: string | null,
     tip: RowTip,
 ): PanelElement {
     assert(reading.figure >= 0, "a row drawn states a figure that is not below nothing");
-    const kind = opens === null ? CLASS.rowLeaf : CLASS.rowDrillable;
+    // What the row states when pressed decides the cursor; whether it leads anywhere decides what
+    // the tip says. They are the same answer everywhere but under a skill, which opens by its own
+    // mark — so the tip is told, and falls back on the mark where nobody told it.
+    const opens = tip.opens ?? stated !== null;
+    const kind = stated === null ? CLASS.rowLeaf : CLASS.rowDrillable;
     const element = composeElement(document, "div", `${CLASS.row} ${kind}`);
     const parts = composeBarElements(document, reading);
     const rank = composeElement(document, "span", CLASS.rowRank);
@@ -276,8 +297,8 @@ function composeRowElement(
     for (const part of parts) element.append(part);
     parts.push(share);
     const marked = [element, ...parts];
-    if (opens !== null) setRowMarks(marked, ROW_ATTRIBUTE, opens);
-    tip.register.add(tip.key, tip.compose ?? (() => composeRowTipReading(reading, tip)));
+    if (stated !== null) setRowMarks(marked, ROW_ATTRIBUTE, stated);
+    tip.register.add(tip.key, tip.compose ?? (() => composeRowTipReading(reading, tip, opens)));
     setRowMarks(marked, TIP_ATTRIBUTE, tip.key);
     assert(name.textContent.length > 0, "a row names somebody, or says it cannot");
     return element;
@@ -742,6 +763,7 @@ function composeSkillSection(
             key: getKeyForNamedPart("skill", row.part),
             figure: stated.figure,
             share,
+            opens: row.opensSkill,
         };
         const reading = composeSkillRowReading(row, stated.metric, at + 1);
         const element = composeRowElement(document, reading, null, tip);

@@ -29,6 +29,7 @@ import {
     SCREEN_ORDER,
 } from "@/src/ui/panel-screen.ts";
 import {
+    CARD_WORDS,
     composeCardSubtitleText,
     composeFigureText,
     composeUndrawnText,
@@ -1783,4 +1784,129 @@ Deno.test("an opened healing pair draws its announcements and its keys as one se
         named.some((one) => one === "Zdrowa atmosfera"),
         "and an announcement under the name it was announced by",
     );
+});
+
+/**
+ * A reader inside an opened row meets two kinds of person row, and until the note reached them
+ * only the cursor told the two apart. Measured over `captures/` on 2026-08-30: 1,576 rows that
+ * open against 588 that do not, in the same sections.
+ */
+Deno.test("a row that opens says so, and a row that does not says nothing of the kind", () => {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "damageTakenApplied",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const first = reading.rows[0];
+    assert(first !== undefined, "there is a row to open");
+    const drill = composeDrillReading(statistics, roster, "damageTakenApplied", first.combatantId);
+    assert(drill !== null, "and it opens");
+    const opening = drill.byOpponent.rows.find((one) => one.opensPair);
+    const closed = drill.byOpponent.rows.find((one) => !one.opensPair);
+    assert(opening !== undefined, "onto somebody the level under says something about");
+    assert(closed !== undefined, "and somebody it does not — both kinds stand in one section");
+
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "damageTakenApplied" as const,
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const pointAtRow = (key: string) => {
+        const part = getElementsWithin(host).find((one) => {
+            if (one.className !== "row-name") return false;
+            return one.attributes.get("data-tip") === key;
+        });
+        assert(part !== undefined, `${key} is a row on the panel`);
+        pointAtElement(host, "pointermove", part, 412);
+        const tip = (host.shadow ?? []).find((one) => one.className.startsWith(CLASS.tip));
+        assert(tip !== undefined, "and pointing at it opens the detail");
+        return getTextsByClass(tip, CLASS.tipNote);
+    };
+    assertEquals(
+        pointAtRow(`to:${opening.combatantId}`),
+        [CARD_WORDS.gesture],
+        "the row that opens says what pressing it does",
+    );
+    assertEquals(
+        pointAtRow(`to:${closed.combatantId}`),
+        [],
+        "and the one that does not promises no gesture",
+    );
+});
+
+/** The other mark, on the one section that opens by it: a skill states the same instruction. */
+Deno.test("a skill that opens says so under the same words a person does", () => {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const drill = composeDrillReading(statistics, roster, "healthGiven", 469657);
+    assert(drill !== null, "the healer's row opens");
+    const opening = drill.bySkill.rows.find((one) => one.opensSkill);
+    const key = drill.bySkill.rows.find((one) => one.part.kind === "source");
+    assert(opening !== undefined, "onto a skill that reached somebody else");
+    assert(key !== undefined, "and a key stands beside it, which opens nothing");
+
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "healthGiven" as const,
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const notesOf = (part: { attributes: Map<string, string> }) => {
+        const found = getElementsWithin(host).find((one) => {
+            if (one.className !== "row-name") return false;
+            return one.attributes.get("data-tip") === part.attributes.get("data-tip");
+        });
+        assert(found !== undefined, "the row is on the panel");
+        pointAtElement(host, "pointermove", found, 412);
+        const tip = (host.shadow ?? []).find((one) => one.className.startsWith(CLASS.tip));
+        assert(tip !== undefined, "and pointing at it opens the detail");
+        return getTextsByClass(tip, CLASS.tipNote);
+    };
+    const rows = getElementsWithin(host).filter((one) => one.className === "row-name");
+    const drawnSkill = rows.find((one) => one.textContent === "Zdrowa atmosfera");
+    const drawnKey = rows.find((one) => one.textContent === getWordsForHealthSource("heal"));
+    assert(drawnSkill !== undefined, "the announcement is drawn");
+    assert(drawnKey !== undefined, "and so is the key beside it");
+    assertEquals(notesOf(drawnSkill), [CARD_WORDS.gesture], "the skill says pressing it opens");
+    assertEquals(notesOf(drawnKey), [], "the key promises nothing, because it opens nothing");
 });

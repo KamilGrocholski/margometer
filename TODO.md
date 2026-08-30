@@ -32,6 +32,7 @@
 - [x] Preview panel resets its state, whenever I change the current caputred fight
 
 ## Later
+- [ ] Start writing code against tests before v1.0.0 - tests first, at this point I SHOULD know what I want exactly
 - [ ] Add views for: abilities ranking - uses, dmg, heal, etc; legbon ranking - procs;
 - [ ] Consider adding `turn` to stats - maybe I will find a solution to read turns after the latest fail
 - [ ] Add "ucieczka" as a new fight outcome

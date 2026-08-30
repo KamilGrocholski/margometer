@@ -33,6 +33,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Wiersz, który da się rozwinąć, mówi to wprost. Po najechaniu na niego okienko kończy
+  się linijką „LPM — rozbicie" — i stoi ona tylko tam, gdzie naciśnięcie faktycznie coś otwiera.
+  Dotąd mówił to wyłącznie wiersz z głównej listy, więc w rozwiniętym wierszu połowa pozycji
+  prowadziła dalej, nie mówiąc o tym nic poza kształtem kursora.
+
 - **Nowość** — Na obu zakładkach leczenia można wejść głębiej. W rozwiniętym wierszu naciśnięcie
   postaci pokazuje, co przeszło między tą dwójką: umiejętności, którymi ktoś kogoś leczył, i — obok
   nich — życie, które gra zapisała pod własnym kluczem, bez żadnej zapowiedzi. Nie otwiera się
