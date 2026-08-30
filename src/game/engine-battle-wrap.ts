@@ -26,7 +26,7 @@ export interface EngineBattleReader {
     handleBeforeCall(battle: EngineBattle): void;
     /** Handed the battle too: the state after a call is only readable off it. */
     handlePayload(payload: unknown, battle: EngineBattle): void;
-    /** The first failure of ours, once; the wrap counts the rest. */
+    /** Called once, on the first failure this wrap has to report; it counts the rest itself. */
     handleFirstFailure(failure: unknown): void;
 }
 

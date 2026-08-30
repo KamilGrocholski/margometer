@@ -136,9 +136,8 @@ export interface CombatantFigures {
      */
     damagePreventedByDefence: Map<string, number>;
     /**
-     * What their blows destroyed on whoever took them. **Never totalled**, in this file or above
-     * it: `+acdmg` counts points of armour and `+resdmg` percentage points of resistance, and one
-     * number over both would be two quantities under one word (`src/core/battle-event.ts`).
+     * What their blows destroyed on whoever took them, **never totalled** — in this file or above
+     * it. The two are counted in different units, which `src/core/battle-event.ts` states.
      */
     statisticsDestroyed: Map<string, number>;
 }

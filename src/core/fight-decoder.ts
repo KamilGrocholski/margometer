@@ -127,7 +127,7 @@ const PERCENT_CLOSER = "%)";
  * each, 2026-08-28.
  */
 const OUTCOME_KEYS: Record<string, "won" | "lost"> = { winner: "won", loser: "lost" };
-/** A fight nobody won, which the protocol states on the winners' key and never on the losers'. */
+/** The key a draw arrives on, which is the winners' — `core/battle-event.ts` says what it is. */
 const NO_WINNER = "?";
 const NAME_SEPARATOR = ", ";
 /**
