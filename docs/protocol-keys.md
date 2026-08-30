@@ -547,8 +547,8 @@ is. Measured over `captures/` as the set stood 2026-08-19: every tick lands on a
 carrying a wound, and every one states exactly what that wound announced — on material where a
 victim was wounded by three different attackers, which is what makes _freshest_ a claim rather than
 a coincidence. Re-earned by `tests/core/injure-rule.test.ts`, and the join is made in
-`src/core/fight-statistics.ts` rather than in the decoder
-(`git show develop:docs/specs/the-ends-a-figure-names.md`).
+`src/core/fight-statistics.ts` rather than in the decoder — **ADR 0022** carries why, and what a
+tick stating anything else is charged to.
 
 ### `healall_per` — decoded
 

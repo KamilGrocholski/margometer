@@ -55,6 +55,12 @@ import { getRecordedCombatants, getRecordedPayloads } from "@/tests/recorded-fig
 import { getDeclaration, getRuleBody } from "@/tests/style-sheet.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
+/**
+ * A fight whose hardest-hit row opens onto both kinds of opponent: one the level under says more
+ * about, and one it says exactly the row again about. On `HILDUR` every pair opens, because the
+ * boss both strikes and wounds each member (`src/core/fight-statistics.ts`, ADR 0022).
+ */
+const BOTH_KINDS_OF_PAIR = "captures/2026-08-12-tempest-grupa-vs-hildur-1.json";
 
 function readFight(): PanelReading {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
@@ -1792,8 +1798,9 @@ Deno.test("an opened healing pair draws its announcements and its keys as one se
  * open against 588 that do not, in the same sections.
  */
 Deno.test("a row that opens says so, and a row that does not says nothing of the kind", () => {
-    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
-    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const roster = composeCombatantRoster(getRecordedCombatants(BOTH_KINDS_OF_PAIR));
+    const events = getRecordedPayloads(BOTH_KINDS_OF_PAIR)
+        .flatMap((one) => decodeFightMessages(one, roster));
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     const reading = composePanelReading(
         statistics,

@@ -12,12 +12,15 @@ import type {
     AttackEvent,
     BattleEvent,
     DamageFigure,
+    HealthChangeEvent,
 } from "@/src/core/battle-event.ts";
 import type { TeamHeal } from "@/src/core/combatant-health.ts";
 import {
     CRITICAL_PROC_KEYS,
     getProcEnd,
     SELF_SOURCED_HEALING_KEYS,
+    WOUND_ANNOUNCEMENT_KEY,
+    WOUND_TICK_KEY,
 } from "@/src/core/fight-decoder.ts";
 
 /** A side holds at most ten, so a fight holds twenty. The largest in `captures/` is 11. */
@@ -338,8 +341,19 @@ function getFiguresForCombatant(
     return figures;
 }
 
+/**
+ * The wound standing against a victim: who left it, and the figure its announcement stated. A
+ * victim carries one at a time and the freshest overwrites it, so one entry per victim is the
+ * whole register (`docs/protocol-keys.md`).
+ */
+interface WoundStanding {
+    attackerId: number;
+    amount: number;
+}
+
 interface StatisticsBuild {
     byCombatantId: Map<number, CombatantFigures>;
+    woundByVictimId: Map<number, WoundStanding>;
     castsUnplaced: number;
     dealtByNobody: number;
     takenByNobody: number;
@@ -638,6 +652,68 @@ function addBlowWithNoTarget(build: StatisticsBuild, actorId: number | null, amo
     getFiguresForCombatant(build.byCombatantId, actorId).damageDealtToNobody += amount;
 }
 
+/**
+ * The wound a blow announced, kept against whoever carries it. Only a blow naming both ends and a
+ * figure is kept: a wound whose attacker the protocol left out has nobody to charge its ticks to,
+ * and one announcing no figure cannot be told from the next wound against that victim. All 76 in
+ * `captures/` name both ends and state a figure, 2026-08-30. **ADR 0022.**
+ */
+function addWoundAnnouncement(build: StatisticsBuild, event: BattleEvent): void {
+    if (event.kind !== "attack") return;
+    assert(build.woundByVictimId.size <= MAXIMUM_COMBATANTS, "a fight stays inside its bound");
+    if (event.actorId === null) return;
+    if (event.targetId === null) return;
+    for (const declared of event.declared) {
+        if (declared.effect !== WOUND_ANNOUNCEMENT_KEY) continue;
+        if (declared.amount === null) continue;
+        assert(declared.amount > 0, "a wound announces what it will take off");
+        build.woundByVictimId.set(event.targetId, {
+            attackerId: event.actorId,
+            amount: declared.amount,
+        });
+    }
+}
+
+/**
+ * Whose wound a tick belongs to, or nobody. The freshest wound against that victim is the one
+ * ticking, and a tick states exactly the figure that wound announced — so a tick stating anything
+ * else is one this rule cannot place, and it stays charged to nobody rather than to a guess.
+ * **ADR 0022.**
+ */
+function getWoundAttackerId(build: StatisticsBuild, event: HealthChangeEvent): number | null {
+    if (event.source !== WOUND_TICK_KEY) return null;
+    if (event.combatantId === null) return null;
+    const standing = build.woundByVictimId.get(event.combatantId);
+    if (standing === undefined) return null;
+    if (standing.amount !== -event.amount) return null;
+    assert(Number.isSafeInteger(standing.attackerId), "a wound was left by somebody named");
+    return standing.attackerId;
+}
+
+/**
+ * A tick on both rows: the attacker dealt it and the victim took it, cut by the other end and by
+ * the key it moved under. It reaches neither count of blows and neither hardest blow — what ticks
+ * after a swing is not a swing, and those two figures name one. **ADR 0022.**
+ */
+function addWoundTick(
+    build: StatisticsBuild,
+    victimId: number,
+    attackerId: number,
+    amount: number,
+): void {
+    assert(amount > 0, "a wound ticking takes health off");
+    assert(Number.isSafeInteger(amount), "a figure totalled is a whole number");
+    const kind: DamageFigure[] = [{ element: WOUND_TICK_KEY, amount }];
+    const attacker = getFiguresForCombatant(build.byCombatantId, attackerId);
+    attacker.damageDealtApplied += amount;
+    addToCut(attacker.damageDealtByElement, WOUND_TICK_KEY, amount);
+    addToCut(attacker.damageDealtByOpponent, `${victimId}`, amount);
+    addToPairCut(attacker.damageDealtByOpponentAndKind, `${victimId}`, kind);
+    const victim = getFiguresForCombatant(build.byCombatantId, victimId);
+    addToCut(victim.damageTakenByOpponent, `${attackerId}`, amount);
+    addToPairCut(victim.damageTakenByOpponentAndKind, `${attackerId}`, kind);
+}
+
 /** Health moving outside a blow. What restored it is the key, and the key says who gave it. */
 function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== "health-change") return;
@@ -666,12 +742,17 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
         return;
     }
     figures.damageTakenApplied += -event.amount;
-    figures.damageTakenFromNobody += -event.amount;
     // The key is what this movement was made of, so it joins the cut a blow's element joins: a
     // tick of poison is a kind of damage taken, and leaving it out states a figure the cut under
     // it cannot account for.
     addToCut(figures.damageTakenByElement, event.source, -event.amount);
-    build.dealtByNobody += -event.amount;
+    const attackerId = getWoundAttackerId(build, event);
+    if (attackerId === null) {
+        figures.damageTakenFromNobody += -event.amount;
+        build.dealtByNobody += -event.amount;
+    } else {
+        addWoundTick(build, event.combatantId, attackerId, -event.amount);
+    }
     assert(figures.healthRestored >= 0, "a total of health restored never falls below nothing");
 }
 
@@ -823,6 +904,7 @@ export function composeFightStatistics(
 ): FightStatistics {
     const build: StatisticsBuild = {
         byCombatantId: new Map(),
+        woundByVictimId: new Map(),
         dealtByNobody: 0,
         takenByNobody: 0,
         givenByNobody: 0,
@@ -839,6 +921,9 @@ export function composeFightStatistics(
         }
         addAttackEvent(build, event);
         addNamedDamageEvent(build, event);
+        // Before the tick it is charged to: a wound announced by the message a tick arrives on
+        // is still the freshest one against that victim.
+        addWoundAnnouncement(build, event);
         addHealthChangeEvent(build, event);
         addNamedHealingEvent(build, event);
         addFightOutcome(build, event);

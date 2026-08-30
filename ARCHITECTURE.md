@@ -136,7 +136,7 @@ tests/
     absorption-destruction-rule.test.ts  Whose the share is: the caster's, across fights.
     anguish-rule.test.ts      The bleed charged to its victim, and the announcement with no figure.
     bandage-rule.test.ts      The figure as health, against the percentage stated before it.
-    injure-rule.test.ts       Every tick against the freshest wound, and where the join stops.
+    injure-rule.test.ts       Every tick against the wound ticking, and whom it is charged to.
     last-heal-rule.test.ts    The threshold it fires under, and which segments pair with it.
     npc-heal-rule.test.ts     The slot it is read in, and the occurrence stating nothing.
     skill-announcement-rule.test.ts  What rides an announcement, in either spelling of one.
@@ -512,17 +512,7 @@ commit that opens or closes one.
     over a panel that draws two. **ADR 0016.** C14 is unheld for the same reason and has no guard
     shape yet; the one that would hold it counts declarations carrying a docblock, which needs a
     parser this tree does not have.
-16. **An `injure` tick is charged to nobody, and the register says it is the wound's attacker.**
-    `docs/protocol-keys.md` states the cause of a tick as the attacker whose wound is ticking, and
-    v1 made that join in `src/core/fight-statistics.ts`. Nothing here reads the key past the health
-    it moves, so the damage stands against the victim and is dealt by nobody — every attacker's
-    figure is short by what their wounds ticked for, and the panel says a total is short without
-    saying whose it was. The material carries the join whole: `tests/core/injure-rule.test.ts`
-    matches all 184 ticks to the freshest wound against that victim, with none unmatched and none
-    landing on an unwounded one, over material where three attackers wound one victim. That test
-    also pins the charge to nobody, so taking the join makes it fail rather than pass under a
-    reading it no longer describes.
-17. **The cast column of `docs/captured-fights.md` is held by reading.**
+16. **The cast column of `docs/captured-fights.md` is held by reading.**
     `tests/tools/captured-fight-register.test.ts` re-earns the set of recordings both ways and, for
     each, the world, the build, the calls and the messages. What it does not compose is the
     professions, their counts and the level range, so a row stating those wrongly passes the gate.

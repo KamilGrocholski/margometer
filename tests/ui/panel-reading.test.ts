@@ -35,6 +35,12 @@ const SCREENS: PanelMetric[] = [
     "healthGiven",
     "healthRestored",
 ];
+/**
+ * A fight where a pair says more than the row above it **and** one where it says exactly that. On
+ * `HILDUR` every pair opens: the boss both strikes and wounds each member, so a wound's ticks put
+ * a second kind under every opponent (`src/core/fight-statistics.ts`, ADR 0022).
+ */
+const BOTH_KINDS_OF_PAIR = "captures/2026-08-15-tempest-grupa-vs-hildur-3.json";
 /** The one recording where health goes down on a key of its own, and nowhere near a blow. */
 const POISONED = "captures/2026-08-04-tempest-lowca-vs-odyncze.json";
 const POISONED_ID = -255967;
@@ -897,7 +903,7 @@ Deno.test("what a skill dealt holds the figures stated against a name, not only 
 });
 
 Deno.test("a pair that would only repeat the row above it does not open", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = readFight(BOTH_KINDS_OF_PAIR);
     const reading = composePanelReading(
         statistics,
         roster,

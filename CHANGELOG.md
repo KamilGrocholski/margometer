@@ -72,6 +72,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   a jej nazwę — „Wojownik", „Mag" — mówi okienko, które otwiera się po najechaniu na wiersz. Dwie
   profesje o zbliżonym kolorze trudniej teraz rozróżnić na samej liście.
 
+- **Poprawka** — Zranienie liczy się temu, kto je zadał. Dotąd każde tyknięcie stało po stronie
+  ranionego i nie miało sprawcy, więc każdy, kto kiedykolwiek zranił, miał zaniżone obrażenia
+  zadane, a panel mówił tylko, że suma jest krótka, nie mówiąc czyja. Na zapisanych walkach chodzi o
+  28 521 punktów w 13 z 28 nagrań. Tyknięcie podające inną liczbę, niż zapowiedziało zranienie,
+  dalej zostaje bez sprawcy — zgadywać nie będziemy.
+
 - **Poprawka** — Po wejściu w umiejętność na zakładce „leczenie dane" liczba w nagłówku zgadza się z
   wierszem, który się nacisnęło. Wcześniej potrafiła być mniejsza bez słowa wyjaśnienia: brakowało
   tego, co postać wyleczyła sama sobie tą umiejętnością. Teraz stoi tam jako zwykły wiersz, obok

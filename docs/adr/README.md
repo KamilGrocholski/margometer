@@ -91,3 +91,5 @@ edited to agree with the new rule.
   of this project. **Accepted**
 - [0021](0021-a-read-says-whether-it-worked.md) — A read says whether it worked, and the value sits
   behind it. **Accepted**
+- [0022](0022-a-tick-belongs-to-the-wound-that-is-ticking.md) — A tick belongs to the wound that is
+  ticking, and to the attacker who left it. **Accepted**

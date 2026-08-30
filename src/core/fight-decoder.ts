@@ -83,10 +83,18 @@ export const PROC_ENDS: Record<string, ProcEnd> = {
 /** The keys a blow carries when it landed critically, whichever weapon threw it. */
 export const CRITICAL_PROC_KEYS: readonly string[] = ["+crit", "+of_crit"];
 /**
+ * The two keys a wound is stated on, and they are **not** the same key: `+injure` announces the
+ * wound a blow has just left, and `injure` is that wound ticking afterwards, in a message of its
+ * own. Spelled here because this is the file that reads them, and read again by
+ * `src/core/fight-statistics.ts`, which joins a tick to the blow that left the wound.
+ */
+export const WOUND_ANNOUNCEMENT_KEY = "+injure";
+export const WOUND_TICK_KEY = "injure";
+
+/**
  * Health moving outside a blow: which way it goes, and which slot holds the combatant it
  * happens to. Both are ours to supply — the protocol states a magnitude and leaves the rest to
- * the key, and `docs/protocol-keys.md` carries the evidence per key. `injure` and `+injure` are
- * different keys and only this one moves health.
+ * the key, and `docs/protocol-keys.md` carries the evidence per key.
  */
 const HEALTH_CHANGE_KEYS: Record<string, { sign: number; isOnTarget: boolean }> = {
     heal: { sign: 1, isOnTarget: false },
@@ -95,7 +103,7 @@ const HEALTH_CHANGE_KEYS: Record<string, { sign: number; isOnTarget: boolean }> 
     npc_heal: { sign: 1, isOnTarget: false },
     bandage: { sign: 1, isOnTarget: false },
     poison: { sign: -1, isOnTarget: false },
-    injure: { sign: -1, isOnTarget: false },
+    [WOUND_TICK_KEY]: { sign: -1, isOnTarget: false },
     wound: { sign: -1, isOnTarget: false },
     fire: { sign: -1, isOnTarget: false },
     light: { sign: -1, isOnTarget: false },
@@ -168,7 +176,7 @@ const DECLARATION_KEYS = [
     "+crush_physical",
     "+engback",
     "+exp",
-    "+injure",
+    WOUND_ANNOUNCEMENT_KEY,
     "+legbon_puncture",
     "+ph",
     "+rage",
