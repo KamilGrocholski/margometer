@@ -9,6 +9,8 @@
 
 import { assert, assertEquals } from "@std/assert";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
+import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
+import { SELF_SOURCED_HEALING_KEYS } from "@/src/core/fight-decoder.ts";
 
 const REGISTER_PATH = "docs/protocol-keys.md";
 /** The register writes it italic; the section defining the vocabulary writes it bold. */
@@ -176,4 +178,80 @@ Deno.test("no claim runs onto a second line, where this reader would see half of
     }
     assert(lines.length > 0, "there is a document to read");
     assertEquals(continued, [], "a wrapped claim is a claim read by halves");
+});
+
+const CAUSE_MARKER = "_Cause:_";
+const SELF_SOURCED_CLAIM = "the subject's own";
+const SECTION_MARKER = "### ";
+const ABSENCE_CLAIM = "absence of ";
+const CLIENT_LIST_CLAIM = " from the client's list";
+
+/** The key each section is about, paired with the cause its entry states, in document order. */
+function getCauseClaims(text: string): { key: string; cause: string }[] {
+    const found: { key: string; cause: string }[] = [];
+    let key = "";
+    for (const line of text.split("\n")) {
+        if (line.startsWith(SECTION_MARKER)) {
+            key = getBacktickedPhrases(line)[0] ?? "";
+            continue;
+        }
+        if (!line.startsWith(CAUSE_MARKER)) continue;
+        assert(key.length > 0, "a cause stands inside a section about a key");
+        found.push({ key, cause: line.slice(CAUSE_MARKER.length).trim() });
+    }
+    return found;
+}
+
+Deno.test("the register and the decoder agree on whose the healing is, both ways", () => {
+    const sample = "### `heal` — decoded\n_Cause:_ the subject's own\n";
+    assertEquals(
+        getCauseClaims(sample),
+        [{ key: "heal", cause: SELF_SOURCED_CLAIM }],
+        "the reader",
+    );
+    assertEquals(getCauseClaims("_Health:_ moves health\n"), [], "a line that is not a cause");
+
+    const register = Deno.readTextFileSync(REGISTER_PATH);
+    const claimed = getCauseClaims(register)
+        .filter((one) => one.cause === SELF_SOURCED_CLAIM)
+        .map((one) => one.key)
+        .sort();
+    assert(claimed.length > 0, "the register claims it of something");
+    assertEquals(
+        claimed,
+        [...SELF_SOURCED_HEALING_KEYS].sort(),
+        "a key charged to the healed here and read some other way there, or the reverse",
+    );
+});
+
+/** Every key the register states the client does not know, read out of the sentence saying so. */
+function getAbsentKeys(text: string): string[] {
+    const found: string[] = [];
+    let at = text.indexOf(ABSENCE_CLAIM);
+    let looked = 0;
+    while (at !== -1) {
+        looked += 1;
+        assert(looked <= MAXIMUM_PHRASES, "the walk stays inside its stated bound");
+        const rest = text.slice(at + ABSENCE_CLAIM.length);
+        const claimed = rest.startsWith(BACKTICK) ? rest.slice(1) : "";
+        const closes = claimed.indexOf(BACKTICK);
+        const key = closes === -1 ? "" : claimed.slice(0, closes);
+        if (key.length > 0) {
+            if (claimed.slice(closes + 1).startsWith(CLIENT_LIST_CLAIM)) found.push(key);
+        }
+        at = text.indexOf(ABSENCE_CLAIM, at + 1);
+    }
+    return found;
+}
+
+Deno.test("a key the register calls absent from the client is absent from the frozen table", () => {
+    const said = "the absence of `+frost` from the client's list is";
+    assertEquals(getAbsentKeys(said), ["+frost"], "the reader finds the claim");
+    assertEquals(getAbsentKeys("the absence of `+frost` from the help"), [], "and not another");
+
+    const absent = getAbsentKeys(Deno.readTextFileSync(REGISTER_PATH));
+    assert(absent.length > 0, "the register makes the claim of something");
+    const known = new Set<string>(FROZEN_PROTOCOL_KEYS.keys);
+    const present = absent.filter((key) => known.has(key));
+    assertEquals(present, [], "the client's own table knows a key the register calls absent");
 });

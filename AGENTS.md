@@ -61,8 +61,8 @@ this language does not have would be**; each states what binds instead.
 - **S3.** The cost of one payload is **measured** over the recordings, never assumed, and a change
   to the decode path that raises it is a finding.
 - **S4.** No function is longer than 70 lines, which is one printed page.
-- **S5.** Assertion density averages at least two per function across `src/`, `libs/` and `tools/` —
-  the code that ships and the code that runs. **ADR 0007.** See **Assertions**.
+- **S5.** Assertion density averages at least two per function across `src/` and `tools/` — the code
+  that ships and the code that runs. **ADR 0007.** See **Assertions**.
 - **S6.** Declare at the smallest possible scope, `const` by default, at the point of use.
 - **S7.** Every return value is used or explicitly discarded; every parameter is checked. Held by
   the compiler.

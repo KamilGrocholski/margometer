@@ -457,3 +457,56 @@ Deno.test("every import is written from the repository root", () => {
     assert(getSourcePaths().length > 0, "there is TypeScript to read");
     assertEquals(relative, [], "C8: an import that reads differently depending on where it sits");
 });
+
+/**
+ * The globals `ui/` must not reach for. `document` is deliberately absent: it is the name of the
+ * parameter every function there takes, which is the whole of the discipline.
+ */
+const BROWSER_GLOBALS = [
+    "window",
+    "globalThis",
+    "navigator",
+    "location",
+    "localStorage",
+    "sessionStorage",
+    "XMLHttpRequest",
+    "fetch",
+];
+
+/** A line holds no more occurrences than characters, which is where S2's bound comes from. */
+function hasBareName(code: string, name: string): boolean {
+    let at = code.indexOf(name);
+    let looked = 0;
+    while (at !== -1) {
+        looked += 1;
+        assert(looked <= code.length + 1, "the walk stays inside its stated bound");
+        const before = at === 0 ? "" : code.charAt(at - 1);
+        const after = code.charAt(at + name.length);
+        if (!isNameCharacter(before)) {
+            if (!isNameCharacter(after)) return true;
+        }
+        at = code.indexOf(name, at + 1);
+    }
+    return false;
+}
+
+Deno.test("the panel reaches for no browser global, and takes its document as an argument", () => {
+    assert(hasBareName("const a = window.x;", "window"), "the reader finds a bare name");
+    assert(!hasBareName("const shown = windowless;", "window"), "and not one inside another");
+    assert(isCommentLine(" * the window's height"), "a docblock line is prose, not code");
+
+    const reaching: string[] = [];
+    for (const path of getSourcePaths()) {
+        if (!path.startsWith("src/ui/")) continue;
+        for (const [offset, line] of Deno.readTextFileSync(path).split("\n").entries()) {
+            if (isCommentLine(line)) continue;
+            const code = getCodeOutsideStrings(line);
+            for (const global of BROWSER_GLOBALS) {
+                if (!hasBareName(code, global)) continue;
+                reaching.push(`${path}:${offset + 1} → ${global}`);
+            }
+        }
+    }
+    assert(getSourcePaths().some((path) => path.startsWith("src/ui/")), "there is a panel to read");
+    assertEquals(reaching, [], "the panel's surface stays declared rather than ambient");
+});

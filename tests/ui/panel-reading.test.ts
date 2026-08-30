@@ -984,3 +984,27 @@ Deno.test("what shortens a reading is said before what shortens one figure on it
     assert(reading.warnings[1]?.includes("nie dotarła"), "then what never arrived");
     assert(reading.warnings[2]?.includes("odczytać"), "then what arrived and could not be read");
 });
+
+/**
+ * No recording carries a draw, so the one the panel draws is built by hand. A draw needs no seat:
+ * the outcome is the same from either side, which is what separates it from the two above.
+ */
+Deno.test("a drawn fight reads the same from every seat, and from none", () => {
+    const { roster } = readFight(HILDUR);
+    const events = decodeFightMessages(["0;0;winner=?"], roster);
+    const drawn = composeFightStatistics(events, new Map());
+    assertEquals(drawn.outcome?.isDrawn, true, "the fight the decoder read is a draw");
+    const sides = [...new Set([...roster.byId.values()].map((one) => one.side))];
+    assert(sides.length > 1, "the fight has two seats to read it from");
+    for (const side of [...sides, null]) {
+        const reading = composePanelReading(
+            drawn,
+            roster,
+            "damageDealtApplied",
+            "everyone",
+            side,
+            NOTHING_MISSED,
+        );
+        assertEquals(reading.outcome, "drawn", `seat ${side}: a draw is nobody's win`);
+    }
+});

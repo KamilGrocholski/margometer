@@ -1,12 +1,13 @@
 # Browser support
 
-What the shipped userscript needs from a browser, measured off the tree rather than assumed, and
-held to it by `tests/tools/browser-support.test.ts` and by `tsconfig.userscript.json`.
+What the shipped userscript needs from a browser, measured off the tree rather than assumed. The CSS
+half is held to it by `tests/tools/browser-support.test.ts`; the JavaScript half is held by nothing
+here, which the section on it states.
 
-The register exists because nothing else could notice. `build.ts` bundles with `minify: false` and
-no `target`, so **the ES level of the source is the ES level a player's browser must have** — there
-is no downlevelling anywhere and no polyfill of anything. A round that reaches for a newer construct
-raises the bar for every player, silently, and the gate goes green.
+The register exists because nothing else could notice. `tools/build-userscript.ts` bundles with
+`minify: false` and no `target`, so **the ES level of the source is the ES level a player's browser
+must have** — there is no downlevelling anywhere and no polyfill of anything. A round that reaches
+for a newer construct raises the bar for every player, silently, and the gate goes green.
 
 **Read at:** 2026-08-18. Every version below comes from MDN's `browser-compat-data`, read that day
 at `https://raw.githubusercontent.com/mdn/browser-compat-data/main/`. Versions are the **first**
@@ -168,11 +169,11 @@ Selectors: `host` · `hover`
 | `getBoundingClientRect` | `src/ui/panel-element.ts`   | 2             | 3       | 4      |
 | `Blob`                  | `src/userscript-entry.ts`   | 5             | 4       | 6      |
 | `createObjectURL`       | `src/userscript-entry.ts`   | 19            | 19      | 6      |
-| `localStorage`          | `src/userscript-storage.ts` | 4             | 3.5     | 4      |
-| `sessionStorage`        | `src/userscript-storage.ts` | 4             | 2       | 4      |
-| `getItem`               | `src/userscript-storage.ts` | 4             | 3.5     | 4      |
-| `setItem`               | `src/userscript-storage.ts` | 4             | 3.5     | 4      |
-| `removeItem`            | `src/userscript-storage.ts` | 4             | 3.5     | 4      |
+| `localStorage`          | `src/game/browser-store.ts` | 4             | 3.5     | 4      |
+| `sessionStorage`        | `src/userscript-entry.ts`   | 4             | 2       | 4      |
+| `getItem`               | `src/game/browser-store.ts` | 4             | 3.5     | 4      |
+| `setItem`               | `src/game/browser-store.ts` | 4             | 3.5     | 4      |
+| `removeItem`            | `src/game/browser-store.ts` | 4             | 3.5     | 4      |
 
 The five storage rows were read on **2026-08-26**, from the same source as the rest; every other row
 carries the date at the top of this document. All five sit so far below both tiers that they cannot
@@ -182,17 +183,17 @@ that can fail on a browser that supports it perfectly.
 ⚠️ **The quota is not in this register, and its absence is the entry.** How much an origin may keep
 differs by engine, by profile and by how much that origin already holds, and none of it is readable
 from a page. The add-on therefore never predicts one: it writes, catches the refusal, gives up its
-oldest unpinned fight and writes again (`src/userscript-storage.ts`, `src/game/kept-fights.ts`).
+oldest unpinned fight and writes again (`src/game/browser-store.ts`, `src/game/kept-fights.ts`).
 That matters more here than anywhere else in this table, because the origin is shared with the game
 — which keeps everything under one key, rewrites it whole on every change, and catches nothing
-(`docs/specs/a-fight-you-can-go-back-to.md`).
+(`git show develop:docs/specs/a-fight-you-can-go-back-to.md`).
 
 ⚠️ **This is the half that is not complete, and saying so is the point.** The CSS above is
 enumerable and the JavaScript below is held by a compiler; the DOM is neither. What bounds it
 instead is §9.1's injection discipline: `src/ui/` takes the document as an argument and reaches for
 no browser global at all — `PanelNode`, `PanelHost` and `PanelDocument` in `src/ui/panel-element.ts`
 are the whole slice it uses, and `HostPage` in `src/userscript-entry.ts` is the whole slice the
-entry point uses. That is guarded by `tests/tools/source-layout.test.ts`, so the surface stays
+entry point uses. That is guarded by `tests/repository/sources.test.ts`, so the surface stays
 declared rather than ambient, and the table above stays readable against those declarations by a
 person. It is not guarded to be exhaustive, and nothing here claims it is.
 
@@ -203,10 +204,11 @@ to refuse.
 
 ## JavaScript
 
-Held by `tsconfig.userscript.json`, not by this table, and by two of its lines rather than one:
-`lib: ["ES2022", "DOM"]` decides which library **members** exist, `target: "ES2022"` decides which
-**syntax** is allowed. Reach past the floor for a member and the gate fails by name. The two
-constructs that decide where that floor is:
+⚠️ **Held by nothing in this tree, and the floor below is a claim rather than a check.** Two lines
+would hold it: a `lib` deciding which library **members** exist, and a `target` deciding which
+**syntax** is allowed. `deno.json` states `lib` as `esnext` and no `target` at all, so a round that
+reaches past this floor for either passes the gate without a word. `ARCHITECTURE.md` carries it as a
+known gap. The two constructs that decide where the floor is:
 
 | Construct      | Where                          | Chrome / Edge | Firefox | Safari |
 | -------------- | ------------------------------ | ------------- | ------- | ------ |
@@ -222,14 +224,16 @@ to work, because the first is a promise and the second is an accident.
 ### Patterns, and the part no compiler holds
 
 ⚠️ **A regular expression's syntax is checked against `target` and against nothing else, and the
-check is partial.** Measured on 2026-08-27 by putting a pattern into `src/game/game-dictionary.ts`
-and restoring the file from a copy: with `target` inherited as `ESNext`, which is how this config
-stood until that day, `/[\p{ASCII}--[a-z]]/v` in shipped code typechecked clean. Narrowing `target`
+check is partial.** Measured on 2026-08-27 against v1's tree, by putting a pattern into
+`git show develop:src/game/game-dictionary.ts` and restoring the file from a copy: with `target`
+inherited as `ESNext`, `/[\p{ASCII}--[a-z]]/v` in shipped code typechecked clean. Narrowing `target`
 refuses it — `error TS1501`. Dropped to `ES2017` for the same probe, the compiler refuses
 `/(?<name>x)/` by name and accepts both `/(?<=x)y/` and `/\p{L}/u` without a word.
 
-So of the pattern constructs above this floor the compiler catches the `v` flag and misses two.
-First release with support, from `browser-compat-data`, read 2026-08-27:
+This tree states no `target`, so none of that check is in force here — and **C7** is what stands
+instead: there is no pattern in `src/` or `tools/` to check. So of the pattern constructs above this
+floor a compiler that had a target would catch the `v` flag and miss two. First release with
+support, from `browser-compat-data`, read 2026-08-27:
 
 - **lookbehind**, `(?<=…)` — Chrome 62, Firefox 78, Safari 16.4. This is the cheap mistake: a couple
   of characters, and the other two engines have had it since long before the floor, so only Safari
@@ -247,7 +251,7 @@ SyntaxError — it is refused while the file is being read, before a line of it 
 never parses, so the reader sees no panel and no console line of ours. `new RegExp` differs only in
 when — `src/core/game-build.ts` builds two at module scope, so those throw while the add-on is
 starting. There is no degraded state to describe here, which is why §9.9's `[ASK]` binds with
-nothing to weigh (`docs/specs/2026-08-27-a-pattern-the-floor-never-covered.md`).
+nothing to weigh (`git show develop:docs/specs/2026-08-27-a-pattern-the-floor-never-covered.md`).
 
 ## Installing it
 

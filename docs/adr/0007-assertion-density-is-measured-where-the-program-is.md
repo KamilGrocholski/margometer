@@ -24,8 +24,12 @@ the scoping, not in the code.
 
 ## Decision
 
-**S5 is measured over `src/`, `libs/` and `tools/` — the code that ships and the code that runs.**
-It is not measured over `tests/`.
+**S5 is measured over `src/` and `tools/` — the code that ships and the code that runs.** It is not
+measured over `tests/`.
+
+The scope named a third directory, `libs/`, until 2026-08-30. There is none: `ARCHITECTURE.md` puts
+a primitive beside its consumer, and the walk in `tests/source-paths.ts` passes a missing directory
+without a word — so the two documents disagreed and no guard could see it.
 
 The guard still reads and reports density for `tests/`, and never fails on it.
 

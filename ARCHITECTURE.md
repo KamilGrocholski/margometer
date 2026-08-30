@@ -12,12 +12,11 @@ Three layers of claim live in this file and they are kept apart on purpose:
 ## Current state
 
 **This is a rewrite in progress.** At this commit the repository holds documents, evidence,
-generated registers and the lower half of `core/`: the error base, the message grammar, the roster,
-the data contract, seven decoder steps — the damage family, the keys that move health outside a
-blow, the announcements the client glues to the message after them, damage and healing stated
-against a name, the declarations no total counts, and how the fight ended — and the health
-arithmetic, and the statistics over what the decoder produces. Nothing reads the game yet and
-nothing is drawn. The v1 implementation remains readable in this repository's history on `develop`
+generated registers, the whole of `core/` — the error base, the message grammar, the roster, the
+data contract, the decoder, the health arithmetic and the statistics over what the decoder produces
+— and the layers over it: `game/` reads a fight off the client and keeps it, `ui/` draws it, and the
+tools build, serve, photograph and admit. What is not written is at the end of this file. The v1
+implementation remains readable in this repository's history on `develop`
 (`git show develop:src/core/fight-decoder.ts`), and is not the thing being described here.
 
 ```
@@ -120,10 +119,19 @@ tests/
     fight-statistics.test.ts  The figures, and the balance every point of damage keeps.
     protocol-message.test.ts  The grammar, over every message the recordings carry.
     unknown-reading.test.ts   What counts as a shape worth reading, list and null included.
+    absorption-destruction-rule.test.ts  Whose the share is: the caster's, across fights.
+    anguish-rule.test.ts      The bleed charged to its victim, and the announcement with no figure.
+    bandage-rule.test.ts      The figure as health, against the percentage stated before it.
+    injure-rule.test.ts       Every tick against the freshest wound, and where the join stops.
+    last-heal-rule.test.ts    The threshold it fires under, and which segments pair with it.
+    npc-heal-rule.test.ts     The slot it is read in, and the occurrence stating nothing.
+    skill-announcement-rule.test.ts  What rides an announcement, in either spelling of one.
+    wound-rule.test.ts        The tick chained from a stated percentage, killing blow apart.
   tools/
     browser-support.test.ts   Every construct the sheet spells, against the register, both ways.
     build-userscript.test.ts  The built file, read back: the banner, and no way out.
     capture-intake.test.ts    What intake refuses, and every admitted recording as a fixed point.
+    captured-fight-register.test.ts  The census, re-earned from the directory it describes.
     recorded-fights.test.ts   The directory read, and the claim a rewind by replay stands on.
     preview-page.test.ts      The page, read back: the order of its scripts, and its escaping.
     preview-server.test.ts    Every route, against a bundle handed in rather than built.
@@ -393,8 +401,10 @@ commit that opens or closes one.
    `tests/tools/browser-support.test.ts`, which enumerates what `composeStyleSheet()` spells and
    holds the document to it in both directions. Its **JavaScript** floor is the unheld half: the
    document describes one checked over sources, and the ES level that matters is the bundle's once
-   the bundle carries standard-library code. `tsconfig.userscript.json` holds our own sources and
-   nothing else, and the bundle-level guard has not landed.
+   the bundle carries standard-library code. **Neither level is held here.** v1 pinned its own
+   sources with a `tsconfig.userscript.json`; this tree has none, and `deno.json` states `lib` as
+   `esnext` with no `target` at all — so a round reaching past the floor for a member or for a
+   syntax passes the gate without a word. The document says so at the section itself.
 7. **A ranking row states a profession in its hue alone.** The eight hues are assigned by the game's
    own letter and are stable across fights, but six professions cannot be made mutually
    distinguishable by hue on the panel's background — `DESIGN.md` measures that. The row carried the
@@ -420,15 +430,18 @@ commit that opens or closes one.
     `captures/` on 2026-08-29: 115 casts across 22 recordings, every one of them whole, and no
     message anywhere unread — so the doubt mark never fires on the material this repository holds.
     It is held by probes only, and the next protocol change is what it exists for.
-12. **A payload can move health with no message stating it.** Measured over `captures/`, 2026-08-28:
-    of 17,958 comparisons between the health the protocol states about a combatant and the movement
-    decoded from its own messages, 17,286 agree inside the reading's tolerance. Of the 672 that do
-    not, 95 are a killing blow landing more than the health that was left, 576 are health restored
-    by `healall_per`, which is unread, and **one is a payload that moves health with nothing saying
-    so** — entry 83 of `2026-08-06-tempest-grupa-vs-hildur`, where the boss loses 8,062 of a 325,584
-    pool while both messages of that payload are about other people. Nothing in the protocol
-    accounts for it and only the snapshots show it, which is what the snapshots are for.
-    `tests/core/health-witness.test.ts` pins the count at one, so a second cannot arrive unnoticed.
+12. **A payload can move health with no message stating it.** Every comparison between the health
+    the protocol states about a combatant and the movement decoded from its own messages agrees
+    inside the reading's tolerance, bar three kinds: a killing blow landing more than the health
+    that was left, health restored by a share the decoder states without an amount, and **one
+    payload that moves health with nothing saying so** — entry 83 of
+    `2026-08-06-tempest-grupa-vs-hildur`, where the boss loses 8,062 of a 325,584 pool while both
+    messages of that payload are about other people. Nothing in the protocol accounts for it and
+    only the snapshots show it, which is what the snapshots are for.
+    `tests/core/health-witness.test.ts` is where the counts are, and it pins the last of the three
+    at one so a second cannot arrive unnoticed. The figures stood here too until 2026-08-30, in a
+    second reckoning that counted the first two kinds as disagreements where the test does not — two
+    numbers for one measurement, which **V5** is the rule against.
 13. **The recursion guard misreads a one-line named arrow.** `getFunctionBodies` in
     `tests/repository/sources.test.ts` collects lines until the brace depth returns to zero, and a
     `const name = () => expression;` opens no brace — so every line after it is read as that
@@ -441,11 +454,13 @@ commit that opens or closes one.
     release out of it, `.github/workflows/check.yml` is the run **G7** waits for, and
     `.github/workflows/release.yml` publishes one. **None of it has run here.** `README.md` and the
     screenshots are unwritten, and the release path is held by its tests alone.
-15. **Nothing says which side is the reader's.** `PanelRow.side` carries the game's own team number
-    and nothing turns it into `ours` or `theirs`: that needs `Engine.hero.d.id` read against
-    `warriorsList`, which `game/` has not done. The two tokens `DESIGN.md` states for it are unspent
-    — a ranking row is coloured by profession instead, which needs no side. Whatever spends them
-    will need a carrier that is not colour, so the two halves open together.
+15. **A ranking row does not say which side is the reader's.** The seat itself is read — the payload
+    that opens a fight states it under `myteam`, `game/battle-session.ts` keeps it once seen, and it
+    already decides the order of a shelf row's sides and whether a fight was won from that seat. It
+    is `PanelRow.side` that stops short: it carries the game's own team number and nothing turns it
+    into `ours` or `theirs`. The two tokens `DESIGN.md` states for it are unspent — a ranking row is
+    coloured by profession instead, which needs no side. Whatever spends them will need a carrier
+    that is not colour, so the two halves open together.
 16. **A restatement in different words is unheld, and it is the worse kind.**
     `tests/repository/sources.test.ts` holds C15's second half by comparing block text, so a comment
     repeated word for word is a finding and one reworded is not — which is backwards from the cost,
@@ -455,3 +470,18 @@ commit that opens or closes one.
     over a panel that draws two. **ADR 0016.** C14 is unheld for the same reason and has no guard
     shape yet; the one that would hold it counts declarations carrying a docblock, which needs a
     parser this tree does not have.
+17. **An `injure` tick is charged to nobody, and the register says it is the wound's attacker.**
+    `docs/protocol-keys.md` states the cause of a tick as the attacker whose wound is ticking, and
+    v1 made that join in `src/core/fight-statistics.ts`. Nothing here reads the key past the health
+    it moves, so the damage stands against the victim and is dealt by nobody — every attacker's
+    figure is short by what their wounds ticked for, and the panel says a total is short without
+    saying whose it was. The material carries the join whole: `tests/core/injure-rule.test.ts`
+    matches all 184 ticks to the freshest wound against that victim, with none unmatched and none
+    landing on an unwounded one, over material where three attackers wound one victim. That test
+    also pins the charge to nobody, so taking the join makes it fail rather than pass under a
+    reading it no longer describes.
+18. **The cast column of `docs/captured-fights.md` is held by reading.**
+    `tests/tools/captured-fight-register.test.ts` re-earns the set of recordings both ways and, for
+    each, the world, the build, the calls and the messages. What it does not compose is the
+    professions, their counts and the level range, so a row stating those wrongly passes the gate.
+    The shape column and the census of shapes above it are unheld for the same reason.

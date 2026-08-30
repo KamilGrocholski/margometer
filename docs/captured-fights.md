@@ -9,10 +9,14 @@ A recording is evidence and never changes (§9.2), so a row here is true for goo
 the set, which is why the numbers below are not written by hand.
 
 **Read off the material, not written from memory**, and held by
-`tests/tools/captured-fight-register.test.ts` — the guard composes the census from every file in the
-directory and refuses a row the material does not produce, or a recording the tables do not name. A
-line here that stops being true fails the gate. It refuses rather than defaults: a combatant whose
-profession, level or `npc` flag cannot be read stops the run instead of being counted as something.
+`tests/tools/captured-fight-register.test.ts` — the guard walks every file in the directory and
+refuses a row naming a recording that is not there, or a recording no row names. For each it
+re-earns the world, the build, the calls the engine made and the messages they carried, so a line of
+those that stops being true fails the gate.
+
+⚠️ **The cast column is not among them.** The professions, their counts and the level range are
+still held by reading: the guard does not compose that shape, so a row stating it wrongly passes.
+`ARCHITECTURE.md` carries it as a known gap.
 
 Two words the tables use in this repository's sense and not the game's: **side** is the team number
 as the game states it, and _ours_ is the side the recording player was on (`myteam`); **NPC** is
@@ -107,8 +111,8 @@ than a defect.
   and drink.
 - **No fight of more than two sides**, and none where more than three opponents stood on the other
   one. A wide enemy side is untested on real protocol.
-- **No drawn fight.** The panel draws one, and every fight it draws it from is hand-built
-  (`tests/ui/panel-view.test.ts`).
+- **No drawn fight.** The panel draws one, and the fight it draws it from is hand-built
+  (`tests/ui/panel-reading.test.ts`).
 - **Three worlds, and one of them once.** Everything but the duel and the six recordings from
   `luvia` comes from `tempest`; the duel is the one that happened once.
 
@@ -122,8 +126,8 @@ evidence.
 
 - `captures/2026-08-04-tempest-lowca-vs-odyncze.json` — the oldest, written before the header
   settled: no `pominietych`, no `urwany`, and the only one carrying `render`, the game's own
-  composed sentences, which nothing reads (`tools/fight-dump-parser.ts`). Also the only fight
-  against more than one opponent.
+  composed sentences, which nothing in this tree reads. Also the only fight against more than one
+  opponent.
 - `captures/2026-08-06-tempest-grupa-vs-hildur.json` — carries `walka`, the fight number, from the
   format that could hold more than one fight per recording.
 - `captures/2026-08-12-experimental-tancerz-vs-wojownik.json` — the only fight between two players,
@@ -141,19 +145,19 @@ evidence.
   they stand and not how much reached them. A percentage is worth about a point and a half on these
   pools, so five of the eleven land within one of their maximum. That is what caught a defect in the
   reader: one of the five landed a point _over_, and the allowance meant to absorb exactly that was
-  smaller than a health point on their pool (`docs/specs/sizing-a-share-onto-a-side.md`).
+  smaller than a health point on their pool (`docs/adr/0010-sizing-a-share-onto-a-side.md`).
 
 - `captures/2026-08-25-luvia-grupa-vs-mamlambo-auto.json` — **the first recording naming no build**,
   which is what its build column says. The add-on writes `null` where the page did not state one,
-  and until this file arrived `tools/fight-dump-parser.ts` refused to read such a recording at all
-  (`docs/specs/2026-08-25-a-recording-that-names-no-build.md`). So nothing dates it against the
-  client, and a claim about how the game composed a message is not one this recording can settle —
-  the messages, the snapshots and the percentages in it are unaffected. All three recordings of that
-  day arrived the same way, and the reason turned out not to be the page: the client had started
-  naming its bundle `main.min.53XkBRxF.js`, and the reader knew only ids that were numbers
-  (`src/core/game-build.ts`). It reads both now, so a recording made after 2026-08-25 carries a
-  build again — these three cannot, being evidence (§9.2), and their column is a fact about them for
-  good.
+  and until this file arrived `git show develop:tools/fight-dump-parser.ts` refused to read one at
+  all (`git show develop:docs/specs/2026-08-25-a-recording-that-names-no-build.md`). So nothing
+  dates it against the client, and a claim about how the game composed a message is not one this
+  recording can settle — the messages, the snapshots and the percentages in it are unaffected. All
+  three recordings of that day arrived the same way, and the reason turned out not to be the page:
+  the client had started naming its bundle `main.min.53XkBRxF.js`, and the reader knew only ids that
+  were numbers (`src/core/game-build.ts`). It reads both now, so a recording made after 2026-08-25
+  carries a build again — these three cannot, being evidence (§9.2), and their column is a fact
+  about them for good.
 
   It is also the only fight **entered by hand and finished on auto**: the opening call states `auto`
   as `0`, the third states `1`, and 304 of the 308 messages arrive in the closing call. Unlike the
@@ -231,8 +235,8 @@ evidence.
   nobody could place and its two casters were the first rows any recording had marked. The help
   scopes the effect to the caster's opponents and all four occurrences here are declared by one of
   ours at the monster — nothing of ours was reduced, and the three casts are sized
-  (`docs/specs/sizing-a-share-onto-a-side.md`). Two of them stand alone in their engine call, which
-  is where the twenty comparisons that check them against the snapshots come from.
+  (`docs/adr/0010-sizing-a-share-onto-a-side.md`). Two of them stand alone in their engine call,
+  which is where the twenty comparisons that check them against the snapshots come from.
 
   Two more things it settles, both by having a third of something. `+stun2-c` had been read on four
   occurrences in one recording; its five here ride the same monster's blows and are followed

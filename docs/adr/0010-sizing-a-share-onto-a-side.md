@@ -14,8 +14,8 @@ the health they entered the fight with, and the health they held when the cast l
 comes from the combatant snapshots, the second is unwound from the first statement about each
 combatant, and the third is the running reading the protocol restates every time it names somebody.
 
-Measured over `captures/`, 2026-08-28: 115 casts across 15 fights, shares of 30, 22.5, 15, 7.5 and
-five other values, four of them zero.
+Measured over `captures/`, 2026-08-30: 115 casts across 22 recordings, shares of 30, 22.5, 15, 7.5
+and five other values, four of them zero.
 
 ## Decision
 

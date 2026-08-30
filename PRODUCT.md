@@ -32,8 +32,8 @@ like a correct one. Everything below follows from refusing that.
 ## Pillars
 
 1. **Read the whole protocol, or say which part you could not.** An unrecognised key becomes an
-   explicit unknown and reaches the panel. Coverage is measured on demand against `captures/`, never
-   quoted from memory.
+   explicit unknown and reaches the panel. Coverage is measured against `captures/` by the gate,
+   never quoted from memory.
 2. **Attribute only what the game named.** A figure is charged to a combatant when the protocol
    states that end. Where it states one end, the rules in `ARCHITECTURE.md` say exactly when the
    other may be filled and from what — each narrow, each listed.
@@ -73,7 +73,7 @@ There is no telemetry, and there will not be: the add-on sends nothing, so nothi
 counted remotely. That is a deliberate cost, and it means success is argued rather than measured.
 Three things stand in for metrics:
 
-- **Protocol coverage** over `captures/`, measured on demand by the tooling.
+- **Protocol coverage** over `captures/`, asserted by the gate rather than reported by a tool.
 - **Agreement with the recordings** — figures the meter computes against health snapshots the
   protocol never states.
 - **The register in `docs/protocol-keys.md`**: how many keys have a verdict backed by evidence

@@ -12,11 +12,10 @@ The help is the only source that says what an effect _does_, so it is the only o
 _meaning_. It settles nothing else: the `*Health:*` line below is a measurement or it is absent, and
 no sentence of the game's is copied in here — an entry carries the locator and our own words.
 
-**Guarded** by `tests/core/protocol-key-register.test.ts`: this file cannot get ahead of the decoder
-or fall behind it, and it cannot fall behind the captures either — a key the material carries with
-no entry here fails the gate. What it deliberately does **not** hold is any count of progress — run
-`bun
-tools/decoding-status.ts` for that.
+**Guarded** by `tests/repository/protocol-keys.test.ts`, which re-counts what this file claims of
+the published help against the frozen table beside it. Coverage over the material is held elsewhere
+and as an assertion rather than a report: `tests/core/fight-decoder.test.ts` fails if anything in
+`captures/` goes unread, and `tests/game/battle-session.test.ts` fails per recording.
 
 ## What every entry states about its own material
 
@@ -76,7 +75,7 @@ One tail is not a name, and asking for it makes a true silence unstateable: `-al
 effect reaches, so the engine name of `removedot-allies` is its **head**, and `allies` — which the
 article carries on every documented sibling — is what the claim would have had to call absent. Where
 the tail is one of those suffixes the head is what has to have been searched
-(`tests/protocol-key-register.ts`).
+(`tests/repository/protocol-keys.test.ts`).
 
 Re-counting alone would not have caught anything. The entry that got `+legbon_holytouch` wrong
 recorded the phrases it searched, exactly as §7.6 asks — `legbon_holytouch` and `legbon` — and both
@@ -143,8 +142,8 @@ did it**. Every entry stating `*Health:* moves health` answers it on one line, f
 figure charges nobody with anything, so a line on it would be a claim with no consumer — §7.1's rule
 applied to a document.
 
-`tests/core/protocol-key-register.test.ts` re-earns every token from `src/core/fight-decoder.ts`
-**in both directions**, so a key cannot be listed as the subject's own here and read some other way
+`tests/repository/protocol-keys.test.ts` re-earns every token from `src/core/fight-decoder.ts` **in
+both directions**, so a key cannot be listed as the subject's own here and read some other way
 there, nor read that way and left saying `nobody`. A phrase outside the list is **refused** rather
 than read as silence, for the reason the health line gives: it would look more settled than silence
 while checking nothing.
@@ -316,8 +315,8 @@ fourth clause fills a missing end from an announcement an earlier message of the
 which takes three things: a key announcing the effect, a figure on that key, and a documented rule
 making one application the owner of what is ticking. This key has neither the announcement nor the
 rule — see _Evidence:_ — and the missing announcement is re-earned every gate by
-`tests/core/protocol-key-register.test.ts` (`docs/specs/the-ends-a-figure-names.md`, which asks the
-same of every tick the client composes).
+`tests/core/anguish-rule.test.ts` (`git show develop:docs/specs/the-ends-a-figure-names.md`, which
+asks the same of every tick the client composes).
 
 _Health:_ moves health
 
@@ -351,7 +350,8 @@ the announcement: the client's key list carries no `+fire`, so nothing states th
 happened, let alone with what figure. The captures as the set stood 2026-08-19 show what reading the
 neighbouring message instead would come to — all 12 ticks fall on one victim, the figure changes
 across the fight (96, then 97, then 117 twice, then 124 for the last eight), and the blow standing
-before them belongs to eight different combatants (`docs/specs/the-ends-a-figure-names.md`).
+before them belongs to eight different combatants
+(`git show develop:docs/specs/the-ends-a-figure-names.md`).
 
 _Health:_ moves health
 
@@ -371,7 +371,7 @@ captures settle that: all 12 occurrences sit on one combatant in
 witness disagreed on every one of them and on nothing else. Reading it closed all 12 first try. That
 the type is overwritten rather than extended is the same article's table of damage over time (read
 2026-08-19), and the absence of `+fire` from the client's list is `frozen/protocol-keys.ts`,
-re-earned by `tests/core/protocol-key-register.test.ts`.
+re-earned by `tests/repository/protocol-keys.test.ts`.
 
 ⚠️ **`frost` shares that branch in the client and is not read.** No capture carries one, so an entry
 for it would be a verdict with nothing behind it — it stays unread and loud (§3), which is the only
@@ -414,7 +414,7 @@ the witness disagreed 195 times, on that combatant and on nothing else in the co
 victim, the recording's single opponent — and the witness judges that fight and agrees. Reading it
 closed every one first try and introduced no disagreement anywhere
 (`tests/core/health-witness.test.ts`). The absence of `+light` from the client's list is
-`frozen/protocol-keys.ts`, re-earned by `tests/core/protocol-key-register.test.ts`.
+`frozen/protocol-keys.ts`, re-earned by `tests/repository/protocol-keys.test.ts`.
 
 ### `anguish` — decoded
 
@@ -547,7 +547,8 @@ is. Measured over `captures/` as the set stood 2026-08-19: every tick lands on a
 carrying a wound, and every one states exactly what that wound announced — on material where a
 victim was wounded by three different attackers, which is what makes _freshest_ a claim rather than
 a coincidence. Re-earned by `tests/core/injure-rule.test.ts`, and the join is made in
-`src/core/fight-statistics.ts` rather than in the decoder (`docs/specs/the-ends-a-figure-names.md`).
+`src/core/fight-statistics.ts` rather than in the decoder
+(`git show develop:docs/specs/the-ends-a-figure-names.md`).
 
 ### `healall_per` — decoded
 
@@ -570,9 +571,9 @@ always was. What its absence buys is the right to size the casts around it; what
 is the right to refuse **the casts on the sides its caster faced**, which the help scopes and the
 protocol names. In that recording the reducer is one of ours cast at the monster, so nothing of ours
 was reduced and all three of its casts are sized — and twenty of their figures are checked against
-the snapshots of the calls they stood alone in, exactly (`docs/specs/sizing-a-share-onto-a-side.md`,
-`tests/core/combatant-health.test.ts`). A cast on the side a reduction _did_ reach is refused, and
-no recording anywhere holds one.
+the snapshots of the calls they stood alone in, exactly
+(`docs/adr/0010-sizing-a-share-onto-a-side.md`, `tests/core/combatant-health.test.ts`). A cast on
+the side a reduction _did_ reach is refused, and no recording anywhere holds one.
 
 ⚠️ **One shape of this key's own value is unmet and would be misread.** The same production build
 splits the value on a comma and composes a different sentence when there are two members —
@@ -624,7 +625,7 @@ combatant's remaining 8749 would be 2624. It floors: a share landing on 5629.5 m
 at the entry health reproduces every reading whose entry health the capture holds, and the readings
 that separate the two caps sat exactly at their entry health while short of maximum and gained
 nothing. Dropping the cap entirely reports 81% more healing than happened. Held by
-`tests/core/team-heal-rule.test.ts`, which also holds the exclusion: something has to be excluded
+`tests/core/combatant-health.test.ts`, which also holds the exclusion: something has to be excluded
 for a missing entry health and something has to survive it, or the cap is confirmed against nothing.
 
 ### `bandage` — decoded
@@ -1176,7 +1177,7 @@ named thing somebody used (§10).
 name in the **target** slot, so a message stating two different combatants would not say whose use
 it was, and taking the actor would be the guess §5 refuses. Where one combatant is all the message
 names — both ends the same, or one end unstated — there was never a second name to get wrong. A
-message naming two goes back to unread (`tests/core/custom-announcement-rule.test.ts`).
+message naming two goes back to unread (`tests/core/fight-decoder.test.ts`).
 
 _Shape:_ 7 occurrences; on a skill announcement; text
 
@@ -1685,7 +1686,7 @@ the other side.
 
 ⚠️ **The scope is the help's and the caster is the protocol's, and reading the two together is what
 narrows the refusal** (`[ASK]` under §9.6, asked and granted 2026-08-27;
-`docs/specs/sizing-a-share-onto-a-side.md`). By the article the reduction lands on the casting
+`docs/adr/0010-sizing-a-share-onto-a-side.md`). By the article the reduction lands on the casting
 side's opponents, and in the only recording carrying the key one of ours declares it at the monster
 — so our own healing was never reduced, and all three of that fight's `healall_per` casts are sized.
 Twenty of their figures are checked against the snapshots of the calls they stood alone in and every
@@ -1892,7 +1893,7 @@ and `removestun`, passing no parameters at all — no `%val%` hole anywhere in i
 agree that no value ever arrives. Article view,372 (read 2026-08-25) prints `removeslow`,
 `removeslow-allies` and `removestun-allies` and no `removedot` of any spelling; the stem is what was
 searched, since `allies` says whom the effect reaches rather than what it is
-(`tests/protocol-key-register.ts`). Both occurrences are in
+(`tests/repository/protocol-keys.test.ts`). Both occurrences are in
 `captures/2026-08-25-luvia-grupa-vs-draugr.json`, each alone with its announcement.
 
 ⚠️ **A turn is not found in any key of these, or of any other** — measured over every recording on
