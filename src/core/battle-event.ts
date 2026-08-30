@@ -143,7 +143,7 @@ export interface UnaccountedHealthEvent {
     announced: AnnouncedSkill | null;
 }
 
-/** A message this decoder did not read, so a panel can say which total may be short. */
+/** A message left unread, carrying what it was so nothing about it is invented. */
 export interface UnknownMessageEvent {
     kind: "unknown-message";
     message: string;

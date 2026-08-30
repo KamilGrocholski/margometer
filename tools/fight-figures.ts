@@ -3,10 +3,10 @@
  *
  *     deno task figures [recording.json …]
  *
- * The corpus by default, any recording you name instead, for the reason `tools/decoding-status.ts`
- * carries the same argument: the two questions are asked of one file in one sitting, and neither
- * should need the redaction step first. The figures are the replay's, so this and the panel cannot
- * disagree about a fight (`tools/fight-replay.ts`).
+ * It takes what `tools/decoding-status.ts` takes and for the argument written there: the two
+ * questions are asked of one file in one sitting, and neither should need intake first. The
+ * figures are the replay's, so this and the panel cannot disagree about a fight
+ * (`tools/fight-replay.ts`).
  */
 
 import { assert } from "@std/assert";
