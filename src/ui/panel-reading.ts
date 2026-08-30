@@ -304,7 +304,7 @@ function composeRowDetail(figures: CombatantFigures, level: number | null): RowD
     };
 }
 
-/** By figure, then by id, so a fight redrawn without changing states the same order. */
+/** By figure, then by id — a tie broken by something that does not move between draws. */
 function compareRows(one: UnsharedRow, other: UnsharedRow): number {
     assert(Number.isFinite(one.figure), "a row compared states a figure");
     if (one.figure !== other.figure) return other.figure - one.figure;

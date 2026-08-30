@@ -487,8 +487,11 @@ commit that opens or closes one.
 
    **It is a large finding rather than a small one.** Measured over the comment blocks in `libs/`,
    `project/`, `src/` and `tools/` on 2026-08-30, sixty-eight pairs of blocks shared a run of eight
-   words or more, and fifty do after two passes over the heaviest of them. The ones read by hand
-   were real: the same explanation of why a pin on an unwritten fight would be a control that does
+   words or more, and twenty-three do after six passes. Every pair left shares two runs or fewer,
+   where the heaviest shared twenty-four: below that a shared run is as likely to be one phrase the
+   domain gives both blocks as a copy, which is where a reader that finds too much begins. The ones
+   read by hand were real, and half of them turned out to be pairs of sibling one-liners rather than
+   passages: the same explanation of why a pin on an unwritten fight would be a control that does
    nothing, in `ui/panel-reading.ts` and in the entry; the two error bases each spelling out that no
    base is ever thrown, which **E2** owns. Each is editorial work — which copy survives, and whether
    the second should cite instead — so the band closes a few at a time rather than in one round.

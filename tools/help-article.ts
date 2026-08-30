@@ -310,11 +310,8 @@ function requireHelpArticleField(value: unknown, field: string, article: string)
     return value;
 }
 
-/**
- * The manifest dates every claim made from this dump, so a `fetchedAt` it does not carry stops
- * here rather than reaching the age check as `undefined`. **C13**, over a manifest, as in
- * `tools/game-client-source.ts`.
- */
+/** No `fetchedAt`, no age check: **C13** over a manifest, as `tools/game-client-source.ts` puts
+ * it for the build id beside this one. */
 export function requireCachedHelpArticle(value: unknown, article: string): CachedHelpArticle {
     if (!isRecord(value)) {
         throw new HelpArticleError(`cache manifest for ${article} is not an object`);

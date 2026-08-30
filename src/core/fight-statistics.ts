@@ -891,8 +891,8 @@ function getHalfNamedBalance(build: StatisticsBuild): number {
 
 /**
  * The figures, and what a share stated about a side came to once it was sized. The sizing is
- * `combatant-health.ts`'s, because it needs three figures the protocol never states; totalling it
- * is this file's, because a total across combatants is never the panel's.
+ * `combatant-health.ts`'s, because it needs three figures the protocol never states; the
+ * totalling is this file's, for the reason the `totals` field above gives.
  */
 export function composeFightStatistics(
     events: readonly BattleEvent[],
