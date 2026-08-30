@@ -136,8 +136,8 @@ still moved under a key the game named, so the section lists those keys as `sour
 
 Separate from every verdict above, and it removes the row rather than shutting it: `getIsRepetition`
 in `src/ui/panel-element.ts` drops a whole cross-section whose one row would equal the figure
-standing over it. One exemption — the skills section under `damageDealtApplied` stays when
-`Zwykły cios` counts blows, because that count is something the figure above does not say.
+standing over it. `DESIGN.md` owns that rule and the two exemptions the skills section carries, so a
+row in the register above may be produced here and still not reach the panel.
 
 ## What the code cannot draw
 

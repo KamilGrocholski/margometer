@@ -37,6 +37,12 @@ export interface SkillFigures {
     name: string;
     uses: number;
     dealt: number;
+    /**
+     * Swings that went out under this announcement, and the reason it is kept apart from `uses`:
+     * an announcement that led to no blow at all is not a thing damage was dealt with. Counted the
+     * way `blowsStruck` is, so a figure stated against a name reaches neither.
+     */
+    blows: number;
     dealtByOpponent: Map<string, number>;
     /** What it put back, and into whom: one announcement can do both, and each is counted once. */
     restored: number;
@@ -253,6 +259,7 @@ function getSkillFigures(skills: Map<string, SkillFigures>, name: string): Skill
         name,
         uses: 0,
         dealt: 0,
+        blows: 0,
         dealtByOpponent: new Map(),
         restored: 0,
         restoredByOpponent: new Map(),
@@ -273,6 +280,21 @@ function addSkillDealt(
     const held = getSkillFigures(skills, announced.skillName);
     held.dealt += amount;
     if (other !== null) addToCut(held.dealtByOpponent, other, amount);
+}
+
+/**
+ * The swing itself, counted where the blow is and nowhere else — a figure the protocol states
+ * against a name is not one, which is the line `blowsStruck` already draws. It is what tells an
+ * attack that landed nothing from an announcement that was never going to land anything.
+ */
+function addSkillBlow(skills: Map<string, SkillFigures>, announced: AnnouncedSkill): void {
+    assert(
+        announced.skillName.length > 0,
+        "a swing is counted under the announcement that named it",
+    );
+    const held = getSkillFigures(skills, announced.skillName);
+    held.blows += 1;
+    assert(held.blows > 0, "a swing that was counted was counted at least once");
 }
 
 /**
@@ -466,7 +488,10 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
         dealer.damageDealtApplied += applied;
         dealer.blowsStruck += 1;
         if (event.announced === null) dealer.blowsWithoutSkill += 1;
-        else addSkillDealt(dealer.skills, event.announced, applied, getOtherEndKey(event.targetId));
+        else {
+            addSkillDealt(dealer.skills, event.announced, applied, getOtherEndKey(event.targetId));
+            addSkillBlow(dealer.skills, event.announced);
+        }
         for (const figure of event.applied) {
             addToCut(dealer.damageDealtByElement, figure.element, figure.amount);
         }

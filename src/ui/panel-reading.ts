@@ -991,6 +991,16 @@ function composeSkillRowsReceived(
     }));
 }
 
+/**
+ * ⚠️ **A section is a cut of the figure over it, so a skill stands in it by what it did and never
+ * by having been announced.** An announcement alone let auras, shouts and heals stand under
+ * `Zadane` at nothing: 285 of the 685 skill rows over `captures/` on 2026-08-30, and 28 of the 81
+ * skills the corpus announces never deal anything at all.
+ *
+ * A swing that landed nothing still stands, which is what `blows` is for — cast eight times and
+ * blocked eight times is a thing the reader did with damage in mind. Not one of those 28 ever
+ * struck a blow or stated a figure against a name, so the two claims come apart cleanly.
+ */
 function composeSkillRows(
     statistics: FightStatistics,
     figures: CombatantFigures,
@@ -1016,7 +1026,7 @@ function composeSkillRows(
             ...composeSourceRows(getGivenSourceCut(figures)),
         ];
     }
-    return own.filter((one) => one.dealt > 0 || one.uses > 0).map((one) => ({
+    return own.filter((one) => one.dealt > 0 || one.blows > 0).map((one) => ({
         part: { kind: "skill" as const, name: one.name },
         uses: one.uses,
         figure: one.dealt,

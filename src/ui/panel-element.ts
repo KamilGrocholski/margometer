@@ -17,6 +17,7 @@ import type {
     PanelSides,
     PinnedRow,
     ShelfRow,
+    SkillCut,
     SkillReading,
     SkillRow,
     UnnamedRow,
@@ -521,6 +522,24 @@ function getIsRepetition(
     return rows.length === 1 && (rows[0]?.figure ?? 0) === total;
 }
 
+/**
+ * The skills section answers to the same rule with two exemptions, and both are the same argument:
+ * a row is a repetition only where it says nothing the heading does not.
+ *
+ * `Zwykły cios 2 644 (100% · ×8)` says eight blows. **A named skill says its name** — the heading
+ * carries the figure and never what it was dealt with, so one row holding the whole of it is the
+ * one place a reader learns which skill that was. A lone key row is not exempt: `DESIGN.md` puts
+ * the keys on screen a section lower.
+ */
+function getIsSkillRepetition(cut: SkillCut, total: number): boolean {
+    if ((cut.plain?.blows ?? 0) > 0) return false;
+    if (cut.rows.length === 1) {
+        const only = cut.rows[0];
+        if (only?.part.kind === "skill") return false;
+    }
+    return getIsRepetition(cut.rows, cut.plain, total);
+}
+
 function composeSectionElement(
     document: PanelDocument,
     heading: string,
@@ -755,8 +774,7 @@ function composeSkillSection(
     const cut = drill.bySkill;
     assert(cut.rows.length <= MAXIMUM_SKILLS, "a cut stays inside the bound it is kept to");
     if (cut.rows.length === 0 && cut.plain === null) return;
-    const counts = (cut.plain?.blows ?? 0) > 0;
-    if (!counts && getIsRepetition(cut.rows, cut.plain, drill.total)) return;
+    if (getIsSkillRepetition(cut, drill.total)) return;
     list.append(composeSectionElement(document, PANEL_WORDS.skills, drill.total));
     const share = PANEL_WORDS.shareOfFigure;
     for (const [at, row] of cut.rows.entries()) {

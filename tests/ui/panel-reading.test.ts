@@ -45,6 +45,14 @@ const BOTH_KINDS_OF_PAIR = "captures/2026-08-15-tempest-grupa-vs-hildur-3.json";
 const POISONED = "captures/2026-08-04-tempest-lowca-vs-odyncze.json";
 const POISONED_ID = -255967;
 const POISON = "-255967=19.27;0;poison=140,14";
+/**
+ * `2026-08-12-experimental-tancerz-vs-wojownik.json`: an announcement and the swing under it,
+ * which a block stopped in full.
+ */
+const BLOCKED = [
+    "114881=95.35;195782=96.83;tspell=Błyskawiczny cios;skillId=209",
+    "114881=95.35;195782=96.83;+dmg=1259;+dmgo=839;+acdmg=17;-blok=378;-dmg=0",
+];
 
 function readFight(path: string) {
     const combatants = getRecordedCombatants(path);
@@ -690,6 +698,58 @@ Deno.test("what reached somebody is cut by the skill's name, whoever announced i
     assert(names.includes("Leczenie ran"), "the skill both healers announced is one row");
     const held = drill.bySkill.rows.reduce((sum, one) => sum + one.figure, 0);
     assert(held <= drill.total, "and the rows hold no more than the figure they cut");
+});
+
+/**
+ * ⚠️ **A section is a cut of the figure over it, so a skill stands in it by what it did.** An
+ * announcement on its own once put every aura, shout and heal under `Zadane` at nothing — 285 of
+ * the 685 skill rows over `captures/` on 2026-08-30 — and a reader could not tell a skill that
+ * dealt nothing from one that was never going to deal anything.
+ */
+Deno.test("a skill under damage dealt states damage, or a swing that landed none", () => {
+    let drawn = 0;
+    for (const path of getRecordingPaths()) {
+        const { roster, statistics } = readFight(path);
+        for (const combatantId of roster.byId.keys()) {
+            const drill = composeDrillReading(
+                statistics,
+                roster,
+                "damageDealtApplied",
+                combatantId,
+            );
+            if (drill === null) continue;
+            for (const row of drill.bySkill.rows) {
+                drawn += 1;
+                if (row.part.kind !== "skill") continue;
+                const held = statistics.byCombatantId.get(combatantId)?.skills.get(row.part.name);
+                assert(held !== undefined, `${path}: a row under a name nothing announced`);
+                if (held.dealt > 0) continue;
+                assert(held.blows > 0, `${path}: ${row.part.name} deals nothing and never swung`);
+            }
+        }
+    }
+    assert(drawn > 0, "the material draws rows on this screen at all, or the walk found none");
+});
+
+/**
+ * The other side of the same rule, and the material carries no fight where a skill's every swing
+ * was stopped — so the sample is the two messages that shape one. `deno task drill` over
+ * `captures/` on 2026-08-30: 53 of the 81 skills announced deal something, and none of the other
+ * 28 ever swung.
+ */
+Deno.test("a skill whose swings all landed nothing still stands, at nothing", () => {
+    const roster = composeCombatantRoster([
+        { id: 114881, name: "Gracz 1", side: 1, profession: "t", level: 100, healthMaximum: 5000 },
+        { id: 195782, name: "Gracz 2", side: 2, profession: "w", level: 100, healthMaximum: 5000 },
+    ]);
+    const events = decodeFightMessages(BLOCKED, roster);
+    const statistics = composeFightStatistics(events, new Map());
+    const drill = composeDrillReading(statistics, roster, "damageDealtApplied", 114881);
+    assert(drill !== null, "the combatant who swung has a row that opens");
+    const names = drill.bySkill.rows.map((one) => getTextForNamedPart(one.part));
+    assertEquals(names, ["Błyskawiczny cios"], "the skill that swung is the one row drawn");
+    assertEquals(drill.bySkill.rows[0]?.figure, 0, "standing at what the block left of it");
+    assertEquals(drill.bySkill.rows[0]?.uses, 1, "and saying it was announced once");
 });
 
 Deno.test("healing given and received come to one figure in every recording", () => {

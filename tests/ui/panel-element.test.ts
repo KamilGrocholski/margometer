@@ -1531,6 +1531,52 @@ Deno.test("a cut that only repeats the figure above it is not drawn at all", () 
     );
 });
 
+/**
+ * The skills section is exempt, and for the reason the closing row is: the heading carries the
+ * figure and never what it was dealt with, so one row holding the whole of it is where a reader
+ * learns which skill that was. A key row is not — `DESIGN.md` puts the keys a section lower.
+ */
+Deno.test("a lone skill row is not a repetition, because the heading never names one", () => {
+    const { reading, drill } = openFirstRow();
+    const headings = (open: typeof drill) => {
+        const document = composeFakeDocument();
+        const panel = composePanelHost(document, () => {}, () => {});
+        panel.show({
+            reading,
+            current: "damageDealtApplied",
+            side: "everyone" as const,
+            hasReaderSide: false,
+            shelf: [],
+            isOnShelf: false,
+            storage: "local" as const,
+            shelfWarnings: [],
+            drill: open,
+            pair: null,
+            skill: null,
+            place: null,
+            isCollapsed: false,
+        });
+        return getElementsWithin(panel.element as FakeElement)
+            .filter((one) => one.className === "section-heading")
+            .map((one) => one.children[0]?.textContent);
+    };
+    const only = drill.bySkill.rows[0];
+    assert(only !== undefined, "the fight cuts this figure by the skills it was dealt with");
+    assertEquals(only.part.kind, "skill", "and the row standing first is an announcement");
+    const alone = {
+        ...drill,
+        total: only.figure,
+        byOpponent: { rows: [], unnamed: null },
+        byElement: { rows: [], unnamed: null },
+        bySkill: { rows: [only], plain: null },
+    };
+    assertEquals(headings(alone), [PANEL_WORDS.skills], "so the section is drawn all the same");
+
+    const key = { ...only, part: { kind: "source" as const, source: "heal" } };
+    const keyed = { ...alone, bySkill: { rows: [key], plain: null } };
+    assertEquals(headings(keyed), [], "while a lone key row says nothing the heading does not");
+});
+
 Deno.test("a blow nothing announced closes the skills, and says how many there were", () => {
     const { reading, drill } = openFirstRow();
     const document = composeFakeDocument();

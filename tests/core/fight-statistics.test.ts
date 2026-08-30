@@ -63,6 +63,48 @@ Deno.test("damage stated against a name is charged to the skill that announced i
     assertEquals(skill?.dealtByOpponent.get("114881"), 1529, "cut by the name it was stated of");
     assertEquals(dealer?.blowsStruck, 0, "no blow was struck: this rides one aimed elsewhere");
     assertEquals(dealer?.blowsWithoutSkill, 0, "so no blow is counted as standing behind nothing");
+    assertEquals(skill?.blows, 0, "and the skill's own count of swings holds none either");
+});
+
+/** An announcement of the game's own that nothing of the damage family follows. */
+const AURA =
+    "466476=94.30;466476=94.30;tspell=Aura ochrony;skillId=76;aura-ac_per=20;aura-resall=15";
+/** `2026-08-06-tempest-grupa-vs-hildur.json`: the announcement `ABSORBED` swings under. */
+const ANNOUNCED = "467968=100.00;-10000249=100.00;tspell=Zatruta strzała;skillId=232";
+/**
+ * `2026-08-12-experimental-tancerz-vs-wojownik.json`: the same shape with a block in front of it,
+ * so the swing went out and landed nothing.
+ */
+const BLOCKED = [
+    "114881=95.35;195782=96.83;tspell=Błyskawiczny cios;skillId=209",
+    "114881=95.35;195782=96.83;+dmg=1259;+dmgo=839;+acdmg=17;-blok=378;-dmg=0",
+];
+
+/**
+ * The two counts a skill row keeps apart, and the panel reads the second: an announcement that
+ * never swung is not a thing damage was dealt with, whatever it declared.
+ */
+Deno.test("an announcement counts a use, and a swing only where one went out", () => {
+    const alone = composeFightStatistics(decodeFightMessages([AURA], null), new Map());
+    const aura = alone.byCombatantId.get(466476)?.skills.get("Aura ochrony");
+    assertEquals(aura?.uses, 1, "the announcement was made once");
+    assertEquals(aura?.blows, 0, "and nothing was struck under it");
+    assertEquals(aura?.dealt, 0, "so it dealt nothing, which is a reading and not a gap");
+    const struck = composeFightStatistics(
+        decodeFightMessages([ANNOUNCED, ABSORBED], null),
+        new Map(),
+    );
+    const arrow = struck.byCombatantId.get(467968)?.skills.get("Zatruta strzała");
+    assertEquals(arrow?.uses, 1, "the same one announcement");
+    assertEquals(arrow?.blows, 1, "with one swing behind it");
+    assertEquals(arrow?.dealt, 1012, "landing what that blow landed");
+});
+
+Deno.test("a swing that landed nothing is still a swing under its announcement", () => {
+    const statistics = composeFightStatistics(decodeFightMessages(BLOCKED, null), new Map());
+    const skill = statistics.byCombatantId.get(114881)?.skills.get("Błyskawiczny cios");
+    assertEquals(skill?.dealt, 0, "a block stopped the whole of it");
+    assertEquals(skill?.blows, 1, "and the swing that was stopped still went out");
 });
 
 Deno.test("health moving without an attacker is taken by somebody and dealt by nobody", () => {

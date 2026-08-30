@@ -114,6 +114,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   wiadomości. Teraz „Leczenie dane" pokazuje, czym ktoś leczył i kogo, a „Leczenie otrzymane" — od
   kogo życie przyszło i pod jaką nazwą.
 
+- **Poprawka** — Sekcja „czym" na obrażeniach zadanych pokazuje tylko to, czym ktoś bił. Stały tam
+  przy zerze aury, okrzyki i leczenie — wszystko, co postać w walce zapowiedziała — więc niemal
+  połowa sekcji nie mówiła o obrażeniach nic. Umiejętność, którą ktoś uderzył, a cios został w
+  całości zatrzymany, zostaje: stoi przy zerze i mówi, ile razy poszła w ruch.
+
 ## [0.10.1] — 2026-08-28
 
 - **Poprawka** — Górna belka panelu, ta z nazwą i przyciskami, znów mieści się w jednej linii. W

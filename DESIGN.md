@@ -259,9 +259,12 @@ to a hundred. Both rules are held by `tests/ui/share-column.test.ts`, over every
 seat and rung.
 
 **A cut that only repeats the figure above it is not drawn.** The section a level is _about_ is
-always drawn; the cross-sections beside it answer to this. The exemption is the row that closes a
-skills section, and only where it counts something: `Zwykły cios 2 644 (100% · ×8)` says eight blows
-where the figure above says none.
+always drawn; the cross-sections beside it answer to this. Two exemptions, and they are one argument
+— a row repeats the heading only where it says nothing the heading does not.
+`Zwykły cios 2 644 (100% · ×8)` says eight blows where the figure above says none. **A named skill
+says its name**: the heading carries the figure and never what it was dealt with, so a skills
+section holding one row is where a reader learns which skill that was. A lone **key** row is not
+exempt — the keys stand again a section lower.
 
 **Section heading.** Over each cut of an opened figure, carrying the figure it stands over, and
 stuck to the top of the list while its own section scrolls: a figure read under the wrong heading is
