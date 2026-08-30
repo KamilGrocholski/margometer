@@ -21,18 +21,13 @@
 - [ ] Rewrite v2 after v0.10.1, on a special branch
 
 ## Up Next
-- [ ] Preview page on github pages still refreshes its state after any capture change
 
 ## Done
-- [x] Make this repo smaller - it has too much code, comments, docs, and tools
-- [x] Remove REGEX (partly) from this repo - replace with my own parsing
-- [x] Click on the fights tab toggles the state - open fights view; go to the prev view
-- [x] Show the last read battle after a reload - walking into a fight still puts you on the live one
-- [x] Store and show the exact battle location (e.g., coordinates, area, or map position)
-- [x] Preview panel resets its state, whenever I change the current caputred fight
+- [x] Preview page on github pages still refreshes its state after any capture change
 
 ## Later
 - [ ] Start writing code against tests before v1.0.0 - tests first, at this point I SHOULD know what I want exactly
+- [ ] Consider adding raw dmg, absorbed, interrupts, and other views - use select as a ui selector component, instead of buttons ("Obrazenia" -> "Zadane", etc.)
 - [ ] Add views for: abilities ranking - uses, dmg, heal, etc; legbon ranking - procs;
 - [ ] Consider adding `turn` to stats - maybe I will find a solution to read turns after the latest fail
 - [ ] Add "ucieczka" as a new fight outcome
@@ -45,6 +40,14 @@
 
 ---
 ## History
+
+### Done v0.10.0
+- [x] Make this repo smaller - it has too much code, comments, docs, and tools
+- [x] Remove REGEX (partly) from this repo - replace with my own parsing
+- [x] Click on the fights tab toggles the state - open fights view; go to the prev view
+- [x] Show the last read battle after a reload - walking into a fight still puts you on the live one
+- [x] Store and show the exact battle location (e.g., coordinates, area, or map position)
+- [x] Preview panel resets its state, whenever I change the current caputred fight
 
 ### Done v0.9.0
 - [x] Audit before v0.9.0 release
