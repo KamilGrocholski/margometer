@@ -100,4 +100,4 @@ edited to agree with the new rule.
 - [0025](0025-a-mark-is-the-answer-its-boundary-gives.md) — A mark is the answer its boundary gives,
   and not every one is a console line. **Accepted**
 - [0026](0026-a-kept-fight-is-the-payloads-and-a-figure-is-memoised.md) — A kept fight is the
-  payloads, and a figure is memoised rather than stored. **Proposed**
+  payloads, and a figure is memoised rather than stored. **Accepted**

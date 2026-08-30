@@ -58,8 +58,16 @@ The add-on **reads**. This is the whole security model, and everything else is a
   trusted into a figure.
 - Nothing is written that the reader did not produce by playing. No identifiers of ours, no
   fingerprint, no counter.
-- A kept fight stores the **inputs** and never the computed numbers, so a reading is always
-  re-derived by the current code rather than restored from an older version's arithmetic.
+- A kept fight stores the **payloads the game delivered** and never a computed number, so a reading
+  is always re-derived by the current code rather than restored from an older version's arithmetic.
+  **ADR 0026.**
+- A shelf that will not fit asks for less: the oldest fight nobody pinned goes and the same shelf is
+  offered again, rather than a size chosen against a quota nothing here assumes.
+- **The shelf therefore holds the game's own prose and real nicknames** for as long as it holds a
+  fight. It is the reader's own fight in the reader's own browser, and it is already in the page —
+  but it is written without the reader asking for a file, which is a decision and not a side effect.
+  Nothing of it leaves the browser: `captures/` is the only thing that travels, and intake redacts
+  it.
 
 ## Captured material
 
