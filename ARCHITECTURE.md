@@ -43,6 +43,7 @@ deno.lock          What the gate is actually run against. A package the lock doe
 
 libs/              Knows nothing of this project. Imports `@std/` and its own siblings.
   json-text.ts     JSON both ways, each answering whether it worked rather than with `null`.
+  number-range.ts  A number held between two ends, and which end wins where there is no room.
   number-text.ts   Numbers read out of text and written back into it, refusing before reading.
   text-walk.ts     Walking text a character at a time, by a predicate the caller hands over.
   unknown-reading.ts   Reading a value nobody typed, answering null rather than throwing.
@@ -159,6 +160,7 @@ tests/
     panel-words.test.ts       What the words must never say, and how Polish counts.
   libs/                    A test sits where its subject sits.
     json-text.test.ts         Both directions, over the answers `null` used to stand for.
+    number-range.test.ts      Every side of two ends, and the range with no room in it.
     number-text.test.ts       Text that looks like a number, against text that is one.
     unknown-reading.test.ts   What counts as a shape worth reading, list and null included.
   repository/              Guards whose subject is this repository, not a layer of it.

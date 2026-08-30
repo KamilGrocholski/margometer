@@ -3,6 +3,7 @@
 import { assert } from "@std/assert";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { getJsonReading } from "@/libs/json-text.ts";
+import { getValueWithin } from "@/libs/number-range.ts";
 import { getNumberFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import type { PanelElement, PanelEvent, PanelRoot } from "@/src/ui/panel-element.ts";
 import { PLACE, SPACE } from "@/src/ui/panel-look.ts";
@@ -33,11 +34,11 @@ const TOP_VARIABLE = "--MargoMeter-panel-top";
 const STYLE_ATTRIBUTE = "style";
 const GRIP_ATTRIBUTE = "data-grip";
 
-/** Zero wins a viewport narrower than the margin: a limit below zero puts the panel off-screen. */
-function getValueWithin(value: number, limit: number): number {
+/** Whole pixels are the panel's concern, so the rounding stays here and not in the range. */
+function getPositionWithin(value: number, limit: number): number {
     assert(Number.isFinite(value), "a position being clamped is a number");
     assert(Number.isFinite(limit), "and is clamped against one");
-    return Math.round(Math.max(0, Math.min(value, Math.max(0, limit))));
+    return Math.round(getValueWithin(value, 0, limit));
 }
 
 /** A null viewport clamps nothing: a width read as zero would look exactly like one that works. */
@@ -51,8 +52,8 @@ export function composeClampedPosition(
         return { left: Math.round(position.left), top: Math.round(position.top) };
     }
     return {
-        left: getValueWithin(position.left, viewport.width - MINIMUM_VISIBLE),
-        top: getValueWithin(position.top, viewport.height - MINIMUM_VISIBLE),
+        left: getPositionWithin(position.left, viewport.width - MINIMUM_VISIBLE),
+        top: getPositionWithin(position.top, viewport.height - MINIMUM_VISIBLE),
     };
 }
 

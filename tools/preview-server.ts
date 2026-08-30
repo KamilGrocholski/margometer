@@ -8,6 +8,7 @@
  * `tools/preview-page.ts`, which `tools/preview-site.ts` writes down instead of serving.
  */
 
+import { getValueWithin } from "@/libs/number-range.ts";
 import { assert } from "@std/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
@@ -220,7 +221,7 @@ function composePageResponse(state: PreviewState, address: URL): Response {
     const fight = getFightByName(state.fights, address.searchParams.get("fight"));
     if (fight === null) return new Response("no such recording", { status: 404 });
     const asked = getIntegerFromText(address.searchParams.get("entry") ?? "0") ?? 0;
-    const entryIndex = Math.max(0, Math.min(asked, fight.calls.length));
+    const entryIndex = getValueWithin(asked, 0, fight.calls.length);
     assert(entryIndex >= 0, "a replay stops at or after the first call");
     assert(entryIndex <= fight.calls.length, "and at or before the last");
     return new Response(

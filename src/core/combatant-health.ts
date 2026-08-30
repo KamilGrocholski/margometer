@@ -5,6 +5,7 @@
  * figure that is too high, which is the one direction a panel cannot mark.
  */
 
+import { getValueWithin } from "@/libs/number-range.ts";
 import { assert } from "@std/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
@@ -154,7 +155,7 @@ function composeTeamHeal(
             continue;
         }
         const share = Math.floor((event.declaredShare * combatant.healthMaximum) / PERCENT_SHARE);
-        const amount = Math.max(0, Math.min(share, entry - now));
+        const amount = getValueWithin(share, 0, entry - now);
         assert(amount <= share, "nobody is given more than the share the protocol stated");
         restored.set(combatant.id, amount);
     }
