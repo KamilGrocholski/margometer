@@ -18,6 +18,7 @@ import {
     getWordsForCardMetric,
     getWordsForDestroyed,
     PANEL_WORDS,
+    type TranslateLabel,
     WARNING_MARK,
 } from "@/src/ui/panel-words.ts";
 import { CRITICAL_PROC_KEYS } from "@/src/core/fight-decoder.ts";
@@ -29,6 +30,8 @@ export interface CardSubject {
     metric: PanelMetric;
     warnings: readonly string[];
     opens: boolean;
+    /** Asked only for a key this repository has no word for. Null on a page with no game on it. */
+    translate: TranslateLabel | null;
 }
 
 interface CardFigure {
@@ -142,11 +145,12 @@ function composeCardCounterLines(detail: RowDetail): TipLine[] {
  */
 function composeCardWordedParts(
     parts: readonly CutPart[],
+    translate: TranslateLabel | null,
 ): Array<{ label: string; figure: number }> {
     assert(parts.length <= MAXIMUM_CARD_PARTS, "a card draws a cut inside its stated bound");
     const byLabel = new Map<string, number>();
     for (const part of parts) {
-        const label = getWordsForBlowKey(part.key);
+        const label = getWordsForBlowKey(part.key, translate);
         assert(label.length > 0, "a part a card draws is drawn under something");
         byLabel.set(label, (byLabel.get(label) ?? 0) + part.figure);
     }
@@ -157,9 +161,13 @@ function composeCardWordedParts(
 }
 
 /** Everything but the keys the line above it already counted, which would otherwise read twice. */
-function composeCardProcLines(parts: readonly CutPart[], without: readonly string[]): TipLine[] {
+function composeCardProcLines(
+    parts: readonly CutPart[],
+    without: readonly string[],
+    translate: TranslateLabel | null,
+): TipLine[] {
     const kept = parts.filter((part) => !without.includes(part.key));
-    return composeCardWordedParts(kept).map((one) => ({
+    return composeCardWordedParts(kept, translate).map((one) => ({
         kind: "stat",
         label: one.label,
         stated: composeFigureText(one.figure),
@@ -181,7 +189,7 @@ function composeCardCriticalText(detail: RowDetail): string | null {
  * their blows took off the other side. The share is of **blows** rather than of anything the game
  * counts in time — nothing here counts a turn (`PRODUCT.md`).
  */
-function composeCardStrikingLines(detail: RowDetail): TipLine[] {
+function composeCardStrikingLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
     const lines: TipLine[] = [];
     const critical = composeCardCriticalText(detail);
     if (critical !== null) {
@@ -193,7 +201,7 @@ function composeCardStrikingLines(detail: RowDetail): TipLine[] {
         });
         const offhand = detail.procsWhenStriking.filter((part) => part.key === OFFHAND_CRIT_KEY);
         lines.push(
-            ...composeCardWordedParts(offhand).map((one): TipLine => ({
+            ...composeCardWordedParts(offhand, translate).map((one): TipLine => ({
                 kind: "sub",
                 label: one.label,
                 stated: composeFigureText(one.figure),
@@ -208,7 +216,7 @@ function composeCardStrikingLines(detail: RowDetail): TipLine[] {
             isStrong: false,
         });
     }
-    lines.push(...composeCardProcLines(detail.procsWhenStriking, CRITICAL_PROC_KEYS));
+    lines.push(...composeCardProcLines(detail.procsWhenStriking, CRITICAL_PROC_KEYS, translate));
     lines.push(...composeCardDestroyedLines(detail.statisticsDestroyed));
     return lines;
 }
@@ -236,7 +244,7 @@ function composeCardDestroyedLines(parts: readonly CutPart[]): TipLine[] {
  * What held: the sum a counter states with the defences it is made of under it, then what fired
  * on their side of somebody else's blow, then the hardest one that got through.
  */
-function composeCardStruckLines(detail: RowDetail): TipLine[] {
+function composeCardStruckLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
     assert(detail.damagePrevented >= 0, "what a defence stopped is never below nothing");
     const lines: TipLine[] = [];
     if (detail.damagePrevented > 0) {
@@ -247,7 +255,7 @@ function composeCardStruckLines(detail: RowDetail): TipLine[] {
             isStrong: false,
         });
         lines.push(
-            ...composeCardWordedParts(detail.damagePreventedByDefence).map((
+            ...composeCardWordedParts(detail.damagePreventedByDefence, translate).map((
                 one,
             ): TipLine => ({
                 kind: "sub",
@@ -256,7 +264,7 @@ function composeCardStruckLines(detail: RowDetail): TipLine[] {
             })),
         );
     }
-    lines.push(...composeCardProcLines(detail.procsWhenStruck, []));
+    lines.push(...composeCardProcLines(detail.procsWhenStruck, [], translate));
     if (detail.damageTakenBlowLargest > 0) {
         lines.push({
             kind: "stat",
@@ -274,10 +282,14 @@ function composeCardStruckLines(detail: RowDetail): TipLine[] {
  * protocol says less on that side, and a section invented to match the damage ones would be
  * matching it out of nothing. `DESIGN.md` owns why the rest of the card does not move.
  */
-function composeCardScreenLines(detail: RowDetail, metric: PanelMetric): TipLine[] {
+function composeCardScreenLines(
+    detail: RowDetail,
+    metric: PanelMetric,
+    translate: TranslateLabel | null,
+): TipLine[] {
     assert(SCREEN_ORDER.includes(metric), "a card stands on a screen the strips draw");
-    if (metric === "damageDealtApplied") return composeCardStrikingLines(detail);
-    if (metric === "damageTakenApplied") return composeCardStruckLines(detail);
+    if (metric === "damageDealtApplied") return composeCardStrikingLines(detail, translate);
+    if (metric === "damageTakenApplied") return composeCardStruckLines(detail, translate);
     if (metric === "healthGiven") return [];
     return [];
 }
@@ -315,7 +327,7 @@ export function composeCardReading(subject: CardSubject): TipReading {
     for (
         const lines of [
             composeCardCounterLines(subject.detail),
-            composeCardScreenLines(subject.detail, subject.metric),
+            composeCardScreenLines(subject.detail, subject.metric, subject.translate),
             composeCardNoteLines(subject),
         ]
     ) {

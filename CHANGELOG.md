@@ -33,6 +33,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Sześć rzeczy, które padały przy ciosach, ma wreszcie nazwy: cztery bonusy legendarne
+  oraz dwie, których gra nie opisuje w poradniku. Dotąd stały w okienku postaci jako surowy zapis z
+  gry, w rodzaju `-tenacity`. Teraz pyta o nie Twojego własnego klienta gry i pokazuje to, czym
+  nazywa je Twoja wersja — nie wymyślamy nic sami. Gdzie klient nie odpowiada, zostaje po staremu.
+
 - **Nowość** — Wiersz, który da się rozwinąć, mówi to wprost. Po najechaniu na niego okienko kończy
   się linijką „LPM — rozbicie" — i stoi ona tylko tam, gdzie naciśnięcie faktycznie coś otwiera.
   Dotąd mówił to wyłącznie wiersz z głównej listy, więc w rozwiniętym wierszu połowa pozycji

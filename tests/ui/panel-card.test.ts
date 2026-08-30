@@ -92,6 +92,7 @@ Deno.test("a card states all four figures, and the one on screen is the one in b
         metric: "damageTakenApplied",
         warnings: [],
         opens: true,
+        translate: null,
     });
     assertEquals(card.name, "Hildur Muza Śmierci", "the name in full");
     assertEquals(card.subtitle, "Paladyn (83)", "what they are and how far along, under it");
@@ -152,6 +153,7 @@ Deno.test("what somebody is stands beside how far along they are, or whichever w
             metric: "damageDealtApplied",
             warnings: [],
             opens: false,
+            translate: null,
         }).subtitle;
     assertEquals(subtitleOf("b", 41), "Tancerz ostrzy (41)", "both, in one line and in that order");
     assertEquals(subtitleOf("b", null), "Tancerz ostrzy", "a profession with no level beside it");
@@ -163,6 +165,43 @@ Deno.test("what somebody is stands beside how far along they are, or whichever w
     assertEquals(subtitleOf("z", 41), "z (41)", "a profession nobody has worded is passed through");
 });
 
+/**
+ * The whole path: a key this repository has no word for, through the card, to what a reader sees.
+ * `captures/` carries all six — `-tenacity` on 20 blows, 2026-08-30 — so today every one of them
+ * stands in a card as raw protocol. **ADR 0024.**
+ */
+Deno.test("a key nothing here words is drawn as the player's own client names it", () => {
+    const struck = {
+        ...NOBODY,
+        damageDealtApplied: 100,
+        blowsStruck: 1,
+        procsWhenStriking: [{ key: "-tenacity", figure: 1 }],
+    };
+    const cardWith = (translate: ((id: string) => string | null) | null) =>
+        composeCardReading({
+            name: "Gracz 9",
+            profession: null,
+            detail: struck,
+            metric: "damageDealtApplied",
+            warnings: [],
+            opens: false,
+            translate,
+        }).groups.flatMap((group) => readGroup(group));
+    assert(
+        cardWith(null).some((line) => line.includes("-tenacity")),
+        "with no client to ask, the card draws the key as the game wrote it",
+    );
+    const named = cardWith((id) => (id === "msg_-tenacity" ? "wytrwałość" : null));
+    assert(
+        named.some((line) => line.includes("wytrwałość")),
+        "and with one, the client's own name",
+    );
+    assert(
+        !named.some((line) => line.includes("-tenacity")),
+        "in place of the raw key, not beside",
+    );
+});
+
 Deno.test("a combatant the fight never touched states four zeros and nothing else", () => {
     const card = composeCardReading({
         name: "Gracz 9",
@@ -171,6 +210,7 @@ Deno.test("a combatant the fight never touched states four zeros and nothing els
         metric: "damageDealtApplied",
         warnings: [],
         opens: false,
+        translate: null,
     });
     assertEquals(card.subtitle, null, "and a line drawn for neither is a question, not an answer");
     assertEquals(card.groups.length, 1, "and nothing they did is nothing to put under a rule");
@@ -198,6 +238,7 @@ Deno.test("a part of a figure is drawn from the first point of it, and never bel
                 metric: "damageDealtApplied",
                 warnings: [],
                 opens: false,
+                translate: null,
             }).groups[0] ?? { lines: [] },
         );
     assertEquals(at(0)[1], "Otrzymane 0", "nothing named nobody is nothing to say");
@@ -212,6 +253,7 @@ Deno.test("what the screen doubts is said again where the figures it doubts are"
         metric: "healthRestored",
         warnings: ["Nie udało się odczytać wszystkiego."],
         opens: false,
+        translate: null,
     });
     const notes = card.groups[1];
     assert(notes !== undefined, "a doubt about the screen is a doubt about every figure on it");
@@ -235,6 +277,7 @@ Deno.test("the screen decides what the card says about how they fought, and only
             metric,
             warnings: [],
             opens: false,
+            translate: null,
         }).groups.map(readGroup);
     const [, , dealt] = readScreen("damageDealtApplied");
     assert(dealt !== undefined, "the screen about striking says how they struck");
@@ -272,6 +315,7 @@ Deno.test("a rate is taken of blows, and a rate of no blows is no rate at all", 
             metric: "damageDealtApplied",
             warnings: [],
             opens: false,
+            translate: null,
         }).groups.flatMap((group) => readGroup(group)).filter((line) =>
             line.startsWith(CARD_WORDS.blowsCritical)
         );
@@ -303,6 +347,7 @@ Deno.test("two keys the panel words the same way are one line, not two of one wo
         metric: "damageDealtApplied",
         warnings: [],
         opens: false,
+        translate: null,
     });
     const [, counters, screen] = card.groups;
     assert(counters !== undefined, "they struck, so the counters stand");

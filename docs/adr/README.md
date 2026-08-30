@@ -95,3 +95,5 @@ edited to agree with the new rule.
   ticking, and to the attacker who left it. **Accepted**
 - [0023](0023-a-profession-is-said-in-one-channel.md) — A profession is said in one channel, and the
   card is the answer. **Accepted**
+- [0024](0024-the-panel-asks-the-client-only-where-it-has-no-word.md) — The panel asks the client
+  only where it has no word. **Accepted**

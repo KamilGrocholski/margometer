@@ -51,6 +51,7 @@ import {
     writeKeptFights,
 } from "@/src/game/kept-fights.ts";
 import { composeReportText } from "@/src/game/fight-report.ts";
+import { getDictionaryReader } from "@/src/game/game-dictionary.ts";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
 import {
@@ -919,6 +920,9 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
         },
         (failure) => environment.report(FAILURE_LINE, failure),
         placement,
+        // Once per mount: the dictionary is built with the page and not with the fight, and a page
+        // without one never grows one. Null is the panel drawing its own words (ADR 0024).
+        getDictionaryReader(environment.page),
     );
     assert(!isMounted, "nothing is on the page until a payload arrives");
     return attachToGame(environment.page, environment.schedule, {

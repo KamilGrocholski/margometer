@@ -55,6 +55,7 @@ import {
     getWordsForUnannounced,
     PANEL_WORDS,
     type PanelRegion,
+    type TranslateLabel,
     WARNING_MARK,
 } from "@/src/ui/panel-words.ts";
 import {
@@ -567,6 +568,7 @@ function composeRankingElement(
     reading: PanelReading,
     metric: PanelMetric,
     register: TipRegister,
+    translate: TranslateLabel | null,
 ): PanelElement {
     const list = composeListElement(document, reading.visibleRows);
     assert(reading.rows.length <= MAXIMUM_ROWS, "a screen stays inside the fight's stated bound");
@@ -591,6 +593,7 @@ function composeRankingElement(
                     metric,
                     warnings: reading.warnings,
                     opens: true,
+                    translate,
                 }),
         };
         list.append(composeRowElement(document, reader, `${row.combatantId}`, tip));
@@ -1009,6 +1012,7 @@ function composeViewList(
     document: PanelDocument,
     view: PanelView,
     register: TipRegister,
+    translate: TranslateLabel | null,
 ): PanelElement {
     assert(SCREEN_ORDER.includes(view.current), "a view is on a screen the strip draws");
     assert(view.shelf.length >= 0, "and carries the fights behind it, however few");
@@ -1018,7 +1022,7 @@ function composeViewList(
     if (view.drill !== null) {
         return composeDrillElement(document, view, view.drill, register);
     }
-    return composeRankingElement(document, view.reading, view.current, register);
+    return composeRankingElement(document, view.reading, view.current, register, translate);
 }
 
 function composeSkillElement(
@@ -1264,6 +1268,10 @@ export function composePanelHost(
     handlePress: (press: PanelPress) => void,
     handleFailure: (failure: unknown) => void,
     placement: PanelPlacement | null = null,
+    // Once per mount, because the dictionary is built with the page and not with the fight, and a
+    // page without one never grows one. Null is the panel drawing its own words, which is what
+    // every test and every browser without the game sees.
+    translate: TranslateLabel | null = null,
 ): PanelHandle {
     const host = document.createElement("div");
     assert(HOST_NAME.startsWith("MargoMeter-"), "the host is named as ours before anything else");
@@ -1323,7 +1331,7 @@ export function composePanelHost(
             );
             frame.className = view.isCollapsed ? `${CLASS.frame} ${CLASS.folded}` : CLASS.frame;
             if (view.isCollapsed) setPanelFolded(document, regions, redraw);
-            else setPanelBody(document, regions, view, register, redraw);
+            else setPanelBody(document, regions, view, register, translate, redraw);
             tip.refresh();
             assert(regions.list !== regions.sides, "the regions are that many elements");
             assert(regions.title !== regions.header, "and none of them stands in for another");
@@ -1381,6 +1389,7 @@ function setPanelBody(
     regions: PanelRegions,
     view: PanelView,
     register: TipRegister,
+    translate: TranslateLabel | null,
     redraw: PanelRedraw,
 ): void {
     assert(SCREEN_ORDER.includes(view.current), "a body is drawn for a screen the strips draw");
@@ -1406,7 +1415,11 @@ function setPanelBody(
         "tabs",
         () => isFight ? composeSlotElement(document) : composeStorageStripElement(document, view),
     );
-    regions.list = redraw(regions.list, "list", () => composeViewList(document, view, register));
+    regions.list = redraw(
+        regions.list,
+        "list",
+        () => composeViewList(document, view, register, translate),
+    );
     setPinnedRegions(document, regions, view, register, redraw);
     const hasSides = view.reading.sides !== null && !view.isOnShelf;
     regions.sides = redraw(

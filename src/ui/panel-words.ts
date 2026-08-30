@@ -247,13 +247,73 @@ export const PROC_WORDS: Record<string, string> = {
     "-contra": "kontra",
 };
 
-/** A key neither table holds reaches the reader as the game wrote it. **ADR 0011.** */
-export function getWordsForBlowKey(key: string): string {
+/**
+ * A name out of the running client, or null where it has none to give.
+ *
+ * Declared here rather than imported: `ARCHITECTURE.md` names no direction from `ui/` to `game/`,
+ * so the panel says what it needs and the entry point supplies it.
+ */
+export type TranslateLabel = (id: string) => string | null;
+
+/**
+ * What a label may run to before the sheet cuts it with an ellipsis. Not a look: `getTipSize`
+ * counts a stat line as one line, so a label the sheet had to fold would stand the card lower than
+ * it was measured for. Every word in this file is inside it; a label out of the client is not
+ * ours to keep short, which is what `getWordsForBlowKey` holds it to.
+ */
+export const MAXIMUM_LABEL_CHARACTERS = 22;
+
+/**
+ * The six keys this repository has no word for, and what the client calls each in its own
+ * dictionary. **The panel asks only here** — every other key it draws it has a word of its own
+ * for, chosen short enough for the column above, and an answer out of somebody else's program is
+ * not. **ADR 0024.**
+ *
+ * Four are legendary bonuses whose published name has not been read; two are the pair article
+ * `view,372` does not carry at all (**ADR 0011**). Wording one **ourselves** would be a claim
+ * about the game; letting the player's own client word it is the game speaking.
+ *
+ * Every id is spelled by the client, checked against `.cache/game-client/production/main.js` at
+ * build `53XkBRxF` on 2026-08-30. Five are `msg_` and the key; `+superspell-dispel` is the one
+ * that is not, and it is why this is a table rather than a rule.
+ */
+export const CLIENT_IDS_FOR_UNWORDED_KEYS: Record<string, string> = {
+    "+legbon_curse": "msg_+legbon_curse",
+    "+legbon_verycrit": "msg_+legbon_verycrit",
+    "-legbon_cleanse": "msg_-legbon_cleanse",
+    "-legbon_glare": "msg_-legbon_glare",
+    "-tenacity": "msg_-tenacity",
+    "+superspell-dispel": "msg_+dispel",
+};
+
+/**
+ * Our word where we have one, the player's own client where we do not, and the key as the game
+ * wrote it where neither answers. **ADR 0011**, **ADR 0024**.
+ */
+export function getWordsForBlowKey(key: string, translate: TranslateLabel | null = null): string {
     assert(key.length > 0, "a key a blow carried is named");
     const words = PROC_WORDS[key] ?? DEFENCE_WORDS[key];
-    if (words === undefined) return key;
-    assert(words.length > 0, "a key either table holds is worded");
-    return words;
+    if (words !== undefined) {
+        assert(words.length > 0, "a key either table holds is worded");
+        return words;
+    }
+    const stated = getClientWordsForKey(key, translate);
+    if (stated !== null) return stated;
+    return key;
+}
+
+/** Null where nobody is asked, where the client has no name, or where the name will not fit. */
+function getClientWordsForKey(key: string, translate: TranslateLabel | null): string | null {
+    if (translate === null) return null;
+    const id = CLIENT_IDS_FOR_UNWORDED_KEYS[key];
+    if (id === undefined) return null;
+    const label = translate(id);
+    if (label === null) return null;
+    // The column is ours and the answer is not: a longer label would be cut by the sheet and
+    // would stand the card at a height it was not measured for.
+    if (label.length > MAXIMUM_LABEL_CHARACTERS) return null;
+    assert(label.length > 0, "a label the client gave is a label");
+    return label;
 }
 
 /**

@@ -70,6 +70,7 @@ src/
     engine-battle-wrap.ts  The one function here that changes the running game.
     engine-place.ts      Where a fight happened, asked of the client's own state.
     fight-capture.ts     The fight as it happened, in the shape a recording is admitted in.
+    game-dictionary.ts   What the player's own client calls a key this repository has no word for.
     kept-fights.ts       The fights a reader can go back to: inputs kept, figures never.
     fight-report.ts      The figures as text a reader can paste, with what qualifies them.
     engine-warrior.ts    The client's own field names, and the only file that spells them.
@@ -123,6 +124,7 @@ tests/
     fight-capture.test.ts     The envelope, against the newest recording admitted.
     kept-fights.test.ts       A shelf that answers, refuses, or holds what nobody wrote.
     engine-warrior.test.ts    A payload's warriors, against the snapshots beside them.
+    game-dictionary.test.ts   The shape of an entry, and a client that answers, misses or throws.
   core/                    A test sits where its subject sits.
     battle-event.test.ts      Every variant the union holds, against what arrives.
     combatant-health.test.ts  The arithmetic, against the client's own three figures.
@@ -422,8 +424,9 @@ commit that opens or closes one.
    on the other side, and on the screen about being struck what a defence stopped, cut by the
    defence (**ADR 0019**). Two proc keys reach no row — `-tenacity` and `+superspell-dispel`, whose
    end article view,372 does not settle — and they are decoded and charged to nobody until material
-   does. What is left of the release plumbing is `README.md`, which is unwritten, and nothing yet
-   consumes the photographs `.github/workflows/pages.yml` does not publish.
+   does, though the player's own client names them and five others on the card (**ADR 0024**). What
+   is left of the release plumbing is `README.md`, which is unwritten, and nothing yet consumes the
+   photographs `.github/workflows/pages.yml` does not publish.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld

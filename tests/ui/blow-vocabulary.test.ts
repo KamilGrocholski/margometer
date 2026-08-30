@@ -11,26 +11,21 @@ import { assert, assertEquals } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages, PROC_ENDS } from "@/src/core/fight-decoder.ts";
 import {
+    CLIENT_IDS_FOR_UNWORDED_KEYS,
     composeDestroyedText,
     DEFENCE_WORDS,
     DESTROYED_WORDS,
     getWordsForBlowKey,
     getWordsForDestroyed,
+    MAXIMUM_LABEL_CHARACTERS,
     PROC_WORDS,
 } from "@/src/ui/panel-words.ts";
+import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
     getRecordingPaths,
 } from "@/tests/recorded-fight.ts";
-
-/**
- * What a label may run to before the stylesheet cuts it with an ellipsis. Not a look: `getTipSize`
- * counts a stat line as one line, so a label the sheet had to fold would stand the card lower than
- * it was measured for. The sheet holds this whatever the number, and the number keeps the words
- * inside the column rather than inside the ellipsis.
- */
-const MAXIMUM_LABEL_CHARACTERS = 22;
 
 interface BlowKeys {
     procs: Set<string>;
@@ -99,6 +94,92 @@ Deno.test("what was destroyed carries the unit it was counted in, and never the 
         composeDestroyedText("newstat", 5),
         "5",
         "a statistic nobody has placed states none",
+    );
+});
+
+/**
+ * The six keys nothing here words, and the client that does. Both directions, because the two
+ * failures are different: a key dropping out of the table reaches a reader as raw protocol, and a
+ * key joining it that we already word would put somebody else's sentence over our own. **ADR
+ * 0024.**
+ */
+Deno.test("the panel asks the client for a key it has no word for, and for no other", () => {
+    const asked = Object.keys(CLIENT_IDS_FOR_UNWORDED_KEYS);
+    const worded = asked.filter((key) => PROC_WORDS[key] !== undefined);
+    assertEquals(worded, [], "a key the panel already words is never asked about");
+    const known: readonly string[] = FROZEN_PROTOCOL_KEYS.keys;
+    const unknown = asked.filter((key) => !known.includes(key));
+    assertEquals(unknown, [], "and every key asked about is one the client itself branches on");
+    const unasked: string[] = [];
+    for (const key of CARRIED.procs) {
+        if (PROC_WORDS[key] !== undefined) continue;
+        if (CLIENT_IDS_FOR_UNWORDED_KEYS[key] !== undefined) continue;
+        unasked.push(key);
+    }
+    assertEquals(unasked, [], "a proc the material carries is worded by us or asked of the client");
+    assertEquals(
+        asked.length,
+        6,
+        "the four legendary bonuses, and the pair view,372 does not name",
+    );
+});
+
+/** A page with no game on it is what every test and every browser without the client sees. */
+Deno.test("a key with no word travels as the game wrote it where nobody can be asked", () => {
+    assertEquals(getWordsForBlowKey("-tenacity", null), "-tenacity", "with no reader at all");
+    assertEquals(
+        getWordsForBlowKey("-tenacity", () => null),
+        "-tenacity",
+        "and with a reader the client has no name for it in",
+    );
+});
+
+/**
+ * The table is the mechanism, not the order of two lookups: a key we word never reaches the client
+ * at all. Asking and preferring our answer would look the same from outside and would put an id on
+ * the client's report queue for every key the panel draws (`src/game/game-dictionary.ts`).
+ */
+Deno.test("a key the panel words is never asked about, reader present or not", () => {
+    const asked: string[] = [];
+    const spy = (id: string) => {
+        asked.push(id);
+        return "somebody else's word";
+    };
+    assertEquals(getWordsForBlowKey("+crit", spy), "krytyk", "a proc we word is worded by us");
+    assertEquals(getWordsForBlowKey("blok", spy), "blok", "and so is a defence");
+    assertEquals(asked, [], "and neither was put to the client");
+    assertEquals(getWordsForBlowKey("-tenacity", spy), "somebody else's word", "one we do not");
+    assertEquals(asked, ["msg_-tenacity"], "reaches it, under the id the table names");
+});
+
+/**
+ * The negative space, and the reason the ids are a table rather than `msg_` and the key: an id the
+ * client does not know is queued with a timer armed to report it (`src/game/game-dictionary.ts`).
+ * A key the game adds tomorrow is worded by nobody here and is in no table, so it must reach the
+ * reader as raw protocol without anything being put to the client at all.
+ */
+Deno.test("a key nothing here has placed is not put to the client either", () => {
+    const asked: string[] = [];
+    const spy = (id: string) => {
+        asked.push(id);
+        return "a name";
+    };
+    assertEquals(getWordsForBlowKey("+newkey", spy), "+newkey", "it travels as the game wrote it");
+    assertEquals(asked, [], "and no id of it was ever asked for");
+});
+
+/**
+ * The column is ours and the answer is not. A label past it is not merely cut: `getTipSize` counts
+ * a stat line as one, so the card would stand at a height it was not measured for.
+ */
+Deno.test("a label longer than the column is refused, and one that fits is taken", () => {
+    const fitting = "x".repeat(MAXIMUM_LABEL_CHARACTERS);
+    const overlong = "x".repeat(MAXIMUM_LABEL_CHARACTERS + 1);
+    assertEquals(getWordsForBlowKey("-tenacity", () => fitting), fitting, "a label at the bound");
+    assertEquals(
+        getWordsForBlowKey("-tenacity", () => overlong),
+        "-tenacity",
+        "and one past it falls back on the key rather than standing the card wrong",
     );
 });
 
