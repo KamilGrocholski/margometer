@@ -33,6 +33,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Zmiana** — Na belce jest teraz jeden przycisk zamiast dwóch: `⭳` zapisuje walkę do pliku.
+  Wcześniej obok niego stał drugi, który kopiował same liczby do schowka — teraz jeden plik niesie
+  jedno i drugie, policzone liczby i surowy zapis prosto z gry. Do zgłoszeń wystarczy go załączyć.
+
 - **Nowość** — Sześć rzeczy, które padały przy ciosach, ma wreszcie nazwy: cztery bonusy legendarne
   oraz dwie, których gra nie opisuje w poradniku. Dotąd stały w okienku postaci jako surowy zapis z
   gry, w rodzaju `-tenacity`. Teraz pyta o nie Twojego własnego klienta gry i pokazuje to, czym

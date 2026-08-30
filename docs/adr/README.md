@@ -101,3 +101,5 @@ edited to agree with the new rule.
   and not every one is a console line. **Accepted**
 - [0026](0026-a-kept-fight-is-the-payloads-and-a-figure-is-memoised.md) — A kept fight is the
   payloads, and a figure is memoised rather than stored. **Accepted**
+- [0027](0027-the-fight-is-handed-over-in-one-file.md) — The fight is handed over in one file, and
+  intake takes the counted figures back off it. **Accepted**

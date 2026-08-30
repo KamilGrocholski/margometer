@@ -53,8 +53,7 @@ export const PANEL_WORDS = {
     drag: "Przeciągnij, żeby przesunąć",
     collapse: "Zwiń okno",
     expand: "Rozwiń okno",
-    saveRecording: "Do zgłoszeń: zapisz surowe dane walki prosto z gry",
-    copyReport: "Do zgłoszeń: skopiuj policzone liczby z tej walki",
+    saveFight: "Zapisz tę walkę do pliku: policzone liczby i surowy zapis prosto z gry",
 } as const;
 
 /** Lower case: the shelf composes these a row at a time, and the header shouts them in CSS. */

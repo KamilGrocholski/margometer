@@ -65,7 +65,6 @@ function composeEnvironment(page: unknown) {
         return standing;
     };
     const saved: { name: string; text: string }[] = [];
-    const copied: string[] = [];
     let ticks = 0;
     const environment: UserscriptEnvironment = {
         page,
@@ -82,9 +81,6 @@ function composeEnvironment(page: unknown) {
         save: (name, text) => {
             saved.push({ name, text });
         },
-        copy: (text) => {
-            copied.push(text);
-        },
         readSurroundings: () => ({
             world: "tempest",
             gameBuild: "53XkBRxF",
@@ -96,7 +92,7 @@ function composeEnvironment(page: unknown) {
             return ticks;
         },
     };
-    return { environment, shown, reported, held, shelves, getShelf, saved, copied };
+    return { environment, shown, reported, held, shelves, getShelf, saved };
 }
 
 Deno.test("a recording played through the add-on ends on the panel a reader would see", () => {
@@ -302,6 +298,53 @@ function composeRecordingBattle(): Record<string, unknown> {
     };
 }
 
+/** One recording played through and asked for, as the file the browser was handed. */
+function composeSavedFight(): Record<string, unknown> {
+    const battle = composeRecordingBattle();
+    const { environment, shown, saved } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    const control = getElementsWithin(host).find((one) => one.attributes.has("data-save"));
+    assert(control !== undefined, "the bar carries the control that offers the fight");
+    pressElement(host, "pointerdown", control);
+    const reading = getJsonReading(saved[0]?.text ?? "");
+    assert(reading.isOk, "and what it handed over reads back as JSON");
+    assert(isRecord(reading.value), "and as a recording");
+    return reading.value;
+}
+
+Deno.test("the fight is handed over counted as well as raw, and the two agree", () => {
+    const written = composeSavedFight();
+    const entries = written.wpisy;
+    assert(Array.isArray(entries), "the calls the game made are in the file");
+    // What a reader hands over answers both "what did the game say" and "what did this make of
+    // it", which is why the counted half travels with the raw one (ADR 0027).
+    const report = written.raport;
+    assert(isRecord(report), "and the figures the panel drew from those calls stand beside them");
+    assertEquals(report.payloads, entries.length, "built from every call the file carries");
+    assertEquals(report.isOver, true, "of a fight this one saw the end of");
+    const counted = report.combatants;
+    assert(isRecord(counted), "with a row for each combatant the aggregate counted");
+    assert(Object.keys(counted).length > 0, "and this fight had a cast");
+    const totals = report.totals;
+    assert(isRecord(totals), "and the fight's own totals beside them");
+    assertEquals(
+        totals.damageDealtApplied,
+        Object.values(counted).reduce(
+            (sum: number, row) =>
+                sum +
+                (isRecord(row) && typeof row.damageDealtApplied === "number"
+                    ? row.damageDealtApplied
+                    : 0),
+            0,
+        ),
+        "which come to what the rows under them come to",
+    );
+});
+
 Deno.test("a reader asks for the fight, and gets the recording the intake tool reads", () => {
     const battle = composeRecordingBattle();
     const { environment, shown, saved, reported } = composeEnvironment({ Engine: { battle } });
@@ -360,6 +403,24 @@ Deno.test("a reader asks for the fight, and gets the recording the intake tool r
         [{ max: 100, value: 100 }, { max: 100, value: 90 }],
         "and they differ, which is only true if each was copied rather than referenced",
     );
+});
+
+Deno.test("a fight nobody has read is handed over as one, rather than as a fight of zeroes", () => {
+    const battle = composeRecordingBattle();
+    const { environment, shown, saved } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const host = shown[0] as FakeElement;
+    const control = getElementsWithin(host).find((one) => one.attributes.has("data-save"));
+    assert(control !== undefined, "the bar carries the control before a payload ever arrives");
+    pressElement(host, "pointerdown", control);
+    assertEquals(saved.length, 1, "and a press hands a file over even then");
+
+    const reading = getJsonReading(saved[0]?.text ?? "");
+    assert(reading.isOk, "which reads back as JSON");
+    const written = reading.value;
+    assert(isRecord(written), "and as a recording");
+    assertEquals(written.raport, null, "saying no fight was read, which is an answer");
+    assertEquals(written.wpisy, [], "beside the calls it has, which are none");
 });
 
 Deno.test("the shelf has a screen of its own, and its control toggles", () => {

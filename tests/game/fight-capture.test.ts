@@ -10,6 +10,10 @@ import { assert, assertEquals } from "@std/assert";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
+import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { composeTeamHeals } from "@/src/core/combatant-health.ts";
+import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import type { ReportSubject } from "@/src/game/fight-report.ts";
 import {
     type CaptureSurroundings,
     composeCaptureFileName,
@@ -34,6 +38,19 @@ const SURROUNDINGS: CaptureSurroundings = {
     userAgent: "a browser that said so",
 };
 
+/** A fight read from one payload with nobody in it: the smallest subject there is. */
+function composeEmptySubject(): ReportSubject {
+    const roster = composeCombatantRoster([]);
+    return {
+        statistics: composeFightStatistics([], composeTeamHeals([], roster)),
+        roster,
+        place: null,
+        payloads: 1,
+        messagesLost: 0,
+        isOver: false,
+    };
+}
+
 function readCapture(text: string): Record<string, unknown> {
     const reading = getJsonReading(text);
     assert(reading.isOk, "a recording written as text reads back as JSON");
@@ -44,13 +61,23 @@ function readCapture(text: string): Record<string, unknown> {
 
 Deno.test("the envelope is the one every admitted recording already carries", () => {
     const admitted = readCapture(Deno.readTextFileSync(NEWEST));
-    const written = readCapture(composeCaptureText(composeEmptyCapture(), SURROUNDINGS) ?? "");
+    const written = readCapture(
+        composeCaptureText(composeEmptyCapture(), SURROUNDINGS, null) ?? "",
+    );
     // Two keys an admitted recording gains at intake and this never writes: the counts of what
     // was substituted. Everything else is written here, in the same spelling.
     const atIntake = ["pseudonimow", "opisow"];
     const owed = Object.keys(admitted).filter((key) => !atIntake.includes(key));
-    assertEquals(Object.keys(written), owed, "the same keys, in the same order");
-    assertEquals(written.wersja, admitted.wersja, "and the same format number");
+    const composed = Object.keys(written);
+    // The one key that goes the other way: intake takes the counted figures back off a recording
+    // before admitting it, so an admitted one carries none (ADR 0027).
+    assertEquals(composed.filter((key) => key !== "raport"), owed, "the same keys, in that order");
+    assertEquals(
+        composed[composed.indexOf("raport") + 1],
+        "pominietych",
+        "and the figures stand above the calls, where a reader opening the file meets them",
+    );
+    assertEquals(written.wersja, 2, "the envelope that may carry them says which one it is");
     assertEquals(written.dodatek, BUILD_VERSION, "with the build that wrote it, not the format's");
     assertEquals(written.swiat, "tempest", "the world it was taken on");
     assertEquals(written.build, "53XkBRxF", "the client's own build");
@@ -59,9 +86,24 @@ Deno.test("the envelope is the one every admitted recording already carries", ()
 
 Deno.test("a recording that could not read its surroundings says so rather than inventing", () => {
     const blind = { ...SURROUNDINGS, gameBuild: null, userAgent: null };
-    const written = readCapture(composeCaptureText(composeEmptyCapture(), blind) ?? "");
+    const written = readCapture(composeCaptureText(composeEmptyCapture(), blind, null) ?? "");
     assertEquals(written.build, null, "a build nobody stated is absent, never a stand-in");
     assertEquals(written.przegladarka, null, "and so is a browser that said nothing of itself");
+});
+
+Deno.test("the figures travel with the calls, and nothing is written where none were read", () => {
+    const blank = readCapture(composeCaptureText(composeEmptyCapture(), SURROUNDINGS, null) ?? "");
+    assertEquals(blank.raport, null, "a fight nobody read is said to be none, never an empty one");
+
+    const subject = composeEmptySubject();
+    const text = composeCaptureText(composeEmptyCapture(), SURROUNDINGS, subject) ?? "";
+    const written = readCapture(text);
+    const report = written.raport;
+    assert(isRecord(report), "a fight that was read is written into the recording beside it");
+    assertEquals(report.payloads, 1, "with what it was built from");
+    assertEquals(report.combatants, {}, "and a cast of nobody, which is a reading and not a gap");
+    assert(!("dodatek" in report), "what qualifies the numbers stands once, in the envelope");
+    assert(!text.includes('MargoMeter"'), "so the add-on's name is not in the file twice");
 });
 
 Deno.test("every call carrying messages is kept, and a call saying nothing new is dropped", () => {

@@ -170,6 +170,40 @@ Deno.test("the counts are written into the file, and a second run adds to them",
     assertEquals(twice.pseudonimow, 2, "and the carried count is kept rather than written over");
 });
 
+Deno.test("the figures the add-on counted stay out of the material, and the rest stays in", () => {
+    const carrying = composeRecording({ "5": { id: 5, npc: 0, name: "Wiewiorka" } });
+    const held = carrying as Record<string, unknown>;
+    held.raport = { payloads: 1, roster: [{ id: 5, name: "Wiewiorka" }] };
+    const admitted = composeIntake(carrying);
+    assertEquals(
+        admitted.wasReportRemoved,
+        true,
+        "a recording carrying figures is admitted without",
+    );
+    const reading = getJsonReading(admitted.text);
+    assert(reading.isOk, "what was written reads back as JSON");
+    const written = reading.value;
+    assert(isRecord(written), "and as a recording");
+    assert(!("raport" in written), "`captures/` holds raw material and no computed number");
+    assert(!admitted.text.includes("Wiewiorka"), "and the names inside the block go with it");
+    assert(Array.isArray(written.wpisy), "while the calls it was counted off stay");
+
+    // The other sample, which is what says the step finds its subject rather than everything:
+    // a recording carrying no figures is admitted whole, and says nothing was taken out.
+    const plain = composeIntake(composeRecording({ "5": { id: 5, npc: 0, name: "Wiewiorka" } }));
+    assertEquals(plain.wasReportRemoved, false, "a recording carrying none says so");
+    const plainReading = getJsonReading(plain.text);
+    assert(plainReading.isOk, "and it too reads back as JSON");
+    const kept = plainReading.value;
+    assert(isRecord(kept), "and as a recording");
+    assertEquals(Object.keys(kept).filter((key) => key !== "pseudonimow" && key !== "opisow"), [
+        "wersja",
+        "przy",
+        "swiat",
+        "wpisy",
+    ], "with every key it arrived with");
+});
+
 Deno.test("a count nobody can read stops the write rather than being read as none", () => {
     const recording = composeRecording({ "5": { id: 5, npc: 0, name: "Wiewiorka" } });
     const held = recording as Record<string, unknown>;

@@ -53,7 +53,7 @@ import {
     type ShelfWriting,
     writeKeptFights,
 } from "@/src/game/kept-fights.ts";
-import { composeReportText } from "@/src/game/fight-report.ts";
+import type { ReportSubject } from "@/src/game/fight-report.ts";
 import { getDictionaryReader } from "@/src/game/game-dictionary.ts";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
@@ -128,7 +128,6 @@ export interface UserscriptEnvironment {
      */
     composeShelfStore(choice: PanelStorageChoice): BrowserStore;
     save: ((name: string, text: string) => void) | null;
-    copy: ((text: string) => void) | null;
     readSurroundings(): CaptureSurroundings;
     now(): number;
     readClock(atMs: number): { hour: number; minute: number } | null;
@@ -401,7 +400,6 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
     assert(press.kind.length > 0, "a press says what it asks for");
     assert(screen.current.length > 0, "and lands on a panel that is on a screen");
     if (press.kind === "save") return false;
-    if (press.kind === "copy") return false;
     if (press.kind === "pin") return false;
     if (press.kind === "storage") return false;
     if (press.kind === "fold") {
@@ -612,10 +610,7 @@ export interface UserscriptWindow {
         };
     };
     location: { hostname?: string | undefined };
-    navigator: {
-        userAgent?: string | undefined;
-        clipboard?: { writeText(text: string): Promise<void> } | undefined;
-    };
+    navigator: { userAgent?: string | undefined };
     URL: { createObjectURL(part: unknown): string; revokeObjectURL(url: string): void };
     Blob: new (parts: readonly string[], options: { type: string }) => unknown;
 }
@@ -703,31 +698,6 @@ function writeTextToFile(page: UserscriptWindow, name: string, text: string): vo
 }
 
 /**
- * Hands the report to the clipboard. Nothing leaves the browser: the reading boundary forbids the
- * network and says nothing about handing a person their own numbers back (`SECURITY.md`).
- *
- * The clipboard rather than a file, unlike a recording: a report is a few kilobytes and is pasted
- * into a message, where a recording runs to hundreds and is attached to one.
- *
- * ⚠️ **A refusal arrives as a rejected promise, never as a throw**, so the boundary sits on the
- * promise rather than around the call — a `try` here would catch nothing at all. What a reader
- * would get instead is the browser's own unhandled-rejection line, unbranded, in a console this
- * add-on shares with the game and with other add-ons (**E11**). **ADR 0013.**
- */
-function writeTextToClipboard(page: UserscriptWindow, text: string): void {
-    assert(text.length > 0, "text handed to a clipboard says something");
-    const clipboard = page.navigator.clipboard;
-    if (clipboard === undefined) {
-        page.console.error(FAILURE_LINE, "this browser lends no clipboard");
-        return;
-    }
-    assert(typeof clipboard.writeText === "function", "a clipboard states the way to write to it");
-    clipboard.writeText(text).catch((failure: unknown) => {
-        page.console.error(FAILURE_LINE, failure);
-    });
-}
-
-/**
  * A moment on the reader's own clock, as the hour and the minute it fell on.
  *
  * Read through the page's own `Date`, which is the one clock a userscript has, and answered as
@@ -809,7 +779,6 @@ export function startFromWindow(page: UserscriptWindow): GameAttachment {
         store: composeStoreForChoice(page, STORAGE_DEFAULT),
         composeShelfStore: (choice) => composeStoreForChoice(page, choice),
         save: (name, text) => writeTextToFile(page, name, text),
-        copy: (text) => writeTextToClipboard(page, text),
         readSurroundings: () => ({
             world: getWorldFromPage(page),
             gameBuild: getGameBuildFromPage(page),
@@ -848,53 +817,49 @@ function keepFight(
 }
 
 /**
- * The recording, handed to the browser as a file — unredacted by design, which
- * `game/fight-capture.ts` states along with what deals with that and where.
- *
- * A refusal to write leaves a mark rather than an empty file.
+ * What the figures of the live fight are written from, or nothing where none has been read. Null
+ * is a true statement the file carries: the add-on was attached and the game said nothing.
  */
-function saveRecording(environment: UserscriptEnvironment, capture: FightCapture): void {
+function composeReportSubject(session: BattleSession, live: LiveFight): ReportSubject | null {
+    assert(live.openedAt >= 0, "a fight written down opened at a moment, or has not opened");
+    const figures = composeFightFigures(session);
+    if (figures === null) return null;
+    assert(figures.fight.payloads > 0, "and a fight that was read was built from something");
+    return {
+        statistics: figures.statistics,
+        roster: figures.roster,
+        place: live.place,
+        payloads: figures.fight.payloads,
+        messagesLost: figures.fight.messagesLost,
+        isOver: figures.fight.isOver,
+    };
+}
+
+/**
+ * The fight, handed to the browser as a file — the calls the game made and the figures they came
+ * to, unredacted by design, which `game/fight-capture.ts` states along with what deals with that
+ * and where.
+ *
+ * The figures are composed here rather than read off the panel: what a reader hands over is of the
+ * fight going on, and the panel may be standing on one off the shelf. A refusal to write leaves a
+ * mark rather than an empty file.
+ */
+function saveRecording(
+    environment: UserscriptEnvironment,
+    live: LiveFight,
+    session: BattleSession,
+): void {
     const save = environment.save;
     if (save === null) return;
     const surroundings = environment.readSurroundings();
-    const text = composeCaptureText(capture, surroundings);
+    const subject = composeReportSubject(session, live);
+    const text = composeCaptureText(live.capture, surroundings, subject);
     if (text === null) {
         environment.report(FAILURE_LINE, "a recording that would not be written as text");
         return;
     }
     assert(text.length > 0, "a recording written as text says something");
     save(composeCaptureFileName(surroundings), text);
-}
-
-/**
- * The report, handed to the clipboard — including where nothing has been read, which
- * `game/fight-report.ts` says is worth handing over and why.
- */
-function copyReport(
-    environment: UserscriptEnvironment,
-    session: BattleSession,
-    place: FightPlace | null,
-): void {
-    const copy = environment.copy;
-    if (copy === null) return;
-    const figures = composeFightFigures(session);
-    const text = composeReportText(
-        figures === null ? null : {
-            statistics: figures.statistics,
-            roster: figures.roster,
-            place,
-            payloads: figures.fight.payloads,
-            messagesLost: figures.fight.messagesLost,
-            isOver: figures.fight.isOver,
-        },
-        environment.readSurroundings(),
-    );
-    if (text === null) {
-        environment.report(FAILURE_LINE, "a report that would not be written as text");
-        return;
-    }
-    assert(text.length > 0, "a report written as text says something");
-    copy(text);
 }
 
 /**
@@ -1018,8 +983,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     const panel = composePanelHost(
         environment.document,
         (press) => {
-            if (press.kind === "save") saveRecording(environment, live.capture);
-            if (press.kind === "copy") copyReport(environment, session, live.place);
+            if (press.kind === "save") saveRecording(environment, live, session);
             const isShelfPress = setShelfFromPress(shelf, press);
             if (!isShelfPress && !handlePress(screen, press)) return;
             if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");

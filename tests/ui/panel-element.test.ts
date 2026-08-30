@@ -877,8 +877,8 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
     };
     assertEquals(
         controls().map((one) => [...one.attributes.keys()].find((key) => key.startsWith("data-"))),
-        ["data-shelf", "data-copy", "data-save", "data-fold"],
-        "the bar carries the four controls, in that order",
+        ["data-shelf", "data-save", "data-fold"],
+        "the bar carries the three controls, in that order",
     );
     const control = controls().find((one) => one.attributes.has("data-fold"));
     assert(control !== undefined, "an unfolded panel carries the control that folds it");

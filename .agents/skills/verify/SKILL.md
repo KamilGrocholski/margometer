@@ -102,7 +102,7 @@ and everything below them is not, because nothing outside the shadow root can se
 | `.list`, `.empty`, `.pinned-region`, `.section-heading`      | the list and what stands in it    |
 | `.sides`, `.sides-label`, `.sides-track`                     | the totals under the list         |
 | `.warning`, `.undrawn`                                       | a low figure; a region that threw |
-| `.titlebar-version`, `.titlebar-copy`, `.titlebar-raw`       | the version, `⧉` copy, `{ }` save |
+| `.titlebar-version`, `[data-save]`                           | the version, `⭳` save             |
 | `.titlebar-fights`, `.titlebar-button`                       | the shelf, and folding the panel  |
 
 Presses and hovers are addressed by attribute rather than by class: `[data-screen]` for both tab

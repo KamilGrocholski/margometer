@@ -132,7 +132,6 @@ const VERSION_ATTRIBUTE = "data-margometer-version";
 /** What a control asks for. One attribute per control, so the listener never reads a class. */
 const FOLD_ATTRIBUTE = "data-fold";
 const SAVE_ATTRIBUTE = "data-save";
-const COPY_ATTRIBUTE = "data-copy";
 const SHELF_ATTRIBUTE = "data-shelf";
 const SCREEN_ATTRIBUTE = "data-screen";
 const SIDE_ATTRIBUTE = "data-side";
@@ -148,9 +147,13 @@ const TITLE_ATTRIBUTE = "title";
 /** What a row's bar is written on, since a length and a hue are data rather than tokens. */
 const STYLE_ATTRIBUTE = "style";
 const ROWS_VARIABLE = "--MargoMeter-rows";
-/** Braces, because what it saves is the protocol as the game stated it and not a reading of it. */
-const SAVE_MARK = "{ }";
-const COPY_MARK = "⧉";
+/**
+ * ⚠️ **No face in `system-ui, sans-serif` carries U+2B73 on this machine.** Chrome 152 draws it
+ * anyway, from a font further down its own fallback, and `fc-list :charset=2b73` on 2026-08-30
+ * named one — a coding face nobody installs on purpose. `↓` is the mark the UI sans itself
+ * carries. A reader reporting a box here is reporting that, and the swap is one character.
+ */
+const SAVE_MARK = "⭳";
 const SHELF_MARK = "☰";
 const FOLD_MARK = "—";
 const UNFOLD_MARK = "+";
@@ -438,16 +441,10 @@ function composeTitleElement(document: PanelDocument, isCollapsed: boolean): Pan
         words: PANEL_WORDS.openFights,
     }));
     bar.append(composeBarControl(document, {
-        className: `${CLASS.control} ${CLASS.controlCopy}`,
-        mark: COPY_MARK,
-        attribute: COPY_ATTRIBUTE,
-        words: PANEL_WORDS.copyReport,
-    }));
-    bar.append(composeBarControl(document, {
-        className: `${CLASS.control} ${CLASS.controlRaw}`,
+        className: CLASS.control,
         mark: SAVE_MARK,
         attribute: SAVE_ATTRIBUTE,
-        words: PANEL_WORDS.saveRecording,
+        words: PANEL_WORDS.saveFight,
     }));
     bar.append(composeFoldControl(document, isCollapsed));
     return bar;
@@ -1022,7 +1019,6 @@ export type PanelPress =
     | { kind: "back" }
     | { kind: "fold" }
     | { kind: "save" }
-    | { kind: "copy" }
     | { kind: "shelf" };
 
 function composeViewList(
@@ -1173,7 +1169,6 @@ function getPressFromTarget(
     const storage = target.getAttribute(STORAGE_ATTRIBUTE);
     if (storage !== null) return { kind: "storage", name: storage };
     if (target.getAttribute(SAVE_ATTRIBUTE) !== null) return { kind: "save" };
-    if (target.getAttribute(COPY_ATTRIBUTE) !== null) return { kind: "copy" };
     if (target.getAttribute(SHELF_ATTRIBUTE) !== null) return { kind: "shelf" };
     if (target.getAttribute(FOLD_ATTRIBUTE) !== null) return { kind: "fold" };
     if (target.getAttribute(BACK_ATTRIBUTE) !== null) return { kind: "back" };

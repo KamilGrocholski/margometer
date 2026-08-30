@@ -51,8 +51,6 @@ export const CLASS = {
     titleVersion: "titlebar-version",
     control: "titlebar-button",
     controlFights: "titlebar-fights",
-    controlCopy: "titlebar-copy",
-    controlRaw: "titlebar-raw",
     frame: "MargoMeter-body",
     folded: "folded",
     panel: "panel",
@@ -406,10 +404,7 @@ function composeFrameRules(): string {
         `color:var(${VARIABLE_PREFIX}quiet);background:var(${VARIABLE_PREFIX}surface);` +
         `cursor:pointer;}` +
         `.${CLASS.control}:hover{color:var(${VARIABLE_PREFIX}text);}` +
-        `.${CLASS.controlCopy}{margin-left:auto;}` +
-        `.${CLASS.controlFights}{margin-left:var(${VARIABLE_PREFIX}wide);}` +
-        `.${CLASS.controlRaw}{opacity:0.55;}` +
-        `.${CLASS.controlRaw}:hover{opacity:1;}` +
+        `.${CLASS.controlFights}{margin-left:auto;}` +
         // A flex item whose overflow is visible refuses to shrink below its own content, so
         // without `min-height:0` the ceiling on the host stops here and never reaches the list.
         `.${CLASS.frame}{display:flex;flex-direction:column;min-height:0;}` +

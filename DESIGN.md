@@ -170,8 +170,8 @@ Where the fight is being fought is **not** on it: that is the header's, on a lin
 sentence both change with the state — where it has one. Folded, the panel is this bar and nothing
 else: what stands under it is composed empty rather than composed and hidden, because a fight
 redraws every few seconds. The fold is the outermost thing on the bar in every window a reader has
-met, so the other three stand left of it: the shelf, then the two that hand the fight over. Those
-three have no state to say, so their marks read the same always.
+met, so the other two stand left of it: the shelf, then the one that hands the fight over. Those two
+have no state to say, so their marks read the same always.
 
 **Header.** What the fight is, as a headcount, and how it went. Where it is being fought goes on a
 second line and nowhere else: beside the headcount a map's name plus a tile had about thirty

@@ -2,7 +2,8 @@
  * The fight as it happened, kept so a reader can write it to a file.
  *
  * **The shape is a contract, not an invention:** what this composes is what every recording in
- * `captures/` already is, Polish field names and all (`captures/AGENTS.md`).
+ * `captures/` already is, Polish field names and all (`captures/AGENTS.md`), plus the `raport`
+ * intake takes back off it.
  *
  * ⚠️ **Nothing is redacted here, and that is the design.** The file carries real nicknames and
  * the game's own prose, and never enters git — intake deals with both, once (`SECURITY.md`).
@@ -13,13 +14,18 @@ import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import type { CapturedCombatant } from "@/src/game/engine-warrior.ts";
+import { composeReportFight, type ReportSubject } from "@/src/game/fight-report.ts";
 import { isFightStart } from "@/src/game/battle-session.ts";
 
-/** Measured over `captures/` 2026-08-29: all 28 recordings state 1. */
-const CAPTURE_FORMAT_VERSION = 1;
+/**
+ * 2 is the envelope that may carry `raport`, and intake strips that block: measured over
+ * `captures/` 2026-08-30, every recording admitted states 1 and none will ever carry one. The
+ * number says which writer wrote a file, never what shape it is in. **ADR 0027.**
+ */
+const CAPTURE_FORMAT_VERSION = 2;
 /**
  * The envelope's own field names, spelled here and read by whatever reads a recording back —
- * **N13**, which is why they are a constant rather than nine string literals in two files.
+ * **N13**, which is why they are a constant rather than a string literal in each of two files.
  */
 export const CAPTURE_FIELDS = {
     formatVersion: "wersja",
@@ -28,6 +34,7 @@ export const CAPTURE_FIELDS = {
     world: "swiat",
     gameBuild: "build",
     userAgent: "przegladarka",
+    report: "raport",
     droppedCalls: "pominietych",
     isFull: "urwany",
     calls: "wpisy",
@@ -165,11 +172,13 @@ export function composeNextCapture(
  *
  * **Two fields are about the reader rather than the fight**, and they are here because the file
  * arrives in a report: `dodatek` is which build wrote it, `przegladarka` what the browser said of
- * itself. Nothing here is derived from the fight — a computed number belongs in a report.
+ * itself. `raport` is the one derived thing here, travelling with the calls it came from so a
+ * figure that looks wrong is read beside its material. **ADR 0027.**
  */
 export function composeCaptureText(
     capture: FightCapture,
     surroundings: CaptureSurroundings,
+    subject: ReportSubject | null,
 ): string | null {
     assert(surroundings.world.length > 0, "a recording names the world it was taken on");
     assert(surroundings.capturedAt.length > 0, "and the moment it was taken at");
@@ -185,6 +194,8 @@ export function composeCaptureText(
         [CAPTURE_FIELDS.world]: surroundings.world,
         [CAPTURE_FIELDS.gameBuild]: surroundings.gameBuild,
         [CAPTURE_FIELDS.userAgent]: surroundings.userAgent,
+        // Above the calls, which run to hundreds of kilobytes. Null says no fight was read.
+        [CAPTURE_FIELDS.report]: subject === null ? null : composeReportFight(subject),
         [CAPTURE_FIELDS.droppedCalls]: capture.droppedCalls,
         [CAPTURE_FIELDS.isFull]: capture.isFull,
         [CAPTURE_FIELDS.calls]: capture.calls.map((call) => ({

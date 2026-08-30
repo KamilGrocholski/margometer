@@ -333,10 +333,34 @@ export function removeSkillDescriptions(recording: unknown): DescriptionRemoval 
     return { recording, removed };
 }
 
+export interface ReportRemoval {
+    recording: unknown;
+    wasRemoved: boolean;
+}
+
+/**
+ * The recording without the figures the add-on counted off it. `captures/AGENTS.md` holds this
+ * directory to raw material: a computed number admitted here would be one version's arithmetic
+ * frozen beside the evidence it was derived from, and the next reader could not tell which of the
+ * two a test had failed against. **ADR 0027.**
+ */
+export function removeReport(recording: unknown): ReportRemoval {
+    if (!isRecord(recording)) return { recording, wasRemoved: false };
+    if (!(CAPTURE_FIELDS.report in recording)) return { recording, wasRemoved: false };
+    const kept: Record<string, unknown> = {};
+    for (const [field, value] of Object.entries(recording)) {
+        if (field === CAPTURE_FIELDS.report) continue;
+        kept[field] = value;
+    }
+    assert(!(CAPTURE_FIELDS.report in kept), "a recording admitted carries no counted figure");
+    return { recording: kept, wasRemoved: true };
+}
+
 export interface Intake {
     text: string;
     changed: number;
     removed: number;
+    wasReportRemoved: boolean;
     substitutions: Map<string, string>;
 }
 
@@ -361,12 +385,15 @@ function getCarriedCount(envelope: Record<string, unknown>, field: string): numb
 }
 
 /**
- * Both redactions, in the order that matters. Nicknames first: any other order leaves a step where
- * a real nickname is still in the data "only for a moment", and a moment is enough for whatever
- * runs next to write it somewhere. Counts are summed rather than overwritten.
+ * Three steps, in the order that matters. The figures go first because dropping them is the one
+ * step that only takes data away — it carries nicknames of its own, and every step after it has
+ * that much less to walk. Then nicknames: any other order between the two that **rewrite** leaves
+ * a step where a real nickname is still in the data "only for a moment", and a moment is enough
+ * for whatever runs next to write it somewhere. Counts are summed rather than overwritten.
  */
 export function composeIntake(recording: unknown): Intake {
-    const named = composePseudonymisedRecording(recording);
+    const counted = removeReport(recording);
+    const named = composePseudonymisedRecording(counted.recording);
     const described = removeSkillDescriptions(named.recording);
     if (!isRecord(described.recording)) {
         throw new CaptureIntakeError("the recording is not an object");
@@ -388,6 +415,7 @@ export function composeIntake(recording: unknown): Intake {
         text: `${writing.text}\n`,
         changed: named.changed,
         removed: described.removed,
+        wasReportRemoved: counted.wasRemoved,
         substitutions: named.substitutions,
     };
 }
@@ -480,7 +508,8 @@ function writeIntake(source: string, slug: string): void {
     console.log(`wrote ${target}`);
     console.log(
         `  ${intake.changed} nickname occurrences substituted, ` +
-            `${intake.removed} ability descriptions removed`,
+            `${intake.removed} ability descriptions removed, ` +
+            `counted figures ${intake.wasReportRemoved ? "removed" : "absent"}`,
     );
     // To the screen and nowhere else: a dictionary tying a nickname to a label would be worse to
     // keep than the nickname was.
