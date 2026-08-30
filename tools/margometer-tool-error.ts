@@ -7,6 +7,7 @@ export type MargoMeterToolErrorCode =
     | "UserscriptBuild"
     | "PreviewBuild"
     | "CaptureIntake"
+    | "RecordingRead"
     | "PanelShot"
     | "GameSource"
     | "ProtocolKeyTable"
@@ -44,6 +45,17 @@ export class PreviewBuildError extends MargoMeterToolError {
 export class CaptureIntakeError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super("CaptureIntake", reason, options);
+    }
+}
+
+/**
+ * A recording refused: a path that is not there, a file that is not JSON, or one carrying no call
+ * the add-on would have seen. The reader's own rather than each caller's — every tool that opens a
+ * recording fails the same way, and **E2** asks for a class per failure, not a class per caller.
+ */
+export class RecordingReadError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super("RecordingRead", reason, options);
     }
 }
 

@@ -87,6 +87,9 @@ tools/             Never ships. Each arrives with the question it answers.
   build-userscript.ts  The file a reader installs, the version written in, and two checks.
   capture-intake.ts    How a recording becomes material: two redactions, then a file.
   recorded-fights.ts   The recordings as a tool reads them: a name, and the calls made.
+  fight-replay.ts      A recording put back through the layers that read it live.
+  decoding-status.ts   What the decoder could not read, counted over whatever it is handed.
+  fight-figures.ts     What a fight adds up to, per combatant, as a table at a terminal.
   preview-page.ts      The harness page, whole, as one string. It speaks neither language.
   preview-server.ts    That page served, rebuilt on a change under `src/`, and reloaded.
   preview-site.ts      That page written down, one per recording, for somebody with no clone.
@@ -142,6 +145,9 @@ tests/
     capture-intake.test.ts    What intake refuses, and every admitted recording as a fixed point.
     captured-fight-register.test.ts  The census, re-earned from the directory it describes.
     recorded-fights.test.ts   The directory read, and the claim a rewind by replay stands on.
+    fight-replay.test.ts      One fight by two routes through the core, and every recording.
+    decoding-status.test.ts   A sample it must flag, and the corpus it must not.
+    fight-figures.test.ts     The table read back, and the reading block that prints at zero.
     preview-page.test.ts      The page, read back: the order of its scripts, and its escaping.
     preview-server.test.ts    Every route, against a bundle handed in rather than built.
     preview-site.test.ts      A page per recording, addressed relatively and asking nothing.

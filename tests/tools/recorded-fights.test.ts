@@ -10,11 +10,12 @@ import { assert, assertEquals, assertThrows } from "@std/assert";
 import { isFightStart } from "@/src/game/battle-session.ts";
 import {
     getNewestRecordedFight,
+    getRecordedFightAt,
     getRecordedFightCalls,
     getRecordedFightNames,
     getRecordedFights,
 } from "@/tools/recorded-fights.ts";
-import { PreviewBuildError } from "@/tools/margometer-tool-error.ts";
+import { PreviewBuildError, RecordingReadError } from "@/tools/margometer-tool-error.ts";
 
 Deno.test("the recordings are the directory, not a list somebody typed", () => {
     const names = getRecordedFightNames();
@@ -58,4 +59,25 @@ Deno.test("every recording opens on a payload that resets the session", () => {
         if (!isFightStart(fight.calls[0])) without.push(fight.name);
     }
     assertEquals(without, [], "a recording whose first call would not rewind the preview");
+});
+
+/**
+ * The route that need not be material: what decides whether an intake is worth starting is what
+ * the file carries, and asking that after the redaction step is the wrong way round.
+ */
+Deno.test("a recording opens at a path, named for its file and not for where it sat", () => {
+    const path = "captures/2026-08-06-tempest-grupa-vs-hildur.json";
+    const fight = getRecordedFightAt(path);
+    assertEquals(fight.name, "2026-08-06-tempest-grupa-vs-hildur", "the suffix is not a name");
+    assertEquals(fight.calls, getRecordedFightCalls(fight.name), "both routes read one file");
+});
+
+Deno.test("a file that is not a recording refuses under the reader's own brand", () => {
+    const missing = assertThrows(
+        () => getRecordedFightAt("captures/no-such-recording-was-ever-made.json"),
+        RecordingReadError,
+    );
+    assert(missing.message.includes("open"), "a path that is not there says so");
+    const unreadable = assertThrows(() => getRecordedFightAt("deno.lock"), RecordingReadError);
+    assert(unreadable.message.includes("calls"), "and a file listing no call says that instead");
 });
