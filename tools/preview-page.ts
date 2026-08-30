@@ -313,7 +313,19 @@ var setFedTo = function (target) {
  * arriving. A caller that offered no address navigates instead.
  */
 function composePreviewPicks(): string {
-    const picks = `var getFightByAddress = function (address) {
+    const picks = [
+        composePreviewPicksReaders(),
+        composePreviewPicksHandlers(),
+        composePreviewPicksBindings(),
+    ].join("\n\n");
+    assert(picks.includes("START_HASH"), "the state before the first call is reachable");
+    assert(picks.includes("renderPicker()"), "and every recording is in the picker before it is");
+    return picks;
+}
+
+/** Reading a recording out of the page's own list, and standing the page in front of one. */
+function composePreviewPicksReaders(): string {
+    const readers = `var getFightByAddress = function (address) {
   for (var at = 0; at < PREVIEW.fights.length; at += 1) {
     if (PREVIEW.fights[at].address === address) return PREVIEW.fights[at];
   }
@@ -346,9 +358,15 @@ var setStartOpened = function () {
   }
   window.location.hash = START_HASH;
   window.location.reload();
-};
+};`;
+    assert(readers.includes("getFightByAddress"), "a recording is found by the address it wears");
+    assert(readers.includes("setFightShown"), "and the roster it is fed into is cleared first");
+    return readers;
+}
 
-var handlePlay = function () {
+/** The two controls that answer a reader: playing the calls, and choosing another recording. */
+function composePreviewPicksHandlers(): string {
+    const handlers = `var handlePlay = function () {
   if (playTimer !== null) {
     setPlayStopped();
     return;
@@ -375,9 +393,16 @@ var handlePick = function () {
   }, function handleCallsRefused() {
     window.location.href = chosen.address;
   });
-};
+};`;
+    assert(handlers.includes("handlePlay"), "playing is one control, and it stops itself");
+    assert(handlers.includes("handlePick"), "choosing is the other, and a refusal navigates");
+    return handlers;
+}
 
-getPreviewElement("preview-next").addEventListener("click", function handleNext() {
+/** The controls wired to what they do, and the state the page opens on. */
+function composePreviewPicksBindings(): string {
+    const bindings =
+        `getPreviewElement("preview-next").addEventListener("click", function handleNext() {
   setNextFed();
 });
 getPreviewElement("preview-end").addEventListener("click", function handleEnd() {
@@ -396,7 +421,7 @@ picker.addEventListener("change", handlePick);
 
 renderPicker();
 setFedTo(window.location.hash === START_HASH ? 0 : PREVIEW.entryIndex);`;
-    assert(picks.includes("START_HASH"), "the state before the first call is reachable");
-    assert(picks.includes("renderPicker()"), "and every recording is in the picker before it is");
-    return picks;
+    assert(bindings.includes("addEventListener"), "every control reaches what it does");
+    assert(bindings.includes("setFedTo"), "and the page opens on the entry it was asked for");
+    return bindings;
 }

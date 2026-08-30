@@ -7,10 +7,13 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
-import { countCallsOutsideStrings, getCodeOutsideStrings } from "@/tests/source-line.ts";
+import {
+    countCallsOutsideStrings,
+    getCodeOutsideStrings,
+    isCommentLine,
+} from "@/tests/source-line.ts";
 import { getSourcePaths } from "@/tests/source-paths.ts";
 
-const COMMENT_OPENERS = ["//", "/*", "*/", "*"];
 const ASSERTION_CALLS = ["assert", "assertEquals", "assertThrows"];
 const MAXIMUM_FUNCTION_LINES = 70;
 const MAXIMUM_COMMENT_SHARE = 25;
@@ -32,11 +35,6 @@ interface SourceReading {
     assertions: number;
     longestFunctionLines: number;
     longestFunctionAt: number;
-}
-
-function isCommentLine(line: string): boolean {
-    const trimmed = line.trimStart();
-    return COMMENT_OPENERS.some((opener) => trimmed.startsWith(opener));
 }
 
 /** A declaration, not a callback: `function`, a named arrow, or a test. */
@@ -77,10 +75,36 @@ function getBlockOpenedAt(lines: readonly string[], from: number): number | null
     return null;
 }
 
+/**
+ * The lines a file holds. A file ends in a newline, so splitting on one leaves an empty tail
+ * that is not a line — counting it divided every share by one line more than the file had, and
+ * `src/game/game-dictionary.ts` sat over C5 at 26% reading as 25%. Measured 2026-08-30.
+ */
+function getHeldLines(lines: readonly string[]): number {
+    assert(lines.length > 0, "a file read as text is at least one line");
+    if (lines[lines.length - 1] === "") return lines.length - 1;
+    return lines.length;
+}
+
+/**
+ * What closes a declaration, by the kind that opened it.
+ *
+ * ⚠️ **A tool that writes JavaScript writes the closing lines of somebody else's code too.**
+ * Closing on any `});` at the margin ended `composePreviewPicks` inside the template it composes:
+ * measured 2026-08-30, the guard read 68 lines where `tools/preview-page.ts` holds 88.
+ */
+function getClosingLine(opener: string): string {
+    const trimmed = opener.trimStart();
+    assert(trimmed.length > 0, "a declaration that opens a block says something");
+    if (trimmed.startsWith("Deno.test(")) return "});";
+    if (trimmed.startsWith("const ") || trimmed.startsWith("export const ")) return "};";
+    return "}";
+}
+
 function getSourceReading(path: string): SourceReading {
     const lines = Deno.readTextFileSync(path).split("\n");
     const reading: SourceReading = {
-        lines: lines.length,
+        lines: getHeldLines(lines),
         commentLines: 0,
         functions: 0,
         assertions: 0,
@@ -88,6 +112,7 @@ function getSourceReading(path: string): SourceReading {
         longestFunctionAt: 0,
     };
     let openedAt = -1;
+    let closing = "";
     for (const [offset, line] of lines.entries()) {
         if (isCommentLine(line)) reading.commentLines += 1;
         reading.assertions += countCallsOutsideStrings(line, ASSERTION_CALLS);
@@ -98,7 +123,8 @@ function getSourceReading(path: string): SourceReading {
         if (isOpener) {
             reading.functions += 1;
             openedAt = offset;
-        } else if (openedAt !== -1 && (line === "}" || line === "});")) {
+            closing = getClosingLine(line);
+        } else if (openedAt !== -1 && line === closing) {
             const length = offset - openedAt + 1;
             if (length > reading.longestFunctionLines) {
                 reading.longestFunctionLines = length;
@@ -125,6 +151,9 @@ function getReadings(): Map<string, SourceReading> {
 }
 
 Deno.test("no file is more than a quarter comment", () => {
+    assertEquals(getHeldLines("one\ntwo\n".split("\n")), 2, "a closing newline ends a line");
+    assertEquals(getHeldLines("one\ntwo".split("\n")), 2, "a file without one holds them too");
+
     const over: string[] = [];
     for (const [path, reading] of getReadings()) {
         const share = Math.floor((reading.commentLines * 100) / reading.lines);
@@ -288,6 +317,10 @@ Deno.test("a comment block written twice is a finding", () => {
 });
 
 Deno.test("no function runs past seventy lines", () => {
+    assertEquals(getClosingLine("function compose(): string {"), "}", "a body closes on a brace");
+    assertEquals(getClosingLine('Deno.test("a name", () => {'), "});", "a test closes on its call");
+    assertEquals(getClosingLine("const read = ("), "};", "and a named arrow on an assignment");
+
     const over: string[] = [];
     for (const [path, reading] of getReadings()) {
         if (reading.longestFunctionLines > MAXIMUM_FUNCTION_LINES) {
