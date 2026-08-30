@@ -5,15 +5,35 @@
 A damage meter for [Margonem](https://www.margonem.pl/) — live fight statistics in a panel over the
 game. SKADA or Details!, for Margonem.
 
-![Combatants ranked by damage taken](screenshots/panel-ranking.png)
-
-![An opened row: whom the damage came from, and what kind it was](screenshots/panel-opened.png)
-
-![The deepest level: what passed between the two, by damage type](screenshots/panel-deep.png)
-
-![The combatant's card open beside the panel](screenshots/panel-card.png)
-
-![The shelf of fights that are still kept](screenshots/panel-shelf.png)
+<table>
+<tr>
+<td valign="bottom" align="center">
+<a href="screenshots/panel-ranking.png"><img src="screenshots/panel-ranking.png" width="110"
+alt="Combatants ranked by damage taken"></a>
+<br><sub><b>The ranking</b></sub>
+</td>
+<td valign="bottom" align="center">
+<a href="screenshots/panel-opened.png"><img src="screenshots/panel-opened.png" width="110"
+alt="An opened row: whom the damage came from"></a>
+<br><sub><b>An opened row</b></sub>
+</td>
+<td valign="bottom" align="center">
+<a href="screenshots/panel-deep.png"><img src="screenshots/panel-deep.png" width="110"
+alt="The deepest level: what passed between the two"></a>
+<br><sub><b>The third level</b></sub>
+</td>
+<td valign="bottom" align="center">
+<a href="screenshots/panel-card.png"><img src="screenshots/panel-card.png" width="110"
+alt="The combatant's card open beside the panel"></a>
+<br><sub><b>The card</b></sub>
+</td>
+<td valign="bottom" align="center">
+<a href="screenshots/panel-shelf.png"><img src="screenshots/panel-shelf.png" width="110"
+alt="The shelf of fights that are still kept"></a>
+<br><sub><b>The shelf</b></sub>
+</td>
+</tr>
+</table>
 
 A ten-against-one fight, on the damage-taken screen.
 

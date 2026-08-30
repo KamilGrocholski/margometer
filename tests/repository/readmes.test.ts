@@ -24,6 +24,10 @@ const ENGLISH = "README.en.md";
 const TRANSLATIONS = [POLISH, ENGLISH];
 const HEADING_MARK = "#";
 const PICTURE_MARK = "!";
+const PICTURE_TAG = "<img";
+const PICTURE_SOURCE = `src="`;
+/** More pictures than a front page has ever shown here, so a run past it is a document to read. */
+const MAXIMUM_PICTURES = 64;
 
 function getSource(file: string): string {
     return Deno.readTextFileSync(file);
@@ -75,8 +79,36 @@ function getInlineLinks(source: string): InlineLink[] {
     return links;
 }
 
+/**
+ * Every `<img src="…">`, walked like everything else here — **C7**. A front page shows its set
+ * side by side, which is a table and a width per cell, and Markdown's own picture syntax states
+ * neither: the pictures moved into tags and the reader had to follow them there.
+ */
+function getTagPicturePaths(source: string): string[] {
+    const found: string[] = [];
+    let index = source.indexOf(PICTURE_TAG);
+    let seen = 0;
+    for (; index !== -1 && seen < MAXIMUM_PICTURES; seen += 1) {
+        const ended = source.indexOf(">", index);
+        if (ended === -1) break;
+        const opened = source.indexOf(PICTURE_SOURCE, index);
+        // A source past the tag's own end belongs to whatever comes after it.
+        if (opened !== -1 && opened < ended) {
+            const closed = source.indexOf(`"`, opened + PICTURE_SOURCE.length);
+            assert(closed !== -1, "a source that opens a quote closes it");
+            found.push(source.slice(opened + PICTURE_SOURCE.length, closed));
+        }
+        index = source.indexOf(PICTURE_TAG, ended);
+    }
+    assert(index === -1, "a document shows no more pictures than the bound allows");
+    assert(found.length <= seen, "and each tag found is read at most once");
+    return found;
+}
+
+/** Both spellings a picture has here: Markdown's, and the tag a sized one has to be. */
 function getPicturePaths(source: string): string[] {
-    return getInlineLinks(source).filter((one) => one.isPicture).map((one) => one.target);
+    const written = getInlineLinks(source).filter((one) => one.isPicture).map((one) => one.target);
+    return [...written, ...getTagPicturePaths(source)];
 }
 
 function isSpaceAt(text: string, index: number): boolean {
@@ -135,6 +167,13 @@ Deno.test("both were read, and there is a skeleton in them to compare", () => {
         assert(getPicturePaths(source).length > 0, `${file}: no picture was found in it`);
         assert(getLinkTargets(source).length > 0, `${file}: no link was found in it`);
     }
+});
+
+Deno.test("the picture reader finds a tag's source, and nothing that is only beside one", () => {
+    const both = getPicturePaths(`![a](a.png)\n<img src="b.png" alt="b">`);
+    assertEquals(both, ["a.png", "b.png"], "a picture is a picture in either spelling");
+    const beside = getPicturePaths(`<img alt="b"><span src="c.png"></span>\n![a](a.png)`);
+    assertEquals(beside, ["a.png"], "a source belonging to the tag after it is not a picture");
 });
 
 Deno.test("the two run the same headings, at the same depth, in the same order", () => {

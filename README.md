@@ -5,15 +5,35 @@
 Miernik obrażeń do [Margonem](https://www.margonem.pl/) — statystyki walki na żywo, w panelu nad
 grą. SKADA albo Details!, dla Margonem.
 
-![Ranking walczących po otrzymanych obrażeniach](screenshots/panel-ranking.png)
-
-![Rozwinięty wiersz: od kogo padły obrażenia i jakiego były typu](screenshots/panel-opened.png)
-
-![Najgłębszy poziom: co przeszło między tą dwójką, po typach obrażeń](screenshots/panel-deep.png)
-
-![Karta postaci otwarta obok panelu](screenshots/panel-card.png)
-
-![Półka z walkami, które są jeszcze zapisane](screenshots/panel-shelf.png)
+<table>
+<tr>
+<td valign="bottom" align="center">
+<a href="screenshots/panel-ranking.png"><img src="screenshots/panel-ranking.png" width="110"
+alt="Ranking walczących po otrzymanych obrażeniach"></a>
+<br><sub><b>Ranking</b></sub>
+</td>
+<td valign="bottom" align="center">
+<a href="screenshots/panel-opened.png"><img src="screenshots/panel-opened.png" width="110"
+alt="Rozwinięty wiersz: od kogo padły obrażenia"></a>
+<br><sub><b>Rozwinięty wiersz</b></sub>
+</td>
+<td valign="bottom" align="center">
+<a href="screenshots/panel-deep.png"><img src="screenshots/panel-deep.png" width="110"
+alt="Najgłębszy poziom: co przeszło między tą dwójką"></a>
+<br><sub><b>Trzeci poziom</b></sub>
+</td>
+<td valign="bottom" align="center">
+<a href="screenshots/panel-card.png"><img src="screenshots/panel-card.png" width="110"
+alt="Karta postaci otwarta obok panelu"></a>
+<br><sub><b>Karta postaci</b></sub>
+</td>
+<td valign="bottom" align="center">
+<a href="screenshots/panel-shelf.png"><img src="screenshots/panel-shelf.png" width="110"
+alt="Półka z walkami, które są jeszcze zapisane"></a>
+<br><sub><b>Półka walk</b></sub>
+</td>
+</tr>
+</table>
 
 Walka dziesięciu na jednego, na zakładce obrażeń otrzymanych.
 
