@@ -1,6 +1,9 @@
 /**
  * Everything the reader reads, and the only Polish in `src/`. Identifiers around the sentences
  * stay English, which is what keeps the boundary visible in one file.
+ *
+ * **Anything a table below does not hold reaches the reader as the game wrote it** — a key, a
+ * letter, a token. Wording a mechanic nobody named would be a claim about the game. **ADR 0011.**
  */
 
 import { assert } from "@std/assert";
@@ -332,7 +335,6 @@ export const DESTROYED_WORDS: Record<string, { name: string; unit: string }> = {
     abmdest_per: { name: "wchłanianie magiczne", unit: "pkt" },
 };
 
-/** A key the table does not hold reaches the reader as the game wrote it. **ADR 0011.** */
 export function getWordsForDestroyed(statistic: string): string {
     assert(statistic.length > 0, "a statistic a blow destroyed is named");
     const held = DESTROYED_WORDS[statistic];
@@ -365,7 +367,6 @@ export const PROFESSION_WORDS: Record<string, string> = {
     b: "Tancerz ostrzy",
 };
 
-/** A letter the table does not hold reaches the reader as the game wrote it. **ADR 0011.** */
 export function getWordsForProfession(profession: string): string {
     assert(profession.length > 0, "a profession that was stated says something");
     const words = PROFESSION_WORDS[profession];
@@ -423,7 +424,6 @@ export const HEALTH_SOURCE_WORDS: Record<string, string> = {
     bandage: "bandażowanie",
 };
 
-/** A key the table does not hold reaches the reader as the game wrote it. **ADR 0011.** */
 export function getWordsForHealthSource(source: string): string {
     assert(source.length > 0, "a key health moved under is named");
     const words = HEALTH_SOURCE_WORDS[source];
@@ -461,10 +461,7 @@ export const HEALTH_LOSS_WORDS: Record<string, string> = {
     heal: "ujemne przywracanie życia",
 };
 
-/**
- * What a figure was made of, whether a blow carried it or health went out under it. A token
- * neither table holds is drawn as the game wrote it. **ADR 0011.**
- */
+/** What a figure was made of, whether a blow carried it or health went out under it. */
 export function getWordsForDamageKind(kind: string): string {
     assert(kind.length > 0, "a kind of damage is named");
     const words = ELEMENT_WORDS[kind] ?? HEALTH_LOSS_WORDS[kind];

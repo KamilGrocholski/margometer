@@ -11,6 +11,7 @@ import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
 import {
     CACHE_ROOT,
     composeAgeText,
+    FROZEN_HELP_BANNER,
     getFragments,
     getOccurrenceCount,
     getPhraseCounts,
@@ -107,4 +108,17 @@ Deno.test("the frozen counts name the article they were taken from", () => {
     assert(FROZEN_HELP_PHRASES.fetchedAt.length > 0, "and the dump they were taken from");
     assert(Object.keys(FROZEN_HELP_PHRASES.counts).length > 0, "there are counts in the table");
     assert(CACHE_ROOT.startsWith(".cache/"), "the dump itself stays where nothing publishes it");
+});
+
+/**
+ * The frozen counts against the generator that writes them, the same way the key table is held.
+ * A regeneration needs the cached dump and CI has none; the banner needs nothing.
+ */
+Deno.test("the frozen phrases stand under the banner their generator writes", () => {
+    const frozen = Deno.readTextFileSync("frozen/help-phrases.ts");
+    assert(FROZEN_HELP_BANNER.length > 0, "the generator states a banner");
+    assert(
+        frozen.startsWith(FROZEN_HELP_BANNER),
+        "frozen/help-phrases.ts was written by an older version of its generator",
+    );
 });

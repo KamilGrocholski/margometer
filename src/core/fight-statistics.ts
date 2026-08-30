@@ -157,8 +157,7 @@ export interface FightOutcome {
 export interface FightStatistics {
     byCombatantId: ReadonlyMap<number, CombatantFigures>;
     /**
-     * The fight's own sums. Here rather than left to a panel, because adding one row's figure to
-     * another's is a statistic across combatants and the panel draws rather than aggregates.
+     * The fight's own sums, here because a total across combatants is never the panel's.
      */
     totals: CombatantFigures;
     dealtByNobody: number;

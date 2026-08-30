@@ -458,8 +458,8 @@ function composeHeaderElement(document: PanelDocument, view: PanelView): PanelEl
     const who = composeElement(document, "span", "");
     who.textContent = composeSideCountsText(view.reading.sizes, view.reading.unplaced);
     line.append(who);
-    // Absent rather than empty where the game has not said, or has said nothing this seat can be
-    // read into: a fight the panel cannot place is not a fight it may call a loss.
+    // Absent rather than empty where the reading says nothing, and `ui/panel-reading.ts` says
+    // when it does and why the header may not fill the silence in.
     const outcome = view.reading.outcome;
     if (outcome !== null) {
         const said = composeElement(document, "span", CLASS.headerOutcome);

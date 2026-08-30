@@ -20,7 +20,7 @@ const DIRECTION_SIGNS = "+-";
 const HOLE_MARK = "%";
 const FULL_STOP = ".";
 
-/** A name out of the running client, or null where it has none to give. */
+/** What `getDictionaryReader` hands back: an id in, the player's own word out, or null. */
 export type TranslateLabel = (id: string) => string | null;
 
 /** Two marks with nothing between them is a hole, and any second mark is by definition that. */

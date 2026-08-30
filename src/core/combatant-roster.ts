@@ -17,7 +17,7 @@ export interface Combatant {
     /** The game's own one-letter profession code, or null where it stated none. */
     profession: string | null;
     level: number | null;
-    /** Null is an answer: a share taken of a maximum nobody stated is a figure that is too high. */
+    /** Null is an answer, and `core/combatant-health.ts` says what reading past it would cost. */
     healthMaximum: number | null;
 }
 
