@@ -1,1227 +1,839 @@
 /**
- * Turns the protocol of one fight into events.
+ * Messages to what happened. The families below are the client's own and each is cited in
+ * `docs/protocol-keys.md`; nothing is read because it looks like a number.
  *
- * Two rules hold for every message, and everything else is detail:
- *
- *   1. No message is dropped. A message the decoder cannot read still produces
- *      an event, and that event says so. A number that is quietly too low looks
- *      exactly like a number that is right.
- *   2. Nothing is invented. A key with no meaning yet is reported as unread,
- *      never guessed at from a neighbouring key.
+ * The decoder drops nothing and invents nothing: a key with no meaning yet leaves the message
+ * on an unknown event, keys and ends included, so a panel can say which total may be short.
  */
 
-import { assert } from "@/libs/assert.ts";
-import {
-  getDecimalFromText,
-  getIntegerFromText,
-  getNumberFromText,
-  isFixedDecimalText,
-} from "@/libs/number.ts";
+import { assert } from "@std/assert";
 import type {
-  AnnouncedSkill,
-  AttackEvent,
-  BattleEvent,
-  DamageAmount,
-  DamageToNamedCombatantEvent,
-  HealingToNamedCombatantEvent,
-  HealthChangeEvent,
-  PreventedDamage,
-  UnaccountedHealthEvent,
-  DeclaredEffect,
-  StatisticDestruction,
+    AnnouncedSkill,
+    AttackEvent,
+    BattleEvent,
+    DamageFigure,
+    DamageToNamedCombatantEvent,
+    DeclarationEvent,
+    DeclaredEffect,
+    DestroyedStatistic,
+    FightOutcomeEvent,
+    HealingToNamedCombatantEvent,
+    HealthChangeEvent,
+    PreventedDamage,
+    SkillUsedEvent,
+    UnaccountedHealthEvent,
 } from "@/src/core/battle-event.ts";
-import { getCombatantIdByName, type CombatantRoster } from "@/src/core/combatant-roster.ts";
+import { type CombatantRoster, getCombatantIdByName } from "@/src/core/combatant-roster.ts";
 import {
-  parseProtocolMessage,
-  ProtocolMessageFormatError,
-  type ProtocolMessage,
+    parseProtocolMessage,
+    type ProtocolMessage,
+    ProtocolMessageFormatError,
 } from "@/src/core/protocol-message.ts";
-
-/** Names arrive as one string. The game has no escaping for a name containing this. */
-const NAME_SEPARATOR = ", ";
-
-const WINNER_KEY = "winner";
-
-const OUTCOME_KEYS: Record<string, "won" | "lost"> = {
-  [WINNER_KEY]: "won",
-  loser: "lost",
-};
+import { getIntegerFromText } from "@/libs/number-text.ts";
+import { getHealthPercentFromText, getShareFromText } from "@/src/core/protocol-number.ts";
 
 /**
- * A fight that produced no winner, and the protocol spends no key on saying so:
- * it writes this in place of the winners' names.
- *
- * The client branches on exactly that — `case "winner": if ("?" == …)`, where it
- * composes its no-winner line and its turn-limit notice instead of naming
- * anybody (production build `1786514810315`, the same in development build
- * `1781609507010`). Its `loser` case has no such branch, so the sentinel is the
- * winners' key's alone and `loser=?` stays unread rather than becoming a side
- * called `?`.
- *
- * ⚠️ **Read as a name it was a win.** Every fight in the captures ends with a
- * winner, so nothing here ever met the value; it split into the one-element list
- * `["?"]`, which is a side the roster can never match and a `wygrana` the panel
- * would have withheld for want of a name — the outcome stated plainest of all
- * arriving as the one nobody could read.
- */
-const NO_WINNER_VALUE = "?";
-
-/**
- * The client does not spell out damage keys. Its default branch recognises them
- * by shape — a sign, then `dmg`, then a token naming the kind — and treats
- * anything else as a parameter it does not know. We mirror that rather than
- * listing the family, because the game can add a kind without changing this.
+ * The client's default branch reads characters 1 to 3 of a key: `+` is raw, the rest applied.
  */
 const DAMAGE_MARKER = "dmg";
-const DEALT_SIGN = "+";
-
-function getDamageAmount(parameter: { key: string; value: string | null }): DamageAmount | null {
-  if (parameter.value === null) return null;
-  const amount = getIntegerFromText(parameter.value);
-  if (amount === null) return null;
-  return { damageType: parameter.key.slice(1), amount };
-}
-
+const DAMAGE_MARKER_AT = 1;
+const RAW_SIGN = "+";
+const APPLIED_SIGN = "-";
+/** The one pair the family rule cannot reach, because the key carries no marker. */
+const DAMAGE_KEYS = ["+thirdatt", "-thirdatt"];
+const PREVENTED_KEYS = ["-absorb", "-absorbm", "-blok"];
+const DESTROYED_KEYS = ["+acdmg", "+resdmg", "+abdest_per", "+abmdest_per"];
 /**
- * Whether a key is one of the damage family, by the client's own offset rule.
+ * Which end of the blow a proc belongs to, and `unsettled` where nobody knows.
  *
- * Exported because four test files had written the offsets out by hand — two of them
- * under a comment saying this is the decoder's own shape rule, so "damage key" means
- * there what it means here, which is a sentence a shared export makes true and a copy
- * merely asserts. §7.5 has paid twice for the general version of this: a rule about the
- * *shape* of somebody else's name, copied by hand, is a fuse.
+ * **Never read off the sign.** `+legbon_curse` fires when its holder attacks and `-legbon_cleanse`
+ * when its holder is struck, and the two arrive on messages of one shape — so a rule reading the
+ * sign would charge half this table to the wrong row. Every entry is one sentence of that key's
+ * own entry in `docs/protocol-keys.md`, which is where the evidence is.
+ *
+ * `unsettled` is a refusal, not a default: article view,372 names neither `tenacity` nor `dispel`,
+ * so whose they are is unknown and a row charged with one would be a guess. They stay decoded and
+ * are counted on nobody until material settles them (`ARCHITECTURE.md`, known gaps).
  */
-export function isDamageKey(key: string): boolean {
-  return key.slice(1, 1 + DAMAGE_MARKER.length) === DAMAGE_MARKER;
-}
+export type ProcEnd = "actor" | "target" | "unsettled";
 
-/** The dealt half of that family. The sign is the client's own direction marker. */
-export function isDealtDamageKey(key: string): boolean {
-  return key.startsWith(DEALT_SIGN) && isDamageKey(key);
-}
+export const PROC_ENDS: Record<string, ProcEnd> = {
+    "+crit": "actor",
+    "+of_crit": "actor",
+    "+pierce": "actor",
+    "-pierceb": "target",
+    "+stun": "actor",
+    "+stun2": "actor",
+    "+stun2-c": "actor",
+    "+stun2-d": "actor",
+    "+freeze": "actor",
+    "+wound": "actor",
+    "+fastarrow": "actor",
+    "+acdmg_destroyed": "actor",
+    "+legbon_curse": "actor",
+    "+legbon_verycrit": "actor",
+    "-legbon_cleanse": "target",
+    "-legbon_glare": "target",
+    "+superspell-dispel": "unsettled",
+    "-tenacity": "unsettled",
+    "-evade": "target",
+    "-contra": "target",
+};
 
+/** The keys a blow carries when it landed critically, whichever weapon threw it. */
+export const CRITICAL_PROC_KEYS: readonly string[] = ["+crit", "+of_crit"];
 /**
- * Damage the client names instead of shaping — the one exception to the rule
- * above, and it needs one because the shape rule cannot reach it.
- *
- * `thirdatt` is the Third Blow, an extra auxiliary attack the help documents as
- * `of-thirdatt` (read 2026-08-09). It arrives as an ordinary raw/applied pair
- * and carries no `dmg` marker, so the family rule walks straight past both
- * halves and the meter simply lost that damage.
- *
- * ⚠️ **Earned on the health arithmetic, not on the name.** Before it was read,
- * `tests/core/health-witness.test.ts` disagreed eight times in
- * `2026-08-12-tempest-grupa-vs-draugr-2`, every one of them in the direction of
- * too little damage decoded; reading the applied half closes all eight and
- * introduces no disagreement anywhere else. That is the protocol's own stated
- * percentages settling it, which is the only evidence this repository accepts
- * for a key that moves health.
- *
- * The value is the damage type as well, so a Third Blow shows as its own kind
- * rather than being folded into a weapon element it is not.
+ * The two keys a wound is stated on, and they are **not** the same key: `+injure` announces the
+ * wound a blow has just left, and `injure` is that wound ticking afterwards, in a message of its
+ * own. Spelled here because this is the file that reads them, and read again by
+ * `src/core/fight-statistics.ts`, which joins a tick to the blow that left the wound.
  */
-const DAMAGE_KEYS_BY_NAME = ["+thirdatt", "-thirdatt"];
+export const WOUND_ANNOUNCEMENT_KEY = "+injure";
+export const WOUND_TICK_KEY = "injure";
 
 /**
- * What a message says about the combatant on a side, where it says anything.
- *
- * `parsed.actor?.combatantId ?? null` and its three siblings were written out nine
- * times in this file, once per event kind that needs them — the same shape the fifth
- * audit collapsed one module away, where two branches sharing one body meant no test
- * could tell them apart. Here the four fields are read once and each kind spreads what
- * it needs.
- *
- * `null` for a side the protocol wrote as `0`, which is the protocol saying *nobody*,
- * and `null` again where the side is named and states no health.
- */
-function getActorOfMessage(parsed: ProtocolMessage): {
-  combatantId: number | null;
-  healthPercent: number | null;
-} {
-  return {
-    combatantId: parsed.actor?.combatantId ?? null,
-    healthPercent: parsed.actor?.healthPercent ?? null,
-  };
-}
-
-/** Both ends at once, named as the events that carry both name them. */
-function getEndsOfMessage(parsed: ProtocolMessage): {
-  actorId: number | null;
-  targetId: number | null;
-  actorHealthPercent: number | null;
-  targetHealthPercent: number | null;
-} {
-  return {
-    actorId: parsed.actor?.combatantId ?? null,
-    targetId: parsed.target?.combatantId ?? null,
-    actorHealthPercent: parsed.actor?.healthPercent ?? null,
-    targetHealthPercent: parsed.target?.healthPercent ?? null,
-  };
-}
-
-/**
- * Whom this message names at all, as ids: the actor slot, then the target slot,
- * and one entry where both segments state the same combatant.
- *
- * The reading a mark on somebody's row rests on. It is deliberately **not**
- * `getEndsOfMessage` with the nulls dropped: that one answers *which end is
- * which*, and every caller of it cares, while this one answers *who is this
- * message about* and a message that names one combatant twice must not raise
- * their count twice.
- *
- * Empty where the protocol wrote `0` at both ends, which is the protocol naming
- * nobody (`src/core/protocol-message.ts`) — and nobody is who the shortfall then
- * belongs to.
- */
-function getCombatantIdsOfMessage(parsed: ProtocolMessage): number[] {
-  const named: number[] = [];
-  for (const side of [parsed.actor, parsed.target]) {
-    if (side !== null && !named.includes(side.combatantId)) named.push(side.combatantId);
-  }
-  return named;
-}
-
-/**
- * `amount,kind,name(percent%)` — the recipient arrives as a name here, not as an
- * id, and the health it states is that combatant's, not the message target's.
- *
- * ⚠️ **The kind is trimmed, and a blank one is the plain element.** Captured
- * messages write that field as a single space routinely
- * (`+oth_dmg=4439, ,Gracz 5(66.95%)`), which made `dmg ` a second element
- * alongside `dmg` and drew two rows a reader cannot tell apart — on
- * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`,
- * 107 952 points of physical damage under a label that looked like the one
- * above it. Production
- * build `1785244275300` spends this field on one thing, `<b class=dmg"+D[1]+">`,
- * and a class attribute of `"dmg "` **is** the class `dmg`, so the game itself
- * never made the distinction we were making.
- */
-export const DAMAGE_TO_NAMED_KEY = "+oth_dmg";
-const HEALTH_PERCENT_TAIL_START = "(";
-const HEALTH_PERCENT_TAIL_END = "%)";
-/** The protocol writes a health percentage to two places, always. */
-const HEALTH_PERCENT_PLACES = 2;
-
-/** A combatant a message named, and the health that name stated, where it did. */
-type StatedName = { name: string; healthPercent: number | null };
-
-/**
- * `name` or `name(percent%)`, as far as the grammar goes — the two keys that state a
- * combatant by name both write it this way.
- *
- * One reader because both decoders below need every refusal in it, and it was written
- * out twice with all three of the notes below on the first copy and none on the second.
- * What the two do **not** share is the splitting above this: `+oth_dmg` writes the
- * figure last and `legbon_lastheal` writes it first, which is the difference their own
- * docblocks argue. This sits below that split and knows nothing of it.
- */
-function getStatedNameFromText(raw: string): StatedName | null {
-  let name = raw;
-  let healthPercent: number | null = null;
-
-  // ⚠️ **The last bracket, not the first.** The pattern this replaces was
-  // `^(.*)\((\d+\.\d\d)%\)$` with a greedy head, so it took the last `(` that
-  // still left a percentage behind it — which is what keeps a name carrying
-  // brackets of its own intact. `lastIndexOf` is that rule written forwards.
-  if (raw.endsWith(HEALTH_PERCENT_TAIL_END)) {
-    const open = raw.lastIndexOf(HEALTH_PERCENT_TAIL_START);
-    const stated =
-      open === -1 ? null : raw.slice(open + 1, raw.length - HEALTH_PERCENT_TAIL_END.length);
-
-    // A tail that is not the shape is not a percentage at all, and then the
-    // whole text is the name. That is why the shape is asked separately from the
-    // value: a bracket in a nickname must not cost the reader a row.
-    if (stated !== null && isFixedDecimalText(stated, HEALTH_PERCENT_PLACES)) {
-      name = raw.slice(0, open);
-      healthPercent = getDecimalFromText(stated);
-      // Shape held and the value will not read: that refuses the whole message
-      // rather than nulling the field, because the health it states is the
-      // anchor an entry health is unwound from, and a message quietly missing
-      // one is a fight that sizes differently.
-      if (healthPercent === null) return null;
-    }
-  }
-
-  // A figure against nobody is a figure we cannot attribute, and a blank name
-  // would travel on looking like one.
-  if (name === "") return null;
-
-  return { name, healthPercent };
-}
-
-function decodeDamageToNamedCombatant(
-  value: string | null,
-  actorId: number | null,
-  roster: CombatantRoster | null,
-): DamageToNamedCombatantEvent | null {
-  if (value === null) return null;
-
-  const [rawAmount, kind, rawName] = value.split(",");
-  if (rawAmount === undefined || kind === undefined || rawName === undefined) return null;
-
-  const amount = getIntegerFromText(rawAmount);
-  if (amount === null) return null;
-
-  const named = getStatedNameFromText(rawName);
-  if (named === null) return null;
-
-  return {
-    kind: "damage-to-named-combatant",
-    announced: null,
-    actorId,
-    targetName: named.name,
-    targetId: roster === null ? null : getCombatantIdByName(roster, named.name),
-    targetHealthPercent: named.healthPercent,
-    damage: { damageType: `${DAMAGE_MARKER}${kind.trim()}`, amount },
-  };
-}
-
-/**
- * Healing stated against a name, and the one key that does it.
- *
- * **Two members, in the order the client reads them**: production build
- * `1786514810315` splits this value on the comma and renders `%val%` from the
- * second member and `%val2%` from the first — so the figure comes first and the
- * name second, the opposite way round from `+oth_dmg`, which is why the
- * **splitting** is its own. What either side produces is a name, and both keys
- * read that through `getStatedNameFromText`.
- *
- * The percentage the name carries is the combatant's health with this healing
- * already in. Measured on
- * `tests/captured-fights/2026-08-12-experimental-tancerz-vs-wojownik.json`, the
- * clearest of them because the blow is a single one: a target at 25.32% of 19047
- * took 1633 and ends the message at 63.00%, which is 4823 − 1633 + 8810. The help
- * documents the effect firing below 18% of the pool (article view,372, engine
- * name `lastheal`, read 2026-08-12), and 3190 is 16.75%.
- *
- * ⚠️ **It rides a group blow too**, where the damage that triggered it is the
- * segment naming the healed combatant rather than the message's own figures —
- * which is why nothing here reads the message as a whole.
- * `tests/core/last-heal-rule.test.ts` holds both halves over every occurrence.
- */
-const HEALING_TO_NAMED_KEY = "legbon_lastheal";
-
-function decodeHealingToNamedCombatant(
-  key: string,
-  value: string | null,
-  roster: CombatantRoster | null,
-): HealingToNamedCombatantEvent | null {
-  if (value === null) return null;
-
-  const [rawAmount, rawName] = value.split(VALUE_SEPARATOR);
-  if (rawAmount === undefined || rawName === undefined) return null;
-
-  const amount = getIntegerFromText(rawAmount);
-  // Healing that took health away would be this reader misunderstanding its own
-  // key, not the game reporting a loss — the loss keys are elsewhere.
-  if (amount === null || amount < 0) return null;
-
-  const named = getStatedNameFromText(rawName);
-  if (named === null) return null;
-
-  return {
-    kind: "healing-to-named-combatant",
-    targetName: named.name,
-    targetId: roster === null ? null : getCombatantIdByName(roster, named.name),
-    targetHealthPercent: named.healthPercent,
-    amount,
-    source: key,
-  };
-}
-
-/**
- * Health moving outside an attack: which way it goes, and which slot holds the
- * combatant it happens to.
- *
- * Both are ours to supply — the protocol states a magnitude and leaves the rest
- * to the key. Healing added and the rest subtracted is the only one of the four
- * combinations under which the stated percentages close, and all but
- * `heal_target` put their subject in the actor slot of a message naming nobody
- * at the other end. Per key, that is `docs/protocol-keys.md`'s to hold; what is
- * here is what a reader of this table needs.
- *
- * `injure` and `+injure` are different keys and only this one moves health.
+ * Health moving outside a blow: which way it goes, and which slot holds the combatant it
+ * happens to. Both are ours to supply — the protocol states a magnitude and leaves the rest to
+ * the key, and `docs/protocol-keys.md` carries the evidence per key.
  */
 const HEALTH_CHANGE_KEYS: Record<string, { sign: number; isOnTarget: boolean }> = {
-  heal: { sign: 1, isOnTarget: false },
-  legbon_holytouch_heal: { sign: 1, isOnTarget: false },
-  heal_target: { sign: 1, isOnTarget: true },
-  poison: { sign: -1, isOnTarget: false },
-  injure: { sign: -1, isOnTarget: false },
-  // Not joined to its announcement the way `injure` is: `+wound` states no
-  // figure, and the help has this type accumulate rather than be overwritten, so
-  // no earlier message owns a tick (§9.6).
-  wound: { sign: -1, isOnTarget: false },
-  fire: { sign: -1, isOnTarget: false },
-  light: { sign: -1, isOnTarget: false },
-  // `+legbon_anguish` announces the application and states no figure, so nothing
-  // identifies which one a tick belongs to — `wound`'s case, not `injure`'s.
-  anguish: { sign: -1, isOnTarget: false },
-  npc_heal: { sign: 1, isOnTarget: false },
-  bandage: { sign: 1, isOnTarget: false },
+    heal: { sign: 1, isOnTarget: false },
+    legbon_holytouch_heal: { sign: 1, isOnTarget: false },
+    heal_target: { sign: 1, isOnTarget: true },
+    npc_heal: { sign: 1, isOnTarget: false },
+    bandage: { sign: 1, isOnTarget: false },
+    poison: { sign: -1, isOnTarget: false },
+    [WOUND_TICK_KEY]: { sign: -1, isOnTarget: false },
+    wound: { sign: -1, isOnTarget: false },
+    fire: { sign: -1, isOnTarget: false },
+    light: { sign: -1, isOnTarget: false },
+    anguish: { sign: -1, isOnTarget: false },
 };
+/** This family may state a second member after the health figure. It is not health. */
+const MEMBER_SEPARATOR = ",";
 /**
- * This family may state a second figure after the health one, and the client
- * splits on it too — `injure`, `poison` and `heal` each compose a different
- * sentence when the value has two members, production build `1786441768914`.
- *
- * The member is a **signed change of something**: production build
- * `1786441768914` shows its magnitude and derives *increased* or *decreased*
- * from its sign. Which quantity changed is named only in the sentence the client
- * fetches at run time, so it stays unestablished, and the sign is kept because
- * the client keeps it. It is carried as a declaration rather than read, because
- * the one thing measured about it is that it is not health — both calls are judged by
- * `tests/core/health-witness.test.ts` and agree on the very messages carrying it.
+ * Damage stated against a name: `amount,element,name(percent%)`. The middle member is what the
+ * client writes into a class attribute after `dmg`, so a blank one is the plain element and not
+ * an element of its own — 314 of the 1131 occurrences in `captures/` write it blank, 2026-08-28.
  */
-const VALUE_SEPARATOR = ",";
-
+const NAMED_DAMAGE_KEY = "+oth_dmg";
+const NAMED_DAMAGE_MEMBERS = 3;
+const MESSAGE_ENDS = 2;
+const PERCENT_OPENER = "(";
+const PERCENT_CLOSER = "%)";
 /**
- * What an attack reports besides its figures: a defence that stopped part of it,
- * a statistic of the target it destroyed, an effect that fired with it.
- *
- * Listed rather than recognised by shape, because the client names them too —
- * mostly one case per key, and the absorption pair sharing one — unlike the
- * damage family, which it matches by offset. Mirroring that means a key the game
- * adds tomorrow stays unread and loud instead of being folded into a figure by a
- * pattern that was never about it.
+ * The sides at the end of the fight, as text: names separated by a comma and a space, in a
+ * message naming no combatant at all. Every recording in `captures/` ends with exactly one of
+ * each, 2026-08-28.
  */
-const PREVENTED_DAMAGE_KEYS = ["-absorb", "-absorbm", "-blok"];
+const OUTCOME_KEYS: Record<string, "won" | "lost"> = { winner: "won", loser: "lost" };
+/** The key a draw arrives on, which is the winners' — `core/battle-event.ts` says what it is. */
+const NO_WINNER = "?";
+const NAME_SEPARATOR = ", ";
 /**
- * `_per` names the share the skill declares, not the figure these report: the
- * captures carry values into the thousands, which is a quantity of absorption
- * and could not be a percentage. Trusting the suffix would have put a share into
- * a slot holding points.
+ * Healing stated by name: `amount,name(percent%)` — the figure first and the name second, the
+ * opposite order from `+oth_dmg`, which is why the two cannot share a reader. Both ends of the
+ * message are the wrong combatant: it rides a blow struck at somebody else.
  */
-const STATISTIC_DESTRUCTION_KEYS = ["+acdmg", "+resdmg", "+abdest_per", "+abmdest_per"];
+const HEALING_TO_NAMED_KEY = "legbon_lastheal";
+const HEALING_TO_NAMED_MEMBERS = 2;
 /**
- * Effects that fired with the blow and state no figure. Measured on the
- * captures: every occurrence arrives without a value.
- *
- * Membership is decided by the client, not by the shape of the name: the game
- * composes a sentence for each of these that interpolates nothing. A key whose
- * sentence has a `%val%` hole belongs elsewhere even where our own material
- * happens to carry no value for it — `+legbon_holytouch` is that case, and it
- * stays unread for it.
+ * A share of the maximum, restored to every combatant on the caster's side. What it restores is
+ * stated nowhere else, so reading it as a declaration would silence a total that really is short.
+ * The value has never carried a second member, and one that did would not be read.
  */
-const PROC_KEYS = [
-  "+crit",
-  "+pierce",
-  "+stun",
-  "+freeze",
-  "+legbon_curse",
-  "+legbon_verycrit",
-  "+superspell-dispel",
-  "+acdmg_destroyed",
-  "+of_crit",
-  "-legbon_cleanse",
-  "-tenacity",
-  "-evade",
-  "+fastarrow",
-  "-contra",
-  "-legbon_glare",
-  // The one proc here that belongs to the defence rather than the blow: the help
-  // has it occur only after `+pierce` has, and all three occurrences carry
-  // `+pierce` in the same message.
-  "-pierceb",
-  // The deep wound's announcement, and a proc rather than a declaration because
-  // it states nothing. That is why it and `+injure` sit in different lists —
-  // `+injure` carries the figure that identifies which wound is ticking.
-  "+wound",
-  "+stun2-d",
-  "+stun2",
-  // Which of the family's five this is comes from the development build, which
-  // keeps the rendered sentence beside each branch; production cannot confirm
-  // that half, because the wording is not in the bundle at all (§7.6). The
-  // captures agree about whose event it is and cannot speak to the element.
-  "+stun2-c",
-];
+const UNACCOUNTED_HEALTH_KEY = "healall_per";
 /**
- * The two halves of a skill announcement, read together because neither is the
- * whole of it: the name is what the player sees, the id is what the game calls
- * it, and on `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`
- * 15 of its 197 announcements carry only the first.
- *
- * The client itself does nothing with the id — its branch is an empty `break`,
- * there so the key does not fall through to the unknown-parameter notice.
- * Production build `1785244275300`.
- */
-const SKILL_NAME_KEY = "tspell";
-const SKILL_ID_KEY = "skillId";
-
-/**
- * The other spelling of the same announcement: a name the game did not take from
- * the skill table.
- *
- * The message has the shape `tspell`'s has — a name, and beside it the effects
- * the thing being used performs — and the panel means by *skill* a named thing a
- * combatant used (§10), so it is read into the same event rather than into a new
- * one.
- *
- * ⚠️ **Read only where the message names exactly one combatant, and that is not
- * caution about the material — it is the one difference between this key and
- * `tspell`.** Production build `53XkBRxF` composes `tspell` with the name in
- * the **actor** slot and this one with the name in the **target** slot
- * (`msg_tcustom_target %target% %val%`, interpolating the second combatant), so a
- * message stating two different combatants would not say whose use it was, and
- * picking the actor would be the guess §5 refuses. Where one combatant is all the
- * message names — both ends the same, or one end unstated — there was never a
- * second name to get wrong, and every occurrence the captures carry is of that
- * shape. A message naming two goes back to unread, loudly.
- *
- * The value is a name the player's client displays, read at run time and never
- * stored here, exactly as `tspell`'s is (NOTICE.md).
- */
-const CUSTOM_SKILL_NAME_KEY = "tcustom";
-
-/**
- * What an announcement declares about the skill it announces.
- *
- * Every one of these rides an announcement — `tspell` or `tcustom`, the two
- * spellings of one — and none rides a blow, measured across every capture, and
- * that is the reason they are read here rather than anywhere near a figure. The
- * clause named `tspell` alone until `2026-08-26-luvia-grupa-vs-draugr` arrived
- * with `aura-ac_per` and `aura-resall` on a `tcustom` message
- * (`tests/core/skill-announcement-rule.test.ts`). Each states an **input**: a cost, a grant, a share the
- * skill will apply. What it comes to arrives later as ordinary damage, already
- * computed, so nothing downstream may add one to a statistic
- * (`docs/protocol-keys.md`, and `battle-event.ts` on `DeclaredEffect`).
- *
- * Reading them is what stops the panel warning about them: they marked 111
- * occurrences unread, and an unread key means *this total may be low* — which
- * none of these could ever cause.
- *
- * The shape is checked rather than assumed. A value that will not read as a
- * whole number sends the key back to unread, so the day one of these starts
- * carrying something else, it is loud instead of silently dropped.
- */
-const SKILL_DECLARATION_KEYS = [
-  "active_decblock_per",
-  "active_decblock_per-enemies",
-  "active_block_per",
-  "alllowdmg",
-  "allslow_per",
-  "aura-ac_per",
-  "aura-resall",
-  "aura-sa_per",
-  "mana",
-  "energy",
-  "active_absorbdest_per",
-  "combo-max",
-  "aura-adddmg2_per-meele",
-  "critval-allies",
-  "critmval-allies",
-  /**
-   * ⚠️ **This entry is load-bearing for `src/core/combatant-health.ts`, not only
-   * for the panel's warning.** `composeSizedTeamHeals` reads this list to refuse
-   * a fight declaring the key, so moving it out would switch that refusal off in
-   * silence.
-   */
-  "lowheal_per-enemies",
-];
-/**
- * The two an announcement states **without** a figure.
- *
- * They cannot go in the list above, which sends a key back to unread when its
- * value will not read as a whole number — that check is what makes the shape of
- * a declaration loud, and relaxing it for these would blind it for all of them.
- * So they get their own list, exactly as `+legbon_holytouch` does on the blow
- * side, and a value arriving on one is loud rather than silently dropped.
- *
- * Production build 1786514810315 composes both with no `%val%`: `en-regen-cast`
- * interpolates two combatant names and no figure, and `+spell-taken_dmg-all`
- * interpolates nothing at all.
- */
-const VALUELESS_SKILL_DECLARATION_KEYS = [
-  "+spell-taken_dmg-all",
-  "en-regen-cast",
-  // Three cleanses an announced ability performs on its own side. What they undo
-  // is an effect, never a figure: nothing they remove was ever counted here — a
-  // slow and a stun are turns, which nothing here counts (§10), and the damage a
-  // cleansed tick would have done is damage that never arrives.
-  "removeslow-allies",
-  "removestun-allies",
-  "removedot-allies",
-];
-/**
- * What a blow declares about itself.
- *
- * Neither is a figure of damage, and both were left unread for exactly that
- * reason until there was somewhere honest to put them:
- *
- *   - `-poison_lowdmg_per` is the share by which the blow was already weakened,
- *     so the damage keys beside it have it applied. Reading it as points would
- *     invent a unit; reading it as a reduction would subtract it twice.
- *   - `+injure` announces a deep wound worth a share of the damage just taken.
- *     The wound itself arrives on later calls as its own `injure` message, which
- *     the decoder does read — counting the announcement as well would land the
- *     same wound twice.
- *
- * Both are held to their measured rules by `tests/core/poison-reduction-rule.test.ts`
- * and `tests/core/injure-rule.test.ts`.
- */
-const BLOW_DECLARATION_KEYS = [
-  "-poison_lowdmg_per",
-  "+injure",
-  "+engback",
-  "+critslow_per",
-  "-endest",
-  // What `-legbon_facade` counts is still unknown; what is settled is that it is
-  // not health.
-  "-legbon_facade",
-  "+critpoison_per",
-  "+critsa",
-  "-legbon_critred",
-  "+legbon_puncture",
-  "+crush_physical",
-  "+rage",
-  /**
-   * ⚠️ **The two that share a name with a figure this meter does total.**
-   * `-absorbm` and `-absorb` are damage a defence stopped and go to `prevented`;
-   * these are the absorption **pool being refilled**. Adding either to the key it
-   * looks like would count points of absorption as points of damage.
-   *
-   * Whose pool refilled is not settled — the message names an attacker and an
-   * absorbing combatant and states which of them gained nowhere — so the verdict
-   * rests on the unit: points of absorption are a unit no total here keeps.
-   */
-  "+absorbm",
-  "+absorb",
-  /**
-   * ⚠️ **The one that looks like damage and is not.** `+taken_dmg` rides every
-   * blow that carries `-dmga`, without exception, and the tempting reading is
-   * that it is the raw half of that applied figure — the help documents
-   * `taken_dmg_per` as damage added to what the target takes, reduced by armour.
-   *
-   * The material refuses it: a raw figure cannot be smaller than its own applied
-   * counterpart, and `+taken_dmg` is smaller on a sizeable minority of them and
-   * **never once larger**. That direction is the refutation and it is what
-   * `tests/core/battle-event.test.ts` re-measures; the tally was written here as
-   * 31 of 199 and stopped being true on the next intake (§3). So it states a component of the added damage, not the whole of it,
-   * and the whole is already reported as `-dmga` — which the shape rule reads.
-   * Counting it would add the same damage twice.
-   *
-   * The client agrees: it composes this one as `eng_game_only_val_+taken_dmg
-   * %val%`, sharing that branch with `+crush` and `+critpierce`, while `-dmga`
-   * falls to the default branch that recognises damage by shape. Production
-   * build 1786514810315.
-   */
-  "+taken_dmg",
-];
-
-/**
- * The declaration that carries **no value**, and is read only while it carries
- * none.
- *
- * `+legbon_holytouch` arrives valueless in the captures, exactly as a flag does,
- * but production build `1785244275300` composes its sentence with a `%val%` hole
- * — so the client expects a figure this occurrence does not send. Reading it as a
- * flag outright would settle from one message what the game settles, and the
- * figure would vanish the first time one arrived. A value sends it back to
- * unread, which is where that disagreement belongs.
- *
- * `+legbon_anguish` is the second, in the identical disagreement: production
- * build `1786514810315` composes `msg_+legbon_anguish %val%`, and every
- * occurrence in the material states nothing — three recordings carry it as the
- * set stood 2026-08-25, and the absence is asserted over the material rather
- * than counted here (`tests/core/anguish-rule.test.ts`). It announces the bleed
- * whose ticks `HEALTH_CHANGE_KEYS` reads under `anguish`, and it announces it
- * without the figure that would say which tick is whose — which is why the two
- * are not joined the way `+injure` and `injure` are (§9.6).
- */
-const VALUELESS_BLOW_DECLARATION_KEYS = ["+legbon_holytouch", "+legbon_anguish"];
-
-/**
- * Keys stating a **share of a whole side's** health rather than a figure.
- *
- * The decoder reads them into `unaccounted-health` and stops there: sizing one
- * needs each combatant's maximum, what they entered the fight with, and what they
- * hold at the moment, and a decoder that walked messages one at a time could know
- * none of the three. `src/core/combatant-health.ts` does that, later in the
- * pipeline, and this is the list it works from — spelled here because the decoder
- * is what turns the key into an event, and spelled **once** because a name we did
- * not choose, spelled twice, fails silently (§9.3).
- *
- * ⚠️ **This used to be called `UNATTRIBUTABLE_HEALTH_KEYS`, and the health
- * witness read it to decide which calls it could not judge.** That is over: every
- * key here is a figure the witness now adds and agrees on. What survives the
- * rename is the reason the list exists at all — a share is not a figure, and the
- * gap between them is three readings this layer does not have.
- */
-export const SIDE_SHARE_HEALTH_KEYS: readonly string[] = ["healall_per"];
-
-/**
- * Keys whose healing the game's own documentation says is the healed combatant's
- * **own** effect — so the end the protocol leaves out is filled with the end it
- * names, and never with anybody else.
- *
- * This is the one place §9.6's third clause is exercised, and it is a **citation**
- * rather than a guess. Article `view,372`, read 2026-08-19, by engine name:
- *
- *   - `heal` — *Przywracanie życia*: an effect laid on the Character, restoring
- *     the Character's health, firing only before the action of the Player it is
- *     assigned to and only while they hold less than they entered the fight with.
- *   - `holytouch` — the Character applies the effect to itself, and each firing
- *     heals the Character 6% of their pool.
- *   - `lastheal` — the holder's own legendary bonus, healing the holder once when
- *     damage takes them below 18% of their pool.
- *
- * Corroborated rather than proved, and the difference is written down because it
- * is the honest one. Measured over the captures as the set stood 2026-08-19: 838
- * of 1099 figures `heal` states as a gain sit exactly on
- * `round(first × (1 − 0.05n))` — the help's own decay, anchored on that
- * **combatant's** first figure and on nobody else's. The residue is a boss whose
- * value grows mid-fight, and tails the cap shortened; the same set carries
- * `heal_per-allies` and `heal_per-enemies`, which move the value the decay runs
- * from, so that is a floor on the fit rather than a ceiling.
- *
- * ⚠️ **The restoring direction only.** `heal` states a loss as readily as a gain,
- * and nothing documents a self-damage reading — a loss stays health lost with
- * nobody charged for it.
- *
- * ⚠️ **`legbon_lastheal`'s combatant is the name inside its value, never the
- * message actor**, who is whoever struck the blow. Four of its five occurrences
- * ride a group blow where the message's own target is a third party, so reading
- * the slot would credit the attacker with healing their victim.
- *
- * `[ASK]` before a fourth key joins this list (§9.6).
+ * The keys whose giver is the one healed, on the published help's word rather than on the
+ * grammar: each entry's `_Cause:_` in `docs/protocol-keys.md` reads *the subject's own*. Being
+ * stated at one end is not what puts a key here — `heal_target` states one end too and is charged
+ * to whoever announced it. `[ASK]` before a fourth joins the list.
  */
 export const SELF_SOURCED_HEALING_KEYS: readonly string[] = [
-  "heal",
-  "legbon_holytouch_heal",
-  "legbon_lastheal",
+    "heal",
+    "legbon_holytouch_heal",
+    HEALING_TO_NAMED_KEY,
 ];
-
+const SKILL_NAME_KEY = "tspell";
 /**
- * A damage key that ticks with nobody in the other slot, and the key that
- * announced who applied it — §9.6's fourth clause, and the only pair on it.
- *
- * The tick names its victim and nobody else. The announcement, one or more
- * messages earlier, names both ends. What lets the two be joined is the help's
- * own overwrite rule rather than proximity: article `view,372` at the engine name
- * `injure` (read 2026-08-18) says the deep-wound damage does not accumulate and is
- * overwritten by the freshest value applied **to that given opponent**, so a
- * victim carries exactly one wound at a time and the freshest announcement against
- * them is whose it is. The figure is what identifies which one — a tick states
- * what its announcement stated.
- *
- * Measured over `tests/captured-fights/` as the set stood 2026-08-19: every tick
- * lands on a victim already carrying a wound and states exactly what that wound
- * announced, on material where a victim was wounded by three different attackers.
- * Re-earned by `tests/core/injure-rule.test.ts`.
- *
- * ⚠️ **`poison` and `fire` are written identically and are not here.** They tick
- * the same way, with the subject in the actor slot and a literal `0` at the other,
- * and no key announces them at all — so there is no earlier message to read a name
- * off, and they keep their `Nieznany sprawca` row. That asymmetry is the content
- * of the clause: what supplies the missing end is a stated announcement, never the
- * shape of the message.
- *
- * ⚠️ **`critwound` is the near miss.** The help names it beside this one as the
- * other source of deep-wound damage, and the client knows both `+critwound` and
- * `critwound` (`tests/frozen-protocol-keys.ts`) — a separate tick key, so it
- * cannot arrive under this one and be mistaken for it. Neither is in the captures
- * and neither is read; a pair for them is `[ASK]` like any other (§9.6).
- *
- * Spelled here rather than in the aggregate that reads it, for the reason the
- * list above gives: the decoder is what turns a key into an event, and a name we
- * did not choose is spelled once (§9.3).
+ * The other way an announcement names what was used, and the name sits in the target slot. Read
+ * only where the message names one combatant, so nothing has to guess whose use it was.
  */
-export const WOUND_ANNOUNCEMENT_BY_TICK_KEY: Readonly<Record<string, string>> = {
-  injure: "+injure",
-};
-
+const CUSTOM_SKILL_NAME_KEY = "tcustom";
+const SKILL_ID_KEY = "skillId";
 /**
- * Keys that are the whole of their message and report nothing that happened to
- * anybody: a turn marker, a skill being prepared, a line for the client's own
- * log, the experience at the end, an aura declared once for the fight.
- *
- * Measured: each is the only key in its message, without exception — which is why
- * they need an event of their own rather than a slot on a blow. Two of them carry
- * text rather than a figure, and one carries no value at all.
- *
- * `step` looks like a turn boundary and is not read as one. The protocol does not
- * say that, and neither does this list: what is read is that the message stated
- * `step` about a combatant (`docs/protocol-keys.md`).
+ * Keys stating something no total here counts: an input, an outcome in a unit this meter does
+ * not keep, or one outside the fight. Every member is an entry in `docs/protocol-keys.md`, and
+ * the test a key must pass to be here is not "we understand it" — it is whether whatever the
+ * figure did is reported elsewhere, in a unit no total keeps, or outside the fight.
  */
-const STANDALONE_DECLARATION_KEYS = [
-  "step",
-  "prepare",
-  "txt",
-  "+exp",
-  "poison_lowdmg_per-enemies",
-  "en-regen",
-  "+ph",
-  // The third shape a declaration takes here and the only one in a unit this
-  // meter does keep — see `DeclaredEffect`. Health restored by a talisman
-  // **after the fight has ended**: every occurrence arrives after
-  // `winner`/`loser` with the recipients' health unmoved in the payload's own
-  // snapshots, each of them well below their maximum.
-  "afterheal",
+const DECLARATION_KEYS = [
+    "+absorb",
+    "+absorbm",
+    "+critpoison_per",
+    "+critsa",
+    "+critslow_per",
+    "+crush_physical",
+    "+engback",
+    "+exp",
+    WOUND_ANNOUNCEMENT_KEY,
+    "+legbon_puncture",
+    "+ph",
+    "+rage",
+    "+taken_dmg",
+    "-endest",
+    "-legbon_critred",
+    "-legbon_facade",
+    "-poison_lowdmg_per",
+    "active_absorbdest_per",
+    "active_block_per",
+    "active_decblock_per",
+    "active_decblock_per-enemies",
+    "afterheal",
+    "alllowdmg",
+    "allslow_per",
+    "aura-ac_per",
+    "aura-adddmg2_per-meele",
+    "aura-resall",
+    "aura-sa_per",
+    "combo-max",
+    "critmval-allies",
+    "critval-allies",
+    "en-regen",
+    "energy",
+    "lowheal_per-enemies",
+    "mana",
+    "poison_lowdmg_per-enemies",
+    "prepare",
+    "shout",
+    "txt",
 ];
 /**
- * The one declaration whose value is a combatant's name rather than a figure:
- * `shout` states who the skill forces its targets to attack.
+ * The same, stating the key and nothing else — and read **only** while they carry none. The
+ * client composes `+legbon_holytouch` with a hole for a figure, so it is a declaration whose
+ * figure is absent rather than a proc, and one arriving with a value goes back to unread.
  */
-const SKILL_SHOUT_KEY = "shout";
+const VALUELESS_DECLARATION_KEYS = [
+    "+legbon_anguish",
+    "+legbon_holytouch",
+    "+spell-taken_dmg-all",
+    "en-regen-cast",
+    "removedot-allies",
+    "removeslow-allies",
+    "removestun-allies",
+    "step",
+];
+/** The longest message list in one payload of `captures/` holds 627, 2026-08-28. */
+const MAXIMUM_MESSAGES = 4096;
+/** The longest message in `captures/` carries 40 parameters, 2026-08-28. */
+const MAXIMUM_PARAMETERS = 512;
+const UNREAD_REASON = "keys with no meaning yet";
+const EMPTY_REASON = "a message stating no parameter";
+
+interface HealthChangeReading {
+    source: string;
+    amount: number;
+    isOnTarget: boolean;
+    declared: DeclaredEffect[];
+}
+
+interface UnaccountedHealthReading {
+    source: string;
+    declaredShare: number;
+}
+
+interface NamedHealingReading {
+    targetName: string;
+    targetHealthPercent: number | null;
+    amount: number;
+}
+
+interface NamedDamageReading {
+    targetName: string;
+    targetHealthPercent: number | null;
+    damage: DamageFigure;
+}
+
+interface SkillReading {
+    skillName: string;
+    skillId: number | null;
+}
+
+interface AttackReading {
+    raw: DamageFigure[];
+    applied: DamageFigure[];
+    prevented: PreventedDamage[];
+    destroyed: DestroyedStatistic[];
+    procs: string[];
+    healthChanges: HealthChangeReading[];
+    namedDamage: NamedDamageReading[];
+    namedHealing: NamedHealingReading[];
+    unaccounted: UnaccountedHealthReading[];
+    outcomes: FightOutcomeEvent[];
+    declared: DeclaredEffect[];
+    skill: SkillReading | null;
+    skillName: string | null;
+    skillId: number | null;
+    skillKeys: number;
+    unreadKeys: string[];
+}
+
+/** Null for a key that is not a proc at all, which is what makes this the membership test too. */
+export function getProcEnd(key: string): ProcEnd | null {
+    assert(key.length > 0, "a key asked about is a key the message wrote");
+    const end = PROC_ENDS[key];
+    if (end === undefined) return null;
+    assert(end.length > 0, "and a proc the table holds is placed at an end, or refused one");
+    return end;
+}
+
+function isDamageKey(key: string): boolean {
+    assert(key.length > 0, "a key is never empty");
+    if (DAMAGE_KEYS.includes(key)) return true;
+    return key.slice(DAMAGE_MARKER_AT, DAMAGE_MARKER_AT + DAMAGE_MARKER.length) === DAMAGE_MARKER;
+}
+
+/** The client's own token: the key with its sign taken off. */
+function getTokenFromKey(key: string): string {
+    assert(key.length > 0, "a key is never empty");
+    if (key.startsWith(RAW_SIGN)) return key.slice(1);
+    if (key.startsWith(APPLIED_SIGN)) return key.slice(1);
+    assert(!key.startsWith(RAW_SIGN), "a token carries no sign of its own");
+    return key;
+}
 
 /**
- * Every named key the decoder claims to understand. Exported so a guard can hold it
- * against the keys the game actually knows — a key we handle that the client
- * has never heard of means we invented a meaning.
+ * The figure, then whatever the key stated beside it. Null where the health figure itself is not
+ * a number, which leaves the key unread rather than read as nothing.
  */
-export const UNDERSTOOD_PROTOCOL_KEYS: readonly string[] = [
-  ...Object.keys(OUTCOME_KEYS),
-  ...Object.keys(HEALTH_CHANGE_KEYS),
-  ...PREVENTED_DAMAGE_KEYS,
-  ...STATISTIC_DESTRUCTION_KEYS,
-  ...PROC_KEYS,
-  ...SKILL_DECLARATION_KEYS,
-  ...BLOW_DECLARATION_KEYS,
-  ...STANDALONE_DECLARATION_KEYS,
-  ...VALUELESS_BLOW_DECLARATION_KEYS,
-  ...VALUELESS_SKILL_DECLARATION_KEYS,
-  ...DAMAGE_KEYS_BY_NAME,
-  ...SIDE_SHARE_HEALTH_KEYS,
-  SKILL_SHOUT_KEY,
-  SKILL_NAME_KEY,
-  CUSTOM_SKILL_NAME_KEY,
-  SKILL_ID_KEY,
-  DAMAGE_TO_NAMED_KEY,
-  HEALING_TO_NAMED_KEY,
-];
-
-type MessageReading = {
-  /** The actor slot of the message itself — not of any one event on it. */
-  actorId: number | null;
-  events: BattleEvent[];
-};
-
-function decodeMessage(message: string, roster: CombatantRoster | null): MessageReading {
-  let parsed: ProtocolMessage;
-  try {
-    parsed = parseProtocolMessage(message);
-  } catch (error) {
-    // Narrow on purpose. A bare `catch` would also swallow broken assertions
-    // and turn a bug of ours into "the game changed its format" — the most
-    // expensive kind of wrong number this project can produce.
-    if (!(error instanceof ProtocolMessageFormatError)) throw error;
-    // No key to name: the grammar failed before there were parameters to read.
+function readHealthChange(key: string, value: string): HealthChangeReading | null {
+    const stated = HEALTH_CHANGE_KEYS[key];
+    if (stated === undefined) return null;
+    const members = value.split(MEMBER_SEPARATOR);
+    const first = members[0];
+    if (first === undefined) return null;
+    const magnitude = getIntegerFromText(first);
+    if (magnitude === null) return null;
+    const declared: DeclaredEffect[] = [];
+    for (const member of members.slice(1)) {
+        declared.push({ effect: key, amount: getIntegerFromText(member), text: member });
+    }
+    assert(declared.length < members.length, "the health figure is not a declaration");
+    assert(Number.isSafeInteger(magnitude), "a health figure read from digits is a whole number");
     return {
-      actorId: null,
-      events: [
-        {
-          kind: "unknown-message",
-          message,
-          reason: error.message,
-          unreadKeys: [],
-          // Nothing to name: the grammar failed before there were side segments
-          // to read, so there is no end to put this message's shortfall on.
-          combatantIds: [],
-        },
-      ],
+        source: key,
+        amount: stated.sign * magnitude,
+        isOnTarget: stated.isOnTarget,
+        declared,
     };
-  }
+}
 
-  const events: BattleEvent[] = [];
-  const unreadKeys: string[] = [];
-  const dealt: DamageAmount[] = [];
-  const taken: DamageAmount[] = [];
-  const prevented: PreventedDamage[] = [];
-  const destroyed: StatisticDestruction[] = [];
-  const procs: string[] = [];
-  const blowDeclared: DeclaredEffect[] = [];
-  const standalone: DeclaredEffect[] = [];
-  // Read after the loop rather than inside it: the two keys are one fact, and
-  // nothing guarantees the protocol writes them in a fixed order.
-  let skillName: string | null = null;
-  let skillId: number | null = null;
-  const declared: DeclaredEffect[] = [];
+/** Both ends the same, or one end unstated: there was never a second name to get wrong. */
+function namesOneCombatant(parsed: ProtocolMessage): boolean {
+    if (parsed.actor === null) return parsed.target !== null;
+    if (parsed.target === null) return true;
+    return parsed.actor.combatantId === parsed.target.combatantId;
+}
 
-  for (const parameter of parsed.parameters) {
-    const { key, value } = parameter;
+function readSkillName(key: string, value: string, parsed: ProtocolMessage): string | null {
+    assert(value.length >= 0, "a value is text, however short");
+    if (key === SKILL_NAME_KEY) return value;
+    if (key !== CUSTOM_SKILL_NAME_KEY) return null;
+    if (!namesOneCombatant(parsed)) return null;
+    assert(key === CUSTOM_SKILL_NAME_KEY, "only the custom key reaches the rule above");
+    return value;
+}
 
-    if (key === DAMAGE_TO_NAMED_KEY) {
-      const damage = decodeDamageToNamedCombatant(
-        value,
-        getActorOfMessage(parsed).combatantId,
-        roster,
-      );
-      if (damage === null) unreadKeys.push(key);
-      else events.push(damage);
-      continue;
-    }
+/** `Gracz 1(63.00%)` — the name runs to the last opener, so a name may hold one of its own. */
+function readNamedTarget(text: string): { name: string; healthPercent: number | null } | null {
+    if (!text.endsWith(PERCENT_CLOSER)) return null;
+    const opener = text.lastIndexOf(PERCENT_OPENER);
+    if (opener <= 0) return null;
+    const name = text.slice(0, opener);
+    assert(name.length > 0, "a stated name says something");
+    const percentText = text.slice(opener + 1, text.length - PERCENT_CLOSER.length);
+    assert(percentText.length < text.length, "a percentage is shorter than what carried it");
+    return { name, healthPercent: getHealthPercentFromText(percentText) };
+}
 
-    if (key === HEALING_TO_NAMED_KEY) {
-      const healing = decodeHealingToNamedCombatant(key, value, roster);
-      if (healing === null) unreadKeys.push(key);
-      else events.push(healing);
-      continue;
-    }
+/** Healing that took health away would be this reader misreading its key, not a loss reported. */
+function readNamedHealing(key: string, value: string): NamedHealingReading | null {
+    if (key !== HEALING_TO_NAMED_KEY) return null;
+    const members = value.split(MEMBER_SEPARATOR);
+    if (members.length !== HEALING_TO_NAMED_MEMBERS) return null;
+    const [amountText, statedTarget] = members;
+    if (amountText === undefined) return null;
+    if (statedTarget === undefined) return null;
+    const amount = getIntegerFromText(amountText);
+    if (amount === null) return null;
+    if (amount < 0) return null;
+    const named = readNamedTarget(statedTarget);
+    if (named === null) return null;
+    assert(amount >= 0, "healing stated against a name never takes health away");
+    assert(named.name.length > 0, "a figure stated against a name has a name");
+    return { targetName: named.name, targetHealthPercent: named.healthPercent, amount };
+}
 
-    const healthChange = HEALTH_CHANGE_KEYS[key];
-    if (healthChange !== undefined) {
-      const [magnitude, ...rest] = (value ?? "").split(VALUE_SEPARATOR);
-      const amount = magnitude === undefined ? null : getIntegerFromText(magnitude);
-      if (amount === null) {
-        unreadKeys.push(key);
-        continue;
-      }
-      const subject = healthChange.isOnTarget ? parsed.target : parsed.actor;
-      const declaredBeside: DeclaredEffect[] = [];
-      events.push({
-        kind: "health-change",
-        announced: null,
-        combatantId: subject?.combatantId ?? null,
-        amount: amount * healthChange.sign,
-        healthPercent: subject?.healthPercent ?? null,
-        source: key,
-        declared: declaredBeside,
-      });
-      // The health figure is read; a second one beside it is carried without
-      // being read. A member that will not read as a number goes back to unread
-      // — the shape is checked here as everywhere else.
-      for (const stated of rest) {
-        const extra = getNumberFromText(stated);
-        if (extra === null) unreadKeys.push(key);
-        else declaredBeside.push({ effect: key, amount: extra, text: null });
-      }
-      continue;
-    }
+function readNamedDamage(key: string, value: string): NamedDamageReading | null {
+    if (key !== NAMED_DAMAGE_KEY) return null;
+    const members = value.split(MEMBER_SEPARATOR);
+    if (members.length !== NAMED_DAMAGE_MEMBERS) return null;
+    const [amountText, element, statedTarget] = members;
+    if (amountText === undefined) return null;
+    if (element === undefined) return null;
+    if (statedTarget === undefined) return null;
+    const amount = getIntegerFromText(amountText);
+    if (amount === null) return null;
+    const named = readNamedTarget(statedTarget);
+    if (named === null) return null;
+    assert(Number.isSafeInteger(amount), "a figure stated against a name is a whole number");
+    return {
+        targetName: named.name,
+        targetHealthPercent: named.healthPercent,
+        damage: { element: `${DAMAGE_MARKER}${element.trim()}`, amount },
+    };
+}
 
-    if (key === SKILL_NAME_KEY) {
-      // A blank name would travel on looking like a skill nobody can name.
-      if (value === null || value === "") unreadKeys.push(key);
-      else skillName = value;
-      continue;
-    }
-
-    if (key === CUSTOM_SKILL_NAME_KEY) {
-      // Same blank-name refusal as above, and the second condition is the one
-      // this key needs: exactly one combatant named is what makes the use
-      // somebody's without an inference.
-      if (value === null || value === "" || getCombatantIdsOfMessage(parsed).length !== 1) {
-        unreadKeys.push(key);
-      } else skillName = value;
-      continue;
-    }
-
-    if (key === SKILL_ID_KEY) {
-      const id = value === null ? null : getIntegerFromText(value);
-      if (id === null) unreadKeys.push(key);
-      else skillId = id;
-      continue;
-    }
-
-    if (SKILL_DECLARATION_KEYS.includes(key)) {
-      const amount = value === null ? null : getIntegerFromText(value);
-      if (amount === null) unreadKeys.push(key);
-      else declared.push({ effect: key, amount, text: null });
-      continue;
-    }
-
-    if (VALUELESS_SKILL_DECLARATION_KEYS.includes(key)) {
-      if (value === null) declared.push({ effect: key, amount: null, text: null });
-      else unreadKeys.push(key);
-      continue;
-    }
-
-    if (key === SKILL_SHOUT_KEY) {
-      // A blank name would travel on as a combatant nobody can find, which is
-      // the same fault as a blank skill name a few lines up.
-      if (value === null || value === "") unreadKeys.push(key);
-      else declared.push({ effect: key, amount: null, text: value });
-      continue;
-    }
-
-    if (PREVENTED_DAMAGE_KEYS.includes(key)) {
-      const amount = value === null ? null : getIntegerFromText(value);
-      if (amount === null) unreadKeys.push(key);
-      else prevented.push({ prevention: key.slice(1), amount });
-      continue;
-    }
-
-    if (STATISTIC_DESTRUCTION_KEYS.includes(key)) {
-      const amount = value === null ? null : getIntegerFromText(value);
-      if (amount === null) unreadKeys.push(key);
-      else destroyed.push({ statistic: key.slice(1), amount });
-      continue;
-    }
-
-    if (STANDALONE_DECLARATION_KEYS.includes(key)) {
-      // A figure where there is one, the text where there is not, and neither
-      // where the key carries no value — all three are readings, and none is a
-      // number anything totals.
-      const amount = value === null ? null : getIntegerFromText(value);
-      standalone.push({
-        effect: key,
-        amount,
-        text: amount === null ? value : null,
-      });
-      continue;
-    }
-
-    if (VALUELESS_BLOW_DECLARATION_KEYS.includes(key)) {
-      if (value === null) blowDeclared.push({ effect: key, amount: null, text: null });
-      else unreadKeys.push(key);
-      continue;
-    }
-
-    if (SIDE_SHARE_HEALTH_KEYS.includes(key)) {
-      events.push({
-        kind: "unaccounted-health",
-        announced: null,
-        source: key,
-        combatantId: getActorOfMessage(parsed).combatantId,
-        // Either spelling: the protocol states `30` and `22.5` for this key in
-        // the same fight.
-        declaredShare: value === null ? null : getNumberFromText(value),
-      });
-      continue;
-    }
-
-    if (BLOW_DECLARATION_KEYS.includes(key)) {
-      /**
-       * ⚠️ **Either spelling, the way `SIDE_SHARE_HEALTH_KEYS` above reads its
-       * own.** A declaration is read and never totalled (§10), so nothing here
-       * needs the figure whole — and requiring it whole was never a claim about
-       * the game, only about the material. `+critsa` states `5.5` in
-       * `tests/captured-fights/2026-08-24-tempest-tropiciel-vs-centaury-auto.json`
-       * and `11` or `20` everywhere else, and `getIntegerFromText` turned the
-       * whole blow into an unknown message over the halves — a message carrying
-       * five damage figures, none of them counted, because one input beside them
-       * had a decimal point.
-       *
-       * Measured over every recording held on 2026-08-24: of the twelve keys in
-       * this list only `+critsa` ever states a fraction, so this widens what is
-       * accepted and moves no existing reading. Which of them the game states
-       * whole is the register's business, key by key (`docs/protocol-keys.md`).
-       */
-      const amount = value === null ? null : getNumberFromText(value);
-      if (amount === null) unreadKeys.push(key);
-      else blowDeclared.push({ effect: key, amount, text: null });
-      continue;
-    }
-
-    if (PROC_KEYS.includes(key)) {
-      // A figure beside one of these is something the captures never showed and
-      // nothing here explains. The key goes back to unread rather than being
-      // read as a bare flag with a number quietly dropped beside it.
-      if (value === null) procs.push(key.slice(1));
-      else unreadKeys.push(key);
-      continue;
-    }
-
-    if (DAMAGE_KEYS_BY_NAME.includes(key) || isDamageKey(key)) {
-      const damage = getDamageAmount(parameter);
-      // A damage key whose value will not read as a number is worse than an
-      // unknown key: it looks like a figure and is not one.
-      if (damage === null) unreadKeys.push(key);
-      else if (key.startsWith(DEALT_SIGN)) dealt.push(damage);
-      else taken.push(damage);
-      continue;
-    }
-
+/** `loser=?` is not a side of that name, so it is left unread rather than read as a draw. */
+function readFightOutcome(key: string, value: string): FightOutcomeEvent | null {
     const result = OUTCOME_KEYS[key];
-    if (result !== undefined && value !== null) {
-      if (value === NO_WINNER_VALUE) {
-        // The sentinel belongs to the winners' key alone. On the losers' it is a
-        // value with no meaning here, and reading it as text would file a side
-        // called `?` — which is the invention §5 refuses, not a shorter fight.
-        if (key === WINNER_KEY) {
-          events.push({ kind: "fight-outcome", result: "drawn", combatantNames: [] });
-          continue;
-        }
-      } else {
-        const combatantNames = value.split(NAME_SEPARATOR);
-        // `"".split(", ")` is `[""]`, so an empty value reads as a side holding one
-        // nameless combatant. A side we cannot match against anyone is unread.
-        if (combatantNames.every((name) => name !== "")) {
-          events.push({ kind: "fight-outcome", result, combatantNames });
-          continue;
-        }
-      }
+    if (result === undefined) return null;
+    if (value.length === 0) return null;
+    if (value === NO_WINNER) {
+        if (result === "lost") return null;
+        return { kind: "fight-outcome", result: "drawn", combatantNames: [] };
     }
-    unreadKeys.push(key);
-  }
+    const combatantNames = value.split(NAME_SEPARATOR);
+    assert(combatantNames.length > 0, "a side that is named has at least one member");
+    assert(combatantNames.every((one) => one.length > 0), "a member of a side is named");
+    assert(combatantNames.every((one) => !one.startsWith(" ")), "a name carries no separator");
+    return { kind: "fight-outcome", result, combatantNames };
+}
 
-  // Anything the blow reported, not only its figures: a message carrying `+crit`
-  // and nothing else still describes an attack, and emitting nothing for it
-  // would drop it. Never seen in the captures, where every such annotation
-  // rides a message that also carries damage.
-  // A declaration counts as something reported: a message stating only that a
-  // blow was weakened still describes a blow, and dropping it would lose the one
-  // thing that message says.
-  const reported = [dealt, taken, prevented, destroyed, procs, blowDeclared].some(
-    (of) => of.length > 0,
-  );
-  if (reported) {
-    events.push({
-      kind: "attack",
-      announced: null,
-      ...getEndsOfMessage(parsed),
-      dealt,
-      taken,
-      prevented,
-      procs,
-      destroyed,
-      declared: blowDeclared,
-    });
-  }
-
-  if (skillName !== null) {
-    events.push({
-      kind: "skill-used",
-      ...getEndsOfMessage(parsed),
-      skillName,
-      skillId,
-      declared,
-    });
-  } else {
-    if (skillId !== null) {
-      // An id with no name is a skill nothing can put on screen, and the captures
-      // have never sent one — 0 of 197. Reported rather than turned into an event
-      // whose name we would have to invent.
-      unreadKeys.push(SKILL_ID_KEY);
+function addValuelessKey(reading: AttackReading, key: string): void {
+    assert(key.length > 0, "a key is never empty");
+    if (getProcEnd(key) !== null) {
+        reading.procs.push(key);
+        return;
     }
-    // A declaration with no announcement to belong to has nowhere to go, and
-    // dropping it would be the silent loss the unread list exists to prevent.
-    // Never seen: every occurrence in the captures rides a `tspell` message.
-    for (const declaration of declared) unreadKeys.push(declaration.effect);
-  }
-
-  if (standalone.length > 0) {
-    events.push({
-      kind: "declaration",
-      ...getActorOfMessage(parsed),
-      declared: standalone,
-    });
-  }
-
-  // Reported even when the message also produced something readable: a message
-  // half understood is not the same as a message understood.
-  if (unreadKeys.length > 0) {
-    events.push({
-      kind: "unknown-message",
-      message,
-      reason: `no meaning yet for ${unreadKeys.join(", ")}`,
-      unreadKeys,
-      combatantIds: getCombatantIdsOfMessage(parsed),
-    });
-  }
-
-  // A message carrying no parameters at all says nothing, and saying nothing
-  // back would be the one thing rule 1 forbids. Never seen in captured
-  // material, but it is a possible message rather than an impossible state, so
-  // it gets reported rather than crashing the panel.
-  if (events.length === 0) {
-    events.push({
-      kind: "unknown-message",
-      message,
-      reason: "carries no parameters",
-      unreadKeys: [],
-      combatantIds: getCombatantIdsOfMessage(parsed),
-    });
-  }
-
-  // Rule 1, now held by construction. This can only fire if a future edit
-  // breaks that — which is exactly when silence would be most expensive.
-  assert(events.length > 0, "every message produces at least one event");
-  return { actorId: getActorOfMessage(parsed).combatantId, events };
+    if (VALUELESS_DECLARATION_KEYS.includes(key)) {
+        reading.declared.push({ effect: key, amount: null, text: null });
+        return;
+    }
+    assert(getProcEnd(key) === null, "a proc never reaches the unread branch");
+    reading.unreadKeys.push(key);
 }
 
-/** The figures a skill can be glued to. Nothing else carries `announced`. */
-function isGluable(
-  event: BattleEvent,
-): event is
-  | AttackEvent
-  | DamageToNamedCombatantEvent
-  | HealthChangeEvent
-  | UnaccountedHealthEvent {
-  return (
-    event.kind === "attack" ||
-    event.kind === "damage-to-named-combatant" ||
-    event.kind === "health-change" ||
-    event.kind === "unaccounted-health"
-  );
+/** True where the key was one of the announcement's two halves, and the reading took it. */
+function addSkillKey(
+    reading: AttackReading,
+    key: string,
+    value: string,
+    parsed: ProtocolMessage,
+): boolean {
+    const named = readSkillName(key, value, parsed);
+    if (named !== null) {
+        reading.skillName = named;
+        reading.skillKeys += 1;
+        return true;
+    }
+    assert(key !== SKILL_NAME_KEY, "a name is read once, above");
+    if (key !== SKILL_ID_KEY) return false;
+    reading.skillId = getIntegerFromText(value);
+    reading.skillKeys += 1;
+    return true;
 }
 
-/**
- * Whose figure this is, for the purpose of the glue.
- *
- * A health change is the exception and the reason this function exists: its own
- * combatant is the one **healed**, so asking it "whose is this" would bind a heal
- * to the person who received it. It has no actor of its own, so the announcement
- * is the only candidate, and the caller has already checked that the message it
- * arrived on belongs to the announcer.
- */
-function getGlueActor(
-  event:
-    | AttackEvent
-    | DamageToNamedCombatantEvent
-    | HealthChangeEvent
-    | UnaccountedHealthEvent,
-  announcer: number | null,
-): number | null {
-  if (event.kind === "health-change") return announcer;
-  // A cast names its caster in the actor slot, and that combatant is who the
-  // announcement belongs to — the same reading as an attack's, under a different
-  // field name because the event carries no `actorId` to call it.
-  if (event.kind === "unaccounted-health") return event.combatantId;
-  return event.actorId;
+/** An id with no name is a skill nothing can put on screen, and the protocol has never sent one. */
+function closeSkillReading(reading: AttackReading): void {
+    assert(reading.skill === null, "a reading's announcement is closed once");
+    assert(reading.skillKeys >= 0, "a key is counted once");
+    if (reading.skillName !== null) {
+        reading.skill = { skillName: reading.skillName, skillId: reading.skillId };
+        return;
+    }
+    if (reading.skillKeys === 0) return;
+    reading.unreadKeys.push(SKILL_ID_KEY);
+    reading.skillKeys -= 1;
 }
 
-/**
- * The roster is optional because a fight can be joined already in progress, and
- * a missing roster must degrade to "we cannot say who" rather than to a guess or
- * to nothing decoded at all.
- *
- * ⚠️ **This is not a `map` over messages, and cannot be.** The game glues a
- * message carrying `skillId` to the one after it (`AnnouncedSkill`), so a figure
- * knows which skill it belongs to only in the company of its neighbour. The
- * state below is that neighbourhood and nothing more: it reaches exactly one
- * message forward and is dropped whatever the next message turns out to be.
- *
- * The alternative — a rule reaching further, "the last skill this combatant
- * announced" — is what a reader would reinvent from the panel, and it is wrong:
- * On `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`
- * 32 of its 197 announcements are followed by a message
- * belonging to somebody else, and a rule that waits for a match would eventually
- * hand one of them the wrong skill.
- */
-export function decodeFight(
-  messages: readonly string[],
-  roster: CombatantRoster | null = null,
-): BattleEvent[] {
-  const events: BattleEvent[] = [];
-  let carried: AnnouncedSkill | null = null;
+function addAttackFigure(reading: AttackReading, key: string, amount: number): void {
+    const token = getTokenFromKey(key);
+    assert(token.length > 0, "a figure carries the client's own token");
+    if (isDamageKey(key)) {
+        if (key.startsWith(RAW_SIGN)) reading.raw.push({ element: token, amount });
+        else reading.applied.push({ element: token, amount });
+        return;
+    }
+    if (PREVENTED_KEYS.includes(key)) {
+        reading.prevented.push({ defence: token, amount });
+        return;
+    }
+    if (DESTROYED_KEYS.includes(key)) {
+        reading.destroyed.push({ statistic: token, amount });
+        return;
+    }
+    assert(!isDamageKey(key), "a damage key never reaches the unread branch");
+    reading.unreadKeys.push(key);
+}
 
-  for (const message of messages) {
-    const { actorId, events: produced } = decodeMessage(message, roster);
-    const announcement = produced.find((event) => event.kind === "skill-used") ?? null;
-    const announced: AnnouncedSkill | null = announcement && {
-      skillName: announcement.skillName,
-      skillId: announcement.skillId,
-      actorId: announcement.actorId,
+/** True where the key was the share, read or refused. A share with a second member is not read. */
+function addUnaccountedHealth(reading: AttackReading, key: string, value: string): boolean {
+    if (key !== UNACCOUNTED_HEALTH_KEY) return false;
+    const declaredShare = getShareFromText(value);
+    assert(declaredShare === null || declaredShare >= 0, "a share read is never below nothing");
+    if (declaredShare === null) reading.unreadKeys.push(key);
+    else reading.unaccounted.push({ source: key, declaredShare });
+    return true;
+}
+
+function composeAttackReading(parsed: ProtocolMessage): AttackReading {
+    const parameters = parsed.parameters;
+    assert(parameters.length <= MAXIMUM_PARAMETERS, "a message stays inside its stated bound");
+    const reading: AttackReading = {
+        raw: [],
+        applied: [],
+        prevented: [],
+        destroyed: [],
+        procs: [],
+        healthChanges: [],
+        namedDamage: [],
+        namedHealing: [],
+        unaccounted: [],
+        outcomes: [],
+        declared: [],
+        skill: null,
+        skillName: null,
+        skillId: null,
+        skillKeys: 0,
+        unreadKeys: [],
     };
-
-    // An announcement binds the figures on its own message; anything else binds
-    // only what the message before it announced, and only if it is that
-    // combatant's message. The check is on the MESSAGE's actor, not the event's:
-    // a heal names its recipient, so an event-level check would bind the skill to
-    // whoever was healed.
-    const binding = announced ?? (carried !== null && actorId === carried.actorId ? carried : null);
-    if (binding !== null) {
-      for (const event of produced) {
-        if (!isGluable(event)) continue;
-        if (getGlueActor(event, binding.actorId) !== binding.actorId) continue;
-        event.announced = binding;
-      }
+    for (const parameter of parameters) {
+        if (parameter.value === null) {
+            addValuelessKey(reading, parameter.key);
+            continue;
+        }
+        if (addSkillKey(reading, parameter.key, parameter.value, parsed)) continue;
+        const outcome = readFightOutcome(parameter.key, parameter.value);
+        if (outcome !== null) {
+            reading.outcomes.push(outcome);
+            continue;
+        }
+        if (DECLARATION_KEYS.includes(parameter.key)) {
+            const amount = getIntegerFromText(parameter.value);
+            reading.declared.push({ effect: parameter.key, amount, text: parameter.value });
+            continue;
+        }
+        if (addUnaccountedHealth(reading, parameter.key, parameter.value)) continue;
+        const restored = readNamedHealing(parameter.key, parameter.value);
+        if (restored !== null) {
+            reading.namedHealing.push(restored);
+            continue;
+        }
+        const namedHit = readNamedDamage(parameter.key, parameter.value);
+        if (namedHit !== null) {
+            reading.namedDamage.push(namedHit);
+            continue;
+        }
+        const moved = readHealthChange(parameter.key, parameter.value);
+        if (moved !== null) {
+            reading.healthChanges.push(moved);
+            continue;
+        }
+        const amount = getIntegerFromText(parameter.value);
+        if (amount === null) {
+            reading.unreadKeys.push(parameter.key);
+            continue;
+        }
+        addAttackFigure(reading, parameter.key, amount);
     }
+    closeSkillReading(reading);
+    const read = reading.raw.length + reading.applied.length + reading.prevented.length +
+        reading.destroyed.length + reading.procs.length + reading.healthChanges.length +
+        reading.namedDamage.length + reading.namedHealing.length + reading.unaccounted.length +
+        reading.outcomes.length + reading.declared.length + reading.skillKeys +
+        reading.unreadKeys.length;
+    assert(read === parameters.length, "every parameter is read or named unread, and none twice");
+    assert(reading.raw.length <= parameters.length, "a reading holds no more than it was handed");
+    return reading;
+}
 
-    // Exactly one message forward, whatever that message turns out to be.
-    carried = announced;
-    events.push(...produced);
-  }
+function hasAttackFigure(reading: AttackReading): boolean {
+    if (reading.raw.length > 0) return true;
+    if (reading.applied.length > 0) return true;
+    if (reading.prevented.length > 0) return true;
+    assert(reading.destroyed.length <= MAXIMUM_PARAMETERS, "a reading stays inside its bound");
+    return reading.destroyed.length > 0;
+}
 
-  return events;
+function getNamedCombatantIds(parsed: ProtocolMessage): number[] {
+    const found: number[] = [];
+    if (parsed.actor !== null) found.push(parsed.actor.combatantId);
+    if (parsed.target !== null) {
+        if (!found.includes(parsed.target.combatantId)) found.push(parsed.target.combatantId);
+    }
+    assert(found.length <= MESSAGE_ENDS, "a message names at most two ends");
+    assert(new Set(found).size === found.length, "an end that is named twice is named once here");
+    return found;
+}
+
+function composeNamedDamageEvent(
+    parsed: ProtocolMessage,
+    named: NamedDamageReading,
+    roster: CombatantRoster | null,
+    announced: AnnouncedSkill | null,
+): DamageToNamedCombatantEvent {
+    assert(named.targetName.length > 0, "a figure stated against a name has a name");
+    assert(named.damage.amount >= 0, "damage stated against a name is never below nothing");
+    return {
+        kind: "damage-to-named-combatant",
+        actorId: parsed.actor?.combatantId ?? null,
+        targetName: named.targetName,
+        targetId: roster === null ? null : getCombatantIdByName(roster, named.targetName),
+        targetHealthPercent: named.targetHealthPercent,
+        damage: named.damage,
+        announced,
+    };
+}
+
+function composeUnaccountedHealthEvent(
+    parsed: ProtocolMessage,
+    unaccounted: UnaccountedHealthReading,
+    announced: AnnouncedSkill | null,
+): UnaccountedHealthEvent {
+    assert(unaccounted.declaredShare >= 0, "a share stated is never below nothing");
+    assert(unaccounted.source.length > 0, "and names the key it was stated on");
+    return {
+        kind: "unaccounted-health",
+        source: unaccounted.source,
+        // The actor, always: eight of the 115 in `captures/` name somebody else in the target,
+        // and reading that slot would credit the wrong combatant with the cast.
+        combatantId: parsed.actor?.combatantId ?? null,
+        declaredShare: unaccounted.declaredShare,
+        announced,
+    };
+}
+
+function composeNamedHealingEvent(
+    restored: NamedHealingReading,
+    roster: CombatantRoster | null,
+): HealingToNamedCombatantEvent {
+    assert(restored.amount >= 0, "healing restored is never below nothing");
+    assert(restored.targetName.length > 0, "the healed is named inside the value");
+    return {
+        kind: "healing-to-named-combatant",
+        targetName: restored.targetName,
+        targetId: roster === null ? null : getCombatantIdByName(roster, restored.targetName),
+        targetHealthPercent: restored.targetHealthPercent,
+        amount: restored.amount,
+        source: HEALING_TO_NAMED_KEY,
+    };
+}
+
+function composeSkillUsedEvent(
+    parsed: ProtocolMessage,
+    skill: SkillReading,
+    declared: DeclaredEffect[],
+): SkillUsedEvent {
+    assert(skill.skillName.length > 0, "an announcement names something");
+    assert(skill.skillId === null || Number.isSafeInteger(skill.skillId), "an id is whole");
+    return {
+        kind: "skill-used",
+        actorId: parsed.actor?.combatantId ?? null,
+        targetId: parsed.target?.combatantId ?? null,
+        actorHealthPercent: parsed.actor?.healthPercent ?? null,
+        targetHealthPercent: parsed.target?.healthPercent ?? null,
+        skillName: skill.skillName,
+        skillId: skill.skillId,
+        declared,
+    };
+}
+
+/**
+ * The announcement an effect rides: the message's own where it carries one, the one before it
+ * otherwise and only for its own actor.
+ *
+ * A message that announces a skill states the effect of that skill in the same breath — every
+ * `heal_target`, `healall_per` and `bandage` over `captures/` on 2026-08-30 arrives that way, and
+ * `docs/protocol-keys.md` says as much on each of the three. Reading only the message before
+ * leaves those figures with no giver and no name (`tests/core/skill-announcement-rule.test.ts`).
+ */
+function getAnnouncedForMessage(
+    parsed: ProtocolMessage,
+    skill: SkillReading | null,
+    standing: AnnouncedSkill | null,
+): AnnouncedSkill | null {
+    const own = composeAnnouncedSkill(parsed, skill);
+    if (own !== null) return own;
+    if (standing === null) return null;
+    if (standing.actorId === null) return null;
+    if (parsed.actor === null) return null;
+    if (parsed.actor.combatantId !== standing.actorId) return null;
+    assert(standing.skillName.length > 0, "a standing announcement names something");
+    assert(parsed.actor.combatantId === standing.actorId, "one actor holds both halves");
+    return standing;
+}
+
+function composeAttackEvent(
+    parsed: ProtocolMessage,
+    reading: AttackReading,
+    announced: AnnouncedSkill | null,
+    declared: DeclaredEffect[],
+): AttackEvent {
+    assert(hasAttackFigure(reading), "an attack states a figure");
+    assert(reading.unreadKeys.length <= MAXIMUM_PARAMETERS, "an event stays inside its bound");
+    return {
+        kind: "attack",
+        actorId: parsed.actor?.combatantId ?? null,
+        targetId: parsed.target?.combatantId ?? null,
+        actorHealthPercent: parsed.actor?.healthPercent ?? null,
+        targetHealthPercent: parsed.target?.healthPercent ?? null,
+        raw: reading.raw,
+        applied: reading.applied,
+        prevented: reading.prevented,
+        destroyed: reading.destroyed,
+        procs: reading.procs,
+        declared,
+        announced,
+    };
+}
+
+function composeHealthChangeEvent(
+    parsed: ProtocolMessage,
+    moved: HealthChangeReading,
+    announced: AnnouncedSkill | null,
+): HealthChangeEvent {
+    const side = moved.isOnTarget ? parsed.target : parsed.actor;
+    assert(Number.isSafeInteger(moved.amount), "a health movement is a whole number");
+    assert(moved.source.length > 0, "a movement names the key it was stated on");
+    return {
+        kind: "health-change",
+        combatantId: side?.combatantId ?? null,
+        amount: moved.amount,
+        healthPercent: side?.healthPercent ?? null,
+        source: moved.source,
+        declared: moved.declared,
+        announced,
+    };
+}
+
+interface MessageDecoding {
+    events: BattleEvent[];
+    /** What this message announces to the next one, where it announces anything. */
+    announced: AnnouncedSkill | null;
+}
+
+function decodeOneMessage(
+    message: string,
+    standing: AnnouncedSkill | null,
+    roster: CombatantRoster | null,
+): MessageDecoding {
+    assert(message.length > 0, "a message to decode is never empty");
+    let parsed: ProtocolMessage;
+    try {
+        parsed = parseProtocolMessage(message);
+    } catch (failure) {
+        if (!(failure instanceof ProtocolMessageFormatError)) throw failure;
+        const refused: BattleEvent = {
+            kind: "unknown-message",
+            message,
+            reason: failure.message,
+            unreadKeys: [],
+            combatantIds: [],
+        };
+        return { events: [refused], announced: null };
+    }
+    const reading = composeAttackReading(parsed);
+    const announced = getAnnouncedForMessage(parsed, reading.skill, standing);
+    const events: BattleEvent[] = [];
+    // A proc rides a blow in every message in `captures/` that carries one, 2026-08-28. Where no
+    // figure stands beside it the key is not read as one: a proc alone would be a claim this
+    // decoder cannot make.
+    const isBlow = hasAttackFigure(reading);
+    const declaredElsewhere = isBlow || reading.skill !== null;
+    if (!isBlow) reading.unreadKeys.push(...reading.procs);
+    else events.push(composeAttackEvent(parsed, reading, announced, reading.declared));
+    for (const moved of reading.healthChanges) {
+        events.push(composeHealthChangeEvent(parsed, moved, announced));
+    }
+    for (const named of reading.namedDamage) {
+        events.push(composeNamedDamageEvent(parsed, named, roster, announced));
+    }
+    // Before the announcement it rides, because the percentages that announcement states are
+    // where the side stands **after** the cast, and sizing one needs where they stood before.
+    for (const unaccounted of reading.unaccounted) {
+        events.push(composeUnaccountedHealthEvent(parsed, unaccounted, announced));
+    }
+    if (reading.skill !== null) {
+        events.push(composeSkillUsedEvent(parsed, reading.skill, isBlow ? [] : reading.declared));
+    }
+    for (const restored of reading.namedHealing) {
+        events.push(composeNamedHealingEvent(restored, roster));
+    }
+    for (const outcome of reading.outcomes) events.push(outcome);
+    if (!declaredElsewhere && reading.declared.length > 0) {
+        events.push(composeDeclarationEvent(parsed, reading.declared));
+    }
+    const isUnread = reading.unreadKeys.length > 0;
+    if (isUnread || events.length === 0) {
+        events.push({
+            kind: "unknown-message",
+            message,
+            reason: isUnread ? UNREAD_REASON : EMPTY_REASON,
+            unreadKeys: reading.unreadKeys,
+            combatantIds: getNamedCombatantIds(parsed),
+        });
+    }
+    assert(events.length > 0, "a message decodes to something, even where nothing was read");
+    assert(events.length <= parsed.parameters.length + 1, "a message stays inside its bound");
+    return { events, announced: composeAnnouncedSkill(parsed, reading.skill) };
+}
+
+/** A message that states something and reports nothing that happened to anybody. */
+function composeDeclarationEvent(
+    parsed: ProtocolMessage,
+    declared: DeclaredEffect[],
+): DeclarationEvent {
+    assert(declared.length > 0, "a declaration event states something");
+    const side = parsed.actor ?? parsed.target;
+    assert(declared.every((one) => one.effect.length > 0), "each names the key it arrived on");
+    return {
+        kind: "declaration",
+        combatantId: side?.combatantId ?? null,
+        healthPercent: side?.healthPercent ?? null,
+        declared,
+    };
+}
+
+function composeAnnouncedSkill(
+    parsed: ProtocolMessage,
+    skill: SkillReading | null,
+): AnnouncedSkill | null {
+    if (skill === null) return null;
+    assert(skill.skillName.length > 0, "an announcement names something");
+    // `tcustom` names its user in the target slot and is read only where one combatant is named,
+    // so the named end is the announcer whichever slot the client wrote it into.
+    const actorId = parsed.actor?.combatantId ?? parsed.target?.combatantId ?? null;
+    assert(actorId === null || Number.isSafeInteger(actorId), "an announcer is somebody or nobody");
+    return { skillName: skill.skillName, skillId: skill.skillId, actorId };
+}
+
+/**
+ * A payload's messages, in order. Order is the whole of what an announcement has: the client
+ * glues the message after one to it, and this reads them the same way.
+ */
+export function decodeFightMessages(
+    messages: readonly string[],
+    roster: CombatantRoster | null,
+): BattleEvent[] {
+    assert(messages.length <= MAXIMUM_MESSAGES, "a payload stays inside its stated bound");
+    const events: BattleEvent[] = [];
+    let standing: AnnouncedSkill | null = null;
+    for (const message of messages) {
+        const decoded = decodeOneMessage(message, standing, roster);
+        for (const event of decoded.events) events.push(event);
+        standing = decoded.announced;
+    }
+    assert(events.length >= messages.length, "every message leaves at least one event behind");
+    return events;
 }

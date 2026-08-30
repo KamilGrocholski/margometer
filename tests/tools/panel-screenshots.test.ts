@@ -1,243 +1,164 @@
 /**
- * The pictures in `screenshots/`, and the two things about them a machine can
- * hold.
+ * The photographed set, and the sidecar that says where it came from.
  *
- * ⚠️ **No browser runs here.** The gate has to pass on a machine that has none
- * and in CI, which is promised none — so what a screenshot *contains* is checked
- * by a person opening it, once, in the round that takes it. That is stated rather
- * than left implied: this file proves the set is current and reachable, never that
- * a panel is in the frame.
- *
- * What is left for the gate is the half that rots on its own. A set taken two
- * releases ago looks exactly like one taken this morning, and a selector renamed
- * in `src/ui/panel-element.ts` turns every future run into a set of pictures of a
- * marker — both silent, and both caught below.
+ * The directory is not there until somebody shoots one, so the reader is proved on samples first
+ * — a set it must flag and a set it must not — and only then let near the tree. A guard over a
+ * directory that does not exist passes by having nothing to find.
  */
 
-import { readFileSync } from "node:fs";
-import { describe, expect, test } from "bun:test";
-import { composeSourceWithoutComments } from "@/tests/source-regions.ts";
-import manifest from "@/package.json";
-import { getValueFromJsonText } from "@/libs/json.ts";
-import { getRecordFromValue } from "@/libs/record.ts";
-import { getAssignedClassNames } from "@/tests/class-names.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
-import { isAncestorOfHead, isCommitText, isShallowRepository } from "@/tests/git-history.ts";
+import { assert, assertEquals, assertThrows } from "@std/assert";
+import { getJsonReading } from "@/libs/json-text.ts";
+import { getIntegerFromText } from "@/libs/number-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
+import { PLACE, SPACE, TIP } from "@/src/ui/panel-look.ts";
+import { PanelShotError } from "@/tools/margometer-tool-error.ts";
 import {
-  composeShotAddress,
-  composeShotFileName,
-  composeTakenAt,
-  getBrowserCommand,
-  getFightByName,
-  getScreenshotFileNames,
-  PANEL_SHOTS,
-  PanelScreenshotError,
-  SCREENSHOTS_DIRECTORY,
-  SHOT_CLASSES,
-  TAKEN_AT_NAME,
-  TAKEN_TAB_INDEX,
-  writePanelScreenshots,
-  type PanelShot,
+    composeFrameFromReport,
+    composePanelShots,
+    composeShotAddress,
+    composeShotScript,
+    FRAME_PARAMETER,
+    getBrowserAsked,
+    getReportFromDom,
+    MEASURING_WIDTH,
+    SHOT_DIRECTORY,
+    SIDECAR_NAME,
 } from "@/tools/panel-screenshots.ts";
 
-const TAKEN_AT_PATH = SCREENSHOTS_DIRECTORY + TAKEN_AT_NAME;
-
-/**
- * The sidecar, read the way anything from outside is read.
- *
- * No cast off the parse (§9.5): what is on disk was written by this tool a
- * release ago and nothing guarantees it still has the shape the type claims — a
- * hand-edited file is exactly the case worth failing on, and a cast would let it
- * through to a comparison that quietly reads `undefined`.
- */
-function getTakenAtRecord(): Record<string, unknown> {
-  const reading = getValueFromJsonText(readFileSync(TAKEN_AT_PATH, "utf8"));
-  if (reading.syntaxError !== null) throw reading.syntaxError;
-  const record = getRecordFromValue(reading.value);
-  if (record === null) throw reading.syntaxError ?? new SyntaxError(`${TAKEN_AT_PATH} is not an object`);
-  return record;
+/** A length off the panel's own stylesheet, which states them all in whole pixels. */
+function getSheetLength(stated: string): number {
+    return getIntegerFromText(stated.slice(0, -2))!;
 }
 
-describe("the set in screenshots/", () => {
-  // A loop over nothing is green and proves nothing — the rule the captures'
-  // catalogue is held to, and it holds for any set discovered rather than listed.
-  test("there are shots to take", () => {
-    expect(PANEL_SHOTS.length).toBeGreaterThan(0);
-  });
-
-  test("every shot has a file and every file belongs to a shot", () => {
-    const wanted = [...PANEL_SHOTS.map(composeShotFileName), TAKEN_AT_NAME].sort();
-    expect(getScreenshotFileNames()).toEqual(wanted);
-  });
-
-  /**
-   * The whole of "screenshots are for one release".
-   *
-   * A version bump is what makes this red, and retaking the set is what makes it
-   * green again — so the obligation lands in the release that incurred it rather
-   * than on a checklist somebody reads afterwards. It is the shape
-   * `tests/tools/changelog.test.ts` already uses for `CHANGELOG.md`.
-   */
-  test("the set says which release it is of, and it is this one", () => {
-    expect(getTakenAtRecord()["version"]).toBe(manifest.version);
-  });
-
-  /**
-   * The other half of "for one release", and the half a version string cannot carry:
-   * **which panel is in the frame.**
-   *
-   * A version says which release a set belongs to. Between two releases the version
-   * does not move and the panel does — a set taken eleven commits past `v0.7.0` showed
-   * a row the panel had stopped drawing, with every guard green. So the sidecar names a
-   * commit, the tool refuses to write one while `src/` or `libs/` is uncommitted, and
-   * this asks the repository whether that commit is really in this history.
-   *
-   * ⚠️ **Deliberately an ancestry check and not a currency one.** The strict version —
-   * the sidecar's commit against the newest commit touching `src/ui/` or `src/core/` —
-   * is the one that would have gone red the day F1 was created, and it turns every
-   * round that touches the panel into a round that must drive a browser. That is a
-   * decision about how this repository is worked in rather than a defect a guard can
-   * settle on its own, so §9.8 carries it as an obligation on the person and this
-   * carries the part a machine can hold: the set names a tree, and the tree is one
-   * somebody else can check out.
-   *
-   * `actions/checkout@v4` clones at depth 1, so the object is asked for only where
-   * history exists.
-   */
-  test("the set says which panel is in the frame, and it is one this history has", () => {
-    const stated = getTakenAtRecord()["commit"];
-    expect(typeof stated).toBe("string");
-    expect(isCommitText(String(stated))).toBe(true);
-    if (isShallowRepository()) return;
-    expect(isAncestorOfHead(String(stated))).toBe(true);
-  });
-
-  test("the set names the capture it was taken on", () => {
-    const names: unknown[] = CAPTURED_FIGHTS.map((capture) => capture.name);
-    expect(names).toContain(getTakenAtRecord()["fight"]);
-  });
-
-  test("the sidecar lists exactly the images beside it", () => {
-    expect(getTakenAtRecord()["images"]).toEqual(PANEL_SHOTS.map(composeShotFileName));
-  });
-});
-
-/**
- * Every class the driver reaches through is one the panel actually assigns.
- *
- * Read out of the source rather than out of a render, for
- * `tests/ui/panel-class-names.test.ts`'s reason: half of these sit on a branch —
- * a row that can be drilled, the lower of two strips — and a render only
- * exercises what it is driven through.
- */
-describe("the classes the driver clicks", () => {
-  const ASSIGNED = getAssignedClassNames(
-    composeSourceWithoutComments(
-      readFileSync(new URL("../../src/ui/panel-element.ts", import.meta.url).pathname, "utf8"),
-    ),
-  );
-
-  test("the panel assigns some", () => {
-    expect(ASSIGNED.size).toBeGreaterThan(0);
-  });
-
-  test.each(Object.values(SHOT_CLASSES))("%s is a class the panel puts on a node", (name) => {
-    expect(ASSIGNED.has(name)).toBe(true);
-  });
-});
-
-describe("the tab the driver presses", () => {
-  /**
-   * ⚠️ **A missing tab is `-1`, and `-1` addresses the last element of nothing.**
-   * The driver reads its index out of `composeDirectionTabs`, so a fifth screen
-   * that reorders the strip is caught here rather than by a picture of the wrong
-   * one.
-   */
-  test("the direction strip has a tab for damage taken", () => {
-    expect(TAKEN_TAB_INDEX).toBeGreaterThanOrEqual(0);
-  });
-});
-
-/**
- * ⚠️ **A browser is looked for, never assumed at `/usr/bin/firefox`.** That is
- * the objection `docs/specs/what-a-release-shows.md` raised
- * against folding a screenshot mode into the preview server, and the tool answers
- * it here rather than in prose.
- */
-describe("the browser it will use", () => {
-  test("is what the caller named, resolved", () => {
-    expect(getBrowserCommand("sh")).toBe(Bun.which("sh")!);
-  });
-
-  test("refuses a name nothing on this machine answers to", () => {
-    expect(() => getBrowserCommand("margometer-no-such-browser")).toThrow(PanelScreenshotError);
-  });
-
-  test("refuses a path that is there and is not executable", () => {
-    expect(() => getBrowserCommand("/etc/hostname")).toThrow(PanelScreenshotError);
-  });
-});
-
-describe("the address of one shot", () => {
-  const shot: PanelShot = { name: "taken", width: 292, height: 480 };
-
-  test("carries the capture, the last entry and the shot", () => {
-    const address = new URL(composeShotAddress("http://localhost:4173/", "a-fight", 52, shot));
-    expect(address.searchParams.get("fight")).toBe("a-fight");
-    expect(address.searchParams.get("entry")).toBe("52");
-    expect(address.searchParams.get("shot")).toBe("taken");
-  });
-
-  // Zero is the boundary and it is a state the panel has: entry 0 is the panel
-  // before anything arrived, which is a reachable address and not a mistake.
-  test("survives entry zero", () => {
-    const address = new URL(composeShotAddress("http://localhost:4173/", "a-fight", 0, shot));
-    expect(address.searchParams.get("entry")).toBe("0");
-  });
-
-  test("escapes a capture name that would end the query", () => {
-    const address = new URL(composeShotAddress("http://localhost:4173/", "a&b=c", 1, shot));
-    expect(address.searchParams.get("fight")).toBe("a&b=c");
-  });
-});
-
-describe("what it refuses", () => {
-  test("a capture that is not there, by name", () => {
-    expect(() => getFightByName("no-such-fight")).toThrow(PanelScreenshotError);
-  });
-
-  test("and the refusal is branded", () => {
-    try {
-      getFightByName("no-such-fight");
-      expect.unreachable();
-    } catch (error) {
-      expect((error as Error).name).toBe("MargoMeterTool/PanelScreenshot");
-      expect((error as PanelScreenshotError).code).toBe("PanelScreenshot");
+/** What the directory holds against what the sidecar names, in both directions. */
+function getSetDisagreements(held: readonly string[], named: readonly string[]): string[] {
+    assert(named.length >= 0, "a sidecar names however many pictures it names");
+    const found: string[] = [];
+    for (const name of held) {
+        if (name === SIDECAR_NAME) continue;
+        if (!named.includes(name)) found.push(`${name} is there and unnamed`);
     }
-  });
+    for (const name of named) {
+        if (!held.includes(name)) found.push(`${name} is named and gone`);
+    }
+    return found;
+}
 
-  test("a browser nothing can find", async () => {
-    await expect(
-      writePanelScreenshots({ browser: "/nowhere/margometer-no-such-browser" }),
-    ).rejects.toThrow(PanelScreenshotError);
-  });
-
-  test("the newest capture is the default subject", () => {
-    expect(getFightByName(null).name).toBe(CAPTURED_FIGHTS.at(-1)!.name);
-  });
+Deno.test("the reader flags a set at odds with its sidecar, and passes one that is not", () => {
+    const agreeing = getSetDisagreements([SIDECAR_NAME, "a.png"], ["a.png"]);
+    assertEquals(agreeing, [], "a set that says what it holds is a set nobody has to chase");
+    const leftOver = getSetDisagreements([SIDECAR_NAME, "a.png", "b.png"], ["a.png"]);
+    assertEquals(
+        leftOver.length,
+        1,
+        "a picture from a larger set cannot sit there looking current",
+    );
+    const missing = getSetDisagreements([SIDECAR_NAME], ["a.png"]);
+    assertEquals(missing.length, 1, "and a sidecar cannot name a picture nobody can open");
 });
 
-describe("what the sidecar is composed of", () => {
-  test("the version it is written at, not the one it was written from", () => {
-    expect(composeTakenAt("a-fight", "2026-08-18T00:00:00.000Z", "abc1234").version).toBe(
-      manifest.version,
+Deno.test("whatever is in the directory agrees with the sidecar standing beside it", () => {
+    let held: string[] = [];
+    try {
+        held = [...Deno.readDirSync(SHOT_DIRECTORY)].map((entry) => entry.name);
+    } catch {
+        // No set has been taken yet, which is a tree with nothing to disagree about.
+        return;
+    }
+    assert(held.includes(SIDECAR_NAME), "a set carries the sidecar saying where it came from");
+    const reading = getJsonReading(
+        Deno.readTextFileSync(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`),
     );
-  });
+    assert(reading.isOk, "and the sidecar is JSON");
+    const written = reading.value;
+    assert(isRecord(written), "and the sidecar is a record");
+    const named = written.shots;
+    assert(Array.isArray(named), "naming the pictures it stands beside");
+    assertEquals(getSetDisagreements(held, named as string[]), [], "DESIGN.md: the set is the set");
+});
 
-  test("and the capture, the moment and the commit it was handed", () => {
-    const takenAt = composeTakenAt("a-fight", "2026-08-18T00:00:00.000Z", "abc1234");
-    expect(takenAt.fight).toBe("a-fight");
-    expect(takenAt.takenAt).toBe("2026-08-18T00:00:00.000Z");
-    expect(takenAt.commit).toBe("abc1234");
-  });
+Deno.test("a state is reached by a press and never by a click", () => {
+    const script = composeShotScript(`setPressed("[data-row]", 0);`);
+    assert(script.includes("pointerdown"), "the panel listens for a press, so a press is sent");
+    assert(!script.includes(".click("), "a click fires nothing at all, and reports success");
+    assert(script.includes("maxHeight"), "the height cap is lifted for the photograph");
+    assert(script.includes("preview-strip"), "and the harness takes its own chrome out of frame");
+});
+
+Deno.test("the panel stands where it is photographed before anything is pressed", () => {
+    const script = composeShotScript(`setPressed("[data-row]", 0);`);
+    const taken = script.indexOf("setPanelInCorner();");
+    const pressed = script.indexOf(`setPressed("[data-row]", 0);`);
+    assert(taken > 0, "the panel is taken to the corner the frame is measured against");
+    assert(pressed > 0, "and the state is reached by the presses that were asked for");
+    assert(taken < pressed, "in that order: a card opens on the side the panel stood on");
+    assert(script.includes("[data-grip]"), "the panel is moved by its own bar");
+    assert(script.includes(`setPointer("pointerup"`), "and let go of, which is when it is kept");
+    assert(
+        script.includes(`get("${FRAME_PARAMETER}")`),
+        "to the corner of the frame it is taken at, which the address is what states",
+    );
+});
+
+Deno.test("the picture is taken at the address that was measured, told its frame", () => {
+    const measured = "http://localhost:8000/?fight=a&entry=2";
+    assertEquals(
+        composeShotAddress(measured, 276),
+        `${measured}&${FRAME_PARAMETER}=276`,
+        "the same fight at the same entry, and the width it will be photographed at",
+    );
+    assertThrows(
+        () => composeShotAddress(measured, 0),
+        Error,
+        undefined,
+        "a frame of no width is not a picture anybody asked for",
+    );
+});
+
+Deno.test("the window measured in holds the card beside the panel, not over it", () => {
+    const room = MEASURING_WIDTH - getSheetLength(PLACE.width) - getSheetLength(PLACE.inset) * 2 -
+        getSheetLength(SPACE.small);
+    assert(
+        room >= getSheetLength(TIP.width),
+        "a window with no room beside the panel flips the card onto the figures it explains",
+    );
+});
+
+Deno.test("every picture in the set is named once, and named as a picture", () => {
+    const shots = composePanelShots();
+    const names = shots.map((shot) => shot.name);
+    assertEquals(new Set(names).size, names.length, "no two shots write the same file");
+    for (const shot of shots) {
+        assert(shot.name.endsWith(".png"), `${shot.name} is written as a picture`);
+        assert(shot.steps.length > 0, `${shot.name} is of a state something reached`);
+    }
+});
+
+Deno.test("the frame comes off the viewport the page stood in, not off what was asked for", () => {
+    const dom = `<html><body><pre id="preview-report" hidden="">` +
+        `{"viewport":500,"left":232,"bottom":402,"rows":11}</pre></body></html>`;
+    const report = getReportFromDom(dom);
+    assertEquals(composeFrameFromReport(report), [276, 410], "the panel, and its inset each side");
+
+    const card = getReportFromDom(dom.replace(`"left":232`, `"left":-22`));
+    assertEquals(composeFrameFromReport(card), [530, 410], "a card off the panel is made room for");
+
+    assertThrows(
+        () => composeFrameFromReport({ left: 0, bottom: 10 }),
+        PanelShotError,
+        undefined,
+        "a report that never said where it stood cannot size a frame",
+    );
+});
+
+Deno.test("a page that wrote nothing down is a refusal, not a frame of some other size", () => {
+    assertThrows(
+        () => getReportFromDom("<html><body></body></html>"),
+        PanelShotError,
+        undefined,
+        "a dumped page with no report in it",
+    );
+    const asked = getBrowserAsked("firefox", "chromium");
+    assertEquals(asked[0], "firefox", "what was asked for is looked for first");
+    assert(asked.includes("google-chrome"), "and Chrome is in the list either way");
 });

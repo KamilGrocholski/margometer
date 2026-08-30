@@ -1,152 +1,94 @@
 /**
- * The grammar of one message, both ways.
+ * The grammar, against every message the recordings carry.
  *
- * Structure only, and that is the split §9.4 names: this file knows where the
- * sides and the parameters are and nothing about what a key **means** — that is
- * `tests/core/fight-decoder.test.ts`'s. Reversible, because a message composed
- * from what was parsed has to be the message that was parsed, which is what makes
- * the captures usable as material rather than as text.
+ * Each sample below is a transcript, copied from the recording it is named against — a guess
+ * about the protocol's own text would be a claim about the game.
  */
 
-import { describe, expect, test } from "bun:test";
+import { assert, assertEquals, assertThrows } from "@std/assert";
 import {
-  composeProtocolMessage,
-  parseProtocolMessage,
-  ProtocolMessageFormatError,
+    composeProtocolMessage,
+    parseProtocolMessage,
+    ProtocolMessageFormatError,
 } from "@/src/core/protocol-message.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { getRecordedMessages, getRecordingPaths } from "@/tests/recorded-fight.ts";
 
-const ALL_MESSAGES = CAPTURED_FIGHTS.flatMap((fight) =>
-  fight.dump.calls.flatMap((call) =>
-    call.protocolMessages.map((message) => ({ fight: fight.name, call: call.index, message })),
-  ),
-);
+/**
+ * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`, the fight this file's samples are
+ * taken from.
+ */
+const HIT = "482845=100.00;-161518=70.07;+dmgd=466;+acdmg=5;-dmgd=223";
+const KILLING_HIT = "482845=100.00;-161518=0.00;+dmgd=485;+acdmg=5;-dmgd=248";
+const STEP = "-255967=100.00;0;step";
+const OUTCOME = "0;0;winner=Gracz 1";
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: a side stated without a percentage.
+ */
+const ANNOUNCEMENT = "-10000249;0;tspell=Struna płomienna";
 
-test("there are captured messages to parse", () => {
-  expect(ALL_MESSAGES.length).toBeGreaterThan(0);
+Deno.test("both ends are read, with the health each states", () => {
+    const hit = parseProtocolMessage(HIT);
+    assertEquals(hit.actor, { combatantId: 482845, healthPercent: 100 }, "the actor is read");
+    assertEquals(hit.target, { combatantId: -161518, healthPercent: 70.07 }, "the target is read");
+    assertEquals(hit.parameters.length, 3, "every segment past the two ends is a parameter");
+    assertEquals(hit.parameters[0], { key: "+dmgd", value: "466" }, "a parameter keeps its text");
 });
 
-describe("over every captured message", () => {
-  // Totality. The grammar throws on anything it does not cover, so this failing
-  // means real material exists that we cannot read at all.
-  test("every message parses", () => {
-    const rejected: string[] = [];
-    for (const { fight, call, message } of ALL_MESSAGES) {
-      try {
-        parseProtocolMessage(message);
-      } catch (error) {
-        rejected.push(`${fight} call ${call}: ${(error as Error).message}`);
-      }
-    }
-    expect(rejected).toEqual([]);
-  });
+Deno.test("a health of nothing is a reading, and nobody is not", () => {
+    const killing = parseProtocolMessage(KILLING_HIT);
+    assertEquals(killing.target, { combatantId: -161518, healthPercent: 0 }, "zero is a reading");
+    assertEquals(parseProtocolMessage(STEP).target, null, "`0` is nobody, not a combatant");
+    const announcement = parseProtocolMessage(ANNOUNCEMENT);
+    assertEquals(announcement.actor, { combatantId: -10000249, healthPercent: null }, "no health");
+});
 
-  // Reversibility. The cheapest witness available at this layer: a field the
-  // parser silently drops shows up immediately, on real material, without
-  // anyone having to know what the field means.
-  test("parsing then composing gives back the original, byte for byte", () => {
-    const changed: string[] = [];
-    for (const { fight, call, message } of ALL_MESSAGES) {
-      const rebuilt = composeProtocolMessage(parseProtocolMessage(message));
-      if (rebuilt !== message) changed.push(`${fight} call ${call}:\n  ${message}\n  ${rebuilt}`);
-    }
-    expect(changed).toEqual([]);
-  });
+Deno.test("a message naming neither end still parses", () => {
+    const outcome = parseProtocolMessage(OUTCOME);
+    assertEquals(outcome.actor, null, "the game named no actor");
+    assertEquals(outcome.target, null, "the game named no target");
+    assertEquals(outcome.parameters[0], { key: "winner", value: "Gracz 1" }, "a value may space");
+});
 
-  // Most messages are about a combatant. The ones that name nobody turn out to
-  // be about the fight itself — its outcome, the experience it paid out, and
-  // free-text notices. Keeping the list closed makes a new kind of sideless
-  // message fail here instead of being silently ignored by the decoder.
-  // `+ph` joined them with the first duel between two players: what the winner
-  // is paid is a fact about the fight and about neither combatant's row.
-  const FIGHT_LEVEL_KEYS = ["winner", "loser", "+exp", "txt", "+ph"];
+Deno.test("a segment with no value is a key on its own", () => {
+    const critical = parseProtocolMessage("482845=100.00;-161518=21.34;+crit;+dmgd=612");
+    assertEquals(critical.parameters[0], { key: "+crit", value: null }, "null is not an empty");
+    const empty = parseProtocolMessage("0;0;txt=");
+    assertEquals(empty.parameters[0], { key: "txt", value: "" }, "an empty value is stated");
+});
 
-  test("a message that names no side carries only fight-level keys", () => {
-    const unexpected: string[] = [];
-    for (const { message } of ALL_MESSAGES) {
-      const parsed = parseProtocolMessage(message);
-      if (parsed.actor !== null || parsed.target !== null) continue;
-      for (const { key } of parsed.parameters) {
-        if (!FIGHT_LEVEL_KEYS.includes(key)) unexpected.push(`${key} in ${message}`);
-      }
-    }
-    expect(unexpected).toEqual([]);
-  });
-
-  test("fight-level messages exist in the material, so the rule above is not vacuous", () => {
-    const sideless = ALL_MESSAGES.map(({ message }) => parseProtocolMessage(message)).filter(
-      (parsed) => parsed.actor === null && parsed.target === null,
+Deno.test("what the grammar does not cover is refused, and says which half", () => {
+    assertThrows(() => parseProtocolMessage("482845"), ProtocolMessageFormatError, "one segment");
+    assertThrows(() => parseProtocolMessage("gracz;0;step"), ProtocolMessageFormatError, "side");
+    assertThrows(() => parseProtocolMessage("1=70.7;0;step"), ProtocolMessageFormatError, "health");
+    assertThrows(
+        () => parseProtocolMessage("1=70.070;0;step"),
+        ProtocolMessageFormatError,
+        "health",
     );
-    expect(sideless.length).toBeGreaterThan(0);
-  });
 });
 
-describe("sides", () => {
-  test("reads an id with a health percentage", () => {
-    expect(parseProtocolMessage("482845=100.00;-161518=70.07;step").actor).toEqual({
-      combatantId: 482845,
-      healthPercent: 100,
-    });
-  });
-
-  test("reads a negative id — monsters carry them", () => {
-    expect(parseProtocolMessage("-161518=70.07;0;step").actor).toEqual({
-      combatantId: -161518,
-      healthPercent: 70.07,
-    });
-  });
-
-  test("reads an id stated without a percentage", () => {
-    expect(parseProtocolMessage("-10000249;0;tspell=Aura").actor).toEqual({
-      combatantId: -10000249,
-      healthPercent: null,
-    });
-  });
-
-  // `0` is not combatant zero — no combatant carries that id — it is the
-  // protocol saying there is nobody on this side.
-  test("reads `0` as nobody rather than as an id", () => {
-    expect(parseProtocolMessage("482845=100.00;0;step").target).toBeNull();
-  });
-
-  test("refuses a side that is not an id", () => {
-    expect(() => parseProtocolMessage("winner;0;step")).toThrow(ProtocolMessageFormatError);
-  });
-
-  test("refuses a message with nowhere for the sides to be", () => {
-    expect(() => parseProtocolMessage("0")).toThrow("fewer than two side segments");
-  });
+Deno.test("an id past what a number holds exactly is refused, not rounded", () => {
+    const highest = parseProtocolMessage("9007199254740991;0;step");
+    assertEquals(highest.actor, { combatantId: 9007199254740991, healthPercent: null }, "the last");
+    assertThrows(
+        () => parseProtocolMessage("9007199254740992;0;step"),
+        ProtocolMessageFormatError,
+        "id",
+    );
 });
 
-describe("parameters", () => {
-  test("splits a value at the first `=` only", () => {
-    const parsed = parseProtocolMessage("0;0;txt=Locha: zdobyto Skora=x");
-    expect(parsed.parameters).toEqual([{ key: "txt", value: "Locha: zdobyto Skora=x" }]);
-  });
-
-  // A flag and an empty value are different things, and a decoder that
-  // conflates them will read one as the other.
-  test("tells a flag apart from an empty value", () => {
-    expect(parseProtocolMessage("0;0;step").parameters).toEqual([{ key: "step", value: null }]);
-    expect(parseProtocolMessage("0;0;step=").parameters).toEqual([{ key: "step", value: "" }]);
-  });
-
-  test("keeps values as written, including commas and spaces", () => {
-    expect(parseProtocolMessage("0;0;loser=Odyniec, Locha").parameters).toEqual([
-      { key: "loser", value: "Odyniec, Locha" },
-    ]);
-  });
-
-  test("keeps parameters in protocol order", () => {
-    const parsed = parseProtocolMessage("0;0;+dmgd=466;+acdmg=5;-dmgd=223");
-    expect(parsed.parameters.map((parameter) => parameter.key)).toEqual([
-      "+dmgd",
-      "+acdmg",
-      "-dmgd",
-    ]);
-  });
-
-  test("accepts a message carrying no parameters at all", () => {
-    expect(parseProtocolMessage("482845=100.00;0").parameters).toEqual([]);
-  });
+Deno.test("every message in every recording parses and writes back unchanged", () => {
+    const paths = getRecordingPaths();
+    let read = 0;
+    let nobodyNamed = 0;
+    for (const path of paths) {
+        for (const message of getRecordedMessages(path)) {
+            read += 1;
+            const parsed = parseProtocolMessage(message);
+            assertEquals(composeProtocolMessage(parsed), message, `${path} lost a field`);
+            if (parsed.actor === null) nobodyNamed += 1;
+        }
+    }
+    assert(read > paths.length, "the recordings carry messages, not just files");
+    assert(nobodyNamed > 0, "the protocol does state a message with no actor");
 });

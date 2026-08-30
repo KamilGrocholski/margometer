@@ -1,221 +1,147 @@
 /**
  * How much of the protocol the decoder reads, counted rather than remembered.
  *
- * Every figure here changes with each batch of keys, which is exactly why none
- * of them belongs in prose (AGENTS.md §5). Run the tool instead of quoting a
- * number that was true last week.
+ *     deno task decoding [recording.json …]
  *
- * **It counts the captured material by default and any recording you name
- * instead.** The second route is what makes the first one reachable: a fresh
- * dump has to pass intake before it becomes a capture — redaction, a register
- * entry, `docs/captured-fights.md` — and until this argument existed there was
- * no way to ask what a recording carried before paying that. The order was
- * backwards, since what the answer decides is whether the intake is worth
- * starting: a session that met `flee` or a resource key is material, and one
- * that met nothing new is a file to delete
- * (`docs/specs/2026-08-27-somebody-else-read-the-same-protocol.md`).
- *
- * A named recording is **not** material and nothing here pretends otherwise. It
- * is parsed by the same reader the captures are (§9.1), reported on, and
- * forgotten; §9.2 still decides what enters the repository.
+ * The corpus by default, any recording you name instead — and the second is what makes the first
+ * reachable: a fresh recording has to pass intake before it is material, and what this answers is
+ * whether that intake is worth starting. Every figure moves with each batch of keys, which is why
+ * none of them belongs in prose (**V5**).
  */
 
-import { composeJsonText } from "@/libs/json.ts";
-import { assertDefined } from "@/libs/assert.ts";
-import { composeIntegerText } from "@/libs/number.ts";
-import { getTextOrder } from "@/libs/text-order.ts";
-import { decodeFight } from "@/src/core/fight-decoder.ts";
+import { assert } from "@std/assert";
+import { BATTLE_EVENT_KINDS } from "@/src/core/battle-event.ts";
+import { composeIntegerText } from "@/libs/number-text.ts";
 import {
-  composeProtocolMessage,
-  parseProtocolMessage,
-} from "@/src/core/protocol-message.ts";
-import {
-  CAPTURED_FIGHTS,
-  getMessagesOfDump,
-  getMessagesOfFight,
-} from "@/tests/captured-fight-catalog.ts";
-import { parseFightDump } from "@/tools/fight-dump-parser.ts";
-import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
-import { setRunningTotal } from "@/libs/running-total.ts";
-import { existsSync, readFileSync } from "node:fs";
+    composeReplayedMaterial,
+    type FightReplay,
+    type ReplayedMaterial,
+} from "@/tools/fight-replay.ts";
 
-export class DecodingStatusError extends MargoMeterToolError {
-  constructor(reason: string, options?: ErrorOptions) {
-    super("DecodingStatus", reason, options);
-  }
+/** Wide enough for every count the corpus produces, and for the ones a longer one will. */
+const COUNT_WIDTH = 7;
+/** A fight decodes to hundreds of events; a corpus of them to tens of thousands. */
+const MAXIMUM_TALLY = 1000000;
+
+/** What a run counted, before anything is worded. */
+export interface DecodingStatus {
+    recordings: number;
+    payloads: number;
+    messages: number;
+    /** Messages a payload stated and the session never saw. Beside the rest, never added to it. */
+    messagesLost: number;
+    /** Messages carrying something the decoder could not read, whole or in part. */
+    messagesWithUnread: number;
+    /** Of those, the ones the **grammar** refused — a refusal is no claim about any key. */
+    messagesRefused: number;
+    eventsByKind: ReadonlyMap<string, number>;
+    unreadKeysByFrequency: readonly (readonly [string, number])[];
 }
 
-/** Wide enough for every count the captured material produces. */
-const COLUMN_WIDTH = 5;
-
-export type DecodingStatus = {
-  messages: number;
-  /** Messages producing at least one unknown event — fully or partly unread. */
-  messagesWithUnread: number;
-  eventsByKind: Record<string, number>;
-  unreadKeysByFrequency: Array<{ key: string; occurrences: number }>;
-};
-
-/** Everything a message yielded except the notice saying what was not read. */
-function composeReadingOf(message: string): string {
-  return composeJsonText(
-    decodeFight([message]).filter((event) => event.kind !== "unknown-message"),
-  );
+/** Descending by count, then by the key itself, so two runs of the same material read alike. */
+function getTallyOrder(one: readonly [string, number], other: readonly [string, number]): number {
+    if (one[1] !== other[1]) return other[1] - one[1];
+    if (one[0] < other[0]) return -1;
+    if (one[0] > other[0]) return 1;
+    return 0;
 }
 
-/**
- * The same message with one key taken out of it.
- *
- * ⚠️ **Through the grammar's owner, not through `split(";")`.** This used to spell the
- * separator, the `=` split and the rule that the first two segments are the sides —
- * every one of them a fact `src/core/protocol-message.ts` owns, in a file that already
- * imports it. §9.4 makes the `parse`/`decode` split load-bearing precisely so the
- * grammar lives in one place, and a change to it would have left this tool reporting
- * against the old one.
- */
-function composeMessageWithoutKey(message: string, key: string): string {
-  const parsed = parseProtocolMessage(message);
-  return composeProtocolMessage({
-    ...parsed,
-    parameters: parsed.parameters.filter((parameter) => parameter.key !== key),
-  });
+function addToTally(tally: Map<string, number>, key: string, amount: number): void {
+    assert(key.length > 0, "a tally is kept under a name");
+    assert(amount > 0, "and counts something that happened");
+    tally.set(key, (tally.get(key) ?? 0) + amount);
+    assert(tally.size <= MAXIMUM_TALLY, "a tally stays inside its stated bound");
 }
 
 /**
- * Whether the decoder has a meaning for a key, asked by taking it out of a real
- * message that carried it and seeing whether the reading changes.
- *
- * **Not by handing it the key on its own**, which is what this did until
- * `skillId` arrived: that key is read only in the company of `tspell`, alone it
- * is deliberately unread, and the probe reported all 182 of its occurrences as
- * a key the decoder has no meaning for. A tool feeding the queue of "what to
- * investigate next" sending someone back to a settled key is the same wrong
- * number this project refuses everywhere else. The earlier version of the same
- * bug passed no value at all and reported damage keys as unread.
- *
- * The unknown notice is excluded from the comparison on purpose: removing an
- * unread key changes the list of keys that notice names, so leaving it in would
- * make every key look read.
- *
- * Deliberately not read out of that notice's `reason` either — the text is meant
- * for a person, and parsing it back would tie this tool to its wording.
+ * Every kind there is, seeded at zero. A family that has stopped being read shows as a nought on
+ * a line that used to carry a figure; a table of only what occurred would show nothing at all.
  */
-function isKeyRead(key: string, sampleMessage: string): boolean {
-  return composeReadingOf(sampleMessage) !== composeReadingOf(
-    composeMessageWithoutKey(sampleMessage, key),
-  );
+function composeEmptyEventTally(): Map<string, number> {
+    const tally = new Map<string, number>();
+    for (const kind of BATTLE_EVENT_KINDS) tally.set(kind, 0);
+    assert(tally.size === BATTLE_EVENT_KINDS.length, "every kind the union holds has a line");
+    assert(tally.size > 0, "and there is at least one of them");
+    return tally;
 }
 
-/**
- * The status of a flat list of messages, whatever they were read out of.
- *
- * Messages rather than fights, and the argument narrowed when the path route
- * arrived: this counts messages and has never looked at anything else a
- * `CapturedFight` carries. Asking for one meant the probe over an invented
- * message had to build a whole recording around it — a format version, a world,
- * an empty roster, an entry health of nobody — none of which the answer
- * depended on. A signature that asks for more than it reads is one the next
- * caller has to satisfy with fiction.
- */
-export function getDecodingStatus(messages: readonly string[]): DecodingStatus {
-  const eventsByKind: Record<string, number> = {};
-  const occurrences = new Map<string, number>();
-  const sampleMessages = new Map<string, string>();
-  let messagesRead = 0;
-  let messagesWithUnread = 0;
-
-  for (const message of messages) {
-    messagesRead += 1;
-
-    const events = decodeFight([message]);
-    for (const event of events) {
-      eventsByKind[event.kind] = (eventsByKind[event.kind] ?? 0) + 1;
+export function composeDecodingStatus(replays: readonly FightReplay[]): DecodingStatus {
+    assert(replays.length > 0, "a status is counted over something");
+    const eventsByKind = composeEmptyEventTally();
+    const unreadKeys = new Map<string, number>();
+    const status = {
+        recordings: replays.length,
+        payloads: 0,
+        messages: 0,
+        messagesLost: 0,
+        messagesWithUnread: 0,
+        messagesRefused: 0,
+    };
+    for (const replay of replays) {
+        status.payloads += replay.reading.payloads;
+        status.messagesLost += replay.reading.messagesLost;
+        for (const carried of replay.reading.messagesByPayload) status.messages += carried.length;
+        for (const event of replay.reading.events) {
+            eventsByKind.set(event.kind, (eventsByKind.get(event.kind) ?? 0) + 1);
+            if (event.kind !== "unknown-message") continue;
+            status.messagesWithUnread += 1;
+            if (event.unreadKeys.length === 0) status.messagesRefused += 1;
+            for (const key of event.unreadKeys) addToTally(unreadKeys, key, 1);
+        }
     }
-    if (events.some((event) => event.kind === "unknown-message")) messagesWithUnread += 1;
+    assert(status.messagesRefused <= status.messagesWithUnread, "a refusal is one of them");
+    assert(status.payloads >= replays.length, "every recording carried at least one payload");
+    return {
+        ...status,
+        eventsByKind,
+        unreadKeysByFrequency: [...unreadKeys].sort(getTallyOrder),
+    };
+}
 
-    for (const { key } of parseProtocolMessage(message).parameters) {
-      setRunningTotal(occurrences, key, 1);
-      if (!sampleMessages.has(key)) sampleMessages.set(key, message);
-    }
-  }
+function composeCountLine(caption: string, count: number): string {
+    assert(caption.length > 0, "a figure is stated under a caption");
+    assert(count >= 0, "and is never fewer than none");
+    return `${caption.padEnd(18)}${composeIntegerText(count).padStart(COUNT_WIDTH)}`;
+}
 
-  const unreadOccurrences = new Map(
-    [...occurrences].filter(([key]) => {
-      // A key counted but never sampled cannot happen — both come from the same
-      // loop over the same parameters — so it is an assertion, not a branch.
-      const sample = assertDefined(
-        sampleMessages.get(key),
-        "every counted key was sampled from the message it occurred in",
-      );
-      return !isKeyRead(key, sample);
-    }),
-  );
-
-  return {
-    messages: messagesRead,
-    messagesWithUnread,
-    eventsByKind,
-    unreadKeysByFrequency: [...unreadOccurrences]
-      .map(([key, occurrences]) => ({ key, occurrences }))
-      .sort((a, b) => b.occurrences - a.occurrences || getTextOrder(a.key, b.key)),
-  };
+function composeTallyLines(tally: readonly (readonly [string, number])[]): string[] {
+    assert(tally.length >= 0, "a tally with nothing in it is still a tally");
+    const lines = tally.map(([key, count]) =>
+        `  ${composeIntegerText(count).padStart(COUNT_WIDTH)}  ${key}`
+    );
+    assert(lines.length === tally.length, "every row of the tally is written down");
+    return lines;
 }
 
 /**
- * Every message of the captured material, in the order the catalog holds it.
- *
- * The default, and the only reading that is a claim about this repository — a
- * report over anything else names what it was taken on, which is §3's rule and
- * the reason `writeStatusReport` prints the material before it prints a figure.
+ * The report as lines, so a guard reads what this states without running it. `console.log` is the
+ * entry's alone (**W6**: nothing here parses another program's output, because it is ours).
  */
-export function getMessagesOfCapturedMaterial(): string[] {
-  return CAPTURED_FIGHTS.flatMap((fight) => getMessagesOfFight(fight));
-}
-
-/**
- * Every message of one recording named by path, which need not be material.
- *
- * Read with `parseFightDump`, so a file this tool accepts is a file the captures
- * directory would accept too — a recording that refuses here would have refused
- * at intake, and finding that out before the redaction step is the point (§9.1
- * permits the import, and the live and offline paths must not disagree about
- * what a recording says).
- *
- * The missing-file refusal is its own, and it is worth having: `readFileSync`
- * throws a Node error whose brand says nothing about this program, and §9.5
- * asks a tool handed bad material to refuse it under a name a reader can place.
- */
-export function getMessagesOfDumpAt(path: string): string[] {
-  if (!existsSync(path)) throw new DecodingStatusError(`${path} is not there`);
-  return getMessagesOfDump(parseFightDump(readFileSync(path, "utf8")));
-}
-
-function writeStatusReport(status: DecodingStatus, material: string): void {
-  const read = status.messages - status.messagesWithUnread;
-  console.log(`material          ${material}`);
-  console.log(`messages          ${status.messages}`);
-  console.log(`fully read        ${read}`);
-  console.log(`carrying unread   ${status.messagesWithUnread}`);
-  console.log();
-  console.log("events by kind");
-  for (const [kind, count] of Object.entries(status.eventsByKind).sort((a, b) => b[1] - a[1])) {
-    console.log(`  ${composeIntegerText(count).padStart(COLUMN_WIDTH)}  ${kind}`);
-  }
-  console.log();
-  console.log("unread keys, most frequent first");
-  for (const { key, occurrences } of status.unreadKeysByFrequency) {
-    console.log(`  ${composeIntegerText(occurrences).padStart(COLUMN_WIDTH)}  ${key}`);
-  }
+export function composeStatusReport(replayed: ReplayedMaterial): string[] {
+    const status = composeDecodingStatus(replayed.replays);
+    assert(replayed.material.length > 0, "a report names the material it was taken on");
+    const unread = status.unreadKeysByFrequency;
+    assert(unread.length >= 0, "and a list of unread keys, however short");
+    return [
+        `material          ${replayed.material}`,
+        composeCountLine("recordings", status.recordings),
+        composeCountLine("payloads", status.payloads),
+        composeCountLine("messages", status.messages),
+        composeCountLine("carrying unread", status.messagesWithUnread),
+        // Beside the count above rather than inside it: the grammar refusing a message says
+        // nothing about any key, so a reader chasing a key would be sent to the wrong place.
+        composeCountLine("grammar refused", status.messagesRefused),
+        // And beside both: this is what never reached the decoder at all.
+        composeCountLine("messages lost", status.messagesLost),
+        "",
+        "events by kind",
+        ...composeTallyLines([...status.eventsByKind].sort(getTallyOrder)),
+        "",
+        "unread keys, most frequent first",
+        ...(unread.length === 0 ? ["  every key was read"] : composeTallyLines(unread)),
+    ];
 }
 
 if (import.meta.main) {
-  const paths = process.argv.slice(2);
-  writeStatusReport(
-    getDecodingStatus(
-      paths.length === 0
-        ? getMessagesOfCapturedMaterial()
-        : paths.flatMap((path) => getMessagesOfDumpAt(path)),
-    ),
-    paths.length === 0 ? "tests/captured-fights/" : paths.join(" "),
-  );
+    for (const line of composeStatusReport(composeReplayedMaterial(Deno.args))) console.log(line);
 }

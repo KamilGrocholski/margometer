@@ -1,782 +1,973 @@
 /**
- * What happens to a fight once it is over: where it goes, what it costs, what the
- * reader is told when it does not go anywhere, what a reader reading one is shown
- * while the next fight is being counted, and which of them a page that has just
- * loaded opens on.
+ * Every layer at once, driven the way a browser drives them.
  *
- * All of it runs against a store that is a map and a clock that is a function, so
- * the rules are checkable without a browser — which is the whole reason the
- * keeping is a value in this file rather than a branch at the bottom of it.
- *
- * The material is real: a recording is replayed into a session and the session is
- * what is kept, so what is written down here is a fight and not a shape somebody
- * typed (§7.5).
+ * A page carrying a battle object, a clock the test winds, a document small enough to read, and
+ * the payloads of a real recording fed through the wrapped method one call at a time. What comes
+ * out is what a reader would be looking at.
  */
 
-import { describe, expect, test } from "bun:test";
+import { assert, assertEquals } from "@std/assert";
+import { BUILD_VERSION } from "@/src/build-version.ts";
+import { startMargoMeter, type UserscriptEnvironment } from "@/src/userscript-entry.ts";
 import {
-  composeFightKeeper,
-  composePanelMount,
-  composeStoredTextFromSettings,
-  getSettingsFromStoredText,
-  type FightKeeper,
-} from "@/src/userscript-entry.ts";
-import {
-  composeEmptySession,
-  composeFightReading,
-  composeNextSession,
-  type BattleSession,
-  type FightReading,
+    addPayloadToSession,
+    composeBattleSession,
+    getFightFromSession,
 } from "@/src/game/battle-session.ts";
-import { getPayloadReading } from "@/src/game/engine-battle-wrap.ts";
-import { getKeptFightsFromStoredText } from "@/src/game/kept-fights.ts";
-import { CAPTURED_FIGHTS, type CapturedFight } from "@/tests/captured-fight-catalog.ts";
-import type { PageStorage } from "@/src/userscript-storage.ts";
+import type { BrowserStore } from "@/src/game/browser-store.ts";
+import { readKeptFights } from "@/src/game/kept-fights.ts";
+import { getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
+import type { PanelElement } from "@/src/ui/panel-element.ts";
+import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
+import type { Scheduler } from "@/src/game/engine-attachment.ts";
+import {
+    composeFakeDocument,
+    type FakeElement,
+    getElementsWithin,
+    getTextsByClass,
+    pressElement,
+} from "@/tests/fake-document.ts";
+import { getRecordedEngineUpdates, getRecordingPaths } from "@/tests/recorded-fight.ts";
 
-/** A browser store that behaves, and one that can be told to stop. */
-function composeFakeStorage(): PageStorage & { held: Map<string, string>; refuseAbove: number } {
-  const held = new Map<string, string>();
-  const storage = {
-    held,
-    refuseAbove: Number.POSITIVE_INFINITY,
-    getItem: (key: string) => held.get(key) ?? null,
-    setItem: (key: string, value: string) => {
-      if (value.length > storage.refuseAbove) throw new DOMException("QuotaExceededError");
-      held.set(key, value);
-    },
-    removeItem: (key: string) => void held.delete(key),
-  };
-  return storage;
+const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
+/** Another fight, so a shelf and a session can hold different figures at the same moment. */
+const ANOTHER = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
+/** A third, so two fights are on the shelf at once while a fourth is the one going on. */
+const THIRD = "captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json";
+
+function composeStillClock(): Scheduler {
+    return { every: () => 1, cancel: () => {} };
 }
 
-function composePage() {
-  const localStorage = composeFakeStorage();
-  const sessionStorage = composeFakeStorage();
-  return { localStorage, sessionStorage, page: { localStorage, sessionStorage } };
+/** A store over a map somebody else holds, so a test can look in the place it wrote to. */
+function composeHeldStore(held: Map<string, string>): BrowserStore {
+    return {
+        read: (key) => held.get(key) ?? null,
+        write: (key, value) => {
+            held.set(key, value);
+            return true;
+        },
+        remove: (key) => void held.delete(key),
+    };
 }
 
-const FIGHTS_KEY = "margometer.kept-fights";
-const SETTINGS_KEY = "margometer.fight-settings";
-const SHOWN_FIGHT_KEY = "margometer.shown-fight";
-
-function composeSessionOfCapture(fight: CapturedFight): BattleSession {
-  let session = composeEmptySession();
-  for (const call of fight.dump.calls) {
-    session = composeNextSession(session, getPayloadReading(call.payload));
-  }
-  return session;
+function composeEnvironment(page: unknown) {
+    const shown: PanelElement[] = [];
+    const reported: string[] = [];
+    const document = composeFakeDocument();
+    const held = new Map<string, string>();
+    // Three stores, kept apart the way a browser keeps them: what a choice moves is only visible
+    // where the place it moved from is a different map from the place it moved to.
+    const shelves = new Map<string, Map<string, string>>();
+    const getShelf = (choice: string): Map<string, string> => {
+        const standing = shelves.get(choice) ?? new Map<string, string>();
+        shelves.set(choice, standing);
+        return standing;
+    };
+    const saved: { name: string; text: string }[] = [];
+    let ticks = 0;
+    const environment: UserscriptEnvironment = {
+        page,
+        document,
+        schedule: composeStillClock(),
+        mount: { show: (panel) => shown.push(panel) },
+        // A window of a size, so a drag has something to be clamped against.
+        readViewport: () => ({ width: 1280, height: 900 }),
+        // A clock that answers the same moment every time, so a row's time is a fact of the test.
+        readClock: () => ({ hour: 21, minute: 5 }),
+        report: (line) => reported.push(line),
+        store: composeHeldStore(held),
+        composeShelfStore: (choice) => composeHeldStore(getShelf(choice)),
+        save: (name, text) => {
+            saved.push({ name, text });
+        },
+        readSurroundings: () => ({
+            world: "tempest",
+            gameBuild: "53XkBRxF",
+            capturedAt: "2026-08-29T10:00:00.000Z",
+            userAgent: "a browser that said so",
+        }),
+        now: () => {
+            ticks += 1;
+            return ticks;
+        },
+    };
+    return { environment, shown, reported, held, shelves, getShelf, saved };
 }
 
-const GROUP_FIGHT = CAPTURED_FIGHTS.find(
-  (fight) => fight.name === "2026-08-06-tempest-grupa-vs-hildur",
-)!;
-const DUEL = CAPTURED_FIGHTS.find(
-  (fight) => fight.name === "2026-08-11-tempest-tancerz-vs-wermont",
-)!;
+Deno.test("a recording played through the add-on ends on the panel a reader would see", () => {
+    const battle: Record<string, unknown> = { updateData: () => "the engine's own answer" };
+    const engineOwn = battle.updateData;
+    const { environment, shown, reported } = composeEnvironment({ Engine: { battle } });
+    const attachment = startMargoMeter(environment);
+    assert(attachment.isAttached(), "the game was found and wrapped");
+    const update = battle.updateData;
+    assert(typeof update === "function", "and left a function behind it");
 
-/** A finished fight, and the outcome the aggregate read off it. */
-function composeFinished(capture: CapturedFight, fightsStarted: number) {
-  const session = { ...composeSessionOfCapture(capture), fightsStarted };
-  return { session, outcome: composeFightReading(session).statistics.outcome };
-}
+    for (const payload of getRecordedEngineUpdates(HILDUR)) {
+        assertEquals(update(payload), "the engine's own answer", "the engine's value is untouched");
+    }
+    assertEquals(reported, [], "and nothing of ours failed along the way");
+    // One panel, put on the page once and redrawn in place: the host outlives every payload, so
+    // the listener on it does too.
+    assertEquals(shown.length, 1, "one panel on the page, however many calls arrived");
 
-/** One recording kept as a finished fight, which is three lines everywhere below. */
-function setKept(keeper: FightKeeper, capture: CapturedFight, fightsStarted: number): void {
-  const { session, outcome } = composeFinished(capture, fightsStarted);
-  keeper.setFightKept(session, outcome);
-}
-
-/** A clock that moves a minute every time it is asked, so rows sort and differ. */
-function composeClock(): () => string {
-  let minute = 0;
-  return () => {
-    const at = new Date(Date.UTC(2026, 7, 26, 19, minute));
-    minute += 1;
-    return at.toISOString();
-  };
-}
-
-function composeKeeper(over: { isRefusingSettings?: boolean } = {}) {
-  const { localStorage, sessionStorage, page } = composePage();
-  const settingsStore = {
-    getText: (key: string) => localStorage.getItem(key),
-    /**
-     * The answer this hands back is the whole of F1: a browser that will not keep
-     * the reader's choice, which is the ordinary case on the origin the game
-     * already fills (`src/userscript-storage.ts`).
-     */
-    setText: (key: string, text: string) => {
-      if (over.isRefusingSettings === true) return false;
-      localStorage.setItem(key, text);
-      return true;
-    },
-    removeText: (key: string) => localStorage.removeItem(key),
-  };
-  let live: FightReading | null = null;
-  const keeper = composeFightKeeper(page, settingsStore, () => live, composeClock());
-  return {
-    keeper,
-    localStorage,
-    sessionStorage,
-    setLive: (reading: FightReading | null) => void (live = reading),
-    /**
-     * The same browser one page later: a keeper built again over the stores the
-     * last one wrote to, holding no fight yet.
-     *
-     * Which is all a reload is from here — the page goes, the stores stay, and
-     * nothing is live until a payload arrives.
-     */
-    composeKeeperAfterReload: (): FightKeeper => {
-      live = null;
-      return composeFightKeeper(page, settingsStore, () => live, composeClock());
-    },
-  };
-}
-
-describe("what the reader has chosen about keeping fights", () => {
-  test("comes back as it was written", () => {
-    const settings = { storage: "session" } as const;
-    expect(getSettingsFromStoredText(composeStoredTextFromSettings(settings))).toEqual(settings);
-  });
-
-  test("defaults where nothing has been written", () => {
-    expect(getSettingsFromStoredText("")).toEqual({ storage: "local" });
-  });
-
-  /** §9.6: validated on read, and never repaired into something near it. */
-  test("refuses a place it cannot read", () => {
-    expect(getSettingsFromStoredText('{"storage":"cookie"}')).toEqual({ storage: "local" });
-    expect(getSettingsFromStoredText('{"storage":42}')).toEqual({ storage: "local" });
-    expect(getSettingsFromStoredText("[]")).toEqual({ storage: "local" });
-    expect(getSettingsFromStoredText("{")).toEqual({ storage: "local" });
-  });
-
-  /**
-   * A limit is no longer the reader's to set, so an answer stored by a build that
-   * still had the strip is not carried forward — obeying it would be the add-on
-   * acting on a control that is not on the screen. Neither is it written back.
-   */
-  test("neither reads nor writes a limit an older build stored", () => {
-    expect(getSettingsFromStoredText('{"storage":"session","keepLimit":3}')).toEqual({
-      storage: "session",
-    });
-    expect(composeStoredTextFromSettings({ storage: "local" })).not.toContain("keepLimit");
-  });
-});
-
-describe("a fight that is over", () => {
-  test("is written down, and comes back off the shelf as a row", () => {
-    const { keeper, localStorage } = composeKeeper();
-    const { session, outcome } = composeFinished(GROUP_FIGHT, 1);
-    keeper.setFightKept(session, outcome);
-
-    expect(getKeptFightsFromStoredText(localStorage.held.get(FIGHTS_KEY) ?? "")).toHaveLength(1);
-    const rows = keeper.shelf.getFights();
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.isLive).toBe(false);
-    expect(rows[0]?.at).not.toBeNull();
-    expect(rows[0]?.sideCounts.length).toBeGreaterThan(1);
-  });
-
-  /**
-   * A finished fight can be called into again. What must not happen is a second
-   * row for it — and what must happen is that the newest messages are the ones
-   * kept.
-   */
-  test("keeps its row when the same fight states more", () => {
-    const { keeper } = composeKeeper();
-    const { session, outcome } = composeFinished(GROUP_FIGHT, 1);
-    keeper.setFightKept(session, outcome);
-    keeper.setFightKept({ ...session, messages: [...session.messages, "0;0;txt=x"] }, outcome);
-    expect(keeper.shelf.getFights()).toHaveLength(1);
-  });
-
-  test("gets a row of its own when it is a different fight", () => {
-    const { keeper } = composeKeeper();
-    setKept(keeper, GROUP_FIGHT, 1);
-    setKept(keeper, DUEL, 2);
-    expect(keeper.shelf.getFights()).toHaveLength(2);
-  });
-
-  test("stands above the ones before it", () => {
-    const { keeper } = composeKeeper();
-    setKept(keeper, DUEL, 1);
-    const first = keeper.shelf.getFights()[0]?.id;
-    setKept(keeper, DUEL, 2);
-    expect(keeper.shelf.getFights()[0]?.id).not.toBe(first);
-    expect(keeper.shelf.getFights()[1]?.id).toBe(first);
-  });
-});
-
-describe("the fight happening now", () => {
-  test("is the first row, and is the one the panel opens on", () => {
-    const { keeper, setLive } = composeKeeper();
-    setKept(keeper, DUEL, 1);
-    setLive(composeFightReading({ ...composeSessionOfCapture(GROUP_FIGHT), fightsStarted: 2 }));
-
-    const rows = keeper.shelf.getFights();
-    expect(rows[0]?.isLive).toBe(true);
-    expect(rows[0]?.isSelected).toBe(true);
-    expect(rows[0]?.at).toBeNull();
-  });
-
-  test("is not a row at all before a payload has arrived", () => {
-    const { keeper } = composeKeeper();
-    expect(keeper.shelf.getFights()).toEqual([]);
-  });
-
-  /**
-   * The whole point of `isLive` travelling back with the reading: without it a
-   * payload landing while somebody reads a finished fight replaces their screen.
-   */
-  test("says so when it is chosen, and a kept fight says the opposite", () => {
-    const { keeper, setLive } = composeKeeper();
-    setKept(keeper, DUEL, 1);
-    // The fight *after* the one that was kept, which is what the meter would be
-    // holding — a live reading still counting the kept fight is the same fight,
-    // and the shelf deliberately draws that as one row.
-    setLive(composeFightReading({ ...composeSessionOfCapture(GROUP_FIGHT), fightsStarted: 2 }));
-    const kept = keeper.shelf.getFights().find((fight) => !fight.isLive)!;
-
-    const opened = keeper.shelf.onFightChosen(kept.id);
-    expect(opened.isLive).toBe(false);
-    expect(opened.reading).not.toBeNull();
-    expect(keeper.shelf.getFights().find((fight) => fight.isLive)?.isSelected).toBe(false);
-
-    const back = keeper.shelf.onFightChosen("live");
-    expect(back.isLive).toBe(true);
-    expect(back.reading).not.toBeNull();
-  });
-
-  test("a row for a fight that is no longer here changes nothing", () => {
-    const { keeper, setLive } = composeKeeper();
-    setLive(composeFightReading({ ...composeSessionOfCapture(GROUP_FIGHT), fightsStarted: 2 }));
-    const chosen = keeper.shelf.onFightChosen("nobody");
-    expect(chosen.reading).toBeNull();
-    expect(chosen.isLive).toBe(true);
-  });
-});
-
-describe("a fight that has ended but is still the one being counted", () => {
-  /**
-   * ⚠️ Driven in Firefox on 2026-08-26, where it drew twice — once as *teraz ·
-   * trwa* and once under its own clock. A fight is over when it states a winner,
-   * and it stays the live fight until the next one opens.
-   */
-  test("is one row, which says how it ended and can still be pinned", () => {
-    const { keeper, setLive } = composeKeeper();
-    const { session, outcome } = composeFinished(GROUP_FIGHT, 1);
-    keeper.setFightKept(session, outcome);
-    setLive(composeFightReading(session));
-
-    const rows = keeper.shelf.getFights();
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.isLive).toBe(true);
-    expect(rows[0]?.isPinnable).toBe(true);
-    expect(rows[0]?.outcome).not.toBeNull();
-    expect(rows[0]?.isSelected).toBe(true);
-  });
-
-  test("stays the live fight when that one row is chosen", () => {
-    const { keeper, setLive } = composeKeeper();
-    const { session, outcome } = composeFinished(GROUP_FIGHT, 1);
-    keeper.setFightKept(session, outcome);
-    setLive(composeFightReading(session));
-
-    const chosen = keeper.shelf.onFightChosen(keeper.shelf.getFights()[0]!.id);
-    expect(chosen.isLive).toBe(true);
-  });
-
-  test("becomes a row of its own once the next fight opens", () => {
-    const { keeper, setLive } = composeKeeper();
-    const { session, outcome } = composeFinished(GROUP_FIGHT, 1);
-    keeper.setFightKept(session, outcome);
-    setLive(composeFightReading({ ...composeSessionOfCapture(DUEL), fightsStarted: 2 }));
-
-    const rows = keeper.shelf.getFights();
-    expect(rows).toHaveLength(2);
-    expect(rows[0]?.isLive).toBe(true);
-    expect(rows[0]?.isPinnable).toBe(false);
-    expect(rows[1]?.isLive).toBe(false);
-  });
-});
-
-describe("a fight read back off the shelf", () => {
-  test("folds to what the fight itself folded to", () => {
-    const { keeper } = composeKeeper();
-    const { session, outcome } = composeFinished(GROUP_FIGHT, 1);
-    keeper.setFightKept(session, outcome);
-
-    const id = keeper.shelf.getFights()[0]!.id;
-    const restored = keeper.shelf.onFightChosen(id).reading!;
-    expect(restored.statistics).toEqual(composeFightReading(session).statistics);
-  });
-
-  test("is folded once, however often it is opened", () => {
-    const { keeper } = composeKeeper();
-    setKept(keeper, GROUP_FIGHT, 1);
-    const id = keeper.shelf.getFights()[0]!.id;
-    expect(keeper.shelf.onFightChosen(id).reading).toBe(keeper.shelf.onFightChosen(id).reading);
-  });
-
-  test("says how it ended, on the row and in the reading", () => {
-    const { keeper } = composeKeeper();
-    const { session, outcome } = composeFinished(GROUP_FIGHT, 1);
-    expect(outcome).not.toBeNull();
-    keeper.setFightKept(session, outcome);
-    expect(keeper.shelf.getFights()[0]?.outcome).not.toBeNull();
-  });
-});
-
-/**
- * What the panel opens on before a payload has arrived, and what says so.
- *
- * Both halves are asked of the same keeper on purpose: the reading is what the
- * panel draws and the mark is what the shelf says about it, and the failure this
- * guards is the two disagreeing — a shelf marking a row the panel is not showing
- * (`docs/specs/a-fight-you-can-go-back-to.md`).
- */
-describe("what a page that has just loaded opens on", () => {
-  test("the newest fight kept, folded to what that fight itself folded to", () => {
-    const { keeper } = composeKeeper();
-    const { session, outcome } = composeFinished(GROUP_FIGHT, 1);
-    keeper.setFightKept(session, outcome);
-
-    const opened = keeper.shelf.getOpeningReading();
-    expect(opened).not.toBeNull();
-    expect(opened?.statistics).toEqual(composeFightReading(session).statistics);
-  });
-
-  test("nothing at all, where nothing was kept", () => {
-    expect(composeKeeper().keeper.shelf.getOpeningReading()).toBeNull();
-  });
-
-  test("the newest, where several were kept", () => {
-    const { keeper } = composeKeeper();
-    setKept(keeper, GROUP_FIGHT, 1);
-    setKept(keeper, DUEL, 2);
-    const newest = keeper.shelf.getFights()[0]!.id;
-    expect(keeper.shelf.getOpeningReading()).toBe(keeper.shelf.onFightChosen(newest).reading);
-  });
-
-  /** One fold for a page load, whichever way the fight is reached afterwards. */
-  test("is folded once, however it is reached", () => {
-    const { keeper } = composeKeeper();
-    setKept(keeper, GROUP_FIGHT, 1);
-    const opened = keeper.shelf.getOpeningReading();
-    const id = keeper.shelf.getFights()[0]!.id;
-    expect(keeper.shelf.onFightChosen(id).reading).toBe(opened);
-  });
-
-  test("is the row the shelf marks", () => {
-    const { keeper } = composeKeeper();
-    setKept(keeper, GROUP_FIGHT, 1);
-    setKept(keeper, DUEL, 2);
-    const rows = keeper.shelf.getFights();
-    expect(rows[0]?.isSelected).toBe(true);
-    expect(rows[1]?.isSelected).toBe(false);
-  });
-
-  /** A payload arrives and the fight the reader is in is the one that is marked. */
-  test("stops being either the moment a payload arrives", () => {
-    const { keeper, setLive } = composeKeeper();
-    setKept(keeper, DUEL, 1);
-    setLive(composeFightReading({ ...composeSessionOfCapture(GROUP_FIGHT), fightsStarted: 2 }));
-
-    expect(keeper.shelf.getOpeningReading()).toBeNull();
-    const rows = keeper.shelf.getFights();
-    expect(rows[0]?.isLive).toBe(true);
-    expect(rows[0]?.isSelected).toBe(true);
-    expect(rows[1]?.isSelected).toBe(false);
-  });
-
-  /**
-   * ⚠️ **What was on screen, and not what is newest.** A reader who picked a
-   * fight out of the shelf and reloaded is put back on it — the panel opening on
-   * something else would be answering a question they had already answered
-   * (`docs/specs/a-fight-you-can-go-back-to.md`).
-   */
-  test("the fight the reader was reading, over the newest one kept", () => {
-    const { keeper, composeKeeperAfterReload } = composeKeeper();
-    setKept(keeper, GROUP_FIGHT, 1);
-    setKept(keeper, DUEL, 2);
-    const older = keeper.shelf.getFights()[1]!.id;
-    keeper.shelf.onFightChosen(older);
-
-    const afterReload = composeKeeperAfterReload();
-    const rows = afterReload.shelf.getFights();
-    expect(rows[1]?.id).toBe(older);
-    expect(rows[1]?.isSelected).toBe(true);
-    expect(rows[0]?.isSelected).toBe(false);
-    expect(afterReload.shelf.getOpeningReading()?.statistics).toEqual(
-      composeFightReading(composeFinished(GROUP_FIGHT, 1).session).statistics,
+    const panel = shown[0] as FakeElement;
+    // Inside the list: what stands below it is the row for a figure nobody can be charged with,
+    // which is a row of the same shape and not one of the fight's combatants.
+    const list = getElementsWithin(panel).find((one) => one.className === "list");
+    assert(list !== undefined, "the panel drew its list");
+    const rows = getElementsWithin(list).filter((one) => one.className.split(" ")[0] === "row");
+    assertEquals(rows.length, 11, "the fight's eleven combatants, each with a row");
+    // The panel spaces its thousands, so what a reader adds up is read back without the spaces.
+    const figures = rows.map((row) =>
+        Number(
+            (row.children.find((one) => one.className === "row-value")?.textContent ?? "")
+                .split(" ").join(""),
+        )
     );
-  });
+    assert(figures[0] !== undefined && figures[0] > 0, "the largest figure is drawn first");
+    const names = rows.map((row) =>
+        row.children.find((one) => one.className === "row-name")?.textContent
+    );
+    assert(names.every((name) => name !== undefined && name.length > 0), "every row is named");
+    assert(new Set(names).size === names.length, "and each row is somebody of their own");
+    for (const [at, figure] of figures.entries()) {
+        if (at === 0) continue;
+        const above = figures[at - 1];
+        assert(above !== undefined && above >= figure, "and the rest fall away from it");
+    }
+    attachment.detach();
+    assertEquals(battle.updateData, engineOwn, "and detaching puts the game's own method back");
+});
 
-  /** The rotation may have taken it since, and the newest is then the answer. */
-  test("the newest, where the fight they were reading is gone", () => {
-    const { keeper, composeKeeperAfterReload } = composeKeeper();
-    setKept(keeper, GROUP_FIGHT, 1);
-    keeper.shelf.onFightChosen(keeper.shelf.getFights()[0]!.id);
-    for (let fight = 2; fight <= KEPT_FIGHTS_LIMIT + 1; fight += 1) setKept(keeper, DUEL, fight);
+Deno.test("a reader presses a screen and the panel goes there, and nowhere else", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
 
-    const afterReload = composeKeeperAfterReload();
-    const rows = afterReload.shelf.getFights();
-    expect(rows).toHaveLength(KEPT_FIGHTS_LIMIT);
-    expect(rows[0]?.isSelected).toBe(true);
-    expect(afterReload.shelf.getOpeningReading()).not.toBeNull();
-  });
+    const current = () =>
+        getElementsWithin(host)
+            .find((one) => one.className.includes("selected"))
+            ?.attributes.get("data-screen");
+    assertEquals(current(), "damageDealtApplied", "the panel opens on what the reader did");
 
-  /**
-   * The other half of the same rule: a fight nobody is reading any more is not
-   * what the next page opens on, or the panel would answer one old gesture for
-   * ever.
-   */
-  test("forgets it once the live fight has taken the screen", () => {
-    const { keeper, composeKeeperAfterReload } = composeKeeper();
-    setKept(keeper, GROUP_FIGHT, 1);
-    setKept(keeper, DUEL, 2);
-    keeper.shelf.onFightChosen(keeper.shelf.getFights()[1]!.id);
-    keeper.shelf.setLiveShown();
+    const taken = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-screen") === "damageTakenApplied"
+    );
+    assert(taken !== undefined, "there is a screen to press");
+    pressElement(host, "pointerdown", taken);
+    assertEquals(current(), "damageTakenApplied", "and pressing it takes the panel there");
 
-    expect(composeKeeperAfterReload().shelf.getFights()[0]?.isSelected).toBe(true);
-  });
+    // A stale or foreign attribute naming a screen nobody has: the press reaches the entry and
+    // the entry refuses it, which is a second refusal behind the one the panel already makes.
+    const stray = environment.document.createElement("div") as FakeElement;
+    stray.setAttribute("data-screen", "whateverTheGameCalls");
+    pressElement(host, "pointerdown", stray);
+    assertEquals(current(), "damageTakenApplied", "and a screen nobody has moves nothing either");
+});
 
-  test("forgets it when the reader goes back to the fight happening now", () => {
-    const { keeper, setLive, composeKeeperAfterReload } = composeKeeper();
-    setKept(keeper, GROUP_FIGHT, 1);
-    setKept(keeper, DUEL, 2);
-    setLive(composeFightReading({ ...composeSessionOfCapture(DUEL), fightsStarted: 3 }));
-    keeper.shelf.onFightChosen(keeper.shelf.getFights()[2]!.id);
-    keeper.shelf.onFightChosen("live");
+Deno.test("a fight that ends goes on the shelf, once, and comes back after a reload", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const first = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(first.environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
 
-    expect(composeKeeperAfterReload().shelf.getFights()[0]?.isSelected).toBe(true);
-  });
+    const shelf = first.getShelf("local").get("MargoMeter-fights");
+    assert(shelf !== undefined, "the fight was written where a reload will look for it");
+    const kept = readKeptFights(composeHeldStore(first.getShelf("local")), "MargoMeter-fights");
+    assertEquals(kept.length, 1, "one fight, however many calls said it was over");
+    assertEquals(kept[0]?.gameBuild, "53XkBRxF", "under the build the page stated it on");
 
-  test("a fight the reader chose is what is marked instead", () => {
-    const { keeper } = composeKeeper();
-    setKept(keeper, GROUP_FIGHT, 1);
-    setKept(keeper, DUEL, 2);
-    const older = keeper.shelf.getFights()[1]!.id;
-    keeper.shelf.onFightChosen(older);
-
-    const rows = keeper.shelf.getFights();
-    expect(rows[0]?.isSelected).toBe(false);
-    expect(rows[1]?.isSelected).toBe(true);
-    expect(keeper.shelf.getOpeningReading()).toBeNull();
-  });
+    // What is kept is what the game delivered, so the fight reads the same off the shelf as it
+    // did live: every figure is derived again by the code that is running. ADR 0026.
+    const offShelf = composeBattleSession();
+    for (const payload of kept[0]?.payloads ?? []) addPayloadToSession(offShelf, payload);
+    const watched = composeBattleSession();
+    for (const payload of getRecordedEngineUpdates(HILDUR)) addPayloadToSession(watched, payload);
+    const read = getFightFromSession(offShelf);
+    const live = getFightFromSession(watched);
+    assert(read !== null, "a fight off the shelf is a fight");
+    assert(live !== null, "and so is the one that was watched");
+    assertEquals(read.roster.byId.size, 11, "with the cast the payloads stated");
+    assertEquals(read.events, live.events, "the same fight, read again");
+    assertEquals(read.readerSide, live.readerSide, "the reader's own side included");
 });
 
 /**
- * The same rule from the other end: the panel itself, mounted over a shelf that
- * holds a fight, and the words it puts on screen.
+ * Two fights on the shelf, each row stating its own figures.
  *
- * ⚠️ **The sentences are spelled here rather than read back from
- * `src/ui/panel-view.ts`.** A test that reads a string out of the module that
- * writes it holds the two to be the same and neither to be right (§7.5), and
- * what is being checked is precisely which of two screens a reader meets.
- *
- * `10 vs 1` and `1 vs 1` are the two recordings' own headcounts, as
- * `docs/captured-fights.md` records them — so the assertion is about which fight
- * is drawn and not about how a header is worded.
+ * A row's outcome and the sizes of its sides are derived through the live chain and held for as
+ * long as the tab is (**ADR 0026**), so a memo that answered with the wrong fight's figures would
+ * draw two rows that agree — which is what this reads back and refuses.
  */
-describe("the panel drawn on a page that has just loaded", () => {
-  /** A document that keeps every word written into it, and nothing else. */
-  function composePageThatRecordsText(): {
-    drawn: string[];
-    page: Parameters<typeof composePanelMount>[0];
-  } {
-    const drawn: string[] = [];
-    const composeNode = (): Record<string, unknown> => {
-      const node: Record<string, unknown> = {
-        className: "",
-        id: "",
-        title: "",
-        setAttribute: (): void => {},
-        style: { setProperty: (): void => {} },
-        append: (): void => {},
-        replaceChildren: (): void => {},
-        addEventListener: (): void => {},
-        attachShadow: (): unknown => composeNode(),
-      };
-      Object.defineProperty(node, "textContent", {
-        get: () => "",
-        set: (text: string) => void drawn.push(text),
-      });
-      return node;
+Deno.test("each fight on the shelf says its own size, not the one before it", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    // Three fights, because the newest is drawn as the live row and never looked up: two of them
+    // have to be on the shelf at once for two lookups to be told apart.
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    for (const payload of getRecordedEngineUpdates(ANOTHER)) update(payload);
+    for (const payload of getRecordedEngineUpdates(THIRD)) update(payload);
+    const host = shown[0] as FakeElement;
+
+    const shelfTab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assert(shelfTab !== undefined, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", shelfTab);
+
+    const sizes = getTextsByClass(host, "row-size");
+    assertEquals(sizes.length, 3, "three fights were fought, so the shelf draws three rows");
+    assertEquals(sizes[0], "1×1", "the newest, which is the live row and the tracker's duel");
+    assertEquals(sizes[1], "1×3", "the hunter against three of them");
+    assertEquals(sizes[2], "10×1", "and the group against Hildur, oldest and still its own size");
+});
+
+Deno.test("a reader folds the panel away, and it is still folded when they come back", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const first = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(first.environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = first.shown[0] as FakeElement;
+
+    const control = () => getElementsWithin(host).find((one) => one.attributes.has("data-fold"));
+    const rows = () =>
+        getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row").length;
+    assert(rows() > 0, "the panel opens drawing the fight");
+    assertEquals(first.held.get("MargoMeter-folded"), undefined, "and nothing is stored yet");
+
+    const folding = control();
+    assert(folding !== undefined, "there is a control to press");
+    pressElement(host, "pointerdown", folding);
+    assertEquals(rows(), 0, "pressing it folds the panel to its bar");
+    assertEquals(first.held.get("MargoMeter-folded"), "1", "and says so where a reload will look");
+
+    // The reader comes back: a second start over the store the first one left behind.
+    const second = composeEnvironment({ Engine: { battle: { updateData: () => 1 } } });
+    for (const [key, value] of first.held) second.held.set(key, value);
+    startMargoMeter(second.environment);
+    const again = second.environment.page as { Engine: { battle: { updateData: unknown } } };
+    const next = again.Engine.battle.updateData;
+    assert(typeof next === "function", "the second copy wrapped its own game");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) next(payload);
+    const reopened = second.shown[0] as FakeElement;
+    assertEquals(
+        getElementsWithin(reopened).filter((one) => one.className.split(" ")[0] === "row").length,
+        0,
+        "and the panel comes back folded, because that is what the reader left it",
+    );
+
+    const unfolding = getElementsWithin(reopened).find((one) => one.attributes.has("data-fold"));
+    assert(unfolding !== undefined, "the bar still carries its control");
+    pressElement(reopened, "pointerdown", unfolding);
+    assert(
+        getElementsWithin(reopened).filter((one) => one.className.split(" ")[0] === "row").length >
+            0,
+        "which brings the fight back",
+    );
+    assertEquals(second.held.get("MargoMeter-folded"), "", "and stores the unfolding too");
+});
+
+/**
+ * A battle that carries what a running fight carries: a collection of combatants whose health the
+ * game moves **in place** while its own call runs. That is what makes the two snapshots in a
+ * recording the independent check `captures/AGENTS.md` calls them — and what a snapshot holding
+ * the game's own reference would show identically on both sides of a call.
+ */
+function composeRecordingBattle(): Record<string, unknown> {
+    const health: Record<string, unknown> = { max: 100, value: 100 };
+    const warriors = {
+        1: { id: 1, name: "somebody", team: 1, prof: "w", lvl: 60, hp: health },
     };
     return {
-      drawn,
-      page: {
-        document: {
-          createElement: (): unknown => composeNode(),
-          body: { append: (): void => {} },
+        warriorsList: warriors,
+        updateData: () => {
+            health.value = 90;
+            return 1;
         },
-      },
     };
-  }
+}
 
-  test("draws the last fight kept, where the panel would have said there was none", () => {
-    const { keeper } = composeKeeper();
-    setKept(keeper, GROUP_FIGHT, 1);
-    const { drawn, page } = composePageThatRecordsText();
+/** One recording played through and asked for, as the file the browser was handed. */
+function composeSavedFight(): Record<string, unknown> {
+    const battle = composeRecordingBattle();
+    const { environment, shown, saved } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    const control = getElementsWithin(host).find((one) => one.attributes.has("data-save"));
+    assert(control !== undefined, "the bar carries the control that offers the fight");
+    pressElement(host, "pointerdown", control);
+    const reading = getJsonReading(saved[0]?.text ?? "");
+    assert(reading.isOk, "and what it handed over reads back as JSON");
+    assert(isRecord(reading.value), "and as a recording");
+    return reading.value;
+}
 
-    composePanelMount(page, (): void => {}, undefined, undefined, keeper.shelf);
-
-    expect(drawn).toContain("10 vs 1");
-    expect(drawn).not.toContain("Nie było jeszcze walki.");
-  });
-
-  test("says there has been none, where nothing was kept", () => {
-    const { keeper } = composeKeeper();
-    const { drawn, page } = composePageThatRecordsText();
-
-    composePanelMount(page, (): void => {}, undefined, undefined, keeper.shelf);
-
-    expect(drawn).toContain("Nie było jeszcze walki.");
-  });
-
-  /**
-   * The fight nobody chose gives the screen up to the one the reader is in — a
-   * meter drawing yesterday's numbers during a fight is the failure this whole
-   * behaviour is bounded by.
-   */
-  test("draws the fight the reader was reading before the reload", () => {
-    const { keeper, composeKeeperAfterReload } = composeKeeper();
-    setKept(keeper, GROUP_FIGHT, 1);
-    setKept(keeper, DUEL, 2);
-    keeper.shelf.onFightChosen(keeper.shelf.getFights()[1]!.id);
-    const { drawn, page } = composePageThatRecordsText();
-
-    composePanelMount(page, (): void => {}, undefined, undefined, composeKeeperAfterReload().shelf);
-
-    expect(drawn).toContain("10 vs 1");
-    expect(drawn).not.toContain("1 vs 1");
-  });
-
-  /**
-   * ⚠️ **The one line only the mount can reach.** The shelf is asked nothing
-   * while a fight is being watched, so the moment a payload takes the screen is
-   * visible where the payload is and nowhere else — and without it the panel
-   * would open on one old gesture for ever. Driven the way it happens: a fight
-   * chosen on the page before, a reload, and then a fight walked into.
-   */
-  test("a fight walked into is what the page after that opens on", () => {
-    const { keeper, composeKeeperAfterReload } = composeKeeper();
-    setKept(keeper, GROUP_FIGHT, 1);
-    setKept(keeper, DUEL, 2);
-    keeper.shelf.onFightChosen(keeper.shelf.getFights()[1]!.id);
-
-    const { drawn, page } = composePageThatRecordsText();
-    const render = composePanelMount(
-      page,
-      (): void => {},
-      undefined,
-      undefined,
-      composeKeeperAfterReload().shelf,
-    )!;
-    render(composeFightReading({ ...composeSessionOfCapture(DUEL), fightsStarted: 3 }));
-
-    expect(drawn).toContain("1 vs 1");
-    expect(composeKeeperAfterReload().shelf.getFights()[0]?.isSelected).toBe(true);
-  });
-
-  test("the first payload of the next fight takes the screen", () => {
-    const { keeper } = composeKeeper();
-    setKept(keeper, GROUP_FIGHT, 1);
-    const { drawn, page } = composePageThatRecordsText();
-    const render = composePanelMount(page, (): void => {}, undefined, undefined, keeper.shelf)!;
-
-    drawn.length = 0;
-    render(composeFightReading({ ...composeSessionOfCapture(DUEL), fightsStarted: 2 }));
-
-    expect(drawn).toContain("1 vs 1");
-    expect(drawn).not.toContain("10 vs 1");
-  });
-});
-
-/**
- * ⚠️ **Twenty is spelled here, not imported.** The entry point holds the limit as
- * a constant of its own, and a test that read it back would hold the rotation and
- * the number to be the same thing and neither to be right (§7.5). So this file
- * states what the shelf is supposed to hold and the fights are counted against it.
- */
-const KEPT_FIGHTS_LIMIT = 20;
-
-describe("the rotation, which the reader no longer sets", () => {
-  test("keeps no more than twenty", () => {
-    const { keeper } = composeKeeper();
-    for (let fight = 1; fight <= KEPT_FIGHTS_LIMIT + 2; fight += 1) {
-      setKept(keeper, DUEL, fight);
-    }
-    expect(keeper.shelf.getFights()).toHaveLength(KEPT_FIGHTS_LIMIT);
-  });
-
-  test("never drops what the reader pinned", () => {
-    const { keeper } = composeKeeper();
-    setKept(keeper, DUEL, 1);
-    const first = keeper.shelf.getFights()[0]!.id;
-    keeper.shelf.onPinToggled(first);
-    expect(keeper.shelf.getFights()[0]?.isPinned).toBe(true);
-
-    for (let fight = 2; fight <= KEPT_FIGHTS_LIMIT + 2; fight += 1) {
-      setKept(keeper, DUEL, fight);
-    }
-    expect(keeper.shelf.getFights().map((one) => one.id)).toContain(first);
-  });
-
-  /** The reader's explicit choice beats the automatic one, and the panel says so. */
-  test("refuses a new fight rather than dropping a pinned one, and says which", () => {
-    const { keeper } = composeKeeper();
-    for (let fight = 1; fight <= KEPT_FIGHTS_LIMIT; fight += 1) setKept(keeper, DUEL, fight);
-    for (const held of keeper.shelf.getFights()) keeper.shelf.onPinToggled(held.id);
-    setKept(keeper, DUEL, KEPT_FIGHTS_LIMIT + 1);
-
-    expect(keeper.shelf.getFights()).toHaveLength(KEPT_FIGHTS_LIMIT);
-    expect(keeper.shelf.getReading().isEverySlotPinned).toBe(true);
-    expect(keeper.shelf.getReading().hasStoreRefused).toBe(false);
-  });
-
-  test("a pin survives the same fight being kept again", () => {
-    const { keeper } = composeKeeper();
-    const { session, outcome } = composeFinished(DUEL, 1);
-    keeper.setFightKept(session, outcome);
-    keeper.shelf.onPinToggled(keeper.shelf.getFights()[0]!.id);
-    keeper.setFightKept({ ...session, messages: [...session.messages, "0;0;txt=x"] }, outcome);
-    expect(keeper.shelf.getFights()[0]?.isPinned).toBe(true);
-  });
-});
-
-describe("when the browser will not take a fight", () => {
-  test("the reader is told, and nothing throws", () => {
-    const { keeper, localStorage } = composeKeeper();
-    localStorage.refuseAbove = 10;
-    expect(() => setKept(keeper, DUEL, 1)).not.toThrow();
-    expect(keeper.shelf.getReading().hasStoreRefused).toBe(true);
-  });
-
-  /**
-   * The budget's own job: a browser that takes two fights and refuses three keeps
-   * two, rather than the shelf emptying itself over one bad write.
-   */
-  test("what fits is kept and the rest is given up", () => {
-    const { keeper, localStorage } = composeKeeper();
-    setKept(keeper, DUEL, 1);
-    const oneFight = (localStorage.held.get(FIGHTS_KEY) ?? "").length;
-
-    localStorage.refuseAbove = oneFight + 40;
-    setKept(keeper, DUEL, 2);
-    expect(keeper.shelf.getFights()).toHaveLength(1);
-    expect(keeper.shelf.getReading().hasStoreRefused).toBe(false);
-  });
-});
-
-describe("moving the fights to another place", () => {
-  test("takes them with it and empties the one they came from", () => {
-    const { keeper, localStorage, sessionStorage } = composeKeeper();
-    setKept(keeper, DUEL, 1);
-    expect(localStorage.held.has(FIGHTS_KEY)).toBe(true);
-
-    keeper.shelf.onStorageChosen("session");
-    expect(localStorage.held.has(FIGHTS_KEY)).toBe(false);
-    expect(sessionStorage.held.has(FIGHTS_KEY)).toBe(true);
-    expect(keeper.shelf.getFights()).toHaveLength(1);
-    expect(keeper.shelf.getReading().storage).toBe("session");
-  });
-
-  /** A reader choosing *tylko teraz* is saying they want nothing left behind. */
-  test("leaves nothing on disk where the reader asked for nothing on disk", () => {
-    const { keeper, localStorage, sessionStorage } = composeKeeper();
-    setKept(keeper, DUEL, 1);
-    keeper.shelf.onStorageChosen("memory");
-    expect(localStorage.held.has(FIGHTS_KEY)).toBe(false);
-    expect(sessionStorage.held.has(FIGHTS_KEY)).toBe(false);
-    expect(keeper.shelf.getFights()).toHaveLength(1);
-  });
-
-  /**
-   * The same sentence, one key further: *nothing left behind* has to reach the
-   * pointer at the fight on screen, which is about a fight and is written where
-   * the settings are.
-   *
-   * It named a fight held nowhere at all, in the one store the reader had just
-   * asked to be left with nothing of theirs in it — and the test above passed
-   * over it, because it asked only about the fights themselves.
-   */
-  test("takes the pointer at the fight on screen with it", () => {
-    const { keeper, localStorage } = composeKeeper();
-    setKept(keeper, DUEL, 1);
-    keeper.shelf.onFightChosen(keeper.shelf.getFights()[0]!.id);
-    expect(localStorage.held.has(SHOWN_FIGHT_KEY)).toBe(true);
-
-    keeper.shelf.onStorageChosen("memory");
-    expect(localStorage.held.has(SHOWN_FIGHT_KEY)).toBe(false);
-  });
-
-  /**
-   * The other side of the boundary, and the reason the clearing is asked of the
-   * choice rather than done on every move: a place that keeps something keeps the
-   * fight, so the pointer at it is still worth what it was worth.
-   */
-  test("keeps it where the fights are still kept somewhere", () => {
-    const { keeper, localStorage, composeKeeperAfterReload } = composeKeeper();
-    setKept(keeper, DUEL, 1);
-    setKept(keeper, GROUP_FIGHT, 2);
-    const older = keeper.shelf.getFights()[1]!.id;
-    keeper.shelf.onFightChosen(older);
-
-    keeper.shelf.onStorageChosen("session");
-    expect(localStorage.held.get(SHOWN_FIGHT_KEY)).toBe(older);
-    expect(composeKeeperAfterReload().shelf.getFights()[1]).toMatchObject({
-      id: older,
-      isSelected: true,
-    });
-  });
-
-  /**
-   * The answer itself stays where a browser keeps things for good: kept in the
-   * place it names, it would be unreadable the moment somebody chose the place
-   * that forgets.
-   */
-  test("the answer is remembered where it can be read next time", () => {
-    const { keeper, localStorage } = composeKeeper();
-    keeper.shelf.onStorageChosen("memory");
-    expect(getSettingsFromStoredText(localStorage.held.get(SETTINGS_KEY) ?? "").storage).toBe(
-      "memory",
+Deno.test("the fight is handed over counted as well as raw, and the two agree", () => {
+    const written = composeSavedFight();
+    const entries = written.calls;
+    assert(Array.isArray(entries), "the calls the game made are in the file");
+    // What a reader hands over answers both "what did the game say" and "what did this make of
+    // it", which is why the counted half travels with the raw one (ADR 0027).
+    const report = written.report;
+    assert(isRecord(report), "and the figures the panel drew from those calls stand beside them");
+    assertEquals(report.payloads, entries.length, "built from every call the file carries");
+    assertEquals(report.isOver, true, "of a fight this one saw the end of");
+    const counted = report.combatants;
+    assert(isRecord(counted), "with a row for each combatant the aggregate counted");
+    assert(Object.keys(counted).length > 0, "and this fight had a cast");
+    const totals = report.totals;
+    assert(isRecord(totals), "and the fight's own totals beside them");
+    assertEquals(
+        totals.damageDealtApplied,
+        Object.values(counted).reduce(
+            (sum: number, row) =>
+                sum +
+                (isRecord(row) && typeof row.damageDealtApplied === "number"
+                    ? row.damageDealtApplied
+                    : 0),
+            0,
+        ),
+        "which come to what the rows under them come to",
     );
-  });
+});
 
-  test("choosing the place it is already in changes nothing", () => {
-    const { keeper, localStorage } = composeKeeper();
-    setKept(keeper, DUEL, 1);
-    const before = localStorage.held.get(FIGHTS_KEY);
-    keeper.shelf.onStorageChosen("local");
-    expect(localStorage.held.get(FIGHTS_KEY)).toBe(before);
-  });
+Deno.test("a reader asks for the fight, and gets the recording the intake tool reads", () => {
+    const battle = composeRecordingBattle();
+    const { environment, shown, saved, reported } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    assertEquals(reported, [], "and nothing of ours failed while it recorded");
+
+    const host = shown[0] as FakeElement;
+    const control = getElementsWithin(host).find((one) => one.attributes.has("data-save"));
+    assert(control !== undefined, "the bar carries the control that offers the fight");
+    assertEquals(saved.length, 0, "which has saved nothing until it is pressed");
+    pressElement(host, "pointerdown", control);
+    assertEquals(saved.length, 1, "and one file when it is");
+
+    const file = saved[0];
+    assert(file !== undefined, "a file was handed to the browser");
+    assertEquals(
+        file.name,
+        `margometer-tempest-53XkBRxF-${BUILD_VERSION}-2026-08-29T10-00-00-000Z.json`,
+        "named for the world, both builds and the moment it was asked for",
+    );
+    const reading = getJsonReading(file.text);
+    assert(reading.isOk, "and it reads back as JSON");
+    const written = reading.value;
+    assert(isRecord(written), "and it reads back as a recording");
+    assertEquals(written.world, "tempest", "which says where it came from");
+    assertEquals(written.gameBuild, "53XkBRxF", "and which client stated it");
+    const entries = written.calls;
+    assert(Array.isArray(entries), "carrying the calls the game made");
+    assert(entries.length > 0, "at least one of them");
+    // Every one of them, and that is the right answer: a recording on disk is already thinned,
+    // so each of its calls carries messages or a shape nobody had seen. What the thinning drops
+    // is shown in `tests/game/fight-capture.test.ts`, on calls that repeat.
+    assertEquals(
+        entries.length,
+        getRecordedEngineUpdates(HILDUR).length,
+        "every call, because material already thinned has nothing left to drop",
+    );
+    assertEquals(written.droppedCalls, 0, "and the file says nothing was dropped");
+    const first = entries[0];
+    assert(isRecord(first), "an entry is a record");
+    assertEquals(Object.keys(first), [
+        "index",
+        "payload",
+        "messages",
+        "combatantsBefore",
+        "combatantsAfter",
+    ], "in the shape every admitted recording carries");
+    const before = first.combatantsBefore;
+    const after = first.combatantsAfter;
+    assert(Array.isArray(before) && Array.isArray(after), "with a snapshot on either side");
+    assertEquals(
+        [isRecord(before[0]) ? before[0].hp : null, isRecord(after[0]) ? after[0].hp : null],
+        [{ max: 100, value: 100 }, { max: 100, value: 90 }],
+        "and they differ, which is only true if each was copied rather than referenced",
+    );
+});
+
+Deno.test("a fight nobody has read is handed over as one, rather than as a fight of zeroes", () => {
+    const battle = composeRecordingBattle();
+    const { environment, shown, saved } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const host = shown[0] as FakeElement;
+    const control = getElementsWithin(host).find((one) => one.attributes.has("data-save"));
+    assert(control !== undefined, "the bar carries the control before a payload ever arrives");
+    pressElement(host, "pointerdown", control);
+    assertEquals(saved.length, 1, "and a press hands a file over even then");
+
+    const reading = getJsonReading(saved[0]?.text ?? "");
+    assert(reading.isOk, "which reads back as JSON");
+    const written = reading.value;
+    assert(isRecord(written), "and as a recording");
+    assertEquals(written.report, null, "saying no fight was read, which is an answer");
+    assertEquals(written.calls, [], "beside the calls it has, which are none");
+});
+
+Deno.test("the shelf has a screen of its own, and its control toggles", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+
+    // On the bar, not on a strip: what it changes is which fight is being read, and the strips
+    // are about which figure of the one fight.
+    const shelfTab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assert(shelfTab !== undefined, "the bar carries the way onto the shelf");
+    // A block body on purpose: the recursion guard reads a one-line named arrow as a function
+    // whose body never closes, and then sees every later call to it as a call to itself.
+    const rows = (): FakeElement[] => {
+        return getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row");
+    };
+    const figures = rows().length;
+    assert(figures > 1, "the panel is on the figures, with a row for each of them");
+
+    pressElement(host, "pointerdown", shelfTab);
+    // One row: the fight this recording ended is both the live one and a kept one until the next
+    // begins, and drawing it twice is one fight in two places. A shelf that hid the live one
+    // would answer *which fight am I reading* with a list the answer is not on.
+    assertEquals(rows().length, 1, "and on the shelf, where the two of them are one row");
+    assertEquals(
+        getTextsByClass(host, "row-time"),
+        ["teraz"],
+        "the one going on now saying so, in the live row's own wording",
+    );
+    // It is on the shelf as well, so there is something to pin — which is what the pin is for.
+    const pins = getElementsWithin(host).filter((one) => one.className.startsWith("row-pin"));
+    assertEquals(pins.length, 1, "and it carries a pin, being a fight the rotation can drop");
+    // The shelf is not one of the fight's screens, so it says its own name and totals nothing:
+    // the live fight's two sides under a list of fights already fought are figures about neither.
+    assertEquals(getTextsByClass(host, "crumb-here"), ["Walki"], "the shelf says what it is");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "MargoMeter-sides"),
+        [],
+        "and totals nothing, being a list of fights rather than a screen of one",
+    );
+
+    const back = getElementsWithin(host).find((one) => one.className === "crumb-back");
+    assert(back !== undefined, "the shelf carries the way back");
+    pressElement(host, "pointerdown", back);
+    assertEquals(rows().length, figures, "which gives the figures back");
+
+    pressElement(host, "pointerdown", shelfTab);
+    pressElement(host, "pointerdown", shelfTab);
+    assertEquals(rows().length, figures, "and so does the control that put the shelf up");
+});
+
+Deno.test("a browser that will not have the shelf is answered, not argued with", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown, reported } = composeEnvironment({ Engine: { battle } });
+    const refusing: UserscriptEnvironment = {
+        ...environment,
+        store: { read: () => null, write: () => false, remove: () => {} },
+        composeShelfStore: () => ({ read: () => null, write: () => false, remove: () => {} }),
+    };
+    startMargoMeter(refusing);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    assertEquals(reported, [], "a refusal is not a failure of ours");
+    assertEquals(shown.length, 1, "and the panel goes on drawing the fight it is watching");
+});
+
+Deno.test("a page with no game draws nothing and says why, once", () => {
+    const { environment, shown, reported } = composeEnvironment({});
+    const attachment = startMargoMeter(environment);
+    assert(!attachment.isAttached(), "there was nothing to wrap");
+    assertEquals(shown, [], "so nothing is drawn");
+    assertEquals(reported, [], "and nothing is said until the looking gives up");
+});
+
+Deno.test("a second copy of the add-on stands down and never draws", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const page = { Engine: { battle } };
+    const first = composeEnvironment(page);
+    startMargoMeter(first.environment);
+    const second = composeEnvironment(page);
+    const attachment = startMargoMeter(second.environment);
+    assert(!attachment.isAttached(), "the second copy stands down");
+    assertEquals(second.reported.length, 1, "and says so once");
+    const update = battle.updateData;
+    assert(typeof update === "function", "the first copy still holds the game");
+    update({ init: 1, m: [], mi: [] });
+    assertEquals(second.shown, [], "while the second never puts a panel on the page");
+    assertEquals(first.shown.length, 1, "and the first has the one panel there is");
+});
+
+Deno.test("every recording plays through without a word of failure", () => {
+    for (const path of getRecordingPaths()) {
+        const battle: Record<string, unknown> = { updateData: () => 1 };
+        const { environment, shown, reported } = composeEnvironment({ Engine: { battle } });
+        startMargoMeter(environment);
+        const update = battle.updateData;
+        assert(typeof update === "function", `${path}: the wrap went on`);
+        for (const payload of getRecordedEngineUpdates(path)) update(payload);
+        assertEquals(reported, [], `${path}: something of ours failed`);
+        assert(shown.length > 0, `${path}: nothing was ever drawn`);
+    }
+});
+
+Deno.test("a reader opens a row, and every way out of it leads back to the screen", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    // A block body, not a one-line arrow: the recursion guard reads a one-line named arrow as
+    // running to the end of the block it sits in (`ARCHITECTURE.md`, known gap 12). The name is
+    // not `find` for the same reason — a reader over source cannot tell that call from this one.
+    const getRegion = (className: string) => {
+        return getElementsWithin(host).find((one) => one.className === className);
+    };
+    const rows = () => {
+        const list = getRegion("list");
+        if (list === undefined) return 0;
+        return getElementsWithin(list).filter((one) => one.className.split(" ")[0] === "row")
+            .length;
+    };
+    const rowsThatOpen = () => {
+        return getElementsWithin(host).filter((one) => {
+            if (one.className.split(" ")[0] !== "row") return false;
+            return one.attributes.get("data-row") !== undefined;
+        }).length;
+    };
+    const before = rows();
+    assert(before > 0, "the screen has rows to open");
+    assertEquals(rowsThatOpen(), before, "every one of them openable");
+
+    const name = getRegion("row-name");
+    assert(name !== undefined, "and a reader presses the name inside one");
+    pressElement(host, "pointerdown", name);
+    assert(getRegion("crumb") !== undefined, "which opens that row over the screen");
+    const person = getRegion("crumb-here")?.textContent;
+    assert(person !== undefined, "saying whose row it is");
+    // Never a row count: an opened row is cut twice, and the two cuts together can come to more
+    // rows than the screen it stands over. What tells them apart is that a cut opens no further.
+    assert(rows() > 0, "and drawing the parts of one figure rather than the whole screen");
+    // A person inside an opened row opens the pair of the two of them, which is the last rung.
+    assert(rowsThatOpen() > 0, "some of which open onto what passed between the two of them");
+    const other = getElementsWithin(host).find((one) => {
+        if (one.className !== "row-name") return false;
+        return one.attributes.get("data-row") !== undefined;
+    });
+    assert(other !== undefined, "there is somebody to open");
+    pressElement(host, "pointerdown", other);
+    assertEquals(rowsThatOpen(), 0, "and on that rung nothing opens any further");
+    const deep = getRegion("crumb-here");
+    assert(deep !== undefined, "which says whom it is about");
+    pressElement(host, "pointerdown", getRegion("crumb-back") ?? host);
+    assertEquals(
+        getRegion("crumb-here")?.textContent,
+        person,
+        "and the way back off it goes to the person it was opened from, one rung at a time",
+    );
+
+    const crumb = getRegion("crumb-back");
+    assert(crumb !== undefined, "the way back is there");
+    pressElement(host, "pointerdown", crumb);
+    assertEquals(getRegion("crumb"), undefined, "and pressing it closes the row");
+    assertEquals(rows(), before, "leaving the screen as it was");
+    setScreenKept(host, getRegion, rows, before);
 });
 
 /**
- * The answer is what tells the next page where to look, so a refused one may not be
- * acted on: the fights would go somewhere nothing ever opens again, under a panel
- * drawing the choice as taken.
+ * What survives a change of screen, and what does not: the person a reader went into stays,
+ * because the strips are how they ask the next question about them.
  */
-describe("when the browser will not keep the reader's choice", () => {
-  test("the fights stay where they are and the panel says the place did not change", () => {
-    const { keeper, localStorage, sessionStorage } = composeKeeper({ isRefusingSettings: true });
-    setKept(keeper, DUEL, 1);
-    keeper.shelf.onStorageChosen("session");
+function setScreenKept(
+    host: FakeElement,
+    getRegion: (className: string) => FakeElement | undefined,
+    rows: () => number,
+    before: number,
+): void {
+    assertEquals(rows(), before, "the screen is as it was before any of this");
+    const again = getRegion("row-name");
+    assert(again !== undefined, "a row opens a second time");
+    pressElement(host, "pointerdown", again);
+    assert(getRegion("crumb") !== undefined, "as it did the first");
+    const opened = getRegion("crumb-here")?.textContent;
+    assert(opened !== undefined, "the row that stands open names somebody");
+    const taken = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-screen") === "damageTakenApplied"
+    );
+    assert(taken !== undefined, "there is another screen to reach for");
+    pressElement(host, "pointerdown", taken);
+    // The reader went into somebody and is reading that somebody: the strips are how they ask
+    // the next question about them, so the person survives the question.
+    assert(getRegion("crumb") !== undefined, "the row stays open across a change of screen");
+    assertEquals(getRegion("crumb-here")?.textContent, opened, "and it is the same person");
 
-    expect(localStorage.held.has(FIGHTS_KEY)).toBe(true);
-    expect(sessionStorage.held.has(FIGHTS_KEY)).toBe(false);
-    expect(keeper.shelf.getReading().storage).toBe("local");
-    expect(keeper.shelf.getReading().hasChoiceRefused).toBe(true);
-  });
+    const side = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-side") === "reader"
+    );
+    if (side !== undefined) {
+        pressElement(host, "pointerdown", side);
+        assertEquals(
+            getRegion("crumb"),
+            undefined,
+            "narrowing to a side closes it, because that side may not hold them",
+        );
+    }
+}
 
-  /** §9.6: a failure is state, and a later answer that lands clears it. */
-  test("a choice that lands afterwards clears it", () => {
-    const { keeper } = composeKeeper();
-    expect(keeper.shelf.getReading().hasChoiceRefused).toBe(false);
-    keeper.shelf.onStorageChosen("session");
-    expect(keeper.shelf.getReading().hasChoiceRefused).toBe(false);
-  });
+Deno.test("a row belonging to nobody in the fight opens nothing", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    const getRegion = (className: string) => {
+        return getElementsWithin(host).find((one) => one.className === className);
+    };
+
+    // A stale or foreign attribute where a row's would be: the press reaches the entry, and what
+    // the entry cannot place it refuses rather than opening an empty row over the screen.
+    const stray = environment.document.createElement("div") as FakeElement;
+    stray.setAttribute("data-row", "whoeverTheGameCalls");
+    pressElement(host, "pointerdown", stray);
+    assertEquals(getRegion("crumb"), undefined, "a row that is not a number opens nothing");
+    const absent = environment.document.createElement("div") as FakeElement;
+    absent.setAttribute("data-row", "0");
+    pressElement(host, "pointerdown", absent);
+    assertEquals(getRegion("crumb"), undefined, "and neither does one nobody in the fight holds");
+});
+
+Deno.test("the place a fight is fought reaches the bar, and goes on the shelf with it", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    // The client's own state, in the spelling `engine-place.ts` states it was read in.
+    const page = {
+        Engine: { battle, map: { d: { name: "Mapa Testowa" } }, hero: { d: { x: 12, y: 34 } } },
+    };
+    const { environment, shown } = composeEnvironment(page);
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    assertEquals(
+        getTextsByClass(host, "header-place"),
+        ["Mapa Testowa (12, 34)"],
+        "the bar says where",
+    );
+
+    // The fight this recording holds ends, so the shelf has a row to say it of.
+    const tab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assert(tab !== undefined, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", tab);
+    // Inside the row, not anywhere on the panel: the bar says the same words over the shelf, so
+    // a test that asks the whole panel passes with the row saying nothing.
+    const row = getElementsWithin(host).find((one) => one.className.split(" ")[0] === "row");
+    assert(row !== undefined, "the shelf drew the fight that ended");
+    assertEquals(getTextsByClass(row, "row-name"), [
+        "Mapa Testowa (12, 34)",
+    ], "and the row kept on the shelf says where it was fought");
+});
+
+Deno.test("a client that says nothing about the place leaves the bar saying nothing", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    assertEquals(
+        getTextsByClass(host, "header-place"),
+        [],
+        "nothing known is drawn as nothing at all",
+    );
+});
+
+Deno.test("a second fight is asked where it is, not told where the one before it was", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const hero: Record<string, unknown> = { x: 12, y: 34 };
+    const page = { Engine: { battle, map: { d: { name: "Mapa Testowa" } }, hero: { d: hero } } };
+    const { environment, shown } = composeEnvironment(page);
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    const updates = getRecordedEngineUpdates(HILDUR);
+    for (const payload of updates) update(payload);
+    const host = shown[0] as FakeElement;
+    assertEquals(
+        getTextsByClass(host, "header-place"),
+        ["Mapa Testowa (12, 34)"],
+        "the first fight",
+    );
+
+    // Between the fights the hero walked, which is the only thing that moves a place. The
+    // recording opens with the payload that opens a fight, so playing it again is a second one.
+    hero.x = 7;
+    hero.y = 8;
+    for (const payload of updates) update(payload);
+    assertEquals(
+        getTextsByClass(host, "header-place"),
+        ["Mapa Testowa (7, 8)"],
+        "and the second, asked",
+    );
+});
+
+Deno.test("a panel goes up when the reading starts, saying there has been no fight yet", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    // Before any payload: the wrap is on, so the panel is on the page. A page that draws nothing
+    // until a fight arrives cannot be told from an add-on that died on the way to it.
+    assertEquals(shown.length, 1, "one panel, put up the moment the reading started");
+    const host = shown[0] as FakeElement;
+    assertEquals(
+        getTextsByClass(host, "empty"),
+        [PANEL_WORDS.noFightYet],
+        "saying what it is waiting for, in the reader's words",
+    );
+    assertEquals(getElementsWithin(host).filter((one) => one.className === "tabs"), [], "no tabs");
+
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap left a function behind it");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    assertEquals(shown.length, 1, "the same panel is still the one on the page");
+    const list = getElementsWithin(host).find((one) => one.className === "list");
+    assert(list !== undefined, "which now draws the fight");
+    assert(
+        getElementsWithin(list).some((one) => one.className.split(" ")[0] === "row"),
+        "with a row for somebody in it, rather than the sentence it opened on",
+    );
+});
+
+Deno.test("a pin is the reader's own answer, and the shelf keeps it", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const kept = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(kept.environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = kept.shown[0] as FakeElement;
+    const tab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assert(tab !== undefined, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", tab);
+
+    const pin = (): FakeElement => {
+        const found = getElementsWithin(host).find((one) => one.className.startsWith("row-pin"));
+        assert(found !== undefined, "the fight on the shelf carries a pin");
+        return found;
+    };
+    assertEquals(pin().textContent, "☆", "which starts saying nothing was pinned");
+    const rows = (): number => {
+        return getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row")
+            .length;
+    };
+    const before = rows();
+    pressElement(host, "pointerdown", pin());
+    assertEquals(pin().textContent, "★", "and says so after it is pressed");
+    assertEquals(rows(), before, "a pin opens no fight, though it sits inside a row that does");
+    assertEquals(
+        readKeptFights(composeHeldStore(kept.getShelf("local")), "MargoMeter-fights")[0]?.isPinned,
+        true,
+        "and what the reader answered is where a reload will look for it",
+    );
+
+    pressElement(host, "pointerdown", pin());
+    assertEquals(pin().textContent, "☆", "pressed again it is the other answer");
+    assertEquals(
+        readKeptFights(composeHeldStore(kept.getShelf("local")), "MargoMeter-fights")[0]?.isPinned,
+        false,
+        "which is written down as readily as the first",
+    );
+});
+
+Deno.test("where the shelf is kept is the reader's answer, and the fights travel with it", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const held = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(held.environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = held.shown[0] as FakeElement;
+    const tab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assert(tab !== undefined, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", tab);
+    assert(held.getShelf("local").has("MargoMeter-fights"), "the fight is where nothing was asked");
+
+    const choose = (name: string): void => {
+        const found = getElementsWithin(host).find((one) =>
+            one.attributes.get("data-storage") === name
+        );
+        assert(found !== undefined, `the strip offers ${name}`);
+        pressElement(host, "pointerdown", found);
+    };
+    choose("session");
+    assertEquals(
+        readKeptFights(composeHeldStore(held.getShelf("session")), "MargoMeter-fights").length,
+        1,
+        "the fights are in the place the reader asked for",
+    );
+    assertEquals(
+        held.getShelf("local").has("MargoMeter-fights"),
+        false,
+        "and the place they came from is emptied, which is what the answer asked for",
+    );
+    assertEquals(held.held.get("MargoMeter-storage"), "session", "the answer itself is kept");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "tab selected").map((one) =>
+            one.textContent
+        ),
+        ["do zamknięcia karty"],
+        "and the strip marks it",
+    );
+
+    // The one that keeps nothing: a store of its own, which no browser reads back.
+    choose("memory");
+    assertEquals(
+        held.getShelf("session").has("MargoMeter-fights"),
+        false,
+        "what was there is gone, because that is what the reader answered",
+    );
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row").length,
+        1,
+        "and the fight is still on screen, being the reader's own",
+    );
+});
+
+Deno.test("a browser that will not keep the answer moves nothing, and says so", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown, getShelf } = composeEnvironment({ Engine: { battle } });
+    const refusing: UserscriptEnvironment = {
+        ...environment,
+        store: { read: () => null, write: () => false, remove: () => {} },
+    };
+    startMargoMeter(refusing);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    const tab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assert(tab !== undefined, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", tab);
+    const chosen = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-storage") === "memory"
+    );
+    assert(chosen !== undefined, "the strip offers the store that keeps nothing");
+    pressElement(host, "pointerdown", chosen);
+
+    assertEquals(
+        getShelf("local").has("MargoMeter-fights"),
+        true,
+        "the fights stay where they are, because nothing may move on a refused answer",
+    );
+    assertEquals(
+        getTextsByClass(host, "tab selected"),
+        ["na stałe"],
+        "and the strip goes on saying where they are",
+    );
+    assertEquals(
+        getTextsByClass(host, "warning"),
+        ["⚠ Przeglądarka nie zapisała tego wyboru — zostaje tak, jak było."],
+        "which the shelf says outright rather than drawing a choice as taken",
+    );
+});
+
+Deno.test("a fight off the shelf is read back, and the live one is a press away", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    const drawnFigures = (): string[] => {
+        return getTextsByClass(host, "row-value");
+    };
+    const live = drawnFigures();
+    assert(live.length > 0, "the panel is drawing the fight that just ended");
+
+    const tab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assert(tab !== undefined, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", tab);
+    const rows = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row");
+    // One row for one fight: what just ended is the live one and a kept one at once, until the
+    // next begins.
+    assertEquals(rows.length, 1, "the shelf holds the fight that ended, as the one going on");
+
+    // A second fight, so the live session and the shelf hold different figures: reading the kept
+    // one off the session would pass on one fight and be wrong on the next.
+    pressElement(host, "pointerdown", tab);
+    const second = getRecordedEngineUpdates(ANOTHER);
+    for (const payload of second) update(payload);
+    const now = drawnFigures();
+    assert(now.length > 0, "the panel is drawing the second fight");
+    assert(now[0] !== live[0], "which states figures of its own");
+
+    // What was kept is the cast and the messages, so what is drawn is decoded again rather than
+    // restored from figures somebody stored.
+    pressElement(host, "pointerdown", tab);
+    // The row itself rather than every part of it: a press lands on the deepest element, so each
+    // cell wears the row's mark too.
+    const kepts = getElementsWithin(host).filter((one) => {
+        if (one.className.split(" ")[0] !== "row") return false;
+        return one.attributes.get("data-fight") !== "live";
+    });
+    // Newest first, and the newest is the live row: what is left is the fight before it.
+    assertEquals(kepts.length, 1, "the shelf holds the fight that ended before this one");
+    const held = kepts[kepts.length - 1];
+    assert(held !== undefined, "and the older of them is the one this test opened with");
+    pressElement(host, "pointerdown", held);
+    assertEquals(getTextsByClass(host, "crumb-here"), [], "the shelf gives way to the figures");
+    assertEquals(drawnFigures(), live, "which are the first fight's, read back off what was kept");
+
+    pressElement(host, "pointerdown", tab);
+    const marked = getElementsWithin(host).filter((one) => one.className.includes("chosen"));
+    assertEquals(marked.length, 1, "and the shelf marks which fight is on screen");
+    assertEquals(
+        marked[0]?.attributes.get("data-fight") === "live",
+        false,
+        "which is the kept one, not the fight going on",
+    );
+});
+
+Deno.test("a fight the reader walked into says so on the panel", () => {
+    const battle: Record<string, unknown> = { updateData: () => null };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    // Everything but the payload that opened the fight, which is what walking into one leaves.
+    const [opening, ...rest] = getRecordedEngineUpdates(HILDUR);
+    assert(opening !== undefined, "the recording opens with a payload");
+    for (const payload of rest) update(payload);
+    const host = shown[0] as FakeElement;
+    const getWarnings = () => {
+        return getElementsWithin(host).find((one) => one.className === "warnings");
+    };
+    const drawn = getWarnings();
+    assert(drawn !== undefined, "the panel drew the region a doubt is said in");
+    const said = getElementsWithin(drawn).map((one) => one.textContent ?? "").join(" ");
+    assert(said.includes("w trakcie"), "and says the reading began after the fight did");
 });

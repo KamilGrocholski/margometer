@@ -1,0 +1,804 @@
+{
+  "formatVersion": 1,
+  "capturedAt": "2026-08-11T23:55:29.160Z",
+  "world": "tempest",
+  "gameBuild": "1786441768914",
+  "droppedCalls": 510,
+  "isTruncated": false,
+  "calls": [
+    {
+      "index": 0,
+      "payload": {
+        "init": "1",
+        "auto": "0",
+        "battleground": "015.jpg",
+        "skills_disabled": [],
+        "skills_combo_max": [],
+        "skills": [
+          "-1",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "-2",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          ""
+        ],
+        "w": {
+          "439241": {
+            "originalId": 439241,
+            "name": "Gracz 1",
+            "lvl": 85,
+            "oplvl": 85,
+            "prof": "b",
+            "gender": "m",
+            "npc": 0,
+            "hp": {
+              "max": 17742,
+              "cur": 3676,
+              "hpp": 20.72
+            },
+            "team": 1,
+            "y": 2,
+            "icon": "/kuf/kuf_h17-u1-c.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "mana": 0,
+            "energy": 142,
+            "mana0": 0,
+            "energy0": 142,
+            "fast": 0,
+            "ac": {
+              "cur": 456,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 6,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 22,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "cooldowns": [],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 439241
+          },
+          "-274189": {
+            "originalId": 274189,
+            "name": "Wermont Pluskokwik",
+            "lvl": 85,
+            "oplvl": 85,
+            "prof": "w",
+            "gender": "x",
+            "npc": 1,
+            "wt": 4,
+            "hp": {
+              "max": 4522,
+              "cur": 4522,
+              "hpp": 100
+            },
+            "team": 2,
+            "y": 3,
+            "icon": "pot/robal03.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "ac": {
+              "cur": 914,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 33,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "id": -274189
+          }
+        },
+        "myteam": 1,
+        "move": 15,
+        "start_move": 15,
+        "current": 439241,
+        "turns_warriors": {
+          "1": 439241,
+          "2": 439241,
+          "3": -274189,
+          "4": 439241,
+          "5": 439241,
+          "6": -274189,
+          "7": 439241,
+          "8": 439241,
+          "9": -274189,
+          "10": 439241
+        },
+        "poolTime": {
+          "total": 120,
+          "minimum": 2,
+          "penalty": 5,
+          "left": 120
+        }
+      },
+      "messages": [],
+      "combatantsBefore": [],
+      "combatantsAfter": [
+        {
+          "id": 439241,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "b",
+          "lvl": 85,
+          "hp": {
+            "max": 17742,
+            "cur": 3676,
+            "hpp": 20.72
+          },
+          "mana": 0,
+          "energy": 142,
+          "ac": {
+            "cur": 456,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -274189,
+          "name": "Wermont Pluskokwik",
+          "team": 2,
+          "prof": "w",
+          "lvl": 85,
+          "hp": {
+            "max": 4522,
+            "cur": 4522,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 914,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "payload": {
+        "w": {
+          "439241": {
+            "poolTime": {
+              "left": 120
+            },
+            "hp": {
+              "max": 17742,
+              "cur": 3676,
+              "hpp": 20.72
+            },
+            "y": 2,
+            "mana": 0,
+            "energy": 142,
+            "mana0": 0,
+            "energy0": 142,
+            "fast": 1,
+            "ac": {
+              "cur": 456,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 6,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 22,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "cooldowns": [],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 439241
+          }
+        },
+        "auto": "1"
+      },
+      "messages": [],
+      "combatantsBefore": [
+        {
+          "id": 439241,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "b",
+          "lvl": 85,
+          "hp": {
+            "max": 17742,
+            "cur": 3676,
+            "hpp": 20.72
+          },
+          "mana": 0,
+          "energy": 142,
+          "ac": {
+            "cur": 456,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -274189,
+          "name": "Wermont Pluskokwik",
+          "team": 2,
+          "prof": "w",
+          "lvl": 85,
+          "hp": {
+            "max": 4522,
+            "cur": 4522,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 914,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 439241,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "b",
+          "lvl": 85,
+          "hp": {
+            "max": 17742,
+            "cur": 3676,
+            "hpp": 20.72
+          },
+          "mana": 0,
+          "energy": 142,
+          "ac": {
+            "cur": 456,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -274189,
+          "name": "Wermont Pluskokwik",
+          "team": 2,
+          "prof": "w",
+          "lvl": 85,
+          "hp": {
+            "max": 4522,
+            "cur": 4522,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 914,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "payload": {
+        "auto": "1"
+      },
+      "messages": [],
+      "combatantsBefore": [
+        {
+          "id": 439241,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "b",
+          "lvl": 85,
+          "hp": {
+            "max": 17742,
+            "cur": 3676,
+            "hpp": 20.72
+          },
+          "mana": 0,
+          "energy": 142,
+          "ac": {
+            "cur": 456,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -274189,
+          "name": "Wermont Pluskokwik",
+          "team": 2,
+          "prof": "w",
+          "lvl": 85,
+          "hp": {
+            "max": 4522,
+            "cur": 4522,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 914,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 439241,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "b",
+          "lvl": 85,
+          "hp": {
+            "max": 17742,
+            "cur": 3676,
+            "hpp": 20.72
+          },
+          "mana": 0,
+          "energy": 142,
+          "ac": {
+            "cur": 456,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -274189,
+          "name": "Wermont Pluskokwik",
+          "team": 2,
+          "prof": "w",
+          "lvl": 85,
+          "hp": {
+            "max": 4522,
+            "cur": 4522,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 914,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "payload": {
+        "w": {
+          "439241": {
+            "poolTime": {
+              "left": 118
+            },
+            "hp": {
+              "max": 17742,
+              "cur": 3582,
+              "hpp": 20.19
+            },
+            "y": 2,
+            "mana": 0,
+            "energy": 142,
+            "mana0": 0,
+            "energy0": 142,
+            "fast": 1,
+            "ac": {
+              "cur": 456,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 6,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 22,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "cooldowns": [],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 439241
+          },
+          "-274189": {
+            "poolTime": {
+              "left": 120
+            },
+            "hp": {
+              "max": 4522,
+              "cur": 0,
+              "hpp": 0
+            },
+            "y": 3,
+            "id": -274189
+          }
+        },
+        "auto": "1",
+        "move": -1,
+        "endBattle": 1,
+        "m": [
+          "439241=20.72;-274189=96.64;+dmg=866;+dmgo=649;+acdmg=9;-dmg=137;-dmgo=15",
+          "439241=20.72;-274189=90.47;+dmg=992;+dmgo=718;+acdmg=9;-dmg=230;-dmgo=49",
+          "-274189=84.67;0;poison=262,33",
+          "-274189=84.67;439241=19.15;+dmg=701;-dmg=278",
+          "439241=19.61;0;heal=81",
+          "439241=19.61;-274189=81.69;+dmg=842;+dmgo=611;+acdmg=9;-dmg=129;-dmgo=6",
+          "439241=20.04;0;heal=77",
+          "439241=20.04;-274189=75.81;+dmg=991;+dmgo=657;+acdmg=9;-dmg=240;-dmgo=26",
+          "439241=20.45;0;heal=73",
+          "439241=20.45;-274189=70.90;+dmg=911;+dmgo=673;+acdmg=9;-dmg=186;-dmgo=36",
+          "439241=20.72;0;heal=47",
+          "439241=20.72;-274189=67.01;+dmg=862;+dmgo=632;+acdmg=9;-dmg=156;-dmgo=20",
+          "-274189=61.21;0;poison=262,33",
+          "-274189=61.21;439241=19.24;+dmg=684;-dmg=263",
+          "439241=19.60;0;heal=65",
+          "439241=19.60;-274189=52.96;+of_crit;+dmg=840;+dmgo=960;+acdmg=9;-dmg=146;-dmgo=227",
+          "439241=19.95;0;heal=61",
+          "439241=19.95;-274189=39.34;+crit;+dmg=1328;+dmgo=726;+acdmg=9;-dmg=542;-dmgo=74",
+          "439241=20.27;0;heal=57",
+          "439241=20.27;-274189=34.12;+dmg=931;+dmgo=600;+acdmg=9;-dmg=221;-dmgo=15",
+          "-274189=28.33;0;poison=262,33",
+          "-274189=28.33;439241=18.93;+dmg=654;-dmg=237",
+          "439241=19.23;0;heal=53",
+          "439241=19.23;-274189=23.24;+dmg=910;+dmgo=607;+acdmg=9;-dmg=210;-dmgo=20",
+          "439241=19.51;0;heal=49",
+          "439241=19.51;-274189=19.17;+dmg=838;+dmgo=603;+acdmg=9;-dmg=163;-dmgo=21",
+          "439241=19.76;0;heal=45",
+          "439241=19.76;-274189=12.36;+dmg=944;+dmgo=679;+acdmg=9;-dmg=247;-dmgo=61",
+          "-274189=6.57;0;poison=262,33",
+          "-274189=6.57;439241=19.76;+dmg=679;-evade;-dmg=0",
+          "439241=19.99;0;heal=40",
+          "439241=19.99;-274189=0.20;+dmg=896;+dmgo=693;+acdmg=9;-dmg=215;-dmgo=73",
+          "439241=20.19;0;heal=36",
+          "439241=20.19;-274189=0.00;+dmg=912;+dmgo=731;+acdmg=9;-dmg=233;-dmgo=100",
+          "0;0;winner=Gracz 1",
+          "0;0;loser=Wermont Pluskokwik",
+          "0;0;+exp=3113"
+        ],
+        "mi": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          32,
+          33,
+          34,
+          35,
+          36
+        ]
+      },
+      "messages": [
+        "439241=20.72;-274189=96.64;+dmg=866;+dmgo=649;+acdmg=9;-dmg=137;-dmgo=15",
+        "439241=20.72;-274189=90.47;+dmg=992;+dmgo=718;+acdmg=9;-dmg=230;-dmgo=49",
+        "-274189=84.67;0;poison=262,33",
+        "-274189=84.67;439241=19.15;+dmg=701;-dmg=278",
+        "439241=19.61;0;heal=81",
+        "439241=19.61;-274189=81.69;+dmg=842;+dmgo=611;+acdmg=9;-dmg=129;-dmgo=6",
+        "439241=20.04;0;heal=77",
+        "439241=20.04;-274189=75.81;+dmg=991;+dmgo=657;+acdmg=9;-dmg=240;-dmgo=26",
+        "439241=20.45;0;heal=73",
+        "439241=20.45;-274189=70.90;+dmg=911;+dmgo=673;+acdmg=9;-dmg=186;-dmgo=36",
+        "439241=20.72;0;heal=47",
+        "439241=20.72;-274189=67.01;+dmg=862;+dmgo=632;+acdmg=9;-dmg=156;-dmgo=20",
+        "-274189=61.21;0;poison=262,33",
+        "-274189=61.21;439241=19.24;+dmg=684;-dmg=263",
+        "439241=19.60;0;heal=65",
+        "439241=19.60;-274189=52.96;+of_crit;+dmg=840;+dmgo=960;+acdmg=9;-dmg=146;-dmgo=227",
+        "439241=19.95;0;heal=61",
+        "439241=19.95;-274189=39.34;+crit;+dmg=1328;+dmgo=726;+acdmg=9;-dmg=542;-dmgo=74",
+        "439241=20.27;0;heal=57",
+        "439241=20.27;-274189=34.12;+dmg=931;+dmgo=600;+acdmg=9;-dmg=221;-dmgo=15",
+        "-274189=28.33;0;poison=262,33",
+        "-274189=28.33;439241=18.93;+dmg=654;-dmg=237",
+        "439241=19.23;0;heal=53",
+        "439241=19.23;-274189=23.24;+dmg=910;+dmgo=607;+acdmg=9;-dmg=210;-dmgo=20",
+        "439241=19.51;0;heal=49",
+        "439241=19.51;-274189=19.17;+dmg=838;+dmgo=603;+acdmg=9;-dmg=163;-dmgo=21",
+        "439241=19.76;0;heal=45",
+        "439241=19.76;-274189=12.36;+dmg=944;+dmgo=679;+acdmg=9;-dmg=247;-dmgo=61",
+        "-274189=6.57;0;poison=262,33",
+        "-274189=6.57;439241=19.76;+dmg=679;-evade;-dmg=0",
+        "439241=19.99;0;heal=40",
+        "439241=19.99;-274189=0.20;+dmg=896;+dmgo=693;+acdmg=9;-dmg=215;-dmgo=73",
+        "439241=20.19;0;heal=36",
+        "439241=20.19;-274189=0.00;+dmg=912;+dmgo=731;+acdmg=9;-dmg=233;-dmgo=100",
+        "0;0;winner=Gracz 1",
+        "0;0;loser=Wermont Pluskokwik",
+        "0;0;+exp=3113"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 439241,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "b",
+          "lvl": 85,
+          "hp": {
+            "max": 17742,
+            "cur": 3676,
+            "hpp": 20.72
+          },
+          "mana": 0,
+          "energy": 142,
+          "ac": {
+            "cur": 456,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -274189,
+          "name": "Wermont Pluskokwik",
+          "team": 2,
+          "prof": "w",
+          "lvl": 85,
+          "hp": {
+            "max": 4522,
+            "cur": 4522,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 914,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 439241,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "b",
+          "lvl": 85,
+          "hp": {
+            "max": 17742,
+            "cur": 3582,
+            "hpp": 20.19
+          },
+          "mana": 0,
+          "energy": 142,
+          "ac": {
+            "cur": 456,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -274189,
+          "name": "Wermont Pluskokwik",
+          "team": 2,
+          "prof": "w",
+          "lvl": 85,
+          "hp": {
+            "max": 4522,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 914,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "payload": {
+        "auto": "1",
+        "move": -1,
+        "endBattle": 1
+      },
+      "messages": [],
+      "combatantsBefore": [
+        {
+          "id": 439241,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "b",
+          "lvl": 85,
+          "hp": {
+            "max": 17742,
+            "cur": 3582,
+            "hpp": 20.19
+          },
+          "mana": 0,
+          "energy": 142,
+          "ac": {
+            "cur": 456,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -274189,
+          "name": "Wermont Pluskokwik",
+          "team": 2,
+          "prof": "w",
+          "lvl": 85,
+          "hp": {
+            "max": 4522,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 914,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 439241,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "b",
+          "lvl": 85,
+          "hp": {
+            "max": 17742,
+            "cur": 3582,
+            "hpp": 20.19
+          },
+          "mana": 0,
+          "energy": 142,
+          "ac": {
+            "cur": 456,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -274189,
+          "name": "Wermont Pluskokwik",
+          "team": 2,
+          "prof": "w",
+          "lvl": 85,
+          "hp": {
+            "max": 4522,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 914,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "payload": {
+        "auto": "1",
+        "move": -1,
+        "endBattle": 1,
+        "close": 1
+      },
+      "messages": [],
+      "combatantsBefore": [
+        {
+          "id": 439241,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "b",
+          "lvl": 85,
+          "hp": {
+            "max": 17742,
+            "cur": 3582,
+            "hpp": 20.19
+          },
+          "mana": 0,
+          "energy": 142,
+          "ac": {
+            "cur": 456,
+            "bonus": 0
+          }
+        },
+        {
+          "id": -274189,
+          "name": "Wermont Pluskokwik",
+          "team": 2,
+          "prof": "w",
+          "lvl": 85,
+          "hp": {
+            "max": 4522,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 914,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": []
+    }
+  ],
+  "namesSubstituted": 13,
+  "descriptionsRemoved": 0
+}

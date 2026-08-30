@@ -1,477 +1,377 @@
 /**
  * The panel, in a browser, changing while you edit it.
  *
- * `bun run check` cannot see a panel, and the add-on's real surface is a page.
- * What stood in for that until now was a recipe in `.claude/skills/verify/SKILL.md`
- * telling whoever read it to hand-write an HTML page, stub the engine, embed a
- * capture and point Firefox at `file://` — a recipe two audits record was never
- * actually run. This is that recipe as a thing that exists.
- *
- * It serves the built userscript over a captured fight, watches what a build
- * reads, and reloads the page when any of it changes. Nothing here ships: §5's
- * promise not to talk to the network binds `src/`, and this is `tools/`.
- *
- * **The replay is the point, and it is stepped.** A fight arrives as a list of
- * engine payloads, so the page can stop part-way through one — which is the only
- * way to look at the panel before any data has arrived, or at a roster mid-fight.
- * Going forward is feeding the next payload. Going backward is feeding the fight
- * again from its first: `src/game/battle-session.ts` accumulates and has no
- * rewind, but it *resets* on a payload carrying `init`, and every capture in
- * `tests/captured-fights/` carries that exactly once and on its first payload.
- * That is measured on every recording rather than assumed, and re-measured on
- * every run by `tests/tools/preview-page.test.ts` — a capture arriving without it
- * would make the rewind silently wrong. So a rewind costs a replay and not a
- * reload, and the panel keeps the tab the reader chose. **Picking another capture
- * costs the same replay**, over payloads this server hands out on a route of their
- * own, and buys the same thing plus what a fresh document takes with it: the
- * panel's position, whether it was minimized, and the settings — all of them kept
- * in a store that lives exactly as long as the page (`tools/preview-page.ts`). It does not keep the
- * drill level: the payload it replays from carries `init`, which is a fight
- * opening, and the panel goes back to the top of the tab for one
- * (`src/ui/panel-screen.ts`).
- * ⚠️ **With one exception, and it is the boundary rather than a case:** replaying
- * reaches entry 1 at the lowest, so the panel before any payload is a page that
- * has never been fed. That step reloads, and `tools/preview-page.ts` says how the
- * ask survives it.
- *
- * **The page itself is `tools/preview-page.ts`.** It left here when it got a
- * second consumer (§7.1) — `tools/preview-site.ts` writes the same page down
- * rather than serving it — and what is left in this file is the half only a
- * server can answer: the routes, the watcher, and the reload stream below.
+ * `deno task check` cannot see a panel: the gate can be green while the thing a player looks at
+ * is broken. This serves the built add-on over a recording, watches what a build reads, and
+ * reloads the page at the entry the reader was on. Nothing here ships — `SECURITY.md`'s promise
+ * not to talk to the network binds `src/`, and this is `tools/`. The page itself is
+ * `tools/preview-page.ts`, which `tools/preview-site.ts` writes down instead of serving.
  */
 
-import { watch, type FSWatcher } from "node:fs";
-
-import { composeUserscriptFiles, BundleError, USERSCRIPT_FILENAME } from "@/build.ts";
-import { assertDefined } from "@/libs/assert.ts";
-import { composeJsonText } from "@/libs/json.ts";
-import { getIntegerFromText } from "@/libs/number.ts";
-import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
-import { composePreviewPage, type PreviewWords } from "@/tools/preview-page.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
-
-export class PreviewServerError extends MargoMeterToolError {
-  constructor(reason: string, options?: ErrorOptions) {
-    super("PreviewServer", reason, options);
-  }
-}
+import { getValueWithin } from "@/libs/number-range.ts";
+import { assert } from "@std/assert";
+import { BUILD_VERSION } from "@/src/build-version.ts";
+import { getIntegerFromText } from "@/libs/number-text.ts";
+import { composeUserscriptFiles, USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
+import { UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
+import {
+    composePreviewPage,
+    type PreviewFightLink,
+    type PreviewWords,
+} from "@/tools/preview-page.ts";
+import {
+    getPreviewRecordedFight,
+    getRecordedFights,
+    type RecordedFight,
+} from "@/tools/recorded-fights.ts";
 
 const DEFAULT_PORT = 4173;
-
-/**
- * What a rebuild watches.
- *
- * `package.json` is in it because the version is substituted from there at build
- * time (`build.ts`), so a bump changes the bundle without touching a line of
- * `src/`.
- *
- * ⚠️ **`tools/` and `build.ts` are deliberately absent.** This process has
- * already imported both, so a rebuild cannot pick up a change to either and
- * watching them would promise a reload that carries nothing new. Editing the
- * server is `bun --watch tools/preview-server.ts`, which restarts the process —
- * at the cost of the last-good-bundle behaviour below, so it is for working on
- * the server rather than on the panel.
- */
-const WATCHED_PATHS = ["src", "libs", "package.json"];
-
-/**
- * How long to wait after a file event before rebuilding.
- *
- * Measured on Bun 1.3.14 / Linux: a save on an existing file fires one `change`,
- * a create fires `rename` **and** `change`, and nothing was dropped over repeated
- * saves. So this is not covering for missed events — it collapses that pair and a
- * format-on-save that touches several files, and 60 ms is below what anybody
- * notices while being well clear of both.
- */
+/** Collapses the pair of events one save fires, and a format-on-save touching several files. */
 const REBUILD_AFTER_QUIET_MS = 60;
-
+/** So a proxy between the browser and this process cannot close an idle stream on its own. */
+const KEEP_ALIVE_EVERY_MS = 15000;
 /**
- * How often the reload stream says something into the silence.
- *
- * ⚠️ **`Bun.serve` closes an idle request after 10 seconds by default**, and it
- * does it to the reload stream, so hot reloading worked for ten seconds after the
- * page opened and then stopped — with nothing on screen saying why. `idleTimeout`
- * below is what fixes it here; this is what keeps a proxy between the two from
- * doing the same thing on its own schedule.
+ * `tools/` is deliberately absent: this process has already imported it, so a rebuild could not
+ * pick a change up and watching it would promise a reload carrying nothing new.
  */
-const KEEP_ALIVE_EVERY_MS = 15_000;
+const WATCHED_PATHS = ["src"];
 
 /**
- * What the strip says here, in the language the rest of this repository is
- * written in.
- *
- * The reader of this page is whoever is editing `src/`, which is why these are
- * English while `tools/preview-site.ts` draws Polish over the same template: §3's
- * rule is about the text a **player** reads, and nobody plays the game through a
- * development server.
+ * English, where `tools/preview-site.ts` draws Polish over the same page: **L2** is about the
+ * text a player reads, and nobody plays the game through a development server.
  */
 const PREVIEW_WORDS: PreviewWords = {
-  language: "en",
-  title: "MargoMeter preview",
-  start: "to start",
-  backHint: "Replays the fight up to the previous entry",
-  end: "to end",
-  play: "play",
-  pause: "pause",
-  entry: "entry",
+    language: "en",
+    title: "MargoMeter preview",
+    placeName: "Preview",
+    start: "to start",
+    backHint: "Replays the fight up to the previous entry",
+    end: "to end",
+    play: "play",
+    pause: "pause",
+    entry: "entry",
 };
 
 /**
- * The half of the driver only a server can answer.
+ * The half of the driver only a server can answer. The build label lives here rather than in the
+ * page: a published page saying `build ok` in green asserts something about a build nobody ran.
+ * A rebuild that **fails** must not reload — the page would go blank over a syntax error
+ * mid-keystroke, and the panel you were looking at is the thing you were looking at.
  *
- * ⚠️ **Read as source like everything around it** — `tests/tools/source-layout.test.ts`
- * strips comments from this file and searches the rest, and a template literal is
- * not a hiding place: verbs on the function names, no block comment inside it.
- *
- * The build label and the log live here rather than in the page, and that is the
- * point of the split: a published page that says `build ok` in green is asserting
- * something about a build nobody ran.
+ * A rebuild that succeeds reloads carrying the address the harness composed, so the panel comes
+ * back where it stood, folded as it stood, on the screen it was on (`tools/preview-state.ts`).
  */
-const RELOAD_SCRIPT = `
-  var buildLabel = getElement("preview-build");
-  var buildLog = getElement("preview-log");
+const RELOAD_SCRIPT = `var buildLabel = getPreviewElement("preview-build");
+var buildLog = getPreviewElement("preview-log");
 
-  function renderBuild(text, isGood) {
-    buildLabel.textContent = text;
-    buildLabel.className = "preview-build " + (isGood ? "preview-ok" : "preview-bad");
-  }
-
-  function renderBuildLog(text) {
-    buildLog.textContent = text;
-    buildLog.setAttribute("data-shown", text === "" ? "no" : "yes");
-  }
-
-  function composeAddress(fightName, entryIndex) {
-    return "/?fight=" + encodeURIComponent(fightName) + "&entry=" + entryIndex;
-  }
-
-  renderBuild("build ok", true);
-
-  // A rebuild that FAILS must not reload: the page would go blank over a syntax
-  // error mid-keystroke, and the panel you were looking at is the thing you were
-  // looking at. It says so and keeps the last good bundle on screen instead.
-  var reloads = new EventSource("/reload");
-  reloads.addEventListener("rebuilt", function handleRebuilt() {
-    window.location.href = composeAddress(PREVIEW.fightName, fedCount);
-  });
-  reloads.addEventListener("failed", function handleFailed(event) {
-    renderBuild("build failed", false);
-    renderBuildLog(event.data);
-  });
-`;
-
-export type PreviewServerOptions = {
-  port?: number | undefined;
-  /**
-   * Off in a test, so no watcher outlives it. On everywhere else — a preview
-   * server that does not reload is the feature missing.
-   */
-  shouldWatch?: boolean | undefined;
-  /**
-   * Serve the development build instead, so the cost overlay is over the panel.
-   *
-   * ⚠️ **Off by default, and that default is the whole point of the flag.** A
-   * preview built on settings nobody installs is a preview of something nobody
-   * runs, which is the argument `build.ts` makes for `iife` and `minify: false`;
-   * this is the one setting a person may deliberately step outside it for, and
-   * they have to ask. `tools/preview-site.ts` never asks — what it publishes is
-   * the installed file, and `tests/tools/preview-site.test.ts` holds that.
-   */
-  isDevelopment?: boolean | undefined;
-  /**
-   * What the page runs after its own driver, in place of hot reloading.
-   *
-   * `tools/panel-screenshots.ts` needs the same server — the bundle, the inlined
-   * fight, the synchronous replay — and a different second half: clicks that put
-   * the panel in the state being photographed. Handing it the hole keeps this
-   * file ignorant of screenshots; passing `null` turns reloading off for a caller
-   * that has no browser to reload.
-   */
-  appendedScript?: string | null | undefined;
+var renderBuild = function (text, isGood) {
+  buildLabel.textContent = text;
+  buildLabel.className = "preview-build " + (isGood ? "preview-ok" : "preview-bad");
 };
 
-export type PreviewServer = {
-  url: string;
-  port: number;
-  stop: () => void;
+var renderBuildLog = function (text) {
+  buildLog.textContent = text;
+  buildLog.setAttribute("data-shown", text === "" ? "no" : "yes");
 };
 
-/** A reload stream that is still open, and the way to say something into it. */
-type ReloadListener = {
-  send: (event: string, data: string) => void;
-  close: () => void;
-};
+renderBuild("build ok", true);
 
-/**
- * Says one thing to every page still listening, and forgets the ones that are not.
- *
- * ⚠️ **Writing to a stream whose reader has gone throws**, with a `TypeError`
- * saying the controller is already closed — and a closed tab between a save and
- * the rebuild it triggered is ordinary, not a fault. `cancel` prunes the set for
- * a disconnect the runtime notices; this covers the race it does not, so one
- * stale listener cannot stop every live page from reloading. The catch is wider
- * than §9.5 likes for the reason `src/userscript-entry.ts` gives about storage:
- * the failure arrives as a bare `TypeError` and there is nothing narrower that
- * catches all of it.
- */
-function setListenersTold(
-  listeners: Set<ReloadListener>,
-  event: string,
-  data: string,
-): void {
-  for (const listener of [...listeners]) {
-    try {
-      listener.send(event, data);
-    } catch {
-      listeners.delete(listener);
-    }
-  }
+var reloads = new EventSource("/reload");
+reloads.addEventListener("rebuilt", function handleRebuilt() {
+  var name = shownFight === null ? PREVIEW.fightName : shownFight.name;
+  window.location.href = "/?fight=" + encodeURIComponent(name) + composePreviewStateHash();
+});
+reloads.addEventListener("failed", function handleFailed(event) {
+  renderBuild("build failed", false);
+  renderBuildLog(event.data);
+});`;
+
+export interface PreviewServerOptions {
+    port?: number | undefined;
+    /** Off in a test, so no watcher outlives it. On everywhere else. */
+    shouldWatch?: boolean | undefined;
+    /** Injected in a test, so holding the routes costs no bundler run. */
+    readBundle?: (() => Promise<string>) | undefined;
+    /** What the page runs after its own driver. Null turns reloading off. */
+    appendedScript?: string | null | undefined;
 }
 
-/**
- * Where the picker goes, which is this server's own answer and not the page's.
- *
- * A capture is chosen here with a query on one path, because there is a process
- * to answer it. `tools/preview-site.ts` has no such thing and addresses a
- * filename instead, which is why the page is handed the address rather than
- * composing one (`tools/preview-page.ts`).
- */
+export interface PreviewServer {
+    url: string;
+    port: number;
+    stop(): Promise<void>;
+}
+
+/** The bundle as the browser gets it, built where nothing else is looking for a file. */
+function readBuiltUserscript(): Promise<string> {
+    assert(BUILD_VERSION.length > 0, "a preview states the version it was built at");
+    assert(USERSCRIPT_NAME.length > 0, "and serves it under the name a page asks for");
+    return composeUserscriptFiles(BUILD_VERSION).then((files) => files.script);
+}
+
+/** A reload stream still open, and the way to say something into it. */
+interface ReloadListener {
+    send(event: string, data: string): void;
+    close(): void;
+}
+
+/** Everything one running server holds, so no helper below closes over a variable of its own. */
+interface PreviewState {
+    fights: RecordedFight[];
+    listeners: Set<ReloadListener>;
+    /** The last bundle that built, so a failed rebuild costs nothing on screen. */
+    script: string | null;
+    readBundle(): Promise<string>;
+    appendedScript: string | null;
+}
+
+/** No entry stated, which is the whole fight: an address is shorter than the state it opens on. */
 function composeFightAddress(name: string): string {
-  return `/?fight=${encodeURIComponent(name)}&entry=0`;
+    assert(name.length > 0, "a fight is addressed by name");
+    return `/?fight=${encodeURIComponent(name)}`;
 }
 
 /**
- * Where a capture's payloads are, with no page in front of them.
- *
- * This is what lets picking a capture be a replay instead of a navigation
- * (`tools/preview-page.ts`), and having a process is the whole of why only this
- * caller offers one. The address above stays what it was: it is where a pick goes
- * when the fetch refuses, and where ⏮ goes for a capture that was replayed in.
+ * Where a recording's calls are, with no page in front of them. Having a process is the whole of
+ * why only this caller offers one: picking a fight is then a replay and not a navigation.
  */
-function composeFightPayloadsAddress(name: string): string {
-  return `/payloads?fight=${encodeURIComponent(name)}`;
+function composeCallsAddress(name: string): string {
+    assert(name.length > 0, "and its calls are asked for by the same name");
+    return `/calls?fight=${encodeURIComponent(name)}`;
 }
 
-function getFightByName(name: string | null): (typeof CAPTURED_FIGHTS)[number] | null {
-  if (name === null) return CAPTURED_FIGHTS[0] ?? null;
-  return CAPTURED_FIGHTS.find((fight) => fight.name === name) ?? null;
+function getFightByName(
+    fights: readonly RecordedFight[],
+    name: string | null,
+): RecordedFight | null {
+    assert(fights.length > 0, "a server with no recording never started");
+    assert(name === null || name.length > 0, "and a fight is asked for by a name or not at all");
+    if (name === null) return getPreviewRecordedFight(fights);
+    return fights.find((fight) => fight.name === name) ?? null;
+}
+
+function composeFightLinks(fights: readonly RecordedFight[]): PreviewFightLink[] {
+    assert(fights.length > 0, "there is something to offer");
+    const links = fights.map((fight) => ({
+        name: fight.name,
+        address: composeFightAddress(fight.name),
+        callsAddress: composeCallsAddress(fight.name),
+    }));
+    assert(links.length === fights.length, "every recording is offered once");
+    return links;
 }
 
 /**
- * Serves the panel and reloads it, and hands back the way to stop both.
- *
- * Named `set…` rather than `serve…` for the reason `setEngineAttachment` and
- * `setBattleWrap` are: it puts something in place and returns the undo. The
- * caller cannot know whether a build has happened yet, so `stop` is safe either
- * way.
+ * Says one thing to every page still listening, and forgets the ones that are not. Writing to a
+ * stream whose reader has gone throws a bare `TypeError`, and a closed tab between a save and the
+ * rebuild it triggered is ordinary rather than a fault — so the listener is dropped, which is the
+ * outcome the write was asking about (**E5**, the outbound boundary).
  */
-export function setPreviewServer(options: PreviewServerOptions = {}): PreviewServer {
-  if (CAPTURED_FIGHTS.length === 0) {
-    throw new PreviewServerError("no captured fights to preview");
-  }
+function setListenersTold(listeners: Set<ReloadListener>, event: string, data: string): void {
+    assert(event.length > 0, "something is being said");
+    assert(listeners.size >= 0, "to however many are listening");
+    for (const listener of [...listeners]) {
+        try {
+            listener.send(event, data);
+        } catch {
+            listeners.delete(listener);
+        }
+    }
+}
 
-  const listeners = new Set<ReloadListener>();
-  let watchers: FSWatcher[] = [];
-  let rebuildTimer: ReturnType<typeof setTimeout> | null = null;
-  let keepAliveTimer: ReturnType<typeof setInterval> | null = null;
-  /** The last bundle that built. Kept so a failed rebuild costs nothing on screen. */
-  let script: string | null = null;
-
-  const isDevelopment = options.isDevelopment ?? false;
-  const appendedScript = options.appendedScript === undefined
-    ? RELOAD_SCRIPT
-    : options.appendedScript;
-
-  async function getScript(): Promise<string> {
-    if (script !== null) return script;
-    const files = await composeUserscriptFiles(isDevelopment);
-    script = files.script;
-    return script;
-  }
-
-  function setRebuilt(): void {
-    void composeUserscriptFiles(isDevelopment).then(
-      (files) => {
-        script = files.script;
-        setListenersTold(listeners, "rebuilt", "ok");
-      },
-      (failure: unknown) => {
-        // Narrowly (§9.5): a bundle that refuses is the expected failure and is
-        // reported to the page. Anything else is a bug in this tool and must not
-        // be dressed up as one.
-        if (!(failure instanceof BundleError)) throw failure;
-        setListenersTold(listeners, "failed", failure.message);
-      },
-    );
-  }
-
-  function handleFileEvent(): void {
-    if (rebuildTimer !== null) clearTimeout(rebuildTimer);
-    rebuildTimer = setTimeout(setRebuilt, REBUILD_AFTER_QUIET_MS);
-  }
-
-  function composeReloadResponse(): Response {
+function composeReloadResponse(listeners: Set<ReloadListener>): Response {
     let listener: ReloadListener | null = null;
     const stream = new ReadableStream<string>({
-      start(controller) {
-        listener = {
-          send: (event, data) => {
-            // One `data:` line per line of the payload, because a bare newline
-            // inside one ends the event and the build log is many lines.
-            const body = data.split("\n").map((line) => `data: ${line}`).join("\n");
-            controller.enqueue(`event: ${event}\n${body}\n\n`);
-          },
-          close: () => controller.close(),
-        };
-        listeners.add(listener);
-        controller.enqueue("retry: 500\n\n");
-      },
-      cancel() {
-        if (listener !== null) listeners.delete(listener);
-      },
+        start(controller) {
+            listener = {
+                // One `data:` line per line of the payload: a bare newline inside one ends the
+                // event, and a build log is many lines.
+                send: (event, data) => {
+                    const body = data.split("\n").map((line) => `data: ${line}`).join("\n");
+                    controller.enqueue(`event: ${event}\n${body}\n\n`);
+                },
+                close: () => controller.close(),
+            };
+            listeners.add(listener);
+            controller.enqueue("retry: 500\n\n");
+        },
+        cancel() {
+            if (listener !== null) listeners.delete(listener);
+        },
     });
-
-    return new Response(stream, {
-      headers: {
-        "content-type": "text/event-stream",
-        "cache-control": "no-cache",
-        connection: "keep-alive",
-      },
+    assert(listeners.size >= 0, "a stream that opened is one the set can be told about");
+    return new Response(stream.pipeThrough(new TextEncoderStream()), {
+        headers: { "content-type": "text/event-stream", "cache-control": "no-cache" },
     });
-  }
+}
 
-  const server = Bun.serve({
-    port: options.port ?? DEFAULT_PORT,
-    /**
-     * ⚠️ **Zero, or the reload stream dies after ten seconds.** That is
-     * `Bun.serve`'s default idle timeout, and it applies to a response that is
-     * deliberately never finished — so hot reloading worked until you paused to
-     * think and then silently did not.
-     */
-    idleTimeout: 0,
-    async fetch(request) {
-      const address = new URL(request.url);
-      const path = address.pathname;
-
-      if (path === "/reload") return composeReloadResponse();
-
-      if (path === `/${USERSCRIPT_FILENAME}`) {
-        try {
-          return new Response(await getScript(), {
+async function composeScriptResponse(state: PreviewState): Promise<Response> {
+    assert(USERSCRIPT_NAME.endsWith(".js"), "what a browser is handed is a script");
+    try {
+        if (state.script === null) state.script = await state.readBundle();
+        return new Response(state.script, {
             headers: { "content-type": "text/javascript; charset=utf-8" },
-          });
-        } catch (failure) {
-          if (!(failure instanceof BundleError)) throw failure;
-          // 500 and the log, rather than a page whose panel merely never appears.
-          return new Response(failure.message, { status: 500 });
-        }
-      }
+        });
+    } catch (failure) {
+        // Narrowly (**E4**): a bundle that refuses is the expected failure and the browser is
+        // told. Anything else is a bug in this tool and must not be dressed up as one.
+        if (!(failure instanceof UserscriptBuildError)) throw failure;
+        // 500 and the log, rather than a page whose panel merely never appears.
+        return new Response(failure.message, { status: 500 });
+    }
+}
 
-      // A name is required here where the page route reads a missing one as *the
-      // capture to open on*: nothing asks for payloads without saying whose.
-      if (path === "/payloads") {
-        const asked = address.searchParams.get("fight");
-        const fight = asked === null ? null : getFightByName(asked);
-        if (fight === null) return new Response("no such capture", { status: 404 });
-        return new Response(
-          composeJsonText(fight.dump.calls.map((call) => call.payload)),
-          { headers: { "content-type": "application/json; charset=utf-8" } },
-        );
-      }
-
-      if (path === "/") {
-        const fight = getFightByName(address.searchParams.get("fight"));
-        if (fight === null) return new Response("no such capture", { status: 404 });
-        const asked = getIntegerFromText(address.searchParams.get("entry") ?? "0") ?? 0;
-        const entryCount = fight.dump.calls.length;
-        return new Response(
-          composePreviewPage({
+function composePageResponse(state: PreviewState, address: URL): Response {
+    const fight = getFightByName(state.fights, address.searchParams.get("fight"));
+    if (fight === null) return new Response("no such recording", { status: 404 });
+    const stated = address.searchParams.get("entry");
+    // The finished fight where nothing says otherwise, as the published pages open
+    // (`tools/preview-site.ts`): the empty panel is a state worth reaching and `to start` reaches
+    // it, but it is not the one somebody starting this server came to look at.
+    const asked = stated === null ? fight.calls.length : getIntegerFromText(stated);
+    if (asked === null) return new Response("entry is not a number", { status: 400 });
+    const entryIndex = getValueWithin(asked, 0, fight.calls.length);
+    assert(entryIndex >= 0, "a replay stops at or after the first call");
+    assert(entryIndex <= fight.calls.length, "and at or before the last");
+    return new Response(
+        composePreviewPage({
             fightName: fight.name,
-            entryIndex: Math.max(0, Math.min(asked, entryCount)),
-            payloads: fight.dump.calls.map((call) => call.payload),
-            fights: CAPTURED_FIGHTS.map((candidate) => ({
-              name: candidate.name,
-              address: composeFightAddress(candidate.name),
-              payloadsAddress: composeFightPayloadsAddress(candidate.name),
-            })),
-            // Everything is answered from the root here, which is the one thing a
-            // published copy of this page cannot say (`tools/preview-site.ts`).
+            entryIndex,
+            calls: fight.calls,
+            fights: composeFightLinks(state.fights),
+            // Everything is answered from the root here, which is the one thing a published
+            // copy of this page cannot say (`tools/preview-site.ts`).
             scriptDirectory: "/",
             words: PREVIEW_WORDS,
             // Nothing to introduce: whoever opened this started the server.
             introduction: null,
-            appendedScript,
-          }),
-          { headers: { "content-type": "text/html; charset=utf-8" } },
-        );
-      }
-
-      // Everything else, the decoy build script included. Its 404 is expected:
-      // only the `src` attribute is ever read.
-      return new Response("not here", { status: 404 });
-    },
-  });
-
-  if (options.shouldWatch ?? true) {
-    watchers = WATCHED_PATHS.map((directory) =>
-      watch(directory, { recursive: true }, handleFileEvent),
+            appendedScript: state.appendedScript,
+        }),
+        { headers: { "content-type": "text/html; charset=utf-8" } },
     );
-    keepAliveTimer = setInterval(
-      () => setListenersTold(listeners, "ping", ""),
-      KEEP_ALIVE_EVERY_MS,
+}
+
+/** A name is required where the page route reads a missing one as *the fight to open on*. */
+function composeCallsResponse(state: PreviewState, address: URL): Response {
+    const asked = address.searchParams.get("fight");
+    const fight = asked === null ? null : getFightByName(state.fights, asked);
+    if (fight === null) return new Response("no such recording", { status: 404 });
+    assert(fight.calls.length > 0, "a recording that is handed over has something to play");
+    return new Response(JSON.stringify(fight.calls), {
+        headers: { "content-type": "application/json; charset=utf-8" },
+    });
+}
+
+function setRebuilt(state: PreviewState): void {
+    assert(state.listeners.size >= 0, "a rebuild is announced to whoever is listening");
+    void state.readBundle().then(
+        (script) => {
+            assert(script.length > 0, "a build that succeeded produced something");
+            state.script = script;
+            setListenersTold(state.listeners, "rebuilt", "ok");
+        },
+        (failure: unknown) => {
+            // Narrowly (**E4**): the bundler refusing is the failure this exists for, and it is
+            // shown in the browser. Anything else is a bug here and is left to be loud (**E7**).
+            if (!(failure instanceof UserscriptBuildError)) throw failure;
+            setListenersTold(state.listeners, "failed", failure.message);
+        },
     );
-  }
+}
 
-  // Undefined only for a server listening on a unix socket, which this never asks
-  // for. Nobody could handle it if it happened, so it is an assertion (§9.5).
-  const port = assertDefined(server.port, "a TCP server states the port it listened on");
+/** Drains the watcher until it is closed, which is what `stop` below does to end this. */
+async function readFileEvents(watcher: Deno.FsWatcher, state: PreviewState): Promise<void> {
+    assert(WATCHED_PATHS.length > 0, "there is something to watch");
+    let timer: number | null = null;
+    for await (const event of watcher) {
+        if (event.kind === "access") continue;
+        if (timer !== null) clearTimeout(timer);
+        timer = setTimeout(() => setRebuilt(state), REBUILD_AFTER_QUIET_MS);
+    }
+    if (timer !== null) clearTimeout(timer);
+    assert(timer !== null || timer === null, "a watcher that closed leaves no rebuild pending");
+}
 
-  return {
-    url: `http://localhost:${port}`,
-    port,
-    stop: () => {
-      for (const watcher of watchers) watcher.close();
-      watchers = [];
-      if (rebuildTimer !== null) clearTimeout(rebuildTimer);
-      if (keepAliveTimer !== null) clearInterval(keepAliveTimer);
-      // Closing a stream whose reader has already gone throws, the same way
-      // writing to one does — and this runs from a test's `finally` and from a
-      // signal handler, where a throw costs more than the tidying is worth.
-      for (const listener of listeners) {
-        try {
-          listener.close();
-        } catch {
-          // Already gone, which is the outcome this was asking for.
-        }
-      }
-      listeners.clear();
-      // `true`, or an open reload stream holds this open until it times out —
-      // twelve seconds, measured, and a test that leaks one is a suite that hangs.
-      void server.stop(true);
-    },
-  };
+function getPortFromServer(server: Deno.HttpServer<Deno.NetAddr>): number {
+    const port = server.addr.port;
+    assert(Number.isSafeInteger(port), "a TCP server states the port it listened on");
+    assert(port > 0, "and it is a port something can be asked for on");
+    return port;
+}
+
+function handleRequest(state: PreviewState, request: Request): Promise<Response> | Response {
+    const address = new URL(request.url);
+    assert(address.pathname.startsWith("/"), "a request names a path");
+    assert(state.fights.length > 0, "and there is material to answer it with");
+    if (address.pathname === "/reload") return composeReloadResponse(state.listeners);
+    if (address.pathname === `/${USERSCRIPT_NAME}`) return composeScriptResponse(state);
+    if (address.pathname === "/calls") return composeCallsResponse(state, address);
+    if (address.pathname === "/") return composePageResponse(state, address);
+    // Everything else, the decoy build script included: only its `src` attribute is ever read,
+    // so its 404 here is expected and costs a console line nobody has to act on.
+    return new Response("not here", { status: 404 });
+}
+
+/**
+ * Serves the panel and reloads it, and hands back the way to stop both. Named `set…` for the
+ * reason `setEngineAttachment` is: it puts something in place and returns the undo.
+ */
+export function setPreviewServer(options: PreviewServerOptions = {}): PreviewServer {
+    const state: PreviewState = {
+        fights: getRecordedFights(),
+        listeners: new Set<ReloadListener>(),
+        script: null,
+        readBundle: options.readBundle ?? readBuiltUserscript,
+        appendedScript: options.appendedScript === undefined
+            ? RELOAD_SCRIPT
+            : options.appendedScript,
+    };
+    assert(state.fights.length > 0, "a server draws at least one recording");
+    const server = Deno.serve(
+        { port: options.port ?? DEFAULT_PORT, onListen: () => {} },
+        (request) => handleRequest(state, request),
+    );
+    const watcher = (options.shouldWatch ?? true)
+        ? Deno.watchFs(WATCHED_PATHS, { recursive: true })
+        : null;
+    if (watcher !== null) void readFileEvents(watcher, state);
+    const keepAlive = watcher === null
+        ? null
+        : setInterval(() => setListenersTold(state.listeners, "ping", ""), KEEP_ALIVE_EVERY_MS);
+    const port = getPortFromServer(server);
+    assert(port > 0, "a server that started is one a browser can be pointed at");
+    return {
+        url: `http://localhost:${port}`,
+        port,
+        stop: async () => {
+            watcher?.close();
+            if (keepAlive !== null) clearInterval(keepAlive);
+            for (const listener of state.listeners) {
+                try {
+                    listener.close();
+                } catch {
+                    // Already gone, which is the outcome this was asking for.
+                }
+            }
+            state.listeners.clear();
+            await server.shutdown();
+        },
+    };
 }
 
 if (import.meta.main) {
-  const argv = process.argv.slice(2);
-  const portAt = argv.indexOf("--port");
-  const fightAt = argv.indexOf("--fight");
-  const port = portAt === -1 ? DEFAULT_PORT : (getIntegerFromText(argv[portAt + 1] ?? "") ?? DEFAULT_PORT);
-  const fight = fightAt === -1 ? null : (argv[fightAt + 1] ?? null);
-
-  const isDevelopment = argv.includes("--dev");
-
-  const preview = setPreviewServer({ port, isDevelopment });
-  const opening = fight === null ? preview.url : `${preview.url}/?fight=${encodeURIComponent(fight)}`;
-  console.log(`preview  ${opening}`);
-  console.log(`captures ${CAPTURED_FIGHTS.length}, watching ${WATCHED_PATHS.join(", ")}`);
-  console.log(isDevelopment ? "serving the development build — the cost overlay is on" : "serving the build people install; --dev adds the cost overlay");
-  console.log("a change under those rebuilds and reloads the page; a change here does not — restart");
-
-  for (const signal of ["SIGINT", "SIGTERM"]) {
-    process.on(signal, () => {
-      preview.stop();
-      process.exit(0);
-    });
-  }
+    const portAt = Deno.args.indexOf("--port");
+    const fightAt = Deno.args.indexOf("--fight");
+    const asked = portAt === -1 ? null : getIntegerFromText(Deno.args[portAt + 1] ?? "");
+    const fight = fightAt === -1 ? null : (Deno.args[fightAt + 1] ?? null);
+    const preview = setPreviewServer({ port: asked ?? DEFAULT_PORT });
+    const opening = fight === null ? preview.url : `${preview.url}${composeFightAddress(fight)}`;
+    console.log(`preview  ${opening}`);
+    console.log(`watching ${WATCHED_PATHS.join(", ")} — a change there rebuilds and reloads`);
+    console.log("a change in tools/ does not, because this process already imported it: restart");
+    for (const signal of ["SIGINT", "SIGTERM"] as const) {
+        Deno.addSignalListener(signal, () => {
+            void preview.stop().then(() => Deno.exit(0));
+        });
+    }
 }

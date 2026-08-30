@@ -1,118 +1,73 @@
-# The preview, published. `bun run preview` serves that page from a machine that
-# has this repository checked out; this writes it as files and puts them on the
-# web, so the panel can be looked at by somebody who has installed nothing — into
-# a game that has not authorised the add-on (README.md).
+# The preview, published. `deno task preview` serves that page from a machine with this
+# repository checked out; this writes it down and puts it on the web, so the panel can be looked
+# at by somebody who has installed nothing — into a game that has not authorised the add-on.
 #
-# The gate runs first and the deploy is gated on it, for release.yml's reason: a
-# tree that cannot pass `bun run check` must not become the page this repository
-# points people at.
+# The gate runs first and the deploy is gated on it: a tree that cannot pass `deno task check`
+# must not become the page this repository points people at.
 #
-# ⚠️ **The trigger is still `main`, and `main` no longer means what it did.** It
-# is the latest release now, advanced only when a version is tagged, with the
-# work on `develop` (docs/specs/what-a-release-shows.md). So
-# what this publishes is the panel a visitor can actually install, which is what
-# README.md's "See it before you install it" offers them. It used to publish the
-# tip of development, and the offer was true only if you did not read the next
-# paragraph. Nothing in this file had to change for that — the same three words
-# say something else now, which is the kind of edit that goes unnoticed unless it
-# is written down.
+# The trigger is `main`, and `main` is the latest release (ARCHITECTURE.md), so what is published
+# is the panel a visitor can actually install rather than the tip of development.
 #
-# ⚠️ **Pages has to exist before anything can be deployed to it, and it is
-# created once by hand: Settings → Pages → Build and deployment → Source →
-# GitHub Actions.** Not "Deploy from a branch" — every page here is generated
-# into `dist/`, which git ignores. Four runs say so, and they are written down
-# because the sentence above was got wrong three times before them:
+# ⚠️ **Pages has to exist before anything can be deployed to it, and it is created once by hand:
+# Settings → Pages → Build and deployment → Source → GitHub Actions.** Not "Deploy from a
+# branch": every page is generated into `dist/`, which git does not carry. Measured in v1 over
+# four runs, 2026-08-17 to 2026-08-18 — `configure-pages` fails outright without `enablement`,
+# fails to create the site with it, and was refused by the run's own token on a public repository
+# (`Resource not accessible by integration`); the switch thrown by hand made the next run green
+# on every step. `enablement: true` stays because it costs nothing once a site exists, and for
+# the fork whose owner GitHub does let create one by API.
 #
-# 1. Without `enablement`, `configure-pages` fails outright —
-#    `Error: Get Pages site failed. ... Not Found - .../pages#get-a-apiname-pages-site`,
-#    naming an API route rather than the setting behind it.
-# 2. With `enablement: true` the missing site becomes a warning and the create
-#    call fails instead — `Error: Create Pages site failed. Error: No server is
-#    currently available to service your request.`
-# 3. The same step, the same `enablement: true`, on 2026-08-18T00:45Z —
-#    `Create Pages site failed. Error: Resource not accessible by integration -
-#    .../pages#create-a-apiname-pages-site`, and `has_pages` still false after
-#    it.
-# 4. The switch thrown by hand, and the next run — 2026-08-18T00:55Z, ten minutes
-#    after 3 — green on every step. `upload-pages-artifact` and `deploy-pages`
-#    ran for the first time, `has_pages` reads true, and the site answers.
-#
-# 1 and 2 were inside an incident covering Pages, open on githubstatus.com from
-# 13:40Z to 21:16Z on 2026-08-17, so neither said anything about this repository.
-# 3 was 3 h 29 min after that incident resolved, with none open, and it is a
-# refusal rather than a service saying it is busy: the token a workflow run is
-# given cannot create the site here, on a public repository, with `pages: write`.
-# 4 changed one thing and the workflow then deployed, so the refusal was the
-# whole of what stood in the way. Whether some other repository's run can create a
-# site is still not something these can say — the three corrections before them
-# were each a claim of that size from one observation.
-#
-# ⚠️ **`has_pages` on the repository is what to read, not `GET /repos/…/pages`,**
-# which answers 404 to a request carrying no token whether or not a site exists.
-# The commit that recorded 3 cited that 404 beside `has_pages: false` as though it
-# were a second witness; it was not one, and 4 answered 404 to the same request
-# with the site live.
-#
-# `enablement: true` stays, and it is not the switch: once a site exists it does
-# nothing, and where none exists it changes only which sentence prints. It is
-# kept for the fork whose owner GitHub does let create a site by API.
-#
-# ⚠️ **What gets published is the captures' own engine payloads**, inlined one
-# fight per page. NOTICE.md says what that carries and on what basis. Nothing
-# generated here is ever committed: the output goes under `dist/`, which git
-# ignores, and a tracked page carrying a capture would fail the gate on its own
-# (`tests/tools/source-layout.test.ts` refuses a name the game gave an ability
-# outside the recordings).
+# ⚠️ **What gets published is the recordings' own engine calls**, inlined one fight per page.
+# `NOTICE.md` says what that carries and on what basis. Nothing generated here is committed.
 name: pages
 
 on:
-  push:
-    branches: [main]
-  workflow_dispatch:
+    push:
+        branches: [main]
+    workflow_dispatch:
 
-# What a Pages deployment needs and nothing more. `id-token` is how deploy-pages
-# proves to Pages that this run is the one that uploaded the artifact.
+# What a Pages deployment needs and nothing more. `id-token` is how `deploy-pages` proves to
+# Pages that this run is the one that uploaded the artifact.
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+    contents: read
+    pages: write
+    id-token: write
 
-# One deployment at a time, and a running one is left to finish: cancelling
-# mid-deploy leaves the site serving whichever half of the upload arrived.
+# One deployment at a time, and a running one is left to finish: cancelling mid-deploy leaves the
+# site serving whichever half of the upload arrived.
 concurrency:
-  group: pages
-  cancel-in-progress: false
+    group: pages
+    cancel-in-progress: false
 
 jobs:
-  # One job rather than the two-job template GitHub documents: the build and the
-  # deploy share a checkout and a `bun install`, and splitting them buys an
-  # artifact hand-off between two steps that would run back to back anyway.
-  publish:
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
-    steps:
-      - uses: actions/checkout@v4
+    # One job rather than the two-job template GitHub documents: the build and the deploy share a
+    # checkout, and splitting them buys an artifact hand-off between two steps that run back to back.
+    publish:
+        runs-on: ubuntu-latest
+        environment:
+            name: github-pages
+            url: ${{ steps.deploy.outputs.page_url }}
+        steps:
+            # The whole history, because the gate reads `git ls-files` and a shallow checkout of one
+            # commit still answers it — but the screenshot guard and any later git-reading guard do not
+            # all promise that, and a full checkout of this repository costs seconds.
+            - uses: actions/checkout@v4
 
-      # Same pin as check.yml and release.yml, and for the same reason: "latest"
-      # means the published page changes one day with no change in the code.
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.14
+            # Pinned, and not to a moving tag: "latest" means the published page changes one day with
+            # no change in the code.
+            - uses: denoland/setup-deno@v2
+              with:
+                  deno-version: 2.9.6
 
-      - run: bun install --frozen-lockfile
-      - run: bun run check
+            - run: deno task check
+            - run: deno task preview:site
 
-      - run: bun run preview:site
-
-      # GitHub's own actions, so the only third-party one here is setup-bun,
-      # which both other workflows already use at the same pin.
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: dist/preview
-      - id: deploy
-        uses: actions/deploy-pages@v4
+            # GitHub's own actions, so the only third-party one here is setup-deno.
+            - uses: actions/configure-pages@v5
+              with:
+                  enablement: true
+            - uses: actions/upload-pages-artifact@v3
+              with:
+                  path: dist/preview
+            - id: deploy
+              uses: actions/deploy-pages@v4

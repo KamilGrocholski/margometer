@@ -1,324 +1,193 @@
 /**
- * What a recording keeps, and what it refuses to keep.
+ * The recording, composed from a real one and read back.
  *
- * The material this produces is meant to stand beside `tests/captured-fights/`,
- * so the tests are about *fidelity*: what the game handed over is what reaches
- * the file, a later mutation of the game's own object cannot reach back into it,
- * and the thinning drops only calls that carry nothing a kept call does not.
- *
- * The loop closing this path — a real capture replayed through the add-on and the
- * recording read back by `tools/fight-dump-parser.ts` — is in
- * `tests/game/engine-attachment.test.ts`, where the whole add-on is driven.
+ * The shape is a contract: what this composes has to be the shape every file in `captures/`
+ * already is, or new material cannot be set beside admitted material. So the test that matters
+ * here reads a recording off disk and checks the envelope against it, key by key.
  */
 
-import { describe, expect, test } from "bun:test";
-import { getValueFromJsonText } from "@/libs/json.ts";
+import { assert, assertEquals } from "@std/assert";
+import { getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
+import { BUILD_VERSION } from "@/src/build-version.ts";
+import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { composeTeamHeals } from "@/src/core/combatant-health.ts";
+import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import type { ReportSubject } from "@/src/game/fight-report.ts";
 import {
-  composeCaptureFileName,
-  composeCaptureText,
-  composeEmptyCapture,
-  composeNextCapture,
-  composeSnapshotFromBattle,
-  type CaptureEnvironment,
-  type FightCapture,
+    type CaptureSurroundings,
+    composeCaptureFileName,
+    composeCaptureText,
+    composeEmptyCapture,
+    composeNextCapture,
 } from "@/src/game/fight-capture.ts";
-import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
 
-const ENVIRONMENT: CaptureEnvironment = {
-  getWorld: () => "tempest",
-  getGameBuild: () => "1786441768914",
-  getCapturedAt: () => "2026-08-11T12:00:00.000Z",
-  getUserAgent: () => "Mozilla/5.0 (a browser that said)",
-  getPlace: () => ({ mapName: "a clearing", x: 34, y: 12 }),
+/**
+ * The newest recording, and the newest envelope. **`formatVersion` does not identify the shape**:
+ * measured over `captures/` on 2026-08-30, all 28 recordings state `1` and four different
+ * envelopes exist among them — the oldest carries `otwarcie`, `zrodlo` and `odchudzonych`, which
+ * nothing writes any more and the migration to English left alone, and only the five newest carry
+ * `addOnVersion` and `userAgent`. So the contract this holds itself to is the newest, and it is
+ * named rather than found.
+ */
+const NEWEST = "captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json";
+
+const SURROUNDINGS: CaptureSurroundings = {
+    world: "tempest",
+    gameBuild: "53XkBRxF",
+    capturedAt: "2026-08-29T10:11:12.345Z",
+    userAgent: "a browser that said so",
 };
 
-/** One call through the collector, with nothing in it worth arguing about. */
-function composeCaptureAfter(
-  capture: FightCapture,
-  payload: unknown,
-  messages: readonly string[] = [],
-): FightCapture {
-  return composeNextCapture(capture, payload, messages, [], []);
+/** A fight read from one payload with nobody in it: the smallest subject there is. */
+function composeEmptySubject(): ReportSubject {
+    const roster = composeCombatantRoster([]);
+    return {
+        statistics: composeFightStatistics([], composeTeamHeals([], roster)),
+        roster,
+        place: null,
+        payloads: 1,
+        messagesLost: 0,
+        isOver: false,
+    };
 }
 
-describe("the combatants a running fight is holding", () => {
-  const combatant = {
-    id: 482845,
-    name: "Someone",
-    team: 1,
-    prof: "h",
-    lvl: 40,
-    hp: { max: 5815, cur: 4000, hpp: 68.79 },
-    mana: 0,
-    energy: 112,
-    ac: { cur: 239, bonus: 0 },
-    // Only the fields the captures carry leave the game; this one must not.
-    $: { aDomNode: true },
-  };
-
-  test("are read from the list the client keeps them in", () => {
-    const snapshot = composeSnapshotFromBattle({ warriorsList: { "482845": combatant } });
-
-    expect(snapshot).toEqual([
-      {
-        id: 482845,
-        name: "Someone",
-        team: 1,
-        prof: "h",
-        lvl: 40,
-        hp: { max: 5815, cur: 4000, hpp: 68.79 },
-        mana: 0,
-        energy: 112,
-        ac: { cur: 239, bonus: 0 },
-      },
-    ]);
-  });
-
-  test("come from `warriors` when the first list has nobody named", () => {
-    const snapshot = composeSnapshotFromBattle({
-      warriorsList: { "1": { name: "" } },
-      warriors: { "482845": combatant },
-    });
-
-    expect(snapshot.map((one) => one.id)).toEqual([482845]);
-  });
-
-  test("are nobody at all when the battle object carries neither", () => {
-    expect(composeSnapshotFromBattle({})).toEqual([]);
-  });
-
-  /**
-   * ⚠️ **The one that costs a wrong number if it is missed.** `hp` is a live
-   * object the game goes on mutating, so a snapshot holding the reference would
-   * show the state *after* the call as the state before it — and the whole point
-   * of a before-snapshot is that it is the state before.
-   */
-  test("hold copies of the health the game keeps mutating", () => {
-    const live = { max: 100, cur: 100, hpp: 100 };
-    const snapshot = composeSnapshotFromBattle({
-      warriorsList: { "7": { id: 7, name: "Someone", hp: live } },
-    });
-
-    live.cur = 40;
-    live.hpp = 40;
-
-    expect(snapshot[0]?.hp).toEqual({ max: 100, cur: 100, hpp: 100 });
-  });
-});
-
-describe("what a recording keeps", () => {
-  test("a fight starting clears whatever stood before it", () => {
-    const first = composeCaptureAfter(composeEmptyCapture(), { m: [] }, ["a message"]);
-    expect(first.calls.length).toBe(1);
-
-    const second = composeCaptureAfter(first, { init: "1" });
-    expect(second.calls.length).toBe(1);
-    expect(second.droppedCalls).toBe(0);
-  });
-
-  // Evidence, without exception: a call carrying messages is never thinned away,
-  // however often its shape and its state have been seen.
-  test("every call carrying messages, however familiar it looks", () => {
-    let capture = composeCaptureAfter(composeEmptyCapture(), { m: [] }, ["one"]);
-    capture = composeCaptureAfter(capture, { m: [] }, ["two"]);
-    capture = composeCaptureAfter(capture, { m: [] }, ["three"]);
-
-    expect(capture.calls.map((call) => call.messages)).toEqual([["one"], ["two"], ["three"]]);
-    expect(capture.droppedCalls).toBe(0);
-  });
-
-  test("a call whose shape and state were both seen before is dropped", () => {
-    let capture = composeCaptureAfter(composeEmptyCapture(), { move: -1, endBattle: 1 });
-    capture = composeCaptureAfter(capture, { move: -1, endBattle: 1 });
-    capture = composeCaptureAfter(capture, { move: -1, endBattle: 1 });
-
-    expect(capture.calls.length).toBe(1);
-    expect(capture.droppedCalls).toBe(2);
-  });
-
-  // The shape is the set of keys, so a payload carrying `endBattle` for the only
-  // time in a fight survives even with nothing else to say for itself.
-  test("a call introducing a key nobody has seen is kept", () => {
-    let capture = composeCaptureAfter(composeEmptyCapture(), { move: -1 });
-    capture = composeCaptureAfter(capture, { move: -1, endBattle: 1 });
-
-    expect(capture.calls.length).toBe(2);
-  });
-
-  test("a call showing health nobody has seen is kept", () => {
-    const empty = composeEmptyCapture();
-    const first = composeNextCapture(empty, { move: -1 }, [], [], [composeCombatantAt(100)]);
-    const second = composeNextCapture(first, { move: -1 }, [], [], [composeCombatantAt(40)]);
-
-    expect(second.calls.length).toBe(2);
-  });
-
-  /**
-   * ⚠️ **The game mutates the object it handed us after we return.** Holding the
-   * reference would mean a recording where every call shows the last call's
-   * payload — material that looks like evidence and is not.
-   */
-  test("the payload is copied, not held by reference", () => {
-    const payload: Record<string, unknown> = { m: ["a message"], move: 1 };
-    const capture = composeNextCapture(composeEmptyCapture(), payload, ["a message"], [], []);
-
-    payload["move"] = 99;
-    payload["endBattle"] = 1;
-
-    expect(capture.calls[0]?.payload).toEqual({ m: ["a message"], move: 1 });
-  });
-
-  /**
-   * Stopping, not dropping the oldest, and the order is the decision: a recording
-   * without the start of the fight is useless, one without the end still carries
-   * material.
-   */
-  test("the ceiling stops collecting rather than losing the beginning", () => {
-    let capture = composeEmptyCapture();
-    for (let call = 0; call < 2100; call += 1) {
-      capture = composeCaptureAfter(capture, { m: [] }, [`message ${call}`]);
-    }
-
-    expect(capture.isFull).toBe(true);
-    expect(capture.calls.length).toBe(2000);
-    expect(capture.calls[0]?.messages).toEqual(["message 0"]);
-    expect(capture.droppedCalls).toBe(100);
-  });
-});
-
-function composeCombatantAt(current: number): {
-  id: number;
-  name: string;
-  team: number;
-  prof: string;
-  lvl: number;
-  hp: { max: number; cur: number; hpp: number };
-  mana: null;
-  energy: null;
-  ac: null;
-} {
-  return {
-    id: 7,
-    name: "Someone",
-    team: 1,
-    prof: "h",
-    lvl: 40,
-    hp: { max: 100, cur: current, hpp: current },
-    mana: null,
-    energy: null,
-    ac: null,
-  };
+function readCapture(text: string): Record<string, unknown> {
+    const reading = getJsonReading(text);
+    assert(reading.isOk, "a recording written as text reads back as JSON");
+    const read = reading.value;
+    assert(isRecord(read), "and reads back as a record");
+    return read;
 }
 
-describe("the recording as a file", () => {
-  test("carries the field names the parser reads, and the build it came from", () => {
-    const capture = composeCaptureAfter(composeEmptyCapture(), { m: ["a message"] }, ["a message"]);
-    const written = composeCaptureText(capture, ENVIRONMENT);
-
-    expect(getValueFromJsonText(written).value).toEqual({
-      wersja: 1,
-      // Read from the constant rather than written out: a literal would go on
-      // passing while the file wrote the version of some release ago.
-      dodatek: USERSCRIPT_VERSION,
-      przy: "2026-08-11T12:00:00.000Z",
-      swiat: "tempest",
-      build: "1786441768914",
-      mapa: { nazwa: "a clearing", x: 34, y: 12 },
-      przegladarka: "Mozilla/5.0 (a browser that said)",
-      pominietych: 0,
-      urwany: false,
-      wpisy: [
-        {
-          nr: 0,
-          ladunek: { m: ["a message"] },
-          komunikaty: ["a message"],
-          wojownicyPrzed: [],
-          wojownicyPo: [],
-        },
-      ],
-    });
-  });
-
-  /**
-   * The sentences the client composed are not collected at all. `NOTICE.md` names
-   * the 38 in the older capture as an exception surviving only because cutting
-   * them would mean editing evidence; material that never carried them needs no
-   * exception.
-   */
-  test("carries no field for the sentences the game writes", () => {
-    const capture = composeCaptureAfter(composeEmptyCapture(), { m: [] }, ["a message"]);
-
-    expect(composeCaptureText(capture, ENVIRONMENT)).not.toContain("render");
-  });
-
-  // Null rather than a stand-in reading like a build: material from the game
-  // without the client's version is not comparable, and the intake tool says so.
-  test("states a missing build as nothing, not as a plausible number", () => {
-    const written = composeCaptureText(composeEmptyCapture(), {
-      ...ENVIRONMENT,
-      getGameBuild: () => null,
-    });
-
-    const read = getValueFromJsonText(written).value as { build: unknown };
-    expect(read.build).toBe(null);
-  });
-
-  /**
-   * §9.3: unknown is loud. An omitted key and a key holding null read the same
-   * way to `toEqual`, so the key is asserted present before its value is read —
-   * a recording that quietly dropped the field would otherwise pass as one
-   * saying the browser did not answer.
-   */
-  test("states a browser that did not say as nothing, and still states it", () => {
-    const written = composeCaptureText(composeEmptyCapture(), {
-      ...ENVIRONMENT,
-      getUserAgent: () => null,
-    });
-
-    const read = getValueFromJsonText(written).value as Record<string, unknown>;
-    expect("przegladarka" in read).toBe(true);
-    expect(read["przegladarka"]).toBe(null);
-  });
-
-  /**
-   * The same shape as the browser above, and for the same reason — but this one
-   * has a second cause worth keeping apart in the head: a page that would not say
-   * where it was, and a fight this add-on never saw open. Both write the key.
-   *
-   * ⚠️ **The place is never recovered afterwards.** The battle protocol states
-   * none of it, so a recording that went without it cannot be given it later the
-   * way a build could be looked up — which is why the field is asserted present
-   * rather than merely null.
-   */
-  test("states a page that did not say where as nothing, and still states it", () => {
-    const written = composeCaptureText(composeEmptyCapture(), {
-      ...ENVIRONMENT,
-      getPlace: () => null,
-    });
-
-    const read = getValueFromJsonText(written).value as Record<string, unknown>;
-    expect("mapa" in read).toBe(true);
-    expect(read["mapa"]).toBe(null);
-  });
-
-  /**
-   * Each member on its own, because the client answers them from two different
-   * objects: a map part-way through loading has no name, and nothing guarantees a
-   * client that gives one gives a position (`src/game/engine-place.ts`).
-   */
-  test("states the half of a place it had, rather than dropping the whole", () => {
-    const written = composeCaptureText(composeEmptyCapture(), {
-      ...ENVIRONMENT,
-      getPlace: () => ({ mapName: "a clearing", x: null, y: null }),
-    });
-
-    const read = getValueFromJsonText(written).value as Record<string, unknown>;
-    expect(read["mapa"]).toEqual({ nazwa: "a clearing", x: null, y: null });
-  });
-
-  test("is named so that two recordings never collide", () => {
-    expect(composeCaptureFileName(ENVIRONMENT)).toBe(
-      "margometer-tempest-2026-08-11T12-00-00-000Z.json",
+Deno.test("the envelope is the one every admitted recording already carries", () => {
+    const admitted = readCapture(Deno.readTextFileSync(NEWEST));
+    const written = readCapture(
+        composeCaptureText(composeEmptyCapture(), SURROUNDINGS, null) ?? "",
     );
-  });
+    // Two keys an admitted recording gains at intake and this never writes: the counts of what
+    // was substituted. Everything else is written here, in the same spelling.
+    const atIntake = ["namesSubstituted", "descriptionsRemoved"];
+    const owed = Object.keys(admitted).filter((key) => !atIntake.includes(key));
+    const composed = Object.keys(written);
+    // The one key that goes the other way: intake takes the counted figures back off a recording
+    // before admitting it, so an admitted one carries none (ADR 0027).
+    assertEquals(composed.filter((key) => key !== "report"), owed, "the same keys, in that order");
+    assertEquals(
+        composed[composed.indexOf("report") + 1],
+        "droppedCalls",
+        "and the figures stand above the calls, where a reader opening the file meets them",
+    );
+    assertEquals(written.formatVersion, 3, "the envelope that may carry them says which one it is");
+    assertEquals(
+        written.addOnVersion,
+        BUILD_VERSION,
+        "with the build that wrote it, not the format's",
+    );
+    assertEquals(written.world, "tempest", "the world it was taken on");
+    assertEquals(written.gameBuild, "53XkBRxF", "the client's own build");
+    assertEquals(written.isTruncated, false, "and a tail nothing was cut off");
+});
+
+Deno.test("a recording that could not read its surroundings says so rather than inventing", () => {
+    const blind = { ...SURROUNDINGS, gameBuild: null, userAgent: null };
+    const written = readCapture(composeCaptureText(composeEmptyCapture(), blind, null) ?? "");
+    assertEquals(written.gameBuild, null, "a build nobody stated is absent, never a stand-in");
+    assertEquals(written.userAgent, null, "and so is a browser that said nothing of itself");
+});
+
+Deno.test("the figures travel with the calls, and nothing is written where none were read", () => {
+    const blank = readCapture(composeCaptureText(composeEmptyCapture(), SURROUNDINGS, null) ?? "");
+    assertEquals(blank.report, null, "a fight nobody read is said to be none, never an empty one");
+
+    const subject = composeEmptySubject();
+    const text = composeCaptureText(composeEmptyCapture(), SURROUNDINGS, subject) ?? "";
+    const written = readCapture(text);
+    const report = written.report;
+    assert(isRecord(report), "a fight that was read is written into the recording beside it");
+    assertEquals(report.payloads, 1, "with what it was built from");
+    assertEquals(report.combatants, {}, "and a cast of nobody, which is a reading and not a gap");
+    assert(!("addOnVersion" in report), "what qualifies the numbers stands once, in the envelope");
+    assert(!text.includes('MargoMeter"'), "so the add-on's name is not in the file twice");
+});
+
+Deno.test("every call carrying messages is kept, and a call saying nothing new is dropped", () => {
+    const nobody = { combatantsBefore: [], combatantsAfter: [] };
+    const opening = composeNextCapture(composeEmptyCapture(), {
+        payload: { init: "1" },
+        messages: [],
+        ...nobody,
+    });
+    assertEquals(opening.calls.length, 1, "the call that opens a fight is a shape nobody has seen");
+    assertEquals(opening.droppedCalls, 0, "so nothing is dropped for it");
+
+    const again = composeNextCapture(opening, { payload: { init: "1" }, messages: [], ...nobody });
+    assertEquals(
+        again.calls.length,
+        1,
+        "a second `init` starts the recording over, not adds to it",
+    );
+
+    const said = composeNextCapture(again, { payload: { m: ["x"] }, messages: ["x"], ...nobody });
+    assertEquals(said.calls.length, 2, "a call carrying a message is kept whatever else it says");
+    const repeated = composeNextCapture(said, { payload: { m: ["x"] }, messages: [], ...nobody });
+    assertEquals(repeated.calls.length, 2, "and one repeating a shape with nothing to say is not");
+    assertEquals(repeated.droppedCalls, 1, "it is counted instead, where the file will state it");
+});
+
+Deno.test("a state nobody has seen is kept even where the payload says nothing", () => {
+    const opened = composeNextCapture(composeEmptyCapture(), {
+        payload: { poll: 1 },
+        messages: [],
+        combatantsBefore: [],
+        combatantsAfter: [],
+    });
+    const moved = composeNextCapture(opened, {
+        payload: { poll: 1 },
+        messages: [],
+        combatantsBefore: [],
+        combatantsAfter: [{
+            id: 1,
+            name: "somebody",
+            team: 1,
+            prof: "w",
+            lvl: 60,
+            hp: { max: 100, value: 90 },
+            mana: null,
+            energy: null,
+            ac: null,
+        }],
+    });
+    assertEquals(moved.calls.length, 2, "health that moved is kept though the payload repeats");
+    assertEquals(moved.droppedCalls, 0, "and nothing is dropped for it");
+});
+
+Deno.test("what the game goes on changing is copied, not held by reference", () => {
+    const payload: Record<string, unknown> = { init: "1", w: { 1: { name: "before" } } };
+    const capture = composeNextCapture(composeEmptyCapture(), {
+        payload,
+        messages: [],
+        combatantsBefore: [],
+        combatantsAfter: [],
+    });
+    payload.w = { 1: { name: "after" } };
+    const kept = capture.calls[0]?.payload;
+    assert(isRecord(kept), "the call kept a payload");
+    assertEquals(
+        kept.w,
+        { 1: { name: "before" } },
+        "the recording holds the call as it arrived, not as the game left it",
+    );
+});
+
+Deno.test("a file is named for the world, both versions and the moment", () => {
+    const name = composeCaptureFileName(SURROUNDINGS);
+    assertEquals(
+        name,
+        `margometer-tempest-53XkBRxF-${BUILD_VERSION}-2026-08-29T10-11-12-345Z.json`,
+        "the world, the game's build, ours, then the moment",
+    );
+    const blind = composeCaptureFileName({ ...SURROUNDINGS, gameBuild: null });
+    assert(blind.includes("-none-"), "a build the page never stated is said to be none");
+    assert(!name.slice(0, -".json".length).includes(":"), "no colon reaches a file's name");
 });

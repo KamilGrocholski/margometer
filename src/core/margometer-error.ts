@@ -1,24 +1,16 @@
 /**
- * Base for every error this add-on throws.
- *
- * The add-on runs inside someone else's page, next to the game and possibly
- * next to other add-ons, and writes into the same console. An error that does
- * not say whose it is costs the person reporting it and costs us reading the
- * report, so the brand goes in `name` where the console shows it first.
- *
- * Abstract on purpose: every kind of failure gets its own named subclass, so a
- * caller can tell them apart without matching on message text.
+ * The brand every failure that ships to the browser wears — this add-on shares a console with the
+ * game — and abstract, so "no base is ever thrown" is held by the compiler. **ADR 0009.**
  */
 
-/** Every failure the add-on can raise. One entry per subclass. */
-export type MargoMeterErrorCode = "ProtocolMessageFormat" | "EngineBattleWrap";
+export type MargoMeterErrorCode = "ProtocolMessageFormat";
 
 export abstract class MargoMeterError extends Error {
-  readonly code: MargoMeterErrorCode;
+    readonly code: MargoMeterErrorCode;
 
-  protected constructor(code: MargoMeterErrorCode, message: string, options?: ErrorOptions) {
-    super(message, options);
-    this.code = code;
-    this.name = `MargoMeter/${code}`;
-  }
+    protected constructor(code: MargoMeterErrorCode, reason: string, options?: ErrorOptions) {
+        super(reason, options);
+        this.code = code;
+        this.name = `MargoMeter/${code}`;
+    }
 }

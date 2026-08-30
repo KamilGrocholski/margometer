@@ -1,127 +1,146 @@
 /**
- * The half of the preview only a running process can answer.
+ * The routes a preview server answers, held against a bundle that is handed in.
  *
- * What the page itself promises moved to `tests/tools/preview-page.test.ts` with
- * the module it tests; what is left here needs a socket, and that is the whole
- * boundary.
- *
- * ⚠️ **A server started here must be stopped in a `finally`.** An open reload
- * stream keeps `stop()` from resolving and an unclosed `fs.watch` handle keeps
- * the process alive, so a leak does not fail this file — it hangs the suite.
+ * The bundler is injected rather than run: what is under test is which page a request gets and
+ * what a reload stream says, and a real bundle would add a subprocess to every one of them.
  */
 
-import { describe, expect, test } from "bun:test";
+import { assert, assertEquals } from "@std/assert";
+import { setPreviewServer } from "@/tools/preview-server.ts";
+import {
+    getPreviewRecordedFight,
+    getRecordedFightNames,
+    getRecordedFights,
+} from "@/tools/recorded-fights.ts";
 
-import { BundleError, composeUserscriptFiles } from "@/build.ts";
-import { assertDefined } from "@/libs/assert.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
-import { PREVIEW_GAME_SCRIPT_NAME } from "@/tools/preview-page.ts";
-import { setPreviewServer, PreviewServerError } from "@/tools/preview-server.ts";
+const BUNDLE = "window.__margometerPreviewBundle = 1;\n";
 
-const FIGHT = assertDefined(CAPTURED_FIGHTS[0], "the catalog carries a capture to preview");
+function composeTestServer() {
+    const preview = setPreviewServer({
+        port: 0,
+        shouldWatch: false,
+        readBundle: () => Promise.resolve(BUNDLE),
+    });
+    assert(preview.port > 0, "a server under test listened somewhere");
+    assert(preview.url.includes(`${preview.port}`), "and says where");
+    return preview;
+}
 
-describe("the routes, served", () => {
-  test("the page, the bundle and two ways of asking for nothing", async () => {
-    const preview = setPreviewServer({ port: 0, shouldWatch: false });
+Deno.test("the page route draws what it was asked for, and refuses what nobody filed", async () => {
+    const preview = composeTestServer();
     try {
-      const page = await fetch(`${preview.url}/?fight=${FIGHT.name}`);
-      expect(page.status).toBe(200);
-      expect(page.headers.get("content-type")).toContain("text/html");
-      const markup = await page.text();
-      expect(markup).toContain("preview-strip");
-      // The served page is the one with a rebuild behind it, and it is the only
-      // one of the two that may open the stream.
-      expect(markup).toContain("EventSource");
+        const names = getRecordedFightNames();
+        const asked = names[1] ?? "";
+        assert(asked.length > 0, "there is a second recording to ask for by name");
+        const answer = await fetch(`${preview.url}/?fight=${encodeURIComponent(asked)}&entry=3`);
+        const page = await answer.text();
+        assertEquals(answer.status, 200, "a recording that exists is drawn");
+        assert(page.includes(asked), "and the page says which one it is");
+        assert(page.includes(`"entryIndex":3`), "stopping where the address said");
 
-      // The bundle rather than a path to one: what the preview draws has to be
-      // the file a person installs, or it is a preview of something else.
-      const bundle = await fetch(`${preview.url}/margometer.user.js`);
-      expect(bundle.status).toBe(200);
-      const script = await bundle.text();
-      expect(script.startsWith("// ==UserScript==")).toBe(true);
-      expect(script).toContain("MargoMeter");
-
-      const missingFight = await fetch(`${preview.url}/?fight=no-such-fight`);
-      expect(missingFight.status).toBe(404);
-
-      // The decoy build script is expected to 404 here: only its `src` is ever
-      // read, and there is a process to answer the miss with something that is
-      // not markup. A published copy cannot say that — `tools/preview-site.ts`.
-      const decoy = await fetch(`${preview.url}/${PREVIEW_GAME_SCRIPT_NAME}`);
-      expect(decoy.status).toBe(404);
+        const missing = await fetch(`${preview.url}/?fight=nobody-recorded-this`);
+        assertEquals(missing.status, 404, "and a name nobody filed is refused");
+        await missing.body?.cancel();
     } finally {
-      preview.stop();
+        await preview.stop();
     }
-  });
-
-  /**
-   * The route that lets a pick be a replay instead of a page.
-   *
-   * A name is required where the page route reads a missing one as *open on the
-   * first capture*: a page asking for payloads always knows whose, and answering
-   * somebody else's would draw one fight's rows under another's name.
-   */
-  test("a capture's payloads are answered on their own route, for a name and only a name", async () => {
-    const preview = setPreviewServer({ port: 0, shouldWatch: false });
-    try {
-      const response = await fetch(`${preview.url}/payloads?fight=${FIGHT.name}`);
-      expect(response.status).toBe(200);
-      expect(response.headers.get("content-type")).toContain("application/json");
-      const payloads = await response.json();
-      expect(Array.isArray(payloads)).toBe(true);
-      expect((payloads as unknown[]).length).toBe(FIGHT.dump.calls.length);
-
-      const missing = await fetch(`${preview.url}/payloads?fight=no-such-fight`);
-      expect(missing.status).toBe(404);
-
-      const unnamed = await fetch(`${preview.url}/payloads`);
-      expect(unnamed.status).toBe(404);
-
-      // The page carries both addresses per capture, which is what tells its
-      // picker there is anything to fetch at all.
-      const markup = await (await fetch(`${preview.url}/?fight=${FIGHT.name}`)).text();
-      expect(markup).toContain(`"payloadsAddress":"/payloads?fight=`);
-    } finally {
-      preview.stop();
-    }
-  });
-
-  test("an entry past the end of the fight is clamped rather than believed", async () => {
-    const preview = setPreviewServer({ port: 0, shouldWatch: false });
-    try {
-      const response = await fetch(`${preview.url}/?fight=${FIGHT.name}&entry=99999`);
-      expect(await response.text()).toContain(`"entryIndex":${FIGHT.dump.calls.length}`);
-    } finally {
-      preview.stop();
-    }
-  });
 });
 
-/**
- * What the failed-rebuild path depends on, and it is not obvious.
- *
- * ⚠️ **`Bun.build` rejects with an `AggregateError` unless `throw: false` is
- * passed**, so `build.ts`'s own `success` check was dead for the failure it was
- * written for, and the server's narrow `catch` would have missed every syntax
- * error made while editing `src/`. Held here because nothing else would notice:
- * a build that works reports nothing about how it fails.
- */
-describe("a bundle that refuses", () => {
-  test("composing the userscript answers rather than throwing on a good tree", async () => {
-    const files = await composeUserscriptFiles();
-    expect(files.script.startsWith("// ==UserScript==")).toBe(true);
-    // The banner, byte for byte, and not a second composition of it.
-    expect(files.script.startsWith(files.metadata)).toBe(true);
-  });
+Deno.test("an address that names no entry opens on the finished fight", async () => {
+    const preview = composeTestServer();
+    try {
+        const answer = await fetch(`${preview.url}/`);
+        const page = await answer.text();
+        assertEquals(answer.status, 200, "the address a reader is handed draws");
+        const fight = getPreviewRecordedFight(getRecordedFights());
+        assert(page.includes(fight.name), "the one fight every preview opens on");
+        assert(
+            page.includes(`"entryIndex":${fight.calls.length}`),
+            "counted to the end, which is what somebody starting this came to look at",
+        );
+        assert(fight.calls.length > 0, "and the end of a fight is past its first call");
+    } finally {
+        await preview.stop();
+    }
+});
 
-  test("a bundle failure is ours, so a caller can tell it from a bug", () => {
-    const failure = new BundleError("bundle failed");
-    expect(failure.name).toBe("MargoMeterTool/Bundle");
-  });
+Deno.test("a rebuild reloads the page carrying what the harness had on screen", async () => {
+    const preview = composeTestServer();
+    try {
+        const answer = await fetch(`${preview.url}/`);
+        const page = await answer.text();
+        assert(page.includes(`new EventSource("/reload")`), "a served page listens for a rebuild");
+        assert(
+            page.includes(`"/?fight=" + encodeURIComponent(name) + composePreviewStateHash()`),
+            "and comes back on the fight it was on, carrying the state it was in",
+        );
+        assert(
+            !page.includes(`+ "&entry=" + fedCount`),
+            "the entry rides in that hash, not beside it",
+        );
+    } finally {
+        await preview.stop();
+    }
+});
 
-  test("the preview names its own failures too", () => {
-    expect(new PreviewServerError("nothing to preview").name).toBe(
-      "MargoMeterTool/PreviewServer",
-    );
-  });
+Deno.test("an entry past the end of a fight is clamped to it rather than refused", async () => {
+    const preview = composeTestServer();
+    try {
+        const answer = await fetch(`${preview.url}/?entry=99999999`);
+        const page = await answer.text();
+        assertEquals(answer.status, 200, "an address nobody could reach still draws");
+        const at = page.indexOf(`"entryIndex":`);
+        const count = page.indexOf(`"entryCount":`);
+        assert(at > 0, "the page states where the replay stops");
+        assert(count > at, "beside the length it was clamped against");
+        assert(!page.includes(`"entryIndex":99999999`), "and it is not the number that was asked");
+    } finally {
+        await preview.stop();
+    }
+});
+
+Deno.test("the calls route hands a fight over with no page in front of it", async () => {
+    const preview = composeTestServer();
+    try {
+        const name = getRecordedFightNames()[0] ?? "";
+        const answer = await fetch(`${preview.url}/calls?fight=${encodeURIComponent(name)}`);
+        const calls = await answer.json();
+        assert(Array.isArray(calls), "the calls arrive as a list");
+        assert(calls.length > 0, "with something in it to feed");
+
+        const unnamed = await fetch(`${preview.url}/calls`);
+        assertEquals(unnamed.status, 404, "nothing asks for calls without saying whose");
+        await unnamed.body?.cancel();
+    } finally {
+        await preview.stop();
+    }
+});
+
+Deno.test("the bundle is served under the name the page asks for it by", async () => {
+    const preview = composeTestServer();
+    try {
+        const answer = await fetch(`${preview.url}/margometer.user.js`);
+        assertEquals(await answer.text(), BUNDLE, "what was built is what is served");
+        assertEquals(answer.status, 200, "and it is served as an answer, not as a refusal");
+
+        const decoy = await fetch(`${preview.url}/main.min1785244275300.js`);
+        assertEquals(decoy.status, 404, "the decoy's 404 is expected: only its `src` is read");
+        await decoy.body?.cancel();
+    } finally {
+        await preview.stop();
+    }
+});
+
+Deno.test("the reload stream opens, and stopping the server takes it with it", async () => {
+    const preview = composeTestServer();
+    const answer = await fetch(`${preview.url}/reload`);
+    assertEquals(answer.headers.get("content-type"), "text/event-stream", "a stream is opened");
+    const body = answer.body;
+    assert(body !== null, "and it carries one");
+    const reader = body.getReader();
+    const first = await reader.read();
+    const opening = new TextDecoder().decode(first.value);
+    assert(opening.includes("retry:"), "saying how soon a browser should come back");
+    await reader.cancel();
+    await preview.stop();
 });

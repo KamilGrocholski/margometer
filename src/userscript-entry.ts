@@ -1,1830 +1,1014 @@
 /**
- * Bundle entry point: the game on one side, a reading of the fight on the other.
+ * Where the layers meet: the game is found, the payloads reach a session, and what the session
+ * holds is drawn.
  *
- * Everything here is wiring. The decoding, the arithmetic and the promises to
- * the game each live in a module that can be read on its own; this is the only
- * file that knows they go together, and the only one that touches `window`.
- *
- * `setMargoMeter` takes the page rather than reaching for the global itself, so
- * the wiring is testable and the one unavoidable global read sits at the bottom
- * of this file where an auditor will find it. The panel is mounted the same way,
- * from the document this file is handed — which is what lets the once-per-fight
- * rule §9.6 asks for be checked without a browser.
+ * Everything it touches is handed in — the page, the document, the clock, the place a panel goes
+ * and the line a failure is written on. Nothing here reaches for a global, which is what keeps a
+ * userscript's contact with its browser stated in one file and testable without one.
  */
 
+import { assert } from "@std/assert";
 import {
-  composeEmptySession,
-  composeFightReading,
-  composeNextSession,
-  type BattleSession,
-  type FightReading,
+    type Combatant,
+    type CombatantRoster,
+    composeCombatantRoster,
+} from "@/src/core/combatant-roster.ts";
+import { composeTeamHeals } from "@/src/core/combatant-health.ts";
+import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
+import { getIntegerFromText } from "@/libs/number-text.ts";
+import { getNumberFromUnknown, getTextFromUnknown } from "@/libs/unknown-reading.ts";
+import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
+import {
+    addPayloadToSession,
+    type BattleSession,
+    composeBattleSession,
+    type FightReading,
+    getFightFromSession,
 } from "@/src/game/battle-session.ts";
-import { composeJsonText } from "@/libs/json.ts";
-import { setEngineAttachment, type GameWindow } from "@/src/game/engine-attachment.ts";
-import { getPlaceFromWindow, type FightPlace } from "@/src/game/engine-place.ts";
-import { getDictionaryReader, type DictionaryWindow } from "@/src/game/game-dictionary.ts";
-import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
+import { attachToGame, type GameAttachment, type Scheduler } from "@/src/game/engine-attachment.ts";
 import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
-import {
-  composeCaptureFileName,
-  composeCaptureText,
-  composeEmptyCapture,
-  composeNextCapture,
-  composeSnapshotFromBattle,
-  type CaptureEnvironment,
-  type CapturedCombatant,
-  type FightCapture,
-} from "@/src/game/fight-capture.ts";
-import {
-  composeIntegerText,
-  getFiniteNumberFromValue,
-} from "@/libs/number.ts";
-import { getValueFromJsonText } from "@/libs/json.ts";
-import { getRecordFromValue } from "@/libs/record.ts";
-import {
-  composeKeptFight,
-  composeKeptFightsAfterKeeping,
-  composeKeptFightsAfterPin,
-  composeSessionFromKeptFight,
-  getKeptFightsFromStoredText,
-  setKeptFightsThatFit,
-  type KeptFight,
-  type KeptFightOutcome,
-} from "@/src/game/kept-fights.ts";
-import {
-  getStorageChoiceFromValue,
-  getStoreFromPage,
-  isStorageForgottenWithPage,
-  type StorageChoice,
-  type StoragePage,
-  type ValueStore,
-} from "@/src/userscript-storage.ts";
-import { composeBattleRoster } from "@/src/game/engine-roster.ts";
-import { setRunningTotal } from "@/libs/running-total.ts";
-import { getMillisecondsFromIsoText } from "@/libs/timestamp.ts";
-import {
-  composeEmptyCombatantStatistics,
-  getCombatantIdsInFight,
-  type FightStatistics,
-} from "@/src/core/fight-statistics.ts";
+import { type FightPlace, getPlaceFromPage } from "@/src/game/engine-place.ts";
 import { getGameBuildFromScriptName } from "@/src/core/game-build.ts";
 import {
-  renderFightsInto,
-  renderPanelInto,
-  renderWaitingInto,
-  setPanelRoot,
-  type PanelDocument,
-  type PanelHost,
-  type PanelScroll,
-} from "@/src/ui/panel-element.ts";
+    type BrowserStore,
+    composeBrowserStore,
+    composeMemoryStore,
+    type PageStorage,
+} from "@/src/game/browser-store.ts";
 import {
-  composeDefaultState,
-  composeStateAfterBack,
-  composeStateAfterFightChosen,
-  composeStateAfterFightStart,
-  composeStateAfterFightsToggled,
-  composeStateAfterMetric,
-  composeStateAfterTeam,
-  composeStateFromRow,
-  type PanelDetailLine,
-  type PanelKeptFight,
-  type PanelState,
-  type PanelStorageChoice,
+    type CaptureSurroundings,
+    composeCaptureFileName,
+    composeCaptureText,
+    composeEmptyCapture,
+    composeNextCapture,
+    type FightCapture,
+} from "@/src/game/fight-capture.ts";
+import { type CapturedCombatant, composeSnapshotFromBattle } from "@/src/game/engine-warrior.ts";
+import {
+    composeKeptRotation,
+    getIsEverySlotPinned,
+    type KeptFight,
+    MAXIMUM_KEPT,
+    readKeptFights,
+    type ShelfWriting,
+    writeKeptFights,
+} from "@/src/game/kept-fights.ts";
+import type { ReportSubject } from "@/src/game/fight-report.ts";
+import { getDictionaryReader } from "@/src/game/game-dictionary.ts";
+import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
+import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
+import {
+    composeDrillReading,
+    composePairReading,
+    composePanelReading,
+    composeSkillReading,
+    type DrillReading,
+    getOutcomeForSeat,
+    type PairReading,
+    type PanelOutcome,
+    type ShelfRow,
+    type SkillReading,
+} from "@/src/ui/panel-reading.ts";
+import {
+    composeScreenState,
+    getScreenFromName,
+    getSideFromName,
+    getStorageFromName,
+    type PanelStorageChoice,
+    type ScreenState,
 } from "@/src/ui/panel-screen.ts";
 import {
-  composeStoredTextFromPosition,
-  getPositionFromStoredText,
-  type PanelPosition,
-  type PanelViewport,
-} from "@/src/ui/panel-element.ts";
+    composeStoredTextFromPosition,
+    getPositionFromStoredText,
+    type PanelPlacement,
+    type PanelPosition,
+    type PanelViewport,
+} from "@/src/ui/panel-drag.ts";
 import {
-  composeFightsView,
-  composePanelView,
-  getFightOutcome,
-  PANEL_WAITING,
-  type PanelFightsReading,
-} from "@/src/ui/panel-view.ts";
-import {
-  CAPTURE_PHASE,
-  DOM_PHASE,
-  DRAG_PHASE,
-  GESTURE_PHASE,
-  PAYLOAD_PHASE,
-  READING_PHASE,
-  SESSION_PHASE,
-  VIEW_PHASE,
-} from "@/src/cost-phases.ts";
-import { getTimedResult, setCostDrawn } from "@/src/userscript-instrument.ts";
+    CHOICE_REFUSED_WARNING,
+    composePlaceWords,
+    EVERY_SLOT_PINNED_WARNING,
+    STORE_MADE_ROOM_WARNING,
+    STORE_REFUSED_WARNING,
+} from "@/src/ui/panel-words.ts";
 
-export type MargoMeterOptions = {
-  /** Told after every payload, with the fight as it now stands. */
-  onReading?: ((reading: FightReading) => void) | undefined;
-  onAttached?: (() => void) | undefined;
-  onSearchAbandoned?: (() => void) | undefined;
-  /** Told once when another MargoMeter was already reading, so this one does not. */
-  onAnotherReaderFound?: (() => void) | undefined;
-  /** Told once when the game is on the page and refuses to be read. */
-  onAttachmentRefused?: ((error: unknown) => void) | undefined;
-  onReadingFailure?: ((error: unknown) => void) | undefined;
-  /**
-   * Told when keeping the recording throws. Its own channel, not `onReadingFailure`:
-   * the recording is a developer's tool and the meter is the product, so a reader
-   * of the console has to be able to tell which of the two stopped working.
-   */
-  onCaptureFailure?: ((error: unknown) => void) | undefined;
-  /**
-   * Told when a fight is finished, with the session and how it ended.
-   *
-   * **Two moments, and both are needed.** A fight is finished when it states an
-   * outcome, and the last fight of a session would otherwise wait forever for a
-   * next one; a fight is *also* finished when the next one opens, which is the
-   * only thing that closes one the game never stated an outcome for — a fight
-   * fled, a fight the panel joined halfway. Said again where the same fight
-   * states more after its outcome, so what is kept is never a fight cut short of
-   * its own last messages.
-   *
-   * The session and not a reading, because keeping a fight keeps the **inputs**
-   * (`src/game/kept-fights.ts`); the outcome rides along because it is on the
-   * aggregate and folding a finished fight twice to find it is a page load
-   * nobody asked for.
-   */
-  onFightOver?:
-    | ((session: BattleSession, outcome: FightStatistics["outcome"]) => void)
-    | undefined;
-  schedule?: ((step: () => void, everyMs: number) => number) | undefined;
-  cancel?: ((handle: number) => void) | undefined;
-};
-
+const FAILURE_LINE = "MargoMeter/Panel";
+/** The one key this add-on writes, named as ours like everything else a reader could meet. */
+const SHELF_KEY = "MargoMeter-fights";
 /**
- * A failure channel that speaks the first time and counts after that.
- *
- * §9.6 asks for exactly one branded console entry per caught failure — "a repeat is
- * counted, not reprinted" — and both of this file's failure channels fire from inside
- * the wrap, which runs on **every payload**. A fight redraws every few seconds, so a
- * channel that printed each time would put our own entry in front of whatever the
- * person was reading, which is the disturbance §9.6 spends its length refusing.
- *
- * Once for the page rather than once per fight, like the drag and the capture button in
- * `composePanelMount`: a throw out of the reading is a bug of ours, not a state of a
- * fight, and the fight boundary is not visible from here — the session lives inside
- * `setMargoMeter`. The repeats are counted, and the count reaches the copied report
- * through `composeMeterOptions`, which hands the sinks back to whoever wired them.
- * Nothing prints it on its own: there is no moment in a page's life that is the right
- * one to print a tally at, and for a while there was no moment at which anything read
- * it either.
+ * The fold, stored beside the shelf and never inside it: a shelf that reads back broken is
+ * dropped whole, and a reader who folded the panel away should not have that undone by it.
  */
-export type FailureSink = { report: (error: unknown) => void; getSilenced: () => number };
+const FOLD_KEY = "MargoMeter-folded";
+/** Anything else reads as unfolded, which is the state a reader who stored nothing is in. */
+const FOLDED = "1";
+const PLACE_KEY = "MargoMeter-place";
+/**
+ * Where the reader asked for the shelf to be kept, and it is kept beside the panel's own state
+ * rather than in the store it names: a choice held where it points would be unreadable the moment
+ * the reader picks the store that keeps nothing.
+ */
+const STORAGE_KEY = "MargoMeter-storage";
+const STORAGE_DEFAULT: PanelStorageChoice = "local";
 
-export function composeFailureSink(
-  brand: string,
-  warn: (brand: string, detail: unknown) => void,
-): FailureSink {
-  let hasReported = false;
-  let silenced = 0;
-  return {
-    report: (error) => {
-      if (hasReported) {
-        silenced += 1;
-        return;
-      }
-      hasReported = true;
-      warn(brand, error);
-    },
-    getSilenced: () => silenced,
-  };
+export interface PanelMount {
+    show(panel: PanelElement): void;
 }
 
-/** The two channels a page's failures are counted on, kept so a report can say. */
-export type FailureSinks = { reading: FailureSink; capture: FailureSink };
+export interface UserscriptEnvironment {
+    page: unknown;
+    readViewport(): PanelViewport | null;
+    document: PanelDocument;
+    schedule: Scheduler;
+    mount: PanelMount;
+    store: BrowserStore | null;
+    /**
+     * Where the shelf goes, by the reader's own answer. Never null: a browser that lends no store
+     * is answered with one that forgets, so the panel is never handed nothing.
+     */
+    composeShelfStore(choice: PanelStorageChoice): BrowserStore;
+    save: ((name: string, text: string) => void) | null;
+    readSurroundings(): CaptureSurroundings;
+    now(): number;
+    readClock(atMs: number): { hour: number; minute: number } | null;
+    /** One branded line, and the failure itself, so a console shows whose it is first. */
+    report(line: string, failure: unknown): void;
+}
 
-export type MargoMeter = {
-  /** The fight as it now stands, or null before anything has been read. */
-  getReading: () => FightReading | null;
-  /** The same fight as material: what a file written now would carry. */
-  getCapture: () => FightCapture;
-  stop: () => void;
-};
+function getPlaceWords(place: FightPlace | null): string | null {
+    if (place === null) return null;
+    const words = composePlaceWords(place.mapName, place.x, place.y);
+    assert(words === null || words.length > 0, "a place put into words says something");
+    return words;
+}
 
-/**
- * The name the running add-on answers to on the page.
- *
- * "Is it attached" is the first question anyone reporting a wrong number will be
- * asked, and this is where it is answered from a console. One property,
- * namespaced, read-only in spirit: the page belongs to the game.
- */
-const PAGE_HANDLE = "margometer";
+function composeShelfSizes(combatants: readonly Combatant[], readerSide: number | null): number[] {
+    const countBySide = new Map<number, number>();
+    assert(combatants.length <= MAXIMUM_COMBATANTS, "a fight stays inside its stated bound");
+    for (const one of combatants) countBySide.set(one.side, (countBySide.get(one.side) ?? 0) + 1);
+    const sides = [...countBySide].sort(([one], [other]) => {
+        if (readerSide === one) return -1;
+        if (readerSide === other) return 1;
+        return one - other;
+    });
+    assert(sides.every(([, count]) => count > 0), "a side that is counted has somebody on it");
+    return sides.map(([, count]) => count);
+}
 
-/**
- * What every element of ours wears in the game's own document (§9.6).
- *
- * ⚠️ **The prefix is not what stops the game's stylesheet reaching the panel.**
- * The shadow root is, which is why the ~40 class names behind it are unprefixed
- * and stay that way. These two are in front of it, so they are the ones that need
- * a name nothing else on the page will have chosen. Measured rather than assumed:
- * `margometer`, in any case, occurs nowhere in either cached client bundle —
- * production build `1786514810315`, development build `1781609507010`.
- *
- * ⚠️ **The version rides an attribute whose name cannot carry the prefix's
- * casing.** HTML matches and serialises attribute names case-insensitively, so
- * `data-MargoMeter-version` arrives in the DOM as `data-margometer-version`
- * whatever is typed here. Case survives in an `id` and a `class` *value* and in a
- * custom property, and nowhere else — so the mixed-case names below are values
- * and the lower-case one is a name. Do not "correct" either of them.
- */
-const PANEL_HOST_ID = "MargoMeter-Panel";
-const PANEL_HOST_CLASS = "MargoMeter-Panel";
-const PANEL_HOST_VERSION_ATTRIBUTE = "data-margometer-version";
-const DOWNLOAD_ANCHOR_CLASS = "MargoMeter-Download";
+interface FightFigures {
+    fight: FightReading;
+    roster: CombatantRoster;
+    statistics: FightStatistics;
+}
 
-/**
- * The host, plus the two things naming it needs.
- *
- * Widened here rather than on `PanelHost`, which is `ui`'s slice of the DOM: the
- * panel draws inside a shadow root and has no business knowing that the element
- * holding it sits in somebody else's document under an id.
- */
-type MarkedPanelHost = PanelHost & {
-  id: string;
-  setAttribute(name: string, value: string): void;
-};
-
-/**
- * Whether a MargoMeter is already running on this page.
- *
- * The outermost of the three guards against two copies counting one fight, and
- * the only one that survives the case the other two cannot see: a third add-on
- * wrapping the battle method *between* our two copies. Both of the guards in
- * `src/game/engine-battle-wrap.ts` look at the method, and by then the method on
- * top is a stranger's — so neither can tell "nobody has wrapped" from "we have,
- * and somebody wrapped over us". This one never looks at the method at all.
- *
- * It costs nothing to add because the handle has been set by every build since
- * 0.6.0; what was missing was anybody reading it.
- */
-export function hasOtherMargoMeter(page: HostPage): boolean {
-  return page[PAGE_HANDLE] !== undefined;
+interface KeptFigures {
+    read(fight: KeptFight): FightFigures;
+    forget(openedAt: number): void;
+    keepOnly(fights: readonly KeptFight[]): void;
 }
 
 /**
- * Attaches to the game and starts accumulating.
+ * The figures of a fight on the shelf, derived once and held for as long as the tab is.
  *
- * The session is rebuilt rather than mutated on each payload, so the value handed
- * out is never one a later payload can change underneath its reader — which is
- * what lets a panel hold onto a reading while the next batch arrives.
+ * A row states an outcome and the sizes of the sides, and `draw()` runs on every payload the game
+ * delivers — 117 per fight over `captures/`, 2026-08-30. Twenty rows derived cost 34.5 ms there,
+ * so a shelf drawn without this is four seconds of decoding per fight. In memory and never in the
+ * store: a figure that survives a reload is a figure an older version computed. **ADR 0026.**
  */
-export function setMargoMeter(page: GameWindow, options: MargoMeterOptions = {}): MargoMeter {
-  let session: BattleSession = composeEmptySession();
-  let hasReading = false;
-  let capture: FightCapture = composeEmptyCapture();
-  /**
-   * The combatants as the fight held them before the call the game is making now.
-   * It has to be taken ahead of the original, which is the whole reason the wrap
-   * offers a hook there — afterwards there is only the state the payload produced.
-   */
-  let combatantsBefore: readonly CapturedCombatant[] = [];
-  /**
-   * Kept from the hook above so the *after* snapshot can be read from the same
-   * object once the original has run. Held here rather than widened into
-   * `onMessages`: the reading is `core`'s business and has no use for the engine,
-   * and a signature carrying it would say otherwise to everyone who reads it.
-   */
-  let battleBeingCalled: EngineBattle | null = null;
+function composeKeptFigureMemo(): KeptFigures {
+    const held = new Map<number, FightFigures>();
+    return {
+        read(fight: KeptFight): FightFigures {
+            assert(fight.openedAt >= 0, "a fight is looked up by the moment it opened");
+            const before = held.get(fight.openedAt);
+            if (before !== undefined) return before;
+            const figures = composeKeptFigures(fight);
+            held.set(fight.openedAt, figures);
+            assert(held.size <= MAXIMUM_KEPT, "no more is held than the shelf holds");
+            return figures;
+        },
+        forget(openedAt: number): void {
+            held.delete(openedAt);
+        },
+        keepOnly(fights: readonly KeptFight[]): void {
+            for (const openedAt of [...held.keys()]) {
+                if (fights.some((one) => one.openedAt === openedAt)) continue;
+                held.delete(openedAt);
+            }
+            assert(held.size <= fights.length, "what is held is held for a fight on the shelf");
+        },
+    };
+}
 
-  /**
-   * Which fight was last handed over, and at what length.
-   *
-   * The length is what stops a fight being handed over on every payload once it
-   * has stated an outcome — a finished fight can still be called into several
-   * times — while still handing over a fight that goes on to say something more.
-   * `-1` because zero messages is a fight nothing is handed over for at all, so
-   * it cannot double as *nothing handed over yet* (§9.3).
-   */
-  let fightHandedOver = -1;
-  let messagesHandedOver = -1;
+/**
+ * The sentences it can say are the ways keeping a fight goes wrong, and each is a different
+ * remedy: unpin something, pin what is worth keeping, or nothing at all. A store that took the
+ * fight and asked for room is not the same answer as one that took nothing.
+ */
+interface ShelfKeeper {
+    fights: KeptFight[];
+    choice: PanelStorageChoice;
+    hasStoreRefused: boolean;
+    hasStoreMadeRoom: boolean;
+    isEverySlotPinned: boolean;
+    hasChoiceRefused: boolean;
+    /** Derived through the live chain and memoised, never read out of the store. */
+    readFigures(fight: KeptFight): FightFigures;
+    keep(fight: KeptFight): void;
+    setPinned(openedAt: number): void;
+    setChoice(choice: PanelStorageChoice): void;
+}
 
-  const setFightHandedOver = (
-    candidate: BattleSession,
-    outcome: FightStatistics["outcome"],
-  ): void => {
-    if (options.onFightOver === undefined || candidate.messages.length === 0) return;
-    if (
-      candidate.fightsStarted === fightHandedOver &&
-      candidate.messages.length === messagesHandedOver
-    ) {
-      return;
+function composeShelfWarnings(keeper: ShelfKeeper): string[] {
+    const warnings: string[] = [];
+    if (keeper.isEverySlotPinned) warnings.push(EVERY_SLOT_PINNED_WARNING);
+    if (keeper.hasStoreRefused) warnings.push(STORE_REFUSED_WARNING);
+    if (keeper.hasStoreMadeRoom) warnings.push(STORE_MADE_ROOM_WARNING);
+    if (keeper.hasChoiceRefused) warnings.push(CHOICE_REFUSED_WARNING);
+    assert(!keeper.hasStoreRefused || !keeper.hasStoreMadeRoom, "one write, one answer");
+    assert(warnings.length <= 3, "a shelf says at most the three things that can go wrong");
+    return warnings;
+}
+
+function composeShelfKeeper(environment: UserscriptEnvironment): ShelfKeeper {
+    assert(STORAGE_KEY.startsWith("MargoMeter-"), "the reader's answer is kept under our name");
+    const settings = environment.store;
+    const answered = settings === null ? "" : settings.read(STORAGE_KEY) ?? "";
+    const choice = getStorageFromName(answered) ?? STORAGE_DEFAULT;
+    let store = environment.composeShelfStore(choice);
+    const figures = composeKeptFigureMemo();
+    const setWritten = (writing: ShelfWriting, offered: number): void => {
+        keeper.hasStoreRefused = !writing.isOk;
+        // What went down is what is drawn: a store that asked for less leaves the panel showing
+        // the shelf a reload will find, not the one it was handed.
+        keeper.hasStoreMadeRoom = writing.isOk && writing.fights.length < offered;
+        if (writing.isOk) keeper.fights = writing.fights;
+        figures.keepOnly(keeper.fights);
+    };
+    const keeper: ShelfKeeper = {
+        fights: readKeptFights(store, SHELF_KEY),
+        choice,
+        hasStoreRefused: false,
+        hasStoreMadeRoom: false,
+        isEverySlotPinned: false,
+        hasChoiceRefused: false,
+        readFigures: (fight: KeptFight) => figures.read(fight),
+        keep(fight: KeptFight): void {
+            assert(fight.openedAt >= 0, "a fight goes on the shelf under the moment it opened");
+            // A fight kept a second time keeps the pin it was given: that is the reader's answer
+            // and not something a later payload may revoke.
+            const before = keeper.fights.find((one) => one.openedAt === fight.openedAt);
+            const held = keeper.fights.filter((one) => one.openedAt !== fight.openedAt);
+            const next = [...held, { ...fight, isPinned: before?.isPinned ?? fight.isPinned }];
+            keeper.isEverySlotPinned = getIsEverySlotPinned(next);
+            if (keeper.isEverySlotPinned) return;
+            keeper.fights = composeKeptRotation(next);
+            assert(keeper.fights.length > 0, "a shelf that took a fight holds one");
+            // Unreachable while `now()` is monotonic, and kept because keeping the pin above
+            // defends the reader against that very case: two fights under one moment.
+            figures.forget(fight.openedAt);
+            const offered = keeper.fights.length;
+            setWritten(writeKeptFights(store, SHELF_KEY, keeper.fights), offered);
+        },
+        setPinned(openedAt: number): void {
+            assert(Number.isSafeInteger(openedAt), "a fight is pinned by the moment it opened");
+            keeper.fights = keeper.fights.map((one) =>
+                one.openedAt === openedAt ? { ...one, isPinned: !one.isPinned } : one
+            );
+            const offered = keeper.fights.length;
+            setWritten(writeKeptFights(store, SHELF_KEY, keeper.fights), offered);
+        },
+        setChoice(next: PanelStorageChoice): void {
+            assert(next.length > 0, "a shelf is moved to a place that is named");
+            if (next === keeper.choice) return;
+            // The answer is written down before anything is done about it: acting on a refused
+            // one leaves the reader's fights, pinned ones included, in a place the next page
+            // will never look in, under a panel drawing the choice as taken.
+            const isWritten = settings !== null && settings.write(STORAGE_KEY, next);
+            keeper.hasChoiceRefused = !isWritten;
+            if (!isWritten) return;
+            // What was kept moves, and the place it came from is emptied: a reader who asks for
+            // the store that keeps nothing is saying they want nothing left behind, and the
+            // fights themselves travel because they are the reader's.
+            store.remove(SHELF_KEY);
+            keeper.choice = next;
+            store = environment.composeShelfStore(next);
+            const offered = keeper.fights.length;
+            setWritten(writeKeptFights(store, SHELF_KEY, keeper.fights), offered);
+        },
+    };
+    assert(keeper.fights.length >= 0, "a shelf read back holds the fights it holds");
+    return keeper;
+}
+
+/**
+ * The live one is always a row, because a shelf that hid it would answer *which fight am I
+ * reading* with a list the answer is not on.
+ */
+function composeShelfRows(
+    kept: readonly KeptFight[],
+    live: {
+        fight: FightReading;
+        place: FightPlace | null;
+        openedAt: number;
+        outcome: PanelOutcome | null;
+    } | null,
+    chosenId: number | null,
+    readClock: (atMs: number) => { hour: number; minute: number } | null,
+    readFigures: (fight: KeptFight) => FightFigures,
+): ShelfRow[] {
+    assert(typeof readClock === "function", "a shelf row is timed by the reader's own clock");
+    assert(kept.length >= 0, "and a shelf holds the fights it holds");
+    const rows: ShelfRow[] = [];
+    // One row for one fight: the one that has just ended is both the live one and a kept one
+    // until the next begins. It keeps the live row's wording and the kept row's pin.
+    const alsoKept = live === null ? undefined : kept.find((one) => one.openedAt === live.openedAt);
+    if (live !== null) {
+        rows.push({
+            openedAt: live.openedAt,
+            at: readClock(live.openedAt),
+            sizes: composeShelfSizes([...live.fight.roster.byId.values()], live.fight.readerSide),
+            place: getPlaceWords(live.place),
+            outcome: live.outcome,
+            isLive: true,
+            isChosen: chosenId === null || chosenId === alsoKept?.openedAt,
+            isPinned: alsoKept?.isPinned ?? false,
+            // Whether a fight can be pinned at all is `ui/panel-reading.ts`'s to say, and why.
+            isPinnable: alsoKept !== undefined,
+        });
     }
-    fightHandedOver = candidate.fightsStarted;
-    messagesHandedOver = candidate.messages.length;
-    options.onFightOver(candidate, outcome);
-  };
-
-  const stop = setEngineAttachment(
-    page,
-    /**
-     * ⚠️ **The phases wrap this whole callback, not the panel alone.** What a
-     * player waits for is the engine call returning, and everything below runs
-     * inside it — so `payload` is the honest figure and `session`, `capture`,
-     * `reading` are its parts. In the file people install every one of those is
-     * a pass-through that runs the work and hands it back
-     * (`src/userscript-instrument.ts`).
-     */
-    (reading) =>
-      getTimedResult(PAYLOAD_PHASE, () => {
-        const { payload, messages } = reading;
-        const before = session;
-        session = getTimedResult(SESSION_PHASE, () =>
-          /*
-           * The one place the client is asked where it is, and it is asked from
-           * inside the engine's own call — which is exactly the moment the answer
-           * is about. The session calls this only on a payload that opens a
-           * fight, so a player walking around pays nothing for it
-           * (`src/game/battle-session.ts`).
-           */
-          composeNextSession(before, reading, () => getPlaceFromWindow(page)),
-        );
-        hasReading = true;
-        /**
-         * Guarded on its own, and ahead of nothing: keeping material is a
-         * developer's convenience, and it must never be the reason a fight stops
-         * being counted or the panel stops being drawn. The same argument the wrap
-         * makes with two `try`s instead of one, one layer up.
-         */
-        try {
-          capture = getTimedResult(CAPTURE_PHASE, () =>
-            composeNextCapture(
-              capture,
-              payload,
-              messages,
-              combatantsBefore,
-              battleBeingCalled === null ? [] : composeSnapshotFromBattle(battleBeingCalled),
+    for (const one of [...kept].sort((first, other) => other.openedAt - first.openedAt)) {
+        if (one.openedAt === alsoKept?.openedAt) continue;
+        const figures = readFigures(one);
+        rows.push({
+            openedAt: one.openedAt,
+            at: readClock(one.openedAt),
+            sizes: composeShelfSizes(
+                [...figures.roster.byId.values()],
+                figures.fight.readerSide,
             ),
-          );
-        } catch (error) {
-          options.onCaptureFailure?.(error);
-        }
-        combatantsBefore = [];
-        // Nothing the panel draws can have changed, so nothing is drawn: the same
-        // session object back means the payload carried no fight (`composeNextSession`).
-        if (session !== before) {
-          const next = session;
-          const read = getTimedResult(READING_PHASE, () => composeFightReading(next));
+            place: getPlaceWords(one.place),
+            outcome: getOutcomeForFigures(figures),
+            isLive: false,
+            isChosen: chosenId === one.openedAt,
+            isPinned: one.isPinned,
+            isPinnable: true,
+        });
+    }
+    assert(rows.length >= kept.length, "a shelf draws a row for each fight it holds");
+    assert(rows.every((one) => one.place !== ""), "and a row that says where was fought says it");
+    return rows;
+}
 
-          /*
-           * The fight that just ended, before the one that just began is looked
-           * at. It is the only moment a fight the game stated no outcome for can
-           * be recognised as over, and it costs a fold of the previous fight —
-           * once, at a boundary, and never during one.
-           */
-          if (next.fightsStarted !== before.fightsStarted) {
-            setFightHandedOver(before, composeFightReading(before).statistics.outcome);
-          }
-          if (read.statistics.outcome !== null) setFightHandedOver(next, read.statistics.outcome);
-
-          options.onReading?.(read);
-        }
-      }),
-    {
-      onBeforeOriginal: (battle) => {
-        battleBeingCalled = battle;
-        combatantsBefore = composeSnapshotFromBattle(battle);
-      },
-      onReadingFailure: options.onReadingFailure,
-      onAttached: options.onAttached,
-      onSearchAbandoned: options.onSearchAbandoned,
-      onAnotherReaderFound: options.onAnotherReaderFound,
-      onAttachmentRefused: options.onAttachmentRefused,
-      schedule: options.schedule,
-      cancel: options.cancel,
-    },
-  );
-
-  return {
-    getReading: () => (hasReading ? composeFightReading(session) : null),
-    getCapture: () => capture,
-    stop,
-  };
+function getOutcomeForFigures(figures: FightFigures): PanelOutcome | null {
+    assert(figures.roster.byId.size >= 0, "a fight is called against the cast that fought it");
+    const outcome = figures.statistics.outcome;
+    if (outcome === null) return null;
+    return getOutcomeForSeat(outcome, figures.roster, figures.fight.readerSide);
 }
 
 /**
- * Whether this is somewhere to attach at all.
- *
- * ⚠️ **The first version of this asked whether `Engine` was there yet, and that
- * was wrong in the one place it mattered.** A userscript at `document-idle` can
- * run before the game finishes building its engine; asking for `Engine` at that
- * instant meant never starting, and never starting meant the search that exists
- * precisely for a late engine was never scheduled. The add-on did nothing, in
- * silence, and every test still passed — the bug needed a browser to appear.
- *
- * So the question is "am I in a page", which is answerable immediately and stays
- * answerable. Whether the game is there yet is the search's business.
+ * Where a press leaves the panel. False for a press that moves nothing, so a stray attribute in
+ * the game's own markup never costs a redraw, let alone puts the panel somewhere it cannot draw.
  */
-export function shouldStartHere(scope: { document?: unknown }): boolean {
-  return scope.document !== undefined;
+function setFightChosen(screen: ScreenState, openedAt: number | null): void {
+    assert(openedAt === null || Number.isSafeInteger(openedAt), "a fight is asked for by moment");
+    screen.openFightId = openedAt;
+    screen.isOnShelf = false;
+    screen.openRowId = null;
+    screen.openPairId = null;
+    screen.openSkillName = null;
+    assert(screen.openRowId === null, "and nothing of the last one stands over the new one");
+}
+
+function setShelfFromPress(shelf: ShelfKeeper, press: PanelPress): boolean {
+    assert(press.kind.length > 0, "a press says what it asks for");
+    if (press.kind === "pin") {
+        const openedAt = getIntegerFromText(press.stated);
+        if (openedAt === null) return false;
+        shelf.setPinned(openedAt);
+        return true;
+    }
+    if (press.kind !== "storage") return false;
+    const choice = getStorageFromName(press.name);
+    if (choice === null) return false;
+    shelf.setChoice(choice);
+    return true;
+}
+
+function handlePress(screen: ScreenState, press: PanelPress): boolean {
+    assert(press.kind.length > 0, "a press says what it asks for");
+    assert(screen.current.length > 0, "and lands on a panel that is on a screen");
+    if (press.kind === "save") return false;
+    if (press.kind === "pin") return false;
+    if (press.kind === "storage") return false;
+    if (press.kind === "fold") {
+        screen.isCollapsed = !screen.isCollapsed;
+        return true;
+    }
+    if (press.kind === "shelf") {
+        screen.isOnShelf = !screen.isOnShelf;
+        return true;
+    }
+    if (press.kind === "back") {
+        if (screen.isOnShelf) screen.isOnShelf = false;
+        else if (screen.openPairId !== null) screen.openPairId = null;
+        else screen.openRowId = null;
+        return true;
+    }
+    if (press.kind === "fight") {
+        setFightChosen(screen, getIntegerFromText(press.stated));
+        return true;
+    }
+    if (press.kind === "skill") {
+        screen.openSkillName = press.name;
+        return true;
+    }
+    if (press.kind === "row") {
+        const opened = getIntegerFromText(press.stated);
+        if (opened === null) return false;
+        // Not a toggle, unlike the shelf's tab: an opened row covers the screen it was opened on,
+        // so the row that would close it is not on the panel to be pressed a second time. A press
+        // inside an opened row is the rung under it — the pair of the two of them.
+        if (screen.openRowId === null) screen.openRowId = opened;
+        else screen.openPairId = opened;
+        return true;
+    }
+    if (press.kind === "side") {
+        const chosen = getSideFromName(press.side);
+        if (chosen === null) return false;
+        screen.side = chosen;
+        screen.isOnShelf = false;
+        // A side decides who is on the list, so a row opened before it was narrowed may not be
+        // on the list any more — and a cut standing over a list nobody is on says nothing.
+        screen.openRowId = null;
+        screen.openPairId = null;
+        return true;
+    }
+    const reached = getScreenFromName(press.screen);
+    if (reached === null) return false;
+    screen.current = reached;
+    screen.isOnShelf = false;
+    // The person stays and the pair does not: which end of a pair a figure belongs to is the
+    // direction's, so carrying one across the flip would open a pair on the wrong side of it.
+    screen.openPairId = null;
+    // The opened row stays. A reader who went into somebody is reading **that somebody**, and the
+    // strips are how they ask the next question about them: the combatant exists on every screen,
+    // which is what makes this different from narrowing to a side they may not be on.
+    return true;
 }
 
 /**
- * The page as this file needs it: the game, a document to draw into, and a name
- * to answer to.
+ * A fight off the shelf, through the chain the live one goes through: the payloads were kept, so
+ * the figures are this version's rather than the version that watched the fight. **ADR 0026.**
  */
-type HostPage = GameWindow & DictionaryWindow & {
-  document?: {
-    createElement(tag: string): unknown;
-    body?: { append(node: unknown): void } | undefined;
+function composeKeptFigures(kept: KeptFight): FightFigures {
+    assert(kept.payloads.length > 0, "a fight kept was kept from something");
+    const session = composeBattleSession();
+    for (const payload of kept.payloads) addPayloadToSession(session, payload);
+    const figures = composeFightFigures(session);
+    assert(figures !== null, "and every payload kept was one the session reads");
+    return figures;
+}
+
+/**
+ * The figures, derived rather than kept: what a session holds is what the game said, so the two
+ * readers of it are never looking at arithmetic one of them did earlier.
+ */
+function composeFightFigures(session: BattleSession): FightFigures | null {
+    const fight = getFightFromSession(session);
+    if (fight === null) return null;
+    assert(fight.payloads > 0, "a fight that is read was built from something");
+    const roster = composeCombatantRoster([...fight.roster.byId.values()]);
+    const statistics = composeFightStatistics(fight.events, composeTeamHeals(fight.events, roster));
+    assert(statistics.unreadMessages >= 0, "a reading states what it could not read, even as none");
+    return { fight, roster, statistics };
+}
+
+/**
+ * Puts what the session holds into the panel that is already on the page. A fight nobody has seen
+ * draws nothing, because a panel of zeroes over a game that has not started is a claim.
+ */
+function showFight(
+    session: BattleSession,
+    screen: ScreenState,
+    panel: PanelHandle,
+    shelf: ShelfKeeper,
+    place: FightPlace | null,
+    readClock: (atMs: number) => { hour: number; minute: number } | null,
+    openedAt: number,
+): void {
+    const live = composeFightFigures(session);
+    if (live === null) return;
+    const chosen = screen.openFightId === null
+        ? null
+        : shelf.fights.find((one) => one.openedAt === screen.openFightId) ?? null;
+    const figures = chosen === null ? live : shelf.readFigures(chosen);
+    const { fight, roster, statistics } = figures;
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        screen.current,
+        screen.side,
+        fight.readerSide,
+        { messagesLost: fight.messagesLost, hasJoinedInProgress: fight.hasJoinedInProgress },
+    );
+    assert(reading.rows.length >= 0, "a reading states its rows, however few");
+    const { drill, pair, skill } = composeOpenedReadings(figures, screen);
+    panel.show({
+        reading,
+        current: screen.current,
+        side: screen.side,
+        // A strip that cannot tell one side from the other is not drawn at all: the protocol
+        // never states which side is the reader's own, and the client does not always either.
+        hasReaderSide: fight.readerSide !== null,
+        shelf: composeShelfRows(
+            shelf.fights,
+            {
+                fight: live.fight,
+                place,
+                openedAt,
+                outcome: getOutcomeForFigures(live),
+            },
+            screen.openFightId,
+            readClock,
+            (one) => shelf.readFigures(one),
+        ),
+        storage: shelf.choice,
+        shelfWarnings: composeShelfWarnings(shelf),
+        isOnShelf: screen.isOnShelf,
+        drill,
+        pair,
+        skill,
+        place: getPlaceWords(chosen === null ? place : chosen.place),
+        isCollapsed: screen.isCollapsed,
+    });
+}
+
+interface OpenedReadings {
+    drill: DrillReading | null;
+    pair: PairReading | null;
+    skill: SkillReading | null;
+}
+
+function composeOpenedReadings(figures: FightFigures, screen: ScreenState): OpenedReadings {
+    const { roster, statistics } = figures;
+    assert(screen.current.length > 0, "a rung is opened on a screen the panel is on");
+    assert(
+        screen.openPairId === null || screen.openRowId !== null,
+        "a pair is opened from inside somebody, never on its own",
+    );
+    const drill = screen.openRowId === null
+        ? null
+        : composeDrillReading(statistics, roster, screen.current, screen.openRowId);
+    // A row nobody in the fight is on opens nothing, and nothing under it stands either: the
+    // rungs below a row that could not be read are rungs of no figure.
+    if (drill === null) return { drill: null, pair: null, skill: null };
+    assert(drill.total >= 0, "an opened figure is not below nothing");
+    const pair = screen.openPairId === null ? null : composePairReading(
+        statistics,
+        roster,
+        screen.current,
+        drill.combatantId,
+        screen.openPairId,
+    );
+    const skill = screen.openSkillName === null ? null : composeSkillReading(
+        statistics,
+        roster,
+        screen.current,
+        drill.combatantId,
+        screen.openSkillName,
+    );
+    return { drill, pair, skill };
+}
+
+/**
+ * The names a browser gives what this needs, and the whole of what it is asked for. A `Window`
+ * states far more than this, which is why `userscript-boot.ts` casts once at that boundary.
+ */
+export interface UserscriptWindow {
+    document: UserscriptDocument;
+    innerWidth?: number | undefined;
+    innerHeight?: number | undefined;
+    setInterval(step: () => void, everyMs: number): number;
+    clearInterval(handle: number): void;
+    setTimeout(step: () => void, afterMs: number): number;
+    console: { error(line: string, failure: unknown): void };
     /**
-     * For the client's build id, which rides in a script's filename.
-     *
-     * `ArrayLike` and not `Iterable`, which is the weaker of the two and the only
-     * one true of what a browser hands back here. A real `NodeListOf` iterates at
-     * run time, but TypeScript only says so when `lib` carries `DOM.Iterable`,
-     * and this repository's does not — so `Iterable` typechecked locally against
-     * stray `@types/jsdom` and failed in CI, where the lockfile decides.
+     * The two a browser lends, and both optional: a private window or a third-party-storage rule
+     * is a page with neither, and that is a page this add-on still works on.
      */
-    querySelectorAll?: ((selector: string) => ArrayLike<{ src?: unknown }>) | undefined;
-  };
-  /** The world a recording came from. Absent means the page did not say. */
-  location?: { hostname?: string | undefined } | undefined;
-  /** The two things a reader's own browser is asked for, and neither is required. */
-  navigator?:
-    | {
-        /**
-         * Where a report goes when the reader asks for one.
-         *
-         * Optional throughout, because a browser may refuse it and a test has
-         * none — and refusing costs the copy and nothing else, the same shape as
-         * the stored position. Not a network call: §5 forbids sending anything
-         * anywhere, and handing a person their own numbers is not sending them.
-         */
-        clipboard?: { writeText?: ((text: string) => unknown) | undefined } | undefined;
-        /**
-         * Which browser a recording and a report were written in.
-         *
-         * Read and never acted on: nothing here branches on it, and §5 keeps it
-         * from leaving the machine. It is in both artefacts because a defect can
-         * belong to one browser — `docs/browser-support.md` carries a whole tier
-         * for what degrades where, and the selection defect this repository fixed
-         * for `v0.8.0` was Safari's alone — and the artefacts are what somebody
-         * sends when they report one.
-         */
-        userAgent?: string | undefined;
-      }
-    | undefined;
-  /** For keeping the panel on screen. Absent means the page did not say. */
-  innerWidth?: number | undefined;
-  innerHeight?: number | undefined;
-  [PAGE_HANDLE]?: MargoMeter;
-} & StoragePage;
-
-/**
- * Namespaced, because the page belongs to the game and to every other add-on on
- * it — and all four are kept where a browser keeps things for good.
- *
- * The **settings** are there rather than wherever they say fights go, and that is
- * not circular reasoning avoided by accident: an answer kept in the place it
- * names would be unreadable the moment somebody chose the place that forgets.
- * They are tens of bytes, like the position and the collapse beside them.
- */
-const POSITION_KEY = "margometer.panel-position";
-const COLLAPSE_KEY = "margometer.panel-collapse";
-const SETTINGS_KEY = "margometer.fight-settings";
-const FIGHTS_KEY = "margometer.kept-fights";
-/**
- * Which fight the panel had on screen, so a reload puts the reader back on it.
- *
- * Up here with the settings rather than beside the fights, for the reason the
- * block above gives: this has to be readable whatever the reader answered about
- * where fights live. It is an id and nothing else — the fight itself is in the
- * store the reader chose, and a pointer at one that is gone falls back to the
- * newest rather than to nothing.
- *
- * ⚠️ **Which is an argument about the two choices that keep something, and it was
- * read as one about all three.** Where the reader asks for the store that keeps
- * nothing, this named a fight held nowhere and went on naming it in
- * `localStorage` — so `onStorageChosen` clears it there, and the settings beside
- * it stay for the reason above.
- */
-const SHOWN_FIGHT_KEY = "margometer.shown-fight";
-
-/**
- * Where the panel was left, or null.
- *
- * ⚠️ **The failure a browser produces here is caught in the store and never
- * again** (`src/userscript-storage.ts`): refusing storage is the expected outcome
- * on a private window or under a third-party-storage rule, and it arrives as a
- * `DOMException` under several different names. What is not swallowed is a bad
- * *value*: that is read and rejected by `getPositionFromStoredText`, which is a
- * different thing from the read failing.
- */
-function getStoredPosition(store: ValueStore): PanelPosition | null {
-  const stored = store.getText(POSITION_KEY);
-  return stored === null ? null : getPositionFromStoredText(stored);
-}
-
-/** The same the other way, and a failure to write is a panel that forgets — not a broken panel. */
-function setStoredPosition(store: ValueStore, position: PanelPosition): void {
-  store.setText(POSITION_KEY, composeStoredTextFromPosition(position));
+    localStorage?: PageStorage | undefined;
+    sessionStorage?: PageStorage | undefined;
+    Date: {
+        now(): number;
+        new (atMs: number): {
+            toISOString(): string;
+            /** Absent on a document that lends no clock of its own, which answers no time. */
+            getHours?(): number;
+            getMinutes?(): number;
+        };
+    };
+    location: { hostname?: string | undefined };
+    navigator: { userAgent?: string | undefined };
+    URL: { createObjectURL(part: unknown): string; revokeObjectURL(url: string): void };
+    Blob: new (parts: readonly string[], options: { type: string }) => unknown;
 }
 
 /**
- * The two words a window is left in, and nothing else is one of them.
+ * The document as this file asks for it, which is wider than the panel's own — the panel is
+ * handed one and states its own surface.
  *
- * Two words rather than a JSON `true`: the value has exactly two states, so
- * writing it as a document is a shape to be parsed where a comparison will do,
- * and a comparison is what makes anything else — an empty string, a `0`, a key
- * another add-on left under our name — unreadable rather than falsy. §9.6 asks
- * that state surviving a reload be validated, and a boolean is where that is
- * easiest to skip: `text === "true"` reads every wrong value as *open*, which is
- * a default wearing the reader's own answer.
+ * `createElement` answers an anchor for every tag, which is a shape only an anchor really has.
+ * Nothing here reads those members off anything but an `a`, and the boundary that asserts it is
+ * the one cast in `userscript-boot.ts`.
  */
-const COLLAPSED_TEXT = "collapsed";
-const OPEN_TEXT = "open";
-
-/** How the window was left, or null where nothing readable says. */
-function getStoredCollapse(store: ValueStore): boolean | null {
-  const stored = store.getText(COLLAPSE_KEY);
-  if (stored === COLLAPSED_TEXT) return true;
-  if (stored === OPEN_TEXT) return false;
-  return null;
+export interface UserscriptDocument {
+    createElement(tag: string): DownloadAnchor;
+    body: { append(child: PanelElement): void };
+    querySelectorAll(selector: string): ArrayLike<{ src?: unknown }>;
 }
 
-/** The same the other way, and a refusal is a window that forgets — §9.6's quiet, never a mark. */
-function setStoredCollapse(store: ValueStore, isCollapsed: boolean): void {
-  store.setText(COLLAPSE_KEY, isCollapsed ? COLLAPSED_TEXT : OPEN_TEXT);
+export interface DownloadAnchor extends PanelElement {
+    href: string;
+    download: string;
+    click(): void;
+    remove(): void;
 }
 
+/** The one class a reader could meet outside the panel, so it is named as ours (`SECURITY.md`). */
+const DOWNLOAD_ANCHOR_CLASS = "MargoMeter-download";
+const SCRIPT_WITH_SOURCE = "script[src]";
+
 /**
- * What the reader has chosen about keeping fights.
+ * Which world a recording came from, or the word saying nobody knows.
  *
+ * ⚠️ **`?? "unknown"` does not cover the case that happens.** A page with no hostname gives `""`,
+ * and `"".split(".")[0]` is `""` — not nullish, so a recording carried a world of nothing and the
+ * file was named `margometer--2026-…json`, with a hole where the answer goes. A value nobody
+ * wrote must never read as an answer. Seen on a `file://` page, in v1.
  */
-export type FightSettings = { storage: StorageChoice };
-
-const DEFAULT_SETTINGS: FightSettings = { storage: "local" };
-
-/**
- * ⚠️ **Validated and never repaired** (§9.6). A place that will not read is not
- * guessed at, because guessing wrong writes somebody's fights somewhere they did
- * not choose. A stored `keepLimit` from a build that still had the strip is
- * simply not read: the limit is no longer the reader's to set, so honouring an
- * old answer would be the add-on obeying a control that is not on the screen.
- */
-export function getSettingsFromStoredText(text: string): FightSettings {
-  const reading = getValueFromJsonText(text);
-  if (reading.syntaxError !== null) return DEFAULT_SETTINGS;
-  const fields = getRecordFromValue(reading.value);
-  if (fields === null) return DEFAULT_SETTINGS;
-
-  const storage = getStorageChoiceFromValue(fields["storage"]);
-  return { storage: storage ?? DEFAULT_SETTINGS.storage };
+function getWorldFromPage(page: UserscriptWindow): string {
+    const stated = page.location.hostname ?? "";
+    const world = stated.split(".")[0] ?? "";
+    assert(world.length >= 0, "a world read off a page is text");
+    if (world.length === 0) return "unknown";
+    return world;
 }
 
-/**
- * How many finished fights the shelf holds.
- *
- * ⚠️ **Fixed, and it is not the ceiling that binds.** The byte budget below is:
- * over the 25 recordings held on 2026-08-26 the heaviest fight comes to 44 397
- * characters and the median to 33 842, so twenty of the ordinary is 677 kB inside
- * a megabyte, and twenty of the worst would be turned away by the budget one
- * fight at a time — visibly, on the row where the consequence is. This number is
- * what stops the shelf growing without end; the budget is what stops it spending
- * somebody's browser, and only one of the two can be right about a number nobody
- * has measured yet.
- *
- * It was a strip of four numbers the reader picked from, removed on 2026-08-26 at
- * the maintainer's ask: the shelf spent a row of its own height offering a choice
- * whose consequence nobody could see — every answer fits the budget, so what the
- * strip actually changed was how soon a fight nobody pinned disappeared
- * (`docs/specs/a-fight-you-can-go-back-to.md`).
- */
-const KEPT_FIGHTS_LIMIT = 20;
-
-export function composeStoredTextFromSettings(settings: FightSettings): string {
-  return composeJsonText({ storage: settings.storage });
+function getGameBuildFromPage(page: UserscriptWindow): string | null {
+    const scripts = page.document.querySelectorAll(SCRIPT_WITH_SOURCE);
+    assert(scripts.length >= 0, "a page states the scripts it states, however few");
+    for (let at = 0; at < scripts.length; at += 1) {
+        const source = getTextFromUnknown(scripts[at]?.src) ?? "";
+        const build = getGameBuildFromScriptName(source);
+        if (build !== null) return build;
+    }
+    return null;
 }
-
-/**
- * How much of somebody's browser this add-on is willing to spend on fights.
- *
- * ⚠️ **A ceiling of ours, and never a guess at the browser's.** The origin
- * belongs to the game, which keeps everything under one key, rewrites it whole on
- * every change and catches nothing (`src/userscript-storage.ts`) — so what this
- * number buys is that the browser is rarely the thing that says no, and the
- * refusal path stays a safety net rather than the normal way a fight is dropped.
- *
- * Measured: over the 25 recordings held on 2026-08-26 the heaviest fight comes to
- * 44 397 characters and the median to 33 842, so a megabyte is about twenty of the
- * worst and thirty of the ordinary — comfortably more than the strip's largest
- * limit, and a fraction of the smallest quota any engine in
- * `docs/browser-support.md` is thought to offer.
- */
-const FIGHTS_BUDGET = 1_000_000;
-
-/**
- * The client build a recording came from, or null.
- *
- * Null, never a stand-in, where the page does not say. §7.6: material from the
- * game without the client's version is not comparable material, and a recording
- * that quietly claimed a build would be worse than one that admits it has none.
- */
-function getGameBuildFromPage(page: HostPage): string | null {
-  const scripts = page.document?.querySelectorAll?.("script[src]");
-  if (scripts === undefined) return null;
-  for (const script of Array.from(scripts)) {
-    const source = typeof script.src === "string" ? script.src : "";
-    const build = getGameBuildFromScriptName(source);
-    if (build !== null) return build;
-  }
-  return null;
-}
-
-/**
- * Which world a recording came from, or the word that says we do not know.
- *
- * ⚠️ **`?? "unknown"` did not cover the case that happens.** A page with no
- * hostname gives `""`, `"".split(".")[0]` is `""`, and an empty string is not
- * nullish — so the recording carried a world of nothing and the file was named
- * `margometer--2026-…json`, with a hole where the answer goes. That is the
- * silence §9.3 forbids twice over: it is a value nobody wrote, and it reads as
- * an answer rather than as its absence. Seen on a `file://` page.
- */
-function getWorldFromPage(page: HostPage): string {
-  const world = page.location?.hostname?.split(".")[0];
-  return world === undefined || world === "" ? "unknown" : world;
-}
-
-/**
- * What a recording needs from the page, gathered in the one file allowed to read
- * it — so `src/game/fight-capture.ts` stays checkable without a browser.
- */
-function composeCaptureEnvironment(
-  page: HostPage,
-  /**
-   * Where the fight was, as the session recorded it when the fight opened.
-   *
-   * ⚠️ **Handed in rather than read here, and that is the whole point.** Every
-   * other getter above answers the same thing whenever it is asked; this one
-   * would not — a download happens after the fight, by which time the player may
-   * be somewhere else entirely. The caller holds the reading, so the caller is
-   * the one that can answer for the right moment (`src/game/battle-session.ts`).
-   */
-  getPlace: () => FightPlace | null,
-): CaptureEnvironment {
-  return {
-    getWorld: () => getWorldFromPage(page),
-    getGameBuild: () => getGameBuildFromPage(page),
-    getCapturedAt: () => new Date().toISOString(),
-    getUserAgent: () => page.navigator?.userAgent ?? null,
-    getPlace,
-  };
-}
-
-/** What the browser needs to be handed to save a file. Nothing wider. */
-type DownloadAnchor = {
-  href: string;
-  download: string;
-  /** So the one tick it spends in the page is still a tick it spends named. */
-  className: string;
-  click: () => void;
-  remove: () => void;
-};
 
 /**
  * Hands a file to the browser, which puts it wherever the reader's downloads go.
  *
- * A file rather than the clipboard: a recording is hundreds of kilobytes, and
- * `navigator.clipboard` refuses often enough without a gesture that it cannot be
- * the only way out. `@grant none` is no obstacle — a blob and an object URL are
- * ordinary page APIs, not privileges.
+ * A file rather than the clipboard: a recording runs to hundreds of kilobytes. `@grant none` is
+ * no obstacle — a blob and an object URL are ordinary page APIs, not privileges, and nothing
+ * leaves the browser.
  *
- * ⚠️ **The anchor goes into the document, and the URL is released on the next
- * tick.** Clicking a detached node and revoking synchronously is tolerated by
- * Chromium and can abort the download in Firefox, which reads the blob after the
- * click returns. That failure is the worst kind available here: nothing throws,
- * so the panel looks like it saved, and no file arrives. Nothing in a fake
- * document exercises this — `click()` on an anchor does nothing there — so it is
- * checked by hand, in a browser.
+ * ⚠️ **The anchor goes into the document, and the URL is released on the next tick.** Clicking a
+ * detached node and revoking synchronously is tolerated by Chromium and can abort the download in
+ * Firefox, which reads the blob after the click returns. That failure is the worst kind available
+ * here: nothing throws, the panel looks like it saved, and no file arrives. A fake document
+ * exercises none of it — `click()` there does nothing — so it is checked in a browser.
  */
-function writeTextToFile(page: HostPage, name: string, text: string): void {
-  const document = page.document;
-  if (document === undefined) return;
-
-  const url = URL.createObjectURL(new Blob([text], { type: "application/json" }));
-  const anchor = document.createElement("a") as DownloadAnchor;
-  anchor.href = url;
-  anchor.download = name;
-  anchor.className = DOWNLOAD_ANCHOR_CLASS;
-  document.body?.append(anchor);
-  try {
-    anchor.click();
-  } finally {
-    anchor.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 0);
-  }
+function writeTextToFile(page: UserscriptWindow, name: string, text: string): void {
+    assert(name.length > 0, "a file handed to a browser is handed a name");
+    assert(text.length > 0, "and something to put in it");
+    const url = page.URL.createObjectURL(new page.Blob([text], { type: "application/json" }));
+    const anchor = page.document.createElement("a");
+    anchor.href = url;
+    anchor.download = name;
+    anchor.className = DOWNLOAD_ANCHOR_CLASS;
+    page.document.body.append(anchor);
+    try {
+        anchor.click();
+    } finally {
+        anchor.remove();
+        page.setTimeout(() => page.URL.revokeObjectURL(url), 0);
+    }
 }
 
 /**
- * What the panel is kept inside. Null rather than zero where the page did not
- * say: §9.3, and a viewport of zero would pin the panel to the corner while
- * looking exactly like one that works.
+ * A moment on the reader's own clock, as the hour and the minute it fell on.
+ *
+ * Read through the page's own `Date`, which is the one clock a userscript has, and answered as
+ * null where it will not read one: a row with no time says nothing rather than saying `00:00`,
+ * which is a reading of nothing wearing the shape of one.
  */
-function getViewportFromPage(page: HostPage): PanelViewport | null {
-  const width = getFiniteNumberFromValue(page.innerWidth);
-  const height = getFiniteNumberFromValue(page.innerHeight);
-  if (width === null || height === null) return null;
-  return { width, height };
+function getClockFromPage(
+    page: UserscriptWindow,
+    atMs: number,
+): { hour: number; minute: number } | null {
+    assert(typeof page.Date === "function" || typeof page.Date === "object", "a page has a clock");
+    if (!Number.isFinite(atMs)) return null;
+    const held = new page.Date(atMs);
+    const hour = getNumberFromUnknown(held.getHours?.());
+    const minute = getNumberFromUnknown(held.getMinutes?.());
+    if (hour === null || minute === null) return null;
+    assert(hour >= 0, "an hour on a clock is not below nothing");
+    assert(minute >= 0, "and neither is a minute");
+    return { hour, minute };
 }
 
 /**
- * The live fight's row on the shelf.
- *
- * A token no kept fight can carry: an id is composed below from a timestamp and a
- * fight number, and the way back off the shelf carries the empty string
- * (`src/ui/panel-element.ts`).
+ * How big the window is, or nothing at all. A page that states one and not the other states no
+ * viewport: half a size clamps a panel against a number nobody wrote.
  */
-const LIVE_FIGHT_ID = "live";
-
-/** What the shelf is, and what the meter tells it. */
-export type FightKeeper = {
-  shelf: PanelShelf;
-  /**
-   * Told once per fight, when it is over — and again if the same fight states
-   * more after that.
-   */
-  setFightKept: (session: BattleSession, outcome: KeptFightOutcome | null) => void;
-};
-
-/**
- * Everything about keeping fights that is not the panel and not the store.
- *
- * Here rather than at the bottom of the file with the rest of the wiring, because
- * it is the one part of this that is a **rule** and not a connection: which fight
- * is on screen, what a pin does, what moving the store does to what is already in
- * it, and what the reader is told when a fight could not be kept. All of it is
- * checkable with a store that is a map and a clock that is a function.
- *
- * ⚠️ **One fight is folded on page load, and the rest when they are opened.**
- * Ten kept fights folded at once is 20–70 ms of somebody else's game
- * (`docs/specs/a-fight-you-can-go-back-to.md`), spent on nine screens
- * nobody asked for. The one is `getOpeningReading`'s, and it is the screen the
- * reader is looking at rather than nine they are not
- * (`docs/specs/a-fight-you-can-go-back-to.md`). The shelf
- * itself needs no folding at all — a row is a time, a headcount and an outcome,
- * and all three are in the stored fight.
- */
-export function composeFightKeeper(
-  page: HostPage,
-  /** Where the answers live, which is never where the answers say (see `SETTINGS_KEY`). */
-  settingsStore: ValueStore,
-  getLiveReading: () => FightReading | null,
-  getNow: () => string = () => new Date().toISOString(),
-): FightKeeper {
-  let settings = getSettingsFromStoredText(settingsStore.getText(SETTINGS_KEY) ?? "");
-  let store = getStoreFromPage(page, settings.storage);
-  let fights = getKeptFightsFromStoredText(store.getText(FIGHTS_KEY) ?? "");
-
-  /** Null is the live fight, which is the row the panel opens on. */
-  let chosenId: string | null = null;
-  /**
-   * The fight the panel had on screen when the last page went away, or null for
-   * the live one.
-   *
-   * ⚠️ **What was on screen, and not what was chosen.** A reader who picked a
-   * fight an hour ago and has since watched three go by was not reading that
-   * fight when they reloaded — so the live fight taking the screen forgets this,
-   * exactly as choosing the live row does. Kept the other way round it would open
-   * on one fight for ever, and the only way out would be a gesture the reader has
-   * to know about.
-   */
-  let shownId = settingsStore.getText(SHOWN_FIGHT_KEY);
-  let hasStoreRefused = false;
-  let isEverySlotPinned = false;
-  let hasChoiceRefused = false;
-
-  /**
-   * Fights already folded, so opening one twice costs once.
-   *
-   * Emptied for whatever leaves the shelf, and never for what stays: a reading is
-   * of a fight that is over, so nothing can make one of them stale.
-   */
-  const readingById = new Map<string, FightReading>();
-
-  /** Which fight the id below belongs to, so a fight that states more keeps its row. */
-  let fightBeingKept = -1;
-  let idBeingKept = "";
-
-  /**
-   * The kept fight that is also the one happening now, or nothing.
-   *
-   * ⚠️ **A fight is over before the next one starts, and it is on the shelf for
-   * the whole of that gap.** `fightsStarted` is what tells one live fight from
-   * the next (`src/game/battle-session.ts`), so a live reading counting the same
-   * fight this keeper last wrote down is that fight, still running the panel.
-   */
-  const getFightKeptAndLive = (live: FightReading | null): KeptFight | undefined => {
-    if (live === null || live.fightsStarted !== fightBeingKept) return undefined;
-    return fights.find((held) => held.id === idBeingKept);
-  };
-
-  /**
-   * The fight the panel opens on where no payload has arrived: the newest kept
-   * one, or nothing.
-   *
-   * ⚠️ **Both halves of the answer read this, which is what keeps them
-   * agreeing.** `getOpeningReading` is what the panel draws after a reload and
-   * the row rule in `getFights` is what marks it on the shelf; written twice,
-   * they would be a shelf marking a row the panel is not showing
-   * (`docs/specs/a-fight-you-can-go-back-to.md`).
-   *
-   * It stops answering the moment either half of the condition moves — a payload
-   * arrives, so the live fight is what the panel follows, or the reader chooses
-   * one, so their choice is what is on screen.
-   *
-   * ⚠️ **The fight that was on screen first, and the newest only where that one
-   * is gone.** A reader who picked a fight out of the shelf and then reloaded is
-   * put back on it; the rotation may have dropped it since, and the newest is
-   * then the same answer a reader who picked nothing gets, rather than an empty
-   * panel over a shelf that is holding fights.
-   */
-  const getOpeningFight = (live: FightReading | null): KeptFight | undefined => {
-    if (live !== null || chosenId !== null) return undefined;
-    return fights.find((held) => held.id === shownId) ?? fights[0];
-  };
-
-  /**
-   * One kept fight folded, once however often it is asked for.
-   *
-   * A function rather than four lines at each caller: there are two of them now —
-   * the fight a reader chooses and the fight the panel opens on (§7.1) — and a
-   * second copy would be a second cache neither knows about, so a fight opened
-   * both ways would be folded twice and draw two objects the panel holds apart.
-   */
-  const getReadingOfFight = (fight: KeptFight): FightReading => {
-    const held = readingById.get(fight.id);
-    if (held !== undefined) return held;
-    const reading = composeFightReading(composeSessionFromKeptFight(fight));
-    readingById.set(fight.id, reading);
-    return reading;
-  };
-
-  /**
-   * Remembers which fight is on screen, or that the live one is.
-   *
-   * A refusal is not acted on here and not reported either, unlike the choice
-   * below: what a browser refusing this costs is a panel that opens on the newest
-   * fight instead of the one somebody was reading, which is §9.6's quiet — the
-   * same shape as the position and the collapse. Nothing moves and nothing is
-   * lost.
-   */
-  const setShownFight = (id: string | null): void => {
-    if (id === shownId) return;
-    shownId = id;
-    if (id === null) settingsStore.removeText(SHOWN_FIGHT_KEY);
-    else settingsStore.setText(SHOWN_FIGHT_KEY, id);
-  };
-
-  /**
-   * The reader's answer, written down before anything is done about it.
-   *
-   * ⚠️ **A choice the browser refused must not be acted on.** Both answers move fights
-   * — one to another store, one out of the rotation — and the *only* thing that tells
-   * the next page where to look is this write. So acting on a refused one leaves the
-   * reader's fights, pinned ones included, in a place the add-on will never open again,
-   * under a panel drawing the choice as taken. Nothing moves unless it landed. §9.6
-   * reaches this exactly: a number that might be wrong must never look like a number
-   * that is right, and here it is a choice rather than a number.
-   */
-  const setSettings = (next: FightSettings): boolean => {
-    const isWritten = settingsStore.setText(SETTINGS_KEY, composeStoredTextFromSettings(next));
-    hasChoiceRefused = !isWritten;
-    if (isWritten) settings = next;
-    return isWritten;
-  };
-
-  const setFights = (next: readonly KeptFight[], dropped: readonly string[]): void => {
-    fights = next;
-    for (const id of dropped) readingById.delete(id);
-    const written = setKeptFightsThatFit(fights, FIGHTS_BUDGET, (text) =>
-      store.setText(FIGHTS_KEY, text),
-    );
-    fights = written.fights;
-    hasStoreRefused = written.isRefused;
-    for (const id of written.dropped) readingById.delete(id);
-  };
-
-  return {
-    setFightKept: (session, outcome) => {
-      if (session.fightsStarted !== fightBeingKept) {
-        fightBeingKept = session.fightsStarted;
-        idBeingKept = `${getNow()}#${composeIntegerText(session.fightsStarted)}`;
-      }
-      // A fight that states more after it ended keeps the pin it was given, which
-      // is the reader's answer and not something a later payload may revoke.
-      const isPinned = fights.some((held) => held.id === idBeingKept && held.isPinned);
-      const fight = {
-        ...composeKeptFight(session, outcome, idBeingKept, getNow()),
-        isPinned,
-      };
-      const after = composeKeptFightsAfterKeeping(fights, fight, KEPT_FIGHTS_LIMIT);
-      isEverySlotPinned = after.isRefused;
-      if (after.isRefused) return;
-      setFights(after.fights, after.dropped);
-    },
-
-    shelf: {
-      getReading: () => ({
-        storage: settings.storage,
-        hasStoreRefused,
-        isEverySlotPinned,
-        hasChoiceRefused,
-      }),
-
-      getOpeningReading: () => {
-        const opening = getOpeningFight(getLiveReading());
-        return opening === undefined ? null : getReadingOfFight(opening);
-      },
-
-      getFights: () => {
-        const live = getLiveReading();
-        const alsoKept = getFightKeptAndLive(live);
-        const opening = getOpeningFight(live);
-        const rows: PanelKeptFight[] = [];
-        if (live !== null) {
-          /*
-           * One row for one fight. The fight that has just ended is both the live
-           * one and a kept one until the next begins, and drawing it twice — once
-           * as *teraz · trwa* and once under its own clock — is what the browser
-           * showed on 2026-08-26. It keeps the live row's wording and the kept
-           * row's pin.
-           */
-          rows.push({
-            id: alsoKept?.id ?? LIVE_FIGHT_ID,
-            isLive: true,
-            isPinnable: alsoKept !== undefined,
-            isPinned: alsoKept?.isPinned ?? false,
-            isSelected: chosenId === null || chosenId === alsoKept?.id,
-            at: null,
-            place: live.place,
-            sideCounts: composeSideCounts([...live.roster.byId.values()], live.ourSide),
-            outcome: getFightOutcome(live.roster, live.ourSide, live.statistics.outcome),
-          });
-        }
-        for (const fight of fights) {
-          if (fight.id === alsoKept?.id) continue;
-          const { roster } = composeBattleRoster(fight.combatants, fight.ourSide);
-          rows.push({
-            id: fight.id,
-            isLive: false,
-            isPinnable: true,
-            isPinned: fight.isPinned,
-            // Either the reader chose it, or it is the fight the panel opened
-            // on — and the second is why a reload does not mark nothing while a
-            // fight is on screen.
-            isSelected: chosenId === fight.id || fight.id === opening?.id,
-            at: getClockFromIsoText(fight.keptAt),
-            place: fight.place,
-            sideCounts: composeSideCounts(fight.combatants, fight.ourSide),
-            outcome: getFightOutcome(roster, fight.ourSide, fight.outcome),
-          });
-        }
-        return rows;
-      },
-
-      onFightChosen: (id) => {
-        // The merged row carries a kept fight's id and is still the live fight, so
-        // choosing it must leave the panel following the payloads.
-        if (id === LIVE_FIGHT_ID || id === getFightKeptAndLive(getLiveReading())?.id) {
-          chosenId = null;
-          setShownFight(null);
-          return { reading: getLiveReading(), isLive: true };
-        }
-        const fight = fights.find((held) => held.id === id);
-        // A row for a fight that is no longer here changes nothing at all, which
-        // is the panel staying where it was rather than blanking (§9.6).
-        if (fight === undefined) return { reading: null, isLive: chosenId === null };
-
-        chosenId = id;
-        setShownFight(id);
-        return { reading: getReadingOfFight(fight), isLive: false };
-      },
-
-      setLiveShown: () => setShownFight(null),
-
-      onPinToggled: (id) => {
-        const fight = fights.find((held) => held.id === id);
-        if (fight === undefined) return;
-        setFights(composeKeptFightsAfterPin(fights, id, !fight.isPinned), []);
-      },
-
-      onStorageChosen: (choice) => {
-        if (choice === settings.storage) return;
-        if (!setSettings({ ...settings, storage: choice })) return;
-        /*
-         * ⚠️ **What was kept moves, and the place it came from is emptied.** A
-         * reader choosing *tylko teraz* is saying they want nothing left behind,
-         * and a store that kept its copy would answer the opposite question. The
-         * fights themselves travel because they are the reader's, and losing them
-         * for changing where they live would make the control cost something it
-         * never said it would.
-         */
-        store.removeText(FIGHTS_KEY);
-        /*
-         * ⚠️ **The pointer at the fight on screen is about a fight, so it goes
-         * with them.** It lives with the settings and not with the fights, for
-         * the reason `SHOWN_FIGHT_KEY` gives — it has to be readable whatever the
-         * reader answered — and that argument covers the two choices that keep
-         * something. Under the one that keeps nothing it named a fight held
-         * nowhere, and it named it in `localStorage`, which is the one place the
-         * reader had just asked to be left with nothing of theirs in it. The
-         * position and the collapse beside it stay: those are the panel's, and
-         * the reader said nothing about the panel.
-         *
-         * Through `setShownFight` rather than by removing the key, so the id this
-         * keeper is holding and the id the browser is holding cannot come apart —
-         * cleared behind its back, the next choice of that same fight would find
-         * nothing to do and write nothing down.
-         */
-        if (isStorageForgottenWithPage(choice)) setShownFight(null);
-        store = getStoreFromPage(page, choice);
-        setFights(fights, []);
-      },
-
-    },
-  };
+function getViewportFromPage(page: UserscriptWindow): PanelViewport | null {
+    const width = getNumberFromUnknown(page.innerWidth);
+    const height = getNumberFromUnknown(page.innerHeight);
+    if (width === null || height === null) return null;
+    assert(width >= 0, "a window is never narrower than nothing");
+    assert(height >= 0, "and never shorter than nothing");
+    return { width, height };
 }
 
 /**
- * How many fought on each side, the reader's own first.
+ * The store the reader asked for, or the one that always works.
  *
- * The order is the panel's everywhere else — ours, then by the number the game
- * states — and it is composed here rather than in `src/ui/` because which side is
- * ours is the one thing `core` cannot know (§10, *side*).
+ * Falling back to what forgets rather than to the other browser store: a reader who chose to keep
+ * fights for good on a browser that lends no store is better served by a panel that forgets
+ * between pages than by one that quietly keeps their fights somewhere they did not choose.
+ *
+ * Reaching the property is itself a read that can throw — a browser forbidding storage does not
+ * hand back `undefined`, it throws on the access, before there is anything to call `getItem` on —
+ * so the page is asked inside the `try` and not before it.
  */
-function composeSideCounts(
-  combatants: readonly { side: number }[],
-  ourSide: number | null,
-): number[] {
-  const bySide = new Map<number, number>();
-  for (const combatant of combatants) setRunningTotal(bySide, combatant.side, 1);
-  return [...bySide.entries()]
-    .sort(([one], [other]) => {
-      if (one === ourSide) return -1;
-      if (other === ourSide) return 1;
-      return one - other;
-    })
-    .map(([, count]) => count);
+function composeStoreForChoice(page: UserscriptWindow, choice: PanelStorageChoice): BrowserStore {
+    assert(choice.length > 0, "a store is asked for by the name of a place");
+    if (choice === "memory") return composeMemoryStore();
+    try {
+        const storage = choice === "local" ? page.localStorage : page.sessionStorage;
+        if (storage === undefined) return composeMemoryStore();
+        return composeBrowserStore(storage);
+    } catch {
+        // A browser that will not say whether it has a store has none, which is an answer.
+        return composeMemoryStore();
+    }
 }
 
-/**
- * The wall clock a stored time falls on, in the reader's own zone, or null.
- *
- * Composed here because `src/ui/` is handed what it draws and constructs nothing
- * (§9.1) — and null rather than a corrected time, because a stored moment that
- * will not read is not midnight (§9.3).
- */
-function getClockFromIsoText(text: string): { hour: number; minute: number } | null {
-  const milliseconds = getMillisecondsFromIsoText(text);
-  if (milliseconds === null) return null;
-  const at = new Date(milliseconds);
-  return { hour: at.getHours(), minute: at.getMinutes() };
-}
-
-/**
- * What a mount needs to draw a shelf of kept fights, and to act on it.
- *
- * Optional as a whole, like the two buttons beside it: a panel mounted where
- * nothing keeps a fight has no shelf, and a control that is drawn and does
- * nothing is worse than one that is not there (§9.6).
- *
- * ⚠️ **`onFightChosen` hands the reading back rather than pushing it.** The panel
- * has to know two things at once — what to draw, and whether what it is drawing
- * is still the fight the payloads are about — and a caller that pushed a reading
- * in could only say the first. Without the second, choosing a fight from
- * yesterday and then being hit once puts the live numbers on screen under
- * yesterday's heading.
- */
-export type PanelShelf = {
-  /**
-   * What the panel opens on, folded — the newest kept fight, or null where
-   * nothing is kept.
-   *
-   * Asked once, at the mount, and the only fold this add-on pays for on a page
-   * load. Before it the panel met a reader who had just reloaded with *nie było
-   * jeszcze walki*, while their last twenty fights sat in the store behind a
-   * screen and a click
-   * (`docs/specs/a-fight-you-can-go-back-to.md`).
-   */
-  getOpeningReading: () => FightReading | null;
-  getFights: () => PanelKeptFight[];
-  getReading: () => PanelFightsReading;
-  /** Null where the fight will no longer read, which is a fight to stop showing. */
-  onFightChosen: (id: string) => { reading: FightReading | null; isLive: boolean };
-  /**
-   * Told that the live fight is what is on screen now, so a later page does not
-   * open on the one that was.
-   *
-   * Called from the render rather than worked out here: the shelf is asked
-   * nothing while the reader is watching a fight, so the moment a payload takes
-   * the screen is only visible where the payload is. It costs a comparison per
-   * payload and a write once (`setShownFight`).
-   */
-  setLiveShown: () => void;
-  onPinToggled: (id: string) => void;
-  onStorageChosen: (choice: PanelStorageChoice) => void;
-};
-
-/**
- * Draws the panel and keeps it in step with the fight.
- *
- * The whole panel is rebuilt on each reading rather than patched. That is the
- * cheap thing to be right about: a fight produces a payload every few seconds,
- * and §9.6's "render section by section, each isolated" is a property of
- * building, not of diffing. Losing a hand-written patcher's edge cases is worth
- * more than the frames it would save.
- */
-export function composePanelMount(
-  page: HostPage,
-  /** Injected so the once-per-fight rule can be checked without a console. */
-  warn: (brand: string, detail: unknown) => void = (brand, detail) =>
-    console.warn(brand, detail),
-  /**
-   * What the title bar's one button does. Absent draws no button: the panel is
-   * mounted in tests that have no fight to hand over, and a control that does
-   * nothing is worse than one that is not there.
-   */
-  onCaptureRequested?: () => void,
-  /**
-   * What the copy button hands over, given the fight as it stands.
-   *
-   * Takes the reading rather than reaching for it, because the button is built
-   * once and the fight changes under it — a closure over the fight at mount time
-   * would copy an empty one for the rest of the session.
-   */
-  onCopyRequested?: (reading: FightReading | null) => void,
-  /** Absent draws no shelf and no button for one. */
-  shelf?: PanelShelf,
-  /**
-   * Where the panel's position is kept. Handed in rather than taken off the page,
-   * so the one place that decides which store this add-on uses is the one place
-   * that reads the reader's answer.
-   */
-  store: ValueStore = getStoreFromPage(page, "local"),
-): ((reading: FightReading) => void) | null {
-  const document = page.document as PanelDocument | undefined;
-  if (document === undefined) return null;
-
-  // Where it sits is the stylesheet's, not this file's — all that is decided here
-  // is where it was left last time, which is the one part `src/ui/` cannot know.
-  const host = document.createElement("div") as MarkedPanelHost;
-  /*
-   * Named before it is appended, not after: between the two there is a tick in
-   * which the page holds an anonymous `<div>` of ours, and a page script reading
-   * `body.children` in that tick is exactly the reader this naming is for.
-   */
-  host.id = PANEL_HOST_ID;
-  host.className = PANEL_HOST_CLASS;
-  host.setAttribute(PANEL_HOST_VERSION_ATTRIBUTE, USERSCRIPT_VERSION);
-  page.document?.body?.append(host);
-
-  /**
-   * Once for the page, not once per fight like the section failures below.
-   *
-   * A drag is not scoped to a fight, and `pointermove` fires tens of times a
-   * second — a handler failing on each one would put the panel's own console
-   * entry in the way of whatever the user was actually trying to read (§9.6).
-   * Nothing is marked on screen for this: what a failed drag looks like is a
-   * panel that did not move, which the hand holding it can already see.
-   */
-  let hasReportedDragFailure = false;
-
-  /** Once for the page, like the drag above: pressing a button is not a fight. */
-  let hasReportedCaptureFailure = false;
-
-  /**
-   * Once for the page, and for the plainest reason of the three: the body drawn
-   * before the first payload belongs to no fight, so there is no boundary the
-   * counter below could be cleared on.
-   */
-  let hasReportedWaitingFailure = false;
-
-  /**
-   * One map, filled by every render and read by the tooltip.
-   *
-   * It has to be the same object on both sides: the tooltip is built once with
-   * the shadow root, and the rows it describes are rebuilt on every payload.
-   */
-  const details = new Map<unknown, PanelDetailLine[]>();
-
-  /**
-   * One per mount, like the map above, and for the same reason: the render is what
-   * replaces the list, so where the reader had scrolled to has to survive between
-   * two of them.
-   */
-  const scroll: PanelScroll = { list: null, levelKey: null };
-
-  /**
-   * Once per mount, because the dictionary is built with the page and not with
-   * the fight — and because a page without one is a page that never grows one.
-   * Null here is the panel drawing its own words, which is what every test and
-   * every browser without the game sees.
-   */
-  const translate = getDictionaryReader(page);
-
-  // Opened once: `attachShadow` throws on a second call for the same element.
-  const container = setPanelRoot(
-    document,
-    host,
-    {
-      position: getStoredPosition(store),
-      getViewport: () => getViewportFromPage(page),
-      onMoved: (position) => setStoredPosition(store, position),
-      // The name is bound here because `src/ui/` may not read the list it comes
-      // from (§9.1). The panel is handed a function, not a vocabulary.
-      getTimedResult: (work) => getTimedResult(DRAG_PHASE, work),
-      onSectionFailure: (error) => {
-        if (hasReportedDragFailure) return;
-        hasReportedDragFailure = true;
-        warn("MargoMeter/PanelDrag", error);
-      },
-    },
-    {
-      onCopyRequested: onCopyRequested === undefined ? undefined : () => onCopyRequested(latest),
-      onCaptureRequested,
-      onFightsToggled:
-        shelf === undefined ? undefined : () => setState(composeStateAfterFightsToggled(state)),
-      onCollapseToggled: () => {
-        const isCollapsed = !state.isCollapsed;
-        setStoredCollapse(store, isCollapsed);
-        setState({ isCollapsed });
-      },
-      onSectionFailure: (error) => {
-        if (hasReportedCaptureFailure) return;
-        hasReportedCaptureFailure = true;
-        warn("MargoMeter/PanelCapture", error);
-      },
-    },
-    details,
-  );
-
-  /*
-   * The window is the one part of the state a reload restores, and the default
-   * is spread rather than restated: a reader who left the panel collapsed opens
-   * the next page collapsed, and a page with nothing stored opens where
-   * `composeDefaultState` says — one place, not two that can drift apart.
-   */
-  const defaults = composeDefaultState();
-  let state: PanelState = {
-    ...defaults,
-    isCollapsed: getStoredCollapse(store) ?? defaults.isCollapsed,
-  };
-  /**
-   * The fight on screen before a payload has arrived: the newest one kept, or
-   * nothing, which is the waiting body.
-   *
-   * ⚠️ **Drawn, and still not chosen** — which is why the flag below stays true
-   * over it. A reader who reloads did not ask for this fight; they asked for the
-   * panel, and this is the most recent thing it can honestly put in it. So the
-   * next payload takes the screen, and the shelf marks this fight only for as
-   * long as no payload has arrived
-   * (`docs/specs/a-fight-you-can-go-back-to.md`).
-   */
-  let latest: FightReading | null = shelf?.getOpeningReading() ?? null;
-  /**
-   * Whether the next payload takes the screen.
-   *
-   * False the moment a fight is chosen off the shelf, and true again when the
-   * live one is. Without it a payload arriving while somebody reads a finished
-   * fight replaces their screen with numbers from a different fight, under the
-   * heading of the one they asked for.
-   *
-   * ⚠️ **Not *whether the live fight is what is drawn*, which is what it was
-   * called and what it never quite meant.** It is true over the fight above,
-   * which is a kept one, because what the flag decides is whose fight the *next*
-   * payload belongs on screen — and a fight nobody chose does not outrank the one
-   * the reader is in.
-   */
-  let isFollowingLive = true;
-  let failuresThisFight = 0;
-  let fightBeingCounted = 0;
-  /** Per fight, like the counter above and cleared on the same boundary. */
-  let hasReportedEngineGaps = false;
-
-  /**
-   * Where a gesture becomes a state.
-   *
-   * All of it is here rather than in `ui`, and the split is the same one the
-   * whole layer keeps: the panel reports what was clicked, and what that means
-   * for what is on screen is decided outside it. Changing the metric drops the
-   * drill with it, because the level below belongs to the metric it was opened
-   * in — kept, it would draw one list under another list's heading.
-   *
-   * Every gesture goes through here — a tab, a side, a row, a step back, the
-   * collapse — which is also why it is the one place the `gesture` phase wraps.
-   * It contains the render it triggers, so what it measures is the question the
-   * panel is actually asked: how long between the click and the new screen.
-   */
-  const setState = (next: Partial<PanelState>): void => {
-    getTimedResult(GESTURE_PHASE, () => {
-      state = { ...state, ...next };
-      renderLatest();
+export function startFromWindow(page: UserscriptWindow): GameAttachment {
+    assert(typeof page.setInterval === "function", "a page states the clock this asks for");
+    let shown: PanelElement | null = null;
+    return startMargoMeter({
+        page,
+        document: page.document,
+        schedule: {
+            every: (step, everyMs) => page.setInterval(step, everyMs),
+            cancel: (handle) => page.clearInterval(handle),
+        },
+        mount: {
+            show: (panel) => {
+                assert(panel !== shown, "a panel never replaces itself");
+                shown?.replaceWith(panel);
+                if (shown === null) page.document.body.append(panel);
+                shown = panel;
+            },
+        },
+        readViewport: () => getViewportFromPage(page),
+        report: (line, failure) => page.console.error(line, failure),
+        store: composeStoreForChoice(page, STORAGE_DEFAULT),
+        composeShelfStore: (choice) => composeStoreForChoice(page, choice),
+        save: (name, text) => writeTextToFile(page, name, text),
+        readSurroundings: () => ({
+            world: getWorldFromPage(page),
+            gameBuild: getGameBuildFromPage(page),
+            capturedAt: new page.Date(page.Date.now()).toISOString(),
+            userAgent: page.navigator.userAgent ?? null,
+        }),
+        now: () => page.Date.now(),
+        readClock: (atMs) => getClockFromPage(page, atMs),
     });
-  };
+}
 
-  /** Once for the page, like the drag: the shelf is not scoped to a fight. */
-  let hasReportedShelfFailure = false;
+/**
+ * Puts a finished fight on the shelf, once. What is kept is what the game delivered — the
+ * recording's own calls, thinned by the one rule that thins them — so every figure a row states is
+ * derived by the code that is running. **ADR 0026.**
+ */
+function keepFight(
+    session: BattleSession,
+    shelf: ShelfKeeper,
+    live: LiveFight,
+    gameBuild: string | null,
+): void {
+    const fight = getFightFromSession(session);
+    if (fight === null) return;
+    if (!fight.isOver) return;
+    assert(live.openedAt >= 0, "a fight is kept under the moment it opened");
+    assert(live.capture.calls.length > 0, "and from the calls a recording of it would carry");
+    assert(gameBuild !== "", "a build the page did not say is absent, never empty");
+    shelf.keep({
+        openedAt: live.openedAt,
+        payloads: live.capture.calls.map((call) => call.payload),
+        place: live.place,
+        gameBuild,
+        isPinned: false,
+    });
+}
 
-  const renderLatest = (): void => {
-    if (state.screen === "fights" && shelf !== undefined) {
-      const drawn = shelf;
-      renderFightsInto(
-        document,
-        container,
-        composeFightsView(drawn.getFights(), drawn.getReading()),
-        {
-          onFightChosen: (id) => {
-            const chosen = drawn.onFightChosen(id);
-            isFollowingLive = chosen.isLive;
-            // A fight that will no longer read leaves the panel on the one it was
-            // showing rather than blanking it (§9.6: never vanish). The shelf is
-            // what says so, by no longer listing it.
-            if (chosen.reading !== null) latest = chosen.reading;
-            setState(composeStateAfterFightChosen());
-          },
-          onPinToggled: (id) => {
-            drawn.onPinToggled(id);
-            renderLatest();
-          },
-          onStorageChosen: (choice) => {
-            drawn.onStorageChosen(choice);
-            renderLatest();
-          },
-          onBack: () => setState(composeStateAfterBack(state)),
-          onSectionFailure: (error) => {
-            if (hasReportedShelfFailure) return;
-            hasReportedShelfFailure = true;
-            warn("MargoMeter/PanelFights", error);
-          },
-        },
-        state.isCollapsed,
-        scroll,
-      );
-      setCostDrawn(page);
-      return;
+/**
+ * What the figures of the live fight are written from, or nothing where none has been read. Null
+ * is a true statement the file carries: the add-on was attached and the game said nothing.
+ */
+function composeReportSubject(session: BattleSession, live: LiveFight): ReportSubject | null {
+    assert(live.openedAt >= 0, "a fight written down opened at a moment, or has not opened");
+    const figures = composeFightFigures(session);
+    if (figures === null) return null;
+    assert(figures.fight.payloads > 0, "and a fight that was read was built from something");
+    return {
+        statistics: figures.statistics,
+        roster: figures.roster,
+        place: live.place,
+        payloads: figures.fight.payloads,
+        messagesLost: figures.fight.messagesLost,
+        isOver: figures.fight.isOver,
+    };
+}
+
+/**
+ * The fight, handed to the browser as a file — the calls the game made and the figures they came
+ * to, unredacted by design, which `game/fight-capture.ts` states along with what deals with that
+ * and where.
+ *
+ * The figures are composed here rather than read off the panel: what a reader hands over is of the
+ * fight going on, and the panel may be standing on one off the shelf. A refusal to write leaves a
+ * mark rather than an empty file.
+ */
+function saveRecording(
+    environment: UserscriptEnvironment,
+    live: LiveFight,
+    session: BattleSession,
+): void {
+    const save = environment.save;
+    if (save === null) return;
+    const surroundings = environment.readSurroundings();
+    const subject = composeReportSubject(session, live);
+    const text = composeCaptureText(live.capture, surroundings, subject);
+    if (text === null) {
+        environment.report(FAILURE_LINE, "a recording that would not be written as text");
+        return;
     }
+    assert(text.length > 0, "a recording written as text says something");
+    save(composeCaptureFileName(surroundings), text);
+}
 
-    /*
-     * ⚠️ **This used to be a bare `return`, and it is the whole of the defect it
-     * replaces.** The title bar is built with the shadow root and outlives every
-     * render, so a render that drew nothing left the panel looking exactly like a
-     * *collapsed* one — a bar and no body — for as long as the player had not
-     * fought. Two things followed from it: nothing said whether the add-on was
-     * waiting or broken, and the collapse button flipped a flag that reached a
-     * function which returned before drawing, so the one control on the bar did
-     * nothing at all until the first payload.
+/**
+ * What is true of the fight going on now, and nothing that outlives it.
+ *
+ * These were five loose bindings the entry closed over, which is what made a payload's bookkeeping
+ * a part of the entry rather than a thing of its own — and what put `startMargoMeter` past **S4**
+ * where the reader could not see it.
+ */
+interface LiveFight {
+    /** The recording, and the state each call is entered with: the same fight, so held together. */
+    capture: FightCapture;
+    combatantsBefore: CapturedCombatant[];
+    /**
+     * Read once, on the payload that opens a fight: the client's own state is where a place is,
+     * the hero does not move while a fight is on, and reading it every payload would ask another
+     * program's object graph a question whose answer cannot have changed.
      */
-    if (latest === null) {
-      renderWaitingInto(document, container, PANEL_WAITING, {
-        onSectionFailure: (error) => {
-          if (hasReportedWaitingFailure) return;
-          hasReportedWaitingFailure = true;
-          warn("MargoMeter/PanelSection", error);
+    place: FightPlace | null;
+    openedAt: number;
+    wasOver: boolean;
+}
+
+function composeLiveFight(): LiveFight {
+    return {
+        capture: composeEmptyCapture(),
+        combatantsBefore: [],
+        place: null,
+        openedAt: 0,
+        wasOver: false,
+    };
+}
+
+/** Where the reader put the panel, and where a drag is allowed to put it. */
+function composePanelPlacement(
+    environment: UserscriptEnvironment,
+    store: BrowserStore | null,
+): PanelPlacement {
+    assert(PLACE_KEY.startsWith("MargoMeter-"), "the place the reader dragged it to is ours");
+    assert(typeof environment.readViewport === "function", "and is clamped against something");
+    return {
+        position: store === null ? null : getPositionFromStoredText(store.read(PLACE_KEY) ?? ""),
+        getViewport: () => environment.readViewport(),
+        // Once per drag rather than once per frame. A refusal to write is an answer here as
+        // wherever this panel writes: the reader's choice stands, and only the next visit is the
+        // poorer for it.
+        handleMoved: (position: PanelPosition) => {
+            store?.write(PLACE_KEY, composeStoredTextFromPosition(position));
         },
-      }, state.isCollapsed);
-      return;
+    };
+}
+
+/** One payload, into the fight it belongs to and into the recording beside it. */
+function readPayloadIntoLive(
+    live: LiveFight,
+    session: BattleSession,
+    shelf: ShelfKeeper,
+    environment: UserscriptEnvironment,
+    stated: { payload: unknown; battle: EngineBattle },
+): void {
+    assert(live.openedAt >= 0, "a fight opened at a moment, or has not opened");
+    addPayloadToSession(session, stated.payload);
+    live.capture = composeNextCapture(live.capture, {
+        payload: stated.payload,
+        messages: session.messagesByPayload.at(-1) ?? [],
+        combatantsBefore: live.combatantsBefore,
+        combatantsAfter: composeSnapshotFromBattle(stated.battle),
+    });
+    const fight = getFightFromSession(session);
+    if (fight !== null && fight.payloads === 1) {
+        live.place = getPlaceFromPage(environment.page);
+        live.openedAt = environment.now();
     }
-    const shown = latest;
-    const view = getTimedResult(VIEW_PHASE, () => composePanelView(shown, state, translate));
-    getTimedResult(DOM_PHASE, () =>
-      renderPanelInto(document, container, view, {
-      onMetricChosen: (chosen) => setState(composeStateAfterMetric(chosen)),
-      onTeamChosen: (chosen) => setState(composeStateAfterTeam(chosen)),
-      onRowChosen: (key) => setState(composeStateFromRow(state, key)),
-      onBack: () => setState(composeStateAfterBack(state)),
-      /**
-       * Once per fight, not once per render: a fight redraws on every payload
-       * and a panel logging each time is itself a way of disturbing someone
-       * (§9.6). The repeats are counted rather than dropped, and what the count
-       * came to is said when the fight it belongs to is over.
-       */
-      onSectionFailure: (error) => {
-        failuresThisFight += 1;
-        if (failuresThisFight === 1) warn("MargoMeter/PanelSection", error);
-      },
-      }, state.isCollapsed, details, scroll),
+    // Once, on the call that ends it: a fight put on the shelf twice is two fights.
+    if (fight !== null && fight.isOver && !live.wasOver) {
+        live.wasOver = true;
+        keepFight(session, shelf, live, environment.readSurroundings().gameBuild);
+    }
+    if (fight !== null && !fight.isOver) live.wasOver = false;
+}
+
+/** Every way the attachment can fail, said once each, under the one branded line. */
+function composeGameReports(environment: UserscriptEnvironment) {
+    assert(FAILURE_LINE.startsWith("MargoMeter/"), "a failure of ours says whose it is first");
+    return {
+        handleFailure: (failure: unknown) => environment.report(FAILURE_LINE, failure),
+        handleAnotherReader: () =>
+            environment.report(FAILURE_LINE, "another reader holds the game"),
+        handleRefusal: () => environment.report(FAILURE_LINE, "the game states no method to read"),
+        handleSearchAbandoned: () => environment.report(FAILURE_LINE, "no game on this page"),
+    };
+}
+
+export function startMargoMeter(environment: UserscriptEnvironment): GameAttachment {
+    const session = composeBattleSession();
+    const store = environment.store;
+    const screen = composeScreenState(store !== null && store.read(FOLD_KEY) === FOLDED);
+    const shelf = composeShelfKeeper(environment);
+    assert(SHELF_KEY.startsWith("MargoMeter-"), "every key this add-on writes is named as ours");
+    assert(FOLD_KEY.startsWith("MargoMeter-"), "the fold included");
+    const placement = composePanelPlacement(environment, store);
+    const live = composeLiveFight();
+    assert(getFightFromSession(session) === null, "a session starts holding no fight");
+    // The panel goes up when the wrap goes on, and not before: a copy that stood down never gets
+    // one, and a page with no game on it is left as it was found.
+    let isMounted = false;
+    const mount = (): void => {
+        if (isMounted) return;
+        environment.mount.show(panel.element);
+        isMounted = true;
+    };
+    const draw = (): void => {
+        assert(screen.current.length > 0, "a draw is of a panel that is on a screen");
+        assert(live.openedAt >= 0, "and of a fight that opened at a moment, or has not opened");
+        showFight(session, screen, panel, shelf, live.place, environment.readClock, live.openedAt);
+    };
+    const showAndMount = (): void => {
+        draw();
+        mount();
+    };
+    const panel = composePanelHost(
+        environment.document,
+        (press) => {
+            if (press.kind === "save") saveRecording(environment, live, session);
+            const isShelfPress = setShelfFromPress(shelf, press);
+            if (!isShelfPress && !handlePress(screen, press)) return;
+            if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
+            if (getFightFromSession(session) === null) panel.showWaiting(screen.isCollapsed);
+            else draw();
+        },
+        (failure) => environment.report(FAILURE_LINE, failure),
+        placement,
+        // Once per mount: the dictionary is built with the page and not with the fight, and a page
+        // without one never grows one. Null is the panel drawing its own words (ADR 0024).
+        getDictionaryReader(environment.page),
     );
-    // Last, so what it draws includes the render it is drawn after. Nothing at
-    // all in the file people install (`src/userscript-instrument.ts`).
-    setCostDrawn(page);
-  };
-
-  /*
-   * Drawn once here, so the panel is a panel from the moment it is on the page.
-   * It cannot go any earlier: `state` is declared below the shadow root, and
-   * `renderLatest` below that.
-   */
-  renderLatest();
-
-  return (reading) => {
-    // A warning belongs to the fight that produced it and clears with it (§9.6).
-    // Said here rather than in the handler because this is where the boundary is
-    // visible: the handler only ever sees failures, so a fight that ends cleanly
-    // would never reach it.
-    if (reading.fightsStarted !== fightBeingCounted) {
-      if (failuresThisFight > 1) {
-        warn("MargoMeter/PanelSection", `${failuresThisFight} failures in that fight, 1 printed`);
-      }
-      failuresThisFight = 0;
-      fightBeingCounted = reading.fightsStarted;
-      hasReportedEngineGaps = false;
-      /*
-        * The reader goes back to the top of the tab they chose, for the reason
-        * `composeStateAfterFightStart` states. Assigned rather than pushed through
-        * `setState`: that path renders, and what it measures is the `gesture` phase —
-        * how long between a click and the new screen — while this is a payload
-        * arriving. The render at the end of this callback is the one that draws it, so
-        * the reset costs no second pass.
-        *
-        * ⚠️ **It sees the fights the game announces and no others.** A fight joined in
-        * progress carries no `init`, so `fightsStarted` does not move
-        * (`src/game/battle-session.ts`) and the panel stays where it was — the same
-        * limit the accumulated figures already have.
-        *
-        * ⚠️ **And it is only for a reader watching the live fight.** Every clause of
-        * `composeStateAfterFightStart`'s argument is about somebody whose screen the
-        * new fight is about to fill. Applied to a reader two levels into a fight from
-        * an hour ago each one is false: the rows under them are not the new fight's,
-        * they are the kept fight's, and that is exactly where somebody asked to be.
-        * Nothing is lost by waiting — coming back to the live row goes through
-        * `composeStateAfterFightChosen`, which drops the levels anyway.
-       */
-      if (isFollowingLive) state = { ...state, ...composeStateAfterFightStart() };
-    }
-
-    /**
-     * Once per fight, on the payload that first has something to say.
-     *
-     * The panel states this to the player in their own words; the console states
-     * it in ours, with the fault names, because that is the pair somebody needs
-     * to report it. Not per payload — a fight redraws every few seconds and the
-     * counts only grow, so a repeat would say the same thing louder (§9.6).
-     */
-    if (!hasReportedEngineGaps && hasEngineGaps(reading.engineReading)) {
-      hasReportedEngineGaps = true;
-      warn("MargoMeter/EngineReading", {
-        unreadablePayloadsByFault: Object.fromEntries(
-          reading.engineReading.unreadablePayloadsByFault,
-        ),
-        lostMessages: reading.engineReading.lostMessages,
-        unreadableCombatants: reading.engineReading.unreadableCombatants,
-      });
-    }
-
-    // Not drawn while somebody is reading a fight off the shelf. The shelf hands
-    // the live reading back when they choose that row again — it asks the meter,
-    // which has it, rather than this keeping a second copy of one.
-    if (isFollowingLive) {
-      latest = reading;
-      // The fight a reload put on screen is not what is on it any more, and a
-      // page opening on it again would be reading somebody's oldest gesture over
-      // the fight they are in.
-      shelf?.setLiveShown();
-    }
-    renderLatest();
-  };
-}
-
-/** Whether the engine layer has anything to report about this fight. */
-function hasEngineGaps(gaps: FightReading["engineReading"]): boolean {
-  return (
-    gaps.unreadablePayloadsByFault.size > 0 ||
-    gaps.lostMessages > 0 ||
-    gaps.unreadableCombatants > 0
-  );
-}
-
-/**
- * Writes out whatever the meter is holding, under a name saying where and when.
- *
- * Written even when the fight is empty. A file stating `wpisy: []` is a true
- * statement and a useful one — it says the add-on is attached and reading
- * nothing, which is exactly the report someone would otherwise have to guess at.
- * Doing nothing instead would be the silence §9.6 spends its whole length on.
- */
-export function writeCaptureToPage(page: HostPage, meter: MargoMeter): void {
-  const environment = composeCaptureEnvironment(page, () => meter.getReading()?.place ?? null);
-  writeTextToFile(
-    page,
-    composeCaptureFileName(environment),
-    composeCaptureText(meter.getCapture(), environment),
-  );
-}
-
-/**
- * The fight, as something a person can paste into a report.
- *
- * Everything that qualifies the numbers travels with them, because a figure without its
- * build, its world and its warnings is a figure nobody can act on: the add-on's
- * version, the game's, where it was, when it was taken, who was watching, the whole
- * roster, and every warning as an entry with a token beside it. **The tokens live here
- * and nowhere the player reads** — the panel says what cannot be known, this says what
- * we could not read (§3).
- *
- * Ids and tokens rather than sentences, on purpose: a report is read by us.
- *
- * ⚠️ **English keys, and the comment above is why.** §3 makes Polish the exception for
- * the text a *player* reads, and this file says its reader is us. The names are the
- * aggregate's own, so a key in a pasted report can be grepped for in
- * `src/core/fight-statistics.ts` — which translations could not be.
- */
-export function composeReportText(
-  page: HostPage,
-  reading: FightReading | null,
-  /**
-   * How many failures each channel counted without printing. Absent where the
-   * caller has no meter — a test mounting the panel alone — and absent is not
-   * zero, so the report leaves the field out rather than claiming none (§9.6).
-   */
-  silenced?: { reading: number; capture: number },
-): string {
-  const environment = composeCaptureEnvironment(page, () => reading?.place ?? null);
-  const report = {
-    addon: { name: "MargoMeter", version: USERSCRIPT_VERSION },
-    game: { world: environment.getWorld(), build: environment.getGameBuild() },
-    // The same fact the recording carries as `przegladarka`, so the two artefacts
-    // a reader can send cannot disagree about what was known. English here and
-    // Polish there for the reason the block above states: this one is read by us.
-    browser: environment.getUserAgent(),
-    capturedAt: environment.getCapturedAt(),
-    // One line printed per channel per page, and this is the rest of them —
-    // §9.6 says a repeat is counted rather than reprinted, and a count nobody
-    // can read is a count that is not there (F23).
-    silencedFailures: silenced ?? null,
-    fight:
-      reading === null
-        ? null
-        : {
-            isFromFightStart: reading.isFromFightStart,
-            outcome: reading.statistics.outcome,
-            ourSide: reading.ourSide,
-            roster: [...reading.roster.byId.values()],
-            // Everyone the panel drew, not everyone the aggregate counted: a
-            // report is read beside the screenshot it arrived with, and a list
-            // of eleven rows above a report holding two is a discrepancy
-            // whoever reads it has to work out before they can start. A
-            // combatant nothing has named yet reports zeros, which is what the
-            // row beside them says.
-            combatants: Object.fromEntries(
-              getCombatantIdsInFight(reading.statistics, reading.roster).map((id) => [
-                id,
-                composeReportRow(
-                  reading.statistics.byCombatantId.get(id) ?? composeEmptyCombatantStatistics(),
-                ),
-              ]),
-            ),
-            unattributed: composeReportRow(reading.statistics.unattributed),
-            // Beside `reading` and not inside it: one says what never reached the
-            // decoder, the other what the decoder could not make sense of, and a
-            // report that merged them would lose the difference that decides
-            // which of the two somebody has to go and look at.
-            engineReading: {
-              unreadablePayloadsByFault: Object.fromEntries(
-                reading.engineReading.unreadablePayloadsByFault,
-              ),
-              lostMessages: reading.engineReading.lostMessages,
-              unreadableCombatants: reading.engineReading.unreadableCombatants,
-            },
-            reading: {
-              unreadableMessages: reading.statistics.reading.unreadableMessages,
-              messagesByReason: Object.fromEntries(reading.statistics.reading.messagesByReason),
-              occurrencesByUnreadKey: Object.fromEntries(reading.statistics.reading.occurrencesByUnreadKey),
-              unaccountedHealthBySource: Object.fromEntries(
-                reading.statistics.reading.unaccountedHealthBySource,
-              ),
-            },
-          },
-  };
-  return composeJsonText(report, 2);
-}
-
-/**
- * One combatant's figures, with every map turned into something JSON can hold.
- *
- * ⚠️ **The return type is what holds this complete, and it used to be `Record<string,
- * unknown>` — a type any subset satisfies.** §4 makes the data contract an `[ASK]` for
- * one stated reason: a field added to a type and forgotten downstream produces numbers
- * that quietly shrink. This is that downstream, and the consequence is specific — the
- * report is what a player pastes when something looks wrong, so a field added to the
- * aggregate and missed here is invisible in exactly the situation the report exists
- * for.
- *
- * Keyed to the row's own type, so adding a figure to `CombatantStatistics` stops the
- * build here until somebody decides how it is written down. §9.3's bargain: no linter,
- * because the compiler is the one holding the rule.
- */
-function composeReportRow(
-  row: FightReading["statistics"]["unattributed"],
-): Record<keyof FightReading["statistics"]["unattributed"], unknown> {
-  return {
-    dealtRaw: row.dealtRaw,
-    dealtApplied: row.dealtApplied,
-    dealtAppliedByElement: Object.fromEntries(row.dealtAppliedByElement),
-    taken: row.taken,
-    takenByElement: Object.fromEntries(row.takenByElement),
-    healthLost: row.healthLost,
-    healthLostBySource: Object.fromEntries(row.healthLostBySource),
-    healthLostByActorId: Object.fromEntries(
-      [...row.healthLostByActorId].map(([id, bySource]) => [id, Object.fromEntries(bySource)]),
-    ),
-    healthLostCaused: row.healthLostCaused,
-    healthLostCausedByTargetId: Object.fromEntries(
-      [...row.healthLostCausedByTargetId].map(([id, bySource]) => [
-        id,
-        Object.fromEntries(bySource),
-      ]),
-    ),
-    healed: row.healed,
-    healedBySource: Object.fromEntries(row.healedBySource),
-    healedWithoutHealerBySource: Object.fromEntries(row.healedWithoutHealerBySource),
-    healedByHealerId: Object.fromEntries(row.healedByHealerId),
-    healedWithoutSkillByHealerId: Object.fromEntries(
-      [...row.healedWithoutSkillByHealerId].map(([id, bySource]) => [
-        id,
-        Object.fromEntries(bySource),
-      ]),
-    ),
-    healingGiven: row.healingGiven,
-    healingGivenByCombatantId: Object.fromEntries(row.healingGivenByCombatantId),
-    healingGivenWithoutSkillByCombatantId: Object.fromEntries(
-      [...row.healingGivenWithoutSkillByCombatantId].map(([id, bySource]) => [
-        id,
-        Object.fromEntries(bySource),
-      ]),
-    ),
-    prevented: Object.fromEntries(row.prevented),
-    destroyed: Object.fromEntries(row.destroyed),
-    procsOnBlowsStruck: Object.fromEntries(row.procsOnBlowsStruck),
-    blowsStruck: row.blowsStruck,
-    blowsWithoutSkill: row.blowsWithoutSkill,
-    largestBlow: row.largestBlow,
-    skillsUsed: row.skillsUsed,
-    // What the panel puts a mark on this row for. In the report because the mark
-    // says a figure may be low and says nothing a reader can chase — these say
-    // how often, and the fight-wide `reading` below says what the keys were.
-    unreadableMessages: row.unreadableMessages,
-    unaccountedHealingCasts: row.unaccountedHealingCasts,
-    dealtByTargetId: Object.fromEntries(
-      [...row.dealtByTargetId].map(([id, byElement]) => [id, Object.fromEntries(byElement)]),
-    ),
-    takenByActorId: Object.fromEntries(
-      [...row.takenByActorId].map(([id, byElement]) => [id, Object.fromEntries(byElement)]),
-    ),
-    skills: Object.fromEntries(
-      [...row.skills].map(([key, skill]) => [
-        key,
-        {
-          skillName: skill.skillName,
-          uses: skill.uses,
-          dealtApplied: skill.dealtApplied,
-          dealtByTargetId: Object.fromEntries(skill.dealtByTargetId),
-          healed: skill.healed,
-          healedByCombatantId: Object.fromEntries(skill.healedByCombatantId),
+    assert(!isMounted, "nothing is on the page until a payload arrives");
+    return attachToGame(environment.page, environment.schedule, {
+        handleAttached: () => {
+            panel.showWaiting(screen.isCollapsed);
+            mount();
         },
-      ]),
-    ),
-  };
-}
-
-/**
- * Everything the meter is told, as a value rather than as a literal at the call.
- *
- * ⚠️ **It is a function because the literal was wrong and nothing could say so.**
- * `onReadingFailure` was declared on `MargoMeterOptions`, called at
- * `src/game/engine-battle-wrap.ts`, and passed faithfully down through
- * `setEngineAttachment` and `setMargoMeter` — and then the one call that ships
- * never supplied it. An optional callback nobody passes is indistinguishable at
- * every layer from one deliberately left out, so the compiler had nothing to say
- * and neither did the gate. A literal inside `if (shouldStartHere(page))` runs at
- * import and cannot be looked at; this can, and its guard reads the option names
- * off the type rather than from a list somebody keeps (§7.5).
- *
- * The console is injected for the same reason `composePanelMount` injects `warn`:
- * so the once-per-page rule is checkable without one.
- */
-export function composeMeterOptions(
-  renderReading: ((reading: FightReading) => void) | null,
-  warn: (brand: string, detail: unknown) => void,
-  info: (message: string) => void,
-  /**
-   * Where the silenced counts go, so somebody can read them.
-   *
-   * ⚠️ **They had nowhere to go, and the docblock said otherwise.** Both sinks were
-   * built here and only `.report` was kept, so `getSilenced` could never be called by
-   * anything that ships — while §9.6 requires the repeats to be *counted* and not
-   * merely dropped, and the sink's own comment said the count existed "so a report can
-   * say how many followed the one that printed". The report carried no such field.
-   *
-   * Optional, because a caller that never copies a report has nothing to do with them
-   * and should not have to invent a place to put them.
-   */
-  onSinks?: (sinks: FailureSinks) => void,
-  /**
-   * Where a finished fight goes. Optional for the same reason `onSinks` is: a
-   * caller with no shelf has nothing to do with one, and an option nobody passes
-   * is indistinguishable from one deliberately left out — which is the trap this
-   * function's own docblock exists for.
-   */
-  onFightOver?: MargoMeterOptions["onFightOver"],
-): MargoMeterOptions {
-  const reading = composeFailureSink("MargoMeter/Reading", warn);
-  const capture = composeFailureSink("MargoMeter/Capture", warn);
-  onSinks?.({ reading, capture });
-  return {
-    // One line, once, when the wrap goes on. Branded like every other thing this
-    // add-on writes to a console it shares with the game (§9.5). It is not a
-    // running commentary: nothing else here prints.
-    onAttached: () => info("MargoMeter/attached"),
-    // The other end of the same line: a page where the game never appeared says
-    // so once, rather than leaving a timer running and nothing on screen.
-    onSearchAbandoned: () => info("MargoMeter/no-game-here"),
-    // A copy that stands down says which of the two it is. Silence here would be
-    // a panel drawing nothing on a page where the add-on is working perfectly
-    // well — in the other copy.
-    onAnotherReaderFound: () => info("MargoMeter/another-copy-is-reading"),
-    // The game is here and its shape is not one we know. Said once; the search
-    // keeps going, because a battle object without its method is also what a
-    // client half-way through building one looks like.
-    onAttachmentRefused: (error) => warn("MargoMeter/AttachmentRefused", error),
-    onReading: (reading) => renderReading?.(reading),
-    onReadingFailure: reading.report,
-    onCaptureFailure: capture.report,
-    onFightOver,
-  };
-}
-
-/**
- * The page, read once, and the one name this add-on writes onto it.
- *
- * `globalThis` rather than `window` because that is what exists in both places
- * this file is loaded — and in a test runner there is no `document`, so
- * importing this module attaches to nothing.
- *
- */
-const page = globalThis as HostPage;
-if (hasOtherMargoMeter(page)) {
-  // Nothing is mounted and nothing is wrapped: two panels over one fight is a
-  // worse outcome than one, and this copy has no way to be the better of the two.
-  // Said out loud, because a second copy that installs and then draws nothing is
-  // indistinguishable from one that is broken.
-  console.info("MargoMeter/already-running-here");
-} else if (shouldStartHere(page)) {
-  // The panel is mounted before the meter exists, and the button needs the meter
-  // — so the button asks for it at the moment it is pressed, by which time it is
-  // there. Mounting after the meter instead would leave the first payloads of a
-  // fight already under way with nowhere to draw.
-  let meter: MargoMeter | null = null;
-  let sinks: FailureSinks | null = null;
-  /*
-   * The settings and the panel's position are kept where a browser keeps things
-   * for good, whatever the reader chose for their fights — an answer stored in
-   * the place it names would be unreadable the moment they chose the place that
-   * forgets.
-   */
-  const settingsStore = getStoreFromPage(page, "local");
-  const keeper = composeFightKeeper(page, settingsStore, () => meter?.getReading() ?? null);
-  const renderReading = composePanelMount(
-    page,
-    undefined,
-    () => {
-      if (meter !== null) writeCaptureToPage(page, meter);
-    },
-    /**
-     * The clipboard, not the network: §5 forbids the second and says nothing
-     * about the first, because handing a person their own numbers is not sending
-     * them anywhere. A browser that refuses the clipboard costs the copy and
-     * nothing else — the same shape as the stored position.
-     */
-    (reading) => {
-      void page.navigator?.clipboard?.writeText?.(
-        composeReportText(
-          page,
-          reading,
-          sinks === null
-            ? undefined
-            : { reading: sinks.reading.getSilenced(), capture: sinks.capture.getSilenced() },
-        ),
-      );
-    },
-    keeper.shelf,
-    settingsStore,
-  );
-  meter = setMargoMeter(
-    page,
-    composeMeterOptions(
-      renderReading,
-      (brand, detail) => console.warn(brand, detail),
-      (message) => console.info(message),
-      (built) => {
-        sinks = built;
-      },
-      keeper.setFightKept,
-    ),
-  );
-  page[PAGE_HANDLE] = meter;
+        handleBeforeCall: (battle) => {
+            live.combatantsBefore = composeSnapshotFromBattle(battle);
+        },
+        handlePayload: (payload, battle) => {
+            readPayloadIntoLive(live, session, shelf, environment, { payload, battle });
+            showAndMount();
+        },
+        ...composeGameReports(environment),
+    });
 }

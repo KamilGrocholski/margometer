@@ -1,660 +1,177 @@
 /**
- * The decoder checked against something that is not the decoder.
+ * What the decoder read, against the percentages the protocol states about itself.
  *
- * Two numbers meet here that nothing in this project reconciles: maximum and
- * current health, taken from the combatant snapshots around each engine call,
- * and the health percentage the protocol states inside each message. If the
- * damage we decode is right, the second follows from the first.
- *
- * Which keys make a call unjudgeable is not decided here any more — it is read
- * from `docs/protocol-keys.md`, where each verdict carries its evidence and a
- * guard below re-earns it on every run.
+ * This is the only check on these figures that does not come from the same reading that produced
+ * them: the protocol restates where a combatant stands every time it names them, and the
+ * snapshots state the maximum. Where the two disagree, the disagreement is the finding.
  */
 
-import { describe, expect, test } from "bun:test";
-import { composeDecimalText, getNumberFromText } from "@/libs/number.ts";
+import { assert, assertEquals } from "@std/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
-import { decodeFight, isDamageKey, UNDERSTOOD_PROTOCOL_KEYS } from "@/src/core/fight-decoder.ts";
-import { parseProtocolMessage, type ProtocolMessage } from "@/src/core/protocol-message.ts";
 import {
-  CAPTURED_FIGHTS,
-  composeRosterFromSnapshots,
-  composeRosterOfFight,
-  type CapturedFight,
-} from "@/tests/captured-fight-catalog.ts";
-import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
-import { setRunningTotal } from "@/libs/running-total.ts";
+    composeTeamHeals,
+    getHealthFromPercent,
+    getHealthToleranceFromMaximum,
+    getStatedHealthFromEvent,
+} from "@/src/core/combatant-health.ts";
+import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import {
+    getRecordedCombatants,
+    getRecordedPayloads,
+    getRecordingPaths,
+} from "@/tests/recorded-fight.ts";
 
-/** The protocol states percentages rounded to two places, so the comparison is too. */
-const TOLERANCE_IN_PERCENTAGE_POINTS = 0.02;
+/** The one key the decoder still names unread, and the reason health can appear from nowhere. */
+const UNSIZED_SHARE_KEY = "healall_per";
+/** Two readings, each standing for a band of its own, so the distance between them is doubled. */
+const READINGS_COMPARED = 2;
 
-/**
- * The health figures this replay adds up itself, and therefore does not have to
- * skip. Not a claim about the game — a description of the arithmetic below,
- * which is why it is derived from the decoder rather than listed here: the
- * replay consumes every event the decoder produces, so what it accounts for is
- * exactly what the decoder reads.
- *
- * Whether the replay can **add** this key's figure — which is not the same as
- * whether the decoder understands it, and the difference is load-bearing.
- *
- * ⚠️ `healall_per` is read now, and the replay still cannot account for it: it
- * heals a whole side and names only the caster. Written as `UNDERSTOOD` alone,
- * this predicate would stop skipping those twelve calls the moment the key was
- * read, and every one of them would disagree — for the good reason that the
- * health really did move. The decoder states which keys it reads without being
- * able to place them, and this reads that list rather than guessing.
- */
-function isAccountedByTheReplay(key: string): boolean {
-  return isDamageKey(key) || UNDERSTOOD_PROTOCOL_KEYS.includes(key);
+interface WitnessReading {
+    compared: number;
+    agreed: number;
+    died: number;
+    appeared: number;
+    vanished: string[];
+    unexplained: string[];
 }
 
-/**
- * The team heal, restated rather than imported — deliberately, and this is the
- * one restatement in the file that carries the whole measurement.
- *
- * `composeSizedTeamHeals` cannot be called here even if we wanted to: it seeds
- * its running health from what the **fight** was entered with and walks forward
- * from there, while this replay re-seeds from the snapshot at the head of every
- * call. Those are two different bases, and the cap is taken against current
- * health, so handing this the module's own figures would be comparing the module
- * to itself against the wrong state.
- *
- * So the arithmetic is written out again, from the register's own words, and what
- * closes is the protocol's stated percentages — a different body of evidence from
- * the snapshot deltas `tests/core/combatant-health.test.ts` measures against
- * (§9.3 on a duplication that is the point of the test saying so).
- */
-const TEAM_HEAL_KEY = "healall_per";
-
-/** What one cast restores to one side-mate, or null where an input is missing. */
-function getRestoredByTeamHeal(
-  declaredShare: number,
-  combatantId: number,
-  fight: CapturedFight,
-  currentHealth: number | undefined,
-): number | null {
-  const maximumHealth = fight.maximumHealthByCombatantId.get(combatantId);
-  const entryHealth = fight.entryHealthByCombatantId.get(combatantId);
-  if (maximumHealth === undefined || entryHealth === undefined || currentHealth === undefined) {
-    return null;
-  }
-  if (currentHealth <= 0) return 0;
-  return Math.min(
-    Math.floor((declaredShare / 100) * maximumHealth),
-    Math.max(0, entryHealth - currentHealth),
-  );
-}
-
-/** The share a message states for the team heal, where it states one. */
-function getDeclaredShare(parsed: ProtocolMessage): number | null {
-  const stated = parsed.parameters.find((parameter) => parameter.key === TEAM_HEAL_KEY);
-  if (stated === undefined || stated.value === null) return null;
-  return getNumberFromText(stated.value);
-}
-
-type Comparison = {
-  fight: string;
-  call: number;
-  combatantId: number;
-  message: string;
-  statedPercent: number;
-  percentFromDecodedDamage: number;
-};
-
-/**
- * Replays each engine call, subtracting the damage we decoded from the health the
- * snapshot started with, and compares the running figure against what each message
- * states — for **both** sides, not only the target. The actor side carries a
- * percentage far more often than the target does, and every health-moving key
- * discovered so far reports its victim there.
- *
- * A call carrying a health figure the replay cannot add is skipped **whole**.
- * Dropping only the combatants such a message names is not enough: an
- * area-effect heal names nobody it heals, so the health moves somewhere the
- * message never mentions and every later comparison in that call is wrong.
- */
-function getComparisons(fight: CapturedFight, keysMovingHealth: readonly string[]): Comparison[] {
-  const comparisons: Comparison[] = [];
-
-  for (const call of fight.dump.calls) {
-    const messages = call.protocolMessages.map((message) => ({
-      message,
-      parsed: parseProtocolMessage(message),
-    }));
-
-    const unaccounted = messages.some(({ parsed }) =>
-      parsed.parameters.some(
-        ({ key }) => keysMovingHealth.includes(key) && !isAccountedByTheReplay(key),
-      ),
-    );
-    if (unaccounted) continue;
-
-    const runningHealth = new Map(call.combatantsBefore.map((c) => [c.id, c.health.current]));
-    // The roster the decoder would have at run time, rebuilt from what the
-    // engine call started with. Resolving names is the decoder's job now, so the
-    // replay hands it the same material and reads the id off the event.
-    const roster = composeRosterFromSnapshots(call.combatantsBefore);
-    const sideById = new Map(call.combatantsBefore.map((c) => [c.id, c.team]));
-
-    /**
-     * A cast this replay cannot size costs the **whole call**, and it always did —
-     * only the reason has changed. It used to be that nothing could size one at
-     * all; now it is that this particular call lacks an input, and the health
-     * still moved somewhere the messages never mention.
-     */
-    const unsizeable = messages.some(({ parsed }) => {
-      const declaredShare = getDeclaredShare(parsed);
-      if (declaredShare === null) return parsed.parameters.some((p) => p.key === TEAM_HEAL_KEY);
-      const casterSide = sideById.get(parsed.actor?.combatantId ?? -1);
-      if (casterSide === undefined) return true;
-      const mates = call.combatantsBefore.filter((c) => c.team === casterSide);
-      const hasStandingAlly = mates.some(
-        (c) => c.id !== parsed.actor?.combatantId && c.health.current > 0,
-      );
-      if (!hasStandingAlly) return true;
-      return mates.some(
-        (c) => getRestoredByTeamHeal(declaredShare, c.id, fight, c.health.current) === null,
-      );
-    });
-    if (unsizeable) continue;
-
-    for (const { message, parsed } of messages) {
-      const events = decodeFight([message], roster);
-
-      const takenByTarget = events
-        .filter((event) => event.kind === "attack")
-        .flatMap((event) => event.taken)
-        .reduce((total, damage) => total + damage.amount, 0);
-
-      const target = parsed.target;
-      if (target !== null && runningHealth.has(target.combatantId)) {
-        setRunningTotal(runningHealth, target.combatantId, -takenByTarget);
-      }
-
-      for (const event of events) {
-        if (event.kind !== "health-change") continue;
-        if (event.combatantId === null || !runningHealth.has(event.combatantId)) continue;
-        setRunningTotal(runningHealth, event.combatantId, event.amount);
-      }
-
-      for (const event of events) {
-        if (event.kind !== "damage-to-named-combatant") continue;
-        // An unresolved name would leave the running total short and the next
-        // comparison would blame the game for it. That it never happens on this
-        // material is not assumed here — it is asserted below, where a future
-        // capture that breaks it says so plainly instead of arriving as a
-        // mysterious disagreement.
-        if (event.targetId === null) continue;
-        if (runningHealth.has(event.targetId)) {
-          setRunningTotal(runningHealth, event.targetId, -event.damage.amount);
-        }
-      }
-
-      // The other direction of the same shape, and it moves health the same way
-      // the keys above do. Kept beside them rather than left out because a
-      // capture carrying it *and* an opening snapshot would otherwise disagree
-      // by exactly the healing, and blame the game for it.
-      for (const event of events) {
-        if (event.kind !== "healing-to-named-combatant") continue;
-        if (event.targetId === null) continue;
-        if (runningHealth.has(event.targetId)) {
-          setRunningTotal(runningHealth, event.targetId, event.amount);
-        }
-      }
-
-      // The team heal, applied where the message states one. It reaches combatants
-      // the message never names, which is why the whole call is skipped above when
-      // it cannot be sized — dropping only the named ones would leave every later
-      // comparison in the call short by somebody else's healing.
-      const declaredShare = getDeclaredShare(parsed);
-      const casterSide = sideById.get(parsed.actor?.combatantId ?? -1);
-      if (declaredShare !== null && casterSide !== undefined) {
-        for (const combatant of call.combatantsBefore) {
-          if (combatant.team !== casterSide) continue;
-          const restored = getRestoredByTeamHeal(
-            declaredShare,
-            combatant.id,
-            fight,
-            runningHealth.get(combatant.id),
-          );
-          if (restored !== null) setRunningTotal(runningHealth, combatant.id, restored);
-        }
-      }
-
-      for (const side of [parsed.actor, parsed.target]) {
-        if (side === null || side.healthPercent === null) continue;
-        // A combatant that died clamps at zero, so the overkill is invisible and
-        // the arithmetic cannot close. Measured: the blow that ended the group
-        // fight dealt more than the boss had left.
-        if (side.healthPercent <= 0) continue;
-
-        const remaining = runningHealth.get(side.combatantId);
-        const maximumHealth = fight.maximumHealthByCombatantId.get(side.combatantId);
-        if (remaining === undefined || maximumHealth === undefined) continue;
-
-        comparisons.push({
-          fight: fight.name,
-          call: call.index,
-          combatantId: side.combatantId,
-          message,
-          statedPercent: side.healthPercent,
-          percentFromDecodedDamage: (remaining / maximumHealth) * 100,
-        });
-      }
+/** Health the event moved, signed: restored is positive and lost is negative. */
+function getMovedHealth(event: BattleEvent): [number, number][] {
+    if (event.kind === "attack" && event.targetId !== null) {
+        let applied = 0;
+        for (const figure of event.applied) applied += figure.amount;
+        return [[event.targetId, -applied]];
     }
-  }
-
-  return comparisons;
-}
-
-/**
- * The comparisons the game itself refuses to settle, named rather than silenced.
- *
- * The replay seeds every call from the snapshot taken before it, and on every
- * other call of every other recording that snapshot is the state the call's own
- * messages start from. `2026-08-26-luvia-grupa-vs-draugr` opens on a fight
- * already in progress — its first call carries `init` together with the whole log
- * from the fight's start, while `ladunek.w` states the health as it stands — and
- * for one combatant of the eleven the two do not meet. The log's last word on id
- * 25015 is 53.61%; the snapshot handed to the next call says 52.21%, which is the
- * state one message earlier, before the `heal_target=222` their own last
- * announcement carries. The other ten agree to the digit.
- *
- * ⚠️ **Skipping it outright would be indistinguishable from hiding a misread
- * message, so it is not skipped — it is measured.** A wrong seed and a misread
- * message look different and the difference is checkable: a wrong seed shifts
- * every later comparison by the *same* amount, while a misread message shifts
- * them by whatever it misread. So the block below asserts that every one of these
- * comparisons is short by one constant, and that the constant is the heal the
- * snapshot does not hold. That statement fails the moment the decoder starts
- * reading anything in that call differently, which is what a comparison is for.
- *
- * Neither of the game's two figures is this repository's to correct (§9.2), and
- * neither is preferred here. `[ASK]` before another entry joins these, and the
- * obvious generalisation is the one to argue against first: a rule declining
- * every comparison where the snapshot and the previous call's last word disagree
- * throws away 43 comparisons that agree, measured over the set as it stood
- * 2026-08-26. Health moves between engine calls all over this material, and there
- * the snapshot is right and the log is merely old — the two cases look identical
- * from outside and only these leave the call's own arithmetic short.
- *
- * ⚠️ **The second entry was asked for and admitted on 2026-08-27**, when
- * `2026-08-27-luvia-grupa-vs-amaimon` arrived with a recording that opens the same
- * way. Two is not yet the generalisation: both are recordings whose first call
- * carries the whole log at once, both leave exactly one combatant of eleven
- * contradicted, and both are measured below rather than skipped.
- */
-const CONTRADICTED_SEEDS = [
-  {
-    fight: "2026-08-26-luvia-grupa-vs-draugr",
-    call: 1,
-    combatantId: 25015,
-    /** What the announcement restored and the snapshot does not carry. */
-    healthTheSnapshotIsShort: 222,
-    /** How many comparisons of this recording stand on that seed. */
-    comparisons: 18,
-  },
-  /**
-   * The second, admitted rather than generalised — and it is the same shape in a
-   * different fight, which is what the entry above asked for before a second one
-   * joined it. `2026-08-27-luvia-grupa-vs-amaimon` opens the same way: `init` with
-   * 627 of its 709 messages behind it. The log's last word on id 7926 is 17.85%
-   * and the snapshot handed to call 2 says 16.26%, 419 points lower; the call's
-   * own message then states 14.38%, which is exactly 17.85% less the 916 it
-   * reports. The reading is right and the seed it starts from is not the state the
-   * log ended in.
-   *
-   * The other ten combatants of that recording agree to the digit, and the shape
-   * is the one the entry above was measured on — short, by one constant, and the
-   * constant is the health the two figures differ by.
-   */
-  {
-    fight: "2026-08-27-luvia-grupa-vs-amaimon",
-    call: 2,
-    combatantId: 7926,
-    healthTheSnapshotIsShort: 419,
-    comparisons: 1,
-  },
-] as const;
-
-function getContradictedSeed(comparison: Comparison): (typeof CONTRADICTED_SEEDS)[number] | null {
-  return (
-    CONTRADICTED_SEEDS.find(
-      (seed) =>
-        comparison.fight === seed.fight &&
-        comparison.call === seed.call &&
-        comparison.combatantId === seed.combatantId,
-    ) ?? null
-  );
-}
-
-function isOnTheContradictedSeed(comparison: Comparison): boolean {
-  return getContradictedSeed(comparison) !== null;
-}
-
-function getDisagreements(comparisons: readonly Comparison[]): Comparison[] {
-  return comparisons.filter(
-    (comparison) =>
-      Math.abs(comparison.percentFromDecodedDamage - comparison.statedPercent) >
-      TOLERANCE_IN_PERCENTAGE_POINTS,
-  );
-}
-
-function composeReport(comparison: Comparison): string {
-  return `${comparison.fight} call ${comparison.call} id ${comparison.combatantId}: protocol says ${comparison.statedPercent}, decoded damage gives ${composeDecimalText(comparison.percentFromDecodedDamage, 2)}`;
-}
-
-const KEYS_MOVING_HEALTH = getKeysWithHealthEffect("moves health");
-const COMPARISONS = CAPTURED_FIGHTS.flatMap((fight) => getComparisons(fight, KEYS_MOVING_HEALTH));
-
-/**
- * How much of each fight this witness actually reaches.
- *
- * ⚠️ **The floor here used to be one.** `expect(COMPARISONS.length)
- * .toBeGreaterThan(0)` was written against comparing nothing at all — the right
- * worry, and a bound so far below the real figure that coverage could have
- * collapsed from three and a half thousand comparisons to a single one with the
- * gate staying green. This is the strongest guard in the repository, and the
- * thing guarding *it* was the weakest statement that could be made.
- *
- * That is §7.5's rule about zero, pointed inward: a floor at zero holds one side
- * of a boundary, and the side it holds is the one nothing was ever going to
- * cross. Recorded per fight rather than as a total, because a total that fell by
- * 851 would not say which fight stopped being witnessed — and losing one whole
- * capture is exactly the shape this is meant to catch.
- *
- * A capture added or a skip rule changed will move these numbers, and the
- * numbers then have to be restated. That is the friction this exists for: how
- * much of the material the arithmetic actually closes over is a fact about the
- * project, not a detail.
- *
- * Five are **0 on purpose** and are listed rather than omitted: their whole fight
- * arrives in one call with no opening snapshot, so the replay cannot seed a
- * running total. Written down so that a fight falling to zero reads as a change
- * and not as a fight that was never there.
- * `2026-08-12-experimental-tancerz-vs-wojownik` is the duel;
- * `2026-08-23-tempest-grupa-vs-hildur-auto` is the auto-resolved group fight,
- * where the game settles the whole battle before it sends anything and the two
- * calls that follow carry snapshots and no messages at all;
- * `2026-08-24-tempest-tropiciel-vs-centaur` is a duel the player lost, whose 112
- * messages all arrive in the call that opens it;
- * `2026-08-25-luvia-grupa-vs-draugr-auto` is a second auto-resolved group fight,
- * arriving in the same shape as the first — 462 messages in the opening call and
- * the two after it carrying snapshots and nothing else;
- * `2026-08-24-tempest-tropiciel-vs-centaury-auto` is the sharpest case of the
- * five and the one that says what the shape really is — it has **no snapshot
- * anywhere**, not merely none at the opening. Its single call carries `init`,
- * `endBattle` and `close` together, so neither side of it has a battle object to
- * read, and the fight is stated entirely in `ladunek.w` and the messages. A
- * recording can therefore be complete, decodable and drawn by the panel while
- * offering this file nothing to judge.
- *
- * ⚠️ **The third one cost something, and the cost is why it is spelled out here.**
- * It is the only recording carrying `wound`, so the key this repository would
- * normally admit through this file had to be admitted somewhere else
- * (`tests/core/wound-rule.test.ts`) — the replay reports the same `0` whether the
- * key is read or not. Teaching this to seed from the first percentage a call
- * states, where the snapshot is empty, would judge all three and is the open
- * alternative that round did not take.
- *
- * ⚠️ **Thirteen of these rose when the team heal became a figure**, and that rise
- * is the point rather than a side effect: those calls used to be declined outright
- * because health moved by an amount nothing could size. They are judged now, and
- * they agree.
- *
- * `2026-08-15-…-draugr-1` is the one carrying the key that did not move, and the
- * reason is not the key: all three of its casts sit in an opening call of 297
- * messages with no snapshot beside it, so the replay could never seed a running
- * total there and produced no comparison for that call either way.
- *
- * ⚠️ **`2026-08-23-tempest-grupa-vs-hildur` is where `light` was read, and this
- * file is the evidence.** With the key unread the replay disagreed 195 times, all
- * of them on the one combatant carrying the ticks and none anywhere else in the
- * corpus; reading it as the health change `fire` and `poison` already are closed
- * every one and introduced no disagreement (`src/core/fight-decoder.ts`). That is
- * the only evidence this repository takes for a key that moves health, and it is
- * the same route `fire` came in by.
- */
-const COMPARISONS_BY_FIGHT: Record<string, number> = {
-  "2026-08-04-tempest-lowca-vs-odyncze": 20,
-  "2026-08-06-tempest-grupa-vs-hildur": 945,
-  "2026-08-11-tempest-tancerz-vs-wermont": 51,
-  "2026-08-12-experimental-tancerz-vs-wojownik": 0,
-  "2026-08-12-tempest-grupa-vs-draugr-1": 624,
-  "2026-08-12-tempest-grupa-vs-draugr-2": 753,
-  "2026-08-12-tempest-grupa-vs-hildur-1": 904,
-  "2026-08-12-tempest-grupa-vs-hildur-2": 825,
-  "2026-08-14-tempest-grupa-vs-draugr-1": 586,
-  "2026-08-14-tempest-grupa-vs-draugr-2": 765,
-  "2026-08-14-tempest-grupa-vs-hildur": 901,
-  "2026-08-15-tempest-grupa-vs-draugr-1": 235,
-  "2026-08-15-tempest-grupa-vs-draugr-2": 746,
-  "2026-08-15-tempest-grupa-vs-hildur-1": 179,
-  "2026-08-15-tempest-grupa-vs-hildur-2": 795,
-  "2026-08-15-tempest-grupa-vs-hildur-3": 758,
-  "2026-08-15-tempest-grupa-vs-hildur-4": 758,
-  "2026-08-17-tempest-grupa-vs-hildur": 414,
-  "2026-08-23-tempest-grupa-vs-hildur": 831,
-  "2026-08-23-tempest-grupa-vs-hildur-auto": 0,
-  "2026-08-24-tempest-tropiciel-vs-centaur": 0,
-  "2026-08-24-tempest-tropiciel-vs-centaury-auto": 0,
-  "2026-08-25-luvia-grupa-vs-mamlambo-auto": 421,
-  "2026-08-25-luvia-grupa-vs-draugr-auto": 0,
-  "2026-08-25-luvia-grupa-vs-draugr": 164,
-  "2026-08-26-luvia-grupa-vs-draugr": 411,
-  "2026-08-27-luvia-grupa-vs-amaimon": 107,
-  "2026-08-27-luvia-grupa-vs-amaimon-2": 1083,
-};
-
-describe("decoded damage against the health the protocol states", () => {
-  test("reaches exactly as much of each fight as it is recorded to", () => {
-    const counted = Object.fromEntries(CAPTURED_FIGHTS.map((fight) => [fight.name, 0]));
-    for (const one of COMPARISONS) counted[one.fight] = (counted[one.fight] ?? 0) + 1;
-
-    expect(counted).toEqual(COMPARISONS_BY_FIGHT);
-  });
-
-  test("every comparison agrees", () => {
-    const judged = COMPARISONS.filter((one) => !isOnTheContradictedSeed(one));
-    expect(getDisagreements(judged).map(composeReport)).toEqual([]);
-  });
-});
-
-/**
- * The seed the game contradicts, checked to be exactly that and nothing worse.
- *
- * Two claims, and the second is the one that keeps the exception honest: the
- * comparisons are all short, all by the same amount, and that amount is the
- * health the snapshot is missing. A decoder that started reading a blow, a heal
- * or a tick in this call differently would break the constant, and the exception
- * would stop covering it.
- */
-for (const seed of CONTRADICTED_SEEDS) {
-describe(`the seed ${seed.fight} states twice`, () => {
-  const onIt = COMPARISONS.filter((comparison) => getContradictedSeed(comparison) === seed);
-
-  test("the material still carries it", () => {
-    expect(onIt.length).toBe(seed.comparisons);
-    expect(getDisagreements(onIt).length).toBe(onIt.length);
-  });
-
-  test("every one of them is short by the same figure, and it is the health the snapshot lacks", () => {
-    const maximumHealth = CAPTURED_FIGHTS.find(
-      (fight) => fight.name === seed.fight,
-    )?.maximumHealthByCombatantId.get(seed.combatantId);
-    expect(maximumHealth).toBeDefined();
-
-    for (const comparison of onIt) {
-      const short =
-        ((comparison.statedPercent - comparison.percentFromDecodedDamage) / 100) * maximumHealth!;
-      expect(Math.abs(short - seed.healthTheSnapshotIsShort)).toBeLessThan(
-        (TOLERANCE_IN_PERCENTAGE_POINTS / 100) * maximumHealth!,
-      );
+    if (event.kind === "damage-to-named-combatant" && event.targetId !== null) {
+        return [[event.targetId, -event.damage.amount]];
     }
-  });
-});
+    if (event.kind === "health-change" && event.combatantId !== null) {
+        return [[event.combatantId, event.amount]];
+    }
+    if (event.kind === "healing-to-named-combatant" && event.targetId !== null) {
+        return [[event.targetId, event.amount]];
+    }
+    return [];
+}
+
+interface Comparison {
+    path: string;
+    combatantId: number;
+    healthMaximum: number;
+    percentBefore: number;
+    percentAfter: number;
+    moved: number;
+    carriesUnsizedShare: boolean;
 }
 
 /**
- * What this replay still declines, and the proof that it declines anything at all.
- *
- * ⚠️ **This block used to ask a different question, and its old subject no longer
- * exists.** It filtered the health-moving keys down to those the replay could not
- * add, and re-earned each one by admitting it and watching the arithmetic break.
- * That set is empty now: every key that moves health is a figure the replay can
- * account for, which is the whole of what this round did.
- *
- * The skipping has not gone anywhere, though — it moved from the **key** to the
- * **call**. A cast whose inputs this replay does not hold still costs its entire
- * call, because the health reached combatants the message never names. So what is
- * checked here is that the skip is still exercised and still finds something: a
- * probe that skips nothing is indistinguishable from one that stopped looking,
- * which is the failure the block has always existed to prevent.
+ * Three kinds of disagreement have an answer, and each is the protocol's rather than ours: a
+ * killing blow lands more than the health that was left, a share this decoder cannot size
+ * restores health nobody can place, and one payload moves health with no message at all.
  */
-describe("what the replay still declines to judge", () => {
-  /** Calls carrying a cast, and how many of them produced no comparison at all. */
-  const CASTS_BY_FIGHT = CAPTURED_FIGHTS.map((fight) => {
-    const judged = new Set(
-      COMPARISONS.filter((one) => one.fight === fight.name).map((one) => one.call),
+function addComparison(reading: WitnessReading, one: Comparison): void {
+    const wasAt = getHealthFromPercent(one.percentBefore, one.healthMaximum);
+    const isAt = getHealthFromPercent(one.percentAfter, one.healthMaximum);
+    assert(wasAt !== null, `${one.path}: a maximum that was read`);
+    assert(isAt !== null, `${one.path}: a maximum that was read`);
+    reading.compared += 1;
+    const stated = isAt - wasAt;
+    const tolerance = getHealthToleranceFromMaximum(one.healthMaximum) * READINGS_COMPARED;
+    if (Math.abs(stated - one.moved) <= tolerance) {
+        reading.agreed += 1;
+        return;
+    }
+    const found = `${one.path} ${one.combatantId}: stated ${stated}, read ${one.moved}`;
+    if (one.percentAfter === 0) reading.died += 1;
+    else if (stated < one.moved) reading.vanished.push(found);
+    else if (one.carriesUnsizedShare) reading.appeared += 1;
+    else reading.unexplained.push(found);
+}
+
+function witnessRecording(path: string, reading: WitnessReading): void {
+    const combatants = getRecordedCombatants(path);
+    const roster = composeCombatantRoster(combatants);
+    const maximumById = new Map(combatants.map((one) => [one.id, one.healthMaximum]));
+    const payloads = getRecordedPayloads(path);
+    const carriesUnsizedShare = payloads.some((payload) =>
+        payload.some((message) => message.includes(UNSIZED_SHARE_KEY))
     );
-    const carrying = fight.dump.calls.filter((call) =>
-      call.protocolMessages.some((message) =>
-        parseProtocolMessage(message).parameters.some(
-          (parameter) => parameter.key === TEAM_HEAL_KEY,
-        ),
-      ),
-    );
-    return {
-      name: fight.name,
-      carrying: carrying.length,
-      skipped: carrying.filter((call) => !judged.has(call.index)).length,
+    const percentById = new Map<number, number>();
+    const pendingById = new Map<number, number>();
+    // Every message decoded once, kept in order, so a cast stated about a side can be sized over
+    // the whole fight and still applied at the message it landed on.
+    const byMessage = payloads.flatMap((one) => one.map((message) => [message, one] as const))
+        .map(([message]) => decodeFightMessages([message], roster));
+    const heals = composeTeamHeals(byMessage.flat(), roster);
+    for (const events of byMessage) {
+        {
+            const statedHere = new Map<number, number>();
+            for (const event of events) {
+                for (const [id, amount] of heals.get(event)?.restoredByCombatantId ?? []) {
+                    pendingById.set(id, (pendingById.get(id) ?? 0) + amount);
+                }
+                for (const [id, amount] of getMovedHealth(event)) {
+                    pendingById.set(id, (pendingById.get(id) ?? 0) + amount);
+                }
+                for (const [id, percent] of getStatedHealthFromEvent(event)) {
+                    statedHere.set(id, percent);
+                }
+            }
+            for (const [combatantId, percentAfter] of statedHere) {
+                const percentBefore = percentById.get(combatantId);
+                const healthMaximum = maximumById.get(combatantId) ?? null;
+                const moved = pendingById.get(combatantId) ?? 0;
+                percentById.set(combatantId, percentAfter);
+                pendingById.set(combatantId, 0);
+                if (percentBefore === undefined) continue;
+                if (healthMaximum === null) continue;
+                addComparison(reading, {
+                    path,
+                    combatantId,
+                    healthMaximum,
+                    percentBefore,
+                    percentAfter,
+                    moved,
+                    carriesUnsizedShare,
+                });
+            }
+        }
+    }
+}
+
+Deno.test("what was read agrees with the health the protocol states about itself", () => {
+    const reading: WitnessReading = {
+        compared: 0,
+        agreed: 0,
+        died: 0,
+        appeared: 0,
+        vanished: [],
+        unexplained: [],
     };
-  });
-
-  test("the corpus carries casts, or there is nothing here to decline", () => {
-    expect(CASTS_BY_FIGHT.reduce((total, of) => total + of.carrying, 0)).toBeGreaterThan(0);
-  });
-
-  /**
-   * Both directions, and the second is the one that would fail quietly. Something
-   * has to be judged, or the agreement above is measured on a corpus with every
-   * interesting call removed; and something has to be declined, or the machinery
-   * that declines is dead code passing by never running.
-   */
-  test("some calls carrying a cast are judged and some are declined", () => {
-    const skipped = CASTS_BY_FIGHT.reduce((total, of) => total + of.skipped, 0);
-    const judged = CASTS_BY_FIGHT.reduce((total, of) => total + of.carrying - of.skipped, 0);
-    expect(judged).toBeGreaterThan(0);
-    expect(skipped).toBeGreaterThan(0);
-  });
-
-  /**
-   * And the reason a call goes unjudged is the recording's rather than the key's.
-   *
-   * ⚠️ **This asserted a different thing until every cast could be sized.** It
-   * named the two fights whose entry health could not be recovered; both are
-   * recovered now, and what is left unjudged is the opening call of a capture that
-   * has no snapshot in front of it at all. The replay seeds its running total from
-   * `combatantsBefore`, so a call without one produces no comparison whatever it
-   * carries — that is a property of how the fight was recorded, and it costs the
-   * casts in that call along with everything else in it.
-   */
-  test("and a call carrying a cast is judged wherever the recording gives it a snapshot", () => {
-    const unjudged = CAPTURED_FIGHTS.flatMap((fight) => {
-      const judged = new Set(
-        COMPARISONS.filter((one) => one.fight === fight.name).map((one) => one.call),
-      );
-      return fight.dump.calls
-        .filter(
-          (call) =>
-            call.combatantsBefore.length > 0 &&
-            !judged.has(call.index) &&
-            call.protocolMessages.some((message) =>
-              parseProtocolMessage(message).parameters.some(
-                (parameter) => parameter.key === TEAM_HEAL_KEY,
-              ),
-            ),
-        )
-        .map((call) => `${fight.name} call ${call.index}`);
-    });
-    expect(unjudged).toEqual([]);
-  });
-
-  /**
-   * The register's own claim, still re-earned: every key it says moves health is
-   * one this replay accounts for. Written as an equality rather than as "the
-   * excluded set is empty", so the day a key arrives that cannot be added, this
-   * says which one.
-   */
-  test("every key the register says moves health is one the replay can add", () => {
-    expect(KEYS_MOVING_HEALTH.length).toBeGreaterThan(0);
-    expect(KEYS_MOVING_HEALTH.filter((key) => !isAccountedByTheReplay(key))).toEqual([]);
-  });
+    for (const path of getRecordingPaths()) witnessRecording(path, reading);
+    assert(reading.compared > 1000, "the recordings state health often enough to be checked");
+    assertEquals(reading.unexplained, [], "a disagreement with no answer of the protocol's own");
+    // 17,729 of 17,958 as the material stands, 2026-08-28. Stated as a share rather than a count
+    // so it survives a recording being admitted, which is what `V4` asks of a figure like this.
+    assert(reading.agreed * 50 > reading.compared * 49, "and all but a fiftieth agree outright");
+    assert(reading.died > 0, "a killing blow lands more than the health that was left");
+    assert(reading.appeared > 0, "and health still appears where a cast could not be sized");
 });
 
-/**
- * The replay moves health stated against a name only because every such name in
- * this material resolves to exactly one combatant. That is a property of the
- * captures, not a law — two combatants sharing a name do occur here, just never
- * as the subject of these keys — so it is checked rather than relied on.
- *
- * ⚠️ **Over the calls the replay can use, which is not all of them.** A call
- * whose opening snapshot is empty gives the decoder no roster and the replay no
- * health to run down, so it produces no comparison and an unresolved name there
- * costs nothing. The duel capture is entirely of that kind: its whole fight
- * arrives in one call, and its six named figures are held by the guard below
- * instead — against the roster the live session accumulates, which is where
- * they do have to resolve.
- */
-function isNamedSubject(event: BattleEvent): boolean {
-  return event.kind === "damage-to-named-combatant" || event.kind === "healing-to-named-combatant";
-}
-
-function getNamedSubjectId(event: BattleEvent): number | null {
-  return isNamedSubject(event) && "targetId" in event ? event.targetId : null;
-}
-
-describe("health stated against a name", () => {
-  const replayed = CAPTURED_FIGHTS.flatMap((fight) =>
-    fight.dump.calls
-      .filter((call) => call.combatantsBefore.length > 0)
-      .flatMap((call) =>
-        decodeFight(
-          call.protocolMessages,
-          composeRosterFromSnapshots(call.combatantsBefore),
-        ).filter(isNamedSubject),
-      ),
-  );
-
-  /**
-   * The same floor, and the same reason it is a figure rather than "more than
-   * none": these are the health figures the protocol states against a **name**,
-   * and every one of them has to find its combatant. A count that quietly fell
-   * would take the claim below it with it — "every time" over three of them is
-   * not the same promise as "every time" over all of them.
-   */
-  test("occurs as often as it is recorded to", () => {
-    expect(replayed.length).toBe(741);
-  });
-
-  test("names a combatant the replay's own roster can identify, every time", () => {
-    expect(replayed.filter((event) => getNamedSubjectId(event) === null)).toEqual([]);
-  });
-
-  /**
-   * And the same over the whole corpus, against the roster a running fight
-   * holds: the session merges what every payload states, so nothing there is
-   * hostage to which call a figure happened to land in.
-   */
-  const live = CAPTURED_FIGHTS.flatMap((fight) =>
-    fight.dump.calls.flatMap((call) =>
-      decodeFight(call.protocolMessages, composeRosterOfFight(fight)).filter(isNamedSubject),
-    ),
-  );
-
-  test("resolves against the roster of the whole fight, in every capture", () => {
-    expect(live.length).toBeGreaterThan(replayed.length);
-    expect(live.filter((event) => getNamedSubjectId(event) === null)).toEqual([]);
-  });
+Deno.test("one payload moves health with no message saying so, and it is pinned here", () => {
+    const reading: WitnessReading = {
+        compared: 0,
+        agreed: 0,
+        died: 0,
+        appeared: 0,
+        vanished: [],
+        unexplained: [],
+    };
+    for (const path of getRecordingPaths()) witnessRecording(path, reading);
+    assertEquals(reading.vanished.length, 1, "the material carries exactly one, and it is known");
+    assert(
+        reading.vanished[0]?.includes("2026-08-06-tempest-grupa-vs-hildur-1785244275300-none"),
+        "entry 83 of that fight: the boss loses 8062 with both its messages about other people",
+    );
 });

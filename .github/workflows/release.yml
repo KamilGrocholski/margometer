@@ -1,99 +1,92 @@
-# What a tag turns into: a release carrying the built userscript.
+# What a tag turns into: a release carrying the file a reader installs.
 #
-# The banner's @downloadURL points at `releases/latest/download/margometer.user.js`,
-# so an installed copy updates itself from whatever this attaches. A release
-# published without that asset leaves every installed copy polling a 404 — and a
-# failed update check is silent, which is why the file is built here rather than
-# uploaded by hand.
+# The banner's `@downloadURL` points at `releases/latest/download/margometer.user.js`, so an
+# installed copy updates itself from whatever this attaches. A release published without that asset
+# leaves every installed copy polling a 404 — and a failed update check is silent, which is why the
+# file is built here rather than uploaded by hand.
 #
-# The gate runs first and the release is gated on it. `bun run check` builds the
-# same file this uploads, so a tag that cannot pass the gate never becomes a
-# release somebody can install.
+# ⚠️ **Both files, and the metadata one is not optional.** 0.5.0 polls `margometer.meta.js` for its
+# next version; a release without it leaves every copy installed from that version checking a 404
+# for good (ARCHITECTURE.md, protected contracts).
 name: release
 
 on:
-  push:
-    tags: ["v*"]
+    push:
+        tags: ["v*"]
 
 permissions:
-  contents: write
+    contents: write
 
 jobs:
-  release:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          # The step below asks an ancestry question, and a shallow clone
-          # answers one wrongly rather than loudly: with no history behind the
-          # tag, `merge-base --is-ancestor` reports "not contained" for a commit
-          # that is. Full history is the only depth at which the guard means
-          # what it says.
-          fetch-depth: 0
+    release:
+        runs-on: ubuntu-latest
+        steps:
+            # The step below asks an ancestry question, and a shallow clone answers one wrongly
+            # rather than loudly: with no history behind the tag, `merge-base --is-ancestor`
+            # reports "not contained" for a commit that is.
+            - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
-      # `main` is the latest release and nothing else
-      # (docs/specs/what-a-release-shows.md): it moves only
-      # when a version is tagged, and work happens on `develop`. A tag pushed
-      # from `develop` is the one mistake that model creates — before it there
-      # was a single branch to tag from — and it would publish a release built
-      # from a tree `main` does not hold, with nothing about the result looking
-      # wrong. Nothing else can catch it: branch protection guards pushes to a
-      # branch, and this is a push of a tag.
-      #
-      # An exit status decides; the text only names what failed (§7.5). The ref
-      # is fetched by name rather than assumed, because what a checkout leaves
-      # in `refs/remotes/` is that action's business and not this file's.
-      - name: the tag sits on main
-        run: |
-          git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
-          if ! git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main; then
-            echo "${GITHUB_REF_NAME} is not on main — push main first, then the tag" >&2
-            exit 1
-          fi
+            # `main` is the latest release and nothing else (AGENTS.md **G6**): it moves only when
+            # a version is tagged, and work happens on `develop`. A tag pushed from `develop` is
+            # the one mistake that model creates, and it would publish a release built from a tree
+            # `main` does not hold, with nothing about the result looking wrong. Nothing else can
+            # catch it: branch protection guards a push to a branch, and this is a push of a tag.
+            #
+            # An exit status decides; the text only names what failed. The ref is fetched by name
+            # rather than assumed, because what a checkout leaves in `refs/remotes/` is that
+            # action's business and not this file's.
+            - name: the tag sits on main
+              run: |
+                  git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+                  if ! git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main; then
+                      echo "${GITHUB_REF_NAME} is not on main — push main first, then the tag" >&2
+                      exit 1
+                  fi
 
-      # Same pin as check.yml, and for the same reason: "latest" means the build
-      # changes one day with no change in the code.
-      - uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: 1.3.14
+            # Pinned, and to the same version pages.yml pins: "latest" means the published release
+            # is built by a toolchain that changes one day with no change in the code.
+            - uses: denoland/setup-deno@v2
+              with:
+                  deno-version: 2.9.6
 
-      - run: bun install --frozen-lockfile
-      - run: bun run check
+            # The version being tagged has to be the version this tree declares — ADR 0018. They
+            # come from two places, the tag and `deno.json`, and nothing else compares them.
+            - name: the tag and deno.json agree
+              run: |
+                  tagged="${GITHUB_REF_NAME#v}"
+                  declared="$(deno run -A tools/changelog.ts version)"
+                  if [ "$tagged" != "$declared" ]; then
+                      echo "tag ${GITHUB_REF_NAME} against deno.json ${declared}" >&2
+                      exit 1
+                  fi
 
-      # The version in the file has to be the version being tagged. They come
-      # from two different places — package.json and the tag — and nothing else
-      # compares them, so a tag pushed before the bump would publish a release
-      # whose file announces the previous version and never updates anybody.
-      - name: the tag and package.json agree
-        run: |
-          tagged="${GITHUB_REF_NAME#v}"
-          declared="$(bun --print 'require("./package.json").version')"
-          if [ "$tagged" != "$declared" ]; then
-            echo "tag ${GITHUB_REF_NAME} against package.json ${declared}" >&2
-            exit 1
-          fi
-          grep -qx "// @version      ${declared}" dist/margometer.user.js
-          grep -qx "// @version      ${declared}" dist/margometer.meta.js
+            - run: deno task check
 
-      # The notes are this version's section of CHANGELOG.md, which is the one
-      # document here written for players. Not a generated commit list: a release
-      # here is hundreds of commits and a dump of their subjects tells a player
-      # nothing they can act on. A version with no section fails here, loudly, rather than
-      # publishing a release that says nothing about itself.
-      - name: compose the release notes
-        run: bun tools/changelog.ts notes "${GITHUB_REF_NAME#v}" > release-notes.md
+            # The gate builds at `0.0.0-dev`, which is what a tree nobody tagged honestly says
+            # (ADR 0012), so `dist/` is written again at the tag's version and both files are read
+            # back. A release whose banner names the previous version updates nobody.
+            - name: the built files carry the tagged version
+              run: |
+                  version="${GITHUB_REF_NAME#v}"
+                  deno run -A tools/build-userscript.ts "$version"
+                  grep -qx "// @version      ${version}" dist/margometer.user.js
+                  grep -qx "// @version      ${version}" dist/margometer.meta.js
 
-      # `gh` ships with the runner, so this adds no third-party action to a
-      # repository that has no runtime dependencies either.
-      #
-      # ⚠️ **Both files, and the metadata one is not optional.** 0.5.0 polls for
-      # `margometer.meta.js`; a release without it leaves every copy installed
-      # from that version checking a 404 and never updating.
-      - name: publish
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          gh release create "$GITHUB_REF_NAME" \
-            dist/margometer.user.js dist/margometer.meta.js \
-            --title "MargoMeter $GITHUB_REF_NAME" \
-            --notes-file release-notes.md
+            # The notes are this version's section of CHANGELOG.md, which is the one document here
+            # written for players — not a generated list of commit subjects, for the reason ADR
+            # 0018 gives. A version with no section fails here, before anything is public.
+            - name: compose the release notes
+              run: deno run -A tools/changelog.ts notes "${GITHUB_REF_NAME#v}" > release-notes.md
+
+            # `gh` ships with the runner, so this adds no third-party action to a repository whose
+            # add-on has no runtime dependencies either.
+            - name: publish
+              env:
+                  GH_TOKEN: ${{ github.token }}
+              run: |
+                  gh release create "$GITHUB_REF_NAME" \
+                      dist/margometer.user.js dist/margometer.meta.js \
+                      --title "MargoMeter $GITHUB_REF_NAME" \
+                      --notes-file release-notes.md

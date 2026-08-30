@@ -1,2269 +1,1973 @@
 /**
- * The panel, drawn, held to the promises §9.6 made before it was written.
+ * What the panel puts on the page, read back out of the document it was handed.
  *
- * There is no DOM in the test runner, so the document is a small fake. That is
- * not a compromise: the properties worth checking here are about *structure and
- * restraint* — what survives a failure, what never happens at all, what still
- * works after twenty redraws — and a fake that records what it was asked to
- * build answers those exactly.
- *
- * What it cannot answer is whether the result looks right. Nothing here can;
- * that needs the game and a person. What the panel *decides* is checked without
- * a document at all, in `tests/ui/panel-view.test.ts`.
+ * The reading it draws comes from a real recording through every layer beneath it, so what is on
+ * screen here is what would be on screen in play.
  */
 
-import { readFileSync } from "node:fs";
-import { describe, expect, test } from "bun:test";
-import { composeSourceWithoutComments } from "@/tests/source-regions.ts";
-import { getPartsSeparatedByWhitespace } from "@/libs/text-runs.ts";
-import { isDrawnShare } from "@/tests/drawn-text.ts";
-import { getStyleRules } from "@/tests/style-rules.ts";
-import {
-  composeClampedPosition,
-  composeDefaultPosition,
-  composeDraggedPosition,
-  composePositionDeclarations,
-  composeStoredTextFromPosition,
-  composeTipDeclarations,
-  getPositionFromStoredText,
-  type PanelDocument,
-  type PanelEvent,
-  type PanelHost,
-  type PanelNode,
-  type PanelPlacement,
-  type PanelScroll,
-  type PanelTipBox,
-  renderFightsInto,
-  renderPanel,
-  renderPanelInto,
-  renderWaitingInto,
-  setPanelRoot,
-  type PanelFightsHandlers,
-} from "@/src/ui/panel-element.ts";
-import {
-  composeColourOver,
-  composePanelStyleText,
-  getContrastRatio,
-  PANEL_PIXELS,
-  PANEL_TOKENS,
-  SERIES_COLOURS,
-  UNKNOWN_COLOUR,
-} from "@/src/ui/panel-look.ts";
-import { getNumberFromText } from "@/libs/number.ts";
-
-import { assertDefined } from "@/libs/assert.ts";
-import { composeDecimalText, getDecimalFromText, getIntegerFromText } from "@/libs/number.ts";
+import { assert, assertEquals } from "@std/assert";
+import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodeFight } from "@/src/core/fight-decoder.ts";
+import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import type { PanelReading } from "@/src/ui/panel-reading.ts";
+import { BUILD_VERSION } from "@/src/build-version.ts";
+import { composePanelHost, type PanelPress } from "@/src/ui/panel-element.ts";
 import {
-  composeDefaultState,
-  type PanelDetailLine,
-  type PanelKeptFight,
-  type PanelState,
+    composeDrillReading,
+    composePairReading,
+    composePanelReading,
+    NOTHING_MISSED,
+    type PanelReading,
+} from "@/src/ui/panel-reading.ts";
+import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
+import {
+    composeDirectionTabs,
+    composeNounTabs,
+    composeSideTabs,
+    getScreenFromName,
+    getWordsForScreen,
+    SCREEN_ORDER,
 } from "@/src/ui/panel-screen.ts";
 import {
-  composeFightsView,
-  composePanelView,
-  PANEL_WAITING,
-  type PanelFightsReading,
-} from "@/src/ui/panel-view.ts";
+    CARD_WORDS,
+    composeCardSubtitleText,
+    composeFigureText,
+    composeUndrawnText,
+    getWordsForCardMetric,
+    getWordsForDamageKind,
+    getWordsForHealthSource,
+    getWordsForNothing,
+    getWordsForOutcome,
+    getWordsForStorage,
+    getWordsForUnannounced,
+    PANEL_WORDS,
+} from "@/src/ui/panel-words.ts";
+import {
+    composeFakeDocument,
+    dragOnElement,
+    type FakeElement,
+    getElementsWithin,
+    getTextsByClass,
+    pointAtElement,
+    pressElement,
+} from "@/tests/fake-document.ts";
+import { getRecordedCombatants, getRecordedPayloads } from "@/tests/recorded-fight.ts";
+import { getDeclaration, getRuleBody } from "@/tests/style-sheet.ts";
 
-type FakeListener = { type: string; listener: (event: PanelEvent) => void };
-
-type FakeNode = PanelNode & {
-  tag: string;
-  children: FakeNode[];
-  listeners: FakeListener[];
-  properties: Record<string, string>;
-  captured: number[];
-  released: number[];
-  /**
-   * What the node measures as, which a fake has to be *told* — there is no layout
-   * here and inventing one would be a test agreeing with itself.
-   *
-   * Nothing has a size until a test gives it one, and that zero is a real answer
-   * rather than a stand-in: it is what a document with no layout engine reports,
-   * and the placement is written to leave the detail where the stylesheet put it
-   * when it hears one.
-   */
-  size: { width: number; height: number };
-};
-
+const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /**
- * Dispatches the way a browser would: at the root, naming what was hit.
- *
- * Two things here are modelled rather than assumed, and each was found by a
- * mutation the fake did not notice:
- *
- *   - **The type is honoured.** A fake that runs every listener whatever
- *     happened cannot tell a `pointerup` from a `pointerdown`, and would report
- *     a drag working while the panel stood still.
- *   - **A node no longer in the tree gets nothing.** A redraw detaches whatever
- *     it replaced, and a detached node stops receiving pointer events — so a
- *     grab handle built inside the render is dead after the first payload. With
- *     the target waved through, moving the title bar into the render passed
- *     every test here: the listener is keyed on identity, and an object survives
- *     being removed from a tree even though an element does not.
+ * A fight whose hardest-hit row opens onto both kinds of opponent: one the level under says more
+ * about, and one it says exactly the row again about. On `HILDUR` every pair opens, because the
+ * boss both strikes and wounds each member (`src/core/fight-statistics.ts`, ADR 0022).
  */
-function setEventOn(root: FakeNode, type: string, event: PanelEvent): void {
-  if (!getEveryNode(root).some((node) => node === event.target)) return;
-  for (const bound of root.listeners) if (bound.type === type) bound.listener(event);
-}
+const BOTH_KINDS_OF_PAIR = "captures/2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json";
 
-function setClickOn(root: FakeNode, target: FakeNode): void {
-  setEventOn(root, "click", { target });
-}
-
-/**
- * The gesture every control the render draws answers to.
- *
- * Beside `setClickOn` rather than in place of it: the title bar's buttons are
- * built once with the shadow root and outlive every render, so nothing can take
- * them out from under a hand and they stay on a click. Everything below the bar
- * is rebuilt on every payload, and a press is the one gesture a rebuild cannot
- * land in the middle of.
- */
-function setPressOn(root: FakeNode, target: FakeNode, button?: number): void {
-  setEventOn(root, "pointerdown", { target, button });
-}
-
-function composeFakeDocument(onCreate?: (tag: string) => void): PanelDocument & {
-  getCreatedCount: () => number;
-} {
-  let created = 0;
-  const document: PanelDocument = {
-    createElement(tag: string): FakeNode {
-      created += 1;
-      onCreate?.(tag);
-      let text = "";
-      const node: FakeNode = {
-        tag,
-        className: "",
-        /**
-         * **Assigning it replaces every child**, which is what a real DOM does
-         * and what a plain property here would not.
-         *
-         * Modelled because a mutation went unnoticed without it: building the
-         * title bar's button and *then* setting the bar's text drops the button
-         * on the floor in a browser, while a fake holding a plain string reports
-         * a working panel. Same class of blind spot as the two above.
-         */
-        get textContent(): string {
-          return text;
-        },
-        set textContent(next: string) {
-          text = next;
-          node.children = [];
-        },
-        title: "",
-        children: [],
-        listeners: [],
-        properties: {},
-        /**
-         * ⚠️ **A browser clamps this and the fake does not**, which is the edge of
-         * what the two tests below can say. They prove the number is taken off the
-         * old list and put back on the new one, in that order; that a real list
-         * then shows the same rows is the browser's own arithmetic, and it is
-         * `.claude/skills/verify` that looks at it.
-         */
-        scrollTop: 0,
-        captured: [],
-        released: [],
-        size: { width: 0, height: 0 },
-        getBoundingClientRect: (): { width: number; height: number } => node.size,
-        style: {
-          setProperty(name: string, value: string): void {
-            node.properties[name] = value;
-          },
-        },
-        append(...nodes: PanelNode[]): void {
-          node.children.push(...(nodes as FakeNode[]));
-        },
-        replaceChildren(...nodes: PanelNode[]): void {
-          node.children = nodes as FakeNode[];
-        },
-        addEventListener(type: string, listener: (event: PanelEvent) => void): void {
-          node.listeners.push({ type, listener });
-        },
-        setPointerCapture(pointerId: number): void {
-          node.captured.push(pointerId);
-        },
-        releasePointerCapture(pointerId: number): void {
-          node.released.push(pointerId);
-        },
-      };
-      return node;
-    },
-  };
-  return { ...document, getCreatedCount: () => created };
-}
-
-function getEveryNode(node: FakeNode): FakeNode[] {
-  return [node, ...node.children.flatMap(getEveryNode)];
-}
-
-/**
- * By class list rather than by the whole string, which is what three callers
- * were doing until the selected tab started carrying a second class and two of
- * them quietly stopped finding it.
- */
-function getByClass(node: FakeNode, className: string): FakeNode[] {
-  return getEveryNode(node).filter((each) => each.className.split(" ").includes(className));
-}
-
-/**
- * A control addressed by what it says, never by where it sits.
- *
- * ⚠️ **Twice now an index has moved under a test that kept passing.** First a flat
- * index across every strip, when the rate control left the metric row; then an
- * index *within* the side strip, when the direction control joined it and
- * `tab[1]` stopped being `My`. A label is the one handle that does not slide:
- * if it changes, the test fails for the reason it should.
- */
-function getTabByLabel(node: FakeNode, label: string): FakeNode {
-  const found = getByClass(node, "tab").filter((tab) => tab.textContent === label);
-  return assertDefined(found[0], `a tab labelled ${label}`);
-}
-
-/** A fight with two sides, damage on both, and something unreadable in it. */
-function composeReading(): PanelReading {
-  const roster = composeCombatantRoster([
-    { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
-    { id: 2, name: "łowca", side: 1, profession: "h", level: 93, maximumHealth: null },
-    { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
-  ]);
-  const statistics = composeFightStatistics(
-    decodeFight(
-      [
-        "1=90.00;3=50.00;+dmg=500;-dmg=400",
-        "2=90.00;3=40.00;+dmg=200;-dmg=100",
-        // A tick of poison: real damage with nobody to charge it to.
-        "3=40.00;0;poison=60",
-        "0;0;nonsense_key=1",
-      ],
-      roster,
-    ),
-    roster,
-  );
-
-  return {
-    statistics,
-    roster,
-    ourSide: 1,
-    isFromFightStart: true,
-  };
-}
-
-/** A window to be clamped against, where a test needs the panel to know of one. */
-const SCREEN = { width: 1200, height: 800 };
-
-/** The whole window: shadow root, title bar, tooltip and the container to draw into. */
-function composeMountedPanel(actions = {}, placement?: PanelPlacement) {
-  const document = composeFakeDocument();
-  const host = document.createElement("div") as FakeNode & PanelHost;
-  host.attachShadow = (): PanelNode => {
-    const root = document.createElement("root") as FakeNode;
-    host.children.push(root);
-    return root;
-  };
-  const details = new Map<unknown, PanelDetailLine[]>();
-  const container = setPanelRoot(document, host, placement, actions, details) as FakeNode;
-  const root = assertDefined(host.children[0], "the shadow root was opened") as FakeNode;
-  return { document, host, root, container, details };
-}
-
-/**
- * A mounted panel that keeps one scroll memory across renders, the way the mount
- * does — the whole point being that the list is a different node every time.
- */
-function composeRedrawnPanel() {
-  const { document, container } = composeMountedPanel();
-  const scroll: PanelScroll = { list: null, levelKey: null };
-  const renderScreen = (state: PanelState): FakeNode => {
-    renderPanelInto(
-      document,
-      container,
-      composePanelView(composeReading(), state),
-      {},
-      false,
-      new Map(),
-      scroll,
+function readFight(): PanelReading {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    return composePanelReading(
+        composeFightStatistics(events, composeTeamHeals(events, roster)),
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        null,
+        NOTHING_MISSED,
     );
-    return assertDefined(getByClass(container, "list")[0], "the list was drawn");
-  };
-  return { container, renderScreen };
 }
 
-function renderInto(
-  state: PanelState = composeDefaultState(),
-  handlers = {},
-  reading: PanelReading = composeReading(),
-) {
-  const document = composeFakeDocument();
-  const panel = renderPanel(document, composePanelView(reading, state), handlers) as FakeNode;
-  return { document, panel };
+function openFirstRow() {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const first = reading.rows[0];
+    assert(first !== undefined, "there is a row to open");
+    const drill = composeDrillReading(statistics, roster, "damageDealtApplied", first.combatantId);
+    assert(drill !== null, "and the screen it sits on cuts further");
+    return { reading, drill, opened: first };
 }
 
-/**
- * A fight where a blow names **neither** end: nobody swung it and it landed on a
- * name this roster has nobody to match.
- *
- * Beside the fixture rather than inside it, because it is the one shape the
- * summary's third part still stands for and no capture contains it — every name
- * in every one of them resolves, so a bar that had simply dropped the part would draw
- * identically on every one of them.
- */
-function composeReadingWithNeitherEnd(): PanelReading {
-  const roster = composeCombatantRoster([
-    { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
-    { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
-  ]);
-  const statistics = composeFightStatistics(
-    decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400", "0;0;+dmg=90;-dmg=70"], roster),
-    roster,
-  );
-  return { statistics, roster, ourSide: 1, isFromFightStart: true };
-}
-
-/**
- * A fight whose one unread message names `mag` and the boss.
- *
- * The fixture above has an unreadable message too and it names nobody, so no row
- * in it is ever marked — which is what makes it the right fixture for everything
- * else and the wrong one for this. Built here for the same reason
- * `composeReadingWithNeitherEnd` is: no recording carries the shape at all
- * (`docs/specs/the-ends-a-figure-names.md`).
- */
-function composeReadingWithAMarkedRow(): PanelReading {
-  const roster = composeCombatantRoster([
-    { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
-    { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
-  ]);
-  const statistics = composeFightStatistics(
-    decodeFight(["1=90.00;3=50.00;+dmg=500;-dmg=400", "1=90.00;3=50.00;no_such_key=13"], roster),
-    roster,
-  );
-  return { statistics, roster, ourSide: 1, isFromFightStart: true };
-}
-
-describe("what reaches the screen", () => {
-  /**
-   * ⚠️ **Read in words, at the point it is drawn.** A place is the game's own
-   * name arriving from the live client, so the only thing that proves it reached
-   * a reader is finding it on the node — asking the view what it composed would
-   * be holding the panel to itself (§7.5).
-   */
-  test("draws where the fight was, between how big it was and how it ended", () => {
-    const { panel } = renderInto(composeDefaultState(), {}, {
-      ...composeReading(),
-      place: { mapName: "a clearing", x: 34, y: 12 },
+function draw(reading: PanelReading): FakeElement {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading: reading,
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
     });
-    const place = assertDefined(getByClass(panel, "header-place")[0], "the place line was drawn");
-    expect(place.textContent).toBe("a clearing (34,12)");
-    // The line has the whole panel and a long enough name still overruns it.
-    expect(place.title).toBe("a clearing (34,12)");
-  });
+    return panel.element as FakeElement;
+}
 
-  /**
-   * ⚠️ **No line at all, rather than an empty one.** A reserved gap would cost
-   * every panel with no game beside it — the published preview, the pictures in
-   * `README.md` — a band of nothing under the header, for a fight nobody could
-   * ever name.
-   */
-  test("draws no line for a place where nothing said where the fight was", () => {
-    const { panel } = renderInto();
-    expect(getByClass(panel, "header-place")).toEqual([]);
-    expect(getByClass(panel, "header-line")).toHaveLength(1);
-  });
+Deno.test("the panel goes into a shadow root, under a name of ours", () => {
+    const host = draw(readFight());
+    assertEquals(host.attributes.get("id"), "MargoMeter-Panel", "the host is named as ours");
+    assert(host.shadow !== null, "and everything else is behind a root of its own");
+    assertEquals(host.children.length, 0, "nothing is put beside the root");
+    assertEquals(host.shadow.length, 4, "the look, the bar, the panel, and the detail last");
+});
 
-  /**
-   * ⚠️ **Two tooltips, and never on the same node.** Every `.row-name` ends in an
-   * ellipsis and every name in one is the game's, so a cut label has to be
-   * askable — but a row that opens the panel's own card already answers with the
-   * name as the card's first line, and a browser tooltip firing there would open
-   * over it. So the browser's is for the rows that open nothing, which is every
-   * leaf of the drill.
-   */
-  test("gives a row that opens no card the browser's tooltip for its label", () => {
-    const state = { ...composeDefaultState(), metric: "taken" as const, focusCombatantId: 3 };
-    const view = composePanelView(composeReading(), state);
-    const panel = renderPanel(composeFakeDocument(), view, {}) as FakeNode;
-
-    const rows = view.lists.flatMap((list) => list.rows);
-    // Both kinds have to be on this screen or the rule below is only half read.
-    expect(rows.some((row) => row.detail.length === 0)).toBe(true);
-    expect(rows.some((row) => row.detail.length > 0)).toBe(true);
-
-    const titleByLabel = new Map(
-      getByClass(panel, "row-name").map((label) => [label.textContent, label.title]),
+Deno.test("every name a reader meets before the panel's contents is ours", () => {
+    const host = draw(readFight());
+    const outside = [host, ...(host.shadow ?? [])];
+    for (const element of outside) {
+        if (element.className === "") continue;
+        assert(element.className.startsWith("MargoMeter-"), `${element.className} is unprefixed`);
+    }
+    const inside = getElementsWithin(host).filter((one) => !outside.includes(one));
+    assert(inside.length > 0, "and there is something inside the root to be exempt");
+    assert(
+        inside.some((one) => !one.className.startsWith("MargoMeter-")),
+        "which is exempt, because the game's stylesheet cannot reach behind the root",
     );
+});
+
+Deno.test("the strips say which screen the panel is on, and mark it as more than a colour", () => {
+    const host = draw(readFight());
+    const strips = getElementsWithin(host).filter((one) => one.className === "tabs");
+    // Two rows: which quantity, then which way round. Nothing said which side is the reader's
+    // own, so the second row carries no side tabs beside the directions.
+    assertEquals(strips.length, 2, "which quantity, and which way round");
+    const tabs = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "tab");
+    assertEquals(
+        tabs.length,
+        composeNounTabs("damageDealtApplied").length +
+            composeDirectionTabs("damageDealtApplied").length,
+        "one tab for each thing the two strips offer",
+    );
+    const current = tabs.filter((one) => one.className.includes("selected"));
+    assertEquals(current.length, 2, "one on each strip is where the panel is");
+    for (const marked of current) {
+        // More than a hue: the marked tab stands on the raised surface, which is a shape.
+        assert(marked.className.split(" ").length > 1, "and it is marked, not only tinted");
+    }
+    for (const tab of tabs) {
+        const screen = tab.attributes.get("data-screen");
+        assert(screen !== undefined, "each tab says which screen it would reach");
+        assert(getScreenFromName(screen) !== null, "by a name a screen answers to");
+    }
+});
+
+Deno.test("the side strip is drawn where the client said which side is the reader's own", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading: readFight(),
+        current: "damageDealtApplied",
+        side: "reader",
+        hasReaderSide: true,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const strips = getElementsWithin(host).filter((one) => one.className === "tabs");
+    assertEquals(strips.length, 2, "two rows, and whose rows shares the lower one");
+    const sides = getElementsWithin(host).filter(
+        (one) => one.attributes.get("data-side") !== undefined,
+    );
+    assertEquals(sides.length, composeSideTabs("reader").length, "one tab for each choice");
+    const lower = strips[1];
+    assert(lower !== undefined, "the lower row is drawn");
+    assert(lower.children.includes(sides[0] ?? lower), "and the side tabs stand on it");
+    assert(
+        lower.children.some((one) => one.className === "tabs-gap"),
+        "behind the gap that holds them against the right edge",
+    );
+    const marked = sides.filter((one) => one.className.includes("selected"));
+    assertEquals(marked[0]?.attributes.get("data-side"), "reader", "and the chosen one is marked");
+});
+
+/**
+ * The shelf covers the screen rather than being one of them, so nothing on the strips claims the
+ * reader is on a screen they cannot see.
+ */
+Deno.test("the shelf is a screen of its own, with the way back and no strips at all", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading: readFight(),
+        current: "damageDealtApplied",
+        side: "everyone",
+        hasReaderSide: true,
+        shelf: [],
+        isOnShelf: true,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        skill: null,
+        place: "Mapa (1, 2)",
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    // A header saying how this fight went, over a list of other fights, answers a question
+    // nobody asked of that list; a strip picking a figure of it is the same thing twice. The one
+    // strip here is the shelf's own, and it asks about the list rather than about a fight.
+    const strips = getElementsWithin(host).filter((one) => one.className === "tabs");
+    assertEquals(strips.length, 1, "one strip, and it is not one of the fight's");
+    assertEquals(getTextsByClass(host, "tabs-label"), [PANEL_WORDS.storage], "what it asks");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.attributes.get("data-storage") !== undefined)
+            .map((one) => one.attributes.get("data-storage")),
+        ["local", "session", "memory"],
+        "the three places a shelf can be kept, in the order they keep longest",
+    );
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "tab selected").map((one) =>
+            one.textContent
+        ),
+        [getWordsForStorage("local")],
+        "with the reader's own answer marked as more than a colour",
+    );
+    assertEquals(getTextsByClass(host, "header-place"), [], "and no header of the fight's");
+    assertEquals(getTextsByClass(host, "crumb-here"), [PANEL_WORDS.fights], "the shelf says so");
+    assertEquals(
+        getTextsByClass(host, "crumb-back"),
+        [`‹ ${PANEL_WORDS.backFromFights}`],
+        "and the way off it goes back to the fight rather than up the shelf",
+    );
+
+    const shelf = getElementsWithin(host).filter(
+        (one) => one.attributes.get("data-shelf") !== undefined,
+    );
+    assertEquals(shelf.length, 1, "the shelf is reached by one control, on the bar");
+    assert(shelf[0]?.className.startsWith("titlebar-button"), "a control and not a tab");
+});
+
+Deno.test("a fight draws a row for everybody in it, named", () => {
+    const reading = readFight();
+    const host = draw(reading);
+    // A pinned row is a row of the same shape, so the two are counted by the class that separates
+    // them rather than by the name each carries.
+    const rows = getElementsWithin(host).filter((one) => one.className === "row drillable");
+    assertEquals(rows.length, reading.rows.length, "one row for each of them");
     for (const row of rows) {
-      expect(titleByLabel.get(row.label), row.label).toBe(row.detail.length === 0 ? row.label : "");
+        const name = row.children.find((one) => one.className === "row-name");
+        assert(name !== undefined, "each row says who it is about");
+        assert(name.textContent.length > 0, "and says it in words");
     }
-  });
-
-  test("leaves the tooltip to the card on a row that has one", () => {
-    const { panel } = renderInto();
-    const labels = getByClass(panel, "row-name");
-    expect(labels.length).toBeGreaterThan(0);
-    expect(labels.map((label) => label.title)).toEqual(labels.map(() => ""));
-  });
-
-  /** The one place a reader can no longer see what they opened. */
-  test("says what was drilled into, where the crumb had to cut it", () => {
-    const { panel } = renderInto({ ...composeDefaultState(), focusCombatantId: 1 });
-    const here = assertDefined(getByClass(panel, "crumb-here")[0], "the crumb was drawn");
-    expect(here.title).toBe(here.textContent);
-    expect(here.title).not.toBe("");
-  });
-
-  test("draws a row for everyone, numbered, with a bar and a figure", () => {
-    const { panel } = renderInto();
-    const rows = getByClass(panel, "row");
-
-    // Three combatants, and the pinned row for what nobody can be charged with —
-    // which is a row on screen and deliberately not one of the ranked ones.
-    expect(rows.length).toBe(4);
-    expect(getByClass(panel, "row-rank").map((node) => node.textContent)).toEqual(["1.", "2.", "3."]);
-    expect(getByClass(panel, "bar").length).toBe(4);
-  });
-
-  /**
-   * The mark §9.6 asks for, drawn where the figure is rather than under the panel.
-   *
-   * Two claims, and the second is the one a test can lose. It has to be **there**
-   * when the view says the row is suspect — and it has to be **absent** otherwise,
-   * or a mark on every row says nothing at all and the strip below it is still the
-   * only thing telling anybody anything.
-   */
-  test("marks the row the view says may be short, and no other", () => {
-    const { panel } = renderInto(composeDefaultState(), {}, composeReadingWithAMarkedRow());
-    const marks = getByClass(panel, "row-warning");
-
-    expect(marks.length).toBe(2);
-    // A glyph and not a colour: §9.7 forbids colour carrying a meaning alone, and
-    // an empty span styled amber would pass every other assertion in this file.
-    for (const mark of marks) expect(mark.textContent.length).toBeGreaterThan(0);
-  });
-
-  test("marks nothing where the reading is clean", () => {
-    const { panel } = renderInto();
-
-    expect(getByClass(panel, "row").length).toBeGreaterThan(0);
-    expect(getByClass(panel, "row-warning")).toEqual([]);
-  });
-
-  /**
-   * The mark answers for the row like every other piece of it. It sits inside the
-   * line, so a pointer crossing onto it is a pointer on a row — and a detail that
-   * vanished exactly when the reader aimed at the thing telling them to look is the
-   * bug this file's own note about `parts` describes, arriving on a new node.
-   */
-  test("opens the row's detail like the rest of the row does", () => {
-    const document = composeFakeDocument();
-    const details = new Map<unknown, PanelDetailLine[]>();
-    renderPanelInto(
-      document,
-      document.createElement("div") as FakeNode,
-      composePanelView(composeReadingWithAMarkedRow(), composeDefaultState()),
-      {},
-      false,
-      details,
-      { list: null, levelKey: null },
-    );
-
-    const marks = [...details.keys()].filter(
-      (node) => (node as FakeNode).className === "row-warning",
-    );
-    expect(marks.length).toBe(2);
-  });
-
-  /**
-   * The bar's length is the meaning, so it has to be written as well as drawn
-   * (§9.7) — and the figure beside it is what a person reads out loud.
-   */
-  test("writes the share beside the bar rather than only drawing it", () => {
-    const { panel } = renderInto();
-
-    for (const share of getByClass(panel, "row-share")) {
-      expect(isDrawnShare(share.textContent), share.textContent).toBe(true);
-    }
-  });
-
-  /**
-   * ⚠️ **Every row states a share, and for one release four screens had one that
-   * did not.**
-   *
-   * `Zadane · Oni` is the screen it was worst on: the pinned figure was the whole
-   * fight's while the rows were one side's, so no whole on that screen contained
-   * it and the composing handed over a null bracket
-   * (`docs/specs/the-ends-a-figure-names.md`). The figure is
-   * the shown team's now — derived from the end the game did name — so it is
-   * inside the whole and says so
-   * (`docs/specs/the-ends-a-figure-names.md`).
-   *
-   * Counted rather than sampled: one `.row-share` per `.row`, and none of them
-   * empty. An empty one would read as a share of zero, which §9.6 keeps apart
-   * from a share that was not stated.
-   */
-  test("draws a share beside every row it draws", () => {
-    const { panel } = renderInto({ ...composeDefaultState(), metric: "dealt", team: "enemy" });
-    const rows = getByClass(panel, "row");
-    const shares = getByClass(panel, "row-share");
-
-    expect(rows.length).toBeGreaterThan(0);
-    expect(shares.length).toBe(rows.length);
-    for (const share of shares) expect(share.textContent).not.toBe("");
-  });
-
-  /**
-   * The detail is a window of ours, and it is shown by hovering rather than
-   * carried on the row as the browser own tooltip: a native one cannot be
-   * styled, arrives after a wait nobody chose, and would put a second kind of
-   * panel over the game.
-   */
-  test("hovering a row opens the detail beside the panel, at that row", () => {
-    const { document, root, container, details } = composeMountedPanel();
-    renderPanelInto(document, container, composePanelView(composeReading(), composeDefaultState()), {}, false, details);
-    const tip = assertDefined(getByClass(root, "MargoMeter-tip")[0], "the tooltip was built");
-    const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
-
-    expect(tip.properties["display"]).toBe("none");
-
-    setEventOn(root, "pointerover", { target: row, clientX: 400, clientY: 300 });
-
-    expect(tip.properties["display"]).toBe("block");
-    // A document with no layout measures the detail as nothing, and nothing is
-    // not a size to place a window by: it stays where the stylesheet put it.
-    expect(tip.properties["top"]).toBe("");
-    const text = getEveryNode(tip).map((node) => node.textContent);
-    expect(text).toContain("Zadane");
-    expect(text.some((line) => line.startsWith("ciosy"))).toBe(true);
-
-    /**
-     * ⚠️ Moving from the bar onto the name is still inside the row, and the
-     * detail has to survive it: this is the bug that made the tooltip look
-     * broken — it vanished the moment the pointer crossed onto a word.
-     */
-    const name = assertDefined(getByClass(container, "row-name")[0], "the name was drawn");
-    setEventOn(root, "pointerout", { target: row, relatedTarget: name });
-    setEventOn(root, "pointerover", { target: name, clientY: 300 });
-    expect(tip.properties["display"]).toBe("block");
-
-    // Leaving the row for something that is not one takes it away.
-    setEventOn(root, "pointerout", { target: name, relatedTarget: container });
-    expect(tip.properties["display"]).toBe("none");
-  });
-
-  /**
-   * ⚠️ **The way out of the panel is a `pointerout` that names a row**, and it is
-   * the case the test above cannot reach: every piece of a row carries the
-   * detail, so a rule reading the node being *left* holds the detail open over
-   * the game and lets go only when the reader hovers something else. It looked
-   * intermittent because a redraw clears the map — the detail closed during a
-   * fight and stayed on an idle panel (`TODO.md`, and the listener's own
-   * docblock).
-   *
-   * Both ways out, because they arrive differently: a node of the game's, which
-   * this fake stands in for by never appending what it built, and nothing at all,
-   * which is what a pointer leaving the window names.
-   */
-  test("the detail closes when the pointer leaves the panel from a row", () => {
-    for (const relatedTarget of [composeFakeDocument().createElement("div"), undefined]) {
-      const { document, root, container, details } = composeMountedPanel();
-      const view = composePanelView(composeReading(), composeDefaultState());
-      renderPanelInto(document, container, view, {}, false, details);
-      const tip = assertDefined(getByClass(root, "MargoMeter-tip")[0], "the tooltip was built");
-      const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
-
-      setEventOn(root, "pointerover", { target: row, clientY: 300 });
-      expect(tip.properties["display"]).toBe("block");
-
-      setEventOn(root, "pointerout", { target: row, relatedTarget });
-
-      expect(tip.properties["display"]).toBe("none");
-    }
-  });
-
-  /**
-   * ⚠️ **The measurement is only right in one order**, and this is the loop no
-   * other file can close: the detail is filled, shown and *then* measured, so what
-   * the placement is handed is this row's detail at the size it will be drawn at.
-   * Measured before the fill it is the previous row's, and measured while hidden
-   * it is nothing at all — and nothing reads here as a document with no layout,
-   * which leaves the window in the corner for every hover of a real session.
-   *
-   * The arithmetic is the tip-placement suite's. What this holds is
-   * that the panel hands it a real size, the position it keeps and the window the
-   * page stated.
-   */
-  test("the detail is measured after it is filled and shown, and placed from that", () => {
-    const { document, root, container, details } = composeMountedPanel(
-      {},
-      { position: { left: 0, top: 8 }, getViewport: () => SCREEN },
-    );
-    renderPanelInto(document, container, composePanelView(composeReading(), composeDefaultState()), {}, false, details);
-    const tip = assertDefined(getByClass(root, "MargoMeter-tip")[0], "the tooltip was built");
-    const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
-    let measuredWhileHidden: string | undefined;
-    let measuredChildren = 0;
-    tip.getBoundingClientRect = (): { width: number; height: number } => {
-      measuredWhileHidden = tip.properties["display"];
-      measuredChildren = tip.children.length;
-      return { width: 250, height: 200 };
-    };
-
-    setEventOn(root, "pointerover", { target: row, clientY: 300 });
-
-    expect(measuredWhileHidden).toBe("block");
-    expect(measuredChildren).toBeGreaterThan(0);
-    // The panel is at the left edge, so the detail opens on its other side: 260
-    // of panel and the gap, in the panel's own coordinates.
-    expect(tip.properties["left"]).toBe("264px");
-    expect(tip.properties["top"]).toBe("292px");
-    expect(tip.properties["right"]).toBe("auto");
-  });
-
-  /**
-   * The promise, at the surface a reader meets rather than in the arithmetic: a
-   * detail near the bottom of the window turns over and **ends** at the pointer
-   * instead of beginning there, so all of it is on the screen and the cursor is
-   * still on one of its edges.
-   */
-  test("a row at the bottom of the window opens a detail that ends at the pointer", () => {
-    const { document, root, container, details } = composeMountedPanel(
-      {},
-      { position: { left: 900, top: 600 }, getViewport: () => SCREEN },
-    );
-    renderPanelInto(document, container, composePanelView(composeReading(), composeDefaultState()), {}, false, details);
-    const tip = assertDefined(getByClass(root, "MargoMeter-tip")[0], "the tooltip was built");
-    const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
-    tip.getBoundingClientRect = (): { width: number; height: number } => ({ width: 250, height: 300 });
-
-    setEventOn(root, "pointerover", { target: row, clientY: 780 });
-
-    // The pointer at 780, less 300 of detail, less the panel's own top of 600 —
-    // above the panel's corner, which is a negative offset from it.
-    expect(tip.properties["top"]).toBe("-120px");
-  });
-
-  /**
-   * ⚠️ **The panel the detail is placed against is the panel that is on the
-   * screen, not the one that was there when the page loaded.** The drag keeps the
-   * position it writes onto the host; the placement was reading the one the
-   * caller handed in at mount, which stops being true the first time anybody
-   * moves the panel — so a panel dragged to the left edge went on being placed
-   * against the right-hand corner, and the detail went off the screen exactly
-   * where it was asked not to.
-   *
-   * Two sources for one position, which is the fault
-   * `src/ui/panel-element.ts` says out loud it will not have.
-   */
-  test("the detail follows the panel that was dragged, not the one it was mounted at", () => {
-    const { document, host, root, container, details } = composeMountedPanel(
-      {},
-      { position: { left: 900, top: 100 }, getViewport: () => SCREEN },
-    );
-    renderPanelInto(document, container, composePanelView(composeReading(), composeDefaultState()), {}, false, details);
-    const tip = assertDefined(getByClass(root, "MargoMeter-tip")[0], "the tooltip was built");
-    const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
-    const titleBar = assertDefined(getByClass(root, "MargoMeter-titlebar")[0], "the title bar was built");
-    tip.getBoundingClientRect = (): { width: number; height: number } => ({ width: 250, height: 200 });
-
-    // All the way to the left edge, where the detail has to change sides.
-    setEventOn(root, "pointerdown", { target: titleBar, clientX: 950, clientY: 150, pointerId: 1 });
-    setEventOn(root, "pointermove", { target: titleBar, clientX: 50, clientY: 150, pointerId: 1 });
-    setEventOn(root, "pointerup", { target: titleBar, clientX: 50, clientY: 150, pointerId: 1 });
-    setEventOn(root, "pointerover", { target: row, clientY: 300 });
-
-    // The panel is at 0 now, so the detail is on its other side: 260 of panel and
-    // the gap, in the panel's own coordinates.
-    expect(host.properties["left"]).toBe("0px");
-    expect(tip.properties["left"]).toBe("264px");
-  });
-
-  /**
-   * A pointer that arrives without coordinates leaves the detail where it was.
-   * Nothing is recomputed, because there is nothing to recompute it from — and a
-   * position written from a missing coordinate is a window somewhere nobody
-   * pointed at.
-   */
-  test("a pointer with no coordinates leaves the detail where the last one put it", () => {
-    const { document, root, container, details } = composeMountedPanel(
-      {},
-      { position: { left: 0, top: 8 }, getViewport: () => SCREEN },
-    );
-    renderPanelInto(document, container, composePanelView(composeReading(), composeDefaultState()), {}, false, details);
-    const tip = assertDefined(getByClass(root, "MargoMeter-tip")[0], "the tooltip was built");
-    const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
-    const name = assertDefined(getByClass(container, "row-name")[0], "the name was drawn");
-    tip.getBoundingClientRect = (): { width: number; height: number } => ({ width: 250, height: 200 });
-
-    setEventOn(root, "pointerover", { target: row, clientY: 300 });
-    setEventOn(root, "pointerover", { target: name });
-
-    expect(tip.properties["display"]).toBe("block");
-    expect(tip.properties["top"]).toBe("292px");
-  });
-
-  /**
-   * The tooltip outlives the render for the same reason the title bar does: a
-   * fight redraws every few seconds, and a window rebuilt under the pointer
-   * would blink out of existence exactly while being read.
-   */
-  test("the detail still opens after twenty redraws", () => {
-    const { document, root, container, details } = composeMountedPanel();
-    const view = composePanelView(composeReading(), composeDefaultState());
-    for (let redraws = 0; redraws < 20; redraws += 1) {
-      renderPanelInto(document, container, view, {}, false, details);
-    }
-
-    const tip = assertDefined(getByClass(root, "MargoMeter-tip")[0], "the tooltip was built");
-    const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
-    setEventOn(root, "pointerover", { target: row, clientX: 100, clientY: 100 });
-
-    expect(tip.properties["display"]).toBe("block");
-  });
-
-  test("a warning is a line of its own, never a banner over the game", () => {
-    const { panel } = renderInto();
-    const warnings = getByClass(panel, "warning");
-
-    expect(warnings.length).toBeGreaterThan(0);
-    expect(assertDefined(warnings[0], "a warning was drawn").textContent).toContain("⚠");
-  });
-
-  /**
-   * The one row that says something is missing sits outside the list, so it
-   * cannot scroll away from the reader who most needs to see it.
-   */
-  test("the figure nobody can be charged with is pinned outside the list", () => {
-    const { panel } = renderInto();
-    const pinned = getByClass(panel, "pinned-region");
-    const list = assertDefined(getByClass(panel, "list")[0], "the list was drawn");
-
-    expect(pinned.length).toBe(1);
-    expect(getEveryNode(list)).not.toContain(assertDefined(pinned[0], "pinned row"));
-  });
-
-  /**
-   * ⚠️ **This region was drawn in every test in this file and asserted in none.**
-   *
-   * It divided the fight in two while a third of it belonged to neither side, and
-   * nothing here could see that, because nothing here looked. The bar closes: as
-   * many segments as there are parts with a figure, and every point of the fight
-   * inside one of them.
-   *
-   * The fixture is 500 applied by our two and 60 of poison ticking on the enemy.
-   * That 60 is the whole test — nobody swung it, so it used to stand beneath the
-   * bar labelled `Bez strony`, and the roster gives the combatant it ticked on a
-   * side (`docs/specs/the-ends-a-figure-names.md`). It is
-   * inside `My` now, which is why the figure is read here rather than the segment
-   * count alone: a bar of one full-width segment says nothing about what went
-   * into it.
-   */
-  test("the summary under the list divides the whole fight, not part of it", () => {
-    const { panel } = renderInto();
-    const region = assertDefined(getByClass(panel, "sides-region")[0], "the summary");
-    const track = assertDefined(getByClass(region, "sides-track")[0], "the split bar");
-
-    const widths = track.children.map((part) =>
-      assertDefined(
-        getDecimalFromText((part.properties["width"] ?? "").replace("%", "")),
-        "a segment carries a width",
-      ),
-    );
-    expect(widths.length).toBe(1);
-    expect(widths.reduce((sum, width) => sum + width, 0)).toBeCloseTo(100, 6);
-    expect(getEveryNode(region).map((node) => node.textContent)).toContain("560");
-    // Nothing is left over to name, so nothing is named: the line is absent
-    // rather than drawn at zero.
-    expect(getByClass(region, "sides-spare").length).toBe(0);
-  });
-
-  /**
-   * And the part that survives, on the one fight shape it stands for.
-   *
-   * A blow naming neither end has no side to be charged to at either end, so it
-   * is beneath the bar rather than inside it — named, counted, and in the colour
-   * that carries no side. Without this the part could be deleted and every test
-   * here would still pass, because no capture reaches the shape.
-   */
-  test("what has no side at either end is named beneath the bar", () => {
-    const { panel } = renderInto(composeDefaultState(), {}, composeReadingWithNeitherEnd());
-    const region = assertDefined(getByClass(panel, "sides-region")[0], "the summary");
-    const track = assertDefined(getByClass(region, "sides-track")[0], "the split bar");
-    const spare = assertDefined(getByClass(region, "sides-spare")[0], "what has no side");
-
-    expect(getEveryNode(spare).map((node) => node.textContent)).toEqual(
-      expect.arrayContaining(["Bez strony", "70"]),
-    );
-    expect(spare.properties["color"]).toBe(UNKNOWN_COLOUR);
-    expect(
-      assertDefined(track.children.at(-1), "the segment with no side").properties["background"],
-    ).toBe(UNKNOWN_COLOUR);
-  });
-
-  /**
-   * A share of nothing is not a half-and-half split, and it used to draw one:
-   * `mineShare` fell back to `0.5`, so a fight with no healing at all showed the
-   * two sides evenly matched at it. Nothing measured is nothing drawn (§9.6).
-   */
-  test("draws no split bar where there is nothing to divide", () => {
-    const { panel } = renderInto({ ...composeDefaultState(), metric: "healingGiven" });
-    const region = assertDefined(getByClass(panel, "sides-region")[0], "the summary");
-
-    expect(getByClass(region, "sides-track").length).toBe(0);
-  });
-
-  /**
-   * The two figures are the fight's, whatever the list below them shows — so on a
-   * breakdown, where the list is one combatant, the label has to say whose they
-   * are. Without it they read as that combatant's, at ten times the scale.
-   */
-  test("says the summary is the whole fight once the list stops being one", () => {
-    const ranking = renderInto().panel;
-    const breakdown = renderInto({ ...composeDefaultState(), focusCombatantId: 1 }).panel;
-    const getSummaryLabel = (panel: FakeNode): string =>
-      assertDefined(getByClass(panel, "sides-label")[0], "the summary label").textContent;
-
-    expect(getSummaryLabel(ranking)).toBe("My / Oni");
-    expect(getSummaryLabel(breakdown)).toContain("Cała walka");
-  });
-
-  /**
-   * Both numbers, because only one of them was ever checked here: a render that
-   * ignored the view and wrote eleven into the stylesheet passed this test for as
-   * long as it asked one question.
-   */
-  test("the list says how many rows it shows before it scrolls", () => {
-    const { panel } = renderInto();
-    const list = assertDefined(getByClass(panel, "list")[0], "the list was drawn");
-    const filtered = renderInto({ ...composeDefaultState(), team: "mine" }).panel;
-
-    expect(list.properties["--MargoMeter-rows"]).toBe("11");
-    expect(
-      assertDefined(getByClass(filtered, "list")[0], "the filtered list was drawn").properties[
-        "--MargoMeter-rows"
-      ],
-    ).toBe("10");
-  });
+    const figures = getTextsByClass(host, "row-value");
+    const first = reading.rows[0];
+    assert(first !== undefined, "there is a first row");
+    assertEquals(figures[0], composeFigureText(first.figure), "with the figure the reading holds");
+    const ranks = getTextsByClass(host, "row-rank");
+    assertEquals(ranks[0], "1.", "and its place in the ranking before the name");
+    const shares = getTextsByClass(host, "row-share");
+    assertEquals(shares[0], `(${first.shareText})`, "and the share the bar draws, in brackets");
 });
 
-describe("one gesture in, one gesture out", () => {
-  test("a press on a row asks for that row and nothing else", () => {
-    const chosen: string[] = [];
-    const { panel } = renderInto(composeDefaultState(), { onRowChosen: (key: string) => chosen.push(key) });
-    const row = assertDefined(getByClass(panel, "row")[0], "a row was drawn");
-
-    setPressOn(panel, row);
-    expect(chosen).toEqual(["combatant:1"]);
-  });
-
-  /**
-   * The noun carries the direction across with it. From `Obrażenia · zadane`,
-   * `Leczenie` is healing **given** — turning the figure round under the hand of
-   * somebody who only asked to change the subject is the thing this prevents.
-   */
-  test("a press on a noun keeps the direction it was read in", () => {
-    const metrics: string[] = [];
-    const { panel } = renderInto(composeDefaultState(), {
-      onMetricChosen: (metric: string) => metrics.push(metric),
+Deno.test("a fight nothing has happened in says so, rather than drawing nothing", () => {
+    const host = draw({
+        rows: [],
+        outcome: null,
+        sizes: [],
+        unplaced: 0,
+        total: 0,
+        pinned: [],
+        warnings: [],
+        sides: null,
+        visibleRows: 11,
     });
+    assertEquals(getTextsByClass(host, "empty"), [PANEL_WORDS.nothingYet], "it says so in words");
+    assertEquals(getTextsByClass(host, "row-name"), [], "and draws no row at all");
+});
 
-    setPressOn(panel, getTabByLabel(panel, "Leczenie"));
+Deno.test("what nobody can be charged with is a row apart from the ranking", () => {
+    const reading = readFight();
+    const host = draw(reading);
+    assert(reading.pinned.length > 0, "this fight has damage tied to no attacker");
+    const blocks = getElementsWithin(host).filter((one) => one.className === "pinned-region");
+    assertEquals(blocks.length, 1, "which stands below the ranking in a block of its own");
+    const inside = blocks[0]?.children ?? [];
+    assertEquals(inside.length, 1, "holding one row");
+    assert(inside[0]?.className.includes("row"), "which is a row like any other");
+    const list = getElementsWithin(host).find((one) => one.className === "list");
+    assert(list !== undefined, "and the list is a region of its own");
+    assertEquals(
+        getElementsWithin(list).filter((one) => one.className === "pinned-region"),
+        [],
+        "which the pinned row stands outside, so it never scrolls away",
+    );
+});
 
-    expect(metrics).toEqual(["healingGiven"]);
-  });
+Deno.test("the fight is totalled in two figures, and a doubt is said under them", () => {
+    const reading = readFight();
+    const sides = { ours: 300, theirs: 700, nobody: 0 };
+    const host = draw({ ...reading, sides });
+    const strip = getElementsWithin(host).filter((one) => one.className === "MargoMeter-sides");
+    assertEquals(strip.length, 1, "the strip is there whether or not anything went wrong");
+    const line = getElementsWithin(host).find((one) => one.className === "sides");
+    assertEquals(
+        line?.children.map((one) => one.textContent),
+        [composeFigureText(300), "My / Oni", composeFigureText(700)],
+        "the reader's own side, what the two are, and the other side",
+    );
+    const track = getElementsWithin(host).find((one) => one.className === "sides-track");
+    assertEquals(
+        track?.children.map((one) => one.attributes.get("style")),
+        ["width:30.0%", "width:70.0%"],
+        "and a track split where the fight is split, with no segment for a part of nothing",
+    );
+    assertEquals(getTextsByClass(host, "sides-spare"), [], "and nothing said about no side");
+    assertEquals(getTextsByClass(host, "warning"), [], "nothing here is short, so none is said");
 
-  test("and from the other direction it keeps that one instead", () => {
-    const metrics: string[] = [];
-    const { panel } = renderInto(
-      { ...composeDefaultState(), metric: "taken" },
-      { onMetricChosen: (metric: string) => metrics.push(metric) },
+    // Colour never carries a meaning alone: each figure stands beside its own label, in its own
+    // fixed place, and the ink is what the segment of the track paints itself with.
+    const ours = getElementsWithin(host).find((one) => one.className === "sides-ours");
+    assert(ours !== undefined, "the reader's own side is named as theirs");
+    assertEquals(ours.attributes.get("style"), undefined, "and no colour is written onto it");
+});
+
+Deno.test("what belongs to neither side is drawn as belonging to neither", () => {
+    const reading = readFight();
+    const host = draw({ ...reading, sides: { ours: 300, theirs: 600, nobody: 100 } });
+    assertEquals(
+        getTextsByClass(host, "sides-spare"),
+        [],
+        "not a line of its own text: the label and the figure are two cells inside it",
+    );
+    const spare = getElementsWithin(host).find((one) => one.className.includes("sides-spare"));
+    assertEquals(
+        spare?.children.map((one) => one.textContent),
+        [PANEL_WORDS.withoutSide, composeFigureText(100)],
+        "below the two, saying what cannot be charged and how much of it there is",
+    );
+    const track = getElementsWithin(host).find((one) => one.className === "sides-track");
+    assertEquals(track?.children.length, 3, "and the track states it as a third segment");
+});
+
+Deno.test("a doubt about the reading is said under the strip, in words and once", () => {
+    const reading = readFight();
+    const said = "Nie udało się odczytać wszystkiego.";
+    const short = draw({ ...reading, warnings: [said] });
+    assertEquals(
+        getTextsByClass(short, "warning"),
+        [`⚠ ${said}`],
+        "in words, behind a glyph, since colour never carries a meaning alone",
+    );
+    const list = getElementsWithin(short).find((one) => one.className === "list");
+    assert(list !== undefined, "the list is a region of its own");
+    const under = getElementsWithin(list).filter((one) => one.className === "warning");
+    assertEquals(under, [], "and the doubt is not a row, so it never scrolls away with one");
+});
+
+Deno.test("every listener sits on the root, where a press is not retargeted", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    const host = panel.element as FakeElement;
+    // Outside a shadow root a press is retargeted to the host, so a listener there reads null off
+    // every attribute the panel writes. `PanelElement` carries no `addEventListener` for that
+    // reason; this holds the other half, which is that the root got one of each and no more.
+    assertEquals(
+        [...host.rootListeners.keys()],
+        ["pointerdown", "contextmenu", "pointermove", "pointerout"],
+        "a press, the way back, a move that opens the detail, and the leave that closes it",
+    );
+    for (const type of host.rootListeners.keys()) {
+        assertEquals(host.rootListeners.get(type)?.length, 1, `${type} is listened for once`);
+    }
+    for (const element of getElementsWithin(host)) {
+        assertEquals(element.rootListeners.size, element === host ? 4 : 0, "no row carries one");
+    }
+});
+
+Deno.test("a press on a tab reaches the panel, and a press on anything else does not", () => {
+    const document = composeFakeDocument();
+    const pressed: PanelPress[] = [];
+    const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
+    panel.show({
+        reading: readFight(),
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const tabs = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "tab");
+    const other = tabs.find((one) => one.attributes.get("data-screen") === "damageTakenApplied");
+    assert(other !== undefined, "there is a screen to reach for");
+    pressElement(host, "pointerdown", other);
+    assertEquals(pressed, [{ kind: "screen", screen: "damageTakenApplied" }], "the tab's screen");
+
+    const title = getElementsWithin(host).find((one) => one.className.endsWith("titlebar"));
+    assert(title !== undefined, "there is something that is not a tab to press");
+    pressElement(host, "pointerdown", title);
+    assertEquals(pressed.length, 1, "the bar asks for nothing, so pressing it moves nothing");
+});
+
+/** A side is not a screen, and the one listener has to hand the two over as different presses. */
+Deno.test("a press on a side asks for that side, and on the shelf for the shelf", () => {
+    const document = composeFakeDocument();
+    const pressed: PanelPress[] = [];
+    const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
+    panel.show({
+        reading: readFight(),
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: true,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const opposing = getElementsWithin(host).find(
+        (one) => one.attributes.get("data-side") === "opposing",
+    );
+    assert(opposing !== undefined, "the side strip offers the other side");
+    pressElement(host, "pointerdown", opposing);
+    assertEquals(pressed.at(-1), { kind: "side", side: "opposing" }, "and asks for it by name");
+
+    const shelf = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assert(shelf !== undefined, "the bar carries the shelf control");
+    pressElement(host, "pointerdown", shelf);
+    assertEquals(pressed.at(-1), { kind: "shelf" }, "which asks for the shelf and nothing else");
+});
+
+Deno.test("the listener outlives a redraw, because the host does", () => {
+    const document = composeFakeDocument();
+    const pressed: PanelPress[] = [];
+    const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
+    panel.show({
+        reading: readFight(),
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const before = getElementsWithin(host).filter((one) => one.className === "tabs").length;
+
+    panel.show({
+        reading: readFight(),
+        current: "healthRestored",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const tabs = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "tab");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "tabs").length,
+        before,
+        "the strips are drawn again, not drawn twice",
+    );
+    assertEquals(
+        tabs.length,
+        composeNounTabs("healthRestored").length + composeDirectionTabs("healthRestored").length,
+        "and each carries what the new screen puts on it",
+    );
+    const current = tabs.filter((one) => one.className.includes("selected"));
+    // The marked noun carries the screen it would cross to, which for the noun already being
+    // read is the screen itself: crossing back keeps the direction rather than turning it round.
+    assertEquals(
+        current.map((one) => one.attributes.get("data-screen")),
+        ["healthRestored", "healthRestored"],
+        "both strips are on the new screen",
     );
 
-    setPressOn(panel, getTabByLabel(panel, "Leczenie"));
+    const tab = tabs[0];
+    assert(tab !== undefined, "and the strips still have tabs");
+    pressElement(host, "pointerdown", tab);
+    // The damage noun, which from healing received crosses to damage received: a press reaches
+    // the listener the host has carried since before either redraw.
+    assertEquals(
+        pressed.at(-1),
+        { kind: "screen", screen: "damageTakenApplied" },
+        "after a redraw",
+    );
+});
 
-    expect(metrics).toEqual(["healed"]);
-  });
-
-  /**
-   * Both strips report the same kind of choice — which figure — so the drawing
-   * needs no second handler and no second map, however many axes the panel grows.
-   */
-  test("a press on a direction asks for that metric", () => {
-    const metrics: string[] = [];
-    const { panel } = renderInto(composeDefaultState(), {
-      onMetricChosen: (metric: string) => metrics.push(metric),
-    });
-
-    setPressOn(panel, getTabByLabel(panel, "otrzymane"));
-
-    expect(metrics).toEqual(["taken"]);
-  });
-
-  /**
-   * Selected from its own strip rather than by counting from the first.
-   *
-   * ⚠️ **A flat index across every tab is a test that keeps passing while it
-   * checks something else.** This one read `tabs[5]` and meant the side strip's
-   * second tab; moving the rate control out of the metric row slid `tabs[5]` onto
-   * a different button, and the assertion went green against the wrong one.
-   */
-
-  test("a side tab asks for that side", () => {
-    const teams: string[] = [];
-    const { panel } = renderInto(composeDefaultState(), { onTeamChosen: (team: string) => teams.push(team) });
-    const sides = assertDefined(getByClass(panel, "sides-of")[0], "the side strip");
-
-    setPressOn(panel, getTabByLabel(sides, "My"));
-    expect(teams).toEqual(["mine"]);
-  });
-
-  /**
-   * ⚠️ **The defect this replaces cannot be dispatched into a fake; the property
-   * that closes it can.** A browser assembles `click` out of a press and a
-   * release and drops it when what sat between them has left the tree — and every
-   * node here leaves the tree on every payload, because `renderPanelInto`
-   * replaces the lot. So the reader pressed a tab during a fight, a payload
-   * landed, and nothing happened.
-   *
-   * What is checkable without a browser is that no control needs two events:
-   * a press alone drives every one of them, and nothing the render draws is
-   * waiting for a click. The second half is what would go red if a click path
-   * were ever added back beside this one.
-   */
-  test("every control answers to a press alone, and nothing waits for a click", () => {
-    const chosen: string[] = [];
-    const metrics: string[] = [];
-    const teams: string[] = [];
-    const { panel } = renderInto(composeDefaultState(), {
-      onRowChosen: (key: string) => chosen.push(key),
-      onMetricChosen: (metric: string) => metrics.push(metric),
-      onTeamChosen: (team: string) => teams.push(team),
-    });
-    const row = assertDefined(getByClass(panel, "row")[0], "a row was drawn");
-    const sides = assertDefined(getByClass(panel, "sides-of")[0], "the side strip");
-
-    setPressOn(panel, row);
-    setPressOn(panel, getTabByLabel(panel, "Leczenie"));
-    setPressOn(panel, getTabByLabel(sides, "My"));
-
-    expect([chosen.length, metrics.length, teams.length]).toEqual([1, 1, 1]);
-    expect(
-      getEveryNode(panel)
-        .flatMap((node) => node.listeners)
-        .filter((bound) => bound.type === "click"),
-    ).toEqual([]);
-  });
-
-  /**
-   * The other half of the gesture below, and it has to be tested with it: a
-   * right-press arrives as a `pointerdown` *before* the menu event, so a panel
-   * acting on every press would open the row and then step straight back out of
-   * it — one gesture spending itself twice.
-   */
-  test("a press that is not the primary button opens nothing, and going back still works", () => {
-    const chosen: string[] = [];
-    let back = 0;
-    const { panel } = renderInto(composeDefaultState(), {
-      onRowChosen: (key: string) => chosen.push(key),
-      onBack: () => {
-        back += 1;
-      },
-    });
-    const row = assertDefined(getByClass(panel, "row")[0], "a row was drawn");
-
-    setPressOn(panel, row, 2);
-    setEventOn(panel, "contextmenu", { target: row, preventDefault: (): void => {} });
-
-    expect(chosen).toEqual([]);
-    expect(back).toBe(1);
-  });
-
-  /**
-   * The way out works from anywhere in the panel, including the empty space
-   * under a short list. A back button alone would make the cheapest gesture the
-   * one that needs aiming.
-   */
-  test("the right button goes back from anywhere, and the page never sees it", () => {
-    let back = 0;
-    let defaultsPrevented = 0;
-    const { panel } = renderInto(composeDefaultState(), {
-      onBack: () => {
-        back += 1;
-      },
-    });
-
-    setEventOn(panel, "contextmenu", {
-      target: panel,
-      preventDefault: () => {
-        defaultsPrevented += 1;
-      },
-    });
-
-    expect(back).toBe(1);
-    expect(defaultsPrevented).toBe(1);
-  });
-
-  /**
-   * §9.6: an add-on that breaks the game's own scripts has done far more damage
-   * than one that shows a wrong number. Every handler catches its own.
-   */
-  test("a handler that throws is reported rather than escaping into the page", () => {
+Deno.test("a region that cannot be drawn is replaced by itself, and the rest stands", () => {
+    const document = composeFakeDocument();
     const failures: unknown[] = [];
-    const { panel } = renderInto(composeDefaultState(), {
-      onRowChosen: () => {
-        // Broken the way a handler really breaks — reaching into nothing — rather
-        // than by throwing something this repository would never throw (§9.5).
-        const broken = undefined as unknown as { choose: () => void };
-        broken.choose();
-      },
-      onSectionFailure: (error: unknown) => failures.push(error),
-    });
-    const row = assertDefined(getByClass(panel, "row")[0], "a row was drawn");
-
-    expect(() => setPressOn(panel, row)).not.toThrow();
-    expect(failures.length).toBe(1);
-  });
-});
-
-describe("failure is the size of the thing that failed", () => {
-  /**
-   * The bar behind a row, and the two declarations that make it one.
-   *
-   * ⚠️ **The property names were unheld**, so `width` or `background` could be
-   * written under another name and every bar would be an invisible strip of
-   * nothing while the figures beside them stayed right — the panel's own shape of
-   * a wrong number that looks right (the closing round's sweep of
-   * `src/ui/panel-element.ts`). The values are read as the view composed them,
-   * never restated here.
-   */
-  test("a row's bar is as long as its share and carries its colour", () => {
-    const document = composeFakeDocument();
-    const view = composePanelView(composeReading(), composeDefaultState());
-    const panel = renderPanel(document, view) as FakeNode;
-
-    const first = assertDefined(view.lists[0]?.rows[0], "the ranking drew a row");
-    const bar = assertDefined(getByClass(panel, "bar")[0], "the row drew a bar");
-
-    // One place after the point, which is what the writer in `libs/number.ts` puts
-    // there and what keeps `10.000000000000002%` out of a declaration.
-    expect(bar.properties["width"]).toBe(`${composeDecimalText(first.fill * 100, 1)}%`);
-    expect(bar.properties["background"]).toBe(first.colour);
-  });
-
-  /**
-   * §9.6 forbids vanishing: whatever can still be drawn is drawn, and only the
-   * part that failed is replaced in place.
-   */
-  test("a region that throws leaves its neighbours on screen", () => {
-    const document = composeFakeDocument();
-    const view = composePanelView(composeReading(), composeDefaultState());
-    // A list that throws when read is the closest thing to a section going wrong
-    // that a fake can produce without reaching into the renderer.
-    Object.defineProperty(view, "lists", {
-      get() {
-        const broken = undefined as unknown as { read: () => void };
-        broken.read();
-      },
-    });
-
-    const failures: unknown[] = [];
-    const panel = renderPanel(document, view, {
-      onSectionFailure: (error) => failures.push(error),
-    }) as FakeNode;
-
-    expect(failures.length).toBe(1);
-    expect(getByClass(panel, "undrawn").length).toBe(1);
-    // The header and the tabs were drawn before it and survive it.
-    expect(getByClass(panel, "tab").length).toBeGreaterThan(0);
-  });
-
-  /**
-   * ⚠️ **What the marker says is the only thing a player gets, and nothing held
-   * it.** Every region is named in Polish where it is drawn — `nagłówek`,
-   * `zakładki`, `kierunek i strony`, `ścieżka`, `lista` — and each of those words
-   * could be replaced with anything at all, including one of ours, with the gate
-   * green (the closing round's sweep of `src/ui/panel-element.ts`). The sentence
-   * beside the name is what tells a reader the figure is missing rather than
-   * zero (§9.6), so it is read here in words.
-   */
-  test("and says which region it was, in the player's own words", () => {
-    const document = composeFakeDocument();
-    const view = composePanelView(composeReading(), composeDefaultState());
-    Object.defineProperty(view, "lists", {
-      get() {
-        const broken = undefined as unknown as { read: () => void };
-        broken.read();
-      },
-    });
-
-    const panel = renderPanel(document, view, { onSectionFailure: (): void => {} }) as FakeNode;
-    const marker = assertDefined(getByClass(panel, "undrawn")[0], "the region left a marker");
-
-    expect(marker.textContent).toBe("lista — nie dało się narysować");
-  });
-});
-
-describe("the window itself", () => {
-  test("the title bar carries one shelf, one copy, one developer copy and one collapse", () => {
-    const asked: string[] = [];
-    const { root } = composeMountedPanel({
-      onFightsToggled: () => asked.push("fights"),
-      onCopyRequested: () => asked.push("copy"),
-      onCaptureRequested: () => asked.push("raw"),
-      onCollapseToggled: () => asked.push("collapse"),
-    });
-    const buttons = getByClass(root, "titlebar-button");
-
-    expect(buttons.length).toBe(4);
-    for (const button of buttons) setClickOn(root, button);
-    expect(asked).toEqual(["fights", "copy", "raw", "collapse"]);
-
-    /**
-     * ⚠️ **What each one says, in words.** The label is what a reader aims at and
-     * the title is the only explanation any of them gets — four glyphs and four
-     * Polish sentences, every one of which could have been replaced with anything
-     * at all (the closing round's sweep of `src/ui/panel-element.ts`). A button
-     * whose title says nothing about what it does is §9.6's control that is worse
-     * than absent, in a slower way.
-     *
-     * ⚠️ **Two of the four are toggles, and their titles say both directions.**
-     * The bar is built with the shadow root and outlives every render, so neither
-     * can be reworded when the screen changes — a title reading *open the shelf*
-     * would be untrue for exactly as long as the shelf was open.
-     */
-    expect(buttons.map((button) => [button.textContent, button.title])).toEqual([
-      ["☰", "Pokaż albo schowaj zapisane walki"],
-      ["⧉", "Kopiuj pełny raport z tej walki"],
-      ["{ }", "Do zgłoszeń: zapisz surowe dane walki prosto z gry"],
-      ["—", "Zwiń albo rozwiń okno"],
-    ]);
-  });
-
-  /**
-   * A control that does nothing is worse than one that is not there: the panel is
-   * mounted in places with no fight to hand over.
-   */
-  test("a button nobody offered is not drawn", () => {
-    const { root } = composeMountedPanel({});
-
-    expect(getByClass(root, "titlebar-button").length).toBe(0);
-  });
-
-  /**
-   * §9.6, at the one level of the shadow tree an inspector opens onto.
-   *
-   * The host says whose it is — `tests/game/engine-attachment.test.ts` holds that,
-   * because `ui` has no page to append it to. What this file can reach is the rung
-   * below: expand the shadow root and the three nodes under it say the same thing.
-   * Everything deeper stays unprefixed on purpose, and the rule says why — the
-   * shadow root is the isolation, so a prefix on `.row` would buy noise.
-   *
-   * ⚠️ **Over every child rather than over the three we know about.** Naming them
-   * individually is a test that passes forever while a fourth arrives unnamed
-   * beside them, which is how the host itself went anonymous for the life of the
-   * project. `<style>` is exempt because it draws nothing and carries no class.
-   */
-  test("everything at the top of the shadow tree says whose it is", () => {
-    const { root } = composeMountedPanel({
-      onCopyRequested: () => undefined,
-      onCaptureRequested: () => undefined,
-      onCollapseToggled: () => undefined,
-    });
-
-    const drawn = root.children.filter((child) => child.tag !== "style");
-    // A loop over nothing is green and proves nothing.
-    expect(drawn.length).toBeGreaterThan(0);
-    for (const child of drawn) {
-      const [first] = child.className.split(" ");
-      expect(first, `a node at the top of the shadow tree with no name of ours`).toStartWith(
-        "MargoMeter-",
-      );
-    }
-  });
-
-  test("a collapsed panel draws nothing, and the bar it is collapsed by survives", () => {
-    const { document, root, container } = composeMountedPanel({ onCollapseToggled: () => undefined });
-    const view = composePanelView(composeReading(), composeDefaultState());
-
-    renderPanelInto(document, container, view, {}, true);
-    expect(container.children.length).toBe(0);
-    expect(getByClass(root, "MargoMeter-titlebar").length).toBe(1);
-
-    renderPanelInto(document, container, view, {}, false);
-    expect(container.children.length).toBe(1);
-  });
-
-  /**
-   * ⚠️ **The state the test above describes used to be reachable two ways**, and
-   * only one of them was a collapse. Before the first payload the mount drew
-   * nothing at all, so a panel waiting for a fight and a panel folded away were
-   * the same picture — a bar and no body — and neither said which it was.
-   */
-  describe("the panel before a fight has reached it", () => {
-    test("the body says so, rather than being empty", () => {
-      const { document, container } = composeMountedPanel();
-
-      renderWaitingInto(document, container, PANEL_WAITING);
-
-      const panel = assertDefined(container.children[0], "the waiting body was drawn");
-      const sentences = getByClass(panel, "empty").map((node) => node.textContent);
-      expect(sentences).toEqual([PANEL_WAITING.text]);
-    });
-
-    /**
-     * The one number the two states have to agree on. A body one line tall under a
-     * title bar is the shape of a collapsed panel again, so the height is the
-     * ranking's own — read off a real view rather than written down here, which is
-     * what makes the two impossible to drift apart.
-     */
-    test("it reserves the height the ranking will have", () => {
-      const { document, container } = composeMountedPanel();
-      const ranking = composePanelView(composeReading(), composeDefaultState());
-
-      renderWaitingInto(document, container, PANEL_WAITING);
-      const waiting = assertDefined(container.children[0], "the waiting body was drawn");
-      const box = assertDefined(getByClass(waiting, "list")[0], "the waiting body has a list");
-
-      expect(box.properties["--MargoMeter-rows"]).toBe(String(ranking.visibleRows));
-    });
-
-    test("it collapses and comes back, like the panel it precedes", () => {
-      const { document, root, container } = composeMountedPanel({
-        onCollapseToggled: () => undefined,
-      });
-
-      renderWaitingInto(document, container, PANEL_WAITING, {}, true);
-      expect(container.children.length).toBe(0);
-      expect(getByClass(root, "MargoMeter-titlebar").length).toBe(1);
-
-      renderWaitingInto(document, container, PANEL_WAITING, {}, false);
-      expect(container.children.length).toBe(1);
-    });
-
-    /** §9.6 forbids vanishing here too, and it is the only region there is. */
-    test("a region that throws leaves a marker rather than a blank body", () => {
-      const { document, container } = composeMountedPanel();
-      const waiting = { ...PANEL_WAITING };
-      Object.defineProperty(waiting, "visibleRows", {
-        get() {
-          const broken = undefined as unknown as { read: () => void };
-          broken.read();
+    const reading = readFight();
+    const broken: PanelReading = {
+        ...reading,
+        get rows(): never {
+            throw new RangeError("a region of ours failed");
         },
-      });
-
-      const failures: unknown[] = [];
-      renderWaitingInto(document, container, waiting, {
-        onSectionFailure: (error) => failures.push(error),
-      });
-
-      const panel = assertDefined(container.children[0], "the waiting body was drawn");
-      expect(failures.length).toBe(1);
-      expect(getByClass(panel, "undrawn").length).toBe(1);
+    };
+    const panel = composePanelHost(document, () => {}, (failure) => failures.push(failure));
+    panel.show({
+        reading: broken,
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
     });
-  });
+    const host = panel.element as FakeElement;
+    assertEquals(failures.length, 1, "the failure is reported once");
+    assertEquals(
+        getTextsByClass(host, "undrawn"),
+        [composeUndrawnText("list")],
+        "and the region that failed says so in its own place, naming itself",
+    );
+    assertEquals(host.shadow?.length, 4, "while the panel keeps its shape");
+    const bar = getElementsWithin(host).find((one) => one.className === "MargoMeter-titlebar");
+    assert(
+        bar?.textContent.endsWith(PANEL_WORDS.title),
+        "the bar stands, saying whose panel it is",
+    );
+});
 
-  /**
-   * ⚠️ **A fight redraws every few seconds, and every redraw is a new list.**
-   * Without this the reader is put back at the top of it on every payload, so a
-   * fight big enough to scroll has to be scrolled again, and again, and again.
-   *
-   * The container is named too: the panel's ceiling reaches the list through it,
-   * and a node with no class is one the stylesheet cannot pass through.
-   */
-  test("the reader's place in the list survives a redraw of the same screen", () => {
-    const { container, renderScreen } = composeRedrawnPanel();
-    const state = composeDefaultState();
+/** How many rows an opened figure draws, over all three of its cuts. */
+function countDrillRows(drill: {
+    byOpponent: { rows: unknown[]; unnamed: unknown };
+    bySkill: { rows: unknown[]; plain: unknown };
+    byElement: { rows: unknown[]; unnamed: unknown };
+}): number {
+    const held = (rows: unknown[], extra: unknown) => rows.length + (extra === null ? 0 : 1);
+    return held(drill.byOpponent.rows, drill.byOpponent.unnamed) +
+        held(drill.bySkill.rows, drill.bySkill.plain) +
+        held(drill.byElement.rows, drill.byElement.unnamed);
+}
 
-    expect(container.className).toBe("MargoMeter-body");
-
-    renderScreen(state).scrollTop = 60;
-    expect(renderScreen(state).scrollTop).toBe(60);
-  });
-
-  test("and starts at the top of a screen they moved to", () => {
-    const { renderScreen } = composeRedrawnPanel();
-
-    renderScreen(composeDefaultState()).scrollTop = 60;
-
-    // Into a combatant: a different list, so the old offset means nothing in it.
-    expect(renderScreen({ ...composeDefaultState(), focusCombatantId: 1 }).scrollTop).toBe(0);
-  });
-
-  /**
-   * ⚠️ **The property the title bar's whole design exists for.** A fight redraws
-   * every few seconds, and a grab handle built inside the render would be
-   * destroyed under the pointer exactly when somebody is moving the panel out of
-   * the way.
-   */
-  test("the panel still drags after twenty redraws", () => {
+Deno.test("an opened row stands over the screen, and states whose it is", () => {
+    const { reading, drill, opened } = openFirstRow();
     const document = composeFakeDocument();
-    const host = document.createElement("div") as FakeNode & PanelHost;
-    host.attachShadow = (): PanelNode => {
-      const root = document.createElement("root") as FakeNode;
-      host.children.push(root);
-      return root;
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const within = getElementsWithin(host);
+    const crumbs = getTextsByClass(host, "crumb-here");
+    assertEquals(crumbs, [opened.name], "the way back names whose row stands open");
+    const rows = within.filter((one) => one.className.split(" ")[0] === "row");
+    assertEquals(rows.length, countDrillRows(drill), "a row for each part of it, in each cut");
+    // A person opens where the pair says something; a kind and a skill open nothing at all.
+    const opening = rows.filter((one) => one.attributes.get("data-row") !== undefined);
+    assertEquals(
+        opening.length,
+        drill.byOpponent.rows.filter((one) => one.opensPair).length,
+        "and the ones that open are the people the level under them would say something about",
+    );
+    const sections = getElementsWithin(host).filter((one) => one.className === "section-heading");
+    assertEquals(
+        sections.map((one) => one.children[0]?.textContent),
+        [PANEL_WORDS.dealtTo, PANEL_WORDS.skills, PANEL_WORDS.damageKind],
+        "one heading per cut: whom it reached, what it was done with, what it was made of",
+    );
+    for (const section of sections) {
+        assertEquals(
+            section.children[1]?.textContent,
+            composeFigureText(drill.total),
+            "each standing over the figure it cuts, so a share is read against what it is of",
+        );
+    }
+    const named = getTextsByClass(host, "row-name");
+    // The kinds this fight's top dealer carries, and none of them the physical one.
+    assert(named.includes("ogień"), "and a kind is drawn in the reader's words");
+    assert(!named.includes("dmgf"), "never under the token the protocol stated it on");
+    const kinds = rows.filter((one) => one.className === "row leaf");
+    assert(kinds.length > 0, "a kind and a skill are leaves");
+    assert(
+        kinds.every((one) => one.attributes.get("data-row") === undefined),
+        "and neither of them opens any further",
+    );
+    const crumb = within.filter((one) => one.className === "crumb");
+    assertEquals(crumb.length, 1, "and one way back");
+});
+
+Deno.test("a ranking row's bar is its profession's, and colourless without one", () => {
+    const reading = readFight();
+    const host = draw(reading);
+    const rows = getElementsWithin(host).filter((one) => one.className === "row drillable");
+    assertEquals(rows.length, reading.rows.length, "a row for each combatant");
+    for (const [at, drawn] of rows.entries()) {
+        const row = reading.rows[at];
+        assert(row !== undefined, "a row drawn is a row the reading holds");
+        const hue = getColourForProfession(row.profession);
+        const bar = drawn.children.find((one) => one.className === "bar");
+        const drawnBar = bar?.attributes.get("style") ?? "";
+        assert(drawnBar.includes(hue), `${row.profession}: the bar wears that profession's hue`);
+        // Against the biggest figure on the screen and never against the whole: the top row is a
+        // full bar, which is the length every row below it is read against.
+        assert(drawnBar.includes(`${(row.fill * 100).toFixed(1)}%`), "and is that long");
+        const cap = drawn.children.find((one) => one.className === "bar-cap");
+        assert((cap?.attributes.get("style") ?? "").includes(hue), "and the cap is the full hue");
+    }
+    const nobody = getColourForProfession(null);
+    const colourless = rows.filter((one) =>
+        (one.children.find((part) => part.className === "bar")?.attributes.get("style") ?? "")
+            .includes(nobody)
+    );
+    // Every combatant in `captures/` states a profession, measured 2026-08-29, so the colourless
+    // bar is reachable only through a roster that says nothing — which is what the next line does.
+    assertEquals(colourless, [], "this fight names a profession for everybody in it");
+    const unstated = draw({
+        ...reading,
+        rows: reading.rows.map((one) => ({ ...one, profession: null })),
+    });
+    const bars = getElementsWithin(unstated).filter((one) => one.className === "bar");
+    assert(bars.length > 0, "there are rows to draw");
+    for (const one of bars) {
+        assert((one.attributes.get("style") ?? "").includes(nobody), "each takes the colourless");
+    }
+});
+
+Deno.test("a kind's row carries a bar of its own, measured against its own cut", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const bars = getElementsWithin(host).filter((one) => one.className === "bar");
+    assertEquals(
+        bars.length,
+        countDrillRows(drill),
+        "a bar on every row of every cut, and no more",
+    );
+    const largest = drill.byElement.rows[0];
+    assert(largest !== undefined, "the largest kind is the first drawn");
+    assertEquals(largest.fill, 1, "and fills its row, being the biggest of its own cut");
+    const before = drill.byOpponent.rows.length + unnamedBefore(drill) +
+        drill.bySkill.rows.length + (drill.bySkill.plain === null ? 0 : 1);
+    const drawn = bars[before];
+    assert(drawn !== undefined, "there is a kind to draw a bar for");
+    const style = drawn.attributes.get("style") ?? "";
+    // Colourless, like every row that names no combatant: the hue on this panel says who.
+    assert(style.includes(getColourForProfession(null)), "in the colour of no category at all");
+    assert(style.includes("width:100.0%"), "and the length its share of the cut states");
+});
+
+/** How many rows the cut by whom drew before the kinds start, its unnamed part included. */
+function unnamedBefore(drill: { byOpponent: { unnamed: unknown } }): number {
+    return drill.byOpponent.unnamed === null ? 0 : 1;
+}
+
+Deno.test("a part of a figure no kind was stated for is drawn last, under the kinds", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        // Health that went down outside a blow, which the protocol states carrying no kind.
+        drill: {
+            ...drill,
+            byElement: {
+                ...drill.byElement,
+                unnamed: { figure: 140, fill: 0.1, shareText: "<1%" },
+            },
+        },
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const named = getTextsByClass(host, "row-name");
+    assertEquals(named[named.length - 1], PANEL_WORDS.withoutKind, "drawn last, under the kinds");
+    const figures = getTextsByClass(host, "row-value");
+    assertEquals(figures[figures.length - 1], "140", "at what fell outside every kind");
+});
+
+Deno.test("pressing a row asks to open it, and the way back asks to close it", () => {
+    const { reading, drill } = openFirstRow();
+    const pressed: PanelPress[] = [];
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    // The press lands on the deepest element under the pointer, which is the name inside the row.
+    const name = getElementsWithin(host).find((one) => one.className === "row-name");
+    assert(name !== undefined, "there is a row to press");
+    pressElement(host, "pointerdown", name);
+    assertEquals(pressed, [{ kind: "row", stated: `${reading.rows[0]?.combatantId}` }], "that row");
+
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const back = getElementsWithin(host).find((one) => one.className === "crumb-back");
+    assert(back !== undefined, "an opened row has a way back");
+    pressElement(host, "pointerdown", back);
+    assertEquals(pressed.at(-1), { kind: "back" }, "which asks for nothing but the way back");
+
+    // One gesture in, one gesture out: the way out works from anywhere on the panel, so the
+    // cheapest gesture is not the one that has to be aimed at a control.
+    const anywhere = getElementsWithin(host).find((one) => one.className === "list");
+    assert(anywhere !== undefined, "there is somewhere on the panel to press");
+    pointAtElement(host, "contextmenu", anywhere, 0);
+    assertEquals(pressed.at(-1), { kind: "back" }, "and a right press anywhere asks for it too");
+});
+
+Deno.test("the bar says where the fight is being fought, and stays a bar without it", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    const view = {
+        reading: readFight(),
+        current: "damageDealtApplied" as const,
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        skill: null,
+        isCollapsed: false,
+    };
+    panel.show({ ...view, place: "Mapa (12, 34)" });
+    const host = panel.element as FakeElement;
+    // A line of its own under the headcount, because it is the one thing on the header whose
+    // length this panel does not choose.
+    assertEquals(
+        getTextsByClass(host, "header-place"),
+        ["Mapa (12, 34)"],
+        "the place, its own line",
+    );
+    const header = getElementsWithin(host).find((one) => one.className === "header");
+    assertEquals(header?.children.length, 2, "under the line that says what the fight is");
+
+    panel.show({ ...view, place: null });
+    assertEquals(getTextsByClass(host, "header-place"), [], "and nothing where nothing was said");
+    assertEquals(
+        getElementsWithin(host).find((one) => one.className === "header")?.children.length,
+        1,
+        "the header standing on, at the size it always has",
+    );
+});
+
+Deno.test("a folded panel is its bar and nothing else, and offers the way back", () => {
+    const document = composeFakeDocument();
+    const pressed: PanelPress[] = [];
+    const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
+    const host = panel.element as FakeElement;
+    const view = {
+        reading: readFight(),
+        current: "damageDealtApplied" as const,
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
     };
 
-    const moved: Array<{ left: number; top: number }> = [];
-    const container = setPanelRoot(document, host, {
-      position: { left: 100, top: 100 },
-      getViewport: () => ({ width: 1200, height: 800 }),
-      onMoved: (position) => moved.push(position),
-    }) as FakeNode;
-    const root = assertDefined(host.children[0], "the shadow root was opened") as FakeNode;
-    const titleBar = assertDefined(getByClass(root, "MargoMeter-titlebar")[0], "the title bar was built");
-
-    const view = composePanelView(composeReading(), composeDefaultState());
-    for (let redraws = 0; redraws < 20; redraws += 1) {
-      renderPanelInto(document, container, view, {});
-    }
-
-    setEventOn(root, "pointerdown", { target: titleBar, clientX: 150, clientY: 150, pointerId: 1 });
-    setEventOn(root, "pointermove", { target: titleBar, clientX: 160, clientY: 170, pointerId: 1 });
-    setEventOn(root, "pointerup", { target: titleBar, clientX: 160, clientY: 170, pointerId: 1 });
-
-    expect(moved).toEqual([{ left: 110, top: 120 }]);
-  });
-
-  /**
-   * A host whose shadow root can be opened, which is what a drag needs and what
-   * `composeFakeDocument` alone does not give.
-   */
-  const composeDraggableHost = (): { document: PanelDocument; host: FakeNode & PanelHost } => {
-    const document = composeFakeDocument();
-    const host = document.createElement("div") as FakeNode & PanelHost;
-    host.attachShadow = (): PanelNode => {
-      const root = document.createElement("root") as FakeNode;
-      host.children.push(root);
-      return root;
+    panel.show(view);
+    // A block body, not an expression: the recursion guard reads a one-line named arrow as
+    // opening no brace, and so reads every line after it as this function's body — gap 13.
+    const controls = () => {
+        return getElementsWithin(host).filter((one) => one.className.startsWith(CLASS.control));
     };
-    return { document, host };
-  };
+    assertEquals(
+        controls().map((one) => [...one.attributes.keys()].find((key) => key.startsWith("data-"))),
+        ["data-shelf", "data-save", "data-fold"],
+        "the bar carries the three controls, in that order",
+    );
+    const control = controls().find((one) => one.attributes.has("data-fold"));
+    assert(control !== undefined, "an unfolded panel carries the control that folds it");
+    assertEquals(control.textContent, "\u2014", "which says what a press would do");
+    assertEquals(control.attributes.get("title"), PANEL_WORDS.collapse, "in the reader's words");
+    assert(getElementsWithin(host).some((one) => one.className.startsWith("row ")), "a ranking");
+    pressElement(host, "pointerdown", control);
+    assertEquals(pressed.at(-1), { kind: "fold" }, "and a press on it asks for the fold");
 
-  /**
-   * The one phase of the cost measurement that runs inside `ui`, and it arrives
-   * as a function with its name already bound — this layer may read neither the
-   * seam nor the vocabulary it measures under (§9.1). Wrapping the move rather
-   * than the drag: a move is what happens tens of times a second.
-   */
-  test("lets the caller time a move, and moves the panel exactly once either way", () => {
-    const { document, host } = composeDraggableHost();
-    const timed: number[] = [];
-    setPanelRoot(document, host, {
-      position: { left: 100, top: 100 },
-      getViewport: () => ({ width: 1200, height: 800 }),
-      getTimedResult: (work) => {
-        timed.push(1);
-        return work();
-      },
-    });
-    const root = assertDefined(host.children[0], "the shadow root was opened") as FakeNode;
-    const titleBar = assertDefined(getByClass(root, "MargoMeter-titlebar")[0], "the title bar was built");
-
-    setEventOn(root, "pointerdown", { target: titleBar, clientX: 150, clientY: 150, pointerId: 1 });
-    setEventOn(root, "pointermove", { target: titleBar, clientX: 160, clientY: 170, pointerId: 1 });
-
-    expect(timed).toHaveLength(1);
-    expect(host.properties["left"]).toBe("110px");
-  });
-
-  // Absent, which is what the file people install passes, the drag is the same
-  // drag: the seam defaults to running the work and nothing else.
-  test("drags the same with nobody timing it", () => {
-    const { document, host } = composeDraggableHost();
-    setPanelRoot(document, host, {
-      position: { left: 100, top: 100 },
-      getViewport: () => ({ width: 1200, height: 800 }),
-    });
-    const root = assertDefined(host.children[0], "the shadow root was opened") as FakeNode;
-    const titleBar = assertDefined(getByClass(root, "MargoMeter-titlebar")[0], "the title bar was built");
-
-    setEventOn(root, "pointerdown", { target: titleBar, clientX: 150, clientY: 150, pointerId: 1 });
-    setEventOn(root, "pointermove", { target: titleBar, clientX: 160, clientY: 170, pointerId: 1 });
-
-    expect(host.properties["left"]).toBe("110px");
-  });
+    panel.show({ ...view, isCollapsed: true });
+    const folded = getElementsWithin(host).filter((one) => one.className.endsWith(CLASS.folded));
+    assertEquals(folded.length, 1, "everything under the bar is folded away in one region");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className.startsWith("row ")).length,
+        0,
+        "and no row is composed for a screen nobody is looking at",
+    );
+    const back = controls().find((one) => one.attributes.has("data-fold"));
+    assert(back !== undefined, "the bar is still a bar, and still carries its controls");
+    assertEquals(back.textContent, "+", "which now offers the way back rather than the way in");
+    assertEquals(back.attributes.get("title"), PANEL_WORDS.expand, "and says so in the same words");
+    const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
+    assert(bar?.textContent.endsWith(PANEL_WORDS.title), "the name standing on");
 });
 
-describe("what the panel never does", () => {
-  /**
-   * §9.7: text on a coloured bar clears WCAG AA by measurement rather than by
-   * eye. The bar is tinted rather than solid precisely so this can hold for every
-   * colour in the palette.
-   */
-  test("every bar colour keeps its row readable", () => {
-    const tint = assertDefined(
-      getDecimalFromText(PANEL_TOKENS.barTint),
-      "the bar tint is a decimal",
+Deno.test("the panel says which build drew it, in the bar and on the host", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    const host = panel.element as FakeElement;
+    assertEquals(
+        host.attributes.get("data-margometer-version"),
+        BUILD_VERSION,
+        "the host states it where anything outside the root can read it",
     );
-
-    for (const colour of SERIES_COLOURS) {
-      const over = assertDefined(
-        composeColourOver(colour, PANEL_TOKENS.surfaceRaised, tint),
-        `${colour} composes over the row`,
-      );
-      const ratio = assertDefined(
-        getContrastRatio(PANEL_TOKENS.text, over),
-        `${colour} has a contrast ratio`,
-      );
-      expect(ratio, colour).toBeGreaterThanOrEqual(4.5);
-    }
-  });
-
-  /**
-   * The two side colours are checked in their own role, and the distinction is
-   * not pedantry: they are never drawn *behind* text — the summary writes its
-   * figures IN them, and the split bar under it carries no text at all. Held to
-   * the bar rule they fail at 4.15, and changing the palette to satisfy a
-   * question nobody asks would be the wrong fix.
-   */
-  test("a side's own figure is readable in the colour it is written in", () => {
-    // The third one joined them when the summary stopped dividing the fight in
-    // two: it is written as text under the bar, so it answers the same question.
-    for (const colour of [PANEL_TOKENS.ours, PANEL_TOKENS.theirs, UNKNOWN_COLOUR]) {
-      const ratio = assertDefined(
-        getContrastRatio(colour, PANEL_TOKENS.surface),
-        `${colour} has a contrast ratio`,
-      );
-      expect(ratio, colour).toBeGreaterThanOrEqual(4.5);
-    }
-  });
-
-  test("the stylesheet cuts the panel off from the game's own", () => {
-    expect(composePanelStyleText()).toContain("all: initial");
-  });
-
-  /**
-   * ⚠️ **The panel is a guest, and a guest does not cover the room.** Two limits,
-   * and the test holds both because they answer different failures: without the
-   * first, a breakdown opened on a panel dragged low runs off the bottom of the
-   * screen and takes its own figures with it; without the second, a tall monitor
-   * lets it cover the fight somebody is trying to watch.
-   *
-   * Checked as text, which is all a test without a browser can do here — the
-   * arrangement it describes is `.claude/skills/verify`'s to look at (§8: the gate
-   * cannot see a panel).
-   */
-  test("the panel is capped by the window, and the list is the only thing that gives way", () => {
-    const style = composePanelStyleText();
-
-    expect(style).toContain(
-      `max-height: min(calc(100vh - var(--MargoMeter-panel-top) - ${PANEL_TOKENS.space}), ${PANEL_TOKENS.maxHeightShare})`,
+    panel.show({
+        reading: readFight(),
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        skill: null,
+        isCollapsed: false,
+        place: "Mapa (12, 34)",
+    });
+    assertEquals(
+        getTextsByClass(host, "titlebar-version"),
+        [BUILD_VERSION],
+        "and the bar says it once, beside the name",
     );
-    // The chain the cap travels down, and the one region told to absorb it.
-    expect(style).toContain(".MargoMeter-body { display: flex; flex-direction: column; min-height: 0; }");
-    expect(style).toContain(".panel > * { flex: none; }");
-    expect(style).toContain(".panel > .list { flex: 0 1 auto; }");
-  });
-
-  /**
-   * ⚠️ **Measured in a browser, because the gate cannot see this one.** A scroll
-   * container's padding is inside its clip, so a heading pinned at `top: 0` leaves
-   * the list's own five pixels above itself and the row that just scrolled away
-   * shows through them — half a bar hanging over the heading. The pull cancels the
-   * inset exactly, which is the whole reason the inset has a name of its own: two
-   * literals here would part company the first time the panel's spacing changed.
-   */
-  test("a sticky heading is pulled up by exactly the inset it has to cancel", () => {
-    expect(composePanelStyleText()).toContain(`top: -${PANEL_TOKENS.spaceRegionDown};`);
-    expect(PANEL_TOKENS.spaceRegion.startsWith(`${PANEL_TOKENS.spaceRegionDown} `)).toBe(true);
-  });
-
-  /**
-   * ⚠️ **Seen in the panel: the one row that says something is missing was the
-   * one row whose marking did not fill it.** The dashed rule sat on the row and
-   * bought the air under itself by making that row 5px taller and pushing
-   * `.bar` and `.bar-cap` down 4px — a 19px marking inside a 23px track, so a
-   * strip of bare background showed above the hatch and the cap, and the bar
-   * stood at a height no ranked row has.
-   *
-   * The rule moved to the block. What holds it there is stated as the property
-   * rather than as the fix: `.pinned` may say how the row is *coloured* — the
-   * hatch, the two opacities — and may say nothing about where its box begins
-   * or how tall it is. `.row` is the only thing that decides that, for every
-   * row, and a bar inset to `top: 0; bottom: 0` then fills exactly what it sits
-   * on. Checked as text, because the gate cannot see a panel (§8).
-   */
-  test("the pinned row states no geometry of its own, so its bar fills it", () => {
-    const rules = getStyleRules(composePanelStyleText()).filter((rule) => rule.selector.startsWith(".pinned-region"));
-
-    expect(rules.length).toBeGreaterThan(0);
-    for (const rule of rules) {
-      const properties = rule.body.split(";").map((one) => one.split(":")[0]!.trim());
-
-      expect(properties, rule.selector).not.toContain("height");
-      expect(properties, rule.selector).not.toContain("top");
-      expect(properties, rule.selector).not.toContain("bottom");
-    }
-
-    // The separation the row gave up, on the block that took it over: the rule
-    // is the block's top edge, and the air under it is the block's padding.
-    const block = assertDefined(
-      rules.find((rule) => rule.selector === ".pinned-region"),
-      "the pinned block has a rule of its own",
+    assertEquals(
+        getTextsByClass(host, "header-place"),
+        ["Mapa (12, 34)"],
+        "with the place still drawn, on the header where it belongs",
     );
-
-    expect(block.body).toContain(`border-top: 1px dashed ${PANEL_TOKENS.border}`);
-    expect(block.body).toContain(`padding: ${PANEL_TOKENS.spaceSmall} 0 ${PANEL_TOKENS.spaceRegionAcross}`);
-  });
-
-  /**
-   * ⚠️ **Seen in the panel: a bar means a length, and three containers draw
-   * one.** The list reserves a scrollbar gutter whether or not a scrollbar is
-   * showing, and the two regions under it — the row for what nobody can be charged
-   * with, and the summary track — sat outside the list and reserved nothing. So
-   * the same `fill` came out a gutter longer on those two, and the eye compared
-   * figures that were never on one scale: 8px of it on a 260px panel, read off
-   * `screenshots/panel-taken.png` at `v0.8.1`.
-   *
-   * Both halves of a bar's width are held here, because either one alone would let
-   * the fault back in: what the browser reserves, which is asked for and never
-   * written down, and what the rule holds off the panel's edges itself.
-   * Checked as text, for the reason the test above states.
-   */
-  test("every container that draws a bar is inset the same", () => {
-    const rules = getStyleRules(composePanelStyleText());
-    const drawn = [".list", ".pinned-region", ".sides-region"].map((selector) =>
-      assertDefined(
-        rules.find((rule) => rule.selector === selector),
-        `${selector} has a rule of its own`,
-      ),
-    );
-
-    for (const rule of drawn) {
-      expect(rule.body, rule.selector).toContain("scrollbar-gutter: stable");
-      expect(rule.body, rule.selector).toContain("scrollbar-width: thin");
-    }
-
-    const insets = drawn.map((rule) =>
-      assertDefined(getHorizontalInset(rule.body), `${rule.selector} states its inset in pixels`),
-    );
-
-    expect(new Set(insets), insets.join(" / ")).toEqual(new Set([insets[0]!]));
-  });
 });
 
-/** The one-sided spellings, which say nothing about the other side. */
-const SIDE_PROPERTIES = ["margin-left", "margin-right", "padding-left", "padding-right"];
-
-/**
- * How far a rule holds its contents off the panel's two edges, in pixels.
- *
- * Shorthands only, because that is what these rules write: one value is every
- * side, and two or more put the horizontal one second. Anything else — a
- * `padding-left`, a `margin-right`, a length in another unit — answers `null`
- * rather than a number nobody wrote, so a rule this cannot read fails the claim
- * instead of passing it by (§9.5).
- */
-function getHorizontalInset(body: string): number | null {
-  const written = body
-    .split(";")
-    .map((one) => one.split(":"))
-    .filter((one) => one.length === 2);
-
-  if (written.some(([name]) => SIDE_PROPERTIES.includes(name!.trim()))) return null;
-
-  let total = 0;
-  for (const property of ["margin", "padding"]) {
-    const declaration = written.find(([name]) => name!.trim() === property);
-
-    if (declaration === undefined) continue;
-
-    const values = getPartsSeparatedByWhitespace(declaration[1]!);
-    const across = values.length === 1 ? values[0]! : values[1]!;
-    const pixels = getIntegerFromText(across.replace("px", ""));
-
-    if (pixels === null) return null;
-    total += pixels;
-  }
-
-  return total;
+/** Whatever the detail is saying right now, read back out of the root it stands in. */
+/** One line of the card as a reader meets it: what it is of, what it says, and how it is drawn. */
+interface TipLineRead {
+    label: string;
+    value: string;
+    isStrong: boolean;
+    isSub: boolean;
 }
 
-describe("pressing the part of a row somebody actually aims at", () => {
-  /**
-   * ⚠️ **The bug this exists for.** An event names the deepest node under the
-   * pointer, so a click lands on the bar, the name or the figure — never on the
-   * row itself unless the pointer happens to be over its padding. With only the
-   * row registered, clicking a bar did nothing at all, which is what a player
-   * does most of the time.
-   */
-  test("every piece of a row leads where the row leads", () => {
-    const chosen: string[] = [];
-    const { panel } = renderInto(composeDefaultState(), {
-      onRowChosen: (key: string) => chosen.push(key),
-    });
-    const row = assertDefined(getByClass(panel, "row")[0], "a row was drawn");
-
-    for (const part of getEveryNode(row)) setPressOn(panel, part);
-
-    // Every node of the row, the row included, and all of them the same row.
-    expect(chosen.length).toBe(getEveryNode(row).length);
-    expect(new Set(chosen)).toEqual(new Set(["combatant:1"]));
-  });
-});
-
-/**
- * Where the panel is allowed to be, and what a stored position has to prove.
- *
- * No document here at all — that is the point of the split. The arithmetic that
- * decides whether the panel can be dragged off the screen is the part with a
- * wrong answer, and it is checkable on its own.
- */
-
-const PLACEMENT_SCREEN = { width: 1920, height: 1080 };
-
-describe("moving the panel", () => {
-  test("a drag translates the panel by what the pointer travelled", () => {
-    const grab = { pointerLeft: 500, pointerTop: 300, panelLeft: 1602, panelTop: 8 };
-    const moved = composeDraggedPosition(grab, { left: 520, top: 340 }, PLACEMENT_SCREEN);
-
-    expect(moved).toEqual({ left: 1622, top: 48 });
-  });
-
-  test("a drag backwards past the top left stops at the corner", () => {
-    const grab = { pointerLeft: 100, pointerTop: 100, panelLeft: 40, panelTop: 20 };
-    const moved = composeDraggedPosition(grab, { left: 0, top: 0 }, PLACEMENT_SCREEN);
-
-    expect(moved).toEqual({ left: 0, top: 0 });
-  });
-
-  /**
-   * ⚠️ The reason the clamp exists. A panel dragged off the right edge takes its
-   * own grab area with it, and the only way back is knowing that this add-on
-   * stores a position at all.
-   */
-  test("a drag off the edge leaves enough panel to grab it back by", () => {
-    const grab = { pointerLeft: 900, pointerTop: 500, panelLeft: 900, panelTop: 500 };
-    const moved = composeDraggedPosition(grab, { left: 9000, top: 9000 }, PLACEMENT_SCREEN);
-
-    expect(moved.left).toBeLessThan(PLACEMENT_SCREEN.width);
-    expect(moved.top).toBeLessThan(PLACEMENT_SCREEN.height);
-    expect(PLACEMENT_SCREEN.width - moved.left).toBeGreaterThanOrEqual(64);
-    expect(PLACEMENT_SCREEN.height - moved.top).toBeGreaterThanOrEqual(64);
-  });
-
-  // §9.3: unknown is loud, never zero. A viewport read as 0 would pin the panel
-  // to the corner and look exactly like a panel that works.
-  test("a page that did not say how big it is clamps nothing", () => {
-    const grab = { pointerLeft: 0, pointerTop: 0, panelLeft: 0, panelTop: 0 };
-    const moved = composeDraggedPosition(grab, { left: 9000, top: 9000 }, null);
-
-    expect(moved).toEqual({ left: 9000, top: 9000 });
-  });
-
-  // Browser zoom hands out fractional coordinates, and a fraction cannot be
-  // written back: `composeIntegerText` asserts rather than rounding quietly.
-  test("a fractional pointer still yields a position that can be stored", () => {
-    const grab = { pointerLeft: 10.5, pointerTop: 10.5, panelLeft: 100, panelTop: 100 };
-    const moved = composeDraggedPosition(grab, { left: 20.25, top: 30.75 }, PLACEMENT_SCREEN);
-
-    expect(Number.isSafeInteger(moved.left)).toBe(true);
-    expect(Number.isSafeInteger(moved.top)).toBe(true);
-    expect(() => composeStoredTextFromPosition(moved)).not.toThrow();
-  });
-
-  test("a viewport narrower than the margin puts the panel at the corner rather than off it", () => {
-    expect(composeClampedPosition({ left: 500, top: 500 }, { width: 30, height: 20 })).toEqual({
-      left: 0,
-      top: 0,
-    });
-  });
-
-  test("the corner the stylesheet draws is the corner the first drag starts from", () => {
-    expect(composeDefaultPosition(PLACEMENT_SCREEN)).toEqual({
-      left: PLACEMENT_SCREEN.width - PANEL_PIXELS.width - PANEL_PIXELS.space,
-      top: PANEL_PIXELS.space,
-    });
-  });
-
-  test("without a viewport there is no telling where a right-anchored panel is", () => {
-    expect(composeDefaultPosition(null)).toBeNull();
-  });
-
-  /**
-   * The fourth pair is what keeps the panel above the bottom of the screen: the
-   * ceiling in the stylesheet is the window's height less the top edge, and CSS
-   * cannot read a `top` back out of an inline style. So the same number is written
-   * twice, and the test holds the two to being the same number — a `--MargoMeter-panel-top`
-   * that drifted from `top` would cap the panel against a place it is not.
-   */
-  test("a position releases the corner it was anchored to, and carries the ceiling with it", () => {
-    expect(composePositionDeclarations({ left: 12, top: 34 })).toEqual([
-      ["left", "12px"],
-      ["top", "34px"],
-      ["--MargoMeter-panel-top", "34px"],
-      ["right", "auto"],
-    ]);
-  });
-});
-
-/**
- * §9.6: state that survives a reload is validated on read, never trusted raw.
- * Everything below is text a person can edit and a browser can truncate.
- */
-describe("what a stored position has to be", () => {
-  test("what was written reads back", () => {
-    const position = { left: 640, top: 12 };
-    const text = composeStoredTextFromPosition(position);
-
-    expect(getPositionFromStoredText(text)).toEqual(position);
-  });
-
-  test.each([
-    ["not JSON at all", "left=10"],
-    ["truncated", '{"left":10,"to'],
-    ["a fraction", '{"left":10.5,"top":10}'],
-    ["a number as text", '{"left":"10","top":10}'],
-    ["missing a field", '{"left":10}'],
-    ["null", "null"],
-    ["an array", "[10,20]"],
-    ["a bare number", "12"],
-    ["past what a number holds exactly", '{"left":90071992547409911,"top":10}'],
-  ])("%s is no position at all", (_reason, text) => {
-    expect(getPositionFromStoredText(text)).toBeNull();
-  });
-
-  // A field nobody asked for is not a reason to throw away a position that is
-  // otherwise readable — the two we need are both there and both integers.
-  test("a field we do not know is ignored rather than fatal", () => {
-    expect(getPositionFromStoredText('{"left":10,"top":20,"width":999}')).toEqual({
-      left: 10,
-      top: 20,
-    });
-  });
-
-  test("a number that cannot be written back is refused rather than mangled", () => {
-    expect(() => composeStoredTextFromPosition({ left: 0.5, top: 0 })).toThrow();
-  });
-});
-
-/**
- * Where the detail window opens, held without a document.
- *
- * The promise every test here is about: **the whole of it is on the screen**.
- * That is one sentence and four ways to break it, because a window has four
- * edges — and the arithmetic sees none of them, only numbers that have to come
- * out inside the pair it was handed.
- *
- * §7.5's rule about boundaries is why each edge is asked from both sides: the
- * detail is the same detail wherever it opens, so an edge off by one is invisible
- * until somebody drags the panel to a corner and loses the thing they hovered
- * for.
- */
-
-const TIP_SCREEN = { width: 1200, height: 800 };
-const TIP: PanelTipBox = { width: PANEL_PIXELS.tipWidth, height: 200 };
-/** The right-hand corner the panel starts in, where every default hover happens. */
-const CORNER = { left: TIP_SCREEN.width - PANEL_PIXELS.width - PANEL_PIXELS.space, top: 8 };
-
-/**
- * Back to the screen, which is where the promise is made. The declarations are
- * written against the panel because that is what the detail hangs off, so every
- * test here undoes that the way a browser does.
- */
-function getScreenBox(
-  declarations: Array<[string, string]>,
-  panel: { left: number; top: number },
-  tip: PanelTipBox,
-) {
-  const getLength = (property: string): number => {
-    const written = declarations.find(([name]) => name === property)?.[1] ?? "";
-    // NaN rather than a zero where nothing was written: a length this test cannot
-    // read must fail the comparison rather than pass it as the top left corner.
-    return getNumberFromText(written.replace("px", "")) ?? Number.NaN;
-  };
-  const left = panel.left + getLength("left");
-  const top = panel.top + getLength("top");
-  return { left, top, right: left + tip.width, bottom: top + tip.height };
-}
-
-function expectOnScreen(box: { left: number; top: number; right: number; bottom: number }): void {
-  expect(box.left).toBeGreaterThanOrEqual(0);
-  expect(box.top).toBeGreaterThanOrEqual(0);
-  expect(box.right).toBeLessThanOrEqual(TIP_SCREEN.width);
-  expect(box.bottom).toBeLessThanOrEqual(TIP_SCREEN.height);
-}
-
-describe("the whole of the detail is on the screen", () => {
-  /**
-   * The four corners a panel can be dragged into, and both ends of the window for
-   * the pointer — swept rather than reasoned about, because the promise is one
-   * sentence and the cases that break it are the ones nobody thought to name.
-   *
-   * The panel positions include what the drag clamp allows at its most extreme:
-   * `src/ui/panel-element.ts` keeps 64px of panel on screen and no more, so a
-   * panel whose own right edge is off the window is a real position and not a
-   * contrived one.
-   */
-  const PANELS = [
-    { left: 0, top: 0 },
-    { left: 0, top: TIP_SCREEN.height - 64 },
-    { left: CORNER.left, top: CORNER.top },
-    { left: TIP_SCREEN.width - 64, top: TIP_SCREEN.height - 64 },
-    { left: 300, top: 300 },
-  ];
-  const POINTERS = [0, 1, 8, 400, TIP_SCREEN.height - 1, TIP_SCREEN.height];
-  const TIPS: PanelTipBox[] = [
-    { width: 250, height: 1 },
-    { width: 250, height: 200 },
-    { width: 250, height: 700 },
-    { width: 250, height: TIP_SCREEN.height - 2 * PANEL_PIXELS.space },
-  ];
-
-  for (const panel of PANELS) {
-    for (const pointerTop of POINTERS) {
-      for (const tip of TIPS) {
-        test(`panel ${panel.left},${panel.top} · pointer ${pointerTop} · tip ${tip.height} tall`, () => {
-          expectOnScreen(
-            getScreenBox(composeTipDeclarations(pointerTop, tip, panel, TIP_SCREEN), panel, tip),
-          );
-        });
-      }
-    }
-  }
-});
-
-describe("which side the detail opens on", () => {
-  /**
-   * The corner the panel starts in, and the same rule read from the other end:
-   * there is no room on the panel's right at all — it is against the edge — so
-   * the detail is on its left, which is where the whole window is.
-   */
-  test("the panel's own left, which is where the room is", () => {
-    const box = getScreenBox(composeTipDeclarations(400, TIP, CORNER, TIP_SCREEN), CORNER, TIP);
-
-    expect(box.right).toBe(CORNER.left - PANEL_PIXELS.spaceSmall);
-    expect(CORNER.left + PANEL_PIXELS.width + PANEL_PIXELS.spaceSmall + TIP.width).toBeGreaterThan(
-      TIP_SCREEN.width,
-    );
-  });
-
-  /**
-   * One pixel short of the margin is a detail hard against the edge of the
-   * screen, which is where the flip belongs: the left slot has run out.
-   */
-  test("the panel's right, where its left has run out", () => {
-    const panel = { left: PANEL_PIXELS.tipWidth + PANEL_PIXELS.spaceSmall - 1, top: 8 };
-    const box = getScreenBox(composeTipDeclarations(400, TIP, panel, TIP_SCREEN), panel, TIP);
-
-    expect(box.left).toBe(panel.left + PANEL_PIXELS.width + PANEL_PIXELS.spaceSmall);
-  });
-
-  test("and its left again as soon as the margin fits", () => {
-    const panel = { left: PANEL_PIXELS.tipWidth + PANEL_PIXELS.spaceSmall + PANEL_PIXELS.space, top: 8 };
-    const box = getScreenBox(composeTipDeclarations(400, TIP, panel, TIP_SCREEN), panel, TIP);
-
-    expect(box.right).toBe(panel.left - PANEL_PIXELS.spaceSmall);
-  });
-
-  /**
-   * ⚠️ The case the first attempt at this got wrong. Near the right-hand edge
-   * both candidates are off the screen — and the answer is not to pick the less
-   * bad one and leave it there, it is to put the detail where it fits. It
-   * overlaps the panel, which is the thing the docked side exists to avoid, and
-   * that is the right trade: a window over the row it describes can still be
-   * read.
-   */
-  test("wherever it fits, when neither side of the panel does", () => {
-    // Narrow on purpose: a window has to be under about 520px before the panel
-    // has room for the detail on neither side of it. It then overlaps the panel,
-    // which is the thing the docked side exists to avoid — and the right trade,
-    // because a window over the row it describes can still be read.
-    const narrow = { width: 500, height: 800 };
-    const panel = { left: 100, top: 300 };
-    const box = getScreenBox(composeTipDeclarations(400, TIP, panel, narrow), panel, TIP);
-
-    expect(box.left).toBe(PANEL_PIXELS.space);
-    expect(box.right).toBeLessThanOrEqual(narrow.width);
-  });
-
-  test("a window narrower than the detail leaves it at the near edge", () => {
-    const narrow = { width: 100, height: 800 };
-    const declarations = composeTipDeclarations(400, TIP, { left: 0, top: 0 }, narrow);
-
-    expect(declarations).toContainEqual(["left", `${PANEL_PIXELS.space}px`]);
-  });
-});
-
-describe("how far down the detail sits", () => {
-  test("it begins at the pointer, which is what ties it to the row it opened from", () => {
-    const box = getScreenBox(composeTipDeclarations(300, TIP, CORNER, TIP_SCREEN), CORNER, TIP);
-
-    expect(box.top).toBe(300);
-  });
-
-  /**
-   * ⚠️ **The pointer stays on an edge of the window, and the window turns over.**
-   * Sliding it up until it fits would also be on the screen, and it would leave
-   * the pointer somewhere in the middle of a detail — against a row it is not
-   * describing. This is the same rule as the side above, on the other axis.
-   */
-  test("and ends at it instead, where there is not room below", () => {
-    const box = getScreenBox(composeTipDeclarations(780, TIP, CORNER, TIP_SCREEN), CORNER, TIP);
-
-    expect(box.bottom).toBe(780);
-    expect(box.top).toBe(780 - TIP.height);
-  });
-
-  test("the last height that still opens downward, and the first that turns over", () => {
-    const fits = TIP_SCREEN.height - PANEL_PIXELS.space - TIP.height;
-    expect(getScreenBox(composeTipDeclarations(fits, TIP, CORNER, TIP_SCREEN), CORNER, TIP).top).toBe(fits);
-    expect(getScreenBox(composeTipDeclarations(fits + 1, TIP, CORNER, TIP_SCREEN), CORNER, TIP).bottom).toBe(
-      fits + 1,
-    );
-  });
-
-  test("pushed down where the pointer is above the margin", () => {
-    const box = getScreenBox(composeTipDeclarations(0, TIP, CORNER, TIP_SCREEN), CORNER, TIP);
-
-    expect(box.top).toBe(PANEL_PIXELS.space);
-  });
-
-  /**
-   * Neither side of the pointer has room, so the rule that applies is the last
-   * one: on the screen, from the edge the design keeps.
-   */
-  test("neither above nor below, where the detail is nearly the whole window", () => {
-    const tall = { width: 250, height: TIP_SCREEN.height - 2 * PANEL_PIXELS.space };
-    const box = getScreenBox(composeTipDeclarations(400, tall, CORNER, TIP_SCREEN), CORNER, tall);
-
-    expect(box.top).toBe(PANEL_PIXELS.space);
-    expect(box.bottom).toBe(TIP_SCREEN.height - PANEL_PIXELS.space);
-  });
-
-  /**
-   * ⚠️ **A detail taller than the room has no top that satisfies both edges**, and
-   * the one to keep is the top: a window hanging off the bottom still shows what
-   * it says first, while one pushed off the top shows nothing but its last line.
-   * The stylesheet's own ceiling is what keeps this to the pathological case.
-   */
-  test("a detail taller than the window keeps its top rather than its bottom", () => {
-    const tall = { width: 250, height: 2000 };
-    const box = getScreenBox(composeTipDeclarations(400, tall, CORNER, TIP_SCREEN), CORNER, tall);
-
-    expect(box.top).toBe(PANEL_PIXELS.space);
-  });
-});
-
-describe("what is not placed at all", () => {
-  /**
-   * §9.3: unknown is loud, never zero. Each of these is a page that would not say
-   * something, and the answer is the stylesheet's own corner rather than a
-   * position computed from a nought — which is what a detail pinned to the top
-   * left of the game would be.
-   */
-  const NOTHING: Array<[string, string]> = [
-    ["left", ""],
-    ["right", ""],
-    ["top", ""],
-  ];
-
-  test("a window that never said how big it is", () => {
-    expect(composeTipDeclarations(400, TIP, CORNER, null)).toEqual(NOTHING);
-  });
-
-  test("a panel whose own corner nothing states", () => {
-    expect(composeTipDeclarations(400, TIP, null, TIP_SCREEN)).toEqual(NOTHING);
-  });
-
-  test("a detail that measured as nothing, which is a document with no layout", () => {
-    expect(composeTipDeclarations(400, { width: 0, height: 0 }, CORNER, TIP_SCREEN)).toEqual(NOTHING);
-  });
-
-  test("and one that measured as nothing on one axis only", () => {
-    expect(composeTipDeclarations(400, { width: 250, height: 0 }, CORNER, TIP_SCREEN)).toEqual(NOTHING);
-    expect(composeTipDeclarations(400, { width: 0, height: 200 }, CORNER, TIP_SCREEN)).toEqual(NOTHING);
-  });
-});
-
-/**
- * ⚠️ **The width is arithmetic, so the drawn box has to be the measured one.**
- * `all: initial` leaves the detail at `content-box`, under which its padding and
- * border sit outside the stated width: it was drawn 268px wide while its
- * placement worked in 250. Measured in Firefox, on the four corners of a 1280x900
- * window.
- *
- * The ceiling is here for the reason above it: without one, a detail longer than
- * the screen is a position the clamp cannot satisfy, and what it gives up is the
- * bottom of the window.
- */
-test("the detail is drawn as the box its placement measures", () => {
-  const style = composePanelStyleText();
-  const start = style.indexOf(".MargoMeter-tip {");
-  const rule = style.slice(start, style.indexOf("}", start));
-
-  expect(start).toBeGreaterThanOrEqual(0);
-  expect(rule).toContain("box-sizing: border-box");
-  expect(rule).toContain(`width: ${PANEL_PIXELS.tipWidth}px`);
-  expect(rule).toContain(`max-height: calc(100vh - ${PANEL_PIXELS.space}px - ${PANEL_PIXELS.space}px)`);
-});
-
-/**
- * The shelf of kept fights, drawn.
- *
- * It borrows the panel's own furniture, so most of what is checked here is what
- * it does **not** do: no pin on the fight that is still running, no press that
- * means two things at once, and nothing lost when one region throws.
- */
-describe("the shelf of kept fights", () => {
-  const READING: PanelFightsReading = {
-    storage: "local",
-    hasStoreRefused: false,
-    isEverySlotPinned: false,
-    hasChoiceRefused: false,
-  };
-
-  function composeShelfFight(over: Partial<PanelKeptFight> = {}): PanelKeptFight {
+function readTip(host: FakeElement): {
+    className: string;
+    name: string[];
+    subtitle: string[];
+    lines: string[];
+    stated: TipLineRead[];
+} {
+    const tip = (host.shadow ?? []).find((one) => one.className.startsWith(CLASS.tip));
+    assert(tip !== undefined, "the detail is a region of the panel like any other");
+    const name = getTextsByClass(tip, CLASS.tipName);
     return {
-      id: "one",
-      isLive: false,
-      isPinnable: true,
-      isPinned: false,
-      isSelected: false,
-      at: { hour: 21, minute: 4 },
-      sideCounts: [4, 4],
-      place: null,
-      outcome: "won",
-      ...over,
+        className: tip.className,
+        name,
+        subtitle: getTextsByClass(tip, CLASS.tipSubtitle),
+        lines: [
+            ...name,
+            ...getTextsByClass(tip, CLASS.tipLabel),
+            ...getTextsByClass(tip, CLASS.tipValue),
+        ],
+        stated: getElementsWithin(tip)
+            .filter((one) => one.className.startsWith(CLASS.tipLine))
+            .map((one) => ({
+                label: getTextsByClass(one, CLASS.tipLabel)[0] ?? "",
+                value: getTextsByClass(one, CLASS.tipValue)[0] ?? "",
+                isStrong: one.className.includes(CLASS.tipStrong),
+                isSub: one.className.includes(CLASS.tipSub),
+            })),
     };
-  }
+}
 
-  function renderShelf(
-    fights: PanelKeptFight[],
-    handlers: PanelFightsHandlers = {},
-    reading: PanelFightsReading = READING,
-  ) {
-    const document = composeFakeDocument();
-    const container = document.createElement("div") as FakeNode;
-    renderFightsInto(document, container, composeFightsView(fights, reading), handlers);
-    // The listeners are on the panel the render built, not on the box it was put
-    // in — which is the same shape `renderPanelInto` has.
-    return { document, container, panel: container.children[0]! };
-  }
+/** Whether a `font` shorthand states the whole-pixel line the rest of the panel is drawn on. */
+function getIsLineWhole(font: string): boolean {
+    const slash = font.indexOf("/");
+    if (slash === -1) return false;
+    const ends = font.indexOf(" ", slash);
+    if (ends === -1) return false;
+    return font.slice(slash + 1, ends).endsWith("px");
+}
 
-  test("draws a row for every fight, with the words a reader reads", () => {
-    const { container } = renderShelf([composeShelfFight(), composeShelfFight({ id: "two" })]);
-    const rows = getByClass(container, "row");
-    expect(rows).toHaveLength(2);
-    const text = getEveryNode(container)
-      .map((node) => node.textContent)
-      .join(" ");
-    expect(text).toContain("Walki");
-    expect(text).toContain("21:04");
-    expect(text).toContain("4×4");
-    expect(text).toContain("wygrana");
-  });
+/**
+ * Which regions are undressed for the ground they paint.
+ *
+ * `:host{all:initial}` reaches every child of the root and nothing else does, so a region hanging
+ * there is drawn in the browser's own serif at `medium`, in `canvastext`, unless it says
+ * otherwise. A box painting no ground of its own puts no text on one either, so it is exempt.
+ */
+function getUndressedRegions(sheet: string, classNames: readonly string[]): string[] {
+    const found: string[] = [];
+    for (const className of classNames) {
+        const body = getRuleBody(sheet, `.${className}`);
+        if (getDeclaration(body, "background") === null) continue;
+        const font = getDeclaration(body, "font");
+        if (font === null) {
+            found.push(className);
+            continue;
+        }
+        if (!getIsLineWhole(font)) {
+            found.push(className);
+            continue;
+        }
+        if (getDeclaration(body, "color") === null) found.push(className);
+    }
+    return found;
+}
 
-  /** §9.6: a control that is drawn and does nothing is worse than one that is absent. */
-  test("draws no pin on the fight that is still running", () => {
-    const { container } = renderShelf([
-      composeShelfFight({ id: "live", isLive: true, isPinnable: false, at: null, outcome: null }),
-      composeShelfFight(),
-    ]);
-    expect(getByClass(container, "row-pin")).toHaveLength(1);
-  });
-
-  test("marks which fight is on screen", () => {
-    const { container } = renderShelf([composeShelfFight({ isSelected: true })]);
-    expect(getByClass(container, "chosen")).toHaveLength(1);
-  });
-
-  /**
-   * ⚠️ **The size is in a cell of its own, ahead of the place.** Behind it, a long
-   * map name pushed it off the end of a 260px row — the ellipsis was eating the
-   * one thing every row had before there were maps on them.
-   */
-  test("draws where a kept fight was without spending the cell its size sits in", () => {
-    const { container } = renderShelf([
-      composeShelfFight({ place: { mapName: "a clearing", x: 34, y: 12 } }),
-    ]);
-    expect(getByClass(container, "row-size")[0]?.textContent).toBe("4×4");
-    expect(getByClass(container, "row-name")[0]?.textContent).toBe("a clearing");
-  });
-
-  /**
-   * ⚠️ **The order is the fix, and nothing else was holding it.** Written because
-   * the mutation that put the size back behind the place killed no test: both
-   * cells were still on the row, both still said the right thing, and the row was
-   * back to losing its size to a long map name — a defect no assertion about
-   * contents can see. The elastic cell has to be the last one before the outcome.
-   */
-  test("puts the one cell that can shorten last, after everything of a fixed width", () => {
-    const { container } = renderShelf([
-      composeShelfFight({ place: { mapName: "a clearing", x: 34, y: 12 } }),
-    ]);
-    const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
-    expect(row.children.map((cell) => cell.className)).toEqual([
-      "row-pin",
-      "row-rank",
-      "row-size",
-      "row-name",
-      "row-value",
-    ]);
-  });
-
-  /**
-   * ⚠️ **The tile comes back here and nowhere else on this row.** The cell draws
-   * the map's name alone because an ellipsis through `(128,214)` leaves a number
-   * nobody wrote — so what makes the missing half askable rather than gone is the
-   * tooltip.
-   */
-  test("gives the whole place back, tile and all, on asking", () => {
-    const { container } = renderShelf([
-      composeShelfFight({ place: { mapName: "a clearing", x: 34, y: 12 } }),
-    ]);
-    const where = assertDefined(getByClass(container, "row-name")[0], "the place cell was drawn");
-    expect(where.textContent).toBe("a clearing");
-    expect(where.title).toBe("a clearing (34,12)");
-  });
-
-  /** The row every fight on somebody's shelf today still draws. */
-  test("draws the row it always drew where nothing said where the fight was", () => {
-    const { container } = renderShelf([composeShelfFight()]);
-    expect(getByClass(container, "row-size")[0]?.textContent).toBe("4×4");
-    expect(getByClass(container, "row-name")[0]?.textContent).toBe("");
-  });
-
-  /**
-   * ⚠️ The press lands on the innermost node, so the pin has to be read before the
-   * row. Without it, pinning a fight also opens it — and the reader is suddenly
-   * reading a fight they only meant to keep.
-   */
-  test("pinning a fight does not also open it", () => {
-    const chosen: string[] = [];
-    const pinned: string[] = [];
-    const { container, panel } = renderShelf([composeShelfFight()], {
-      onFightChosen: (id) => void chosen.push(id),
-      onPinToggled: (id) => void pinned.push(id),
-    });
-    setPressOn(panel, getByClass(container, "row-pin")[0]!);
-    expect(pinned).toEqual(["one"]);
-    expect(chosen).toEqual([]);
-  });
-
-  test("pressing a row opens that fight", () => {
-    const chosen: string[] = [];
-    const { container, panel } = renderShelf([composeShelfFight({ id: "two" })], {
-      onFightChosen: (id) => void chosen.push(id),
-    });
-    setPressOn(panel, getByClass(container, "row")[0]!);
-    expect(chosen).toEqual(["two"]);
-  });
-
-  /**
-   * ⚠️ **The bug this exists for, made twice.** The ranking has the same test and
-   * the same reason (*every piece of a row leads where the row leads*), and the
-   * shelf was written without it: only the row was in the map, while the three
-   * spans on it covered everything but four pixels of padding at each end. The
-   * test above passes on a row nobody can hit, because it presses the row.
-   *
-   * No pin here, so the sweep is the row's own pieces. What holds the pin out of
-   * this map is the test above it, which asserts nothing opens.
-   */
-  test("every piece of a kept fight's row opens that fight", () => {
-    const chosen: string[] = [];
-    const { container, panel } = renderShelf([composeShelfFight({ id: "two", isPinnable: false })], {
-      onFightChosen: (id) => void chosen.push(id),
-    });
-    const row = assertDefined(getByClass(container, "row")[0], "a row was drawn");
-
-    for (const part of getEveryNode(row)) setPressOn(panel, part);
-
-    expect(chosen.length).toBe(getEveryNode(row).length);
-    expect(new Set(chosen)).toEqual(new Set(["two"]));
-  });
-
-  test("the strip reports the choice it carries", () => {
-    const storage: string[] = [];
-    const { container, panel } = renderShelf([], {
-      onStorageChosen: (choice) => void storage.push(choice),
-    });
-    setPressOn(panel, getTabByLabel(container, "tylko teraz"));
-    expect(storage).toEqual(["memory"]);
-  });
-
-  /** The shelf's own crumb cuts the same way the fight screen's does. */
-  test("says what screen the shelf is, where its crumb had to cut it", () => {
-    const { container } = renderShelf([composeShelfFight()]);
-    const here = assertDefined(getByClass(container, "crumb-here")[0], "the crumb was drawn");
-    expect(here.title).toBe(here.textContent);
-    expect(here.title).not.toBe("");
-  });
-
-  test("the way back works from the crumb and from the right button", () => {
-    let back = 0;
-    const { container, panel } = renderShelf([composeShelfFight()], { onBack: () => (back += 1) });
-    setPressOn(panel, getByClass(container, "crumb-back")[0]!);
-    setEventOn(panel, "contextmenu", { target: panel, preventDefault: () => {} });
-    expect(back).toBe(2);
-  });
-
-  /** The right button is the only gesture the shelf shares with the ranking. */
-  test("a press that is not the primary button does nothing", () => {
-    const chosen: string[] = [];
-    const { container, panel } = renderShelf([composeShelfFight()], {
-      onFightChosen: (id) => void chosen.push(id),
-    });
-    setPressOn(panel, getByClass(container, "row")[0]!, 2);
-    expect(chosen).toEqual([]);
-  });
-
-  test("a region that throws is replaced by its own size and nothing else", () => {
-    const failures: unknown[] = [];
-    const document = composeFakeDocument();
-    const container = document.createElement("div") as FakeNode;
-    renderFightsInto(
-      document,
-      container,
-      { ...composeFightsView([composeShelfFight()], READING), rows: null as never },
-      { onSectionFailure: (error) => void failures.push(error) },
+Deno.test("a region hanging off the root states its own type and its own ink", () => {
+    // The detail window stated neither, and was drawn in the browser's serif at `medium` in black
+    // on `raised` — figures nobody could read. Seen in Chrome 152 on 2026-08-29.
+    const host = draw(readFight());
+    const regions = (host.shadow ?? [])
+        .filter((one) => one.className.length > 0)
+        .map((one) => one.className.split(" ")[0] ?? "");
+    assert(regions.includes(CLASS.tip), "the detail window hangs there with the rest of them");
+    assertEquals(
+        getUndressedRegions(composeStyleSheet(), regions),
+        [],
+        "`all: initial` reaches a root's children, so a ground of its own needs an ink of its own",
     );
-    expect(failures).toHaveLength(1);
-    // Everything above the list still drew: the crumb and the control strip.
-    expect(getByClass(container, "crumb")).toHaveLength(1);
-    expect(getByClass(container, "tabs")).toHaveLength(1);
-  });
+    // A reader is proved by a sample it must flag and a sample it must not.
+    assertEquals(getUndressedRegions(".a{background:red;}", ["a"]), ["a"], "a ground with no ink");
+    assertEquals(
+        getUndressedRegions(".a{background:red;color:blue;font:11px/1.4 x y;}", ["a"]),
+        ["a"],
+        "and a line stated as a factor is not the rhythm the rest of the panel is drawn on",
+    );
+    assertEquals(
+        getUndressedRegions(".a{background:red;color:blue;font:11px/15px x y;}", ["a"]),
+        [],
+        "a region that says all three is dressed for what it paints",
+    );
+    assertEquals(getUndressedRegions(".a{display:flex;}", ["a"]), [], "and one painting no ground");
+});
 
-  test("a collapsed panel draws nothing at all", () => {
+Deno.test("every row a reader can point at says which detail is its own", () => {
+    const host = draw(readFight());
+    const rows = getElementsWithin(host).filter((one) => one.className === "row drillable");
+    assert(rows.length > 0, "a fight draws rows");
+    for (const row of rows) {
+        const key = row.attributes.get("data-tip");
+        assert(key !== undefined, "a row carries the name its detail is filed under");
+        // A pointer lands on the deepest element under it, so every part wears the row's mark.
+        for (const part of row.children) {
+            assertEquals(part.attributes.get("data-tip"), key, "and so does every part of it");
+        }
+    }
+});
+
+Deno.test("pointing at a ranking row opens everything that row had to leave out", () => {
+    const reading = readFight();
+    const host = draw(reading);
+    assertEquals(readTip(host).lines, [], "a panel nobody has pointed at says nothing");
+    const first = reading.rows[0];
+    assert(first !== undefined, "there is a row to point at");
+    const name = getElementsWithin(host).find((one) => one.className === "row-name");
+    assert(name !== undefined, "whose name is the deepest thing under the pointer");
+    pointAtElement(host, "pointermove", name, 412);
+
+    const shown = readTip(host);
+    assertEquals(shown.className, CLASS.tip, "which opens the detail");
+    assertEquals(
+        shown.name,
+        [first.name ?? PANEL_WORDS.unknown],
+        "the name in full, which the row itself may have cut",
+    );
+    assertEquals(
+        shown.subtitle,
+        [composeCardSubtitleText(first.profession, first.detail.level)],
+        "and what they are beside how far along, off the roster the fight was fought by",
+    );
+    const figures = shown.stated.filter((one) => !one.isSub);
+    assertEquals(
+        figures.slice(0, SCREEN_ORDER.length).map((one) => one.label),
+        SCREEN_ORDER.map((metric) => getWordsForCardMetric(metric)),
+        "and all four figures, in the order the strip over the list puts them",
+    );
+    assertEquals(
+        figures.slice(0, SCREEN_ORDER.length).map((one) => one.value),
+        SCREEN_ORDER.map((metric) => composeFigureText(first.detail[metric])),
+        "each stating what the statistics hold for this combatant, not what this screen shows",
+    );
+    assertEquals(
+        shown.stated.filter((one) => one.isStrong).map((one) => one.label),
+        [getWordsForCardMetric("damageDealtApplied")],
+        "with the one on screen in bold, and no other",
+    );
+    assert(
+        shown.stated.some((one) => one.isSub),
+        "and the part of a figure the protocol could say less than the whole of stands under it",
+    );
+
+    pointAtElement(host, "pointerout", name, 412, null);
+    assertEquals(readTip(host).className, `${CLASS.tip} ${CLASS.tipHidden}`, "and leaving closes");
+});
+
+Deno.test("crossing from one part of a row to another is not leaving it", () => {
+    const host = draw(readFight());
+    const parts = getElementsWithin(host).filter((one) => one.attributes.has("data-tip"));
+    const [name, other] = [
+        parts.find((one) => one.className === "row-name"),
+        parts.find((one) => one.className === CLASS.rowValue),
+    ];
+    assert(name !== undefined, "a row draws a name");
+    assert(other !== undefined, "and a figure beside it, each its own element under the pointer");
+    assertEquals(
+        name.attributes.get("data-tip"),
+        other.attributes.get("data-tip"),
+        "both of them filed under the one row they are parts of",
+    );
+    pointAtElement(host, "pointermove", name, 412);
+    const opened = readTip(host);
+    assertEquals(opened.className, CLASS.tip, "pointing at one of them opens the card");
+
+    // `pointerout` bubbles, so it fires on every crossing inside the row as well as on leaving it.
+    pointAtElement(host, "pointerout", name, 412, other);
+    assertEquals(
+        readTip(host).className,
+        CLASS.tip,
+        "and a crossing that lands on the same row's mark leaves the card standing",
+    );
+    assertEquals(readTip(host).lines, opened.lines, "saying what it was already saying");
+});
+
+Deno.test("a share inside an opened row is of that row, never of the fight", () => {
+    const { reading, drill } = openFirstRow();
     const document = composeFakeDocument();
-    const container = document.createElement("div") as FakeNode;
-    renderFightsInto(document, container, composeFightsView([composeShelfFight()], READING), {}, true);
-    expect(container.children).toEqual([]);
-  });
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const kind = drill.byElement.rows[0];
+    assert(kind !== undefined, "the opened row is cut by kind");
+    const rows = getElementsWithin(host).filter(
+        (one) => one.attributes.get("data-tip") === `kind:${kind.element}`,
+    );
+    const first = rows[0];
+    assert(first !== undefined, "and that cut is a row somebody can point at");
+    pointAtElement(host, "pointermove", first, 300);
+    assertEquals(
+        readTip(host).lines,
+        [
+            getWordsForDamageKind(kind.element),
+            getWordsForScreen("damageDealtApplied"),
+            PANEL_WORDS.shareOfFigure,
+            composeFigureText(kind.figure),
+            kind.shareText,
+        ],
+        "a kind is a share of the figure standing open above it",
+    );
+});
+
+Deno.test("a shelf row opens the place its own cell had to cut", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading: readFight(),
+        current: "damageDealtApplied",
+        side: "everyone",
+        hasReaderSide: false,
+        shelf: [{
+            openedAt: 17,
+            at: { hour: 21, minute: 5 },
+            sizes: [10, 1],
+            place: "Bagno Wisielców (128, 74)",
+            outcome: "lost",
+            isLive: false,
+            isChosen: false,
+            isPinned: false,
+            isPinnable: true,
+        }],
+        isOnShelf: true,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const row = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-tip") === "shelf:17"
+    );
+    assert(row !== undefined, "the fight is a row a reader can point at");
+    assertEquals(
+        [getTextsByClass(host, "row-time")[0], getTextsByClass(host, "row-size")[0]],
+        ["21:05", "10×1"],
+        "when it was, and how big it was, before the place that can be cut",
+    );
+    assertEquals(getTextsByClass(host, "row-value")[0], "przegrana", "and how it went, last");
+    pointAtElement(host, "pointermove", row, 120);
+    assertEquals(
+        readTip(host).lines,
+        ["Bagno Wisielców (128, 74)"],
+        "and the place whole, which is the half the row loses to an ellipsis",
+    );
+});
+
+Deno.test("a panel that has seen no fight says so, at the height a ranking stands at", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    const host = panel.element as FakeElement;
+    panel.showWaiting(false);
+    const list = getElementsWithin(host).find((one) => one.className.startsWith("list"));
+    assert(list !== undefined, "the list is drawn");
+    assertEquals(list.className, "list list-waiting", "as the one list its sentence is centred in");
+    assertEquals(
+        getTextsByClass(host, "empty"),
+        [PANEL_WORDS.noFightYet],
+        "saying what is missing",
+    );
+    assertEquals(list.attributes.get("style"), "--MargoMeter-rows:11", "at the ranking's height");
+    // Nothing else: there is no screen to pick, no row to open and nothing to total, so a strip
+    // would be a control over a fight that is not on.
+    assertEquals(getElementsWithin(host).filter((one) => one.className === "tabs"), [], "no tabs");
+    assertEquals(getTextsByClass(host, "MargoMeter-summary"), [], "and no strip under it");
+    const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
+    assert(bar?.textContent.endsWith(PANEL_WORDS.title), "while the bar stands as it always does");
+
+    panel.showWaiting(true);
+    const folded = getElementsWithin(host).filter((one) => one.className.endsWith(CLASS.folded));
+    assertEquals(folded.length, 1, "a reader who folded the panel away keeps it folded");
+    assertEquals(getTextsByClass(host, "empty"), [], "and nothing under the bar is composed");
+});
+
+Deno.test("the header says how the fight went, and says nothing where nobody could tell", () => {
+    const reading = readFight();
+    const won = draw({ ...reading, outcome: "won" });
+    assertEquals(
+        getTextsByClass(won, "header-outcome"),
+        [getWordsForOutcome("won")],
+        "in the word the shelf uses too, shouted by the sheet rather than by the words",
+    );
+    const line = getElementsWithin(won).find((one) => one.className === "header-line");
+    assertEquals(line?.children.length, 2, "beside what the fight is, at the other end of it");
+    const unsaid = draw({ ...reading, outcome: null });
+    assertEquals(getTextsByClass(unsaid, "header-outcome"), [], "and nothing at all where none");
+    assertEquals(
+        getElementsWithin(unsaid).find((one) => one.className === "header-line")?.children.length,
+        1,
+        "no gap reserved for a word that was never said",
+    );
+});
+
+Deno.test("the bar is what moves the panel, and where it was let go is reported once", () => {
+    const document = composeFakeDocument();
+    const moved: Array<{ left: number; top: number }> = [];
+    const panel = composePanelHost(document, () => {}, () => {}, {
+        position: null,
+        getViewport: () => ({ width: 1280, height: 900 }),
+        handleMoved: (position) => moved.push(position),
+    });
+    const host = panel.element as FakeElement;
+    panel.show({
+        reading: readFight(),
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
+    assert(bar !== undefined, "the bar is drawn");
+    assertEquals(bar.attributes.get("data-grip"), "", "and it is what a drag is started from");
+
+    // Nobody has moved this one, so it stands in the middle of the window from the first frame,
+    // which is also the place the first grab starts from.
+    assertEquals(
+        host.attributes.get("style"),
+        "left:510px;top:153px;--MargoMeter-panel-top:153px;right:auto",
+        "a panel nobody has moved is put in the middle of the window it was drawn into",
+    );
+
+    dragOnElement(host, "pointerdown", bar, { clientX: 1100, clientY: 20 });
+    dragOnElement(host, "pointermove", bar, { clientX: 1000, clientY: 120 });
+    assertEquals(
+        host.attributes.get("style"),
+        "left:410px;top:253px;--MargoMeter-panel-top:253px;right:auto",
+        "the panel follows the hand, by the distance the hand moved",
+    );
+    assertEquals(moved, [], "and nothing is stored while it is still being dragged");
+
+    dragOnElement(host, "pointerup", bar, { clientX: 1000, clientY: 120 });
+    assertEquals(moved, [{ left: 410, top: 253 }], "where it was let go is reported, once");
+
+    dragOnElement(host, "pointermove", bar, { clientX: 500, clientY: 500 });
+    assertEquals(
+        host.attributes.get("style"),
+        "left:410px;top:253px;--MargoMeter-panel-top:253px;right:auto",
+        "and a pointer moving with nothing held moves nothing",
+    );
+});
+
+Deno.test("a press on a control is not a drag, whatever the pointer does next", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {}, {
+        position: { left: 40, top: 40 },
+        getViewport: () => ({ width: 1280, height: 900 }),
+        handleMoved: () => {},
+    });
+    const host = panel.element as FakeElement;
+    panel.showWaiting(false);
+    const fold = getElementsWithin(host).find((one) => one.attributes.has("data-fold"));
+    assert(fold !== undefined, "the bar carries the control that folds the panel");
+    dragOnElement(host, "pointerdown", fold, { clientX: 100, clientY: 100 });
+    dragOnElement(host, "pointermove", fold, { clientX: 400, clientY: 400 });
+    assertEquals(
+        host.attributes.get("style"),
+        "left:40px;top:40px;--MargoMeter-panel-top:40px;right:auto",
+        "the panel stays where the reader left it: a press on a control is that control's",
+    );
+});
+
+/** Healing opens onto who, what with, and — on the receiving side alone — under which key. */
+Deno.test("a healing row opens, and says whose the health was and what put it back", () => {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const open = (screen: "healthGiven" | "healthRestored") => {
+        const reading = composePanelReading(
+            statistics,
+            roster,
+            screen,
+            "everyone",
+            null,
+            NOTHING_MISSED,
+        );
+        const first = reading.rows[0];
+        assert(first !== undefined, `${screen}: there is a row to open`);
+        const drill = composeDrillReading(statistics, roster, screen, first.combatantId);
+        assert(drill !== null, `${screen}: and it opens`);
+        const document = composeFakeDocument();
+        const panel = composePanelHost(document, () => {}, () => {});
+        panel.show({
+            reading,
+            current: screen,
+            side: "everyone" as const,
+            hasReaderSide: false,
+            shelf: [],
+            isOnShelf: false,
+            storage: "local" as const,
+            shelfWarnings: [],
+            drill,
+            pair: null,
+            skill: null,
+            place: null,
+            isCollapsed: false,
+        });
+        const host = panel.element as FakeElement;
+        return getElementsWithin(host)
+            .filter((one) => one.className === "section-heading")
+            .map((one) => one.children[0]?.textContent);
+    };
+    assertEquals(
+        open("healthRestored"),
+        [PANEL_WORDS.takenFrom, PANEL_WORDS.skills, PANEL_WORDS.healthSource],
+        "health received is cut by who put it back, what put it back and the key it came under",
+    );
+    // No cut by key: the keys the protocol names belong to whoever received the health, so a
+    // giver's row cut by one would be worded with somebody else's cause.
+    assertEquals(
+        open("healthGiven"),
+        [PANEL_WORDS.dealtTo, PANEL_WORDS.skills],
+        "and health given by whom it reached and what it was given with",
+    );
+});
+
+Deno.test("a row opened on a screen its own figure is nothing on says so, about them", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "healthGiven",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        // The same person, carried onto a screen they did nothing on: one press of a strip away,
+        // because the strips carry an opened row from screen to screen.
+        drill: { ...drill, total: 0, byOpponent: { rows: [], unnamed: null } },
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    assertEquals(
+        getTextsByClass(host, "empty"),
+        [getWordsForNothing("healthGiven")],
+        "a sentence about that person rather than an empty box",
+    );
+    assertEquals(getTextsByClass(host, "crumb-here"), [drill.name], "and they are still open");
+});
+
+Deno.test("an opened row grows the list to what its cuts need, and never shortens it", () => {
+    const { reading, drill } = openFirstRow();
+    const drawOpened = (open: typeof drill | null) => {
+        const document = composeFakeDocument();
+        const panel = composePanelHost(document, () => {}, () => {});
+        panel.show({
+            reading,
+            current: "damageDealtApplied",
+            side: "everyone" as const,
+            hasReaderSide: false,
+            shelf: [],
+            isOnShelf: false,
+            storage: "local" as const,
+            shelfWarnings: [],
+            drill: open,
+            pair: null,
+            skill: null,
+            place: null,
+            isCollapsed: false,
+        });
+        const host = panel.element as FakeElement;
+        const list = getElementsWithin(host).find((one) => one.className.startsWith("list"));
+        return list?.attributes.get("style");
+    };
+    const ranking = drawOpened(null);
+    assertEquals(
+        ranking,
+        `--MargoMeter-rows:${reading.visibleRows}`,
+        "the ranking is its own floor",
+    );
+
+    // Two cuts, each costing its rows, the part named for nobody and the heading over them.
+    const heads = (
+        rows: unknown[],
+        extra: unknown,
+    ) => (rows.length === 0 && extra === null ? 0 : 1);
+    const needed = countDrillRows(drill) + heads(drill.byOpponent.rows, drill.byOpponent.unnamed) +
+        heads(drill.bySkill.rows, drill.bySkill.plain) +
+        heads(drill.byElement.rows, drill.byElement.unnamed);
+    assert(needed > reading.visibleRows, "this fight opens onto more rows than the ranking has");
+    assertEquals(
+        drawOpened(drill),
+        `--MargoMeter-rows:${needed}`,
+        "so the list grows to hold them",
+    );
+
+    // And a cut that needs less keeps the floor: pressing a row must not shorten the window
+    // under the hand that pressed it.
+    const small = {
+        ...drill,
+        byOpponent: { rows: [], unnamed: null },
+        bySkill: { rows: [], plain: null },
+        byElement: { rows: drill.byElement.rows.slice(0, 2), unnamed: null },
+    };
+    assertEquals(
+        drawOpened(small),
+        `--MargoMeter-rows:${reading.visibleRows}`,
+        "a shorter breakdown is drawn at the ranking's height rather than below it",
+    );
+});
+
+Deno.test("a cut that only repeats the figure above it is not drawn at all", () => {
+    const { reading, drill } = openFirstRow();
+    const headings = (open: typeof drill) => {
+        const document = composeFakeDocument();
+        const panel = composePanelHost(document, () => {}, () => {});
+        panel.show({
+            reading,
+            current: "damageTakenApplied",
+            side: "everyone" as const,
+            hasReaderSide: false,
+            shelf: [],
+            isOnShelf: false,
+            storage: "local" as const,
+            shelfWarnings: [],
+            drill: open,
+            pair: null,
+            skill: null,
+            place: null,
+            isCollapsed: false,
+        });
+        const host = panel.element as FakeElement;
+        return getElementsWithin(host)
+            .filter((one) => one.className === "section-heading")
+            .map((one) => one.children[0]?.textContent);
+    };
+    const one = drill.byElement.rows[0];
+    assert(one !== undefined, "the fight cuts this figure by kind");
+    // One kind carrying the whole figure is that figure again under another heading.
+    const repeated = {
+        ...drill,
+        total: one.figure,
+        bySkill: { rows: [], plain: null },
+        byElement: { rows: [one], unnamed: null },
+    };
+    assertEquals(headings(repeated), [PANEL_WORDS.takenFrom], "so the cut of one is left undrawn");
+
+    const two = drill.byElement.rows.slice(0, 2);
+    assert(two.length === 2, "and the fight cuts it by more than one");
+    const split = {
+        ...drill,
+        total: two.reduce((sum, row) => sum + row.figure, 0),
+        bySkill: { rows: [], plain: null },
+        byElement: { rows: two, unnamed: null },
+    };
+    assertEquals(
+        headings(split),
+        [PANEL_WORDS.takenFrom, PANEL_WORDS.damageKind],
+        "while a cut that says more than the figure above it is drawn",
+    );
 });
 
 /**
- * §9.6 makes delegation structural: one listener at the root, never a binding per row,
- * so re-rendering cannot lose a handler. This says there is one root.
- *
- * ⚠️ **The rule survived a second consumer and the code did not.** The shelf gave the
- * panel a second screen, and each screen then declared its own `handleGuarded`, its own
- * `pointerdown` with the same primary-button guard and its own `contextmenu` with the
- * same `preventDefault` — while the argument behind all six sat in one of the two, with
- * a two-line note in the other. Nothing had drifted; the finding was that nothing would
- * say so.
- *
- * Read as the literal both roots are written with, and not as any `addEventListener`:
- * the drag binds its four through a variable type on purpose (`setGuarded`), and a
- * guard that counted those too would go red for the shape it exists to allow — which is
- * §7.5's *a guard narrower than the construct it owns* read from the other end.
+ * The skills section is exempt, and for the reason the closing row is: the heading carries the
+ * figure and never what it was dealt with, so one row holding the whole of it is where a reader
+ * learns which skill that was. A key row is not — `DESIGN.md` puts the keys a section lower.
  */
-describe("where a screen listens for a gesture", () => {
-  const SOURCE = composeSourceWithoutComments(
-    readFileSync(new URL("../../src/ui/panel-element.ts", import.meta.url), "utf8"),
-  );
+Deno.test("a lone skill row is not a repetition, because the heading never names one", () => {
+    const { reading, drill } = openFirstRow();
+    const headings = (open: typeof drill) => {
+        const document = composeFakeDocument();
+        const panel = composePanelHost(document, () => {}, () => {});
+        panel.show({
+            reading,
+            current: "damageDealtApplied",
+            side: "everyone" as const,
+            hasReaderSide: false,
+            shelf: [],
+            isOnShelf: false,
+            storage: "local" as const,
+            shelfWarnings: [],
+            drill: open,
+            pair: null,
+            skill: null,
+            place: null,
+            isCollapsed: false,
+        });
+        return getElementsWithin(panel.element as FakeElement)
+            .filter((one) => one.className === "section-heading")
+            .map((one) => one.children[0]?.textContent);
+    };
+    const only = drill.bySkill.rows[0];
+    assert(only !== undefined, "the fight cuts this figure by the skills it was dealt with");
+    assertEquals(only.part.kind, "skill", "and the row standing first is an announcement");
+    const alone = {
+        ...drill,
+        total: only.figure,
+        byOpponent: { rows: [], unnamed: null },
+        byElement: { rows: [], unnamed: null },
+        bySkill: { rows: [only], plain: null },
+    };
+    assertEquals(headings(alone), [PANEL_WORDS.skills], "so the section is drawn all the same");
 
-  test.each(["pointerdown", "contextmenu"])(
-    "binds %s once, however many screens the panel draws",
-    (type) => {
-      expect(SOURCE.split(`addEventListener("${type}"`).length - 1).toBe(1);
-    },
-  );
+    const key = { ...only, part: { kind: "source" as const, source: "heal" } };
+    const keyed = { ...alone, bySkill: { rows: [key], plain: null } };
+    assertEquals(headings(keyed), [], "while a lone key row says nothing the heading does not");
+});
+
+Deno.test("a blow nothing announced closes the skills, and says how many there were", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        // Three blows that were all blocked are three blows: the row is drawn at nothing, and a
+        // section that skipped it would say the combatant never swung.
+        drill: {
+            ...drill,
+            bySkill: { rows: [], plain: { blows: 3, figure: 0, fill: 0, shareText: "0%" } },
+        },
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const named = getTextsByClass(host, "row-name");
+    const closing = getWordsForUnannounced("damageDealtApplied");
+    assert(named.includes(closing), "the closing row stands in its own section");
+    const shares = getTextsByClass(host, "row-share");
+    assert(shares.includes("(0% · ×3)"), "carrying the count only its absence of a skill states");
+});
+
+Deno.test("a skill that opens asks for itself by name, and the rest of them ask nothing", () => {
+    const { reading, drill } = openFirstRow();
+    const pressed: PanelPress[] = [];
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
+    const rows = [
+        {
+            part: { kind: "skill" as const, name: "Dotyk anioła" },
+            uses: 1,
+            figure: 500,
+            fill: 1,
+            shareText: "50%",
+            opensSkill: true,
+        },
+        {
+            part: { kind: "skill" as const, name: "Zmrrożenie" },
+            uses: 8,
+            figure: 500,
+            fill: 1,
+            shareText: "50%",
+            opensSkill: false,
+        },
+    ];
+    panel.show({
+        reading,
+        current: "healthGiven",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: { ...drill, total: 1000, bySkill: { rows, plain: null } },
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const named = getElementsWithin(host).filter((one) => one.className === "row-name");
+    const opening = named.filter((one) => one.textContent === "Dotyk anioła");
+    assertEquals(opening.length, 1, "the skill that reached somebody else is drawn");
+    const marked = getElementsWithin(host).filter((one) => one.attributes.has("data-skill"));
+    assertEquals(marked.length, 1, "and it is the one thing on the screen that opens");
+    pressElement(host, "pointerdown", marked[0] ?? host);
+    assertEquals(
+        pressed.at(-1),
+        { kind: "skill", name: "Dotyk anioła" },
+        "asking for itself by the name it was announced under, which is not a number",
+    );
+});
+
+/** Where a row's name starts, which is the sum of every cell drawn before it. */
+function getCellsBeforeName(row: FakeElement): string[] {
+    const before: string[] = [];
+    for (const part of row.children) {
+        const named = part.className.split(" ")[0] ?? "";
+        if (named === "row-name") return before;
+        before.push(named);
+    }
+    return before;
+}
+
+Deno.test("every row in a list draws the same cells before its name", () => {
+    // The bug this catches was photographed. A ranking row's place held the space before its
+    // name and a drilled row had a profession badge holding the same space; when the badge went,
+    // the drill's names slid 14.5px left of the ranking's and sat on the bar's own cap, while
+    // the ranking read as it always had. Nothing went red, because a row's parts are drawn from
+    // whatever the reading happens to carry rather than from a shape every row keeps.
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    const shown = {
+        reading,
+        current: "damageDealtApplied" as const,
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    };
+    const shapes = new Map<string, string[]>();
+    for (const [screen, opened] of [["ranking", null], ["drilled", drill]] as const) {
+        panel.show({ ...shown, drill: opened });
+        const host = panel.element as FakeElement;
+        for (const row of getElementsWithin(host)) {
+            if (row.className.split(" ")[0] !== "row") continue;
+            if (row.children.length === 0) continue;
+            shapes.set(`${screen}: ${getCellsBeforeName(row).join(",")}`, getCellsBeforeName(row));
+        }
+    }
+    assertEquals(
+        [...shapes.keys()].sort(),
+        ["drilled: bar,bar-cap,row-rank", "ranking: bar,bar-cap,row-rank"],
+        "a row on one screen is built of the cells a row on the other is",
+    );
+});
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, the healer at 469657: two announced
+ * skills and
+ * health that moved under `heal`, which nothing announced.
+ *
+ * The key is drawn under the reader's own word for it and never under the token, and never under
+ * a row saying nothing was said — the game said `heal`, and the help calls it a regeneration.
+ */
+Deno.test("a healing section draws the key the game named, not a row saying it did not", () => {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const drill = composeDrillReading(statistics, roster, "healthGiven", 469657);
+    assert(drill !== null, "the healer's row opens");
+    assertEquals(drill.bySkill.plain, null, "onto a section closing against nothing");
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "healthGiven" as const,
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const named = getTextsByClass(panel.element as FakeElement, "row-name");
+    assert(
+        named.includes(getWordsForHealthSource("heal")),
+        "the key stands under the word a player reads",
+    );
+    assert(!named.includes("heal"), "never under the token the protocol stated it on");
+    assert(
+        !named.includes(getWordsForUnannounced("healthGiven")),
+        "and no row says the game left it unsaid, because the game did not",
+    );
+    assert(
+        named.includes("Leczenie ran"),
+        "with the announcements beside it under their own names",
+    );
+});
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, the combatant at 469657 and
+ * themselves: health they
+ * put back into themselves under one announcement and under `heal`, which nothing announced.
+ *
+ * One section, because the two kinds of row are two parts of one figure — drawn apart they would
+ * be two columns each coming to some fraction of a hundred.
+ */
+Deno.test("an opened healing pair draws its announcements and its keys as one section", () => {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const healer = 469657;
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const drill = composeDrillReading(statistics, roster, "healthGiven", healer);
+    assert(drill !== null, "the healer's row opens");
+    const pair = composePairReading(statistics, roster, "healthGiven", healer, healer);
+    assert(pair !== null, "and the person inside it opens onto the pair");
+    assert(pair.parts.length > 1, "which says more than the row that was pressed");
+
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "healthGiven" as const,
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill,
+        pair,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const headings = getElementsWithin(host).filter((one) => one.className === "section-heading");
+    assertEquals(headings.length, 1, "one section, holding the whole of what passed between them");
+    assertEquals(
+        headings[0]?.children[0]?.textContent,
+        `${PANEL_WORDS.skillsAgainst} — ${pair.otherName}`,
+        "saying what it cuts and whom it is about",
+    );
+    assertEquals(
+        headings[0]?.children[1]?.textContent,
+        composeFigureText(pair.total),
+        "and standing over the figure the row that opened it stated",
+    );
+    const rows = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row");
+    assertEquals(rows.length, pair.parts.length, "a row for each part, and no other");
+    assert(
+        rows.every((one) => one.attributes.get("data-row") === undefined),
+        "and nothing on this rung opens any further",
+    );
+    const named = getTextsByClass(host, "row-name");
+    assert(named.includes(getWordsForHealthSource("heal")), "a key is drawn in the reader's words");
+    assert(!named.includes("heal"), "never under the token the protocol stated it on");
+    assert(
+        named.some((one) => one === "Zdrowa atmosfera"),
+        "and an announcement under the name it was announced by",
+    );
+});
+
+/**
+ * A reader inside an opened row meets two kinds of person row, and until the note reached them
+ * only the cursor told the two apart. Measured over `captures/` on 2026-08-30: 1,576 rows that
+ * open against 588 that do not, in the same sections.
+ */
+Deno.test("a row that opens says so, and a row that does not says nothing of the kind", () => {
+    const roster = composeCombatantRoster(getRecordedCombatants(BOTH_KINDS_OF_PAIR));
+    const events = getRecordedPayloads(BOTH_KINDS_OF_PAIR)
+        .flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "damageTakenApplied",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const first = reading.rows[0];
+    assert(first !== undefined, "there is a row to open");
+    const drill = composeDrillReading(statistics, roster, "damageTakenApplied", first.combatantId);
+    assert(drill !== null, "and it opens");
+    const opening = drill.byOpponent.rows.find((one) => one.opensPair);
+    const closed = drill.byOpponent.rows.find((one) => !one.opensPair);
+    assert(opening !== undefined, "onto somebody the level under says something about");
+    assert(closed !== undefined, "and somebody it does not — both kinds stand in one section");
+
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "damageTakenApplied" as const,
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const pointAtRow = (key: string) => {
+        const part = getElementsWithin(host).find((one) => {
+            if (one.className !== "row-name") return false;
+            return one.attributes.get("data-tip") === key;
+        });
+        assert(part !== undefined, `${key} is a row on the panel`);
+        pointAtElement(host, "pointermove", part, 412);
+        const tip = (host.shadow ?? []).find((one) => one.className.startsWith(CLASS.tip));
+        assert(tip !== undefined, "and pointing at it opens the detail");
+        return getTextsByClass(tip, CLASS.tipNote);
+    };
+    assertEquals(
+        pointAtRow(`to:${opening.combatantId}`),
+        [CARD_WORDS.gesture],
+        "the row that opens says what pressing it does",
+    );
+    assertEquals(
+        pointAtRow(`to:${closed.combatantId}`),
+        [],
+        "and the one that does not promises no gesture",
+    );
+});
+
+/** The other mark, on the one section that opens by it: a skill states the same instruction. */
+Deno.test("a skill that opens says so under the same words a person does", () => {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const drill = composeDrillReading(statistics, roster, "healthGiven", 469657);
+    assert(drill !== null, "the healer's row opens");
+    const opening = drill.bySkill.rows.find((one) => one.opensSkill);
+    const key = drill.bySkill.rows.find((one) => one.part.kind === "source");
+    assert(opening !== undefined, "onto a skill that reached somebody else");
+    assert(key !== undefined, "and a key stands beside it, which opens nothing");
+
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "healthGiven" as const,
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const notesOf = (part: { attributes: Map<string, string> }) => {
+        const found = getElementsWithin(host).find((one) => {
+            if (one.className !== "row-name") return false;
+            return one.attributes.get("data-tip") === part.attributes.get("data-tip");
+        });
+        assert(found !== undefined, "the row is on the panel");
+        pointAtElement(host, "pointermove", found, 412);
+        const tip = (host.shadow ?? []).find((one) => one.className.startsWith(CLASS.tip));
+        assert(tip !== undefined, "and pointing at it opens the detail");
+        return getTextsByClass(tip, CLASS.tipNote);
+    };
+    const rows = getElementsWithin(host).filter((one) => one.className === "row-name");
+    const drawnSkill = rows.find((one) => one.textContent === "Zdrowa atmosfera");
+    const drawnKey = rows.find((one) => one.textContent === getWordsForHealthSource("heal"));
+    assert(drawnSkill !== undefined, "the announcement is drawn");
+    assert(drawnKey !== undefined, "and so is the key beside it");
+    assertEquals(notesOf(drawnSkill), [CARD_WORDS.gesture], "the skill says pressing it opens");
+    assertEquals(notesOf(drawnKey), [], "the key promises nothing, because it opens nothing");
 });

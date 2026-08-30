@@ -1,1410 +1,598 @@
 /**
- * What the aggregate is allowed to do with the events it is handed.
+ * The figures, over the fights that produced them.
  *
- * Two halves, and the second is the one worth writing. The captured fights
- * exercise the ordinary path — real totals, real elements, real defences. They
- * exercise **none** of the paths where the protocol names nobody: measured, both
- * captures resolve every side and every name, so `unattributed` stays empty on
- * real material. Those cases are built here by hand rather than left untested,
- * because "shown, never guessed" (§5) is exactly the rule that has no evidence
- * behind it until the day it does.
- *
- * **What is deliberately absent: a fight-scale check against the snapshots.**
- * It was attempted and the material will not carry it, for two reasons that are
- * both about the game rather than about this file:
- *
- *   - health stops at zero, so a killing blow is accounted in full while the
- *     snapshot can only show the health there was. Measured on the boar fight,
- *     where both boars die: 834 accounted against 745 lost, and 1119 against
- *     763. The excess is overkill, not over-counting.
- *   - healing we do not read swamps everything else over a long fight. In the
- *     group fight the players end near full health after 20–38k accounted
- *     damage each; `healall_per` is the known cause and the register already
- *     states why it cannot be read without a roster side.
- *
- * The per-call version of this comparison is
- * `tests/core/health-witness.test.ts`, which handles both by skipping what it
- * cannot add. Repeating it here at fight scale would either duplicate that or
- * need a tolerance wide enough to prove nothing. What this file holds instead is
- * the invariant the aggregate itself owns: every figure landed is also a figure
- * taken.
+ * Every sample runs through the decoder rather than being handed a typed event: what the panel
+ * will draw has to survive the whole path, and a statistic built on an invented event proves
+ * nothing about the protocol.
  */
 
-import { getTotalOfValues, getTotalsByInnerKey, setRunningTotal } from "@/libs/running-total.ts";
-import { describe, expect, test } from "bun:test";
-import { assertDefined } from "@/libs/assert.ts";
-import { composeIntegerText, getFiniteNumberFromValue } from "@/libs/number.ts";
-import type { AttackEvent, BattleEvent } from "@/src/core/battle-event.ts";
+import { assert, assertEquals } from "@std/assert";
+import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodeFight, SELF_SOURCED_HEALING_KEYS } from "@/src/core/fight-decoder.ts";
+import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import {
-  composeEmptyCombatantStatistics,
-  composeFightStatistics,
-  getCombatantIdsInFight,
-  type CombatantStatistics,
-  type SideStatistics,
-} from "@/src/core/fight-statistics.ts";
-import {
-  CAPTURED_FIGHTS,
-  composeRosterOfFight,
-  composeStatisticsOfFight,
-  getMessagesOfFight,
-  type CapturedFight,
-} from "@/tests/captured-fight-catalog.ts";
+    getRecordedCombatants,
+    getRecordedPayloads,
+    getRecordingPaths,
+} from "@/tests/recorded-fight.ts";
 
 /**
- * A capture read the way the panel reads a live fight — entry health included.
- *
- * ⚠️ **Without the third argument this whole file measures a reading nothing
- * ships.** The add-on hands the aggregate what each combatant entered the fight
- * with, and every team heal in the corpus is sized because of it; a test that
- * left it out would go on asserting the totals from before that was true.
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: a blow absorption stood in front
+ * of.
  */
-function getStatisticsOf(fight: CapturedFight) {
-  return composeStatisticsOfFight(fight);
-}
+const ABSORBED =
+    "467968=100.00;-10000249=99.69;+pierce;+dmgd=1557;+acdmg=16;-absorb=545;-dmgd=1012";
+/**
+ * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: health moving with nobody at the
+ * other end.
+ */
+const POISON = "-255967=19.27;0;poison=140,14";
+const HEAL = "482845=100.00;0;heal=99";
 
-function getEventsOf(fight: CapturedFight): BattleEvent[] {
-  return decodeFight(
-    getMessagesOfFight(fight),
-    composeRosterOfFight(fight),
-  );
-}
-
-const FROM_CAPTURES = CAPTURED_FIGHTS.map((fight) => ({
-  name: fight.name,
-  statistics: getStatisticsOf(fight),
-  events: getEventsOf(fight),
-}));
-
-function getEveryRow(statistics: ReturnType<typeof composeFightStatistics>): CombatantStatistics[] {
-  return [...statistics.byCombatantId.values(), statistics.unattributed];
-}
-
-const ATTACK_ON_NOBODY: AttackEvent = {
-  kind: "attack",
-  announced: null,
-  actorId: null,
-  targetId: null,
-  actorHealthPercent: null,
-  targetHealthPercent: null,
-  dealt: [{ damageType: "dmg", amount: 100 }],
-  taken: [{ damageType: "dmg", amount: 60 }],
-  prevented: [{ prevention: "absorb", amount: 40 }],
-  procs: ["crit"],
-  destroyed: [{ statistic: "acdmg", amount: 7 }],
-  declared: [],
-};
-
-describe("the aggregate over captured fights", () => {
-  test("the captures produce figures to check", () => {
-    expect(FROM_CAPTURES.length).toBeGreaterThan(0);
-    for (const { name, statistics } of FROM_CAPTURES) {
-      expect(statistics.byCombatantId.size, name).toBeGreaterThan(0);
-      const landed = getEveryRow(statistics).reduce((total, row) => total + row.taken, 0);
-      expect(landed, name).toBeGreaterThan(0);
-    }
-  });
-
-  /**
-   * ⚠️ **The aggregate kept one outcome and the protocol states two.** The
-   * `loser` message arrives after the `winner` message, so a single variable
-   * held "lost" at the end of every fight ever recorded — including the boar
-   * fight, which the player finished at full health with all three opponents
-   * dead. Every capture carries exactly one of each message
-   * (`tests/core/battle-event.test.ts`), so the material settles this: whoever
-   * won has to survive the aggregate as well as the decoder.
-   */
-  test("both sides of the ending survive, and nobody is on both", () => {
-    for (const { name, statistics } of FROM_CAPTURES) {
-      const outcome = statistics.outcome;
-      expect(outcome, name).not.toBeNull();
-      if (outcome === null) continue;
-
-      expect(outcome.wonNames.length, name).toBeGreaterThan(0);
-      expect(outcome.lostNames.length, name).toBeGreaterThan(0);
-      for (const winner of outcome.wonNames) {
-        expect(outcome.lostNames, `${name}: ${winner}`).not.toContain(winner);
-      }
-    }
-  });
-
-  /**
-   * One blow is one figure on two rows, so the two sides must balance exactly.
-   * A conservation law rather than a spot check: it fails on any future change
-   * that credits a striker without debiting a target, which is the shape a
-   * double-counted total takes.
-   */
-  test("everything landed is also everything taken", () => {
-    for (const { name, statistics } of FROM_CAPTURES) {
-      const rows = getEveryRow(statistics);
-      const landed = rows.reduce((total, row) => total + row.dealtApplied, 0);
-      const taken = rows.reduce((total, row) => total + row.taken, 0);
-      expect(landed, name).toBe(taken);
-    }
-  });
-
-  /**
-   * Why raw and applied are separate fields and not one. A combatant working
-   * through `+oth_dmg` lands more than its raw column shows, because damage
-   * stated against a name carries no raw figure at all — so the two are not
-   * merely "before and after" of each other and cannot share a total.
-   */
-  test("raw and landed are different numbers, and the captures prove it", () => {
-    const rows = FROM_CAPTURES.flatMap(({ statistics }) => [...statistics.byCombatantId.values()]);
-    expect(rows.some((row) => row.dealtRaw > row.dealtApplied)).toBe(true);
-    expect(rows.some((row) => row.dealtApplied > row.dealtRaw)).toBe(true);
-  });
-
-  // Units are not comparable, so the aggregate keeps the tokens apart. If these
-  // ever collapse into one figure, the panel would show armour added to
-  // percentage points.
-  test("destroyed statistics stay keyed by their own token", () => {
-    const withDestruction = FROM_CAPTURES.flatMap(({ statistics }) =>
-      [...statistics.byCombatantId.values()].filter((row) => row.destroyed.size > 0),
-    );
-    expect(withDestruction.length).toBeGreaterThan(0);
-    expect(withDestruction.some((row) => row.destroyed.size > 1)).toBe(true);
-  });
-
-  /**
-   * §9.6: a total that might be too low has to be markable as such, which is
-   * impossible if the aggregate forgets what it could not read. Every capture
-   * carries unread keys, so this is measured rather than constructed.
-   *
-   * ⚠️ Both halves of this used to be measured on the captures, and one of them
-   * has gone to zero: no message in either fight is unread any more. The path is
-   * still worth guarding, so it is guarded on a message written for the purpose
-   * — and the captures are held to the new truth rather than the old one.
-   */
-  test("what could not be read reaches the aggregate", () => {
-    const invented = composeFightStatistics(decodeFight(["0;0;no_such_key=1"]));
-    expect(invented.reading.unreadableMessages).toBe(1);
-    expect(invented.reading.messagesByReason.size).toBe(1);
-    expect(invented.reading.occurrencesByUnreadKey.get("no_such_key")).toBe(1);
-
-    for (const { name, statistics } of FROM_CAPTURES) {
-      expect(statistics.reading.unreadableMessages, name).toBe(0);
-    }
-  });
-
-  /**
-   * ⚠️ **This has asserted four different things, and the fourth is the second
-   * again.** Healing that reached a whole side was once reported without naming
-   * anyone it healed, and every capture carrying it counted the casts as health
-   * nobody could place. Then all of them were placed and this read `toEqual([])`.
-   * Then `2026-08-23-tempest-grupa-vs-hildur-auto` arrived and it named that
-   * recording as an exception for one commit.
-   *
-   * The exception was ours, not the material's: one combatant's entry health was
-   * refused over a single point, because the allowance meant to absorb that
-   * rounding was smaller than a health point on their pool
-   * (`docs/specs/sizing-a-share-onto-a-side.md`). No
-   * figure was wrong — the six casts it cost size to exactly the same numbers —
-   * so what the panel had been showing was *unknown* where the answer was *zero*,
-   * which is the one distinction §9.6 makes about this screen.
-   *
-   * Then on 2026-08-27 `2026-08-27-luvia-grupa-vs-amaimon-2` named itself here,
-   * for declaring `lowheal_per-enemies` while a fight declaring the reducer
-   * anywhere had none of its casts sized. Reading the side the effect reaches
-   * emptied the list again in the same day: the reducer is declared by one of
-   * theirs at the monster, so nothing of theirs was reduced
-   * (`docs/specs/sizing-a-share-onto-a-side.md`).
-   *
-   * ⚠️ **So no recording exercises this counter, and the empty list is the
-   * claim.** What holds it is the hand-built fights in
-   * `tests/core/combatant-health.test.ts`, each carrying one reason a cast is
-   * refused. A capture appearing here is a fight the panel warns about, and there
-   * is none.
-   */
-  test("no capture is left with healing nobody can be credited for", () => {
-    const withTeamHeal = FROM_CAPTURES.filter(
-      ({ statistics }) => statistics.reading.unaccountedHealthBySource.size > 0,
-    ).map(({ name }) => name);
-    expect(withTeamHeal).toEqual([]);
-
-    // And the casts really are there to have been placed, or the sentence above is
-    // about a corpus that never carried one.
-    const casts = FROM_CAPTURES.flatMap(({ events }) =>
-      events.filter((event) => event.kind === "unaccounted-health"),
-    );
-    expect(casts.length).toBeGreaterThan(0);
-  });
-
-  // Zero is a measurement; unknown is the absence of one. They are different
-  // fields here so the panel can keep them apart on screen.
-  test("a figure of zero and something unread are not the same thing", () => {
-    const { statistics } = FROM_CAPTURES[0]!;
-    const idle = [...statistics.byCombatantId.values()].find((row) => row.healed === 0);
-    expect(idle).toBeDefined();
-    expect(idle?.healed).toBe(0);
-
-    const unread = composeFightStatistics(decodeFight(["0;0;no_such_key=1"]));
-    expect(unread.reading.unreadableMessages).toBe(1);
-    expect(unread.byCombatantId.size).toBe(0);
-  });
-});
-
-describe("rows grouped by side", () => {
-  test("every capture splits into more than one side, with nobody left out", () => {
-    for (const { name, statistics } of FROM_CAPTURES) {
-      expect(statistics.bySide.size, name).toBeGreaterThan(1);
-      expect(statistics.combatantIdsWithoutSide, name).toEqual([]);
-
-      const grouped = [...statistics.bySide.values()].flatMap((side) => side.combatantIds);
-      expect(grouped.length, name).toBe(statistics.byCombatantId.size);
-      expect(new Set(grouped).size, name).toBe(grouped.length);
-    }
-  });
-
-  // Recomputed from the members rather than trusted, so the totals cannot drift
-  // from the rows they claim to add up.
-  test("a side's totals are its members added together", () => {
-    for (const { name, statistics } of FROM_CAPTURES) {
-      for (const [side, group] of statistics.bySide) {
-        const members = group.combatantIds.map((id) => statistics.byCombatantId.get(id));
-        const taken = members.reduce((total, row) => total + (row?.taken ?? 0), 0);
-        const landed = members.reduce((total, row) => total + (row?.dealtApplied ?? 0), 0);
-        expect(group.totals.taken, `${name} side ${side}`).toBe(taken);
-        expect(group.totals.dealtApplied, `${name} side ${side}`).toBe(landed);
-      }
-    }
-  });
-
-  /**
-   * What one side lands is what the other takes — exactly, on every capture.
-   *
-   * The strongest evidence the grouping is coherent: a combatant filed on the
-   * wrong side breaks it immediately, and no per-row check would notice.
-   *
-   * It **assumes nobody damages their own side**, which is true of this material
-   * and is not a law of the game. A capture with area damage catching an ally
-   * would fail here, and that is the intended outcome: the assumption is what
-   * changed, and someone should look rather than have it absorbed silently.
-   */
-  test("what one side lands is what the other takes", () => {
-    for (const { name, statistics } of FROM_CAPTURES) {
-      const sides = [...statistics.bySide.values()];
-      expect(sides.length, name).toBe(2);
-      const [first, second] = sides as [SideStatistics, SideStatistics];
-      expect(first.totals.dealtApplied, name).toBe(second.totals.taken);
-      expect(second.totals.dealtApplied, name).toBe(first.totals.taken);
-    }
-  });
-
-  /**
-   * Without a roster there are no sides, and that has to be visible rather than
-   * silent: a fight joined in progress still shows its rows, and the panel needs
-   * to know it cannot group them.
-   */
-  test("no roster means no sides, and every combatant said to be unplaced", () => {
-    const statistics = composeFightStatistics([{ ...ATTACK_ON_NOBODY, actorId: 7, targetId: 8 }]);
-
-    expect(statistics.bySide.size).toBe(0);
-    expect([...statistics.combatantIdsWithoutSide].sort()).toEqual([7, 8]);
-    expect(statistics.byCombatantId.size).toBe(2);
-  });
-
-  // A roster that knows one combatant and not the other must not quietly file
-  // the stranger anywhere.
-  test("a combatant the roster never heard of is placed on no side", () => {
-    const roster = composeCombatantRoster([{ id: 7, name: "known", side: 1, profession: null, level: null, maximumHealth: null }]);
-    const statistics = composeFightStatistics(
-      [{ ...ATTACK_ON_NOBODY, actorId: 7, targetId: 8 }],
-      roster,
-    );
-
-    expect([...statistics.bySide.keys()]).toEqual([1]);
-    expect(statistics.bySide.get(1)?.combatantIds).toEqual([7]);
-    expect(statistics.combatantIdsWithoutSide).toEqual([8]);
-  });
+Deno.test("a blow lands on both of its ends, and raw stays apart from applied", () => {
+    const statistics = composeFightStatistics(decodeFightMessages([ABSORBED], null), new Map());
+    const dealer = statistics.byCombatantId.get(467968);
+    assertEquals(dealer?.damageDealtRaw, 1557, "what the attacker put out");
+    assertEquals(dealer?.damageDealtApplied, 1012, "and what of it landed");
+    assertEquals(dealer?.damageTakenApplied, 0, "the attacker took nothing here");
+    const target = statistics.byCombatantId.get(-10000249);
+    assertEquals(target?.damageTakenApplied, 1012, "the target lost what landed");
+    assertEquals(target?.damagePrevented, 545, "and a defence stopped this much of it");
+    assertEquals(statistics.unreadMessages, 0, "nothing about this blow went unread");
 });
 
 /**
- * Who is in the fight, which is a different question from who was measured.
- *
- * `byCombatantId` is keyed on the protocol — a row appears when somebody is
- * named — and that stays exactly as it is, because it is a record of what was
- * measured. The panel needs the other list, and the difference between the two
- * is the whole of what a reader mid-fight was missing: a combatant who has not
- * acted yet was not on screen at all, and a missing row reads as "there is no
- * such person".
+ * `2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`: damage stated against a
+ * name, on the
+ * announcement that dealt it. The name is resolved through a roster, so the sample carries one.
  */
-describe("everyone in the fight", () => {
-  const ROSTER = composeCombatantRoster([
-    { id: 4, name: "later", side: 1, profession: "w", level: 100, maximumHealth: null },
-    { id: 7, name: "known", side: 1, profession: "m", level: 100, maximumHealth: null },
-  ]);
-
-  test("holds somebody the protocol has not named yet", () => {
-    const statistics = composeFightStatistics([{ ...ATTACK_ON_NOBODY, actorId: 7, targetId: 7 }], ROSTER);
-
-    expect(statistics.byCombatantId.has(4)).toBe(false);
-    expect(getCombatantIdsInFight(statistics, ROSTER)).toEqual([4, 7]);
-  });
-
-  /**
-   * The roster's own order, which is the order the game first listed each
-   * warrior (`src/game/engine-roster.ts`). It is the panel's tie-break, so a
-   * list where every figure is still zero reads the way the client showed it —
-   * and `later` is written first here precisely so an id-sorted answer fails.
-   */
-  test("is in the order the game listed them, not in id order", () => {
-    const statistics = composeFightStatistics([], ROSTER);
-
-    expect(getCombatantIdsInFight(statistics, ROSTER)).toEqual([4, 7]);
-  });
-
-  /**
-   * ⚠️ **The roster is not the whole answer, and this is why it is a union.** A
-   * fight joined in progress states figures against ids no roster fragment has
-   * arrived for; keying the list on the roster alone would drop them, which is
-   * the bug `getRankedIds` avoided by keying on the aggregate in the first
-   * place. They come last, because the roster is what has an order.
-   */
-  test("keeps somebody the roster cannot place, after the ones it can", () => {
-    const statistics = composeFightStatistics([{ ...ATTACK_ON_NOBODY, actorId: 8, targetId: 7 }], ROSTER);
-
-    expect(getCombatantIdsInFight(statistics, ROSTER)).toEqual([4, 7, 8]);
-  });
-
-  test("names nobody twice", () => {
-    const statistics = composeFightStatistics([{ ...ATTACK_ON_NOBODY, actorId: 7, targetId: 4 }], ROSTER);
-    const ids = getCombatantIdsInFight(statistics, ROSTER);
-
-    expect(ids).toEqual([...new Set(ids)]);
-  });
-
-  // No roster at all is a real state — a fight joined before the game described
-  // it — and the answer is then everyone the protocol named, which is what the
-  // panel drew before any of this.
-  test("without a roster is everyone the protocol named", () => {
-    const statistics = composeFightStatistics([{ ...ATTACK_ON_NOBODY, actorId: 7, targetId: 8 }]);
-
-    expect(getCombatantIdsInFight(statistics, null)).toEqual([7, 8]);
-  });
-
-  test("is nobody where nothing has happened and nobody is rostered", () => {
-    expect(getCombatantIdsInFight(composeFightStatistics([]), null)).toEqual([]);
-  });
-});
+const NAMED_DAMAGE =
+    "195782=96.83;114881=80.61;tspell=Zdruzgotanie;skillId=39;+oth_dmg=1529,a,Gracz 1(80.61%);" +
+    "combo-max=3";
 
 /**
- * The row a combatant nobody has named yet is read through.
- *
- * Every field is a zero or an empty map, and that is a measurement rather than
- * an absence (§9.6): the fight has stated nothing about them. It lives here
- * because the aggregate owns the shape — three consumers wanted one and the
- * fields grow one at a time (§4).
+ * A figure stated against a name is damage its announcement dealt, and the skill row is the only
+ * place it can be read: it is not a swing, so no count of blows accounts for it, and a section
+ * that skipped it would close the whole of it into the row for a blow nothing announced.
  */
-describe("a row of zeros", () => {
-  test("measures nothing in every figure the panel reads", () => {
-    const empty = composeEmptyCombatantStatistics();
-
-    expect(empty.dealtApplied).toBe(0);
-    expect(empty.dealtRaw).toBe(0);
-    expect(empty.taken).toBe(0);
-    expect(empty.healed).toBe(0);
-    expect(empty.healingGiven).toBe(0);
-    expect(empty.healthLost).toBe(0);
-    expect(empty.blowsStruck).toBe(0);
-    expect(empty.skills.size).toBe(0);
-    expect(empty.dealtAppliedByElement.size).toBe(0);
-  });
-
-  /**
-   * A fresh one each time, and it is not a detail. A shared literal hands every
-   * uncounted combatant the same maps, so anything that wrote to one would be
-   * writing to all of them at once — a figure appearing on a row nobody
-   * measured is the failure this project exists to prevent, arriving by
-   * aliasing.
-   */
-  test("is a fresh row rather than one shared object", () => {
-    expect(composeEmptyCombatantStatistics()).not.toBe(composeEmptyCombatantStatistics());
-    expect(composeEmptyCombatantStatistics().skills).not.toBe(
-      composeEmptyCombatantStatistics().skills,
-    );
-  });
-});
-
-/**
- * Healing reads in two directions, and only one of them was ever kept.
- *
- * The panel is forbidden to derive the other for itself (§9.1), so the aggregate
- * holds both — and holding two views of one quantity is exactly the arrangement
- * that drifts. These three claims are what stop it: the two maps are one reading
- * transposed, the fight balances, and a side total counts its own members.
- */
-describe.each(FROM_CAPTURES)("$name healing in both directions", ({ statistics }) => {
-  test("what a healer gave is what the healed say they got", () => {
-    const givenPerPair = new Map<string, number>();
-    const receivedPerPair = new Map<string, number>();
-    for (const [id, row] of statistics.byCombatantId) {
-      for (const [to, amount] of row.healingGivenByCombatantId) {
-        givenPerPair.set(`${composeIntegerText(id)}->${composeIntegerText(to)}`, amount);
-      }
-      for (const [from, amount] of row.healedByHealerId) {
-        receivedPerPair.set(`${composeIntegerText(from)}->${composeIntegerText(id)}`, amount);
-      }
-    }
-
-    expect([...givenPerPair].sort()).toEqual([...receivedPerPair].sort());
-  });
-
-  /**
-   * ⚠️ **An equality on this material and an inequality in general.** The map is
-   * keyed by the recipient, so a heal whose recipient did not resolve is in the
-   * total and in no entry — every name in the captures resolves, which is why it
-   * is an equality here. The fight built by hand below is where the two part.
-   */
-  test("a healer's total is the sum of what they gave each person", () => {
-    for (const [id, row] of statistics.byCombatantId) {
-      const perPerson = [...row.healingGivenByCombatantId.values()].reduce((sum, one) => sum + one, 0);
-      expect(row.healingGiven, composeIntegerText(id)).toBe(perPerson);
-    }
-  });
-
-  /**
-   * The balance the whole screen rests on: healing given, plus the healing
-   * nobody announced, is every point anybody received. Without the second term
-   * the two directions would look like a discrepancy rather than like a limit,
-   * and on this material most of the healing has no author at all.
-   */
-  test("given plus the healing nobody announced is all the healing received", () => {
-    let given = 0;
-    let received = 0;
-    let withoutHealer = 0;
-    for (const row of [...statistics.byCombatantId.values(), statistics.unattributed]) {
-      given += row.healingGiven;
-      received += row.healed;
-      const named = [...row.healedByHealerId.values()].reduce((sum, one) => sum + one, 0);
-      withoutHealer += row.healed - named;
-    }
-
-    expect(given + withoutHealer).toBe(received);
-  });
-
-  // No test here that a side's total counts it: dropping it from `setTotalsFrom`
-  // already lights "a side's totals are its members' totals, figure by figure",
-  // which is generic over every plain number a row holds. A second test for one
-  // claim is a test that has to be kept in step with the first.
-});
-
-/**
- * Healing split by whether an **announcement** covered it — the second of the two
- * splits this aggregate keeps, and the one the panel's skills section rests on.
- *
- * ⚠️ **Not the same split as the one below, and the difference is a whole screen.**
- * That one asks whether anybody was *credited*; this one asks whether anything was
- * *announced*, and since `docs/specs/the-ends-a-figure-names.md`
- * the three keys the help calls the healed combatant's own have a healer without
- * having an announcement. So the first split is empty on every recording while this
- * one holds 97 470 of the 346 284 points restored on
- * `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`.
- *
- * No arithmetic over the other maps recovers it: `healedByHealerId` drops the key,
- * `healedBySource` drops the announcement, and a `SkillStatistics` carries no key at
- * all. That is why these are fields and this describe is what holds them honest.
- */
-describe("healing an announcement covered and healing it did not", () => {
-  /**
-   * The two maps are one reading transposed, held apart only so that neither
-   * direction has to be derived across every other row (§9.1). Written twice, they
-   * drift — so this is the same claim "what a healer gave is what the healed say
-   * they got" makes, with the key on it.
-   */
-  test.each(FROM_CAPTURES)("$name reads the same from either end", ({ statistics }) => {
-    const given = new Map<string, number>();
-    const received = new Map<string, number>();
-    for (const [id, row] of statistics.byCombatantId) {
-      for (const [to, bySource] of row.healingGivenWithoutSkillByCombatantId) {
-        for (const [source, amount] of bySource) {
-          given.set(`${composeIntegerText(id)}->${composeIntegerText(to)} ${source}`, amount);
-        }
-      }
-      for (const [from, bySource] of row.healedWithoutSkillByHealerId) {
-        for (const [source, amount] of bySource) {
-          received.set(`${composeIntegerText(from)}->${composeIntegerText(id)} ${source}`, amount);
-        }
-      }
-    }
-
-    expect([...given].sort()).toEqual([...received].sort());
-    // Without this the equality above would pass by comparing two empty maps the
-    // day nothing was filed in either.
-    expect(given.size).toBeGreaterThan(0);
-  });
-
-  /**
-   * A narrowing is a narrowing: no key may hold more points than the map it is a
-   * part of, in either direction. An inequality rather than an equality because the
-   * rest of each figure is what an announcement did cover, and that is counted on
-   * the skill rather than here.
-   */
-  test.each(FROM_CAPTURES)("$name never exceeds the healing it is part of", ({ statistics }) => {
-    for (const [id, row] of statistics.byCombatantId) {
-      const where = composeIntegerText(id);
-      for (const [source, amount] of getTotalsByInnerKey(row.healedWithoutSkillByHealerId)) {
-        expect(amount, `${where} ${source}`).toBeLessThanOrEqual(row.healedBySource.get(source) ?? 0);
-      }
-      for (const [to, bySource] of row.healingGivenWithoutSkillByCombatantId) {
-        const pair = `${where}->${composeIntegerText(to)}`;
-        expect(getTotalOfValues(bySource), pair).toBeLessThanOrEqual(
-          row.healingGivenByCombatantId.get(to) ?? 0,
-        );
-      }
-    }
-  });
-
-  /**
-   * The two heals differ in one field and land in opposite halves — which is the
-   * whole of what the maps are for, on material where nothing else varies.
-   *
-   * `heal` on both, because a key that changed as well would let the split pass by
-   * reading the source and never looking at the announcement (§7.5: a mutation that
-   * lights nothing is a finding, and so is a test that cannot tell two things
-   * apart).
-   */
-  test("files a heal by its key exactly where no announcement covered it", () => {
-    const statistics = composeFightStatistics([
-      {
-        kind: "health-change",
-        combatantId: 4,
-        amount: 50,
-        healthPercent: null,
-        source: "heal",
-        announced: null,
-        declared: [],
-      },
-      {
-        kind: "health-change",
-        combatantId: 4,
-        amount: 30,
-        healthPercent: null,
-        source: "heal",
-        announced: { actorId: 9, skillName: "coś", skillId: null },
-        declared: [],
-      },
-    ]);
-
-    const healed = assertDefined(statistics.byCombatantId.get(4), "the healed combatant has a row");
-    expect(healed.healed).toBe(80);
-    // The unannounced half is the self-sourced one, so both ends of it are 4.
-    expect([...assertDefined(healed.healedWithoutSkillByHealerId.get(4), "self-healed")]).toEqual([
-      ["heal", 50],
-    ]);
-    expect([...assertDefined(healed.healingGivenWithoutSkillByCombatantId.get(4), "self-gave")]).toEqual([
-      ["heal", 50],
-    ]);
-    // The announced half is on the announcer and in neither map.
-    const announcer = assertDefined(statistics.byCombatantId.get(9), "the announcer has a row");
-    expect(announcer.healingGiven).toBe(30);
-    expect([...announcer.healingGivenWithoutSkillByCombatantId]).toEqual([]);
-    expect(healed.healedWithoutSkillByHealerId.get(9)).toBeUndefined();
-  });
-
-  /**
-   * ⚠️ **An announcement with no actor is not an announcement**, and the aggregate
-   * has one condition deciding that for both halves (`hasAnnouncer`). Two spellings
-   * of it would put this heal on a skill and out of the maps at the same time, or in
-   * neither, and the panel's section would silently stop adding up.
-   */
-  test("treats an announcement whose actor did not resolve as no announcement", () => {
-    const statistics = composeFightStatistics([
-      {
-        kind: "health-change",
-        combatantId: 4,
-        amount: 50,
-        healthPercent: null,
-        source: "heal",
-        announced: { actorId: null, skillName: "coś", skillId: null },
-        declared: [],
-      },
-    ]);
-
-    const healed = assertDefined(statistics.byCombatantId.get(4), "the healed combatant has a row");
-    expect([...assertDefined(healed.healedWithoutSkillByHealerId.get(4), "self-healed")]).toEqual([
-      ["heal", 50],
-    ]);
-    expect(healed.skills.size).toBe(0);
-  });
-});
-
-/**
- * Healing split by whether anybody was credited with it — one reading transposed,
- * held the way `healingGiven` is.
- *
- * The panel's `Bez sprawcy` row stands for the healing nobody gave, and a reader
- * asking *what it was made of* cannot be answered from `healedBySource`: that map
- * holds every point restored, the credited ones included. Measured on
- * `tests/captured-fights/2026-08-12-tempest-grupa-vs-hildur-2.json`, the two differ
- * by more than a tenth, so there is no arithmetic recovering the split afterwards
- * and the aggregate has to write it.
- *
- * What holds the two together is that they **partition** `healed` — the same
- * property `getHealingWithoutHealer` has been deriving in the panel all along, now
- * with a source beside each point instead of one number.
- */
-describe("healing with a healer and healing without one", () => {
-  test.each(FROM_CAPTURES)("$name splits every point restored between the two", ({ statistics }) => {
-    for (const row of getEveryRow(statistics)) {
-      const credited = [...row.healedByHealerId.values()].reduce((sum, one) => sum + one, 0);
-      const uncredited = [...row.healedWithoutHealerBySource.values()].reduce(
-        (sum, one) => sum + one,
-        0,
-      );
-      expect(credited + uncredited).toBe(row.healed);
-    }
-  });
-
-  /**
-   * ⚠️ **A healer named over a recipient nobody could place, which the captures
-   * cannot reach and the aggregate used to get wrong.**
-   *
-   * The credit demanded both ends, so an announced heal landing on a name this
-   * fight has nobody for was filed under `healedWithoutHealerBySource` — healing
-   * *nobody gave*. The announcement had named the giver, so the panel then said
-   * "nic nie zapowiedziało tego leczenia" about points something had announced,
-   * and the giver's own total was short by them with nothing saying so. That is a
-   * claim about the game that is false (§3), not merely a figure left out
-   * (`docs/specs/the-ends-a-figure-names.md`).
-   *
-   * Every name in every capture resolves, so nothing here is measurable
-   * over them: the shape is the live one, where a fight is joined on a name the
-   * roster cannot tell apart.
-   */
-  test("credits a healer the announcement named, even where the healed did not resolve", () => {
+Deno.test("damage stated against a name is charged to the skill that announced it", () => {
     const roster = composeCombatantRoster([
-      { id: 1, name: "mag", side: 1, profession: "m", level: 105, maximumHealth: null },
+        { id: 195782, name: "Gracz 2", side: 1, profession: "t", level: 100, healthMaximum: 5000 },
+        { id: 114881, name: "Gracz 1", side: 2, profession: "w", level: 100, healthMaximum: 5000 },
     ]);
+    const events = decodeFightMessages([NAMED_DAMAGE], roster);
+    const statistics = composeFightStatistics(events, new Map());
+    const dealer = statistics.byCombatantId.get(195782);
+    assertEquals(dealer?.damageDealtApplied, 1529, "the figure reaches whoever announced it");
+    const skill = dealer?.skills.get("Zdruzgotanie");
+    assertEquals(skill?.dealt, 1529, "and the skill row holds the whole of it");
+    assertEquals(skill?.dealtByOpponent.get("114881"), 1529, "cut by the name it was stated of");
+    assertEquals(dealer?.blowsStruck, 0, "no blow was struck: this rides one aimed elsewhere");
+    assertEquals(dealer?.blowsWithoutSkill, 0, "so no blow is counted as standing behind nothing");
+    assertEquals(skill?.blows, 0, "and the skill's own count of swings holds none either");
+});
+
+/** An announcement of the game's own that nothing of the damage family follows. */
+const AURA =
+    "466476=94.30;466476=94.30;tspell=Aura ochrony;skillId=76;aura-ac_per=20;aura-resall=15";
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the announcement `ABSORBED` swings
+ * under.
+ */
+const ANNOUNCED = "467968=100.00;-10000249=100.00;tspell=Zatruta strzała;skillId=232";
+/**
+ * `2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`: the same shape with a
+ * block in front of it,
+ * so the swing went out and landed nothing.
+ */
+const BLOCKED = [
+    "114881=95.35;195782=96.83;tspell=Błyskawiczny cios;skillId=209",
+    "114881=95.35;195782=96.83;+dmg=1259;+dmgo=839;+acdmg=17;-blok=378;-dmg=0",
+];
+
+/**
+ * The two counts a skill row keeps apart, and the panel reads the second: an announcement that
+ * never swung is not a thing damage was dealt with, whatever it declared.
+ */
+Deno.test("an announcement counts a use, and a swing only where one went out", () => {
+    const alone = composeFightStatistics(decodeFightMessages([AURA], null), new Map());
+    const aura = alone.byCombatantId.get(466476)?.skills.get("Aura ochrony");
+    assertEquals(aura?.uses, 1, "the announcement was made once");
+    assertEquals(aura?.blows, 0, "and nothing was struck under it");
+    assertEquals(aura?.dealt, 0, "so it dealt nothing, which is a reading and not a gap");
+    const struck = composeFightStatistics(
+        decodeFightMessages([ANNOUNCED, ABSORBED], null),
+        new Map(),
+    );
+    const arrow = struck.byCombatantId.get(467968)?.skills.get("Zatruta strzała");
+    assertEquals(arrow?.uses, 1, "the same one announcement");
+    assertEquals(arrow?.blows, 1, "with one swing behind it");
+    assertEquals(arrow?.dealt, 1012, "landing what that blow landed");
+});
+
+Deno.test("a swing that landed nothing is still a swing under its announcement", () => {
+    const statistics = composeFightStatistics(decodeFightMessages(BLOCKED, null), new Map());
+    const skill = statistics.byCombatantId.get(114881)?.skills.get("Błyskawiczny cios");
+    assertEquals(skill?.dealt, 0, "a block stopped the whole of it");
+    assertEquals(skill?.blows, 1, "and the swing that was stopped still went out");
+});
+
+Deno.test("health moving without an attacker is taken by somebody and dealt by nobody", () => {
+    const statistics = composeFightStatistics(decodeFightMessages([POISON], null), new Map());
+    const bitten = statistics.byCombatantId.get(-255967);
+    assertEquals(bitten?.damageTakenApplied, 140, "the tick is health this combatant lost");
+    assertEquals(statistics.dealtByNobody, 140, "and the log ties it to no attacker at all");
+    assertEquals(bitten?.healthRestored, 0, "which is not healing, and zero is a reading");
+});
+
+Deno.test("health restored is not damage, and its own key says who gave it", () => {
+    const statistics = composeFightStatistics(decodeFightMessages([HEAL], null), new Map());
+    const healed = statistics.byCombatantId.get(482845);
+    assertEquals(healed?.healthRestored, 99, "the health the protocol says came back");
+    assertEquals(healed?.damageTakenApplied, 0, "no total of damage moved");
+    assertEquals(statistics.dealtByNobody, 0, "and no attacker was invented to balance it");
+    // `heal` carries `_Cause:_ the subject's own` in `docs/protocol-keys.md`, so the giver is the
+    // one healed — on the published help's word, and not because the grammar names one end.
+    assertEquals(healed?.healthGiven, 99, "the same combatant is credited with giving it");
+    assertEquals(statistics.givenByNobody, 0, "so none of it is left charged to nobody");
+});
+
+/**
+ * A key the help does not call the subject's own is charged to nobody unless something announced
+ * it. `bandage` is the shape: both ends are one person and the help still says the cause is the
+ * message actor rather than the subject, so it never joins the self-sourced list on the grammar.
+ */
+Deno.test("a restoring key nothing announced and no help claims is charged to nobody", () => {
+    const bandaged = "482845=100.00;0;bandage=40";
+    const statistics = composeFightStatistics(decodeFightMessages([bandaged], null), new Map());
+    const healed = statistics.byCombatantId.get(482845);
+    assertEquals(healed?.healthRestored, 40, "the health still came back");
+    assertEquals(healed?.healthGiven, 0, "and this combatant is credited with none of it");
+    assertEquals(statistics.givenByNobody, 40, "the whole of it stands apart, charged to nobody");
+});
+
+/**
+ * The same key with the announcement it was stated on, which is where the giver comes from
+ * (`docs/protocol-keys.md`, `_Cause:_ the announcement's actor`). The healer is not the healed
+ * here, so a reading that took the message's own slots would credit the wrong person.
+ */
+Deno.test("a restoring key credits whoever announced it, and names the skill on their row", () => {
+    const announced = "469657=95.78;445202=100.00;tspell=Leczenie ran;skillId=78;heal_target=11733";
+    const statistics = composeFightStatistics(decodeFightMessages([announced], null), new Map());
+    assertEquals(statistics.givenByNobody, 0, "nothing is left charged to nobody");
+    const healer = statistics.byCombatantId.get(469657);
+    assertEquals(healer?.healthGiven, 11733, "the announcer is credited with giving it");
+    assertEquals(healer?.healthRestored, 0, "and with receiving none of it");
+    assertEquals(healer?.skills.get("Leczenie ran")?.restored, 11733, "under the skill's own name");
+    const healed = statistics.byCombatantId.get(445202);
+    assertEquals(healed?.healthRestored, 11733, "the health reached the target slot");
+    assertEquals(healed?.healthGiven, 0, "which gave none of it");
+});
+
+/**
+ * What an opened pair adds up: an announcement's own row, or the key, and never both.
+ *
+ * The key stands on the giver's row here and nowhere else on it, because the pair names whoever
+ * received the health — which is whose cause the key is. A flat cut of a giver by key would word
+ * their row with somebody else's.
+ */
+Deno.test("health between two is charged to the skill that announced it, or to the key", () => {
+    const announced = "469657=95.78;445202=100.00;tspell=Leczenie ran;skillId=78;heal_target=11733";
     const statistics = composeFightStatistics(
-      decodeFight(
-        [
-          "1=90.00;0;tspell=Uzdrowienie;skillId=7",
-          // The heal rides the announcement, and its subject is the target slot,
-          // which the protocol wrote as nobody.
-          "1=90.00;0;heal_target=300",
-        ],
-        roster,
-      ),
-      roster,
+        decodeFightMessages([announced, HEAL], null),
+        new Map(),
     );
-
-    const giver = assertDefined(statistics.byCombatantId.get(1), "the healer has a row");
-    expect(giver.healingGiven).toBe(300);
-    // Keyed by the recipient, and there is none to key it by.
-    expect([...giver.healingGivenByCombatantId]).toEqual([]);
-
-    // The points landed on the row nobody owns, with the healer named on them.
-    expect(statistics.unattributed.healed).toBe(300);
-    expect([...statistics.unattributed.healedByHealerId]).toEqual([[1, 300]]);
-    expect([...statistics.unattributed.healedWithoutHealerBySource]).toEqual([]);
-  });
-
-  /**
-   * And it is a partition of something, not of nothing: a fight where every point
-   * happened to be uncredited would let a map that simply copied `healedBySource`
-   * pass the sweep above.
-   *
-   * ⚠️ **The captures used to carry both kinds and now carry only one.** Every
-   * point of healing in every recording reaches a healer since the three keys the
-   * help calls the healed combatant's own started saying so
-   * (`docs/specs/the-ends-a-figure-names.md`). So the second
-   * half of the partition is held by the hand-built fights above — a heal whose
-   * announcer this fight cannot place — and this test states the corpus reading
-   * that replaced it rather than being deleted for having gone quiet. A capture
-   * that ever carries uncredited healing again is a key nobody has read.
-   */
-  test("every point of healing in the captures reaches a healer", () => {
-    const credited = FROM_CAPTURES.flatMap(({ statistics }) => getEveryRow(statistics)).reduce(
-      (sum, row) => sum + [...row.healedByHealerId.values()].reduce((one, other) => one + other, 0),
-      0,
+    const healer = statistics.byCombatantId.get(469657);
+    assertEquals(healer?.healthGivenByReceiver.get("445202"), 11733, "the pair holds the figure");
+    assertEquals(
+        healer?.skills.get("Leczenie ran")?.restoredByOpponent.get("445202"),
+        11733,
+        "and the announcement's own row holds the whole of it",
     );
-    const uncredited = FROM_CAPTURES.flatMap(({ statistics }) => getEveryRow(statistics)).reduce(
-      (sum, row) =>
-        sum + [...row.healedWithoutHealerBySource.values()].reduce((one, other) => one + other, 0),
-      0,
+    assertEquals(
+        healer?.healthGivenWithoutSkillByReceiverAndSource.get("445202"),
+        undefined,
+        "so no key stands beside it, which would state the figure twice",
     );
-    const received = FROM_CAPTURES.flatMap(({ statistics }) => getEveryRow(statistics)).reduce(
-      (sum, row) => sum + row.healed,
-      0,
+    // The other branch, on a key the help calls the subject's own: nothing announced it, so the
+    // pair of them with themselves is where it stands.
+    const alone = statistics.byCombatantId.get(482845);
+    assertEquals(alone?.healthGivenByReceiver.get("482845"), 99, "a self-sourced pair is a pair");
+    assertEquals(
+        [...alone?.healthGivenWithoutSkillByReceiverAndSource.get("482845") ?? []],
+        [["heal", 99]],
+        "and the key the protocol wrote it under is what the pair holds",
     );
-
-    expect(credited).toBeGreaterThan(0);
-    expect(uncredited).toBe(0);
-    // The two halves partition `healed`, so with one of them empty the other is
-    // the whole of it — which is the same claim read a second way.
-    expect(credited).toBe(received);
-  });
-
-  /**
-   * The key stays with the points, which is the whole reason the map is keyed at
-   * all: a heal an announcement claimed and one that arrived on its own can share
-   * a source, and only the second is the pinned row's.
-   */
-  test("keeps the key the game stated, on the points nobody was credited with", () => {
-    // ⚠️ **`heal_target` and not `heal`, and the swap is the point.** `heal` is on
-    // `SELF_SOURCED_HEALING_KEYS`, so an unannounced one has a healer now and
-    // there would be no uncredited half left to key. This test is about a source
-    // the help says nothing about, which is the only kind that can still arrive
-    // with nobody on the giving end.
-    const statistics = composeFightStatistics([
-      {
-        kind: "health-change",
-        combatantId: 4,
-        amount: 50,
-        healthPercent: null,
-        source: "heal_target",
-        announced: null,
-        declared: [],
-      },
-      {
-        kind: "health-change",
-        combatantId: 4,
-        amount: 30,
-        healthPercent: null,
-        source: "heal_target",
-        announced: { actorId: 9, skillName: "coś", skillId: null },
-        declared: [],
-      },
-    ]);
-
-    const row = assertDefined(statistics.byCombatantId.get(4), "the healed combatant has a row");
-    expect(row.healed).toBe(80);
-    expect(row.healedBySource.get("heal_target")).toBe(80);
-    expect(row.healedWithoutHealerBySource.get("heal_target")).toBe(50);
-    expect(row.healedByHealerId.get(9)).toBe(30);
-  });
-
-  /**
-   * Healing stated against a **name** is the holder's own legendary bonus, so the
-   * combatant the value names is both ends of it — never the message's actor, who
-   * is whoever struck the blow that triggered it (§9.6).
-   */
-  test("counts healing stated against a name as the named combatant's own", () => {
-    const statistics = composeFightStatistics([
-      {
-        kind: "healing-to-named-combatant",
-        targetName: "ktoś",
-        targetId: 2,
-        targetHealthPercent: null,
-        amount: 70,
-        source: "legbon_lastheal",
-      },
-    ]);
-
-    const row = assertDefined(statistics.byCombatantId.get(2), "the healed combatant has a row");
-    expect(row.healedBySource.get("legbon_lastheal")).toBe(70);
-    expect([...row.healedWithoutHealerBySource]).toEqual([]);
-    expect(row.healedByHealerId.get(2)).toBe(70);
-    expect(row.healingGiven).toBe(70);
-    expect(row.healingGivenByCombatantId.get(2)).toBe(70);
-    // One row, and only one: nobody else is credited with a point of it.
-    expect(statistics.byCombatantId.size).toBe(1);
-  });
-
-  /**
-   * The three keys the published help calls the healed combatant's **own** effect,
-   * and what the aggregate does with them (§9.6,
-   * `docs/specs/the-ends-a-figure-names.md`).
-   *
-   * One combatant on both ends, which is the shape a self-cast `heal_target` and a
-   * team heal's caster share have always had here — so this is three keys joining
-   * a reading rather than a new one being invented for them.
-   */
-  test.each([...SELF_SOURCED_HEALING_KEYS])("credits %s to the combatant it healed", (source) => {
-    const statistics = composeFightStatistics([
-      {
-        kind: "health-change",
-        combatantId: 7,
-        amount: 120,
-        healthPercent: null,
-        source,
-        announced: null,
-        declared: [],
-      },
-    ]);
-
-    const row = assertDefined(statistics.byCombatantId.get(7), "the healed combatant has a row");
-    expect(row.healed).toBe(120);
-    expect(row.healingGiven).toBe(120);
-    expect(row.healedByHealerId.get(7)).toBe(120);
-    expect(row.healingGivenByCombatantId.get(7)).toBe(120);
-    // Nothing is left for the panel's pinned row to draw.
-    expect([...row.healedWithoutHealerBySource]).toEqual([]);
-    expect(statistics.byCombatantId.size).toBe(1);
-  });
-
-  /**
-   * ⚠️ **An announcement still wins.** A giver the protocol actually stated beats
-   * one derived from the help, so a self-sourced key arriving under an
-   * announcement is credited to whoever announced it and not to the combatant it
-   * reached. No capture carries the shape — every `heal` in all of them is
-   * unannounced — so it is a hand-built fight, and it is what keeps the fill from
-   * quietly overwriting a reading the game made itself.
-   */
-  test("prefers an announcer over the key, where a self-sourced heal has one", () => {
-    const statistics = composeFightStatistics([
-      {
-        kind: "health-change",
-        combatantId: 7,
-        amount: 120,
-        healthPercent: null,
-        source: "heal",
-        announced: { actorId: 3, skillName: "coś", skillId: null },
-        declared: [],
-      },
-    ]);
-
-    const healed = assertDefined(statistics.byCombatantId.get(7), "the healed combatant has a row");
-    const healer = assertDefined(statistics.byCombatantId.get(3), "the announcer has a row");
-    expect(healed.healed).toBe(120);
-    expect(healed.healingGiven).toBe(0);
-    expect(healed.healedByHealerId.get(3)).toBe(120);
-    expect(healer.healingGiven).toBe(120);
-  });
-
-  /**
-   * ⚠️ **Only the restoring direction.** `heal` states a loss as readily as a
-   * gain, and nothing documents a self-damage reading — so a negative one is
-   * health lost with nobody charged for it, exactly as before.
-   */
-  test("charges nobody for a self-sourced key stating a loss", () => {
-    const statistics = composeFightStatistics([
-      {
-        kind: "health-change",
-        combatantId: 7,
-        amount: -120,
-        healthPercent: null,
-        source: "heal",
-        announced: null,
-        declared: [],
-      },
-    ]);
-
-    const row = assertDefined(statistics.byCombatantId.get(7), "the combatant has a row");
-    expect(row.healthLost).toBe(120);
-    expect(row.healthLostBySource.get("heal")).toBe(120);
-    expect(row.healed).toBe(0);
-    expect(row.healingGiven).toBe(0);
-    expect(row.dealtApplied).toBe(0);
-  });
-
-  /**
-   * A key the help says nothing about keeps its hole. `poison` and `fire` arrive
-   * in the very shape `heal` does — the subject in the actor slot, the target a
-   * literal `0` — and stay on the panel's pinned row, which is what makes the
-   * asymmetry a reading of the documentation rather than of the message.
-   */
-  test("leaves a key the help does not name without a healer", () => {
-    const statistics = composeFightStatistics([
-      {
-        kind: "health-change",
-        combatantId: 7,
-        amount: 120,
-        healthPercent: null,
-        source: "heal_target",
-        announced: null,
-        declared: [],
-      },
-    ]);
-
-    const row = assertDefined(statistics.byCombatantId.get(7), "the healed combatant has a row");
-    expect(row.healed).toBe(120);
-    expect(row.healingGiven).toBe(0);
-    expect(row.healedWithoutHealerBySource.get("heal_target")).toBe(120);
-    expect(row.healedByHealerId.size).toBe(0);
-  });
-
-  /**
-   * And a name this fight cannot place still reaches nobody. The fill names a
-   * combatant the message already named; where it named none there is nothing to
-   * fill with, which is the limit of §9.6's clause rather than a gap in it.
-   */
-  test("counts healing stated against a name nobody matches as nobody's", () => {
-    const statistics = composeFightStatistics([
-      {
-        kind: "healing-to-named-combatant",
-        targetName: "ktoś",
-        targetId: null,
-        targetHealthPercent: null,
-        amount: 70,
-        source: "legbon_lastheal",
-      },
-    ]);
-
-    expect(statistics.byCombatantId.size).toBe(0);
-    expect(statistics.unattributed.healed).toBe(70);
-    expect(statistics.unattributed.healedWithoutHealerBySource.get("legbon_lastheal")).toBe(70);
-    expect(statistics.unattributed.healingGiven).toBe(0);
-  });
+    assertEquals(alone?.skills.size, 0, "with no announcement to hold it instead");
 });
 
-describe("figures the log ties to nobody", () => {
-  test("a blow naming neither side lands on nobody, and is not dropped", () => {
-    const statistics = composeFightStatistics([ATTACK_ON_NOBODY]);
-
-    expect(statistics.byCombatantId.size).toBe(0);
-    expect(statistics.unattributed.dealtRaw).toBe(100);
-    expect(statistics.unattributed.dealtApplied).toBe(60);
-    expect(statistics.unattributed.taken).toBe(60);
-    expect(statistics.unattributed.prevented.get("absorb")).toBe(40);
-    expect(statistics.unattributed.destroyed.get("acdmg")).toBe(7);
-    expect(statistics.unattributed.procsOnBlowsStruck.get("crit")).toBe(1);
-  });
-
-  // Half-named is the commoner case and the more dangerous one: the figure that
-  // does have an owner must still reach them.
-  test("a blow naming only its striker splits between the row and the bucket", () => {
-    const statistics = composeFightStatistics([{ ...ATTACK_ON_NOBODY, actorId: 7 }]);
-
-    expect(statistics.byCombatantId.get(7)?.dealtApplied).toBe(60);
-    expect(statistics.byCombatantId.get(7)?.taken).toBe(0);
-    expect(statistics.unattributed.taken).toBe(60);
-    expect(statistics.unattributed.dealtApplied).toBe(0);
-  });
-
-  /**
-   * The ambiguous name `combatant-roster.ts` documents. The decoder hands the
-   * damage over with a null id, and it has to stay visible: two combatants
-   * answer to the name, so putting it on either row would be the invented number
-   * this project exists to prevent.
-   */
-  test("damage against a name nobody can resolve stays visible", () => {
-    const statistics = composeFightStatistics([
-      {
-        kind: "damage-to-named-combatant",
-        announced: null,
-        actorId: 7,
-        targetName: "a name two combatants answer to",
-        targetId: null,
-        targetHealthPercent: null,
-        damage: { damageType: "dmgc", amount: 250 },
-      },
+/** The one healing shape whose giver the protocol names outright, in the actor slot of the cast. */
+Deno.test("a cast credits its caster with everything it put back, member by member", () => {
+    const roster = composeCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: 2000 },
     ]);
-
-    expect(statistics.unattributed.taken).toBe(250);
-    expect(statistics.byCombatantId.get(7)?.dealtApplied).toBe(250);
-    // No raw figure exists for this key, so none may be invented for it.
-    expect(statistics.byCombatantId.get(7)?.dealtRaw).toBe(0);
-  });
-
-  test("health moving for nobody is kept rather than discarded", () => {
-    const statistics = composeFightStatistics([
-      { kind: "health-change", announced: null, combatantId: null, amount: -300, healthPercent: null, source: "poison", declared: [] },
-      { kind: "health-change", announced: null, combatantId: null, amount: 120, healthPercent: null, source: "heal", declared: [] },
-    ]);
-
-    expect(statistics.unattributed.healthLost).toBe(300);
-    expect(statistics.unattributed.healed).toBe(120);
-    expect(statistics.byCombatantId.size).toBe(0);
-  });
-
-  test("a skill nobody is named for is counted, not attributed", () => {
-    const statistics = composeFightStatistics([
-      {
-        kind: "skill-used",
-        actorId: null,
-        targetId: null,
-        actorHealthPercent: null,
-        targetHealthPercent: null,
-        skillName: "x",
-        skillId: null,
-        declared: [],
-      },
-    ]);
-
-    expect(statistics.unattributed.skillsUsed).toBe(1);
-    expect(statistics.byCombatantId.size).toBe(0);
-  });
+    const events = decodeFightMessages([
+        "1=100.00;0;step",
+        "2=100.00;0;step",
+        "1=50.00;0;poison=500",
+        "2=50.00;0;poison=1000",
+        "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
+    ], roster);
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    assertEquals(statistics.byCombatantId.get(1)?.healthGiven, 900, "the caster gave both shares");
+    assertEquals(statistics.byCombatantId.get(2)?.healthGiven, 0, "and the other member gave none");
+    assertEquals(statistics.givenByNobody, 0, "with nothing left charged to nobody");
+    const cast = statistics.byCombatantId.get(1)?.skills.get("Fala leczenia");
+    assertEquals(cast?.restored, 900, "the skill that announced it holds what it put back");
+    assertEquals(cast?.restoredByOpponent.get("2"), 600, "cut by whom each share reached");
+    assertEquals(
+        statistics.totals.healthGiven,
+        statistics.totals.healthRestored,
+        "and it balances",
+    );
 });
 
 /**
- * The figures a row carries besides its totals: how a combatant fought, who they
- * fought, and what moved their health when nobody swung.
+ * The share of restored health a giver can be read for, over the whole corpus. Figures rather
+ * than an inequality, because what this pins is the reading rule and not a direction: a rule that
+ * quietly stopped crediting the self-sourced keys would still satisfy "most of it".
  *
- * Every one of these is checked against the captures rather than against a
- * fixture, because the question each answers is about real material — a
- * hand-written blow can be made to satisfy any of them.
+ * The material answers for every point, which is a claim about the material and not a law — the
+ * test above keeps the shape of a key nothing announces, so the nought here is a reading and not
+ * a branch that has gone dead.
  */
-describe.each(FROM_CAPTURES)("$name", ({ statistics, events }) => {
-  const rows = [...statistics.byCombatantId.values()];
-
-  /**
-   * Counted from the events rather than restated: the aggregate walks the same
-   * list, so the only check worth having comes at it from the decoder end.
-   *
-   * The distinction is not academic — a blow in this material carries several
-   * damage figures, so counting figures instead of swings inflates the number
-   * for exactly the combatants who hit hardest.
-   */
-  test("a blow is counted once however many figures it carried", () => {
-    const swings = new Map<number, number>();
-    const largest = new Map<number, number>();
-    for (const event of events) {
-      if (event.kind !== "attack" || event.actorId === null) continue;
-      setRunningTotal(swings, event.actorId, 1);
-      const landed = event.taken.reduce((sum, one) => sum + one.amount, 0);
-      largest.set(event.actorId, Math.max(largest.get(event.actorId) ?? 0, landed));
+Deno.test("the corpus says who gave every point of health it put back", () => {
+    let restored = 0;
+    let given = 0;
+    let nobody = 0;
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        restored += statistics.totals.healthRestored;
+        given += statistics.totals.healthGiven;
+        nobody += statistics.givenByNobody;
     }
-
-    for (const [id, row] of statistics.byCombatantId) {
-      expect(row.blowsStruck, String(id)).toBe(swings.get(id) ?? 0);
-      expect(row.largestBlow, String(id)).toBe(largest.get(id) ?? 0);
-    }
-  });
-
-  /**
-   * The two ends of one blow. They are filled a line apart in the same case, so
-   * a drift between them would be invisible in the totals — which is exactly why
-   * it is worth a test of its own.
-   */
-  test("who hit whom reads the same from both ends", () => {
-    for (const [id, row] of statistics.byCombatantId) {
-      for (const [targetId, byElement] of row.dealtByTargetId) {
-        const mirrored = statistics.byCombatantId.get(targetId)?.takenByActorId.get(id);
-        expect(mirrored).toEqual(byElement);
-      }
-    }
-  });
-
-  test("what a combatant dealt to named targets never exceeds what they landed", () => {
-    for (const row of rows) {
-      const byTarget = [...row.dealtByTargetId.values()].reduce(
-        (sum, byElement) => sum + [...byElement.values()].reduce((inner, one) => inner + one, 0),
-        0,
-      );
-      expect(byTarget).toBeLessThanOrEqual(row.dealtApplied);
-    }
-  });
-
-  /**
-   * Health that moved without a blow is the panel's `Bez sprawcy`, and the panel
-   * shows what it was made of. The sum has to be the whole of it, or the
-   * breakdown would be quietly short of the figure it explains.
-   */
-  test("health moved outside a blow adds up to its own sources", () => {
-    for (const row of rows) {
-      const lost = [...row.healthLostBySource.values()].reduce((sum, one) => sum + one, 0);
-      const healed = [...row.healedBySource.values()].reduce((sum, one) => sum + one, 0);
-
-      expect(lost).toBe(row.healthLost);
-      expect(healed).toBe(row.healed);
-    }
-  });
+    assertEquals(restored, 3_755_729, "the health the recordings put back, 2026-08-30");
+    assertEquals(given, 3_755_729, "all of which has a giver the reading can name");
+    assertEquals(nobody, 0, "and none of it is left charged to nobody");
+    assertEquals(given + nobody, restored, "every point put back is counted once on each side");
 });
 
-/**
- * The counter test above is only worth running where a blow can carry several
- * figures — otherwise counting figures and counting swings agree and the test
- * proves nothing. The solo capture has no such blow, so the guard sits here,
- * over the whole material, rather than inside a per-fight loop it would fail.
- */
-test("the material contains a blow carrying more than one damage figure", () => {
-  const multiple = FROM_CAPTURES.flatMap(({ events }) =>
-    events.filter((event) => event.kind === "attack" && event.taken.length > 1),
-  );
-
-  expect(multiple.length).toBeGreaterThan(0);
+Deno.test("a fight nothing was read from states nothing rather than zeroes", () => {
+    const statistics = composeFightStatistics([], new Map());
+    assertEquals(statistics.byCombatantId.size, 0, "no combatant is invented");
+    assertEquals(statistics.unreadMessages, 0, "and nothing went unread either");
 });
 
-/**
- * The split is only worth counting where the material has both kinds, and one
- * capture has neither half: every blow in the duel is announced, all 41 of them.
- * So the "both kinds exist" half sits over the whole corpus, beside the
- * multiple-figures guard above and for the same reason, while the arithmetic
- * below stays per fight where it belongs.
- */
-test("the material contains a blow nobody announced", () => {
-  const plain = FROM_CAPTURES.flatMap(({ events }) =>
-    events.filter((event) => event.kind === "attack" && event.announced === null),
-  );
-
-  expect(plain.length).toBeGreaterThan(0);
-});
-
-/**
- * Blows nobody announced, which is most of what happens.
- *
- * Measured: 8 of 8 in the solo capture, and 21 of 31 for one hunter in the group
- * one. Without the count the panel can say what a skill did and cannot say that
- * somebody simply swung — which is what a reader asked for.
- */
-describe.each(FROM_CAPTURES)("$name", ({ statistics, events }) => {
-  test("splits the blows into announced and not, and the halves make the whole", () => {
-    const plain = new Map<number, number>();
-    for (const event of events) {
-      if (event.kind !== "attack" || event.actorId === null || event.announced !== null) continue;
-      setRunningTotal(plain, event.actorId, 1);
-    }
-
-    for (const [id, row] of statistics.byCombatantId) {
-      expect(row.blowsWithoutSkill, composeIntegerText(id)).toBe(plain.get(id) ?? 0);
-      expect(row.blowsWithoutSkill).toBeLessThanOrEqual(row.blowsStruck);
-    }
-  });
-
-  /**
-   * Every figure a side's totals hold, against its members' — field by field,
-   * discovered from the object rather than listed.
-   *
-   * `SideStatistics.totals` is typed `CombatantStatistics`, so the type promises
-   * each of these is a measurement. A counter added to that type and merged
-   * nowhere leaves a side reading `0`, and a zero is a measurement: quietly too
-   * low looks exactly like right (§3). Three of them were doing that.
-   *
-   * `largestBlow` is the one thing this cannot discover for itself, because it
-   * is a maximum and not a sum — and the distinction is real rather than
-   * pedantic: in the group capture one side's largest blows sum to 42 631
-   * against a maximum of 9 807.
-   */
-  const MAXIMUM_FIELDS = new Set<keyof CombatantStatistics>(["largestBlow"]);
-
-  test("a side's totals are its members' totals, figure by figure", () => {
-    for (const [side, group] of statistics.bySide) {
-      const members = group.combatantIds.map((id) => statistics.byCombatantId.get(id));
-      const fields = Object.entries(group.totals)
-        .filter(([, value]) => getFiniteNumberFromValue(value) !== null)
-        .map(([field]) => field as keyof CombatantStatistics);
-
-      expect(fields.length).toBeGreaterThan(0);
-
-      for (const field of fields) {
-        const figures = members.map((row) => getFiniteNumberFromValue(row?.[field]) ?? 0);
-        const expected = MAXIMUM_FIELDS.has(field)
-          ? figures.reduce((most, one) => Math.max(most, one), 0)
-          : figures.reduce((sum, one) => sum + one, 0);
-
-        expect(getFiniteNumberFromValue(group.totals[field]), `${field} of ${composeIntegerText(side)}`).toBe(
-          expected,
+Deno.test("every point applied is counted once at each end, in every recording", () => {
+    let dealt = 0;
+    let taken = 0;
+    let fights = 0;
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path).flatMap((payload) =>
+            decodeFightMessages(payload, roster)
         );
-      }
+        const statistics = composeFightStatistics(events, new Map());
+        let fightDealt = statistics.dealtByNobody;
+        let fightTaken = statistics.takenByNobody;
+        for (const figures of statistics.byCombatantId.values()) {
+            assert(figures.damageDealtRaw >= 0, `${path}: a total below nothing`);
+            assert(figures.damageTakenApplied >= 0, `${path}: a total below nothing`);
+            fightDealt += figures.damageDealtApplied;
+            fightTaken += figures.damageTakenApplied;
+        }
+        assertEquals(fightDealt, fightTaken, `${path}: a point landed at one end only`);
+        dealt += fightDealt;
+        taken += fightTaken;
+        fights += 1;
     }
-  });
+    assertEquals(fights, getRecordingPaths().length, "every recording was totalled");
+    assert(dealt > 0, "the recordings carry damage");
+    assertEquals(dealt, taken, "and it balances across all of them");
+});
+
+Deno.test("a cast sized reaches the figures, and one nobody could place is counted", () => {
+    const roster = composeCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: 2000 },
+    ]);
+    const events = decodeFightMessages([
+        "1=100.00;0;step",
+        "2=100.00;0;step",
+        "1=50.00;0;poison=500",
+        "2=50.00;0;poison=1000",
+        "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
+    ], roster);
+    const sized = composeFightStatistics(events, composeTeamHeals(events, roster));
+    assertEquals(sized.byCombatantId.get(1)?.healthRestored, 300, "a share of the first pool");
+    assertEquals(sized.byCombatantId.get(2)?.healthRestored, 600, "and of the second");
+    assertEquals(sized.castsUnplaced, 0, "with nothing left unplaced");
+
+    const unsized = composeFightStatistics(events, new Map());
+    assertEquals(unsized.byCombatantId.get(1)?.healthRestored, 0, "unsized, it restores nothing");
+    assertEquals(unsized.castsUnplaced, 1, "and the cast is counted as one nobody placed");
+});
+
+Deno.test("what the recordings restore is mostly what a cast put back", () => {
+    let restored = 0;
+    let unplaced = 0;
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        restored += statistics.totals.healthRestored;
+        unplaced += statistics.castsUnplaced;
+    }
+    assertEquals(unplaced, 0, "every cast the corpus holds is sized onto its side");
+    assert(restored > 2_000_000, "and the health they put back is most of what was restored");
+});
+
+Deno.test("a blow is cut by what it was dealt with and by whom it reached", () => {
+    const statistics = composeFightStatistics(decodeFightMessages([ABSORBED], null), new Map());
+    const dealer = statistics.byCombatantId.get(467968);
+    assertEquals(dealer?.damageDealtByElement.get("dmgd"), 1012, "the element the key names");
+    assertEquals(dealer?.damageDealtByOpponent.get("-10000249"), 1012, "and the end it reached");
+    const target = statistics.byCombatantId.get(-10000249);
+    assertEquals(target?.damageTakenByElement.get("dmgd"), 1012, "the same figure, the other way");
+    assertEquals(target?.damageTakenByOpponent.get("467968"), 1012, "and from whom");
+});
+
+Deno.test("every cut of a combatant comes to that combatant's own total", () => {
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        for (const [combatantId, figures] of statistics.byCombatantId) {
+            let byElement = 0;
+            for (const amount of figures.damageDealtByElement.values()) byElement += amount;
+            assertEquals(
+                byElement,
+                figures.damageDealtApplied,
+                `${path}: ${combatantId} by element`,
+            );
+            let byOpponent = 0;
+            for (const amount of figures.damageDealtByOpponent.values()) byOpponent += amount;
+            // Not every blow names its target, so what the cuts hold is at most the total: what
+            // is missing from this one is damage nobody could be charged with taking.
+            assert(byOpponent <= figures.damageDealtApplied, `${path}: ${combatantId} by opponent`);
+        }
+    }
 });
 
 /**
- * What could not be read, counted where the consequence is.
- *
- * Zero on every recording — `bun run tools/fight-report.ts` prints
- * `unreadable messages: 0` and `unaccounted healing: 0 casts` for all of
- * `tests/captured-fights/` as the set stands 2026-08-24 — so these are the two
- * counters the corpus can say nothing about at all, and they are built by hand for
- * the same reason `unattributed` is
- * (`docs/specs/the-ends-a-figure-names.md`).
- *
- * The claim each holds is *whose figure may be short*. Getting it wrong is silent
- * in both directions: a count that never lands leaves a total marked clean while it
- * is low, and one that lands on the wrong row tells somebody their numbers are
- * suspect when they are not.
+ * Every cut of a figure is a cut **of that figure**: the two flat ones and the one that cuts by
+ * both ends at once have to come to the same total, or the panel is drawing a figure nobody has.
  */
-describe("what could not be read, per row", () => {
-  const roster = composeCombatantRoster([
-    { id: 1, name: "mag", side: 1, profession: "m", level: 100, maximumHealth: null },
-    { id: 2, name: "tarcza", side: 1, profession: "w", level: 100, maximumHealth: null },
-    { id: 3, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
-  ]);
-
-  /** The counters of everyone the fight mentions, so a stray one cannot hide. */
-  function getUnreadableByCombatantId(messages: readonly string[]): Map<number, number> {
-    const statistics = composeFightStatistics(decodeFight(messages, roster), roster);
-    return new Map([...statistics.byCombatantId].map(([id, row]) => [id, row.unreadableMessages]));
-  }
-
-  test("raises the count of both ends the unread message named, and nobody else's", () => {
-    const counts = getUnreadableByCombatantId(["1=90.00;3=50.00;no_such_key=13"]);
-
-    expect(counts.get(1)).toBe(1);
-    expect(counts.get(3)).toBe(1);
-    expect(counts.get(2) ?? 0).toBe(0);
-  });
-
-  /**
-   * The boundary from the other side (§7.5): a message the decoder read in full
-   * leaves every row at zero. Without this the counter could be raised on every
-   * message and the test above would still pass.
-   */
-  test("leaves every row alone where the message was read in full", () => {
-    const counts = getUnreadableByCombatantId(["1=90.00;3=50.00;+dmg=500;-dmg=400"]);
-
-    expect(counts.size).toBeGreaterThan(0);
-    expect([...counts.values()].every((count) => count === 0)).toBe(true);
-  });
-
-  /**
-   * A message naming nobody is still unreadable and still has to be said — by the
-   * fight-wide figure, which is the only thing that can carry it. It must not land
-   * on `unattributed`: that bucket holds figures this meter has and cannot place,
-   * and there is no figure here at all.
-   */
-  test("keeps a message naming nobody in the fight's own count and off every row", () => {
-    const statistics = composeFightStatistics(decodeFight(["0;0;no_such_key=13"], roster), roster);
-
-    expect(statistics.reading.unreadableMessages).toBe(1);
-    expect(statistics.unattributed.unreadableMessages).toBe(0);
-    expect(
-      [...statistics.byCombatantId.values()].every((row) => row.unreadableMessages === 0),
-    ).toBe(true);
-  });
-
-  /**
-   * A cast this meter could not size lands on the caster and on nobody else — the
-   * one end the protocol names. The recipients are the whole difficulty
-   * (`src/core/battle-event.ts`), so their rows stay clean and the shortfall stays
-   * in the fight's own reading.
-   */
-  test("charges a cast nobody could size to the caster the protocol named", () => {
-    const statistics = composeFightStatistics(
-      [
-        {
-          kind: "unaccounted-health",
-          source: "healall_per",
-          combatantId: 1,
-          declaredShare: 12,
-          announced: null,
-        },
-      ],
-      roster,
-    );
-
-    expect(statistics.byCombatantId.get(1)?.unaccountedHealingCasts).toBe(1);
-    expect(statistics.byCombatantId.get(2)?.unaccountedHealingCasts ?? 0).toBe(0);
-    // And no health moved anywhere, which is the whole reason the cast is counted
-    // rather than added: the figure is what is missing.
-    expect(statistics.byCombatantId.get(1)?.healingGiven).toBe(0);
-  });
-
-  test("counts a cast with no caster in the fight's reading and on no row", () => {
-    const statistics = composeFightStatistics(
-      [
-        {
-          kind: "unaccounted-health",
-          source: "healall_per",
-          combatantId: null,
-          declaredShare: 12,
-          announced: null,
-        },
-      ],
-      roster,
-    );
-
-    expect(getTotalOfValues(statistics.reading.unaccountedHealthBySource)).toBe(1);
-    expect(statistics.unattributed.unaccountedHealingCasts).toBe(0);
-    expect(statistics.byCombatantId.size).toBe(0);
-  });
+Deno.test("a cut by both ends comes to the same figure as the cut by one", () => {
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        for (const [combatantId, figures] of statistics.byCombatantId) {
+            const where = `${path}: ${combatantId}`;
+            for (
+                const [flat, deep] of [
+                    [figures.damageDealtByOpponent, figures.damageDealtByOpponentAndKind],
+                    [figures.damageTakenByOpponent, figures.damageTakenByOpponentAndKind],
+                ] as const
+            ) {
+                for (const [other, amount] of flat) {
+                    const kinds = deep.get(other);
+                    assert(kinds !== undefined, `${where}: a pair cut by one end and not by both`);
+                    let total = 0;
+                    for (const figure of kinds.values()) total += figure;
+                    assertEquals(total, amount, `${where}: the two cuts disagree about ${other}`);
+                }
+            }
+            // And every skill is a part of what its announcer dealt or put back, never more.
+            let dealt = 0;
+            let restored = 0;
+            for (const skill of figures.skills.values()) {
+                dealt += skill.dealt;
+                restored += skill.restored;
+            }
+            assert(dealt <= figures.damageDealtApplied, `${where}: a skill dealt more than they`);
+            assert(restored <= figures.healthGiven, `${where}: a skill put back more than they`);
+            assert(
+                figures.blowsWithoutSkill <= figures.blowsStruck,
+                `${where}: more blows nothing announced than blows`,
+            );
+        }
+    }
 });
 
 /**
- * The four edges a mutation sweep found nothing holding.
+ * The equation an opened healing pair rests on, over every recording.
  *
- * ⚠️ **Three of the four are the number zero**, which is the third round running
- * that this boundary has turned out to be the untested one. It is not an
- * accident of where tests were written: zero is the neutral element of every sum
- * here, so an off-by-one at that edge changes no total on real material and
- * changes the *meaning* of every figure that sits on the boundary. §9.6 spends a
- * paragraph on keeping "measured nothing" apart from "could not be read", and
- * this is where the two touch.
+ * A section that came to less than the figure over it is a column of shares adding to
+ * ninety-something, and a reader cannot tell a missing figure from one that was never there. The
+ * two branches are counted as well as summed: a writer that had stopped charging the keys would
+ * still balance, by charging everything to the skills.
  */
-describe("the edges of the aggregate", () => {
-  const roster = composeCombatantRoster([
-    { id: 1, name: "mag", side: 1, profession: "m", level: 100, maximumHealth: null },
-    { id: 2, name: "coś dużego", side: 2, profession: null, level: null, maximumHealth: null },
-  ]);
+Deno.test("what one gave another is the skills announced for it plus the keys, exactly", () => {
+    let pairs = 0;
+    let announced = 0;
+    let stated = 0;
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        for (const [combatantId, figures] of statistics.byCombatantId) {
+            for (const [other, amount] of figures.healthGivenByReceiver) {
+                pairs += 1;
+                let held = 0;
+                for (const skill of figures.skills.values()) {
+                    const figure = skill.restoredByOpponent.get(other) ?? 0;
+                    if (figure > 0) announced += 1;
+                    held += figure;
+                }
+                const keys = figures.healthGivenWithoutSkillByReceiverAndSource.get(other);
+                for (const figure of keys?.values() ?? []) {
+                    stated += 1;
+                    held += figure;
+                }
+                assertEquals(
+                    held,
+                    amount,
+                    `${path}: ${combatantId} to ${other} is not what its parts hold`,
+                );
+            }
+            // The same equation on the receiving side, which is the one the panel's own section
+            // is built from: what reached this combatant is the announcements aimed at them plus
+            // the keys nothing announced, and nothing is left over to close a section against.
+            let reached = 0;
+            for (const held of statistics.byCombatantId.values()) {
+                for (const skill of held.skills.values()) {
+                    reached += skill.restoredByOpponent.get(`${combatantId}`) ?? 0;
+                }
+            }
+            for (const figure of figures.healthRestoredWithoutSkillBySource.values()) {
+                reached += figure;
+            }
+            assertEquals(
+                reached,
+                figures.healthRestored,
+                `${path}: what reached ${combatantId} is not what its parts hold`,
+            );
+            // And the other way round, so a pair written on one row and not the other is a
+            // finding rather than a section that quietly lists nobody.
+            for (const giver of figures.healthRestoredByGiver.keys()) {
+                const held = statistics.byCombatantId.get(Number(giver));
+                assert(
+                    held?.healthGivenByReceiver.has(`${combatantId}`) === true,
+                    `${path}: ${giver} healed ${combatantId} on one row only`,
+                );
+            }
+        }
+    }
+    assert(pairs > 0, "the corpus holds pairs to check this on");
+    assert(announced > 0, "some of them stand on an announcement");
+    assert(stated > 0, "and some on a key the game named with nothing announced in front of it");
+});
 
-  /**
-   * Kills `landed > 0` → `>= 0` and → `> 1`. A blow that reached the target and
-   * did nothing must not open a per-target entry under the skill: the drill lists
-   * *whom this skill hit*, and an entry of zero says it hit somebody for nothing
-   * rather than that it never reached them at all.
-   */
-  test("a blow that landed nothing opens no entry under the skill that threw it", () => {
-    const statistics = composeFightStatistics(
-      decodeFight(
-        ["1=90.00;2=50.00;tspell=Czar testowy;skillId=7", "1=90.00;2=50.00;+dmg=0;-dmg=0"],
-        roster,
-      ),
-      roster,
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: a critical blow that pierced and
+ * destroyed armour.
+ */
+const CRITICAL = "467968=100.00;-10000249=99.69;+crit;+pierce;+dmgd=1557;+acdmg=16;-dmgd=1012";
+/** The same shape with the defending side's own flag on it, which is not the striker's. */
+const EVADED = "467968=100.00;-10000249=99.69;-evade;+dmgd=900;-dmgd=0";
+/** A key the register refuses an end: decoded, and charged to nobody until somebody knows. */
+const UNSETTLED = "467968=100.00;-10000249=99.69;-tenacity;+dmgd=100;-dmgd=100";
+
+Deno.test("what fired beside a blow lands on the row of whoever it belongs to", () => {
+    const statistics = composeFightStatistics(decodeFightMessages([CRITICAL], null), new Map());
+    const striker = statistics.byCombatantId.get(467968);
+    const struck = statistics.byCombatantId.get(-10000249);
+    assertEquals(
+        [...striker?.procsWhenStriking ?? []],
+        [["+crit", 1], ["+pierce", 1]],
+        "the striker's",
     );
-    const skill = [...assertDefined(statistics.byCombatantId.get(1), "the mage has a row").skills][0];
-
-    expect(assertDefined(skill, "the skill was announced")[1].dealtApplied).toBe(0);
-    expect([...assertDefined(skill, "the skill was announced")[1].dealtByTargetId]).toEqual([]);
-  });
-
-  /**
-   * One, and not a comfortable number: the boundary has two sides and a test
-   * sitting well clear of it only holds one. Written as `30` first, which left
-   * `landed > 0` → `> 1` alive — the smallest blow the game can report would
-   * have gone missing from the drill and nothing would have said so.
-   */
-  test("while the smallest blow there is does", () => {
-    const statistics = composeFightStatistics(
-      decodeFight(
-        ["1=90.00;2=50.00;tspell=Czar testowy;skillId=7", "1=90.00;2=50.00;+dmg=1;-dmg=1"],
-        roster,
-      ),
-      roster,
+    assertEquals(
+        striker?.blowsCritical,
+        1,
+        "and the blow is counted as one that landed critically",
     );
-    const skill = [...assertDefined(statistics.byCombatantId.get(1), "the mage has a row").skills][0];
-
-    expect([...assertDefined(skill, "the skill was announced")[1].dealtByTargetId]).toEqual([[2, 1]]);
-  });
-
-  /**
-   * Kills `event.amount >= 0` → `> 0` and → `>= 1`. Health that moved by zero is
-   * healing that measured nothing, and it belongs on the healed side of the row.
-   * Sent the other way it becomes health *lost*, so a figure of nothing turns
-   * into a wound nobody took.
-   */
-  test("health that moved by zero is healing of nothing, not damage of nothing", () => {
-    const statistics = composeFightStatistics(decodeFight(["1=90.00;0;heal=0"], roster), roster);
-    const row = assertDefined(statistics.byCombatantId.get(1), "the mage has a row");
-
-    expect(row.healed).toBe(0);
-    expect(row.healthLost).toBe(0);
-    expect([...row.healedBySource]).toEqual([["heal", 0]]);
-    expect([...row.healthLostBySource]).toEqual([]);
-  });
-
-  /** Kills `event.result === "won"` → `!==`, which swaps both sides of the fight. */
-  test("who won and who lost are not the same list", () => {
-    const statistics = composeFightStatistics(
-      decodeFight(["0;0;winner=mag", "0;0;loser=coś dużego"], roster),
-      roster,
+    assertEquals(
+        [...striker?.procsWhenStruck ?? []],
+        [],
+        "and nothing of it is theirs defensively",
     );
-
-    expect(statistics.outcome).toEqual({
-      wonNames: ["mag"],
-      lostNames: ["coś dużego"],
-      isDrawn: false,
-    });
-  });
-
-  /**
-   * Kills `event.result === "drawn"` → `!==`, which turns every stated winner
-   * into a draw, and kills the `true` it sets.
-   *
-   * The one outcome that arrives without a name, so the two lists stay empty and
-   * the flag is the whole of what the fight said about how it ended.
-   */
-  test("a fight nobody won is drawn, and puts no one on either side", () => {
-    const statistics = composeFightStatistics(decodeFight(["0;0;winner=?"], roster), roster);
-
-    expect(statistics.outcome).toEqual({ wonNames: [], lostNames: [], isDrawn: true });
-  });
-
-  /**
-   * Kills the `1` in `setRunningTotal(messagesByReason, event.reason, 1)`. The
-   * count is of messages, so each one adds itself once — a two counts every
-   * unreadable message twice and reports a fight as twice as unreadable as it is.
-   */
-  test("an unreadable message counts once, however many share its reason", () => {
-    const statistics = composeFightStatistics(
-      decodeFight(["0;0;no_such_key=1", "0;0;no_such_key=2", "0;0;other_key=3"]),
+    assertEquals(
+        [...struck?.procsWhenStriking ?? []],
+        [],
+        "the struck combatant swung nothing here",
     );
+    assertEquals([...struck?.procsWhenStruck ?? []], [], "and fired nothing of their own either");
+    assertEquals([...striker?.statisticsDestroyed ?? []], [["acdmg", 16]], "what it took off them");
+    assertEquals(
+        [...struck?.statisticsDestroyed ?? []],
+        [],
+        "which is charged to the striker alone",
+    );
+});
 
-    expect(statistics.reading.unreadableMessages).toBe(3);
-    expect([...statistics.reading.messagesByReason.values()]).toEqual([2, 1]);
-    expect(statistics.reading.occurrencesByUnreadKey.get("no_such_key")).toBe(2);
-  });
+Deno.test("a flag the defence fired is the defence's, whichever sign the key wears", () => {
+    const statistics = composeFightStatistics(decodeFightMessages([EVADED], null), new Map());
+    assertEquals(
+        [...statistics.byCombatantId.get(-10000249)?.procsWhenStruck ?? []],
+        [["-evade", 1]],
+        "an evade sits on the row of whoever evaded, not of whoever was evaded",
+    );
+    assertEquals(
+        [...statistics.byCombatantId.get(467968)?.procsWhenStriking ?? []],
+        [],
+        "and never on the striker's, which is what reading the sign would have got wrong",
+    );
+    assertEquals(statistics.byCombatantId.get(467968)?.blowsCritical, 0, "nothing critical here");
+});
+
+Deno.test("a proc nobody can place is charged to nobody rather than to whoever was handy", () => {
+    const statistics = composeFightStatistics(decodeFightMessages([UNSETTLED], null), new Map());
+    assertEquals(
+        statistics.unreadMessages,
+        0,
+        "the key is read: it is whose it is that is unknown",
+    );
+    for (const figures of statistics.byCombatantId.values()) {
+        assertEquals([...figures.procsWhenStriking], [], "and no row is handed it as theirs");
+        assertEquals([...figures.procsWhenStruck], [], "at either end of the blow it rode");
+    }
+});
+
+Deno.test("what a defence stopped is kept as the sum and as the defences it is made of", () => {
+    const statistics = composeFightStatistics(decodeFightMessages([ABSORBED], null), new Map());
+    const target = statistics.byCombatantId.get(-10000249);
+    assertEquals(target?.damagePrevented, 545, "the one number a counter states");
+    assertEquals(
+        [...target?.damagePreventedByDefence ?? []],
+        [["absorb", 545]],
+        "and which of them",
+    );
+});
+
+Deno.test("the hardest blow is the hardest blow, and no total can be read back to one", () => {
+    const messages = [
+        "467968=100.00;-10000249=99.69;+dmg=600;-dmg=500",
+        "467968=100.00;-10000249=99.69;+dmg=900;-dmg=800",
+        "467968=100.00;-10000249=99.69;+dmg=200;-dmg=100",
+    ];
+    const statistics = composeFightStatistics(decodeFightMessages(messages, null), new Map());
+    assertEquals(statistics.byCombatantId.get(467968)?.damageDealtApplied, 1400, "three blows");
+    assertEquals(
+        statistics.byCombatantId.get(467968)?.damageDealtBlowLargest,
+        800,
+        "and the hardest",
+    );
+    assertEquals(
+        statistics.byCombatantId.get(-10000249)?.damageTakenBlowLargest,
+        800,
+        "at both ends",
+    );
+});
+
+Deno.test("every recording places what a blow carried, and places none of it twice", () => {
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = decodeFightMessages(getRecordedPayloads(path).flat(), roster);
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        for (const [id, figures] of statistics.byCombatantId) {
+            let cut = 0;
+            for (const [, amount] of figures.damagePreventedByDefence) cut += amount;
+            assertEquals(cut, figures.damagePrevented, `${path} ${id} stops what its defences did`);
+            assert(
+                figures.damageDealtBlowLargest <= figures.damageDealtApplied,
+                `${path} ${id}: one blow is never more than every blow`,
+            );
+            assert(
+                figures.blowsCritical <= figures.blowsStruck,
+                `${path} ${id}: a critical blow is a blow they struck`,
+            );
+        }
+    }
 });

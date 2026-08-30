@@ -1,0 +1,83 @@
+{
+    "version": "0.10.1",
+    "tasks": {
+        // The gate. One command, so there is no version of "I ran the tests but not the build".
+        // `build` writes `dist/`, which git does not carry: what ships is checked as a file.
+        "check": "deno fmt --check && deno lint && deno check && deno test -A && deno task build",
+        // The file a reader installs. A release passes its version; a build without one says so.
+        "build": "deno run -A tools/build-userscript.ts",
+        // The panel in a browser, changing while you edit it: the add-on over a recording,
+        // rebuilt and reloaded on a change under `src/`.
+        "preview": "deno run -A tools/preview-server.ts",
+        // The same panel, written down for somebody who has installed nothing: one page per
+        // recording under `dist/preview`, which `.github/workflows/pages.yml` publishes.
+        "preview:site": "deno run -A tools/preview-site.ts",
+        // The panel photographed, one picture per state a README shows. It refuses a tree whose
+        // `src/` is not in a commit, which is `DESIGN.md`'s rule and not this file's.
+        "screenshots": "deno run -A tools/panel-screenshots.ts",
+        // What the decoder could not read, over the corpus or over a recording you name — the
+        // question that decides whether an intake is worth starting.
+        "decoding": "deno run -A tools/decoding-status.ts",
+        // The same material the other way round: what the figures come to, per combatant, as the
+        // panel would draw them.
+        "figures": "deno run -A tools/fight-figures.ts",
+        // Which rows of the panel open onto another level, measured rather than remembered.
+        // `docs/drill-levels.md` carries the verdicts; `--cases` states the counts behind them.
+        "drill": "deno run -A tools/drill-report.ts",
+        // How a recording the add-on wrote becomes material: two redactions, then a file.
+        "intake": "deno run -A tools/capture-intake.ts",
+        // The client fetched and dated, so a claim about it can name the build it was read on.
+        "client": "deno run -A tools/game-client-source.ts",
+        // Every key the client branches on, lifted out of that bundle and frozen beside it.
+        "keys": "deno run -A tools/protocol-key-table.ts",
+        // The published help, cached and searched, and the counts a register claim is held to.
+        "help": "deno run -A tools/help-article.ts",
+        // What a release says about itself: the version this tree declares, and the section
+        // `CHANGELOG.md` carries for it. `release.yml` runs both, and so can a hand before a tag.
+        "notes": "deno run -A tools/changelog.ts"
+    },
+    "fmt": {
+        // 4 spaces, hard limit of 100 columns, nothing hidden by a scrollbar.
+        "indentWidth": 4,
+        "lineWidth": 100,
+        "semiColons": true,
+        "singleQuote": false,
+        "useTabs": false,
+        "exclude": [
+            // Evidence. Formatting a recording is editing it.
+            "captures/",
+            // Written by tooling, including their headers. Regenerating is how they change.
+            "frozen/protocol-keys.ts",
+            "frozen/help-phrases.ts",
+            // The maintainer's list. `.claude/settings.json` denies the three tools that edit a
+            // file, and a formatter is not one of them — it rewrote this file once, which is
+            // exactly the trap AGENTS.md warns about: the wall is narrower than the rule.
+            "TODO.md"
+        ]
+    },
+    "lint": {
+        "rules": { "tags": ["recommended"] },
+        "exclude": ["captures/"]
+    },
+    "imports": {
+        "@/": "./",
+        "@std/assert": "jsr:@std/assert@^1"
+    },
+    "compilerOptions": {
+        "lib": ["deno.ns", "dom", "dom.iterable", "esnext"],
+        "strict": true,
+        // Standing in for a linter's dead-code rules: unused is a build failure, not something
+        // to read past. This is what stood between v1's tree and accumulated uncalled functions.
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        // The decoder lives on indexing. Every access proves itself rather than assuming a hit.
+        "noUncheckedIndexedAccess": true,
+        "exactOptionalPropertyTypes": true,
+        "noImplicitReturns": true,
+        "noImplicitOverride": true,
+        "noFallthroughCasesInSwitch": true,
+        "allowUnreachableCode": false,
+        "allowUnusedLabels": false
+    },
+    "exclude": ["captures/", "dist/", ".cache/", "node_modules/"]
+}

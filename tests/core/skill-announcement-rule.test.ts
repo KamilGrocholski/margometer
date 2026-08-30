@@ -1,264 +1,129 @@
 /**
- * What a skill announcement carries, and what `combo-max` is doing on it.
+ * What rides a skill announcement, and which spelling of one.
  *
- * This file exists because the register was wrong. It said an announcement
- * carries no damage at all and that whatever the skill does arrives in a later
- * message — true of the damage family, which is what had been measured, and
- * false of the protocol: damage aimed at a **name** rides the announcement
- * itself, and so does healing. The claim and its correction are both held here,
- * because the wrong version was the kind that reads as settled.
+ * Two spellings announce a skill: the game's own table, and a name it did not take from there. A
+ * reading that expects only the first misses the declarations riding the second
+ * (`docs/protocol-keys.md`).
  */
 
-import { describe, expect, test } from "bun:test";
-import { getIntegerFromText } from "@/libs/number.ts";
-import {
-  DAMAGE_TO_NAMED_KEY,
-  decodeFight,
-  isDamageKey,
-  UNDERSTOOD_PROTOCOL_KEYS,
-} from "@/src/core/fight-decoder.ts";
-import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import { assert, assertEquals } from "@std/assert";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { CAPTURED_FIGHTS, getMessagesOfFight, } from "@/tests/captured-fight-catalog.ts";
-import { getKeysWithHealthEffect } from "@/tests/protocol-key-register.ts";
+import { getRecordedMessages, getRecordingPaths } from "@/tests/recorded-fight.ts";
 
-// Restated rather than imported: this file asserts what the decoder reads, and a
-// test that reads the decoder's own list agrees with it by construction (§9.3).
-const SKILL_NAME_KEY = "tspell";
-/** The other spelling of the same announcement — a name the game did not take
- * from its skill table (`docs/protocol-keys.md`). */
+const TABLE_NAME_KEY = "tspell";
 const CUSTOM_NAME_KEY = "tcustom";
-const COMBO_LIMIT_KEY = "combo-max";
-
-
+const COUNT_KEY = "combo-max";
+const REDUCER_KEY = "lowheal_per-enemies";
 /**
- * A count of combination points, not a quantity of anything. Far below what the
- * protocol's figures look like — absorption destruction runs into the thousands
- * — which is the property that keeps the two families apart by inspection.
+ * ⚠️ **The floor is what separates a count from a quantity, and it is low on purpose.** The
+ * protocol's quantities are health and damage, which run to five digits here; a count of
+ * combination points is spent one at a time. Anything between the two would be neither, and is
+ * what this refuses.
  */
-const MOST_POINTS_A_SKILL_CAN_SPEND = 100;
+const QUANTITY_FLOOR = 100;
 
-/** Every value the message states for the limit, so a repeat cannot hide behind the first. */
-type Message = { keys: string[]; comboLimits: (string | null)[] };
+function isAnnouncement(keys: readonly string[]): boolean {
+    if (keys.includes(TABLE_NAME_KEY)) return true;
+    return keys.includes(CUSTOM_NAME_KEY);
+}
 
-const MESSAGES: Message[] = CAPTURED_FIGHTS.flatMap((fight) =>
-  fight.dump.calls.flatMap((call) =>
-    call.protocolMessages.map((message) => {
-      const { parameters } = parseProtocolMessage(message);
-      return {
-        keys: parameters.map((parameter) => parameter.key),
-        comboLimits: parameters
-          .filter((parameter) => parameter.key === COMBO_LIMIT_KEY)
-          .map((parameter) => parameter.value),
-      };
-    }),
-  ),
-);
-
-const ANNOUNCEMENTS = MESSAGES.filter(({ keys }) => keys.includes(SKILL_NAME_KEY));
-
-/** Restated here rather than exported: a guard that imports the list it guards
- * against agrees with the decoder by construction and checks nothing. */
-const DECLARATION_KEYS = [
-  "active_decblock_per",
-  "active_decblock_per-enemies",
-  "active_block_per",
-  "alllowdmg",
-  "allslow_per",
-  "aura-ac_per",
-  "aura-resall",
-  "aura-sa_per",
-  "mana",
-  "energy",
-  "shout",
-  "critval-allies",
-  "critmval-allies",
-];
-
-describe("what a skill announcement carries", () => {
-  test("the captures carry announcements to check", () => {
-    expect(ANNOUNCEMENTS.length).toBeGreaterThan(0);
-  });
-
-  // The half of the old claim that survived measuring it again.
-  test("never carries a key from the damage family", () => {
-    const withDamage = ANNOUNCEMENTS.filter(({ keys }) => keys.some(isDamageKey));
-    expect(withDamage).toEqual([]);
-  });
-
-  /**
-   * The half that did not. `+oth_dmg` is damage — the register lists it as moving
-   * health — and it rides the announcement, in the same message, not a later one.
-   * Asserted as a presence rather than a count so the file does not go stale on
-   * new material; asserted at all so nobody restores the flat denial.
-   */
-  test("does carry damage aimed at a name, in the same message", () => {
-    const withNamedDamage = ANNOUNCEMENTS.filter(({ keys }) =>
-      keys.includes(DAMAGE_TO_NAMED_KEY),
-    );
-    expect(withNamedDamage.length).toBeGreaterThan(0);
-  });
-
-  test("and carries keys the register says move health", () => {
-    const movingHealth = getKeysWithHealthEffect("moves health");
-    const withHealth = ANNOUNCEMENTS.filter(({ keys }) =>
-      keys.some((key) => key !== DAMAGE_TO_NAMED_KEY && movingHealth.includes(key)),
-    );
-    expect(withHealth.length).toBeGreaterThan(0);
-  });
-});
-
-describe("`combo-max` on that announcement", () => {
-  const carrying = MESSAGES.filter(({ comboLimits }) => comboLimits.length > 0);
-
-  test("the captures carry it at all", () => {
-    expect(carrying.length).toBeGreaterThan(0);
-  });
-
-  // Where it rides is the reason it is not read: it qualifies the skill being
-  // announced, and there is no blow in the message to attach it to.
-  test("rides only a skill announcement", () => {
-    const elsewhere = carrying.filter(({ keys }) => !keys.includes(SKILL_NAME_KEY));
-    expect(elsewhere).toEqual([]);
-  });
-
-  test("states a small whole count, not a quantity", () => {
-    for (const stated of carrying.flatMap(({ comboLimits }) => comboLimits)) {
-      const points = stated === null ? null : getIntegerFromText(stated);
-      expect(points).not.toBeNull();
-      expect(points).toBeGreaterThan(0);
-      expect(points).toBeLessThan(MOST_POINTS_A_SKILL_CAN_SPEND);
+Deno.test("what a skill spends stands on its announcement and nowhere else", () => {
+    let stated = 0;
+    for (const path of getRecordingPaths()) {
+        for (const message of getRecordedMessages(path)) {
+            const parsed = parseProtocolMessage(message);
+            const keys = parsed.parameters.map((one) => one.key);
+            if (!keys.includes(COUNT_KEY)) continue;
+            stated += 1;
+            assert(isAnnouncement(keys), `${path}: a count on a message announcing no skill`);
+        }
     }
-  });
-
-  /**
-   * Read as a declaration: a count of points the skill will spend, which is an
-   * input. What the points come to arrives as ordinary figures, already computed,
-   * so nothing totals this — the second assertion is the one that matters.
-   */
-  test("is read as a declaration, and counts towards nothing", () => {
-    expect(UNDERSTOOD_PROTOCOL_KEYS).toContain(COMBO_LIMIT_KEY);
-
-    const statistics = composeFightStatistics(
-      decodeFight([`1=100.00;0;tspell=Something;${COMBO_LIMIT_KEY}=3`]),
-    );
-    expect(statistics.byCombatantId.get(1)?.skillsUsed).toBe(1);
-    expect(statistics.byCombatantId.get(1)?.dealtApplied).toBe(0);
-    expect(statistics.reading.unreadableMessages).toBe(0);
-  });
+    assertEquals(stated, 434, "every count the material carries, 2026-08-30");
 });
 
 /**
- * The keys an announcement states about the skill itself.
- *
- * They are read — `SkillUsedEvent.declared` — and they are still not figures.
- * Both halves are held here, because the first without the second is how a
- * declaration becomes a statistic: `alllowdmg=5` says a skill will lower the
- * other side's damage, not that anybody's damage fell by five of anything.
+ * ⚠️ **The register names the values 1, 2 and 3**, read 2026-08-19. The material has carried a 4
+ * since, so what is asserted is the range rather than the set: a new value is the protocol saying
+ * something, and a value in the quantities' range would be the reading being wrong.
  */
-describe("what an announcement declares about its skill", () => {
-  const DECLARED = CAPTURED_FIGHTS.flatMap((fight) =>
-    decodeFight(getMessagesOfFight(fight)).flatMap((event) =>
-      event.kind === "skill-used" ? event.declared : [],
-    ),
-  );
-
-  test("the captures carry declarations to check", () => {
-    expect(DECLARED.length).toBeGreaterThan(0);
-  });
-
-  /**
-   * Every occurrence rides an announcement, which is the measurement the whole
-   * reading rests on: a declaration on a blow would be a declaration next to a
-   * figure, and that is the join the protocol never states.
-   *
-   * ⚠️ **An announcement is named by either key, and this asserted `tspell`
-   * alone until it was refuted.** `2026-08-26-luvia-grupa-vs-draugr` carries two
-   * `tcustom` messages of exactly the shape the rest have — one name, and beside
-   * it what the named thing grants — the first with `aura-ac_per` and
-   * `aura-resall`, the second with `critval-allies` and `critmval-allies`. The
-   * claim that survives is about the blow, which is the half that matters: none
-   * of these ever rides one.
-   */
-  test("every one of them arrived on an announcement", () => {
-    const onAnnouncements = MESSAGES.filter(({ keys }) =>
-      keys.some((key) => DECLARATION_KEYS.includes(key)),
-    );
-    expect(onAnnouncements.length).toBeGreaterThan(0);
-    for (const message of onAnnouncements) {
-      const named = message.keys.includes(SKILL_NAME_KEY) || message.keys.includes(CUSTOM_NAME_KEY);
-      expect(named, message.keys.join(";")).toBe(true);
+Deno.test("what a skill spends is a count, never a quantity", () => {
+    const values = new Set<number>();
+    for (const path of getRecordingPaths()) {
+        for (const message of getRecordedMessages(path)) {
+            for (const one of parseProtocolMessage(message).parameters) {
+                if (one.key !== COUNT_KEY) continue;
+                assert(one.value !== null, `${path}: a count stating nothing`);
+                const spent = Number(one.value);
+                assert(Number.isSafeInteger(spent), `${path}: a count spelled ${one.value}`);
+                assert(spent > 0, `${path}: a skill spending no points states none`);
+                assert(spent < QUANTITY_FLOOR, `${path}: ${spent} is a quantity, not a count`);
+                values.add(spent);
+            }
+        }
     }
-  });
+    assert(values.size > 1, "the material states more than one, or the key states a constant");
+});
 
-  /**
-   * And the half that did not need widening, stated on its own so the widening
-   * above cannot be read as a retreat: what the declarations never share a
-   * message with is a figure.
-   */
-  test("and none of them arrived on a blow", () => {
-    const onBlows = MESSAGES.filter(
-      ({ keys }) => keys.some((key) => DECLARATION_KEYS.includes(key)) && keys.some(isDamageKey),
-    );
-    expect(onBlows).toEqual([]);
-  });
-
-  // The cost the game states is a fall, and it states it as one.
-  test("`mana` states a fall, never a price to be added", () => {
-    const mana = DECLARED.filter((declaration) => declaration.effect === "mana");
-    expect(mana.length).toBeGreaterThan(0);
-    for (const declaration of mana) expect(declaration.amount).toBeLessThan(0);
-  });
-
-  // The one whose value names somebody rather than counting something.
-  test("`shout` carries a name and no figure", () => {
-    const shouts = DECLARED.filter((declaration) => declaration.effect === "shout");
-    expect(shouts.length).toBeGreaterThan(0);
-    for (const shout of shouts) {
-      expect(shout.amount).toBeNull();
-      expect(shout.text).not.toBe("");
-      expect(shout.text).not.toBeNull();
+/**
+ * The two recordings that refuted it. Before them a declaration had only ever been seen riding the
+ * game's own name, and reading that as the rule would have lost four keys — two of which had no
+ * entry in the register at all.
+ */
+Deno.test("a declaration rides a name the game did not take from its own table", () => {
+    const found: string[] = [];
+    for (const path of getRecordingPaths()) {
+        for (const message of getRecordedMessages(path)) {
+            const parsed = parseProtocolMessage(message);
+            const keys = parsed.parameters.map((one) => one.key);
+            if (!keys.includes(CUSTOM_NAME_KEY)) continue;
+            assert(!keys.includes(TABLE_NAME_KEY), `${path}: a message spelling the name twice`);
+            for (const one of parsed.parameters) {
+                const isName = one.key === CUSTOM_NAME_KEY;
+                if (isName) continue;
+                if (one.value === null) continue;
+                found.push(one.key);
+            }
+        }
     }
-  });
+    for (const key of ["aura-ac_per", "aura-resall", "critval-allies", "critmval-allies"]) {
+        assert(found.includes(key), `${key} rides a custom name in the material and was not found`);
+    }
+});
 
-  /**
-   * The half that keeps a declaration from becoming a measurement: no figure any
-   * of these states reaches any combatant's row, or the unattributed bucket, or
-   * a side's totals.
-   */
-  test("nothing a declaration states reaches a statistic", () => {
-    const announced = decodeFight([
-      "1=100.00;0;tspell=Something;alllowdmg=5;aura-ac_per=20;mana=-3;energy=0",
-    ]);
-    const statistics = composeFightStatistics(announced);
-    const row = statistics.byCombatantId.get(1);
+/**
+ * ⚠️ **An announcement is not always the message before.** These three state their figure on the
+ * announcement itself, so a reading that only carried one message forward left every point of
+ * them with no giver and no name — 353,990 over `captures/`, until 2026-08-30.
+ */
+Deno.test("three keys state their figure on the announcement itself, and name an actor", () => {
+    const counted = new Map<string, number>();
+    for (const path of getRecordingPaths()) {
+        for (const message of getRecordedMessages(path)) {
+            const parsed = parseProtocolMessage(message);
+            const keys = parsed.parameters.map((one) => one.key);
+            for (const key of ["heal_target", "healall_per", "bandage"]) {
+                if (!keys.includes(key)) continue;
+                assert(isAnnouncement(keys), `${path}: ${key} on a message announcing no skill`);
+                assert(parsed.actor !== null, `${path}: ${key} on a message naming no actor`);
+                counted.set(key, (counted.get(key) ?? 0) + 1);
+            }
+        }
+    }
+    assertEquals(counted.get("heal_target"), 117, "every occurrence the material carries");
+    assertEquals(counted.get("healall_per"), 115, "for each of the three, 2026-08-30");
+    assertEquals(counted.get("bandage"), 1, "the last of them stated once");
+});
 
-    expect(announced[0]?.kind).toBe("skill-used");
-    expect(row?.skillsUsed).toBe(1);
-    expect(row?.dealtRaw).toBe(0);
-    expect(row?.dealtApplied).toBe(0);
-    expect(row?.taken).toBe(0);
-    expect(row?.healed).toBe(0);
-    expect(statistics.unattributed.taken).toBe(0);
-    expect(statistics.reading.unreadableMessages).toBe(0);
-  });
-
-  /**
-   * A declaration with no announcement has nowhere to belong, so it goes back to
-   * being unread rather than being dropped. Never seen in the captures — the test
-   * above is what says so — but the decoder must not lose one if it ever is.
-   */
-  test("a declaration with no skill to belong to is reported unread", () => {
-    const [event] = decodeFight(["1=100.00;0;alllowdmg=5"]);
-    expect(event?.kind).toBe("unknown-message");
-    expect(event).toMatchObject({ unreadKeys: ["alllowdmg"] });
-  });
-
-  // The shape is checked, not assumed: the day one of these carries something
-  // else, it is loud rather than quietly read as a declaration of nothing.
-  test("a declaration whose value is not a figure is reported unread", () => {
-    const events = decodeFight(["1=100.00;0;tspell=Something;alllowdmg=quite a lot"]);
-    expect(events.map((event) => event.kind)).toEqual(["skill-used", "unknown-message"]);
-    expect(events[1]).toMatchObject({ unreadKeys: ["alllowdmg"] });
-  });
+Deno.test("the reducer of a side's healing stands on an announcement too", () => {
+    let stated = 0;
+    for (const path of getRecordingPaths()) {
+        for (const message of getRecordedMessages(path)) {
+            const parsed = parseProtocolMessage(message);
+            const keys = parsed.parameters.map((one) => one.key);
+            if (!keys.includes(REDUCER_KEY)) continue;
+            stated += 1;
+            assert(isAnnouncement(keys), `${path}: a reduction on a message announcing no skill`);
+        }
+    }
+    assertEquals(stated, 4, "every occurrence the material carries, 2026-08-30");
 });

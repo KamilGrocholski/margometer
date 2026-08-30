@@ -1,184 +1,219 @@
 /**
- * `docs/drill-levels.md` against the panel it describes.
+ * The drill register, held against the panel both ways.
  *
- * The register names every kind of row the drill can draw and whether pressing it
- * opens anything. It is prose, so nothing but this holds it to the tree — and the
- * failure it exists against is the quiet one: a rule changes, the table keeps
- * saying what used to be true, and the next person reads it as the specification.
- *
- * ⚠️ **Both directions, or it holds nothing.** A row here the tree does not
- * produce is a claim about a panel that no longer exists; a case the tree produces
- * and the table does not name is the register having silently stopped being
- * complete. The second is the one a guard written the obvious way would miss.
- *
- * The counts stay out of the register and live here as a floor instead (§5): what
- * the table states is a verdict, and how often each case occurs changes with the
- * next recording.
+ * A guard that only refused a case the document does not name would stay green while the document
+ * grew rows nothing draws; one that only refused an unnamed row would stay green while the panel
+ * stopped drawing half of them. So the two lists are compared as sets, and each reader is proved
+ * by a sample it must flag and a sample it must not.
  */
 
-import { readFileSync } from "node:fs";
-import { describe, expect, test } from "bun:test";
-import { getTextOrder } from "@/libs/text-order.ts";
-import { METRIC_LABELS, PANEL_METRICS, type PanelMetric } from "@/src/ui/panel-screen.ts";
-import { CAPTURED_FIGHTS } from "@/tests/captured-fight-catalog.ts";
+import { assert, assertEquals } from "@std/assert";
+import { composeFakeDocument, type FakeElement, getElementsWithin } from "@/tests/fake-document.ts";
+import { composePanelHost } from "@/src/ui/panel-element.ts";
+import { composePanelReading, NOTHING_MISSED } from "@/src/ui/panel-reading.ts";
 import {
-  composeDrillCases,
-  composeSectionName,
-  DrillReportError,
-  getRowKind,
-  ROW_KINDS,
-  type DrillCase,
+    composeCaseReport,
+    composeDrillCases,
+    composeDrillReport,
+    DRILL_ROWS,
+    DRILL_RUNGS,
+    DRILL_VERDICTS,
 } from "@/tools/drill-report.ts";
+import { composeFightReplay, composeReplayedMaterial } from "@/tools/fight-replay.ts";
+import { getRecordedFightAt } from "@/tools/recorded-fights.ts";
+import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 
-const REGISTER_PATH = new URL("../../docs/drill-levels.md", import.meta.url).pathname;
-
-/** The closed list the register's last column is held to. */
-const VERDICTS = ["always", "never", "sometimes"] as const;
-type Verdict = (typeof VERDICTS)[number];
-
-type RegisterEntry = {
-  level: DrillCase["level"];
-  metric: PanelMetric;
-  section: string;
-  kind: string;
-  verdict: Verdict;
-};
-
-const LEVEL_BY_HEADING: Record<string, DrillCase["level"]> = {
-  "## The breakdown": "II",
-  "## The deep level": "III",
-};
+const REGISTER_PATH = "docs/drill-levels.md";
+const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 
 /**
- * The two tables, read as entries.
- *
- * Emphasis and code ticks are stripped rather than matched: the register is for
- * people first, so a verdict somebody bolded to draw the eye must not become a
- * verdict this guard cannot find.
+ * One row of the register, as the document writes it. The heading is not a row and neither is the
+ * rule under a `|---|` divider, so a cell that is not one of the vocabularies is skipped rather
+ * than read as a case nobody produced.
  */
-function composeRegisterEntries(): RegisterEntry[] {
-  const entries: RegisterEntry[] = [];
-  let level: DrillCase["level"] | null = null;
-
-  for (const line of readFileSync(REGISTER_PATH, "utf8").split("\n")) {
-    const heading = LEVEL_BY_HEADING[line.trim()];
-    if (heading !== undefined) {
-      level = heading;
-      continue;
-    }
-    if (line.startsWith("## ")) level = null;
-    if (level === null || !line.startsWith("|")) continue;
-
-    const cells = line
-      .split("|")
-      .slice(1, -1)
-      .map((cell) => cell.trim().replaceAll("*", "").replaceAll("`", ""));
-    const [metricLabel, section, kind, verdict] = cells;
-    if (cells.length !== 4 || metricLabel === undefined || metricLabel === "metric") continue;
-    if (section === undefined || kind === undefined || verdict === undefined) continue;
-    // The separator row under a table's head, which carries no claim.
-    if (metricLabel.startsWith("---")) continue;
-
-    const metric = PANEL_METRICS.find((each) => METRIC_LABELS[each] === metricLabel);
-    if (metric === undefined) {
-      throw new DrillReportError(`docs/drill-levels.md names no metric "${metricLabel}"`);
-    }
-    const known = VERDICTS.find((each) => each === verdict);
-    if (known === undefined) {
-      throw new DrillReportError(`docs/drill-levels.md says "${verdict}", which is no verdict`);
-    }
-    entries.push({ level, metric, section, kind, verdict: known });
-  }
-  return entries;
+interface RegisterRow {
+    screen: string;
+    rung: string;
+    row: string;
+    verdict: string;
 }
 
-function composeAddress(each: RegisterEntry | DrillCase): string {
-  return [each.level, METRIC_LABELS[each.metric], each.section, each.kind].join(" | ");
+function getCellsFromLine(line: string): string[] {
+    const cells: string[] = [];
+    let at = line.indexOf("|");
+    assert(at >= 0, "a table line opens with a bar");
+    let next = line.indexOf("|", at + 1);
+    // The bound is the line's own length: a table row holds fewer cells than it holds characters.
+    for (let held = 0; held < line.length; held += 1) {
+        if (next === -1) break;
+        cells.push(line.slice(at + 1, next).trim());
+        at = next;
+        next = line.indexOf("|", at + 1);
+    }
+    return cells;
 }
 
-describe("the drill-levels register", () => {
-  const entries = composeRegisterEntries();
-  const cases = composeDrillCases(CAPTURED_FIGHTS);
+/** The backticks are the document's, not the vocabulary's, so they come off before comparing. */
+function getBareCell(cell: string): string {
+    const open = cell.indexOf("`");
+    if (open === -1) return cell;
+    const close = cell.indexOf("`", open + 1);
+    if (close === -1) return cell;
+    return cell.slice(open + 1, close);
+}
 
-  test("names every case the captures produce, and no other", () => {
-    const named = entries.map(composeAddress).sort(getTextOrder);
-    const produced = cases.map(composeAddress).sort(getTextOrder);
-
-    expect(named).toEqual(produced);
-  });
-
-  test("gives each case the verdict the captures earn it", () => {
-    const byAddress = new Map(cases.map((each) => [composeAddress(each), each]));
-
-    for (const entry of entries) {
-      const at = composeAddress(entry);
-      const produced = byAddress.get(at);
-      // Named by the test above; read here so a failure names the case rather
-      // than the whole table.
-      if (produced === undefined) continue;
-
-      const earned: Verdict =
-        produced.opens === 0 ? "never" : produced.leaves === 0 ? "always" : "sometimes";
-      expect(earned, at).toBe(entry.verdict);
+/**
+ * The register's own table and no other in the file. Read by the heading it sits under, because
+ * the document carries four other tables and a reader that took all of them would count the
+ * vocabularies as cases.
+ */
+function getRegisterRows(text: string): RegisterRow[] {
+    const found: RegisterRow[] = [];
+    let inside = false;
+    for (const line of text.split("\n")) {
+        if (line.startsWith("## The register")) inside = true;
+        else if (inside && line.startsWith("## ")) break;
+        if (!inside) continue;
+        if (!line.startsWith("| ")) continue;
+        const cells = getCellsFromLine(line).map(getBareCell);
+        const [screen, rung, row, verdict] = cells;
+        if (screen === undefined || rung === undefined) continue;
+        if (row === undefined || verdict === undefined) continue;
+        if (!DRILL_VERDICTS.includes(verdict as never)) continue;
+        found.push({ screen, rung, row, verdict });
     }
-  });
+    return found;
+}
 
-  /**
-   * A table of nothing is green, and the register would be a page of headings.
-   * The floor is the shape rather than the size: both levels are described, and
-   * every metric appears.
-   */
-  test("covers both levels and every metric", () => {
-    expect(entries.filter((each) => each.level === "II").length).toBeGreaterThan(0);
-    expect(entries.filter((each) => each.level === "III").length).toBeGreaterThan(0);
-    for (const metric of PANEL_METRICS) {
-      expect(entries.some((each) => each.metric === metric), METRIC_LABELS[metric]).toBe(true);
-    }
-  });
+function composeRegisterKey(one: RegisterRow): string {
+    return `${one.screen} | ${one.rung} | ${one.row} | ${one.verdict}`;
+}
+
+Deno.test("the register reader finds the register, and nothing else in the file", () => {
+    const sample = "## The register\n\n| screen | level | row | opens |\n| - | - | - | - |\n" +
+        "| `healthGiven` | `opened` | `skill` | `sometimes` |\n";
+    assertEquals(
+        getRegisterRows(sample).map(composeRegisterKey),
+        ["healthGiven | opened | skill | sometimes"],
+        "the reader works",
+    );
+    // The sample it must not flag: every other table in the document, and a row of the register's
+    // own vocabulary tables, which carry two cells rather than four.
+    const elsewhere = "| `healthGiven` | `opened` | `skill` | `sometimes` |\n## The register\n" +
+        "| `always` | every row of this kind opens |\n" +
+        "| screen | level | row | opens |\n";
+    assertEquals(getRegisterRows(elsewhere), [], "a table outside the register is not one");
 });
 
-describe("what the register is read with", () => {
-  /**
-   * ⚠️ **The keys are written out here on purpose, and that is now the check.**
-   * `getRowKind` reads them through `src/ui/panel-screen.ts` rather than through
-   * prefixes of its own, so these literals are the one place the tool's answer is held
-   * to the panel's actual spelling: rename `NO_TARGET_ROW_KEY` and this goes red, where
-   * before the whole gate stayed green. Collapsing them to the constants would make
-   * this test agree with whatever the grammar became, which is §9.3's reason for asking
-   * before collapsing a duplicate spelling in a test.
-   */
-  test("names a row by the key it carries, and refuses to guess", () => {
-    expect(getRowKind("target:1")).toBe("person");
-    expect(getRowKind("skill:1:78")).toBe("skill");
-    expect(getRowKind("unannounced")).toBe("closing row");
-    expect(getRowKind("leaf:unannounced")).toBe("closing row");
-    expect(getRowKind("no-actor")).toBe("missing end");
-    expect(getRowKind("no-target")).toBe("missing end");
-    expect(getRowKind("source:poison")).toBe("source");
-    expect(getRowKind("leaf:3")).toBe("leaf");
-    // A key this repository never composed, which is the one a kind must not be
-    // invented for.
-    expect(getRowKind("something-else")).toBe("unknown");
-  });
+Deno.test("the register names every case the panel produces, and no case it does not", () => {
+    const cases = composeDrillCases(composeReplayedMaterial([]).replays);
+    const measured = new Set(
+        cases.map((one) => `${one.screen} | ${one.rung} | ${one.row} | ${one.verdict}`),
+    );
+    const written = new Set(
+        getRegisterRows(Deno.readTextFileSync(REGISTER_PATH))
+            .map(composeRegisterKey),
+    );
+    assert(written.size > 0, "the register carries rows");
+    const unwritten = [...measured].filter((one) => !written.has(one)).sort();
+    assertEquals(unwritten, [], `${REGISTER_PATH}: the panel draws a case the register does not`);
+    const undrawn = [...written].filter((one) => !measured.has(one)).sort();
+    assertEquals(
+        undrawn,
+        [],
+        `${REGISTER_PATH}: the register names a case the panel does not draw`,
+    );
+});
 
-  test("every kind it can answer is one the register may name", () => {
-    for (const kind of ROW_KINDS) expect(typeof kind).toBe("string");
-    expect(new Set(ROW_KINDS).size).toBe(ROW_KINDS.length);
-  });
+Deno.test("every case is one of the vocabularies the register states", () => {
+    const cases = composeDrillCases([composeFightReplay(getRecordedFightAt(HILDUR))]);
+    assert(cases.length > 0, "the recording produces cases");
+    for (const one of cases) {
+        assert(SCREEN_ORDER.includes(one.screen), `${one.screen} is a screen the strips draw`);
+        assert(DRILL_RUNGS.includes(one.rung), `${one.rung} is a level the panel has`);
+        assert(DRILL_ROWS.includes(one.row), `${one.row} is a kind of row the panel draws`);
+        assert(DRILL_VERDICTS.includes(one.verdict), `${one.verdict} is a verdict`);
+        assert(one.opens + one.shut > 0, "and a case counted was counted at least once");
+    }
+});
 
-  /**
-   * The name inside a deep level's heading is the game's own (§5) and is what
-   * would turn one case into one row per combatant, so it comes out.
-   */
-  test("takes the combatant's name out of a heading", () => {
-    expect(composeSectionName("CZYM — Gracz 4")).toBe("CZYM — …");
-    expect(composeSectionName("KOMU")).toBe("KOMU");
-    expect(composeSectionName(null)).toBe("(no heading)");
-  });
+/**
+ * The verdict for a ranking row is the one cell no reading can answer: the mark is written by the
+ * element layer without asking anybody, so the tool states it rather than measuring it. Held here
+ * instead, off the drawn panel — a ranking that stopped marking its rows would leave the register
+ * saying `always` with nothing behind it.
+ */
+Deno.test("every row of every ranking carries the mark that opens it", () => {
+    const replay = composeFightReplay(getRecordedFightAt(HILDUR));
+    for (const screen of SCREEN_ORDER) {
+        const reading = composePanelReading(
+            replay.statistics,
+            replay.roster,
+            screen,
+            "everyone",
+            replay.reading.readerSide,
+            NOTHING_MISSED,
+        );
+        const document = composeFakeDocument();
+        const panel = composePanelHost(document, () => {}, () => {});
+        panel.show({
+            reading,
+            current: screen,
+            side: "everyone" as const,
+            hasReaderSide: false,
+            shelf: [],
+            isOnShelf: false,
+            storage: "local" as const,
+            shelfWarnings: [],
+            drill: null,
+            pair: null,
+            skill: null,
+            place: null,
+            isCollapsed: false,
+        });
+        const drawn = getElementsWithin(panel.element as FakeElement)
+            .filter((one) => one.className.split(" ")[0] === "row");
+        const opening = drawn.filter((one) => one.attributes.get("data-row") !== undefined);
+        assert(drawn.length > 0, `${screen}: the ranking drew rows`);
+        assertEquals(opening.length, reading.rows.length, `${screen}: every combatant row opens`);
+        // And the mark and the cursor agree: a row marked `leaf` that carried `data-row` would
+        // open under a cursor saying it does not, which is the panel saying two things at once.
+        for (const row of drawn) {
+            const opens = row.attributes.get("data-row") !== undefined;
+            assertEquals(
+                row.className.includes("drillable"),
+                opens,
+                `${screen}: a row's cursor says what its mark says`,
+            );
+        }
+    }
+});
 
-  test("refuses a capture it does not have", () => {
-    expect(() => {
-      throw new DrillReportError("nothing by that name");
-    }).toThrow(DrillReportError);
-  });
+Deno.test("the report is the composition, and states the material it was taken on", () => {
+    const cases = composeDrillCases([composeFightReplay(getRecordedFightAt(HILDUR))]);
+    const lines = composeCaseReport(cases);
+    assert(lines[0]?.includes("verdict"), "the table is headed");
+    assertEquals(lines.length, cases.length + 1, "and holds a line per case under that heading");
+    for (const one of cases) {
+        assert(
+            lines.some((line) => line.includes(one.screen) && line.includes(one.verdict)),
+            `${one.screen} ${one.rung} ${one.row} is on the table`,
+        );
+    }
+});
+
+Deno.test("a recording walked row by row names whom each level was opened from", () => {
+    const replay = composeFightReplay(getRecordedFightAt(HILDUR));
+    const lines = composeDrillReport(replay, ["healthGiven"]);
+    assert(
+        lines.includes("=== 2026-08-06-tempest-grupa-vs-hildur-1785244275300-none ==="),
+        "named for its file",
+    );
+    assert(lines.includes("  --- healthGiven ---"), "and for the screen it walked");
+    assert(lines.some((line) => line.includes("person  opens")), "some rows of it open");
+    assert(lines.some((line) => line.includes("person  leaf")), "and some do not");
+    assert(
+        !lines.some((line) => line.includes("--- damageDealtApplied ---")),
+        "a screen nobody asked for is not walked",
+    );
 });

@@ -1,624 +1,211 @@
 /**
- * The health a combatant holds through a fight, and what a share stated about a
- * whole side restores to each of them.
+ * Health read out of the share the protocol states, and how far that reading can be off.
  *
- * The protocol never states a figure for a team heal. It states a **share**, and
- * names only the caster (`docs/protocol-keys.md`, `healall_per`). Turning that
- * into health needs three figures the protocol does not carry — each combatant's
- * maximum, the health they entered the fight with, and the health they hold at
- * the moment — and this is where the two that can be derived are derived and the
- * third is asked for.
- *
- * ⚠️ **Every input is refused rather than defaulted.** A share applied against a
- * maximum we guessed, or capped against an entry health we assumed, produces a
- * figure that is too high — and too high is the one direction the panel cannot
- * mark, because nothing downstream would know it had happened (§9.6). So a
- * combatant missing any input is left out of the cast, and the cast stays counted
- * as unaccounted for.
+ * A reading is refused rather than defaulted: a share taken of a maximum nobody stated is a
+ * figure that is too high, which is the one direction a panel cannot mark.
  */
 
-import { setRunningTotal } from "@/libs/running-total.ts";
+import { getValueWithin } from "@/libs/number-range.ts";
+import { assert } from "@std/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
-import { SIDE_SHARE_HEALTH_KEYS } from "@/src/core/fight-decoder.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
+import { HEALTH_PERCENT_PLACES } from "@/src/core/protocol-number.ts";
 
-/**
- * What each combatant entered the fight holding — the ceiling restored health
- * cannot pass, which the help states of restored health generally rather than of
- * one skill (`docs/protocol-keys.md`).
- *
- * ⚠️ **Maximum health is deliberately not here.** The roster already carries it
- * and is already handed to every reader below, so a second copy would be one more
- * place for the same fact to be stated differently (§9.3). This is the one figure
- * nothing else holds: it is a property of a *moment* — the fight's first — and
- * the roster is a property of the fight.
- */
+const PERCENT_WHOLE = 100;
+const DECIMAL_BASE = 10;
+/** Two places stand for a band half a place wide, and the health behind it is that share. */
+const HALF_PLACE = 0.5;
+
+export function getHealthToleranceFromMaximum(healthMaximum: number): number {
+    assert(Number.isFinite(healthMaximum), "a maximum to measure against is a number");
+    assert(healthMaximum >= 0, "a maximum is never below nothing");
+    const places = DECIMAL_BASE ** HEALTH_PERCENT_PLACES;
+    const band = (healthMaximum * HALF_PLACE) / (PERCENT_WHOLE * places);
+    return Math.ceil(band + HALF_PLACE);
+}
+
+/** Null where nothing stated a maximum. Zero is a reading, and never stands in for one. */
+export function getHealthFromPercent(percent: number, healthMaximum: number | null): number | null {
+    assert(Number.isFinite(percent), "a percentage to read from is a number");
+    assert(percent >= 0, "a percentage is never below nothing");
+    if (healthMaximum === null) return null;
+    assert(Number.isFinite(healthMaximum), "a maximum to read against is a number");
+    const health = Math.round((percent * healthMaximum) / PERCENT_WHOLE);
+    assert(health >= 0, "health read from a percentage is never below nothing");
+    return health;
+}
+
+/** What each combatant held when the fight began. Missing where nothing ever stated them. */
 export type FightEntryHealth = ReadonlyMap<number, number>;
 
 /**
- * A fight nothing could be read for: joined in progress, or opened by a payload
- * whose own messages cannot be unwound.
- *
- * The default every caller gets, so a reader that knows none of this degrades to
- * the behaviour that predates it rather than to a wrong number.
+ * Where an event says a combatant stands. Read here rather than at each caller, so the health
+ * the protocol states is gathered in one place whatever event carried it.
  */
-export const NO_ENTRY_HEALTH: FightEntryHealth = new Map();
+export function getStatedHealthFromEvent(event: BattleEvent): [number, number][] {
+    const stated: [number, number][] = [];
+    if (event.kind === "attack" || event.kind === "skill-used") {
+        if (event.actorId !== null && event.actorHealthPercent !== null) {
+            stated.push([event.actorId, event.actorHealthPercent]);
+        }
+        if (event.targetId !== null && event.targetHealthPercent !== null) {
+            stated.push([event.targetId, event.targetHealthPercent]);
+        }
+    }
+    if (event.kind === "health-change" || event.kind === "declaration") {
+        if (event.combatantId !== null && event.healthPercent !== null) {
+            stated.push([event.combatantId, event.healthPercent]);
+        }
+    }
+    if (event.kind === "damage-to-named-combatant" || event.kind === "healing-to-named-combatant") {
+        if (event.targetId !== null && event.targetHealthPercent !== null) {
+            stated.push([event.targetId, event.targetHealthPercent]);
+        }
+    }
+    assert(stated.length <= 2, "an event states where at most two combatants stand");
+    return stated;
+}
 
 /**
- * The effect the help says reduces this healing, by the name it arrives under.
+ * The health a fight was entered with, unwound from the **first** statement about each combatant.
  *
- * It is named here for its **presence or its absence**: the client composes it
- * into the battle log with a figure in it (production build `1786514810315`), so
- * a fight that never mentions it is a fight where the reduction was not applied.
- * That is what turns *not observed* into *not in play*, and without it no cast
- * could be sized at all.
+ * A message that moves somebody's health names them, so the first percentage stated about a
+ * combatant is at or before anything that could have changed it. The exception is the one gap 12
+ * records: a payload that moves health with no message at all.
  *
- * ⚠️ **This docblock argued from the key never having been recorded, and that
- * stopped being true on 2026-08-27.**
- * `tests/captured-fights/2026-08-27-luvia-grupa-vs-amaimon-2.json` carries four
- * occurrences, and they are the first material anywhere to reach this refusal.
- *
- * ⚠️ **Presence is read by the side the effect reaches, and that widening was
- * asked for and granted on 2026-08-27 (§9.6).** Article `view,372` at the engine
- * name (read 2026-08-27) gives it as lowering the healing that active-skill
- * effects give every character on the **opposing** team, applied and fired on the
- * initiation layer. So a cast is refused where the reducer was declared from the
- * other side of it and sized where it was declared from its own. Nothing here is
- * apportioned and no person is guessed at: the scope is the article's, and the
- * side it is read off is the caster the protocol names on the announcement the
- * declaration rides. What the fight-wide refusal cost is in
- * `docs/specs/sizing-a-share-onto-a-side.md`.
- *
- * ⚠️ **The material agrees, and agreement is the check rather than the reason.**
- * In the only recording carrying the key, all four occurrences are cast by one of
- * ours at the monster, and the three shares that fight states are unreduced: 30,
- * 30 and 22.5, where 22.5 is 30 less a quarter of it — the article's own rule
- * that each further use of an ability carrying such an effect gives back 25% of
- * the base less. It is not `27` applied to anything, which is what a reduction
- * reaching our own side would have looked like.
+ * A combatant nothing states, or one with no maximum, is left out rather than guessed at: a share
+ * capped against an entry health we assumed is a figure that is too high.
  */
+export function composeFightEntryHealth(
+    events: readonly BattleEvent[],
+    roster: CombatantRoster,
+): FightEntryHealth {
+    const entered = new Map<number, number>();
+    assert(roster.byId.size >= 0, "a roster states who is in the fight, however few");
+    for (const event of events) {
+        for (const [combatantId, percent] of getStatedHealthFromEvent(event)) {
+            if (entered.has(combatantId)) continue;
+            const maximum = roster.byId.get(combatantId)?.healthMaximum ?? null;
+            const health = getHealthFromPercent(percent, maximum);
+            if (health === null) continue;
+            assert(maximum === null || health <= maximum, "nobody enters above their own pool");
+            entered.set(combatantId, health);
+        }
+    }
+    assert(entered.size <= roster.byId.size, "a fight is entered by the people in it");
+    assert([...entered.values()].every((one) => one >= 0), "nobody enters below nothing");
+    return entered;
+}
+
+export interface TeamHeal {
+    casterId: number;
+    source: string;
+    declaredShare: number;
+    restoredByCombatantId: ReadonlyMap<number, number>;
+    /** False where a side-mate could not be sized, so the cast is still counted as missing. */
+    isWhole: boolean;
+}
+
+/** The key that reduces this healing, which the help scopes to the caster's opposing side. */
 const HEALING_REDUCER_KEY = "lowheal_per-enemies";
+const PERCENT_SHARE = 100;
 
-/** The protocol states health to two places, so a stated share is this wide. */
-const STATED_PERCENT_TOLERANCE = 0.005;
-
-/** What the protocol's stated share of a maximum comes to, in health points. */
-function getHealthFromStatedPercent(percent: number, maximumHealth: number): number {
-  return Math.round((percent / 100) * maximumHealth);
+/** Sides a reducer reached: the ones its own caster faced, which is what the help states. */
+function getReducedSides(events: readonly BattleEvent[], roster: CombatantRoster): Set<number> {
+    assert(HEALING_REDUCER_KEY.length > 0, "the reducer is a key with a name");
+    const reduced = new Set<number>();
+    for (const event of events) {
+        if (event.kind !== "skill-used") continue;
+        if (!event.declared.some((one) => one.effect === HEALING_REDUCER_KEY)) continue;
+        const casterSide = roster.byId.get(event.actorId ?? Number.NaN)?.side;
+        for (const combatant of roster.byId.values()) {
+            if (combatant.side === casterSide) continue;
+            reduced.add(combatant.side);
+        }
+    }
+    assert(reduced.size <= roster.byId.size, "a side reduced is a side somebody is on");
+    return reduced;
 }
 
 /**
- * Whether a running total is still consistent with the health the protocol
- * states.
- *
- * ⚠️ **The stated percentage is a bound, not a value, and the difference is
- * measured.** Two places against a pool in the tens of thousands quantises to
- * about a point and a half, and that lands squarely on the cap term. Overwriting
- * the exact running total with the rounded figure every time one is stated puts 8
- * of 110 readings a point wrong; keeping the total wherever the protocol does not
- * contradict it puts none wrong.
- *
- * ⚠️ **The recordings do not exercise the correction, only the restraint.**
- * Removing the resync entirely reproduces every one of those readings too, across
- * the seventeen recordings held on 2026-08-19: every health movement in them is
- * one the decoder reads, so nothing has ever drifted. What this holds is the case
- * that material has not produced and the witness exists to catch: health that
- * moved for a reason we could not read. A running total has
- * no way to notice that on its own, and the cap is taken against it. Held by a
- * hand-built fight in `tests/core/combatant-health.test.ts` rather than by the
- * captures, which is stated here so the next person does not go looking for the
- * recording that justifies it.
+ * One cast, sized onto the caster's own side: a share of each member's maximum, floored, and
+ * capped at what they entered the fight with. A member missing any of the three is not sized,
+ * and the cast keeps saying so.
  */
-function isWithinStatedHealth(
-  currentHealth: number,
-  percent: number,
-  maximumHealth: number,
-): boolean {
-  const lowest = ((percent - STATED_PERCENT_TOLERANCE) / 100) * maximumHealth;
-  const highest = ((percent + STATED_PERCENT_TOLERANCE) / 100) * maximumHealth;
-  return currentHealth >= lowest && currentHealth <= highest;
-}
-
-/**
- * The unwound figure held to the maximum, or null where it sits above it by more
- * than the reading it came from could have hidden.
- *
- * ⚠️ **The ceiling was exact and its input is not.** A statement is a percentage
- * to two places, so reading it back into health is worth half a hundredth of the
- * pool either way — the same width `isWithinStatedHealth` is built on, and about
- * one point on a pool of 24 000. Floored at one point below that, for the reason
- * the body gives: this comparison has a whole number on both sides and the
- * sibling does not, which is why only this one needed it.
- *
- * ⚠️ **Measured on a recording this repository does not hold**, and said so
- * rather than left as an assertion: `margometer-tempest-2026-08-17T17-01-49-635Z`,
- * a Hildur group fight, where one combatant is stated at 85.87% having taken
- * 3 374 — which reads back as 20 501 where they held 20 500, and unwinds to
- * 23 875 of a possible 23 874. Refused by one point, and a refusal is final, so
- * the two later statements that both unwind to exactly 23 874 were never read:
- * the combatant had no entry health, no cast of that fight was whole, and all six
- * of them stayed counted as healing nobody could size. The shape is held by a
- * hand-built fight in `tests/core/combatant-health.test.ts`, because the material
- * carries a protocol key nothing here reads yet and intake is its own round.
- *
- * ⚠️ **A snapshot has no such slack and passes through it anyway.** It states
- * whole health, so an overshoot there is a real disagreement rather than a
- * rounding — but one check is worth more than two that differ by a point, and a
- * snapshot contradicting the messages by a single point is not a contradiction
- * worth refusing a combatant over. The reading that overshoots by more than this
- * is refused whichever end it came from, which is the case the check exists for:
- * 1 241 above the maximum on
- * `tests/captured-fights/2026-08-12-experimental-tancerz-vs-wojownik.json`.
- */
-function getEnteredHealth(unwound: number, maximumHealth: number): number | null {
-  if (unwound <= 0) return null;
-  if (unwound <= maximumHealth) return unwound;
-  /**
-   * ⚠️ **Never less than one health point, and that floor is the whole reading.**
-   * Past the line above this difference is a positive *integer* — maximum health
-   * is whole and every movement decoded here is whole — so an allowance under a
-   * point admits nothing at all, and `(0.005 / 100) × pool` is under a point for
-   * every pool below 20 000: 43 of the 66 in the corpus on 2026-08-23. Without the
-   * floor this branch was exactly `return null` for all of them
-   * (`docs/specs/sizing-a-share-onto-a-side.md`).
-   *
-   * ⚠️ **The corpus exercises the floor and not the share beside it.** Replacing
-   * the whole expression with a flat `1` reddens nothing on the twenty recordings
-   * held on 2026-08-23, and neither does raising the floor to `2`. The share is
-   * kept because it is the derivation rather than a fitted number — a percentage
-   * to two places is worth that much of the pool — and it can only matter to a
-   * combatant unwound from percentages on a pool past 40 000, which here is the
-   * bosses alone, and every boss in this material states a snapshot instead. Said
-   * out loud because a surviving mutant is a finding (§7.5): this one is untested
-   * rather than inert, and the next recording of a boss with no opening snapshot
-   * is what would test it.
-   */
-  const allowance = Math.max(1, (STATED_PERCENT_TOLERANCE / 100) * maximumHealth);
-  return unwound - maximumHealth <= allowance ? maximumHealth : null;
-}
-
-/**
- * What one side-mate gets: the floored share of their maximum, capped by the room
- * between where they stand and where they started.
- *
- * Both halves are measured on every capture that carries the key, and neither is
- * optional — dropping the cap reports 81% more healing than happened
- * (`tests/core/team-heal-rule.test.ts`).
- */
-function getRestoredHealth(
-  declaredShare: number,
-  maximumHealth: number,
-  entryHealth: number,
-  currentHealth: number,
-): number {
-  // A combatant at zero is reached by the cast and restored nothing — measured,
-  // and stated here because the cap alone would not say it: somebody who died at
-  // full health has room below their entry figure and still gains nothing.
-  if (currentHealth <= 0) return 0;
-  return Math.min(
-    Math.floor((declaredShare / 100) * maximumHealth),
-    Math.max(0, entryHealth - currentHealth),
-  );
-}
-
-/**
- * What one combatant stated, or nothing where either half is missing.
- *
- * A reader rather than the expression written out per branch: the same eight lines
- * stood in `attack` and in `skill-used`, and the one-end form of them in four branches
- * more — so two of them shared a body no test could tell apart. What each kind decides
- * is now the only thing each kind writes down: **which slots** it states health for.
- *
- * Both halves are checked because the pair is typed `[number, number]` and not because
- * a caller could act on the difference: a combatant the roster could not place is
- * refused downstream anyway, for having no maximum. So this is the type being honest
- * rather than a branch anything observes — mutating the `||` to `&&` changes no answer
- * this module gives.
- */
-function composeStatement(
-  combatantId: number | null,
-  percent: number | null,
-): readonly (readonly [number, number])[] {
-  return combatantId === null || percent === null ? [] : [[combatantId, percent]];
-}
-
-/**
- * How one event moves health, and what health it states.
- *
- * One reader for both, because both walks below need both and they must agree
- * about which end of a message an event belongs to. A movement is what we decoded;
- * a statement is what the protocol says the combatant holds **after** it — the
- * client applies the percentages before it looks at a single key
- * (`docs/protocol-keys.md`), so a statement is read after its own event's movement
- * and never before.
- */
-function getHealthReadingOfEvent(event: BattleEvent): {
-  movements: readonly (readonly [number, number])[];
-  statements: readonly (readonly [number, number])[];
-} {
-  switch (event.kind) {
-    case "attack": {
-      const taken = event.taken.reduce((total, damage) => total + damage.amount, 0);
-      return {
-        movements: event.targetId === null ? [] : [[event.targetId, -taken]],
-        statements: [
-          ...composeStatement(event.actorId, event.actorHealthPercent),
-          ...composeStatement(event.targetId, event.targetHealthPercent),
-        ],
-      };
+function composeTeamHeal(
+    event: BattleEvent,
+    roster: CombatantRoster,
+    entered: FightEntryHealth,
+    held: ReadonlyMap<number, number>,
+): TeamHeal | null {
+    if (event.kind !== "unaccounted-health") return null;
+    if (event.combatantId === null) return null;
+    if (event.declaredShare === null) return null;
+    const casterSide = roster.byId.get(event.combatantId)?.side;
+    if (casterSide === undefined) return null;
+    const restored = new Map<number, number>();
+    assert(event.declaredShare >= 0, "a share sized is never below nothing");
+    let isWhole = true;
+    for (const combatant of roster.byId.values()) {
+        if (combatant.side !== casterSide) continue;
+        const entry = entered.get(combatant.id);
+        const now = held.get(combatant.id);
+        if (combatant.healthMaximum === null || entry === undefined || now === undefined) {
+            isWhole = false;
+            continue;
+        }
+        const share = Math.floor((event.declaredShare * combatant.healthMaximum) / PERCENT_SHARE);
+        const amount = getValueWithin(share, 0, entry - now);
+        assert(amount <= share, "nobody is given more than the share the protocol stated");
+        restored.set(combatant.id, amount);
     }
-    case "damage-to-named-combatant": {
-      if (event.targetId === null) return { movements: [], statements: [] };
-      return {
-        movements: [[event.targetId, -event.damage.amount]],
-        statements: composeStatement(event.targetId, event.targetHealthPercent),
-      };
-    }
-    case "healing-to-named-combatant": {
-      if (event.targetId === null) return { movements: [], statements: [] };
-      return {
-        movements: [[event.targetId, event.amount]],
-        statements: composeStatement(event.targetId, event.targetHealthPercent),
-      };
-    }
-    case "health-change": {
-      if (event.combatantId === null) return { movements: [], statements: [] };
-      return {
-        movements: [[event.combatantId, event.amount]],
-        statements: composeStatement(event.combatantId, event.healthPercent),
-      };
-    }
-    case "team-heal": {
-      return { movements: [...event.restoredByCombatantId], statements: [] };
-    }
-    /**
-     * Neither of these moves health, and both state it. They are here because the
-     * *earliest* thing a fight says about a combatant is very often an
-     * announcement or a `step`, and that is exactly what an entry health is
-     * unwound from.
-     */
-    case "skill-used": {
-      return {
-        movements: [],
-        statements: [
-          ...composeStatement(event.actorId, event.actorHealthPercent),
-          ...composeStatement(event.targetId, event.targetHealthPercent),
-        ],
-      };
-    }
-    case "declaration": {
-      return {
-        movements: [],
-        statements: composeStatement(event.combatantId, event.healthPercent),
-      };
-    }
-    default:
-      return { movements: [], statements: [] };
-  }
-}
-
-function hasUnsizedHealth(event: BattleEvent): boolean {
-  return event.kind === "unaccounted-health";
-}
-
-/**
- * What each combatant entered the fight holding, unwound from the first thing the
- * fight said about them.
- *
- * ⚠️ **The health first seen is not the health entered with.** The payload that
- * opens a fight carries that payload's own messages, and anything it states — a
- * snapshot or a percentage inside a message — is the state *after* them. So every
- * reading is unwound: `entry = stated − everything decoded up to that point`.
- *
- * ⚠️ **And the snapshot is not the earliest thing the fight says.** This began by
- * unwinding the snapshot alone, and refused two captures outright — the ones whose
- * opening payload carries 354 and 297 messages with no snapshot beside them, so
- * the first snapshot sits *after* eight casts nothing could size. The messages in
- * that opening state health percentages of their own, and in both captures every
- * one of the eleven combatants is stated before the first cast. So the anchor is
- * **the first statement about each combatant**, whichever kind it is, and the
- * snapshot is the fallback for anyone the messages never name.
- *
- * Refusals, each of them a health nobody could have held:
- *
- *   - a combatant whose first statement comes **after** a figure we cannot size —
- *     an unwind cannot pass through health it does not have, and a team heal in
- *     the opening is exactly that;
- *   - a combatant with no maximum, or one unwound to nothing at all, or one
- *     unwound further above the maximum than the reading it came from could have
- *     hidden — `getEnteredHealth`, which is where the width of that comes from.
- *
- * A refusal is per combatant and final: a reading that contradicts itself is not
- * retried against the next statement, because the contradiction says the unwind is
- * wrong rather than that the statement was. That finality is what made the width
- * above load-bearing rather than a nicety — a first statement refused by one point
- * takes every later statement about that combatant with it.
- */
-export function composeEntryHealthByCombatantId(
-  statedHealthByCombatantId: ReadonlyMap<number, number>,
-  maximumHealthByCombatantId: ReadonlyMap<number, number>,
-  events: readonly BattleEvent[],
-): Map<number, number> {
-  const movedSoFar = new Map<number, number>();
-  /** What the first statement about each combatant unwinds to, before checking. */
-  const fromFirstStatement = new Map<number, number>();
-  let hasPassedUnsizedHealth = false;
-
-  for (const event of events) {
-    if (hasUnsizedHealth(event)) {
-      hasPassedUnsizedHealth = true;
-      continue;
-    }
-    const { movements, statements } = getHealthReadingOfEvent(event);
-    for (const [combatantId, amount] of movements) {
-      setRunningTotal(movedSoFar, combatantId, amount);
-    }
-    // Nothing is recorded once a figure we cannot size has gone past: from there
-    // on, every statement is about a health this reader cannot account for.
-    if (hasPassedUnsizedHealth) continue;
-    for (const [combatantId, percent] of statements) {
-      if (fromFirstStatement.has(combatantId)) continue;
-      // A combatant the game has clamped to zero says where they are and not how
-      // much reached them, so the unwind cannot start from one (§9.3).
-      if (percent <= 0) continue;
-      const maximumHealth = maximumHealthByCombatantId.get(combatantId);
-      if (maximumHealth === undefined) continue;
-      fromFirstStatement.set(
-        combatantId,
-        getHealthFromStatedPercent(percent, maximumHealth) - (movedSoFar.get(combatantId) ?? 0),
-      );
-    }
-  }
-
-  const entry = new Map<number, number>();
-  const combatantIds = new Set([...statedHealthByCombatantId.keys(), ...fromFirstStatement.keys()]);
-  for (const combatantId of combatantIds) {
-    /**
-     * ⚠️ **The snapshot wins wherever it can be used, and the order is measured.**
-     * It states whole health; a percentage states two decimal places of a pool in
-     * the tens of thousands, which quantises to about a point and a half. Reading
-     * the percentage in preference put three of 110 readings a point wrong — the
-     * error lands on the cap, exactly as it does in the resync. The statement is a
-     * rescue for the case the snapshot cannot answer, never an improvement on it.
-     */
-    const stated = hasPassedUnsizedHealth
-      ? undefined
-      : statedHealthByCombatantId.get(combatantId);
-    /**
-     * ⚠️ **A snapshot at nothing is the game's clamp, and the clamp is not a
-     * figure.** It says where they stand and not how much reached them, so the
-     * overkill that went past it is missing from the unwind and the reading comes
-     * out above the maximum. The statement loop above and `setStatedHealth` below
-     * are both held to exactly this; the snapshot was the third place and the one
-     * it never reached. Measured on
-     * `tests/captured-fights/2026-08-12-experimental-tancerz-vs-wojownik.json`:
-     * combatant 114881's clamped zero unwinds to 20 288 of a possible 19 047,
-     * while their own first statement gives 19 047 exactly.
-     */
-    const fromSnapshot = stated !== undefined && stated > 0 ? stated : undefined;
-    const unwound =
-      fromSnapshot === undefined
-        ? fromFirstStatement.get(combatantId)
-        : fromSnapshot - (movedSoFar.get(combatantId) ?? 0);
-    if (unwound === undefined) continue;
-
-    const maximumHealth = maximumHealthByCombatantId.get(combatantId);
-    if (maximumHealth === undefined) continue;
-    const entryHealth = getEnteredHealth(unwound, maximumHealth);
-    if (entryHealth === null) continue;
-    entry.set(combatantId, entryHealth);
-  }
-  return entry;
-}
-
-/** Everyone the roster puts on this combatant's side, the combatant included. */
-function getSideByCombatantId(roster: CombatantRoster, casterId: number): number[] {
-  const caster = roster.byId.get(casterId);
-  if (caster === undefined) return [];
-  return [...roster.byId.values()]
-    .filter((combatant) => combatant.side === caster.side)
-    .map((combatant) => combatant.id);
-}
-
-/** One cast, sized as far as the inputs reach. */
-type Cast = {
-  restoredByCombatantId: Map<number, number>;
-  /** Whether every member of the caster's side could be sized. */
-  isWhole: boolean;
-};
-
-function composeCast(
-  casterId: number,
-  declaredShare: number,
-  roster: CombatantRoster,
-  entryHealthByCombatantId: FightEntryHealth,
-  currentByCombatantId: ReadonlyMap<number, number>,
-): Cast | null {
-  const side = getSideByCombatantId(roster, casterId);
-  if (side.length === 0) return null;
-
-  /**
-   * The clause the help states and no recording can reach: the effect is half as
-   * strong where the caster has no allies in the fight. Every capture carrying
-   * this key is a group fight, so the halving is never observed — which is
-   * exactly why it is refused rather than applied. A standing side-mate other
-   * than the caster is the one reading of "allies" that cannot be too generous.
-   */
-  const hasStandingAlly = side.some(
-    (combatantId) => combatantId !== casterId && (currentByCombatantId.get(combatantId) ?? 0) > 0,
-  );
-  if (!hasStandingAlly) return null;
-
-  const restoredByCombatantId = new Map<number, number>();
-  let isWhole = true;
-  for (const combatantId of side) {
-    const maximumHealth = roster.byId.get(combatantId)?.maximumHealth ?? null;
-    const entryHealth = entryHealthByCombatantId.get(combatantId);
-    const currentHealth = currentByCombatantId.get(combatantId);
-    if (maximumHealth === null || entryHealth === undefined || currentHealth === undefined) {
-      isWhole = false;
-      continue;
-    }
-    restoredByCombatantId.set(
-      combatantId,
-      getRestoredHealth(declaredShare, maximumHealth, entryHealth, currentHealth),
-    );
-  }
-  if (restoredByCombatantId.size === 0) return null;
-  return { restoredByCombatantId, isWhole };
-}
-
-/**
- * The sides whose active-skill healing a reducer in this fight could have
- * lowered.
- *
- * One occurrence disqualifies its sides for the whole fight rather than for the
- * casts after it: the effect is declared once and applies from the initiation
- * layer, so a cast earlier in the same fight is no safer than a later one.
- *
- * ⚠️ **A reducer this cannot place reaches every side**, which is the fight-wide
- * refusal that stood here before the scope was read, kept for exactly the cases
- * that earn it. Two of them: an occurrence whose caster the roster cannot
- * resolve, and one arriving among an `unknown-message`'s unread keys. That event
- * names the ends of its message and not which slot each came from
- * (`battle-event.ts`), so reading the first of them as the caster would be right
- * only while the actor slot is filled — and wrong in silence where it is not,
- * which is the direction that oversizes.
- *
- * ⚠️ **Both shapes are read, and the second is not redundant.** Every one of the
- * four occurrences in the material rides a skill announcement, so the key is
- * decoded and arrives as a declaration. It reaches `unreadKeys` instead wherever
- * the announcement is missing — `fight-decoder.ts` hands a declaration back to
- * unread when the message it sat on named no skill. Reading only the declaration
- * would make this gate depend on the key staying in `SKILL_DECLARATION_KEYS`,
- * where removing it would switch the refusal off with every test still green.
- *
- * ⚠️ **Every other side, and not "the other one".** The help says the opposing
- * team; the protocol states a side as a bare number and never how many there are
- * (§10). Where a fight holds three, refusing all but the caster's own is the
- * direction that refuses more, and healing refused is healing the panel marks.
- */
-function getSidesWithReducedHealing(
-  events: readonly BattleEvent[],
-  roster: CombatantRoster,
-): ReadonlySet<number> {
-  const everySide = new Set([...roster.byId.values()].map((combatant) => combatant.side));
-  const reduced = new Set<number>();
-  for (const event of events) {
-    if (event.kind === "unknown-message" && event.unreadKeys.includes(HEALING_REDUCER_KEY)) {
-      return everySide;
-    }
-    if (event.kind !== "skill-used") continue;
-    if (!event.declared.some((declaration) => declaration.effect === HEALING_REDUCER_KEY)) continue;
-    const casterSide = event.actorId === null ? undefined : roster.byId.get(event.actorId)?.side;
-    if (casterSide === undefined) return everySide;
-    for (const side of everySide) if (side !== casterSide) reduced.add(side);
-  }
-  return reduced;
-}
-
-/**
- * The fight's events with every team heal this meter can size turned into a
- * figure, and every one it cannot left exactly as it was.
- *
- * Walked in message order with a running health total per combatant, because the
- * cap needs to know where somebody stands and nothing else in the pipeline keeps
- * that. The total is seeded from the entry health, moved by every event the
- * decoder read, and **checked** against the health the protocol restates each
- * time it names a combatant — see `isWithinStatedHealth` for why that is a check
- * and not an assignment.
- *
- * ⚠️ **A sized cast does not always replace the event it came from.** Where a
- * member of the side could not be sized, the `unaccounted-health` event stays
- * beside the `team-heal`, so the reading downstream still counts this fight as
- * having healing it could not place (§9.6). Only a cast whose whole side was
- * sized takes its unaccounted event's place.
- */
-export function composeSizedTeamHeals(
-  events: readonly BattleEvent[],
-  roster: CombatantRoster | null,
-  entryHealthByCombatantId: FightEntryHealth,
-): BattleEvent[] {
-  if (roster === null) return [...events];
-  const sidesWithReducedHealing = getSidesWithReducedHealing(events, roster);
-
-  // Bound after the guard so the narrowing survives into the closure below.
-  const known = roster;
-
-  const currentByCombatantId = new Map(entryHealthByCombatantId);
-  const sized: BattleEvent[] = [];
-
-  function setStatedHealth(combatantId: number, percent: number): void {
-    // A combatant the protocol states at nothing has been clamped by the game, and
-    // the clamp hides whatever overkill went past it — so it says where they are
-    // and not how much reached them. Never a resync (§9.3: unknown is not zero).
-    if (percent <= 0) return;
-    const maximumHealth = known.byId.get(combatantId)?.maximumHealth ?? null;
-    if (maximumHealth === null) return;
-    const currentHealth = currentByCombatantId.get(combatantId);
-    if (currentHealth !== undefined && isWithinStatedHealth(currentHealth, percent, maximumHealth)) {
-      return;
-    }
-    currentByCombatantId.set(combatantId, getHealthFromStatedPercent(percent, maximumHealth));
-  }
-
-  for (const event of events) {
-    const casterId = event.kind === "unaccounted-health" ? event.combatantId : null;
-    const declaredShare = event.kind === "unaccounted-health" ? event.declaredShare : null;
-    if (
-      event.kind === "unaccounted-health" &&
-      SIDE_SHARE_HEALTH_KEYS.includes(event.source) &&
-      casterId !== null &&
-      declaredShare !== null
-    ) {
-      /**
-       * Refused where a reducer of this fight reached the side it was cast on —
-       * the whole of what reading the scope buys, and the only place that set is
-       * spent. A caster the roster cannot place has no side to compare and
-       * is refused a few lines below for having no side at all.
-       */
-      const casterSide = known.byId.get(casterId)?.side;
-      if (casterSide !== undefined && sidesWithReducedHealing.has(casterSide)) {
-        sized.push(event);
-        continue;
-      }
-
-      const cast = composeCast(
-        casterId,
-        declaredShare,
-        known,
-        entryHealthByCombatantId,
-        currentByCombatantId,
-      );
-      if (cast === null) {
-        sized.push(event);
-        continue;
-      }
-
-      // The unaccounted event stays where the answer is partial, so the reading
-      // downstream cannot mistake some of a cast for all of it.
-      if (!cast.isWhole) sized.push(event);
-      sized.push({
-        kind: "team-heal",
-        casterId,
+    assert(restored.size <= roster.byId.size, "a cast reaches the people in the fight");
+    return {
+        casterId: event.combatantId,
         source: event.source,
-        declaredShare,
-        restoredByCombatantId: cast.restoredByCombatantId,
-        announced: event.announced,
-      });
-      for (const [combatantId, restored] of cast.restoredByCombatantId) {
-        setRunningTotal(currentByCombatantId, combatantId, restored);
-      }
-      continue;
-    }
+        declaredShare: event.declaredShare,
+        restoredByCombatantId: restored,
+        isWhole,
+    };
+}
 
-    sized.push(event);
-    const { movements, statements } = getHealthReadingOfEvent(event);
-    for (const [combatantId, amount] of movements) {
-      setRunningTotal(currentByCombatantId, combatantId, amount);
+/**
+ * Every cast in a fight, sized against where each member stood when it landed. Nothing is sized
+ * on a side a reducer reached: the help scopes that reduction and the protocol never states the
+ * figure it left, so a cast there is refused whole rather than reported short.
+ */
+export function composeTeamHeals(
+    events: readonly BattleEvent[],
+    roster: CombatantRoster,
+): ReadonlyMap<BattleEvent, TeamHeal> {
+    const entered = composeFightEntryHealth(events, roster);
+    const reduced = getReducedSides(events, roster);
+    const held = new Map<number, number>();
+    // Keyed by the event it was sized from, so a walker over the same fight can put the health
+    // back exactly where the cast landed rather than guessing at the order.
+    const heals = new Map<BattleEvent, TeamHeal>();
+    for (const event of events) {
+        const heal = composeTeamHeal(event, roster, entered, held);
+        if (heal !== null && !reduced.has(roster.byId.get(heal.casterId)?.side ?? Number.NaN)) {
+            heals.set(event, heal);
+            // What a cast put back is health the next one cannot put back again. Without this a
+            // second cast between two statements is sized against the health before the first,
+            // and the two together restore more than the protocol's own percentages allow.
+            for (const [combatantId, amount] of heal.restoredByCombatantId) {
+                held.set(combatantId, (held.get(combatantId) ?? 0) + amount);
+            }
+        }
+        for (const [combatantId, percent] of getStatedHealthFromEvent(event)) {
+            const health = getHealthFromPercent(
+                percent,
+                roster.byId.get(combatantId)?.healthMaximum ?? null,
+            );
+            if (health !== null) held.set(combatantId, health);
+        }
     }
-    for (const [combatantId, percent] of statements) setStatedHealth(combatantId, percent);
-  }
-
-  return sized;
+    assert(
+        [...heals.values()].every((one) => one.declaredShare >= 0),
+        "a share sized is never below nothing",
+    );
+    return heals;
 }

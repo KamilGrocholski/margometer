@@ -1,339 +1,227 @@
 /**
- * The fight as it happened, kept so it can be written to a file.
+ * The fight as it happened, kept so a reader can write it to a file.
  *
- * This is the other direction of `tools/fight-dump-parser.ts`: that file reads
- * captured material, this one produces it. **The shape is a contract, not an
- * invention** — the text composed here is exactly what the parser already reads,
- * Polish field names and all, because that is the only way a new recording can be
- * set beside the ones already in `tests/captured-fights/`. §9.2 says the Polish
- * names stop at the reader that parses them; this is the same boundary from the
- * other side.
+ * **The shape is a contract, not an invention:** what this composes is what every recording in
+ * `captures/` already is (`captures/AGENTS.md`), plus the `report` intake takes back off it. The
+ * envelope is ours and English; what is inside `payload` is the game's. **ADR 0030.**
  *
- * ⚠️ **Nothing is redacted here, and that is the design.** The file this composes
- * carries real nicknames and the game's own ability descriptions, and it never
- * enters git. Substitution and stripping happen in the intake tool, at the moment
- * material enters the repository — so the cost is paid once, where it is
- * checkable, rather than on every recording.
- *
- * Scope is one fight: the buffer clears where the panel's own session clears, on
- * the `init` of the next fight (`isFightStart`). So the recording that is offered
- * is the one whose numbers the panel is showing.
+ * ⚠️ **Nothing is redacted here, and that is the design.** The file carries real nicknames and
+ * the game's own prose, and never enters git — intake deals with both, once (`SECURITY.md`).
  */
 
-import { getIntegerFromValue } from "@/libs/number.ts";
-import { composeJsonText, getValueFromJsonText } from "@/libs/json.ts";
-import { getRecordOrArrayFromValue } from "@/libs/record.ts";
+import { assert } from "@std/assert";
+import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
+import { BUILD_VERSION } from "@/src/build-version.ts";
+import type { CapturedCombatant } from "@/src/game/engine-warrior.ts";
+import { composeReportFight, type ReportSubject } from "@/src/game/fight-report.ts";
 import { isFightStart } from "@/src/game/battle-session.ts";
-import type { FightPlace } from "@/src/game/engine-place.ts";
-import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
-import {
-  WARRIOR_HEALTH_FIELD,
-  WARRIOR_ID_FIELD,
-  WARRIOR_LEVEL_FIELD,
-  WARRIOR_NAME_FIELD,
-  WARRIOR_PROFESSION_FIELD,
-  WARRIOR_SIDE_FIELD,
-} from "@/src/game/engine-warrior.ts";
-import { USERSCRIPT_VERSION } from "@/src/userscript-version.ts";
-
-/** The format `tools/fight-dump-parser.ts` reads. Every capture on disk carries 1. */
-const CAPTURE_FORMAT_VERSION = 1;
 
 /**
- * Where collecting stops.
- *
- * It **stops** rather than dropping the oldest, and the order is the point: a
- * recording without the start of the fight is useless, one without the end still
- * carries material. After the thinning below a fight is a few dozen calls, so
- * this is a backstop against a pathological fight, not a working limit.
+ * 3 is the envelope in English; 2 was Polish and carried `raport`, 1 Polish without it. The number
+ * says which writer wrote a file — `tools/capture-intake.ts` still takes 1 and 2. **ADR 0030.**
  */
-const MAXIMUM_CALLS = 2000;
-
+const CAPTURE_FORMAT_VERSION = 3;
 /**
- * One combatant as the running fight holds it.
- *
- * Only the fields the existing captures carry, so material from this path and
- * material already in the repository are the same kind of thing. Everything but
- * the id stays `unknown`: it is the game's, we copy it rather than interpret it,
- * and `tools/fight-dump-parser.ts` is where it is held to a shape.
- *
- * `npc` — the only field saying who is a person — is deliberately absent, exactly
- * as it is absent from every capture on disk. It is not lost: it rides in the
- * payload's own `w`, which is recorded whole, and that is where the intake tool
- * reads it.
+ * The envelope's own field names, spelled here and read by whatever reads a recording back —
+ * **N13**, which is why they are a constant rather than a string literal in each of two files.
  */
-export type CapturedCombatant = {
-  id: number | null;
-  name: unknown;
-  team: unknown;
-  prof: unknown;
-  lvl: unknown;
-  hp: unknown;
-  mana: unknown;
-  energy: unknown;
-  ac: unknown;
-};
-
-export type CapturedCall = {
-  index: number;
-  payload: unknown;
-  messages: readonly string[];
-  combatantsBefore: readonly CapturedCombatant[];
-  combatantsAfter: readonly CapturedCombatant[];
-};
-
-export type FightCapture = {
-  calls: readonly CapturedCall[];
-  /** Calls the thinning below decided carried nothing new. Written to the file. */
-  droppedCalls: number;
-  /** Whether the ceiling was reached, so the caller can say the tail is missing. */
-  isFull: boolean;
-  /** What the thinning has already seen. Carried in the value so it stays one. */
-  shapesSeen: ReadonlySet<string>;
-  statesSeen: ReadonlySet<string>;
-};
-
+export const CAPTURE_FIELDS = {
+    formatVersion: "formatVersion",
+    addOnVersion: "addOnVersion",
+    capturedAt: "capturedAt",
+    world: "world",
+    gameBuild: "gameBuild",
+    userAgent: "userAgent",
+    report: "report",
+    droppedCalls: "droppedCalls",
+    isTruncated: "isTruncated",
+    calls: "calls",
+    index: "index",
+    payload: "payload",
+    messages: "messages",
+    combatantsBefore: "combatantsBefore",
+    combatantsAfter: "combatantsAfter",
+} as const;
 /**
- * What a recording needs from outside the engine, injected so the whole of this
- * file is checkable without a browser — the same shape the panel takes a document.
+ * Where collecting stops. It **stops** rather than dropping the oldest: a recording without the
+ * start of the fight is useless, one without the end still carries material.
  */
-export type CaptureEnvironment = {
-  getWorld: () => string;
-  /** Null where the page did not say. A recording without it is not comparable. */
-  getGameBuild: () => string | null;
-  getCapturedAt: () => string;
-  /**
-   * Where the fight was fought, or null where the page did not say.
-   *
-   * ⚠️ **The moment matters and it is not this one.** The three getters around it
-   * answer the same thing whenever they are asked; this one would not. It is
-   * called when somebody presses download, which is after the fight — so the
-   * caller hands over the place the *session* recorded when the fight opened
-   * (`src/game/battle-session.ts`), never a fresh read of the client. A recording
-   * naming the map its player happened to be standing on afterwards would be
-   * material stating something false, which §9.2 cares about more than most.
-   */
-  getPlace: () => FightPlace | null;
-  /** The same shape, and for the same reason: a browser that did not say is null. */
-  getUserAgent: () => string | null;
-};
+export const MAXIMUM_CALLS = 2000;
+/** So a difference between two recordings is something a person can read. */
+const INDENT_SPACES = 2;
+/** In a name, where the register writes `none stated` in a sentence (`docs/captured-fights.md`). */
+export const NOTHING_STATED = "none";
 
-/**
- * The combatants the fight is holding right now.
- *
- * ⚠️ **A claim about the game.** `Engine.battle.warriorsList` is an object keyed
- * by combatant id, and each value receives every field of the payload's own `w`
- * entry verbatim — `OneWarrior.js`: `for (var i in w) { _this[i] = w[i]; … }`.
- * Read on development build `1781609507010`, which is the readable channel, and
- * confirmed on production `1786441768914`, which is the one that decides (§7.6):
- * `this.warriorsList={}` and `Engine.battle.warriorsList` both appear there.
- *
- * `warriors` is tried after it because the client also carries a collection under
- * that name; whichever answers with named combatants first is the one used, and
- * neither being there yields an empty snapshot rather than a guess.
- *
- * Copies, never references: `hp` and `ac` are live objects the game goes on
- * mutating, so a snapshot holding the reference would show the state *after* the
- * call as the state before it. Shallow is enough — their members are numbers.
- * Not `structuredClone` of the whole combatant: it carries references to DOM
- * nodes and to the engine itself, so cloning it whole either throws or drags half
- * the game into the recording.
- */
-export function composeSnapshotFromBattle(battle: EngineBattle): CapturedCombatant[] {
-  for (const field of ["warriorsList", "warriors"]) {
-    const collection = getRecordOrArrayFromValue(battle[field]);
-    if (collection === null) continue;
-
-    const named = Object.values(collection).filter(
-      (combatant): combatant is Record<string, unknown> => {
-        const named = getRecordOrArrayFromValue(combatant)?.[WARRIOR_NAME_FIELD];
-        return typeof named === "string" && named !== "";
-      },
-    );
-    if (named.length === 0) continue;
-
-    return named.map((combatant) => ({
-      id: getIntegerFromValue(combatant[WARRIOR_ID_FIELD] ?? combatant["originalId"]),
-      name: combatant[WARRIOR_NAME_FIELD] ?? null,
-      team: combatant[WARRIOR_SIDE_FIELD] ?? null,
-      prof: combatant[WARRIOR_PROFESSION_FIELD] ?? null,
-      lvl: combatant[WARRIOR_LEVEL_FIELD] ?? null,
-      hp: composeShallowCopy(combatant[WARRIOR_HEALTH_FIELD]),
-      mana: combatant["mana"] ?? null,
-      energy: combatant["energy"] ?? null,
-      ac: composeShallowCopy(combatant["ac"]),
-    }));
-  }
-  return [];
+export interface CapturedCall {
+    index: number;
+    payload: unknown;
+    messages: readonly string[];
+    combatantsBefore: readonly CapturedCombatant[];
+    combatantsAfter: readonly CapturedCombatant[];
 }
 
-function composeShallowCopy(value: unknown): unknown {
-  const record = getRecordOrArrayFromValue(value);
-  return record === null ? (value ?? null) : { ...record };
+export interface FightCapture {
+    calls: readonly CapturedCall[];
+    droppedCalls: number;
+    /** Whether the ceiling was reached, so the file says its tail is missing. */
+    isTruncated: boolean;
+    shapesSeen: ReadonlySet<string>;
+    statesSeen: ReadonlySet<string>;
+}
+
+/** What a recording needs from outside the fight, handed in so none of this reaches a page. */
+export interface CaptureSurroundings {
+    world: string;
+    /** Null where the page did not say: a recording without it is not comparable with others. */
+    gameBuild: string | null;
+    capturedAt: string;
+    /** Null where the browser did not say, never `""`. Unknown is not a value nobody wrote. */
+    userAgent: string | null;
 }
 
 export function composeEmptyCapture(): FightCapture {
-  return {
-    calls: [],
-    droppedCalls: 0,
-    isFull: false,
-    shapesSeen: new Set(),
-    statesSeen: new Set(),
-  };
+    const capture: FightCapture = {
+        calls: [],
+        droppedCalls: 0,
+        isTruncated: false,
+        shapesSeen: new Set(),
+        statesSeen: new Set(),
+    };
+    assert(capture.calls.length === 0, "a recording starts holding no call");
+    assert(!capture.isTruncated, "and with room for every one that arrives");
+    return capture;
 }
 
-/**
- * The capture as it stands after one more call.
- *
- * Rebuilt rather than mutated, like `composeNextSession` beside it, so the value
- * handed out is never one a later payload changes underneath its reader.
- *
- * **Thinned as it is collected**, by the rule the previous incarnation measured:
- * every call carrying messages is kept without exception, and so is every call
- * introducing a payload shape or a combatant state not seen before. On the first
- * real recording that dropped 565 of 569 calls — the game polls `updateData` long
- * after a fight is over — without losing information that is not in a kept call.
- */
-export function composeNextCapture(
-  capture: FightCapture,
-  payload: unknown,
-  messages: readonly string[],
-  combatantsBefore: readonly CapturedCombatant[],
-  combatantsAfter: readonly CapturedCombatant[],
-): FightCapture {
-  const previous = isFightStart(payload) ? composeEmptyCapture() : capture;
-  if (previous.calls.length >= MAXIMUM_CALLS) {
-    return { ...previous, isFull: true, droppedCalls: previous.droppedCalls + 1 };
-  }
-
-  const shape = composeShapeKey(payload);
-  const state = composeStateKey(combatantsAfter);
-  const isWorthKeeping =
-    messages.length > 0 || !previous.shapesSeen.has(shape) || !previous.statesSeen.has(state);
-  if (!isWorthKeeping) {
-    return { ...previous, droppedCalls: previous.droppedCalls + 1 };
-  }
-
-  const call: CapturedCall = {
-    index: previous.calls.length,
-    // Copied, not referenced: the game goes on mutating its own payload object
-    // after we return, and a recording holding the reference would show a later
-    // state as this call's.
-    payload: composeCopiedValue(payload),
-    messages: [...messages],
-    combatantsBefore: [...combatantsBefore],
-    combatantsAfter: [...combatantsAfter],
-  };
-  return {
-    calls: [...previous.calls, call],
-    droppedCalls: previous.droppedCalls,
-    isFull: false,
-    shapesSeen: new Set([...previous.shapesSeen, shape]),
-    statesSeen: new Set([...previous.statesSeen, state]),
-  };
-}
-
-/** Which keys the payload carried, so a call introducing a new one is kept. */
+/** Which keys the payload carried, so a call introducing one nobody has seen is kept. */
 function composeShapeKey(payload: unknown): string {
-  const record = getRecordOrArrayFromValue(payload);
-  return record === null ? "" : Object.keys(record).sort().join(",");
+    if (!isRecord(payload)) return "";
+    const keys = Object.keys(payload).sort();
+    assert(keys.length >= 0, "a payload states the keys it states, however few");
+    assert(keys.length === Object.keys(payload).length, "and each of them once");
+    return keys.join(",");
 }
 
 function composeStateKey(combatants: readonly CapturedCombatant[]): string {
-  return composeJsonText(combatants);
+    assert(combatants.length >= 0, "a state is keyed off the cast, however small");
+    const writing = composeJsonWriting(combatants);
+    // A cast that would not be written is no key at all, and every state then keys the same.
+    if (!writing.isOk) return "";
+    assert(writing.text.length > 0, "and a key that was written says something");
+    return writing.text;
 }
 
 /**
- * A copy that survives the game mutating what it handed us.
- *
- * Through the JSON round trip rather than `structuredClone`, because what is
- * recorded is what will be written as JSON anyway — so anything the round trip
- * cannot carry was never going to reach the file, and this way it is dropped at
- * the moment of recording rather than silently at the end.
+ * A copy that survives the game mutating what it handed over. Through the JSON round trip rather
+ * than `structuredClone`: what is recorded is written as JSON anyway, so anything the round trip
+ * cannot carry is dropped now rather than silently at the end.
  */
 function composeCopiedValue(value: unknown): unknown {
-  // `?? null` because `composeJsonText` refuses `undefined` outright, and a
-  // payload field the client left out is a thing that happens rather than a
-  // broken invariant.
-  const { value: copied } = getValueFromJsonText(composeJsonText(value ?? null));
-  return copied;
+    const writing = composeJsonWriting(value);
+    // A field the client left out has no JSON text of its own, and copies as nothing.
+    if (!writing.isOk) return null;
+    assert(writing.text.length > 0, "a copy written as text says something");
+    const reading = getJsonReading(writing.text);
+    assert(reading.isOk, "and text this writer produced is text this reader takes back");
+    return reading.value;
+}
+
+/**
+ * The recording after one more call, rebuilt rather than mutated.
+ *
+ * **Thinned as it is collected**, by the rule v1 measured: every call carrying messages is kept,
+ * and so is every call introducing a payload shape or a combatant state not seen before. On the
+ * first real recording that dropped 565 of 569 calls — the game polls `updateData` long after a
+ * fight is over — without losing anything a kept call does not carry.
+ */
+export function composeNextCapture(
+    capture: FightCapture,
+    call: Omit<CapturedCall, "index">,
+): FightCapture {
+    const previous = isFightStart(call.payload) ? composeEmptyCapture() : capture;
+    assert(previous.calls.length <= MAXIMUM_CALLS, "a recording stays inside its stated bound");
+    if (previous.calls.length >= MAXIMUM_CALLS) {
+        return { ...previous, isTruncated: true, droppedCalls: previous.droppedCalls + 1 };
+    }
+    const shape = composeShapeKey(call.payload);
+    const state = composeStateKey(call.combatantsAfter);
+    const isWorthKeeping = call.messages.length > 0 ||
+        !previous.shapesSeen.has(shape) ||
+        !previous.statesSeen.has(state);
+    if (!isWorthKeeping) {
+        return { ...previous, droppedCalls: previous.droppedCalls + 1 };
+    }
+    const kept: CapturedCall = {
+        index: previous.calls.length,
+        payload: composeCopiedValue(call.payload),
+        messages: [...call.messages],
+        combatantsBefore: [...call.combatantsBefore],
+        combatantsAfter: [...call.combatantsAfter],
+    };
+    return {
+        calls: [...previous.calls, kept],
+        droppedCalls: previous.droppedCalls,
+        isTruncated: false,
+        shapesSeen: new Set([...previous.shapesSeen, shape]),
+        statesSeen: new Set([...previous.statesSeen, state]),
+    };
 }
 
 /**
  * The recording as the file on disk.
  *
- * The field names are the game's own Polish, because they are the format
- * `tools/fight-dump-parser.ts` reads. Indented, so a difference between two
- * recordings is something a person can read.
- *
- * Two fields the previous incarnation wrote are deliberately absent. `render` —
- * the sentences the client composed — is not collected at all: `NOTICE.md` names
- * the 38 of them in `tests/captured-fights/2026-08-06-tempest-grupa-vs-hildur.json`
- * as an exception that survives only because cutting them would mean editing
- * evidence, and material that never carried them needs no exception. `otwarcie` is
- * gone with the only reach into the page's DOM that `src/` ever had; nothing reads
- * it, the two captures that carried it hold null, and no recording since carries
- * the key at all. Stated as "no recording since" rather than as a count: this
- * sentence has been rewritten twice to correct that figure and invalidated by the
- * next commit both times (§3).
- *
- * **Two fields are about the reader rather than the fight**, and they are here
- * because the file arrives in a report: the button offering it says so, and a
- * recording that turns up on its own could otherwise name neither the add-on that
- * wrote it nor the browser it was written in. `dodatek` is ours and comes from
- * the constant — on an unbuilt tree that is the word `USERSCRIPT_VERSION` states
- * rather than a number that would read like a release. `przegladarka` is the
- * page's and is null where it did not say, never `""`: §9.3 keeps unknown apart
- * from a value nobody wrote. Neither is a figure, and nothing here is derived
- * from the fight — a computed number belongs in the report the copy button
- * writes, not in material (§9.2).
+ * **Two fields are about the reader rather than the fight**, and they are here because the file
+ * arrives in a report: `addOnVersion` is which build of ours wrote it, `userAgent` what the browser
+ * said of itself. `report` is the one derived thing here, travelling with the calls it came from so
+ * a figure that looks wrong is read beside its material. **ADR 0027.**
  */
 export function composeCaptureText(
-  capture: FightCapture,
-  environment: CaptureEnvironment,
-): string {
-  const place = environment.getPlace();
-  return composeJsonText(
-    {
-      wersja: CAPTURE_FORMAT_VERSION,
-      // Not `wersja`, which is the format's: this is the add-on's own, and the
-      // two are different numbers that move for different reasons.
-      dodatek: USERSCRIPT_VERSION,
-      przy: environment.getCapturedAt(),
-      swiat: environment.getWorld(),
-      // Null where the page did not say, rather than a stand-in that reads like a
-      // build. Nothing downstream refuses it: material from the game without the
-      // client's version is not comparable with other material, which is a fact
-      // about the recording that `docs/captured-fights.md` states in words rather
-      // than one `tools/fight-dump-parser.ts` acts on. This comment claimed the
-      // intake tool refused it by name for three releases — `composeIntakePath`
-      // never looked at the field, and what actually refused was the parser, one
-      // step later and everywhere at once
-      // (`docs/specs/2026-08-25-a-recording-that-names-no-build.md`).
-      build: environment.getGameBuild(),
-      // Beside the world, because it is the same kind of fact and the same kind
-      // of absence: where this was, as much of it as the client would say. The
-      // battle protocol carries none of it — `battleground` is the picture behind
-      // the fight and names two different worlds' bosses alike — so a recording
-      // that does not carry this one cannot be given it afterwards.
-      mapa: place === null ? null : { nazwa: place.mapName, x: place.x, y: place.y },
-      przegladarka: environment.getUserAgent(),
-      pominietych: capture.droppedCalls,
-      urwany: capture.isFull,
-      wpisy: capture.calls.map((call) => ({
-        nr: call.index,
-        ladunek: call.payload,
-        komunikaty: call.messages,
-        wojownicyPrzed: call.combatantsBefore,
-        wojownicyPo: call.combatantsAfter,
-      })),
-    },
-    2,
-  );
+    capture: FightCapture,
+    surroundings: CaptureSurroundings,
+    subject: ReportSubject | null,
+): string | null {
+    assert(surroundings.world.length > 0, "a recording names the world it was taken on");
+    assert(surroundings.capturedAt.length > 0, "and the moment it was taken at");
+    assert(surroundings.gameBuild !== "", "a build it could not read is absent, never empty");
+    assert(surroundings.userAgent !== "", "and so is a browser that said nothing of itself");
+    assert(capture.droppedCalls >= 0, "and what was dropped is never fewer than none");
+    const writing = composeJsonWriting({
+        [CAPTURE_FIELDS.formatVersion]: CAPTURE_FORMAT_VERSION,
+        // Not the format's number: this is the add-on's own, and the two move for different
+        // reasons.
+        [CAPTURE_FIELDS.addOnVersion]: BUILD_VERSION,
+        [CAPTURE_FIELDS.capturedAt]: surroundings.capturedAt,
+        [CAPTURE_FIELDS.world]: surroundings.world,
+        [CAPTURE_FIELDS.gameBuild]: surroundings.gameBuild,
+        [CAPTURE_FIELDS.userAgent]: surroundings.userAgent,
+        // Above the calls, which run to hundreds of kilobytes. Null says no fight was read.
+        [CAPTURE_FIELDS.report]: subject === null ? null : composeReportFight(subject),
+        [CAPTURE_FIELDS.droppedCalls]: capture.droppedCalls,
+        [CAPTURE_FIELDS.isTruncated]: capture.isTruncated,
+        [CAPTURE_FIELDS.calls]: capture.calls.map((call) => ({
+            [CAPTURE_FIELDS.index]: call.index,
+            [CAPTURE_FIELDS.payload]: call.payload,
+            [CAPTURE_FIELDS.messages]: call.messages,
+            [CAPTURE_FIELDS.combatantsBefore]: call.combatantsBefore,
+            [CAPTURE_FIELDS.combatantsAfter]: call.combatantsAfter,
+        })),
+    }, INDENT_SPACES);
+    if (!writing.isOk) return null;
+    assert(writing.text.length > 0, "a recording written as text says something");
+    return writing.text;
 }
 
-/** Names the world and the moment, so two recordings never collide in a folder. */
-export function composeCaptureFileName(environment: CaptureEnvironment): string {
-  const at = environment.getCapturedAt().replaceAll(":", "-").replaceAll(".", "-");
-  return `margometer-${environment.getWorld()}-${at}.json`;
+/**
+ * Names the world, both versions and the moment: which build a recording came off and which wrote
+ * it are what is asked of an attachment, and the moment keeps two from colliding. **ADR 0030.**
+ */
+export function composeCaptureFileName(surroundings: CaptureSurroundings): string {
+    assert(surroundings.world.length > 0, "a file is named for the world it came from");
+    assert(BUILD_VERSION.length > 0, "and for the build of ours that wrote it");
+    const at = surroundings.capturedAt.split(":").join("-").split(".").join("-");
+    assert(!at.includes(":"), "and for a moment no file system objects to");
+    assert(!at.includes("."), "nor one a file's own extension could be read out of");
+    assert(at.length > 0, "and a moment that says something");
+    const build = surroundings.gameBuild ?? NOTHING_STATED;
+    return `margometer-${surroundings.world}-${build}-${BUILD_VERSION}-${at}.json`;
 }

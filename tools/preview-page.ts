@@ -1,503 +1,444 @@
 /**
- * The harness page, whole, as one string — everything a browser needs in front of
- * the panel, and nothing that answers a request.
+ * The harness page, whole, as one string: a game stood up, the add-on over it, and a strip that
+ * steps one recording through it.
  *
- * It left `tools/preview-server.ts` at its second consumer (§7.1), which is
- * `tools/preview-site.ts` writing the same page down instead of serving it. The
- * move is `build.ts`'s own, one level up: `composeUserscriptFiles()` left the
- * writer when the server wanted the bundle in memory, and what must not be
- * spelled twice is the page rather than the bundling.
- *
- * **Every word a reader sees arrives as an option, and that is structural.** §3
- * puts the text a player reads in Polish, and a published page is read by
- * players; the local preview is read by whoever is editing `src/`, in the
- * language the rest of this repository is written in. Holding both as data keeps
- * this module free of either — which is what keeps it off the list in
- * `tests/tools/source-layout.test.ts` naming the files allowed to speak Polish,
- * and keeps that list a decision somebody makes on purpose. ⚠️ That guard reads a
- * template literal as one text span, so a Polish word smuggled into the markup
- * below would put this file on the list rather than slipping past it.
+ * Every word a reader sees arrives as an option, so this file speaks neither language — a served
+ * page is read by whoever is editing `src/`, a published one by a player (**L2**).
+ * `tools/preview-server.ts` answers requests for this; `tools/preview-site.ts` writes it down.
  */
 
-import { USERSCRIPT_FILENAME } from "@/build.ts";
-import { composeJsonText } from "@/libs/json.ts";
+import { assert } from "@std/assert";
+import { USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
+import { composePreviewStateReading, composePreviewStateWriting } from "@/tools/preview-state.ts";
 
 /**
- * A build id in the shape `src/core/game-build.ts` recognises.
- *
- * The page carries a script tag naming it so a recording saved from the preview
- * says which build it came from. Only the `src` attribute is ever read, so what
- * the file holds does not matter — but whether it exists does, on a host that
- * answers a miss with HTML: see `tools/preview-site.ts`.
+ * A build id in the shape `src/core/game-build.ts` reads. The tag naming it loads nothing: only
+ * the `src` attribute is ever read, which is how a recording saved here says where it came from.
  */
 const PREVIEW_GAME_BUILD = "1785244275300";
-
-/** The decoy's filename, composed once so the two consumers cannot disagree. */
+/** The decoy's filename, spelled once so the two consumers cannot disagree about it. */
 export const PREVIEW_GAME_SCRIPT_NAME = `main.min${PREVIEW_GAME_BUILD}.js`;
 
-/**
- * Every word the strip draws, so the language of a page is a value rather than a
- * branch inside the browser JavaScript.
- */
-export type PreviewWords = {
-  /** The tag `<html lang>` declares, which a browser's translation offer reads. */
-  language: string;
-  /** The strip's heading, and the document title beside the capture's name. */
-  title: string;
-  /**
-   * The ⏮ button: back to before the first payload, which is the empty panel.
-   *
-   * It opens the page again rather than replaying, because before the first
-   * payload is the one state a replay cannot reach — see `setStartOpened` below.
-   */
-  start: string;
-  /** The ◀ button's tooltip, since the arrow says nothing about the replay behind it. */
-  backHint: string;
-  /** The last button: feed every payload that is left. */
-  end: string;
-  /** The play button, and what that same button says once it is playing. */
-  play: string;
-  pause: string;
-  /** Drawn before the two numbers — `entry 12 / 102`. */
-  entry: string;
-};
+/** Every word the strip draws, so the language of a page is a value and never a branch. */
+export interface PreviewWords {
+    /** What `<html lang>` declares, which a browser's offer to translate reads. */
+    language: string;
+    title: string;
+    /** The place the panel draws, which no recording carries and every bar states. */
+    placeName: string;
+    /** Back to before the first call, which is the one state a replay cannot reach. */
+    start: string;
+    /** The ◀ button's tooltip, since an arrow says nothing about the replay behind it. */
+    backHint: string;
+    end: string;
+    play: string;
+    pause: string;
+    /** Drawn before the two numbers — `entry 12 / 102`. */
+    entry: string;
+}
 
-/** A capture the picker offers, and where choosing it goes. */
-export type PreviewFightLink = {
-  name: string;
-  /**
-   * ⚠️ **The address is the caller's, because the two callers address a fight
-   * differently.** A server answers one path and carries the choice in a query;
-   * a published site is a directory of files under a repository path, so it can
-   * carry nothing absolute — and a query would have to be read back into a
-   * number, which `libs/` owns and this page may not do (§9.5).
-   */
-  address: string;
-  /**
-   * Where that fight's payloads can be fetched, or null where nothing answers.
-   *
-   * The same argument one step further. A server has a process, so it can hand
-   * over a capture with no page in front of it — and then picking one is a replay
-   * rather than a navigation, which is the whole of what this field buys: a fresh
-   * document takes the tab, the panel's position and the settings with it, because
-   * the store installed above outlives nothing. A published site is files, and the
-   * only copy of a fight it holds is inlined in that fight's own page, so a pick
-   * there stays the navigation it always was
-   * (`docs/specs/a-fight-you-can-go-back-to.md`).
-   */
-  payloadsAddress: string | null;
-};
+/** A recording the picker offers, and where choosing it goes. */
+export interface PreviewFightLink {
+    name: string;
+    /** The caller's, because a server carries the choice in a query and a site in a filename. */
+    address: string;
+    /** Where its calls can be fetched, or null where no process answers. */
+    callsAddress: string | null;
+}
 
-export type PreviewPageOptions = {
-  fightName: string;
-  entryIndex: number;
-  /**
-   * Every payload of the fight, carried in the page rather than fetched.
-   *
-   * ⚠️ **The replay has to finish before `load` does.** Firefox's `--screenshot`
-   * waits for `load` and nothing after it, so a page that fetched its capture
-   * photographed itself empty with the strip still saying `loading` — which looks
-   * exactly like a panel that failed to draw. Embedding them makes the whole
-   * replay synchronous, which is what the recipe in `.claude/skills/verify/SKILL.md`
-   * had been doing all along and for this reason.
-   */
-  payloads: readonly unknown[];
-  /** Every capture and where its page is, so the picker is the directory rather than a list somebody typed. */
-  fights: readonly PreviewFightLink[];
-  /**
-   * Where both script tags point.
-   *
-   * `/` while a server answers every path; `./` on GitHub Pages, which serves
-   * this repository under a path of its own — an absolute `src` there asks the
-   * domain root for a file that belongs to no project.
-   */
-  scriptDirectory: string;
-  words: PreviewWords;
-  /** A sentence for a reader who did not start the page, or null where the reader is the one editing it. */
-  introduction: string | null;
-  /**
-   * A second half of the driver, appended after the page's own, or null.
-   *
-   * It runs where it does on purpose: after `setFedTo`, so the fight has already
-   * been replayed and the panel is mounted and drawn, and still synchronously,
-   * so a screenshot taken at `load` sees whatever it did. Two callers use it and
-   * neither is this file's business — `tools/preview-server.ts` appends hot
-   * reloading, `tools/panel-screenshots.ts` appends the clicks that put the panel
-   * in the state being photographed.
-   *
-   * ⚠️ **A page nobody rebuilds must open no stream.** The reload response opens
-   * with `retry: 500`, and that is also what a browser falls back to on its own —
-   * so a published copy of the server's driver would reconnect to a route that is
-   * not there, twice a second, for as long as the tab is open. That is a
-   * constraint on what the server passes, which is why this is a hole rather than
-   * a stream this file opens.
-   */
-  appendedScript: string | null;
-};
+export interface PreviewPageOptions {
+    fightName: string;
+    /** Where the replay stops. The caller clamps it; nothing here reads text into a number. */
+    entryIndex: number;
+    /**
+     * The whole recording, carried in the page rather than fetched: a screenshot is taken at
+     * `load` and nothing after it, so a page that fetched its fight photographs itself empty.
+     */
+    calls: readonly unknown[];
+    fights: readonly PreviewFightLink[];
+    /** `/` while a server answers every path; `./` where a host serves a project under one. */
+    scriptDirectory: string;
+    words: PreviewWords;
+    /** A sentence for a reader who did not start the page, or null where they did. */
+    introduction: string | null;
+    /**
+     * The driver's second half, or null. It runs after the replay and still synchronously —
+     * a served page appends hot reloading, a photographed one appends its presses.
+     */
+    appendedScript: string | null;
+}
 
-/**
- * ⚠️ **Everything below is read by `tests/tools/source-layout.test.ts` as
- * source.** The guards strip comments and leave string literals alone, so the
- * browser JavaScript in here is held to the same rules as the TypeScript around
- * it — verbs on function names, prefixes on booleans, and none of the value
- * readers `libs/` owns. That last one is why **the caller does the converting**:
- * the entry index arrives already a number, and nothing in the page turns text
- * into one.
- *
- * ⚠️ **Nothing of the harness is named `MargoMeter-`.** Two tests read a page and
- * ask whether everything named that way says whose it is; a preview page has to
- * keep that question answerable, so the harness calls its own things `preview-`
- * and every `MargoMeter-` node in the document is still the add-on's.
- *
- * ⚠️ **No block comment goes inside the template.** The guards strip comments
- * from the whole file before reading it, so a `/* … *` + `/` in here blinds them
- * to whatever it spans — and an unclosed one would pair with the next docblock's
- * end and blank the code between. The strip's own layer is the one thing that
- * would have wanted a note: it sits bottom-left below `z-index: 9999`, because
- * the panel starts in the top-right corner and may be dragged anywhere, and
- * harness chrome that covered the thing under test would be worse than useless.
- */
 export function composePreviewPage(options: PreviewPageOptions): string {
-  /**
-   * ⚠️ **`</` is escaped, or the payloads end the script tag.** An HTML parser
-   * looks for the closing tag as text and knows nothing about the JavaScript
-   * string it is inside, so one `</` in a recorded message would end the block
-   * early and leave the rest of the fight on the page as markup.
-   */
-  const settings = composeJsonText({
-    fightName: options.fightName,
-    entryIndex: options.entryIndex,
-    entryCount: options.payloads.length,
-    fights: options.fights,
-    words: options.words,
-    payloads: options.payloads,
-  }).replaceAll("</", "<\\/");
-
-  const introduction =
-    options.introduction === null
-      ? ""
-      : `<p class="preview-intro">${options.introduction}</p>`;
-
-  return `<!doctype html>
+    assert(options.calls.length > 0, "a page draws a fight that has something in it");
+    assert(options.entryIndex <= options.calls.length, "and stops somewhere inside that fight");
+    assert(options.fights.length > 0, "with at least one recording to choose between");
+    assert(options.scriptDirectory.endsWith("/"), "its scripts are asked for under a directory");
+    const settings = composeEscapedJson({
+        fightName: options.fightName,
+        entryIndex: options.entryIndex,
+        entryCount: options.calls.length,
+        fights: options.fights,
+        words: options.words,
+        calls: options.calls,
+    });
+    const introduction = options.introduction === null
+        ? ""
+        : `<p class="preview-intro">${options.introduction}</p>`;
+    return `<!doctype html>
 <html lang="${options.words.language}">
 <head>
 <meta charset="utf-8">
 <title>${options.words.title} — ${options.fightName}</title>
 <style>
-  html, body { margin: 0; height: 100%; background: #14171c; color: #c8cdd6;
-    font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }
-  .preview-intro { margin: 0; padding: 18px 20px; max-width: 46em; color: #8f9bb0; }
-  .preview-intro a { color: #8fb8e8; }
-  .preview-strip { position: fixed; left: 12px; bottom: 12px; z-index: 9000;
-    display: flex; flex-direction: column; gap: 6px; padding: 10px 12px;
-    background: #1c2027; border: 1px solid #2c323c; border-radius: 8px;
-    box-shadow: 0 6px 24px rgba(0,0,0,.5); max-width: min(560px, calc(100vw - 24px)); }
-  .preview-line { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .preview-strip button, .preview-strip select {
-    font: inherit; color: inherit; background: #262c35; border: 1px solid #39404b;
-    border-radius: 5px; padding: 3px 9px; cursor: pointer; }
-  .preview-strip button:hover { background: #2f3742; }
-  .preview-title { font-weight: 600; color: #8f9bb0; letter-spacing: .04em; }
-  .preview-count { font-variant-numeric: tabular-nums; color: #8f9bb0; }
-  .preview-build { margin-left: auto; }
-  .preview-ok { color: #7fd18a; }
-  .preview-bad { color: #e8836f; }
-  .preview-log { display: none; margin: 0; padding: 8px; overflow: auto;
-    max-height: 30vh; white-space: pre-wrap; background: #12151a;
-    border: 1px solid #43301f; border-radius: 5px; color: #e8b48b;
-    font: 12px/1.45 ui-monospace, monospace; }
-  .preview-log[data-shown="yes"] { display: block; }
+${composePreviewStyle()}
 </style>
 </head>
 <body>
-
 ${introduction}
+${composePreviewStrip(options.words)}
+<script>${composePreviewStateReading()}</script>
+<script>${composePreviewStore()}</script>
+<script>${composePreviewGame(options.words)}</script>
+<script src="${options.scriptDirectory}${PREVIEW_GAME_SCRIPT_NAME}"></script>
+<script src="${options.scriptDirectory}${USERSCRIPT_NAME}"></script>
+<script id="preview-settings" type="application/json">${settings}</script>
+<script>
+${composePreviewDriver()}
+${composePreviewStateWriting()}
+${composePreviewPicks()}
+${options.appendedScript ?? ""}
+</script>
+</body>
+</html>
+`;
+}
 
-<div class="preview-strip">
+/** Somebody else's material, on its way into a tag it must not be able to close. */
+function composeEscapedJson(value: unknown): string {
+    const written = JSON.stringify(value);
+    assert(typeof written === "string", "what a page carries is written out as text");
+    assert(written.length > 0, "and says something once it is");
+    return written.split("<").join("\\u003c");
+}
+
+/**
+ * The strip's own layer sits under the panel's 9999 (`src/ui/panel-look.ts`) and in the corner
+ * the panel does not start in: harness chrome covering the thing under test is worse than none.
+ */
+function composePreviewStyle(): string {
+    const sheet = `html, body { margin: 0; height: 100%; background: #14171c; color: #c8cdd6;
+  font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }
+.preview-intro { margin: 0; padding: 18px 20px; max-width: 46em; color: #8f9bb0; }
+.preview-intro a { color: #8fb8e8; }
+.preview-strip { position: fixed; left: 12px; bottom: 12px; z-index: 9000;
+  display: flex; flex-direction: column; gap: 6px; padding: 10px 12px;
+  background: #1c2027; border: 1px solid #2c323c; border-radius: 8px;
+  max-width: min(560px, calc(100vw - 24px)); }
+.preview-line { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.preview-strip button, .preview-strip select {
+  font: inherit; color: inherit; background: #262c35; border: 1px solid #39404b;
+  border-radius: 5px; padding: 3px 9px; cursor: pointer; }
+.preview-title { font-weight: 600; color: #8f9bb0; letter-spacing: .04em; }
+.preview-count { font-variant-numeric: tabular-nums; color: #8f9bb0; }
+.preview-build { margin-left: auto; }
+.preview-ok { color: #7fd18a; }
+.preview-bad { color: #e8836f; }
+.preview-log { display: none; margin: 0; padding: 8px; overflow: auto;
+  max-height: 30vh; white-space: pre-wrap; background: #12151a;
+  border: 1px solid #43301f; border-radius: 5px; color: #e8b48b;
+  font: 12px/1.45 ui-monospace, monospace; }
+.preview-log[data-shown="yes"] { display: block; }`;
+    // The game's own page colour, read off v0.10.1's `screenshots/panel-taken.png`: a panel
+    // judged against a darker page is a panel whose border reads as a colour it is not.
+    assert(sheet.includes("#14171c"), "the panel is judged against the colour the game draws");
+    assert(sheet.includes("9000"), "and the strip stands under the panel, never over it");
+    return sheet;
+}
+
+function composePreviewStrip(words: PreviewWords): string {
+    assert(words.title.length > 0, "the strip says what it is");
+    assert(words.entry.length > 0, "and what it is counting");
+    return `<div class="preview-strip">
   <div class="preview-line">
-    <span class="preview-title">${options.words.title}</span>
+    <span class="preview-title">${words.title}</span>
     <select id="preview-fight"></select>
     <span class="preview-build" id="preview-build"></span>
   </div>
   <div class="preview-line">
-    <button id="preview-start">${options.words.start}</button>
-    <button id="preview-back" title="${options.words.backHint}">&#9664;</button>
+    <button id="preview-start">${words.start}</button>
+    <button id="preview-back" title="${words.backHint}">&#9664;</button>
     <button id="preview-next">&#9654;</button>
-    <button id="preview-play">${options.words.play}</button>
-    <button id="preview-end">${options.words.end}</button>
+    <button id="preview-play">${words.play}</button>
+    <button id="preview-end">${words.end}</button>
     <span class="preview-count" id="preview-count"></span>
   </div>
   <pre class="preview-log" id="preview-log"></pre>
-</div>
+</div>`;
+}
 
-<script>
-  /*
-   * The page keeps nothing, and it has to take the store away before the bundle
-   * runs. This harness loads the real add-on rather than a mock of it, so once
-   * fights could be kept, a visitor to the published preview had a demo fight
-   * written into their own browser — around 34 kB of it, up to five, plus the
-   * settings and the panel position — and a second visit opened onto a shelf
-   * holding what the first one left. Nobody chose that; it followed from the
-   * shelf.
-   *
-   * A stand-in rather than a flag the add-on reads: getStoreFromPage already
-   * falls back to a store that outlives nothing where a browser offers none
-   * (src/userscript-storage.ts), so the preview stays the add-on exactly as
-   * shipped and the shelf still works for the length of a visit. What is bought
-   * is that it stops at the tab.
-   *
-   * An engine that will not give the property up leaves its own store in place,
-   * which is this page as it was before — no worse, and never a reason to stop
-   * drawing. Measured working on Firefox 140.13.0esr, 2026-08-26.
-   */
-  (function setNothingKept() {
-    function composeForgettingStore() {
-      var held = {};
-      return {
-        getItem: function (key) {
-          return Object.prototype.hasOwnProperty.call(held, key) ? held[key] : null;
-        },
-        // What the add-on hands this is already text, so there is nothing to
-        // coerce — and a coercion here would be libs/number.ts's to spell (§9.5).
-        setItem: function (key, value) {
-          held[key] = value;
-        },
-        removeItem: function (key) {
-          delete held[key];
-        },
-      };
-    }
-    var names = ["localStorage", "sessionStorage"];
-    for (var at = 0; at < names.length; at += 1) {
-      try {
-        Object.defineProperty(window, names[at], {
-          value: composeForgettingStore(),
-          configurable: true,
-        });
-      } catch (refusal) {
-        void refusal;
-      }
-    }
-  })();
-
-  // The game, as much of it as the add-on touches. Both names are needed:
-  // src/game/engine-roster.ts reads "w", src/game/fight-capture.ts reads
-  // "warriorsList", and with only the first every combatant snapshot in a saved
-  // recording comes out empty with nothing saying why.
-  window.Engine = {
-    battle: {
-      w: {},
-      warriorsList: {},
-      myteam: null,
-      updateData: function handlePayload(payload) {
-        var roster = payload && payload.w;
-        if (roster) {
-          for (var id in roster) {
-            window.Engine.battle.w[id] = roster[id];
-            window.Engine.battle.warriorsList[id] = roster[id];
-          }
-        }
-        return "preview-engine";
-      },
+/**
+ * The page keeps nothing, and it takes the store away before the bundle runs. The add-on here is
+ * the one people install, shelf and all (`src/game/kept-fights.ts`), so without this a visitor to
+ * a published preview is left holding somebody's demo fight — and a second visit opens onto it.
+ * An engine that will not give the property up leaves its own store in place, which is no worse
+ * than the page was before, and never a reason to stop drawing.
+ *
+ * What it starts holding is what the address carried (`tools/preview-state.ts`), and one store
+ * answers to both names: the add-on writes to whichever it was sent to, and the harness has one
+ * place to read rather than a choice to follow.
+ */
+function composePreviewStore(): string {
+    const stood = `var PREVIEW_STORE = (function composeForgettingStore() {
+  var held = PREVIEW_STATE.store;
+  return {
+    getItem: function (key) {
+      return Object.prototype.hasOwnProperty.call(held, key) ? held[key] : null;
     },
+    setItem: function (key, value) { held[key] = String(value); },
+    removeItem: function (key) { delete held[key]; },
+    readAll: function () {
+      var copy = {};
+      var names = Object.keys(held);
+      for (var at = 0; at < names.length; at += 1) {
+        copy[names[at]] = held[names[at]];
+      }
+      return copy;
+    }
   };
-</script>
-
-<script src="${options.scriptDirectory}${PREVIEW_GAME_SCRIPT_NAME}"></script>
-<script src="${options.scriptDirectory}${USERSCRIPT_FILENAME}"></script>
-
-<script>
-  var PREVIEW = ${settings};
-
-  function getElement(id) {
-    var found = document.getElementById(id);
-    if (found === null) throw new ReferenceError("preview is missing " + id);
-    return found;
-  }
-
-  var countLabel = getElement("preview-count");
-  var picker = getElement("preview-fight");
-
-  var fedCount = 0;
-  var isPlaying = false;
-  // The link of the capture on screen once a pick has replayed one, and null while
-  // the page is still showing the fight its own address names. Read by
-  // setStartOpened, which is the one thing a replayed pick invalidates.
-  var shownFight = null;
-
-  function renderCount() {
-    countLabel.textContent = PREVIEW.words.entry + " " + fedCount + " / " + PREVIEW.entryCount;
-  }
-
-  // The address is the caller's, so choosing a capture is a value the page was
-  // handed rather than a path it composed: a served page carries a query, a
-  // published one carries a filename, and neither belongs in here.
-  function renderPicker() {
-    for (var i = 0; i < PREVIEW.fights.length; i += 1) {
-      var option = document.createElement("option");
-      option.value = PREVIEW.fights[i].address;
-      option.textContent = PREVIEW.fights[i].name;
-      option.selected = PREVIEW.fights[i].name === PREVIEW.fightName;
-      picker.append(option);
+})();
+(function setNothingKept() {
+  var names = ["localStorage", "sessionStorage"];
+  for (var at = 0; at < names.length; at += 1) {
+    try {
+      Object.defineProperty(window, names[at], { value: PREVIEW_STORE, configurable: true });
+    } catch (refusal) {
+      void refusal;
     }
   }
+})();`;
+    assert(stood.includes("localStorage"), "the store a browser lends is taken away");
+    assert(stood.includes("sessionStorage"), "and so is the other one the add-on may be sent to");
+    assert(stood.includes("PREVIEW_STATE.store"), "and it starts holding what the address carried");
+    return stood;
+}
 
-  function getFightByAddress(address) {
-    for (var at = 0; at < PREVIEW.fights.length; at += 1) {
-      if (PREVIEW.fights[at].address === address) return PREVIEW.fights[at];
+/**
+ * The game, as much of it as the add-on touches, stood up before the add-on looks for one: the
+ * first look is the one that finds it, and a page that stands it up afterwards draws nothing for
+ * as long as the poll takes (`src/game/engine-attachment.ts`). Both roster names are needed —
+ * `warriorsList` is where a saved recording's snapshots are read from
+ * (`src/game/engine-warrior.ts`), and with only `w` every snapshot comes out empty.
+ */
+function composePreviewGame(words: PreviewWords): string {
+    assert(words.placeName.length > 0, "the place a bar draws is named by the tool, not a fight");
+    const stood = `window.Engine = {
+  battle: {
+    w: {},
+    warriorsList: {},
+    updateData: function handleCall(payload) {
+      var roster = payload && payload.w;
+      if (roster) {
+        for (var id in roster) {
+          window.Engine.battle.w[id] = roster[id];
+          window.Engine.battle.warriorsList[id] = roster[id];
+        }
+      }
+      return "preview-engine";
     }
+  },
+  map: { d: { name: ${JSON.stringify(words.placeName)} } },
+  hero: { d: { x: 1, y: 1 } }
+};`;
+    assert(stood.includes("updateData"), "carrying the call the add-on puts its wrap on");
+    assert(stood.includes("map"), "and a place, which no recording carries and every bar draws");
+    return stood;
+}
+
+/**
+ * Feeding the fight, one call at a time. Stepping **back** is replaying from the first call:
+ * `src/game/battle-session.ts` accumulates and has no rewind, but it resets on the call a fight
+ * opens with, and `tests/tools/recorded-fights.test.ts` measures that every recording carries one
+ * first. So a step back costs a replay and not a reload, and the panel keeps the screen the
+ * reader chose.
+ */
+function composePreviewDriver(): string {
+    const driver =
+        `var PREVIEW = JSON.parse(document.getElementById("preview-settings").textContent);
+var fedCount = 0;
+var playTimer = null;
+var shownFight = null;
+
+var getPreviewElement = function (id) {
+  var found = document.getElementById(id);
+  if (found === null) throw new ReferenceError("preview is missing " + id);
+  return found;
+};
+
+var countLabel = getPreviewElement("preview-count");
+var picker = getPreviewElement("preview-fight");
+
+var renderCount = function () {
+  countLabel.textContent = PREVIEW.words.entry + " " + fedCount + " / " + PREVIEW.entryCount;
+};
+
+var renderPicker = function () {
+  for (var at = 0; at < PREVIEW.fights.length; at += 1) {
+    var option = document.createElement("option");
+    option.value = PREVIEW.fights[at].address;
+    option.textContent = PREVIEW.fights[at].name;
+    option.selected = PREVIEW.fights[at].name === PREVIEW.fightName;
+    picker.append(option);
+  }
+};
+
+var setNextFed = function () {
+  if (fedCount >= PREVIEW.calls.length) return false;
+  window.Engine.battle.updateData(PREVIEW.calls[fedCount]);
+  fedCount += 1;
+  renderCount();
+  return true;
+};
+
+var setFedTo = function (target) {
+  if (target < fedCount) fedCount = 0;
+  for (var step = 0; step < PREVIEW.calls.length; step += 1) {
+    if (fedCount >= target) break;
+    if (!setNextFed()) break;
+  }
+  renderCount();
+};`;
+    assert(driver.includes("updateData"), "the calls reach whatever took the game's place");
+    assert(
+        driver.includes("fedCount = 0"),
+        "and a step back is the fight, fed again from its first",
+    );
+    return driver;
+}
+
+/**
+ * Choosing a recording, and reaching the state before the first call.
+ *
+ * A pick replays into the page already open wherever the caller said the calls are, so the panel
+ * keeps its screen, its position and the settings — none of which a fresh document keeps, because
+ * the store installed above outlives nothing. The stub engine merges every roster it is handed
+ * and never clears, so the fight being left behind would otherwise stand in the roster of the one
+ * arriving. A caller that offered no address navigates instead.
+ */
+function composePreviewPicks(): string {
+    const picks = [
+        composePreviewPicksReaders(),
+        composePreviewPicksHandlers(),
+        composePreviewPicksBindings(),
+    ].join("\n\n");
+    assert(
+        picks.includes("composePreviewStateHashAt(0)"),
+        "the state before the first call is reachable",
+    );
+    assert(picks.includes("renderPicker()"), "and every recording is in the picker before it is");
+    return picks;
+}
+
+/** Reading a recording out of the page's own list, and standing the page in front of one. */
+function composePreviewPicksReaders(): string {
+    const readers = `var getFightByAddress = function (address) {
+  for (var at = 0; at < PREVIEW.fights.length; at += 1) {
+    if (PREVIEW.fights[at].address === address) return PREVIEW.fights[at];
+  }
+  return null;
+};
+
+var setPlayStopped = function () {
+  if (playTimer === null) return;
+  window.clearInterval(playTimer);
+  playTimer = null;
+  getPreviewElement("preview-play").textContent = PREVIEW.words.play;
+};
+
+var setFightShown = function (fight, calls) {
+  window.Engine.battle.w = {};
+  window.Engine.battle.warriorsList = {};
+  shownFight = fight;
+  PREVIEW.fightName = fight.name;
+  PREVIEW.calls = calls;
+  PREVIEW.entryCount = calls.length;
+  fedCount = 0;
+  document.title = PREVIEW.words.title + " \\u2014 " + fight.name;
+  setFedTo(calls.length);
+  setPreviewStateWritten();
+};
+
+var setStartOpened = function () {
+  var opened = composePreviewStateHashAt(0);
+  if (shownFight !== null) {
+    window.location.href = shownFight.address + opened;
+    return;
+  }
+  window.location.hash = opened;
+  window.location.reload();
+};`;
+    assert(readers.includes("getFightByAddress"), "a recording is found by the address it wears");
+    assert(readers.includes("setFightShown"), "and the roster it is fed into is cleared first");
+    return readers;
+}
+
+/** The two controls that answer a reader: playing the calls, and choosing another recording. */
+function composePreviewPicksHandlers(): string {
+    const handlers = `var handlePlay = function () {
+  if (playTimer !== null) {
+    setPlayStopped();
+    return;
+  }
+  getPreviewElement("preview-play").textContent = PREVIEW.words.pause;
+  playTimer = window.setInterval(function handleTick() {
+    if (setNextFed()) return;
+    setPlayStopped();
+  }, 220);
+};
+
+var handlePick = function () {
+  var chosen = getFightByAddress(picker.value);
+  if (chosen === null) return null;
+  setPlayStopped();
+  if (chosen.callsAddress === null) {
+    window.location.href = chosen.address + composePreviewStateHash();
     return null;
   }
-
-  // One payload into the game's own method, which the add-on has already wrapped:
-  // the wrap goes on synchronously while the bundle's script tag runs, so by the
-  // time this file executes there is nothing to wait for.
-  function setNextFed() {
-    if (fedCount >= PREVIEW.payloads.length) return false;
-    window.Engine.battle.updateData(PREVIEW.payloads[fedCount]);
-    fedCount += 1;
-    renderCount();
-    return true;
-  }
-
-  function handlePlay() {
-    isPlaying = !isPlaying;
-    getElement("preview-play").textContent = isPlaying ? PREVIEW.words.pause : PREVIEW.words.play;
-    function handleTick() {
-      if (!isPlaying) return;
-      if (!setNextFed()) {
-        isPlaying = false;
-        getElement("preview-play").textContent = PREVIEW.words.play;
-        return;
-      }
-      window.setTimeout(handleTick, 220);
-    }
-    handleTick();
-  }
-
-  // Rewinding is replaying. The first payload of every capture carries "init",
-  // which resets the session, so feeding the fight again from zero lands on any
-  // earlier entry — and the panel keeps the tab the reader chose, which a reload
-  // would throw away.
-  //
-  // ⚠️ It does not keep the drill level, and that is the add-on being right
-  // rather than the rewind being wrong: "init" is what a fight opening looks
-  // like, and a fight opening puts the reader back at the top of their tab
-  // (composeStateAfterFightStart, src/ui/panel-screen.ts). Nothing in a game
-  // rewinds; here it means a step back off entry 2 closes a breakdown that was
-  // open.
-  function setFedTo(target) {
-    if (target < fedCount) fedCount = 0;
-    while (fedCount < target && setNextFed()) { /* forward to where we were asked */ }
-    renderCount();
-  }
-
-  // The capture that was picked, replayed into the page already open.
-  //
-  // ⚠️ The stub engine merges every roster it is handed and never clears, and
-  // src/game/engine-roster.ts reads that map — so without emptying it the fight
-  // being left behind stands in the roster of the one arriving, under its own
-  // combatants' names. Nothing in a game ever switches fights this way, which is
-  // why nobody would guess it from the panel.
-  function setFightShown(fight, payloads) {
-    window.Engine.battle.w = {};
-    window.Engine.battle.warriorsList = {};
-    shownFight = fight;
-    PREVIEW.fightName = fight.name;
-    PREVIEW.payloads = payloads;
-    PREVIEW.entryCount = payloads.length;
-    fedCount = 0;
-    document.title = PREVIEW.words.title + " — " + fight.name;
-    // The finished fight, where the page a server opens deliberately starts before
-    // the first payload: a capture somebody picked is one they want counted.
-    setFedTo(payloads.length);
-  }
-
-  // Picking a capture replays it here rather than opening another page, wherever
-  // the caller said its payloads are. Nothing is torn down, so the panel
-  // keeps the tab, the position and the settings the reader chose — a fresh
-  // document keeps none of the three, because the store installed above outlives
-  // nothing. A caller that gave no such address navigates, which is what this
-  // always did.
-  //
-  // The promise is returned for a test to wait on; nothing in a browser reads it.
-  function handlePick() {
-    var chosen = getFightByAddress(picker.value);
-    if (chosen === null || chosen.payloadsAddress === null) {
-      window.location.href = picker.value;
-      return null;
-    }
-    isPlaying = false;
-    getElement("preview-play").textContent = PREVIEW.words.play;
-    return window.fetch(chosen.payloadsAddress).then(function handleAnswer(answer) {
-      return answer.json();
-    }).then(function handleFightRead(payloads) {
-      setFightShown(chosen, payloads);
-    }, function handleFightRefused() {
-      // The fetch and the reading of it are the parts of a pick that can fail —
-      // a stopped server, and a 404 whose body is not JSON — and the page a pick
-      // would have opened is still there. Falling back to it costs the state this whole
-      // thing exists to keep, and a picker that silently does nothing costs more.
-      window.location.href = chosen.address;
-    });
-  }
-
-  // The address of this page, before its first payload.
-  var START_HASH = "#start";
-
-  // ⚠️ Replaying reaches entry 1 at the lowest, so entry 0 is a reload and not a
-  // rewind, and this button did neither until it was driven: feeding no payloads
-  // leaves the add-on holding the whole fight it had already accumulated, and the
-  // stub engine holding the whole roster. Measured on the published page, at the
-  // finished fight — the counter went to "0 / 52" and all 12 rows kept the totals
-  // they had, which is exactly what §9.6 forbids: a number that may be wrong
-  // looking like a number that is right. Only a page that has fed nothing is the
-  // empty panel. The hash is what carries the ask across the reload, because it is
-  // the one part of an address both callers have — a served page keeps its query
-  // and a published page is a file with none.
-  function setStartOpened() {
-    // A pick that replayed left this page's address naming a fight nobody is
-    // looking at any more, and the empty panel has to be the one on screen.
-    if (shownFight !== null) {
-      window.location.href = shownFight.address + START_HASH;
-      return;
-    }
-    window.location.hash = START_HASH;
-    // Assigning a hash the address already carries navigates nowhere, so the
-    // reload is what answers the click either way.
-    window.location.reload();
-  }
-
-  getElement("preview-next").addEventListener("click", function handleNext() {
-    setNextFed();
+  return window.fetch(chosen.callsAddress).then(function handleAnswer(answer) {
+    return answer.json();
+  }).then(function handleCallsRead(calls) {
+    setFightShown(chosen, calls);
+  }, function handleCallsRefused() {
+    window.location.href = chosen.address + composePreviewStateHash();
   });
-  getElement("preview-end").addEventListener("click", function handleEnd() {
-    setFedTo(PREVIEW.payloads.length);
-  });
-  getElement("preview-play").addEventListener("click", handlePlay);
-  // One step back off the first payload is the same ask as the button beside it,
-  // and it was the same silent no-op.
-  getElement("preview-back").addEventListener("click", function handleBack() {
-    if (fedCount <= 1) {
-      setStartOpened();
-      return;
-    }
-    setFedTo(fedCount - 1);
-  });
-  getElement("preview-start").addEventListener("click", setStartOpened);
-  picker.addEventListener("change", handlePick);
+};`;
+    assert(handlers.includes("handlePlay"), "playing is one control, and it stops itself");
+    assert(handlers.includes("handlePick"), "choosing is the other, and a refusal navigates");
+    return handlers;
+}
 
-  renderPicker();
-  // Synchronously, before load fires: a screenshot is taken at load and nothing
-  // after it, so a replay that waited would photograph an empty panel.
-  //
-  // The hash wins over the entry the caller baked in, which is what makes the
-  // empty panel reachable on a page whose entry is not in its address at all.
-  setFedTo(window.location.hash === START_HASH ? 0 : PREVIEW.entryIndex);
-${options.appendedScript ?? ""}
-</script>
+/** The controls wired to what they do, and the state the page opens on. */
+function composePreviewPicksBindings(): string {
+    const bindings =
+        `getPreviewElement("preview-next").addEventListener("click", function handleNext() {
+  setNextFed();
+});
+getPreviewElement("preview-end").addEventListener("click", function handleEnd() {
+  setFedTo(PREVIEW.calls.length);
+});
+getPreviewElement("preview-back").addEventListener("click", function handleBack() {
+  if (fedCount <= 1) {
+    setStartOpened();
+    return;
+  }
+  setFedTo(fedCount - 1);
+});
+getPreviewElement("preview-play").addEventListener("click", handlePlay);
+getPreviewElement("preview-start").addEventListener("click", setStartOpened);
+picker.addEventListener("change", handlePick);
 
-</body>
-</html>
-`;
+renderPicker();
+setFedTo(PREVIEW_STATE.entry === null ? PREVIEW.entryIndex : PREVIEW_STATE.entry);`;
+    assert(bindings.includes("addEventListener"), "every control reaches what it does");
+    assert(bindings.includes("PREVIEW_STATE.entry"), "and opens on the entry the address carried");
+    return bindings;
 }

@@ -1,150 +1,134 @@
 /**
- * Grammar of one protocol message. Structure only — what a key *means* is the
- * decoder's job.
+ * The grammar of one message: structure, and nothing about what a key means.
  *
- *   actor;target;key=value;key=value;flag
+ *     actor;target;key=value;key
  *
- * Both sides come first, each an integer combatant id optionally followed by a
- * health percentage. `0` in a side position means the protocol named nobody.
- *
- * Strict on purpose: anything the grammar does not cover throws. The decoder is
- * the layer that has to survive surprises, and it does so by turning a throw
- * here into a loud unknown event — not by letting a half-read message through
- * as if it were understood.
+ * Both ends come first, each an integer combatant id optionally carrying a health percentage,
+ * and `0` where the protocol named nobody. Anything the grammar does not cover throws: the
+ * decoder is the layer that survives a surprise, and it does so by turning a refusal here into
+ * a loud unknown rather than by reading half a message as if it were understood.
  */
 
-import { composeJsonText } from "@/libs/json.ts";
-import { assertDefined } from "@/libs/assert.ts";
-import {
-  composeDecimalText,
-  composeIntegerText,
-  getDecimalFromText,
-  getIntegerFromText,
-  isFixedDecimalText,
-  isIntegerText,
-} from "@/libs/number.ts";
+import { assert } from "@std/assert";
 import { MargoMeterError } from "@/src/core/margometer-error.ts";
+import { composeIntegerText, getIntegerFromText, isIntegerText } from "@/libs/number-text.ts";
+import { composeHealthPercentText, getHealthPercentFromText } from "@/src/core/protocol-number.ts";
 
+/**
+ * Named because the decoder catches exactly this and turns it into a message it could not read.
+ * A catch on the base would swallow every other failure `core/` could raise as an unread message.
+ */
 export class ProtocolMessageFormatError extends MargoMeterError {
-  constructor(reason: string, message: string) {
-    super("ProtocolMessageFormat", `${reason}: ${composeJsonText(message)}`);
-  }
+    constructor(reason: string) {
+        super("ProtocolMessageFormat", reason);
+    }
 }
 
-export type MessageSide = {
-  combatantId: number;
-  /** Health the protocol states for this combatant, or null when it states none. */
-  healthPercent: number | null;
-};
+export interface MessageSide {
+    combatantId: number;
+    healthPercent: number | null;
+}
 
-export type MessageParameter = {
-  key: string;
-  /** Null for a segment with no `=` at all. An empty value would be `""`, which is different. */
-  value: string | null;
-};
+export interface MessageParameter {
+    key: string;
+    /** Null for a segment with no `=`. An empty value is `""`, which is a different thing. */
+    value: string | null;
+}
 
-export type ProtocolMessage = {
-  /**
-   * The two sides, in protocol order. Null when the protocol wrote `0`.
-   *
-   * Measured on the captured fights: in messages carrying dealt damage, the
-   * second side lost health in almost every case and was never left unchanged,
-   * while the first side was unchanged in most. Hence actor and target rather
-   * than first and second.
-   */
-  actor: MessageSide | null;
-  target: MessageSide | null;
-  parameters: MessageParameter[];
-};
+export interface ProtocolMessage {
+    actor: MessageSide | null;
+    target: MessageSide | null;
+    parameters: MessageParameter[];
+}
 
 const SEGMENT_SEPARATOR = ";";
+const VALUE_SEPARATOR = "=";
 const NO_COMBATANT = "0";
-const HEALTH_SEPARATOR = "=";
-/** The protocol writes a health percentage to two places, always. */
-const HEALTH_PERCENT_PLACES = 2;
+const SIDE_SEGMENTS = 2;
+/** The longest message in `captures/` carries 42 segments, 2026-08-28. */
+const MAXIMUM_SEGMENTS = 512;
 
+/**
+ * Shape and magnitude are two refusals, and the split is load-bearing: the protocol could
+ * state an id past 2^53, and reading it as its nearest neighbour would charge damage to a
+ * combatant who does not exist.
+ */
 function parseMessageSide(segment: string, whole: string): MessageSide | null {
-  if (segment === NO_COMBATANT) return null;
-
-  // Split before either half is read, so "which half is wrong" is a fact rather
-  // than a guess: the id is everything before the first `=`, and a segment with
-  // no `=` is an id and nothing else.
-  const separator = segment.indexOf(HEALTH_SEPARATOR);
-  const idText = separator === -1 ? segment : segment.slice(0, separator);
-  const percentText = separator === -1 ? null : segment.slice(separator + 1);
-
-  // Shape and magnitude are two refusals and the split between them is
-  // load-bearing. That the digits are digits is the grammar's business; that
-  // they fit in a number is not — the protocol could state an id longer than
-  // 2^53, and reading it as its nearest neighbour would attribute damage to a
-  // combatant who does not exist. Both are refused, and the decoder turns either
-  // into a loud unknown; they are told apart so a reader of the message knows
-  // which happened.
-  if (!isIntegerText(idText)) {
-    throw new ProtocolMessageFormatError(`side segment "${segment}" is not an id`, whole);
-  }
-  if (percentText !== null && !isFixedDecimalText(percentText, HEALTH_PERCENT_PLACES)) {
-    throw new ProtocolMessageFormatError(`side segment "${segment}" is not an id`, whole);
-  }
-
-  const combatantId = getIntegerFromText(idText);
-  if (combatantId === null) {
-    throw new ProtocolMessageFormatError(`side segment "${segment}" states an unusable id`, whole);
-  }
-
-  if (percentText === null) return { combatantId, healthPercent: null };
-
-  const healthPercent = getDecimalFromText(percentText);
-  if (healthPercent === null) {
-    throw new ProtocolMessageFormatError(
-      `side segment "${segment}" states an unusable percentage`,
-      whole,
-    );
-  }
-  return { combatantId, healthPercent };
+    if (segment === NO_COMBATANT) return null;
+    const separator = segment.indexOf(VALUE_SEPARATOR);
+    const idText = separator === -1 ? segment : segment.slice(0, separator);
+    if (!isIntegerText(idText)) {
+        throw new ProtocolMessageFormatError(`side "${segment}" in "${whole}"`);
+    }
+    const combatantId = getIntegerFromText(idText);
+    if (combatantId === null) {
+        throw new ProtocolMessageFormatError(`id "${idText}" in "${whole}"`);
+    }
+    if (separator === -1) return { combatantId, healthPercent: null };
+    const healthPercent = getHealthPercentFromText(segment.slice(separator + 1));
+    if (healthPercent === null) {
+        throw new ProtocolMessageFormatError(`health "${segment}" in "${whole}"`);
+    }
+    assert(healthPercent >= 0, "a percentage the grammar accepted is never below nothing");
+    return { combatantId, healthPercent };
 }
 
 function parseMessageParameter(segment: string): MessageParameter {
-  const separator = segment.indexOf("=");
-  if (separator === -1) return { key: segment, value: null };
-  return { key: segment.slice(0, separator), value: segment.slice(separator + 1) };
+    const separator = segment.indexOf(VALUE_SEPARATOR);
+    assert(separator < segment.length, "a separator sits inside the segment it was found in");
+    if (separator === -1) return { key: segment, value: null };
+    const key = segment.slice(0, separator);
+    const value = segment.slice(separator + 1);
+    assert(key.length + value.length + 1 === segment.length, "a segment splits into two parts");
+    return { key, value };
 }
 
 export function parseProtocolMessage(message: string): ProtocolMessage {
-  const segments = message.split(SEGMENT_SEPARATOR);
-  if (segments.length < 2) {
-    throw new ProtocolMessageFormatError("fewer than two side segments", message);
-  }
+    const segments = message.split(SEGMENT_SEPARATOR);
+    if (segments.length < SIDE_SEGMENTS) {
+        throw new ProtocolMessageFormatError(`one segment in "${message}"`);
+    }
+    assert(segments.length <= MAXIMUM_SEGMENTS, "a message stays inside its stated bound");
+    const [actorSegment, targetSegment] = segments;
+    assert(actorSegment !== undefined, "a message split in two has a first segment");
+    assert(targetSegment !== undefined, "a message split in two has a second segment");
+    const parameters = segments.slice(SIDE_SEGMENTS).map(parseMessageParameter);
+    assert(
+        parameters.length === segments.length - SIDE_SEGMENTS,
+        "every segment past the ends is a parameter",
+    );
+    return {
+        actor: parseMessageSide(actorSegment, message),
+        target: parseMessageSide(targetSegment, message),
+        parameters,
+    };
+}
 
-  const [actor, target] = segments;
-  return {
-    actor: parseMessageSide(assertDefined(actor, "message has a first segment"), message),
-    target: parseMessageSide(assertDefined(target, "message has a second segment"), message),
-    parameters: segments.slice(2).map(parseMessageParameter),
-  };
+function composeMessageSide(side: MessageSide | null): string {
+    if (side === null) return NO_COMBATANT;
+    const idText = composeIntegerText(side.combatantId);
+    assert(idText.length > 0, "an id is written as at least one character");
+    if (side.healthPercent === null) return idText;
+    const percentText = composeHealthPercentText(side.healthPercent);
+    assert(percentText.includes("."), "a percentage is written with its places");
+    return `${idText}${VALUE_SEPARATOR}${percentText}`;
 }
 
 /**
- * Rebuilds the wire text from the parsed structure.
- *
- * Exists for one reason: it makes "the parser loses nothing" a testable claim
- * over the whole corpus. A field silently dropped during parsing is exactly the
- * kind of fault that turns into a number that is quietly too low.
+ * Writing the wire text back is what makes "the parser loses nothing" a claim a machine can
+ * settle over every recording. A field quietly dropped while parsing is exactly the fault that
+ * reaches a reader as a figure that is too low and says so nowhere.
  */
 export function composeProtocolMessage(parsed: ProtocolMessage): string {
-  const composeSide = (side: MessageSide | null): string => {
-    if (side === null) return NO_COMBATANT;
-    const id = composeIntegerText(side.combatantId);
-    if (side.healthPercent === null) return id;
-    // Two places, the same two `SIDE_PATTERN` insists on when reading. A value
-    // that will not write back at that width never parsed in the first place,
-    // which is why this asserts rather than returning something.
-    return `${id}=${composeDecimalText(side.healthPercent, 2)}`;
-  };
-
-  return [
-    composeSide(parsed.actor),
-    composeSide(parsed.target),
-    ...parsed.parameters.map(({ key, value }) => (value === null ? key : `${key}=${value}`)),
-  ].join(SEGMENT_SEPARATOR);
+    assert(parsed.parameters.length <= MAXIMUM_SEGMENTS, "a message stays inside its bound");
+    const segments = [composeMessageSide(parsed.actor), composeMessageSide(parsed.target)];
+    for (const parameter of parsed.parameters) {
+        const value = parameter.value;
+        segments.push(value === null ? parameter.key : `${parameter.key}=${value}`);
+    }
+    assert(
+        segments.length === parsed.parameters.length + SIDE_SEGMENTS,
+        "both ends are written once",
+    );
+    return segments.join(SEGMENT_SEPARATOR);
 }

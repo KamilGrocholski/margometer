@@ -1,192 +1,73 @@
 /**
- * The tool that decides whether the cached client is stale.
+ * The client's own JavaScript, asked for and dated.
  *
- * It had no test at all for a long while, though its structural twin
- * `tools/help-article.ts` — same fetch, same cache, same provenance manifest — had
- * one.
- *
- * Nothing here reaches the network. What is testable is the part §7.6 actually rests
- * on: reading a build id off a page, and refusing a channel that is not one. The
- * fetching and the writing are the halves that need a live host, and they are named in
- * this file as what it does not cover.
+ * The readers run over invented markup: the game's page is somebody else's work and none of it
+ * is stored here. The last test is the one that matters most — it asks **git** whether the cache
+ * is ignored, because the promise that no bundle enters this repository is two spellings in two
+ * files with nothing between them.
  */
 
-import { spawnSync } from "node:child_process";
-import { describe, expect, test } from "bun:test";
+import { assert, assertEquals, assertThrows } from "@std/assert";
 import {
-  CACHE_ROOT,
-  GameSourceError,
-  getBuildFromPage,
-  getBundleUrlFromPage,
-  getCachedBundle,
-  getCachedClientSource,
-  getChannelFromArgument,
+    CACHE_ROOT,
+    getBuildFromPage,
+    getBundleUrlFromPage,
+    getChannelFromArgument,
+    requireCachedClientSource,
 } from "@/tools/game-client-source.ts";
+import { GameSourceError } from "@/tools/margometer-tool-error.ts";
 
-describe("the build id on a world page", () => {
-  test("is read from the inline build object", () => {
-    expect(getBuildFromPage("var build = { version: 1785244275300 };")).toBe("1785244275300");
-  });
+const OLDER_PAGE =
+    `<script src="https://tempest.margonem.pl/js/main.min1786514810315.js"></script>`;
+const NEWER_PAGE = `<script src="/js/main.min.53XkBRxF.js"></script>`;
 
-  test("is read from a script filename when there is no inline object", () => {
-    expect(getBuildFromPage('<script src="/js/main.min1785244275300.js"></script>')).toBe(
-      "1785244275300",
+Deno.test("both names the client has served give up their build and their file", () => {
+    assertEquals(getBuildFromPage(OLDER_PAGE), "1786514810315", "the older name's id");
+    assertEquals(getBuildFromPage(NEWER_PAGE), "53XkBRxF", "and the newer one's");
+    assertEquals(
+        getBundleUrlFromPage(NEWER_PAGE, "https://tempest.margonem.pl"),
+        "https://tempest.margonem.pl/js/main.min.53XkBRxF.js",
+        "the file is asked for under the name the page states, dot and all",
     );
-  });
+});
 
-  /**
-   * ⚠️ **The filename wins where a page carries both, and it used to lose.** The
-   * old ordering read the inline object first, because a page can be served while
-   * a cached script tag lags — sound while the two were one number, which they
-   * stopped being on 2026-08-25. The page now states one id for what every world
-   * shares from `commons.margonem.pl` and another in the name of the bundle it
-   * serves itself; this tool downloads the second, and a citation dates the file
-   * it was read out of (`tools/game-client-source.ts`, §7.6).
-   */
-  test("prefers the filename to the inline object", () => {
-    const page = 'version: 1785244275300 <script src="/js/main.min1781609507010.js">';
-    expect(getBuildFromPage(page)).toBe("1781609507010");
-  });
-
-  test("reads the id the client serves today, letters and all", () => {
-    expect(getBuildFromPage('<script src="/js/main.min.53XkBRxF.js"></script>')).toBe("53XkBRxF");
-  });
-
-  /**
-   * And the name beside it, because the id no longer rebuilds it: `main.min` +
-   * id + `.js` composes a file the server does not have. What is asked for is
-   * what the page named.
-   */
-  test("asks for the bundle under the name the page states", () => {
-    expect(
-      getBundleUrlFromPage(
-        '<script src="/js/main.min.53XkBRxF.js"></script>',
-        "https://tempest.margonem.pl",
-      ),
-    ).toBe("https://tempest.margonem.pl/js/main.min.53XkBRxF.js");
-  });
-
-  test("refuses to compose a URL for a page naming no bundle", () => {
-    expect(() => getBundleUrlFromPage("version: 1785244275300", "https://tempest.margonem.pl")).toThrow(
-      GameSourceError,
+Deno.test("a page that names no client is a page this refuses", () => {
+    assertThrows(() => getBuildFromPage("<html><body>nothing here</body></html>"), GameSourceError);
+    assertThrows(
+        () => getBundleUrlFromPage("<script src=/js/main.min.js></script>", "https://x.example"),
+        GameSourceError,
     );
-  });
-
-  test("reads a build stated with the spacing the client actually uses", () => {
-    expect(getBuildFromPage("version:1785244275300")).toBe("1785244275300");
-  });
-
-  /**
-   * A refusal rather than a null, because §9.5 puts a tool that was handed bad
-   * material on the loud side: a build id nobody could read must not become a
-   * comparison that quietly reports the cache current.
-   */
-  test.each([
-    ["a page with no build on it", "<html><body>nothing here</body></html>"],
-    ["a number too short to be one", "version: 178524"],
-    ["an empty page", ""],
-  ])("refuses %s", (_what, page) => {
-    expect(() => getBuildFromPage(page)).toThrow(GameSourceError);
-  });
-
-  test("says whose the error is, in the name the console shows first", () => {
-    try {
-      getBuildFromPage("");
-      expect.unreachable();
-    } catch (error) {
-      expect((error as Error).name).toBe("MargoMeterTool/GameSource");
-    }
-  });
 });
 
-describe("the channel named on the command line", () => {
-  test.each(["production", "development"])("admits %s", (channel) => {
-    expect(getChannelFromArgument(channel)).toBe(channel);
-  });
-
-  /**
-   * ⚠️ The check used to be `target in CHANNEL_HOSTS`, and `in` walks the
-   * prototype chain — so `toString`, `constructor` and `valueOf` passed it and
-   * reached a lookup that handed back a function where a host belonged. §7.6
-   * keeps the two channels apart on purpose, and a check admitting a third thing
-   * is not keeping them apart.
-   */
-  test.each(["toString", "constructor", "valueOf", "hasOwnProperty", "__proto__"])(
-    "refuses %s, which the prototype chain would have admitted",
-    (inherited) => {
-      expect(() => getChannelFromArgument(inherited)).toThrow(GameSourceError);
-    },
-  );
-
-  test.each([["a misspelling", "productio"], ["nothing", ""], ["a world name", "tempest"]])(
-    "refuses %s",
-    (_what, value) => {
-      expect(() => getChannelFromArgument(value)).toThrow(GameSourceError);
-    },
-  );
+Deno.test("a channel is one of the two, and nothing off a prototype", () => {
+    assertEquals(getChannelFromArgument("production"), "production", "the one that decides");
+    assertEquals(getChannelFromArgument("development"), "development", "the one for reading");
+    // `in` walks the prototype chain, so it accepted `toString` and sent a fetch at a function.
+    assertThrows(() => getChannelFromArgument("toString"), GameSourceError);
+    assertThrows(() => getChannelFromArgument("constructor"), GameSourceError);
 });
 
-/**
- * What the cache answers when there is nothing in it, which is the state every machine
- * that has not fetched is in — including the one running CI.
- *
- * ⚠️ **Neither reader was named anywhere under `tests/` for the life of this file**, so
- * the difference between them had never been asked. They answer an empty cache in two
- * deliberately different ways, and that split is the only thing here a test can hold
- * without a network: `.cache/` is outside git (§7.6), so what it holds is a property of
- * the machine and not of the tree.
- */
-describe("reading a cache that may not be there", () => {
-  const NEVER_FETCHED = "development";
+Deno.test("a manifest missing a field is provenance nobody can date", () => {
+    const whole = {
+        channel: "production",
+        build: "53XkBRxF",
+        host: "https://tempest.margonem.pl",
+        fetchedAt: "2026-08-25T21:29:23.840Z",
+        bundlePath: ".cache/game-client/production/main.js",
+    };
+    assertEquals(requireCachedClientSource(whole, "production").build, "53XkBRxF", "a whole one");
 
-  test("the two readers disagree about an empty cache on purpose", () => {
-    const cached = getCachedClientSource(NEVER_FETCHED);
-
-    if (cached === null) {
-      // Nothing fetched: the manifest reader reports it and the bundle reader
-      // refuses, because a caller asking for source has nothing to be handed and
-      // a caller asking whether anything is cached has its answer.
-      expect(() => getCachedBundle(NEVER_FETCHED)).toThrow(GameSourceError);
-      return;
-    }
-
-    // Fetched on this machine: then the manifest says which build, and the
-    // bundle reader hands back something to read rather than throwing.
-    expect(cached.build.length).toBeGreaterThan(0);
-    expect(getCachedBundle(NEVER_FETCHED).length).toBeGreaterThan(0);
-  });
-
-  // A channel that is not one is refused before any path is composed, so a
-  // typo cannot read a directory nobody meant.
-  test("refuses to read a cache for something that is not a channel", () => {
-    expect(() => getChannelFromArgument("productio")).toThrow(GameSourceError);
-  });
+    const { fetchedAt: _dropped, ...truncated } = whole;
+    assertThrows(() => requireCachedClientSource(truncated, "production"), GameSourceError);
+    assertThrows(
+        () => requireCachedClientSource({ ...whole, channel: "development" }, "production"),
+        GameSourceError,
+    );
+    assertThrows(() => requireCachedClientSource("not an object", "production"), GameSourceError);
 });
 
-/**
- * The cache this tool writes into, and git's own opinion of it.
- *
- * §7.6 keeps fetched sources out of the repository by copyright requirement, and
- * until this the whole promise was one path here agreeing with one line in
- * `.gitignore`. Nothing compared them, so a root moved out from under the ignore
- * rule would leave somebody else's material sitting in `git status`
- * (`docs/specs/2026-08-18-a-name-we-did-not-choose.md`).
- *
- * Asked of `git check-ignore` rather than by reading `.gitignore`: git is what
- * decides, and a pattern read by hand is a second implementation of matching
- * rules this repository has no reason to own. `-q` so the status carries the
- * answer and nothing is parsed (§7.5).
- */
-function isIgnoredByGit(path: string): boolean {
-  const done = spawnSync("git", ["check-ignore", "-q", path], {
-    cwd: new URL("../../", import.meta.url).pathname,
-  });
-  return done.status === 0;
-}
-
-describe("what the tool writes outside git", () => {
-  test("caches under a path git is told to ignore", () => {
-    expect(CACHE_ROOT).toContain("/.cache/");
-    expect(isIgnoredByGit(CACHE_ROOT), CACHE_ROOT).toBe(true);
-  });
+Deno.test("git is asked whether the cache is ignored, rather than a comment claiming it", () => {
+    const asked = new Deno.Command("git", { args: ["check-ignore", CACHE_ROOT] }).outputSync();
+    assert(CACHE_ROOT.startsWith(".cache/"), "the cache sits where the ignore rule names");
+    assertEquals(asked.success, true, `git does not ignore ${CACHE_ROOT}`);
 });

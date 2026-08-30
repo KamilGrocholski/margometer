@@ -1,148 +1,80 @@
 /**
- * The counters this project reports progress with. They are computed rather
- * than written down, so what needs guarding is not a value but the arithmetic:
- * a miscount here would be quoted in a commit message as fact.
+ * What the decoder could not read, counted — proved on a sample it must flag and one it must not.
+ *
+ * The second is the corpus, which is read whole; without it a reader that had stopped finding its
+ * subject would pass every run. The first is the probe shape `tests/core/fight-decoder.test.ts`
+ * keeps: a real announcement with a key the register has never seen put beside it, which is what
+ * the next protocol change will look like.
  */
 
-import { describe, expect, test } from "bun:test";
-import {
-  CAPTURED_FIGHTS,
-  CAPTURED_FIGHTS_DIRECTORY,
-  getMessagesOfFight,
-} from "@/tests/captured-fight-catalog.ts";
-import {
-  DecodingStatusError,
-  getDecodingStatus,
-  getMessagesOfCapturedMaterial,
-  getMessagesOfDumpAt,
-} from "@/tools/decoding-status.ts";
-import { assertDefined } from "@/libs/assert.ts";
-import { DAMAGE_TO_NAMED_KEY } from "@/src/core/fight-decoder.ts";
+import { assert, assertEquals } from "@std/assert";
+import { BATTLE_EVENT_KINDS } from "@/src/core/battle-event.ts";
+import { composeDecodingStatus, composeStatusReport } from "@/tools/decoding-status.ts";
+import { composeFightReplay, composeReplayedMaterial } from "@/tools/fight-replay.ts";
 
-const STATUS = getDecodingStatus(getMessagesOfCapturedMaterial());
+/** A key the register has never seen, on an announcement that is otherwise a real one. */
+const UNREAD = "469657=87.63;469657=87.63;tspell=Zdrowa atmosfera;skillId=79;whatever_per=30";
+/** A message whose grammar fails before any key is reached. */
+const REFUSED = "gracz;0;step";
+const READ = "482845=100.00;0;heal=99";
 
-describe("decoding status", () => {
-  test("counts every captured message once", () => {
-    const messages = CAPTURED_FIGHTS.flatMap((fight) =>
-      getMessagesOfFight(fight),
-    );
-    expect(STATUS.messages).toBe(messages.length);
-  });
+function replayOf(messages: readonly string[]) {
+    return composeFightReplay({
+        name: "a fight nobody recorded",
+        calls: [{ init: 1, m: messages }],
+    });
+}
 
-  test("cannot report more messages carrying unread keys than there are messages", () => {
-    expect(STATUS.messagesWithUnread).toBeLessThanOrEqual(STATUS.messages);
-    expect(STATUS.messagesWithUnread).toBeGreaterThanOrEqual(0);
-  });
+Deno.test("the corpus reads whole, and the report says so rather than staying silent", () => {
+    const status = composeDecodingStatus(composeReplayedMaterial([]).replays);
+    assertEquals(status.unreadKeysByFrequency, [], "no key of the material goes unread");
+    assertEquals(status.messagesWithUnread, 0, "and no message carries anything unread");
+    assertEquals(status.messagesRefused, 0, "nor does the grammar refuse one");
+    assert(status.messages > status.payloads, "a payload carries more than one message");
 
-  test("reports events, and every kind it reports is one the contract declares", () => {
-    const kinds = Object.keys(STATUS.eventsByKind);
-    expect(kinds.length).toBeGreaterThan(0);
-    expect(Object.values(STATUS.eventsByKind).every((count) => count > 0)).toBe(true);
-  });
-
-  // The tool asks whether a key contributes to the reading of a real message
-  // that carried it. Two earlier versions got this wrong in the same direction:
-  // the first passed no value and reported damage keys as unread, the second
-  // handed the key over alone and reported `skillId` as unread — a key read
-  // only in the company of `tspell`. Both times the counters looked plausible.
-  // Spelled here rather than imported, for the reason `tests/core/` spells them:
-  // the claim is that the tool finds these read, and a list taken from the
-  // decoder would be a list of what the decoder says it reads (§9.3).
-  test("reports no key as unread that the decoder demonstrably reads", () => {
-    const unread = STATUS.unreadKeysByFrequency.map((entry) => entry.key);
-    for (const key of ["+dmgc", "-dmgc", DAMAGE_TO_NAMED_KEY, "winner", "tspell", "-absorb", "+crit"]) {
-      expect(unread, key).not.toContain(key);
-    }
-  });
-
-  // Separately, because it is the case that broke the probe rather than another
-  // key that happens to be read: alone this one decodes to nothing on purpose.
-  test("reports no key as unread that is read only alongside another", () => {
-    const unread = STATUS.unreadKeysByFrequency.map((entry) => entry.key);
-    expect(unread).not.toContain("skillId");
-  });
-
-  /**
-   * The inverse, so the probe cannot go green by calling everything read.
-   *
-   * ⚠️ **Checked against a message written for the purpose, because the captured
-   * material no longer carries a single unread key.** That is the milestone this
-   * test used to stand on and can no longer: it named `step`, then `healall_per`,
-   * and both are read now. A probe that reports nothing unread is
-   * indistinguishable from one that has stopped looking, so the looking is what
-   * is checked here.
-   */
-  test("still reports a key the decoder genuinely has no meaning for", () => {
-    const invented = getDecodingStatus(["1=100.00;2=50.00;+dmg=5;no_such_key=1"]);
-    expect(invented.unreadKeysByFrequency.map((entry) => entry.key)).toEqual(["no_such_key"]);
-    expect(invented.messagesWithUnread).toBe(1);
-  });
-
-  test("ranks unread keys by how often they occur", () => {
-    const counts = STATUS.unreadKeysByFrequency.map((entry) => entry.occurrences);
-    expect([...counts]).toEqual([...counts].sort((a, b) => b - a));
-    expect(counts.every((count) => count > 0)).toBe(true);
-  });
-
-  /**
-   * The day this list empties, which arrived on 2026-08-11.
-   *
-   * Asserted rather than left as an observation: every key in every capture is
-   * read now, so a key appearing here again means the material grew or the
-   * decoder lost something — and either is worth failing over rather than
-   * noticing months later. `bun tools/decoding-status.ts` is where the figure
-   * lives; this only holds it at zero.
-   */
-  test("has no unread key left in the captured material", () => {
-    expect(STATUS.unreadKeysByFrequency).toEqual([]);
-  });
-
-  /**
-   * And nothing left half-read either. The last two — `heal=3065,-45` and
-   * `poison=140,14` — carry a second value member whose **meaning** is still
-   * unknown, and that is a different thing from unaccounted: the health witness
-   * judges both calls and agrees on the very messages carrying them, so the
-   * member moves no health and shortens no total. It is carried beside the
-   * figure rather than reported against it.
-   */
-  test("and no message left half-read either", () => {
-    expect(STATUS.messagesWithUnread).toBe(0);
-  });
+    const report = composeStatusReport(composeReplayedMaterial([]));
+    assert(report.includes("  every key was read"), "an empty tally is an answer, not a gap");
+    assert(report.some((line) => line.startsWith("material          captures/")), "material named");
 });
 
-/**
- * The route that lets a recording be measured before it is material.
- *
- * A fresh dump has to pass intake to become a capture, and intake is the
- * expensive half — so the tool has to be able to read a file that is not in the
- * material directory, or the answer that decides whether intake is worth
- * starting arrives only after it is finished.
- *
- * ⚠️ **Checked against a capture, which is the one dump this test can name and
- * still be reading the tool rather than a fixture it wrote itself.** Nothing
- * here says the file is outside the directory — what is checked is that naming a
- * path and going through the catalog produce the same reading, which is the
- * claim the route rests on. The file is reached through
- * `CAPTURED_FIGHTS_DIRECTORY` and a name off the catalog, never a name written
- * down here (§9.2).
- */
-describe("a recording named by path", () => {
-  const fight = assertDefined(CAPTURED_FIGHTS[0], "the material is not empty");
-  const path = `${CAPTURED_FIGHTS_DIRECTORY}${fight.name}.json`;
+Deno.test("a key the register has never seen is reported, naming it", () => {
+    const status = composeDecodingStatus([replayOf([UNREAD, UNREAD, READ])]);
+    assertEquals(status.unreadKeysByFrequency, [["whatever_per", 2]], "one entry per occurrence");
+    assertEquals(status.messagesWithUnread, 2, "on the two messages that carried it");
+    assertEquals(status.messagesRefused, 0, "and the grammar refused neither");
+    assertEquals(status.messages, 3, "the message that read fine is still counted");
 
-  test("reads the same messages the catalog reads out of the same file", () => {
-    expect(getMessagesOfDumpAt(path)).toEqual(getMessagesOfFight(fight));
-  });
+    const lines = composeStatusReport({ material: "a probe", replays: [replayOf([UNREAD])] });
+    assert(lines.some((line) => line.endsWith("  whatever_per")), "the key reaches the report");
+    assert(!lines.includes("  every key was read"), "which is not what a read corpus says");
+});
 
-  test("reports on it without the rest of the material coming with it", () => {
-    const status = getDecodingStatus(getMessagesOfDumpAt(path));
-    expect(status.messages).toBe(getMessagesOfFight(fight).length);
-    expect(status.messages).toBeLessThan(STATUS.messages);
-  });
+/** Two different failures: one says a key has no meaning yet, the other reached no key at all. */
+Deno.test("a message the grammar refused is counted apart from a key nobody has read", () => {
+    const status = composeDecodingStatus([replayOf([REFUSED, UNREAD])]);
+    assertEquals(status.messagesWithUnread, 2, "both messages carry something unread");
+    assertEquals(status.messagesRefused, 1, "and exactly one of them is a refusal");
+    assertEquals(status.unreadKeysByFrequency, [["whatever_per", 1]], "a refusal names no key");
+});
 
-  // Branded, because a bare Node `ENOENT` names no program and §9.5 asks a tool
-  // to refuse under a name a reader can place.
-  test("refuses a path that is not there, under this tool's own name", () => {
-    expect(() => getMessagesOfDumpAt(`${path}.no-such-file`)).toThrow(DecodingStatusError);
-  });
+/** **W5**: zero is a boundary, and a family that stopped being read shows as a nought. */
+Deno.test("every kind the union holds has a line, at whatever it came to", () => {
+    const status = composeDecodingStatus([replayOf([READ])]);
+    assertEquals(status.eventsByKind.size, BATTLE_EVENT_KINDS.length, "one line per kind");
+    assertEquals(status.eventsByKind.get("health-change"), 1, "the one this message produced");
+    assertEquals(status.eventsByKind.get("attack"), 0, "and a nought for the ones it did not");
+    assertEquals(status.eventsByKind.get("unknown-message"), 0, "nothing here went unread");
+});
+
+Deno.test("what never reached the decoder is stated beside what it could not read", () => {
+    const replay = composeFightReplay({
+        name: "a payload that lost one",
+        // The companion list states three where `m` carries two, which is a message the session
+        // never saw — a different failure from one it saw and could not read.
+        calls: [{ init: 1, mi: [0, 0, 0], m: [READ, READ] }],
+    });
+    const status = composeDecodingStatus([replay]);
+    assertEquals(status.messagesLost, 1, "the payload said it carried one more");
+    assertEquals(status.messagesWithUnread, 0, "and nothing that arrived went unread");
+    assertEquals(status.messages, 2, "only what arrived is counted as a message");
 });

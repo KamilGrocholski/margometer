@@ -1,111 +1,74 @@
 /**
- * ⚠️ **Every string below is ours, and that is the point of them.**
- *
- * The docblock here used to say so while the strings were the client's own composed
- * sentences, copied out verbatim — one of them a whole sentence with its full stop. §5
- * keeps the operator's writing out of this repository in any form and `NOTICE.md`
- * promises a reader that it is out, so a claim to that effect had to become true rather
- * than stay written down.
- *
- * **What is quoted is the shape, and the shape is all this file reads.**
- * `getLabelFromEntry` looks at four things and no others: a leading sign, a `%…%` hole,
- * a trailing full stop, and surrounding space. Every one of those is the client's
- * template syntax, quoted verbatim and dated — production build `1785244275300`, where
- * `_t` composes from `__translations` — and none of them is prose. The words between
- * them are passed through untouched, so an English placeholder exercises the same
- * branches a Polish sentence would.
- *
- * That is the line §7.5 draws from the other side, too. Its rule is that a test parsing
- * somebody else's output holds a transcript of it rather than a sample somebody typed —
- * and the output this parses is the punctuation, which is transcribed. Inventing the
- * *hole* would be the fault that rule names; keeping the sentence around it is the
- * fault §5 names.
+ * ⚠️ **Every string below is ours.** What is quoted is the **shape** — a leading sign, a `%…%`
+ * hole, a trailing full stop, space — which is the client's own template syntax, read on
+ * production build `53XkBRxF` (2026-08-25), and not prose. The words between pass through
+ * untouched, so an English placeholder walks the branches a Polish sentence would, and the
+ * operator's writing stays out of this repository in any form (`NOTICE.md`).
  */
 
-import { describe, expect, test } from "bun:test";
+import { assert, assertEquals } from "@std/assert";
 import { getDictionaryReader, getLabelFromEntry } from "@/src/game/game-dictionary.ts";
 
-describe("the label inside one of the client's strings", () => {
-  test("drops the sign that says which way the effect went", () => {
-    expect(getLabelFromEntry("+Critical hit")).toBe("Critical hit");
-    expect(getLabelFromEntry("-Evade")).toBe("Evade");
-  });
+const CRITICAL_ID = "msg_+crit";
 
-  test("drops a full stop the client ends a line with", () => {
-    expect(getLabelFromEntry("+Armour destroyed outright.")).toBe("Armour destroyed outright");
-  });
-
-  /**
-   * ⚠️ **A sentence with the figure cut out of it is not a label.** Two shapes
-   * the dictionary holds and neither survives losing its hole: one runs
-   * `<verb> %val% <noun>` and comes back as a verb beside its object with the
-   * number gone, and one ends on the preposition that governed the hole, which
-   * is then left dangling. The panel has its own short noun for every one of
-   * these, and this is what sends it there.
-   */
-  test("refuses a sentence with a hole in it", () => {
-    expect(getLabelFromEntry("-Blocked %val% damage")).toBeNull();
-    expect(getLabelFromEntry("+Armour destruction by %val%")).toBeNull();
-    expect(getLabelFromEntry("%name%: %val% damage from poison.")).toBeNull();
-  });
-
-  /** The entry that is all hole and no name — `msg_+thirdatt` resolves to one. */
-  test("refuses one that is nothing but a hole", () => {
-    expect(getLabelFromEntry("+%val%")).toBeNull();
-  });
-
-  test("refuses one with no words in it", () => {
-    expect(getLabelFromEntry("")).toBeNull();
-    expect(getLabelFromEntry("+ ")).toBeNull();
-    expect(getLabelFromEntry(".")).toBeNull();
-  });
+Deno.test("a label drops the sign that says which way the effect went", () => {
+    assertEquals(getLabelFromEntry("+Critical hit"), "Critical hit", "a sign the client prefixes");
+    assertEquals(getLabelFromEntry("-Evade"), "Evade", "in either direction");
+    assertEquals(getLabelFromEntry("Critical hit"), "Critical hit", "and an entry carrying none");
 });
 
-describe("asking the page for a dictionary", () => {
-  test("finds none where the game is not on the page", () => {
-    expect(getDictionaryReader({})).toBeNull();
-    expect(getDictionaryReader({ _t: "not a function" })).toBeNull();
-  });
+Deno.test("a label drops a full stop the client ends a line with, and the space around it", () => {
+    assertEquals(getLabelFromEntry("+Armour destroyed outright."), "Armour destroyed outright");
+    assertEquals(getLabelFromEntry("  Evade  "), "Evade", "and the space either side of it");
+});
 
-  test("reads what the client answers", () => {
+/**
+ * ⚠️ **A sentence with the figure cut out of it is not a label.** One shape comes back as a verb
+ * beside its object with the number gone; another ends on the preposition that governed the hole.
+ */
+Deno.test("a sentence with a hole in it is refused, wherever the hole sits", () => {
+    assertEquals(getLabelFromEntry("-Blocked %val% damage"), null, "a hole in the middle");
+    assertEquals(getLabelFromEntry("+Armour destruction by %val%"), null, "and one at the end");
+    assertEquals(getLabelFromEntry("%name%: %val% damage from poison."), null, "and two of them");
+    assertEquals(getLabelFromEntry("+%val%"), null, "and an entry that is all hole and no name");
+});
+
+Deno.test("an entry with no words in it is refused, and a lone mark is not a word", () => {
+    assertEquals(getLabelFromEntry(""), null, "nothing at all");
+    assertEquals(getLabelFromEntry("+ "), null, "a sign and a space");
+    assertEquals(getLabelFromEntry("."), null, "and a full stop standing alone");
+    assertEquals(getLabelFromEntry("%"), "%", "though one mark is not a hole, and is a name");
+});
+
+Deno.test("a page with no game on it lends no dictionary", () => {
+    assertEquals(getDictionaryReader({}), null, "nothing where the client never loaded");
+    assertEquals(getDictionaryReader({ _t: "not a function" }), null, "nor where it is not one");
+    assertEquals(getDictionaryReader(null), null, "and nothing where there is no page at all");
+    assertEquals(getDictionaryReader("a page"), null, "nor where it is not an object graph");
+});
+
+Deno.test("a reader answers what the client answers, and nothing where it answers nothing", () => {
     const read = getDictionaryReader({
-      _t: (id: string) => (id === "msg_+crit" ? "+Critical hit" : undefined),
+        _t: (id: string) => (id === CRITICAL_ID ? "+Critical hit" : undefined),
     });
-    expect(read).not.toBeNull();
-    expect(read?.("msg_+crit")).toBe("Critical hit");
-  });
+    assert(read !== null, "a page with the dictionary on it lends a reader");
+    assertEquals(read(CRITICAL_ID), "Critical hit", "the label inside what it answered");
+    // A miss falls off the end of `_t` — development build `1781609507010`.
+    assertEquals(read("msg_nothing_here"), null, "and no answer is taken for an answer");
+});
 
-  /**
-   * An id the client does not know falls off the end of `_t` rather than
-   * answering — development build `1781609507010`, where the miss branch queues
-   * the name and returns nothing.
-   */
-  test("takes no answer for an answer", () => {
-    const read = getDictionaryReader({ _t: () => undefined });
-    expect(read?.("msg_+crit")).toBeNull();
-  });
-
-  test("takes a wrong kind of answer for one too", () => {
+Deno.test("an answer of the wrong kind is no answer either", () => {
     const read = getDictionaryReader({ _t: () => 42 });
-    expect(read?.("msg_+crit")).toBeNull();
-  });
+    assert(read !== null, "the page still lends a reader");
+    assertEquals(read(CRITICAL_ID), null, "which refuses what is not text");
+});
 
-  /**
-   * §9.5 catches narrowly, and this is the one failure worth catching: reaching
-   * into another program's function can throw, and there is exactly one way to
-   * handle it — draw our own word. What must not happen is the exception
-   * travelling on, because the panel is drawn from inside a call the game made.
-   */
-  test("draws our own word rather than throwing the game's error onward", () => {
+/** The exception must not travel on: the panel is drawn inside a call the game made (**E5**). */
+Deno.test("a dictionary that throws leaves the panel drawing its own word", () => {
     const read = getDictionaryReader({
-      _t: (): string => {
-        // A real fault rather than a thrown Error, which §9.5 keeps out of
-        // this repository: reading a torn-down page context is what this
-        // actually looks like.
-        return (undefined as unknown as { _t: () => string })._t();
-      },
+        // A real fault rather than a thrown Error: a torn-down page context looks like this.
+        _t: (): string => (undefined as unknown as { missing: () => string }).missing(),
     });
-    expect(() => read?.("msg_+crit")).not.toThrow();
-    expect(read?.("msg_+crit")).toBeNull();
-  });
+    assert(read !== null, "the page lends a reader");
+    assertEquals(read(CRITICAL_ID), null, "and the failure comes back as no label");
 });

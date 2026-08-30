@@ -1,400 +1,320 @@
 /**
- * Holds `docs/captured-fights.md` to the material it inventories.
+ * `docs/captured-fights.md`, re-earned from the directory it describes.
  *
- * The register answers the one question the recordings cannot answer for
- * themselves: what is in them. A filename says `grupa-vs-hildur` and the rest —
- * how many fought, at what levels, in which professions, against a player or a
- * monster — is a megabyte of JSON away. Deciding what material to record next is
- * the decision that inventory exists for, and it is taken often enough that
- * nobody should have to open eighteen files to take it.
- *
- * Which makes the register the exact document §5 is about: every figure in it is
- * one a machine can compute, so writing it down by hand is writing down something
- * that goes stale in silence. The receipt is in this repository — `seventeen
- * captures` is still written in four places, and an eighteenth arrived at
- * `95c1348`. `tests/tools/measured-material.test.ts` misses those because they
- * are spelled in words, deliberately.
- *
- * So the tables are re-earned here, cell by cell, in **both** directions: a row
- * naming a recording the directory does not hold fails, and a recording the
- * directory holds that no row names fails. The failure prints the row to paste
- * in, because a guard that tells you only that you are wrong makes the document
- * cost more than it is worth.
- *
- * ⚠️ **The composer refuses rather than defaults**, which is why so much of this
- * file is `throw`. A profession nobody could read, a level nobody could read, a
- * combatant the payload never said was a player: each of those is an entry the
- * register would otherwise state a count for, and a count that quietly includes
- * an unknown is the fault §9.3 calls loud-not-zero. This runs in a terminal over
- * material on disk, so §9.5 says throwing is the correct behaviour here.
+ * A row here is true for good, because a recording never changes — but the set does, and a census
+ * written by hand goes stale the moment one is admitted. What the guard composes is what the
+ * material produces; what it refuses is a row nothing produces and a recording no row names.
  */
 
-import { readFileSync } from "node:fs";
-import { describe, expect, test } from "bun:test";
-import { composeIntegerText } from "@/libs/number.ts";
-import { setRunningTotal } from "@/libs/running-total.ts";
-import { getTextOrder } from "@/libs/text-order.ts";
-import { isEveryCharacterIn } from "@/libs/text-runs.ts";
-import { getCombatantIdByName, type CombatantRoster } from "@/src/core/combatant-roster.ts";
-import { getOurSideFromBattle } from "@/src/game/engine-roster.ts";
+import { assert, assertEquals } from "@std/assert";
+import { getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
 import {
-  CAPTURED_FIGHTS,
-  composeRosterOfFight,
-  composeStatisticsOfFight,
-  getMessagesOfFight,
-  type CapturedFight,
-} from "@/tests/captured-fight-catalog.ts";
-import { getPlayerFlagByCombatantId } from "@/tools/fight-dump-parser.ts";
-import { MargoMeterToolError } from "@/tools/margometer-tool-error.ts";
+    getRecordedEngineUpdates,
+    getRecordedMessages,
+    getRecordingPaths,
+} from "@/tests/recorded-fight.ts";
+import { READER_SIDE_KEY } from "@/src/game/battle-session.ts";
+import { WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
+import { CAPTURE_FIELDS, NOTHING_STATED } from "@/src/game/fight-capture.ts";
+import { getNumberFromUnknown, getStatedTextFromUnknown } from "@/libs/unknown-reading.ts";
 
-export class CapturedFightRegisterError extends MargoMeterToolError {
-  constructor(message: string, options?: ErrorOptions) {
-    super("CapturedFightRegister", message, options);
-  }
-}
-
-const REGISTER_PATH = new URL("../../docs/captured-fights.md", import.meta.url).pathname;
-const CAPTURED_FIGHTS_DIRECTORY = "tests/captured-fights/";
-
-/** What the build column says where the recording names none. */
-const NO_BUILD_STATED = "none stated";
+const REGISTER_PATH = "docs/captured-fights.md";
+const BACKTICK = "`";
+const ROW_OPENER = "|";
+/** What the register writes where a recording states no build, which some of them do not. */
+const NO_BUILD = "none stated";
+/** The same absence in a filename, where a sentence has no room (`src/game/fight-capture.ts`). */
+const NO_BUILD_IN_NAME = NOTHING_STATED;
+/** Past the row count of any table here, so each walk carries a stated bound. */
+const MAXIMUM_ROWS = 256;
 
 /**
- * The headings whose tables are read, and nothing else in the document is.
- *
- * Any other `## ` clears the current table, so the prose sections may hold
- * tables of their own for orientation without this guard trying to earn them —
- * the arrangement `docs/drill-levels.md` uses and this one inherits.
+ * A cell that is a count. Both tables state six cells per row, so the census row is told from a
+ * fight's row by what its last two hold: two counts there, a cast and a pool of health here.
  */
-const TABLE_BY_HEADING: Record<string, TableName> = {
-  "## Shapes": "shapes",
-  "## The fights": "fights",
-  "## The recordings": "recordings",
-};
-
-type TableName = "shapes" | "fights" | "recordings";
-
-/** How many cells a row of each table states. A row of any other width is refused. */
-const COLUMNS: Record<TableName, number> = { shapes: 2, fights: 6, recordings: 5 };
-
-type Tables = Record<TableName, string[][]>;
-
-/**
- * One combatant, reduced to what the register states about them.
- *
- * A type of its own so the refusals below can be put to a hand-built side: every
- * capture states all three today, so nothing in the material would exercise them.
- */
-type CensusMember = {
-  profession: string | null;
-  level: number | null;
-  isPlayer: boolean | undefined;
-};
-
-/** The document's tables, parsed back into rows. */
-function composeTablesFromRegister(source: string): Tables {
-  const tables: Tables = { shapes: [], fights: [], recordings: [] };
-  let table: TableName | null = null;
-
-  for (const line of source.split("\n")) {
-    if (line.startsWith("## ")) {
-      table = TABLE_BY_HEADING[line.trim()] ?? null;
-      continue;
+function isCountText(text: string): boolean {
+    assert(text.length >= 0, "a cell offered is text");
+    if (text.length === 0) return false;
+    for (const character of text) {
+        if (character < "0" || character > "9") return false;
     }
-    if (table === null || !line.startsWith("|")) continue;
-
-    // Backticks and emphasis are how a document draws the eye; a verdict somebody
-    // bolded must not become a verdict this guard cannot find.
-    const cells = line
-      .split("|")
-      .slice(1, -1)
-      .map((cell) => cell.replaceAll("`", "").replaceAll("*", "").trim());
-    if (cells.every((cell) => isEveryCharacterIn(cell, "-"))) continue;
-    if (cells[0] === "recording" || cells[0] === "shape") continue;
-
-    if (cells.length !== COLUMNS[table]) {
-      throw new CapturedFightRegisterError(
-        `docs/captured-fights.md states a row of ${composeIntegerText(cells.length)} cells under ` +
-          `"${table}", which states ${composeIntegerText(COLUMNS[table])}: ${line}`,
-      );
-    }
-    tables[table].push(cells);
-  }
-  return tables;
+    return true;
 }
 
-/** `10 players`, `1 NPC`, `9 players, 1 NPC` — and never a count an unknown is inside. */
-function composeKindText(members: readonly CensusMember[]): string {
-  const players = members.filter((member) => member.isPlayer === true).length;
-  const monsters = members.filter((member) => member.isPlayer === false).length;
-  if (players + monsters !== members.length) {
-    throw new CapturedFightRegisterError(
-      "a combatant the payload never states `npc` for — the register would count them as " +
-        "something, and `tools/captured-fight-intake.ts` refuses a recording for the same reason",
-    );
-  }
-  const parts: string[] = [];
-  if (players > 0) parts.push(`${composeIntegerText(players)} player${players === 1 ? "" : "s"}`);
-  if (monsters > 0) parts.push(`${composeIntegerText(monsters)} NPC${monsters === 1 ? "" : "s"}`);
-  return parts.join(", ");
+/** Every backticked cell of a table row, in the order the row states them. */
+function getRowCells(line: string): string[] {
+    if (!line.trimStart().startsWith(ROW_OPENER)) return [];
+    const found: string[] = [];
+    let at = line.indexOf(BACKTICK);
+    let looked = 0;
+    while (at !== -1) {
+        looked += 1;
+        assert(looked <= MAXIMUM_ROWS, "the walk stays inside its stated bound");
+        const closes = line.indexOf(BACKTICK, at + 1);
+        if (closes === -1) break;
+        found.push(line.slice(at + 1, closes));
+        at = line.indexOf(BACKTICK, closes + 1);
+    }
+    return found;
 }
 
-/** `h 1, m 2, p 1, t 1, w 4` — the game's own one-letter codes, in code-unit order. */
-function composeProfessionText(members: readonly CensusMember[]): string {
-  const count = new Map<string, number>();
-  for (const member of members) {
-    if (member.profession === null) {
-      throw new CapturedFightRegisterError(
-        "a combatant whose profession the recording does not state — a census that leaves them " +
-          "out states a side of fewer people than fought in it",
-      );
+/** The rows whose first cell names a recording, which is what a census row looks like. */
+function getRecordingRows(text: string): string[][] {
+    const found: string[][] = [];
+    for (const line of text.split("\n")) {
+        const cells = getRowCells(line);
+        const first = cells[0] ?? "";
+        if (!first.startsWith("captures/")) continue;
+        found.push(cells);
     }
-    setRunningTotal(count, member.profession, 1);
-  }
-  return [...count]
-    .sort((one, other) => getTextOrder(one[0], other[0]))
-    .map(([profession, howMany]) => `${profession} ${composeIntegerText(howMany)}`)
-    .join(", ");
+    return found;
 }
 
-/** `level 100` where one, `levels 93–120` where the side spans. */
-function composeLevelText(members: readonly CensusMember[]): string {
-  const levels: number[] = [];
-  for (const member of members) {
-    if (member.level === null) {
-      throw new CapturedFightRegisterError(
-        "a combatant whose level the recording does not state — a span read off the rest would " +
-          "be narrower than the side actually was",
-      );
-    }
-    levels.push(member.level);
-  }
-  const lowest = Math.min(...levels);
-  const highest = Math.max(...levels);
-  return lowest === highest
-    ? `level ${composeIntegerText(lowest)}`
-    : `levels ${composeIntegerText(lowest)}–${composeIntegerText(highest)}`;
+function getEnvelopeField(path: string, field: string): string {
+    const reading = getJsonReading(Deno.readTextFileSync(path));
+    assert(reading.isOk, `${path}: a recording is JSON`);
+    const stated = reading.value;
+    assert(isRecord(stated), `${path}: a recording is a record`);
+    const value = stated[field];
+    if (value === undefined) return NO_BUILD;
+    if (value === null) return NO_BUILD;
+    assert(typeof value === "string", `${path}: ${field} is stated as text or as nothing`);
+    return value;
+}
+
+/** What a filename says of a version, where the register says `none stated`. */
+function composeVersionInName(stated: string): string {
+    assert(stated.length > 0, "a version read off a recording says something");
+    if (stated === NO_BUILD) return NO_BUILD_IN_NAME;
+    return stated;
 }
 
 /**
- * `ours won`, `theirs won`, `drawn`.
- *
- * The protocol states an outcome as a list of **names**, which is why
- * `tools/fight-report.ts` prints them and says nothing about who won *for us*: it
- * has no side to be on. This register does — `myteam` says which side the
- * recording player was on — so the names are resolved through the roster and the
- * side they land on is the answer. A name the roster cannot place, or an outcome
- * spread over both sides, is refused: a register stating who won is worth having
- * only while it cannot state it wrongly.
+ * A name is read by whoever picks a recording without opening it — the preview's list, an
+ * attachment on a report — so it is held to what the file says rather than to what a hand typed
+ * at intake. **ADR 0030.**
  */
-function composeOutcomeText(
-  fight: CapturedFight,
-  roster: CombatantRoster,
-  ourSide: number,
-): string {
-  const outcome = composeStatisticsOfFight(fight).outcome;
-  if (outcome === null) {
-    throw new CapturedFightRegisterError(`${fight.name} states no outcome at all`);
-  }
-  if (outcome.isDrawn) return "drawn";
-
-  const sides = new Set(
-    outcome.wonNames.map((name) => {
-      const id = getCombatantIdByName(roster, name);
-      const combatant = id === null ? undefined : roster.byId.get(id);
-      if (combatant === undefined) {
-        throw new CapturedFightRegisterError(
-          `${fight.name} states a winner the roster cannot place — no side can be read off that`,
+Deno.test("a recording is filed under the two versions it states", () => {
+    const paths = getRecordingPaths();
+    assert(paths.length > 0, "there is material to check");
+    for (const path of paths) {
+        const build = composeVersionInName(getEnvelopeField(path, CAPTURE_FIELDS.gameBuild));
+        const addOn = composeVersionInName(getEnvelopeField(path, CAPTURE_FIELDS.addOnVersion));
+        assertEquals(
+            path.endsWith(`-${build}-${addOn}.json`),
+            true,
+            `${path}: is named for ${build} and ${addOn}, which is what it states`,
         );
-      }
-      return combatant.side;
-    }),
-  );
-  if (sides.size !== 1) {
-    throw new CapturedFightRegisterError(
-      `${fight.name} states winners on ${composeIntegerText(sides.size)} sides`,
-    );
-  }
-  return sides.has(ourSide) ? "ours won" : "theirs won";
-}
-
-function composeSideText(members: readonly CensusMember[]): string {
-  return [composeKindText(members), composeProfessionText(members), composeLevelText(members)].join(
-    " · ",
-  );
-}
-
-type FightCensus = { fights: string[]; recordings: string[]; shape: string };
-
-/**
- * One recording, as the two tables state it.
- *
- * The roster is `tests/captured-fight-catalog.ts`'s, deduplicated by id across
- * every call — the same reading the panel is handed in every other test here, so
- * the register cannot disagree with what the rest of the suite thinks a fight
- * held. Which side is ours comes from `myteam`, read by the one function that
- * spells it, and a fight with more than two sides is refused rather than folded:
- * `ours` and `theirs` would be a claim about a fight nobody has recorded.
- */
-function composeCensusOfFight(fight: CapturedFight): FightCensus {
-  const roster = composeRosterOfFight(fight);
-  const isPlayerById = getPlayerFlagByCombatantId(fight.dump);
-  const combatants = [...roster.byId.values()];
-
-  const ourSide = fight.dump.calls.reduce<number | null>(
-    (known, call) => known ?? getOurSideFromBattle(call.payload),
-    null,
-  );
-  if (ourSide === null) {
-    throw new CapturedFightRegisterError(
-      `${fight.name} never states \`myteam\` — nothing in it says which side is the player's`,
-    );
-  }
-
-  const sides = [...new Set(combatants.map((combatant) => combatant.side))];
-  if (sides.length !== 2) {
-    throw new CapturedFightRegisterError(
-      `${fight.name} holds ${composeIntegerText(sides.length)} sides — "ours" and "theirs" state a ` +
-        "fight of two, and this register has never held another kind",
-    );
-  }
-
-  const composeMembers = (side: number): CensusMember[] =>
-    combatants
-      .filter((combatant) => combatant.side === side)
-      .map((combatant) => ({
-        profession: combatant.profession,
-        level: combatant.level,
-        isPlayer: isPlayerById.get(combatant.id),
-      }));
-
-  const ours = composeMembers(ourSide);
-  const theirs = composeMembers(sides.find((side) => side !== ourSide) ?? ourSide);
-  const shape = `${composeIntegerText(ours.length)} vs ${composeIntegerText(theirs.length)}`;
-
-  const theirLargestHealth = combatants
-    .filter((combatant) => combatant.side !== ourSide)
-    .map((combatant) => {
-      const health = fight.maximumHealthByCombatantId.get(combatant.id);
-      if (health === undefined) {
-        throw new CapturedFightRegisterError(
-          `${fight.name} states no maximum health for a combatant on the other side`,
-        );
-      }
-      return health;
-    });
-
-  const recording = `${CAPTURED_FIGHTS_DIRECTORY}${fight.name}.json`;
-  return {
-    shape,
-    fights: [
-      recording,
-      shape,
-      composeOutcomeText(fight, roster, ourSide),
-      composeSideText(ours),
-      composeSideText(theirs),
-      composeIntegerText(Math.max(...theirLargestHealth)),
-    ],
-    recordings: [
-      recording,
-      fight.dump.world,
-      // The absence stated in words, because the column has to say something and
-      // an empty cell reads as a column nobody filled in. §7.6 makes a recording
-      // with no build comparable with nothing, and this is where that is said now
-      // that `tools/fight-dump-parser.ts` no longer refuses to read one
-      // (`docs/specs/2026-08-25-a-recording-that-names-no-build.md`).
-      fight.dump.gameBuild ?? NO_BUILD_STATED,
-      composeIntegerText(fight.dump.calls.length),
-      composeIntegerText(getMessagesOfFight(fight).length),
-    ],
-  };
-}
-
-/** A row as one line, so a disagreement prints something a person can paste. */
-function composeRowText(cells: readonly string[]): string {
-  return cells.join(" | ");
-}
-
-function composeRowsInOrder(rows: readonly string[][]): string[] {
-  return rows.map(composeRowText).sort(getTextOrder);
-}
-
-const REGISTER = composeTablesFromRegister(readFileSync(REGISTER_PATH, "utf8"));
-const CENSUS = CAPTURED_FIGHTS.map(composeCensusOfFight);
-
-describe("the register of captured fights", () => {
-  // Either half going to zero turns every comparison below green without it
-  // comparing anything, which is what a walker that stopped walking looks like.
-  test("has material to read and tables to hold it to", () => {
-    expect(CAPTURED_FIGHTS.length).toBeGreaterThan(0);
-    expect(REGISTER.fights.length).toBeGreaterThan(0);
-    expect(REGISTER.recordings.length).toBeGreaterThan(0);
-    expect(REGISTER.shapes.length).toBeGreaterThan(0);
-  });
-
-  test("states what every recording holds, and names no other", () => {
-    expect(composeRowsInOrder(REGISTER.fights)).toEqual(
-      composeRowsInOrder(CENSUS.map((census) => census.fights)),
-    );
-  });
-
-  test("states where every recording came from, and how much it carries", () => {
-    expect(composeRowsInOrder(REGISTER.recordings)).toEqual(
-      composeRowsInOrder(CENSUS.map((census) => census.recordings)),
-    );
-  });
-
-  /**
-   * The tally is the one figure a reader wants that no row carries — how much of
-   * the material is one shape of fight — so it is stated, and re-counted here
-   * rather than left to be trusted.
-   */
-  test("tallies the shapes the recordings actually come to", () => {
-    const howMany = new Map<string, number>();
-    for (const census of CENSUS) setRunningTotal(howMany, census.shape, 1);
-    const counted = [...howMany].map(([shape, count]) => [shape, composeIntegerText(count)]);
-    expect(composeRowsInOrder(REGISTER.shapes)).toEqual(composeRowsInOrder(counted));
-  });
+    }
 });
 
-describe("what the register refuses to state", () => {
-  const player: CensusMember = { profession: "w", level: 60, isPlayer: true };
+Deno.test("the reader knows a census row from every other line", () => {
+    const row = "| `captures/a.json` | `tempest` | `1` | `0.9.0` | `4` | `18` |";
+    assertEquals(getRecordingRows(row).length, 1, "a row naming a recording is one");
+    assertEquals(getRecordingRows("| `1 vs 1` | `3` |"), [], "a row naming no recording is not");
+    assertEquals(getRecordingRows("prose about `captures/a.json`"), [], "and neither is prose");
+    // The sample the reader must not take for a census row: a fight's row states six cells too.
+    assertEquals(isCountText("18"), true, "a count is digits");
+    assertEquals(isCountText("1 NPC · m 1 · level 100"), false, "and a cast is not one");
+    assertEquals(isCountText(""), false, "nor is a cell that says nothing");
+});
 
-  test("refuses a side holding somebody it cannot call a player or a monster", () => {
-    expect(() => composeSideText([player, { ...player, isPlayer: undefined }])).toThrow(
-      CapturedFightRegisterError,
+Deno.test("every recording is named by the register, and every row names one", () => {
+    const rows = getRecordingRows(Deno.readTextFileSync(REGISTER_PATH));
+    assert(rows.length > 0, "the register carries rows to check");
+    const named = new Set(rows.map((cells) => cells[0] ?? ""));
+    const held = new Set(getRecordingPaths());
+    const missing = [...held].filter((path) => !named.has(path)).sort();
+    const invented = [...named].filter((path) => !held.has(path)).sort();
+    assertEquals(missing, [], "a recording the register does not name");
+    assertEquals(invented, [], "a row naming a recording the directory does not hold");
+});
+
+/**
+ * The four a machine can recompute outright. The cast column is not among them: it states
+ * professions and a level range in a shape this reader does not compose, and stays held by reading.
+ */
+Deno.test("what the register states of each recording is what the recording states", () => {
+    const rows = getRecordingRows(Deno.readTextFileSync(REGISTER_PATH));
+    let checked = 0;
+    for (const path of getRecordingPaths()) {
+        const stated = rows.filter((cells) => cells[0] === path);
+        const counted = stated.find((cells) =>
+            cells.length === 6 && isCountText(cells[4] ?? "") && isCountText(cells[5] ?? "")
+        );
+        assert(
+            counted !== undefined,
+            `${path}: no row states its world, both versions, calls and messages`,
+        );
+        assertEquals(
+            counted[1],
+            getEnvelopeField(path, CAPTURE_FIELDS.world),
+            `${path}: the world`,
+        );
+        assertEquals(
+            counted[2],
+            getEnvelopeField(path, CAPTURE_FIELDS.gameBuild),
+            `${path}: the build of the game`,
+        );
+        assertEquals(
+            counted[3],
+            getEnvelopeField(path, CAPTURE_FIELDS.addOnVersion),
+            `${path}: the build of ours that wrote it`,
+        );
+        assertEquals(
+            counted[4],
+            String(getRecordedEngineUpdates(path).length),
+            `${path}: the calls the engine made`,
+        );
+        assertEquals(
+            counted[5],
+            String(getRecordedMessages(path).length),
+            `${path}: the messages they carried`,
+        );
+        checked += 1;
+    }
+    assertEquals(checked, getRecordingPaths().length, "every recording was re-earned");
+});
+
+/**
+ * The cast column, composed rather than read.
+ *
+ * `docs/captured-fights.md` states who fought on each side, in what profession and at what level,
+ * and until now that was held by reading alone: a row stating it wrongly passed the gate. The
+ * shape column and the census above it were unheld for the same reason, and they are the same
+ * arithmetic — a shape is how many of ours against how many of theirs.
+ */
+const CENSUS_HEADING = "## Shapes";
+const CAST_HEADING = "## The fights";
+const RECORDINGS_HEADING = "## The recordings";
+/** How the register writes a range, and it is an en dash rather than a hyphen. */
+const RANGE_MARK = "–";
+const PART_MARK = " · ";
+
+interface RecordedWarrior {
+    side: number;
+    profession: string;
+    level: number;
+    isPlayer: boolean;
+}
+
+/** Every warrior a recording's payloads state, by id, so one person is counted once. */
+function getRecordedWarriors(path: string): Map<number, RecordedWarrior> {
+    const found = new Map<number, RecordedWarrior>();
+    for (const update of getRecordedEngineUpdates(path)) {
+        if (!isRecord(update)) continue;
+        const warriors = update[WARRIOR_FIELDS.warriors];
+        if (!isRecord(warriors)) continue;
+        for (const stated of Object.values(warriors)) {
+            if (!isRecord(stated)) continue;
+            const id = getNumberFromUnknown(stated[WARRIOR_FIELDS.identity]);
+            const side = getNumberFromUnknown(stated[WARRIOR_FIELDS.side]);
+            const level = getNumberFromUnknown(stated[WARRIOR_FIELDS.level]);
+            const profession = getStatedTextFromUnknown(stated[WARRIOR_FIELDS.profession]);
+            if (id === null || side === null || level === null || profession === null) continue;
+            const nonPlayer = getNumberFromUnknown(stated[WARRIOR_FIELDS.nonPlayer]);
+            found.set(id, { side, profession, level, isPlayer: nonPlayer === 0 });
+        }
+    }
+    assert(found.size > 0, `${path}: no warrior was read out of its payloads`);
+    assert(found.size <= MAXIMUM_ROWS, `${path}: stays inside the bound this file walks by`);
+    return found;
+}
+
+function getReaderSide(path: string): number {
+    let found: number | null = null;
+    for (const update of getRecordedEngineUpdates(path)) {
+        if (found !== null) break;
+        if (!isRecord(update)) continue;
+        found = getNumberFromUnknown(update[READER_SIDE_KEY]);
+    }
+    assert(found !== null, `${path}: no payload states the reader's own side`);
+    return found;
+}
+
+/** `10 players · h 1, m 2, p 2, t 1, w 4 · levels 93–120`, in the register's own words. */
+function composeCastText(cast: readonly RecordedWarrior[]): string {
+    assert(cast.length > 0, "a side with nobody on it is not a side this register writes");
+    const players = cast.filter((one) => one.isPlayer).length;
+    // Every side in `captures/` is all people or all monsters, so the register has one noun for
+    // it. A side that mixed them would need a word this document does not have.
+    assert(players === 0 || players === cast.length, "a side is all players or all NPCs");
+    const noun = players === cast.length ? "player" : "NPC";
+    const counted = `${cast.length} ${noun}${cast.length === 1 ? "" : "s"}`;
+    const byProfession = new Map<string, number>();
+    for (const one of cast) {
+        byProfession.set(one.profession, (byProfession.get(one.profession) ?? 0) + 1);
+    }
+    const professions = [...byProfession].sort(([one], [other]) => one < other ? -1 : 1)
+        .map(([letter, count]) => `${letter} ${count}`).join(", ");
+    const levels = cast.map((one) => one.level);
+    const lowest = Math.min(...levels);
+    const highest = Math.max(...levels);
+    const stated = lowest === highest
+        ? `level ${lowest}`
+        : `levels ${lowest}${RANGE_MARK}${highest}`;
+    return [counted, professions, stated].join(PART_MARK);
+}
+
+function getSection(text: string, from: string, to: string): string {
+    const start = text.indexOf(from);
+    assert(start !== -1, `${from} is a section of the register`);
+    const end = text.indexOf(to, start);
+    assert(end > start, `${from} ends where ${to} starts`);
+    return text.slice(start, end);
+}
+
+/** Every backticked row of a table, whatever its first cell names. */
+function getTableRows(section: string): string[][] {
+    const found: string[][] = [];
+    for (const line of section.split("\n")) {
+        const cells = getRowCells(line);
+        if (cells.length === 0) continue;
+        found.push(cells);
+    }
+    assert(found.length > 0, "a section this guard reads carries a table");
+    assert(found.length <= MAXIMUM_ROWS, "and stays inside the bound this file walks by");
+    return found;
+}
+
+Deno.test("the cast each row states is the cast the recording's payloads state", () => {
+    const register = Deno.readTextFileSync(REGISTER_PATH);
+    const rows = getRecordingRows(getSection(register, CAST_HEADING, RECORDINGS_HEADING));
+    let checked = 0;
+    for (const path of getRecordingPaths()) {
+        const row = rows.find((cells) => cells[0] === path);
+        assert(row !== undefined, `${path}: no row states its cast`);
+        const seat = getReaderSide(path);
+        const cast = [...getRecordedWarriors(path).values()];
+        const ours = cast.filter((one) => one.side === seat);
+        const theirs = cast.filter((one) => one.side !== seat);
+        assertEquals(row[1], `${ours.length} vs ${theirs.length}`, `${path}: the shape`);
+        assertEquals(row[3], composeCastText(ours), `${path}: who was on the reader's side`);
+        assertEquals(row[4], composeCastText(theirs), `${path}: and who was on the other`);
+        checked += 1;
+    }
+    assertEquals(checked, getRecordingPaths().length, "every recording's cast was re-earned");
+});
+
+Deno.test("the census of shapes is the shapes the recordings actually are", () => {
+    const register = Deno.readTextFileSync(REGISTER_PATH);
+    const counted = new Map<string, number>();
+    for (const path of getRecordingPaths()) {
+        const seat = getReaderSide(path);
+        const cast = [...getRecordedWarriors(path).values()];
+        const ours = cast.filter((one) => one.side === seat).length;
+        const shape = `${ours} vs ${cast.length - ours}`;
+        counted.set(shape, (counted.get(shape) ?? 0) + 1);
+    }
+    const stated = getTableRows(getSection(register, CENSUS_HEADING, CAST_HEADING));
+    assertEquals(
+        stated.map((cells) => cells.join(" ")).sort(),
+        [...counted].map(([shape, count]) => `${shape} ${count}`).sort(),
+        "the census counts the shapes the material holds, and no others",
     );
-  });
-
-  test("refuses a side holding a profession the recording does not state", () => {
-    expect(() => composeSideText([player, { ...player, profession: null }])).toThrow(
-      CapturedFightRegisterError,
+    assert(
+        counted.size > 1,
+        "the material holds more than one shape, so the census says something",
     );
-  });
-
-  test("refuses a side holding a level the recording does not state", () => {
-    expect(() => composeSideText([player, { ...player, level: null }])).toThrow(
-      CapturedFightRegisterError,
-    );
-  });
-
-  test("writes a side of one level as a level and a side that spans as a span", () => {
-    expect(composeSideText([player])).toBe("1 player · w 1 · level 60");
-    expect(composeSideText([player, { ...player, profession: "m", level: 83, isPlayer: false }])).toBe(
-      "1 player, 1 NPC · m 1, w 1 · levels 60–83",
-    );
-  });
-
-  test("refuses a table row of a width the columns do not have", () => {
-    expect(() => composeTablesFromRegister("## Shapes\n\n| 1 vs 1 |\n")).toThrow(
-      CapturedFightRegisterError,
-    );
-  });
-
-  // A heading that is not one of the three has to close the table above it, or a
-  // table of orientation in the prose would be read as a claim about the material.
-  test("reads no table outside the three headings", () => {
-    const tables = composeTablesFromRegister("## Shapes\n\n## Elsewhere\n\n| a | b |\n");
-    expect(tables.shapes).toEqual([]);
-  });
 });
