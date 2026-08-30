@@ -59,7 +59,7 @@ src/
     battle-event.ts      The data contract: what the decoder produces, and nothing else.
     combatant-health.ts  Health read from a stated share, and how far off it can be.
     combatant-roster.ts  Who is in the fight, and which names resolve to one of them.
-    fight-decoder.ts     What a key means. One key of the corpus is still named unread.
+    fight-decoder.ts     What a key means, and what a key with no meaning leaves unread.
     game-build.ts        The build id the client states in its bundle's own filename.
     fight-statistics.ts  The figures a panel draws, with what nobody can be charged apart.
     margometer-error.ts  The abstract brand every failure that ships to the browser wears.
