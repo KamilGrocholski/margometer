@@ -83,9 +83,13 @@ export function getWordsForNothing(screen: PanelMetric): string {
 }
 
 /**
- * The closing row of a skills section, which is the figure no announcement covered. Its name is
- * the screen's, because what went unannounced is a different thing on each: a swing the game
- * granted no ability to, and health that moved under a key naming no ability at all.
+ * The closing row of a skills section, which is the figure no announcement covered.
+ *
+ * ⚠️ **The two healing entries are never read, and they stay.** What no announcement covered there
+ * is named by the key the game stated it under and stands as a row of its own, so nothing is left
+ * to close against — `composeSkillCut` asserts as much. The table is exhaustive for the reason
+ * every table here is: a fifth screen becomes a question the compiler asks rather than one that
+ * inherits whichever wording came first.
  */
 const UNANNOUNCED_WORDS: Record<PanelMetric, string> = {
     damageDealtApplied: "Zwykły cios",

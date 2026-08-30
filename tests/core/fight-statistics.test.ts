@@ -388,6 +388,23 @@ Deno.test("what one gave another is the skills announced for it plus the keys, e
                     `${path}: ${combatantId} to ${other} is not what its parts hold`,
                 );
             }
+            // The same equation on the receiving side, which is the one the panel's own section
+            // is built from: what reached this combatant is the announcements aimed at them plus
+            // the keys nothing announced, and nothing is left over to close a section against.
+            let reached = 0;
+            for (const held of statistics.byCombatantId.values()) {
+                for (const skill of held.skills.values()) {
+                    reached += skill.restoredByOpponent.get(`${combatantId}`) ?? 0;
+                }
+            }
+            for (const figure of figures.healthRestoredWithoutSkillBySource.values()) {
+                reached += figure;
+            }
+            assertEquals(
+                reached,
+                figures.healthRestored,
+                `${path}: what reached ${combatantId} is not what its parts hold`,
+            );
             // And the other way round, so a pair written on one row and not the other is a
             // finding rather than a section that quietly lists nobody.
             for (const giver of figures.healthRestoredByGiver.keys()) {

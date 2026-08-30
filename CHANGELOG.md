@@ -52,6 +52,13 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   liczba. Na leczeniu nie ma jej wcale — gra po tej stronie nie podaje tyle, żeby było co napisać.
   Cztery liczby postaci, jej nazwa i ostrzeżenia stoją jak stały, na każdej zakładce.
 
+- **Zmiana** — „Przywracanie życia" nazywa się w panelu po imieniu. Sekcja „czym" na obu zakładkach
+  leczenia nie kończy się już wierszem „Bez podanej umiejętności": w jego miejscu stoją wiersze z
+  nazwą tego, co gra podała. Największy z nich to regeneracja z ekwipunku — pomoc gry mówi o niej,
+  że wyzwala się w turze, w której masz mniej życia niż na starcie walki, i słabnie o 5% po każdym
+  wyzwoleniu. Nazwa mówiąca, że nie wiadomo, była nieprawdą: gra podawała, tylko nie jako
+  zapowiedzianą umiejętność.
+
 - **Zmiana** — Zatrzymane obrażenia nie stoją już jako jedna liczba: pod nią widać, ile zebrał blok,
   a ile wchłanianie. Efekt, którego gra nigdzie nie nazywa po polsku, pokazujemy jej własnym
   oznaczeniem — wolimy, żeby było widać, że coś padło, niż wymyślać temu nazwę.
@@ -61,9 +68,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   profesje o zbliżonym kolorze trudniej teraz rozróżnić na samej liście.
 
 - **Poprawka** — Każda sekcja w rozwiniętym wierszu sumuje się teraz do 100%. Na obu zakładkach
-  leczenia sekcja „czym" kończy się wierszem „Bez podanej umiejętności" — to życie, które gra
-  zapisała pod kluczem nienazywającym żadnej umiejętności, np. samoleczenie. Wcześniej takiej liczby
-  nie było gdzie zobaczyć i kolumna udziałów kończyła się na 94% albo 76%.
+  leczenia w sekcji „czym" stoi obok umiejętności to życie, którego żadna z nich nie zapowiedziała —
+  po jednym wierszu na to, co gra sama nazwała: „przywracanie życia", „ostatni ratunek", „dotyk
+  anioła". Wcześniej takiej liczby nie było gdzie zobaczyć i kolumna udziałów kończyła się na 94%
+  albo 76%.
 
 - **Poprawka** — Sekcja „czym" na obrażeniach zadanych liczy teraz także obrażenia, które gra podaje
   z imieniem — te, które przy ataku w jeden cel padają na kogoś obok. Dotąd całość szła pod „Zwykły

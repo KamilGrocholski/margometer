@@ -220,10 +220,14 @@ would say something the row does not — a pair whose every blow was unannounced
 the figure just pressed under another heading, and pressing it would spend a gesture on nothing.
 
 **Every column of shares comes to a hundred.** A section that is drawn accounts for the whole of the
-figure over it, and what its named rows do not hold is drawn as the row that closes it —
-`Zwykły cios` where a swing carried no announcement, `Bez podanej umiejętności` where health moved
-under a key naming no ability. A reader who adds a column and gets ninety-four cannot tell a missing
-figure from a figure that was never there, and telling those two apart is what this panel is for.
+figure over it, and a reader who adds a column and gets ninety-four cannot tell a missing figure
+from a figure that was never there — telling those two apart is what this panel is for. What the
+named rows do not hold is accounted for in one of two ways, and which one turns on whether the game
+said anything about it. **On the damage screens it closes into `Zwykły cios`**, because a swing the
+game granted no ability to is all the game says. **On the healing screens it does not close at
+all**: health that moved outside an announcement still moved under a key the game named, so the
+section lists those keys by name and there is nothing left over. A row saying the game had not told
+us, where the game had, is a claim — and the keys were already on screen a section lower.
 
 **A row states nothing as `0%` and anything at all as at least `<1%`**, and the two are never
 swapped: `0%` is a measurement — this combatant did nothing — and `<1%` is a figure too small to

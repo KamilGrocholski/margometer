@@ -18,7 +18,12 @@ import {
     type FigureCut,
 } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
-import { type PanelSideChoice, SCREEN_ORDER, SIDE_CHOICES } from "@/src/ui/panel-screen.ts";
+import {
+    getNounForScreen,
+    type PanelSideChoice,
+    SCREEN_ORDER,
+    SIDE_CHOICES,
+} from "@/src/ui/panel-screen.ts";
 import {
     composeJoinedInProgressWarning,
     composeLostMessageWarning,
@@ -667,8 +672,25 @@ export interface UnnamedRow {
     shareText: string;
 }
 
+/**
+ * What a row of a cut stands for: what an announcement called it, or the key the protocol wrote it
+ * under. A discriminant rather than a name that may be either, because the two are worded from
+ * different tables — `heal` is in the gain table and the loss table both, and named from the wrong
+ * one it reads as a kind of damage.
+ */
+export type NamedPart =
+    | { kind: "skill"; name: string }
+    | { kind: "source"; source: string };
+
+/** The text a part is ordered by where two of them come to the same figure. */
+export function getTextForNamedPart(part: NamedPart | { kind: "plain" }): string {
+    if (part.kind === "skill") return part.name;
+    if (part.kind === "source") return part.source;
+    return "";
+}
+
 export interface SkillRow {
-    name: string;
+    part: NamedPart;
     opensSkill: boolean;
     /**
      * How many times it was announced, and null where nothing states a count: an announcement is
@@ -712,15 +734,8 @@ export interface ElementCut {
     unnamed: UnnamedRow | null;
 }
 
-/**
- * One row of a pair's own section, and what it stands for. A discriminant rather than a name that
- * may be a key: the two are worded from different tables, and `heal` is in both of them running
- * opposite ways — named from the wrong one it reads as a kind of damage.
- */
-export type PairPart =
-    | { kind: "skill"; name: string }
-    | { kind: "source"; source: string }
-    | { kind: "plain" };
+/** The same, plus the row that closes a section against the figure over it. */
+export type PairPart = NamedPart | { kind: "plain" };
 
 /**
  * No count, whichever kind it is. An announcement is counted where it was made, and the protocol
@@ -910,10 +925,40 @@ function composeOpponentCut(
 }
 
 interface UnsharedSkill {
-    name: string;
+    part: NamedPart;
     uses: number | null;
     figure: number;
     opensSkill: boolean;
+}
+
+/**
+ * What the game named and no announcement did, as rows of its own rather than as a row saying the
+ * game had not told us — because it had.
+ *
+ * The help calls `heal` an effect spread over time, fired in a turn the combatant stands below the
+ * health they started the fight with and weakening by a twentieth of its opening value each time
+ * (article `view,372`, read 2026-08-26): what is missing over it is an **announcement**, not a
+ * name, and a player reads a row saying otherwise as the panel having lost the figure. Over
+ * `captures/` on 2026-08-30 the whole of it is three keys — `heal` 89.1%, `legbon_lastheal` 7.9%
+ * and `legbon_holytouch_heal` 3.0%, of 1,429,693 points — and the last two are legendary bonuses
+ * rather than a regeneration, which is why the section names each and not the lot.
+ */
+function composeSourceRows(cut: FigureCut): UnsharedSkill[] {
+    assert(cut.size <= MAXIMUM_CUT_PARTS, "a cut stays inside the bound it is kept to");
+    const stated: UnsharedSkill[] = [];
+    for (const [source, figure] of cut) {
+        // No count, and nothing to open: the protocol states no number of applications, and a
+        // movement under a key has no second cut to open onto.
+        if (figure > 0) {
+            stated.push({
+                part: { kind: "source", source },
+                uses: null,
+                figure,
+                opensSkill: false,
+            });
+        }
+    }
+    return stated;
 }
 
 /**
@@ -937,7 +982,12 @@ function composeSkillRowsReceived(
     }
     // No count: the announcement was somebody else's, and how many times it was made says
     // nothing about how much of what it put back reached this row.
-    return [...byName].map(([name, figure]) => ({ name, uses: null, figure, opensSkill: false }));
+    return [...byName].map(([name, figure]) => ({
+        part: { kind: "skill" as const, name },
+        uses: null,
+        figure,
+        opensSkill: false,
+    }));
 }
 
 function composeSkillRows(
@@ -947,22 +997,50 @@ function composeSkillRows(
     combatantId: number,
 ): UnsharedSkill[] {
     assert(SCREEN_ORDER.includes(metric), "a cut is composed for a screen the strips draw");
-    if (metric === "healthRestored") return composeSkillRowsReceived(statistics, combatantId);
+    if (metric === "healthRestored") {
+        return [
+            ...composeSkillRowsReceived(statistics, combatantId),
+            ...composeSourceRows(figures.healthRestoredWithoutSkillBySource),
+        ];
+    }
     const own = [...figures.skills.values()];
     if (metric === "healthGiven") {
-        return own.filter((one) => one.restored > 0).map((one) => ({
-            name: one.name,
-            uses: one.uses,
-            figure: one.restored,
-            opensSkill: getOpensSkill(figures, metric, combatantId, one.name),
-        }));
+        return [
+            ...own.filter((one) => one.restored > 0).map((one) => ({
+                part: { kind: "skill" as const, name: one.name },
+                uses: one.uses,
+                figure: one.restored,
+                opensSkill: getOpensSkill(figures, metric, combatantId, one.name),
+            })),
+            ...composeSourceRows(getGivenSourceCut(figures)),
+        ];
     }
     return own.filter((one) => one.dealt > 0 || one.uses > 0).map((one) => ({
-        name: one.name,
+        part: { kind: "skill" as const, name: one.name },
         uses: one.uses,
         figure: one.dealt,
         opensSkill: false,
     }));
+}
+
+/**
+ * The keys behind what this combatant **gave**, folded out of the cut that keeps them per pair.
+ *
+ * Folded rather than kept flat, and that is the whole of why the flat cut does not exist: a key
+ * belongs to whoever received the health, so it may stand on a giver's row only where the row
+ * above names the receiver. Here the section is a cut of the giver's own figure and the pairs it
+ * is made of are one rung down, so folding is a reading of their own figure and not a claim about
+ * somebody else's cause.
+ */
+function getGivenSourceCut(figures: CombatantFigures): FigureCut {
+    const folded = new Map<string, number>();
+    for (const cut of figures.healthGivenWithoutSkillByReceiverAndSource.values()) {
+        for (const [source, figure] of cut) {
+            folded.set(source, (folded.get(source) ?? 0) + figure);
+            assert(folded.size <= MAXIMUM_CUT_PARTS, "a cut stays inside the bound it is kept to");
+        }
+    }
+    return folded;
 }
 
 /**
@@ -985,12 +1063,25 @@ function composeSkillCut(
     assert(total >= 0, "a figure being cut is never below nothing");
     if (metric === "damageTakenApplied") return { rows: [], plain: null };
     const stated = composeSkillRows(statistics, figures, metric, combatantId);
-    stated.sort((one, other) => getRankedOrder(one.figure, other.figure, one.name, other.name));
+    stated.sort((one, other) =>
+        getRankedOrder(
+            one.figure,
+            other.figure,
+            getTextForNamedPart(one.part),
+            getTextForNamedPart(other.part),
+        )
+    );
     const held = stated.reduce((sum, one) => sum + one.figure, 0);
     assert(held <= total, "what the skills came to is no more than the figure they are a cut of");
     // Drawn even where it landed nothing: three blows that were all blocked are three blows, and
     // a section that skipped them would say the combatant never swung.
     const plain = total - held;
+    // On the healing screens the keys hold what no announcement did, and by construction: one
+    // condition sends a movement to a skill's row or to the key cut, never to both and never to
+    // neither. A remainder here is that condition having come apart, not a figure to close against.
+    if (getNounForScreen(metric) === "healing") {
+        assert(plain === 0, "health that moved is on a skill's row or under the key that moved it");
+    }
     const isCounted = metric === "damageDealtApplied";
     const hasPlain = plain > 0 || (isCounted && figures.blowsWithoutSkill > 0);
     const figuresOnScreen = stated.map((one) => one.figure);
@@ -1190,13 +1281,6 @@ interface UnsharedPart {
     figure: number;
 }
 
-/** The text a part is ordered by where two of them come to the same figure. */
-function getTextForPairPart(part: PairPart): string {
-    if (part.kind === "skill") return part.name;
-    if (part.kind === "source") return part.source;
-    return "";
-}
-
 function getTotalFromParts(parts: readonly UnsharedPart[]): number {
     let total = 0;
     for (const one of parts) {
@@ -1287,8 +1371,8 @@ function composePairParts(
         getRankedOrder(
             one.figure,
             other.figure,
-            getTextForPairPart(one.part),
-            getTextForPairPart(other.part),
+            getTextForNamedPart(one.part),
+            getTextForNamedPart(other.part),
         )
     );
     const held = getTotalFromParts(stated);

@@ -6,6 +6,7 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
+import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
@@ -16,6 +17,7 @@ import {
     composePairReading,
     composePanelReading,
     composeSkillReading,
+    getTextForNamedPart,
     NOTHING_MISSED,
 } from "@/src/ui/panel-reading.ts";
 import { getWordsForDamageKind, HEALTH_LOSS_WORDS } from "@/src/ui/panel-words.ts";
@@ -677,7 +679,7 @@ Deno.test("what reached somebody is cut by the skill's name, whoever announced i
     assert(first !== undefined, "somebody in this fight was healed");
     const drill = composeDrillReading(statistics, roster, "healthRestored", first.combatantId);
     assert(drill !== null, "and their row opens");
-    const names = drill.bySkill.rows.map((one) => one.name);
+    const names = drill.bySkill.rows.map((one) => getTextForNamedPart(one.part));
     assertEquals(names.length, new Set(names).size, "no name is drawn twice");
     assert(names.includes("Leczenie ran"), "the skill both healers announced is one row");
     const held = drill.bySkill.rows.reduce((sum, one) => sum + one.figure, 0);
@@ -937,6 +939,47 @@ Deno.test("a pair that would only repeat the row above it does not open", () => 
 });
 
 /**
+ * What no announcement covered is named by the key the game stated it under, so a healing section
+ * has nothing left to close against.
+ *
+ * The row that used to stand there said the game had not told us. The game had: over `captures/`
+ * on 2026-08-30 the whole of it is `heal`, `legbon_lastheal` and `legbon_holytouch_heal`, and the
+ * help calls the first of those an effect that fires in a turn the combatant stands below the
+ * health they started with (article `view,372`, read 2026-08-26) — a regeneration, not a silence.
+ */
+Deno.test("a healing section names the keys the game stated, and closes against nothing", () => {
+    let sections = 0;
+    let announced = 0;
+    let stated = 0;
+    for (const path of getRecordingPaths()) {
+        const { roster, statistics } = readFight(path);
+        for (const metric of ["healthGiven", "healthRestored"] as const) {
+            for (const combatantId of statistics.byCombatantId.keys()) {
+                const drill = composeDrillReading(statistics, roster, metric, combatantId);
+                if (drill === null) continue;
+                const cut = drill.bySkill;
+                if (cut.rows.length === 0) continue;
+                sections += 1;
+                assertEquals(cut.plain, null, `${path}: a healing section closes against nothing`);
+                const held = cut.rows.reduce((sum, one) => sum + one.figure, 0);
+                assertEquals(held, drill.total, `${path}: and holds the whole of the figure`);
+                for (const row of cut.rows) {
+                    if (row.part.kind === "skill") announced += 1;
+                    else stated += 1;
+                    // A key opens nothing: the protocol states no second cut of one, and no count.
+                    if (row.part.kind !== "source") continue;
+                    assertEquals(row.uses, null, `${path}: a key counts nothing`);
+                    assertEquals(row.opensSkill, false, `${path}: and opens nothing`);
+                }
+            }
+        }
+    }
+    assert(sections > 0, "the corpus draws healing sections");
+    assert(announced > 0, "some of their rows are announcements");
+    assert(stated > 0, "and some are keys the game named with nothing announced in front");
+});
+
+/**
  * `2026-08-06-tempest-grupa-vs-hildur.json`: five healers, four announced abilities between them,
  * and health moving under `heal` with nothing announced in front of it.
  *
@@ -1058,6 +1101,22 @@ Deno.test("a healing pair that would only repeat the row above it does not open"
  * refuses to open. So the announcement reaching somebody else is written out here rather than
  * waiting for a recording of it.
  */
+/** The movement an announcement put behind it, aimed wherever the case being written needs it. */
+function composeAnnouncedHeal(
+    announced: { skillName: string; skillId: number; actorId: number },
+    combatantId: number,
+): BattleEvent {
+    return {
+        kind: "health-change",
+        combatantId,
+        amount: 500,
+        healthPercent: null,
+        source: "heal_target",
+        declared: [],
+        announced,
+    };
+}
+
 Deno.test("a skill that reached somebody else opens onto whom, and a self-cast does not", () => {
     const { roster } = readFight(HILDUR);
     const [healer, healed] = [...roster.byId.keys()];
@@ -1074,20 +1133,14 @@ Deno.test("a skill that reached somebody else opens onto whom, and a self-cast d
             skillId: announced.skillId,
             declared: [],
         },
-        {
-            kind: "health-change",
-            combatantId: healed,
-            amount: 500,
-            healthPercent: null,
-            source: "heal_target",
-            declared: [],
-            announced,
-        },
+        composeAnnouncedHeal(announced, healed),
     ], new Map());
 
     const drill = composeDrillReading(statistics, roster, "healthGiven", healer);
     assert(drill !== null, "the healer's row opens");
-    const row = drill.bySkill.rows.find((one) => one.name === announced.skillName);
+    const row = drill.bySkill.rows.find((one) =>
+        one.part.kind === "skill" && one.part.name === announced.skillName
+    );
     assert(row !== undefined, "onto the skill they announced");
     assertEquals(row.figure, 500, "at what it put back");
     assertEquals(row.uses, 1, "and how many times it was announced");
@@ -1108,17 +1161,7 @@ Deno.test("a skill that reached somebody else opens onto whom, and a self-cast d
 
     // The same skill cast on nobody but the one who announced it: the level under it would name
     // the reader back to themselves, so there is nothing to open.
-    const alone = composeFightStatistics([
-        {
-            kind: "health-change",
-            combatantId: healer,
-            amount: 500,
-            healthPercent: null,
-            source: "heal_target",
-            declared: [],
-            announced,
-        },
-    ], new Map());
+    const alone = composeFightStatistics([composeAnnouncedHeal(announced, healer)], new Map());
     const own = composeDrillReading(alone, roster, "healthGiven", healer);
     assert(own !== null, "a self-cast still opens the healer's own row");
     assert(!(own.bySkill.rows[0]?.opensSkill ?? true), "and the skill on it opens nothing");

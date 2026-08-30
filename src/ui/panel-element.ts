@@ -9,7 +9,7 @@ import { composeDecimalText } from "@/libs/number-text.ts";
 import type {
     DrillReading,
     ElementRow,
-    PairPart,
+    NamedPart,
     PairReading,
     PanelMetric,
     PanelReading,
@@ -702,6 +702,27 @@ function composeOpponentSection(
  * side chose never is, so a received screen has no such section — and the reading hands over an
  * empty cut rather than this being said twice.
  */
+/**
+ * What a part is called where it stands, and a key is worded from the screen's own table: the game
+ * states `heal` as a health gain and as a health loss both, and one label over the two would be two
+ * quantities under one word.
+ */
+function getWordsForNamedPart(part: NamedPart | { kind: "plain" }, metric: PanelMetric): string {
+    if (part.kind === "skill") return part.name;
+    if (part.kind === "plain") return getWordsForUnannounced(metric);
+    return getNounForScreen(metric) === "damage"
+        ? getWordsForDamageKind(part.source)
+        : getWordsForHealthSource(part.source);
+}
+
+/** One key per part and per section, so a tip is never the one a row beside it registered. */
+function getKeyForNamedPart(where: string, part: NamedPart | { kind: "plain" }): string {
+    assert(where.length > 0, "a tip is registered under the section it was drawn in");
+    if (part.kind === "skill") return `${where}-skill:${part.name}`;
+    if (part.kind === "plain") return `${where}-skill:plain`;
+    return `${where}-source:${part.source}`;
+}
+
 function composeSkillSection(
     document: PanelDocument,
     list: PanelElement,
@@ -718,12 +739,16 @@ function composeSkillSection(
     for (const [at, row] of cut.rows.entries()) {
         const tip = {
             register: stated.register,
-            key: `skill:${row.name}`,
+            key: getKeyForNamedPart("skill", row.part),
             figure: stated.figure,
             share,
         };
-        const element = composeRowElement(document, composeSkillRowReading(row, at + 1), null, tip);
-        if (row.opensSkill) setRowMarks([element], SKILL_ATTRIBUTE, row.name);
+        const reading = composeSkillRowReading(row, stated.metric, at + 1);
+        const element = composeRowElement(document, reading, null, tip);
+        // A skill opens by the name it was announced under, and a key opens nothing at all.
+        if (row.part.kind === "skill") {
+            if (row.opensSkill) setRowMarks([element], SKILL_ATTRIBUTE, row.part.name);
+        }
         list.append(element);
     }
     if (cut.plain === null) return;
@@ -735,11 +760,12 @@ function composeSkillSection(
     list.append(composeRowElement(document, reading, null, tip));
 }
 
-function composeSkillRowReading(row: SkillRow, rank: number): RowReading {
-    assert(row.name.length > 0, "a skill drawn is one an announcement named");
+function composeSkillRowReading(row: SkillRow, metric: PanelMetric, rank: number): RowReading {
+    const name = getWordsForNamedPart(row.part, metric);
+    assert(name.length > 0, "a row of the section is drawn under a name");
     assert(row.figure >= 0, "and states a figure that is not below nothing");
     return {
-        name: row.name,
+        name,
         figure: row.figure,
         fill: row.fill,
         shareText: row.shareText,
@@ -1011,26 +1037,6 @@ function composePairElement(
     return list;
 }
 
-/**
- * What a part is called where it stands, and the key names come from the screen's own table: the
- * game states `heal` as a health gain and as a health loss both, and one label over the two would
- * be two quantities under one word.
- */
-function getWordsForPairPart(part: PairPart, metric: PanelMetric): string {
-    if (part.kind === "skill") return part.name;
-    if (part.kind === "plain") return getWordsForUnannounced(metric);
-    return getNounForScreen(metric) === "damage"
-        ? getWordsForDamageKind(part.source)
-        : getWordsForHealthSource(part.source);
-}
-
-/** One key per part, so a tip is kept apart from the one beside it under the same figure. */
-function getKeyForPairPart(part: PairPart): string {
-    if (part.kind === "skill") return `pair-skill:${part.name}`;
-    if (part.kind === "plain") return "pair-skill:plain";
-    return `pair-source:${part.source}`;
-}
-
 function composePairParts(
     document: PanelDocument,
     list: PanelElement,
@@ -1046,9 +1052,9 @@ function composePairParts(
         pair.total,
     ));
     for (const [at, row] of pair.parts.entries()) {
-        const tip = { ...stated, key: getKeyForPairPart(row.part) };
+        const tip = { ...stated, key: getKeyForNamedPart("pair", row.part) };
         const reading = {
-            name: getWordsForPairPart(row.part, stated.metric),
+            name: getWordsForNamedPart(row.part, stated.metric),
             figure: row.figure,
             fill: row.fill,
             shareText: row.shareText,

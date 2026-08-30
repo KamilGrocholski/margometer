@@ -76,10 +76,14 @@ export interface CombatantFigures {
     healthGivenByReceiver: Map<string, number>;
     healthRestoredBySource: Map<string, number>;
     /**
-     * The one place a key may stand on the giver's row: cut by the receiver **as well**, where the
-     * pair names whose cause it is. It holds only what no announcement covered, which is what makes
-     * it addable to the skills announced for that pair without counting a point twice —
-     * `healthGivenByReceiver` above holds the whole of the pair.
+     * The part of `healthRestoredBySource` no announcement covered, and the reason it is a field
+     * of its own: the whole cut holds the announced movements as well, so a panel adding it to the
+     * skills would state a figure twice. This one is what the skills do **not** hold.
+     */
+    healthRestoredWithoutSkillBySource: Map<string, number>;
+    /**
+     * The same figure on the giving side, cut by the receiver **as well** — which is the one place
+     * a key may stand on a giver's row, because the pair names whose cause it is.
      */
     healthGivenWithoutSkillByReceiverAndSource: Map<string, Map<string, number>>;
     damageDealtByElement: Map<string, number>;
@@ -188,6 +192,7 @@ export function composeCombatantFigures(): CombatantFigures {
         healthRestoredByGiver: new Map(),
         healthGivenByReceiver: new Map(),
         healthRestoredBySource: new Map(),
+        healthRestoredWithoutSkillBySource: new Map(),
         healthGivenWithoutSkillByReceiverAndSource: new Map(),
         damageDealtByElement: new Map(),
         damageTakenByElement: new Map(),
@@ -597,18 +602,26 @@ function addGivenHealth(
     addToCut(cut, stated.source, amount);
 }
 
-/** What put the health back, on the row it was put back on: the key, as the protocol wrote it. */
+/**
+ * What put the health back, on the row it was put back on: the key, as the protocol wrote it —
+ * once for the whole of it, and again for the part standing behind no announcement. The second is
+ * what the skills section draws beside the skills, so the two must be charged by one condition:
+ * `getSkillOwnerId` is that condition, and `addSkillRestored` reads the same one.
+ */
 function addRestoredSource(
     build: StatisticsBuild,
     healedId: number | null,
     source: string,
     amount: number,
+    announced: AnnouncedSkill | null,
 ): void {
     assert(amount >= 0, "restored health is never below nothing");
     assert(source.length > 0, "and comes under a key the protocol named");
     if (healedId === null) return;
     const healed = getFiguresForCombatant(build.byCombatantId, healedId);
     addToCut(healed.healthRestoredBySource, source, amount);
+    if (getSkillOwnerId(announced) !== null) return;
+    addToCut(healed.healthRestoredWithoutSkillBySource, source, amount);
 }
 
 /**
@@ -639,7 +652,7 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
     const figures = getFiguresForCombatant(build.byCombatantId, event.combatantId);
     if (event.amount >= 0) {
         figures.healthRestored += event.amount;
-        addRestoredSource(build, event.combatantId, event.source, event.amount);
+        addRestoredSource(build, event.combatantId, event.source, event.amount, event.announced);
         if (event.announced !== null) {
             addSkillRestored(build, event.announced, event.amount, event.combatantId);
         }
@@ -668,7 +681,7 @@ function addNamedHealingEvent(build: StatisticsBuild, event: BattleEvent): void 
     if (event.targetId === null) return;
     const figures = getFiguresForCombatant(build.byCombatantId, event.targetId);
     figures.healthRestored += event.amount;
-    addRestoredSource(build, event.targetId, event.source, event.amount);
+    addRestoredSource(build, event.targetId, event.source, event.amount, null);
     // No announcement to ask: this figure rides a blow struck at somebody else, so the message's
     // own actor is the attacker rather than the healer.
     addGivenHealth(
@@ -698,7 +711,7 @@ function addTeamHeal(
     for (const [combatantId, amount] of heal.restoredByCombatantId) {
         assert(amount >= 0, "a cast puts back no less than nothing");
         getFiguresForCombatant(build.byCombatantId, combatantId).healthRestored += amount;
-        addRestoredSource(build, combatantId, heal.source, amount);
+        addRestoredSource(build, combatantId, heal.source, amount, announced);
         // The one healing shape whose giver the protocol states outright: the caster stands in
         // the message's actor slot, and the recipients are what the sizing worked out.
         addGivenHealth(build, heal.casterId, amount, combatantId, {

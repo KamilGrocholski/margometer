@@ -129,7 +129,8 @@ function composeSectionsForScreenRow(
         });
     }
     for (const named of drill.bySkill.rows) {
-        const skill = composeSkillReading(statistics, roster, metric, combatantId, named.name);
+        if (named.part.kind !== "skill") continue;
+        const skill = composeSkillReading(statistics, roster, metric, combatantId, named.part.name);
         if (skill === null) continue;
         found.push({
             where: `${metric}/skill.byOpponent`,

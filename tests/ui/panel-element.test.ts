@@ -1562,8 +1562,22 @@ Deno.test("a skill that opens asks for itself by name, and the rest of them ask 
     const document = composeFakeDocument();
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
     const rows = [
-        { name: "Dotyk anioła", uses: 1, figure: 500, fill: 1, shareText: "50%", opensSkill: true },
-        { name: "Zmrrożenie", uses: 8, figure: 500, fill: 1, shareText: "50%", opensSkill: false },
+        {
+            part: { kind: "skill" as const, name: "Dotyk anioła" },
+            uses: 1,
+            figure: 500,
+            fill: 1,
+            shareText: "50%",
+            opensSkill: true,
+        },
+        {
+            part: { kind: "skill" as const, name: "Zmrrożenie" },
+            uses: 8,
+            figure: 500,
+            fill: 1,
+            shareText: "50%",
+            opensSkill: false,
+        },
     ];
     panel.show({
         reading,
@@ -1642,6 +1656,61 @@ Deno.test("every row in a list draws the same cells before its name", () => {
         [...shapes.keys()].sort(),
         ["drilled: bar,bar-cap,row-rank", "ranking: bar,bar-cap,row-rank"],
         "a row on one screen is built of the cells a row on the other is",
+    );
+});
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur.json`, the healer at 469657: two announced abilities and
+ * health that moved under `heal`, which nothing announced.
+ *
+ * The key is drawn under the reader's own word for it and never under the token, and never under
+ * a row saying nothing was said — the game said `heal`, and the help calls it a regeneration.
+ */
+Deno.test("a healing section draws the key the game named, not a row saying it did not", () => {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const drill = composeDrillReading(statistics, roster, "healthGiven", 469657);
+    assert(drill !== null, "the healer's row opens");
+    assertEquals(drill.bySkill.plain, null, "onto a section closing against nothing");
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "healthGiven" as const,
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const named = getTextsByClass(panel.element as FakeElement, "row-name");
+    assert(
+        named.includes(getWordsForHealthSource("heal")),
+        "the key stands under the word a player reads",
+    );
+    assert(!named.includes("heal"), "never under the token the protocol stated it on");
+    assert(
+        !named.includes(getWordsForUnannounced("healthGiven")),
+        "and no row says the game left it unsaid, because the game did not",
+    );
+    assert(
+        named.includes("Leczenie ran"),
+        "with the announcements beside it under their own names",
     );
 });
 
