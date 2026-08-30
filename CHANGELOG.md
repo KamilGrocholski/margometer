@@ -55,11 +55,6 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   a jej nazwę — „Wojownik", „Mag" — mówi okienko, które otwiera się po najechaniu na wiersz. Dwie
   profesje o zbliżonym kolorze trudniej teraz rozróżnić na samej liście.
 
-- **Zmiana** — Panel nie mówi już, że wpiął się w środku walki ani że część walki do niego nie
-  dotarła. W obu przypadkach liczby są zaniżone i nic tego teraz nie sygnalizuje. Ostrzeżenia
-  zostają dwa: o tym, czego nie dało się odczytać, i o leczeniu drużyny, którego nie da się
-  rozdzielić na osoby.
-
 ## [0.10.1] — 2026-08-28
 
 - **Poprawka** — Górna belka panelu, ta z nazwą i przyciskami, znów mieści się w jednej linii. W

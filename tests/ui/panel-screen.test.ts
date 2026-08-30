@@ -9,7 +9,7 @@
 import { assert, assertEquals } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import { composePanelReading } from "@/src/ui/panel-reading.ts";
+import { composePanelReading, NOTHING_MISSED } from "@/src/ui/panel-reading.ts";
 import {
     composeDirectionTabs,
     composeNounTabs,
@@ -26,7 +26,14 @@ Deno.test("every screen names a figure a reading can be composed for", () => {
     const statistics = composeFightStatistics([], new Map());
     const roster = composeCombatantRoster([]);
     for (const screen of SCREEN_ORDER) {
-        const reading = composePanelReading(statistics, roster, screen, "everyone", null);
+        const reading = composePanelReading(
+            statistics,
+            roster,
+            screen,
+            "everyone",
+            null,
+            NOTHING_MISSED,
+        );
         assertEquals(reading.total, 0, `${screen} composes, and an empty fight totals nothing`);
     }
     assert(SCREEN_ORDER.length > 1, "there is more than one screen to reach for");

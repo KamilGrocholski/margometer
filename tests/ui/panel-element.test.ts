@@ -15,6 +15,7 @@ import { composePanelHost, type PanelPress } from "@/src/ui/panel-element.ts";
 import {
     composeDrillReading,
     composePanelReading,
+    NOTHING_MISSED,
     type PanelReading,
 } from "@/src/ui/panel-reading.ts";
 import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
@@ -60,6 +61,7 @@ function readFight(): PanelReading {
         "damageDealtApplied",
         "everyone",
         null,
+        NOTHING_MISSED,
     );
 }
 
@@ -67,7 +69,14 @@ function openFirstRow() {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
     const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
-    const reading = composePanelReading(statistics, roster, "damageDealtApplied", "everyone", null);
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
     const first = reading.rows[0];
     assert(first !== undefined, "there is a row to open");
     const drill = composeDrillReading(statistics, roster, "damageDealtApplied", first.combatantId);
@@ -1322,7 +1331,14 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
     const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     const open = (screen: "healthGiven" | "healthRestored") => {
-        const reading = composePanelReading(statistics, roster, screen, "everyone", null);
+        const reading = composePanelReading(
+            statistics,
+            roster,
+            screen,
+            "everyone",
+            null,
+            NOTHING_MISSED,
+        );
         const first = reading.rows[0];
         assert(first !== undefined, `${screen}: there is a row to open`);
         const drill = composeDrillReading(statistics, roster, screen, first.combatantId);

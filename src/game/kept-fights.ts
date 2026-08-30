@@ -49,6 +49,12 @@ export interface KeptFight {
      * and reads back as a shelf with nothing pinned — which is what it was.
      */
     isPinned: boolean;
+    /**
+     * Inputs again, and they have to be: neither survives the payloads, because a message that
+     * never arrived was never kept. A shelf written before these reads back as having lost none.
+     */
+    messagesLost: number;
+    hasJoinedInProgress: boolean;
 }
 
 function getMessagesFromValue(value: unknown): string[] | null {
@@ -178,6 +184,8 @@ function getKeptFightFromValue(value: unknown): KeptFight | null {
         readerSide: getNumberFromUnknown(value.readerSide),
         outcome: getKeptOutcomeFromValue(value.outcome),
         isPinned: value.isPinned === true,
+        messagesLost: getNumberFromUnknown(value.messagesLost) ?? 0,
+        hasJoinedInProgress: value.hasJoinedInProgress === true,
     };
 }
 

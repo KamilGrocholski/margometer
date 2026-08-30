@@ -11,9 +11,13 @@ import { assert, assertEquals, AssertionError, assertThrows } from "@std/assert"
 import {
     composeCountedNoun,
     composeFigureText,
+    composeJoinedInProgressWarning,
+    composeLostMessageWarning,
     composePlaceWords,
     composeShareText,
     composeShareTexts,
+    composeUnplacedHealWarning,
+    composeUnreadWarning,
     COUNTED_NOUNS,
     getWordsForHealthSource,
     HEALTH_SOURCE_WORDS,
@@ -40,6 +44,14 @@ function getSentences(): string[] {
     const found = Object.values(PANEL_WORDS).map((one) => String(one));
     for (const noun of Object.values(COUNTED_NOUNS)) {
         found.push(noun.one, noun.few, noun.many);
+    }
+    // The four a doubt is said in. They are composed rather than declared, so a table of the
+    // panel's words does not reach them and the guards below would read past every one.
+    found.push(composeJoinedInProgressWarning());
+    for (const count of [1, 2, 5]) {
+        found.push(composeLostMessageWarning(count));
+        found.push(composeUnreadWarning(count));
+        found.push(composeUnplacedHealWarning(count));
     }
     return found;
 }
@@ -183,4 +195,11 @@ Deno.test("a key health moved under is worded, and one nobody named travels as w
         assert(words.length > 0, `${key}: a key the table holds is worded`);
         assert(!words.includes("%"), `${key}: a hole in a sentence is not a word for a column`);
     }
+});
+
+Deno.test("a doubt about what never arrived counts in all three Polish forms", () => {
+    assert(composeLostMessageWarning(1).includes("1 wiadomość"), "one takes the first form");
+    assert(composeLostMessageWarning(2).includes("2 wiadomości"), "two takes the second");
+    assert(composeLostMessageWarning(5).includes("5 wiadomości"), "and five the third");
+    assertThrows(() => composeLostMessageWarning(0), AssertionError, "said because something");
 });

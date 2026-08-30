@@ -511,6 +511,21 @@ export function composeUnreadWarning(count: number): string {
         "więc liczby mogą być zaniżone.";
 }
 
+/** The count sits in an apposition: under *nie dotarło* the verb would have to agree with it. */
+export function composeLostMessageWarning(count: number): string {
+    assert(count > 0, "a warning about what never arrived is said because something did not");
+    const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
+    assert(said.length > 0, "and it says how much of it there was");
+    return `Część walki nie dotarła do panelu — ${said} bez odbioru, ` +
+        "więc liczby mogą być zaniżone.";
+}
+
+/** No count: what happened before the reading began is stated nowhere. */
+export function composeJoinedInProgressWarning(): string {
+    return "Panel zaczął czytać tę walkę już w trakcie — nie widział jej początku, " +
+        "więc liczby mogą być zaniżone.";
+}
+
 export function composeUnplacedHealWarning(count: number): string {
     assert(count > 0, "a warning about healing nobody could place is said because some was not");
     const said = composeCountedNoun(count, COUNTED_NOUNS.heals);

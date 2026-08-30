@@ -851,3 +851,23 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
         "which is the kept one, not the fight going on",
     );
 });
+
+Deno.test("a fight the reader walked into says so on the panel", () => {
+    const battle: Record<string, unknown> = { updateData: () => null };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    // Everything but the payload that opened the fight, which is what walking into one leaves.
+    const [opening, ...rest] = getRecordedEngineUpdates(HILDUR);
+    assert(opening !== undefined, "the recording opens with a payload");
+    for (const payload of rest) update(payload);
+    const host = shown[0] as FakeElement;
+    const getWarnings = () => {
+        return getElementsWithin(host).find((one) => one.className === "warnings");
+    };
+    const drawn = getWarnings();
+    assert(drawn !== undefined, "the panel drew the region a doubt is said in");
+    const said = getElementsWithin(drawn).map((one) => one.textContent ?? "").join(" ");
+    assert(said.includes("w trakcie"), "and says the reading began after the fight did");
+});

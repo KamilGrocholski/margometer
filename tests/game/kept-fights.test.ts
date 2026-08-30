@@ -54,6 +54,8 @@ function composeFight(openedAt: number): KeptFight {
         outcome: { wonNames: ["Gracz 1"], lostNames: ["Odyniec"], isDrawn: false },
         place: { mapName: "Mapa", x: 12, y: 34 },
         isPinned: false,
+        messagesLost: 0,
+        hasJoinedInProgress: false,
     };
 }
 
@@ -188,6 +190,8 @@ Deno.test("a fight off the shelf decodes as the fight that went on it", () => {
             readerSide: null,
             outcome: null,
             isPinned: false,
+            messagesLost: 0,
+            hasJoinedInProgress: false,
         }]),
         "kept",
     );
@@ -263,4 +267,32 @@ Deno.test("a shelf of another version is dropped, and the reader is left with no
     assert(writeKeptFights(store, KEY, [kept]), "while a shelf this version wrote reads back");
     assertEquals(readKeptFights(store, KEY)[0]?.readerSide, kept.readerSide, "with the seat");
     assertEquals(readKeptFights(store, KEY)[0]?.outcome, kept.outcome, "and how it ended");
+});
+
+Deno.test("what a reading was short of goes on the shelf with the fight", () => {
+    const store = composeStore();
+    assert(
+        writeKeptFights(store, KEY, [{
+            ...composeFight(1),
+            messagesLost: 4,
+            hasJoinedInProgress: true,
+        }]),
+        "a fight that was short is written as it stands",
+    );
+    const read = readKeptFights(store, KEY)[0];
+    assertEquals(read?.messagesLost, 4, "a count that was short comes back short");
+    assertEquals(read?.hasJoinedInProgress, true, "and a fight joined in progress says so again");
+
+    const older = composeJsonText({
+        version: 2,
+        fights: [{ openedAt: 5, combatants: [], payloads: [] }],
+    });
+    assert(older !== null, "a shelf written before either existed is text");
+    store.write(KEY, older);
+    assertEquals(readKeptFights(store, KEY)[0]?.messagesLost, 0, "it states no count");
+    assertEquals(
+        readKeptFights(store, KEY)[0]?.hasJoinedInProgress,
+        false,
+        "and reads back as a fight watched whole, which is what it claimed by saying nothing",
+    );
 });

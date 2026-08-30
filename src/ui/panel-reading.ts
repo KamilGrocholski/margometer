@@ -19,6 +19,8 @@ import {
 import { getIntegerFromText } from "@/src/core/protocol-number.ts";
 import { type PanelSideChoice, SCREEN_ORDER, SIDE_CHOICES } from "@/src/ui/panel-screen.ts";
 import {
+    composeJoinedInProgressWarning,
+    composeLostMessageWarning,
     composeShareText,
     composeShareTexts,
     composeUnplacedHealWarning,
@@ -169,22 +171,39 @@ function getFigure(figures: CombatantFigures, metric: PanelMetric): number {
     return figure;
 }
 
+/** What is short about the reading rather than about a figure on it. The session states both. */
+export interface FightDoubts {
+    messagesLost: number;
+    hasJoinedInProgress: boolean;
+}
+
+export const NOTHING_MISSED: FightDoubts = { messagesLost: 0, hasJoinedInProgress: false };
+
+/** The list below is the bound, not anything a fight can do. */
+const MAXIMUM_WARNINGS = 4;
+
 /**
- * A message nobody could read may have carried anything, so it qualifies whatever screen is being
- * looked at. A cast nobody could place is narrower: what it puts back is health, so it shortens
- * both halves of the healing and neither half of the damage — saying it on a damage screen would
- * put a doubt on a figure that cannot carry it.
+ * Widening to narrowing. The first three qualify every screen; a cast nobody could place puts back
+ * health, so saying it on a damage screen would put a doubt on a figure that cannot carry it.
  */
-function composeWarnings(statistics: FightStatistics, metric: PanelMetric): string[] {
+function composeWarnings(
+    statistics: FightStatistics,
+    metric: PanelMetric,
+    doubts: FightDoubts,
+): string[] {
     assert(statistics.unreadMessages >= 0, "a count of unread messages is never below nothing");
     assert(statistics.castsUnplaced >= 0, "and neither is a count of casts nobody could place");
+    assert(doubts.messagesLost >= 0, "and neither is a count of messages that never arrived");
     const said: string[] = [];
     assert(SCREEN_ORDER.includes(metric), "a screen is qualified by what could shorten its own");
+    if (doubts.hasJoinedInProgress) said.push(composeJoinedInProgressWarning());
+    if (doubts.messagesLost > 0) said.push(composeLostMessageWarning(doubts.messagesLost));
     if (statistics.unreadMessages > 0) said.push(composeUnreadWarning(statistics.unreadMessages));
     const isHealing = metric === "healthRestored" || metric === "healthGiven";
     if (isHealing && statistics.castsUnplaced > 0) {
         said.push(composeUnplacedHealWarning(statistics.castsUnplaced));
     }
+    assert(said.length <= MAXIMUM_WARNINGS, "a screen says at most the four things it can");
     return said;
 }
 
@@ -517,6 +536,7 @@ export function composePanelReading(
     metric: PanelMetric,
     choice: PanelSideChoice,
     readerSide: number | null,
+    doubts: FightDoubts,
 ): PanelReading {
     assert(metric.length > 0, "a reading is composed for a screen asked for by name");
     const listed = composeUnsharedRows(statistics, roster, metric).filter((row) =>
@@ -551,7 +571,7 @@ export function composePanelReading(
         ...composeHeadcount(statistics, roster, readerSide),
         total,
         pinned: composePinnedRows(pinned, shares.slice(listed.length), whole, largest),
-        warnings: composeWarnings(statistics, metric),
+        warnings: composeWarnings(statistics, metric, doubts),
         sides: composePanelSides(statistics, roster, metric, readerSide),
         visibleRows: choice === "everyone" ? RANKING_ROWS : SIDE_ROWS,
     };

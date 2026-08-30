@@ -47,6 +47,8 @@ export interface FightReading {
     messagesByPayload: readonly (readonly string[])[];
     /** Messages a payload said it carried and this reader did not read. Zero is the answer. */
     messagesLost: number;
+    /** True where the reading began after the fight did, short by an amount nothing states. */
+    hasJoinedInProgress: boolean;
     isOver: boolean;
     payloads: number;
     /** Null where the client never said, which leaves the panel unable to tell one side apart. */
@@ -58,6 +60,7 @@ export interface BattleSession {
     events: BattleEvent[];
     messagesByPayload: string[][];
     messagesLost: number;
+    hasJoinedInProgress: boolean;
     isOver: boolean;
     payloads: number;
     hasFight: boolean;
@@ -70,6 +73,7 @@ export function composeBattleSession(): BattleSession {
         events: [],
         messagesByPayload: [],
         messagesLost: 0,
+        hasJoinedInProgress: false,
         isOver: false,
         payloads: 0,
         hasFight: false,
@@ -106,6 +110,7 @@ function resetSession(session: BattleSession): void {
     session.events = [];
     session.messagesByPayload = [];
     session.messagesLost = 0;
+    session.hasJoinedInProgress = false;
     session.isOver = false;
     session.payloads = 0;
     session.readerSide = null;
@@ -137,6 +142,8 @@ export function isFightStart(payload: unknown): boolean {
 export function addPayloadToSession(session: BattleSession, payload: unknown): void {
     if (!isRecord(payload)) return;
     if (isFightStart(payload)) resetSession(session);
+    // `init` arrives once, so only the first payload of a fight can answer this.
+    if (session.payloads === 0) session.hasJoinedInProgress = !isFightStart(payload);
     session.hasFight = true;
     session.payloads += 1;
     for (const combatant of getCombatantsFromPayload(payload)) session.combatants.push(combatant);
@@ -167,6 +174,7 @@ export function getFightFromSession(session: BattleSession): FightReading | null
         events: session.events,
         messagesByPayload: session.messagesByPayload,
         messagesLost: session.messagesLost,
+        hasJoinedInProgress: session.hasJoinedInProgress,
         isOver: session.isOver,
         payloads: session.payloads,
         readerSide: session.readerSide,

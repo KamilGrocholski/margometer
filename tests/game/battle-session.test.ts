@@ -148,3 +148,47 @@ Deno.test("every recording states its reader's side, on the payload that opens t
         );
     }
 });
+
+Deno.test("a session says whether it saw the payload that opened the fight", () => {
+    const fromStart = composeBattleSession();
+    addPayloadToSession(fromStart, { init: 1, myteam: "1" });
+    addPayloadToSession(fromStart, { m: ["0;0;txt=a"] });
+    assertEquals(
+        getFightFromSession(fromStart)?.hasJoinedInProgress,
+        false,
+        "a fight watched from its opening payload lost nothing before it",
+    );
+
+    const joined = composeBattleSession();
+    addPayloadToSession(joined, { m: ["0;0;txt=a"] });
+    assertEquals(
+        getFightFromSession(joined)?.hasJoinedInProgress,
+        true,
+        "and one whose first payload is anything else began before the reading did",
+    );
+    addPayloadToSession(joined, { m: ["0;0;txt=b"] });
+    assertEquals(
+        getFightFromSession(joined)?.hasJoinedInProgress,
+        true,
+        "which no later payload undoes, having arrived after the same opening",
+    );
+
+    addPayloadToSession(joined, { init: 1 });
+    assertEquals(
+        getFightFromSession(joined)?.hasJoinedInProgress,
+        false,
+        "a fight that opens is watched whole, whatever the one before it was",
+    );
+});
+
+Deno.test("no recording is a fight joined in progress, and each says so", () => {
+    for (const path of getRecordingPaths()) {
+        const fight = replay(path);
+        assert(fight !== null, `${path}: the replay produced a fight`);
+        assertEquals(
+            fight.hasJoinedInProgress,
+            false,
+            `${path}: a recording carries the payload that opened its fight`,
+        );
+    }
+});

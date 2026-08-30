@@ -414,7 +414,9 @@ function composeKeptFigures(kept: KeptFight): FightFigures {
             roster,
             events,
             messagesByPayload: kept.payloads,
-            messagesLost: 0,
+            // Kept rather than recounted: replaying what arrived cannot show what did not.
+            messagesLost: kept.messagesLost,
+            hasJoinedInProgress: kept.hasJoinedInProgress,
             isOver: true,
             payloads: kept.payloads.length,
             readerSide: kept.readerSide,
@@ -464,6 +466,7 @@ function showFight(
         screen.current,
         screen.side,
         fight.readerSide,
+        { messagesLost: fight.messagesLost, hasJoinedInProgress: fight.hasJoinedInProgress },
     );
     assert(reading.rows.length >= 0, "a reading states its rows, however few");
     const { drill, pair, skill } = composeOpenedReadings(figures, screen);
@@ -796,6 +799,8 @@ function keepFight(
         readerSide: fight.readerSide,
         outcome: composeFightFigures(session)?.statistics.outcome ?? null,
         isPinned: false,
+        messagesLost: fight.messagesLost,
+        hasJoinedInProgress: fight.hasJoinedInProgress,
     });
 }
 
