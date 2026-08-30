@@ -477,22 +477,7 @@ commit that opens or closes one.
    held by its tests alone. What is written since is the front page: both READMEs, against a set of
    pictures shot at the commit that drew them, and `tests/repository/readmes.test.ts` holding the
    three to each other.
-8. **A ranking row does not say which side is the reader's.** The seat itself is read — the payload
-   that opens a fight states it under `myteam`, `game/battle-session.ts` keeps it once seen, and it
-   already decides the order of a shelf row's sides and whether a fight was won from that seat. It
-   is `PanelRow.side` that stops short: it carries the game's own team number and nothing turns it
-   into `ours` or `theirs`. `ours` and `theirs` are spent on the totals strip and on no row.
-
-   **The lightness of the name is not the carrier, and that is measured rather than argued.** A
-   ranking row's name sits over its own bar, so it is held to the AA floor `DESIGN.md` states for
-   text on a bar. Measured over the whole palette on 2026-08-30: the plain ink `#e7e7ea` clears the
-   worst bar at 5.09, the quiet ink `#9a9aa6` reaches 2.26 against a floor of 4.5, and sweeping the
-   neutral greys puts the last one that clears AA at about `#dfdfdf` — indistinguishable from the
-   plain ink at a glance. **There is no room in that channel over a bar.** What is left is a carrier
-   that is not ink and not hue: the edge the bar grows from, the slope of the name, or a rule under
-   the row spending the two tokens, each with a cost of its own. The seat reaching the row is cheap;
-   deciding what draws it is the open half.
-9. **A restatement in different words is unheld, and it is the worse kind.**
+8. **A restatement in different words is unheld, and it is the worse kind.**
    `tests/repository/sources.test.ts` holds two bands of C15's second half now: a block standing
    twice **verbatim**, and a block standing in two **files** whatever its length — the second added
    after measuring found a bound on a fight's headcount word for word in three files and a tool's
@@ -507,7 +492,3 @@ commit that opens or closes one.
    nothing, in `ui/panel-reading.ts` and in the entry; the two error bases each spelling out that no
    base is ever thrown, which **E2** owns. Each is editorial work — which copy survives, and whether
    the second should cite instead — so the band closes a few at a time rather than in one round.
-
-   C14 is unheld for a different reason and has no guard shape yet: the one that would hold it
-   counts declarations carrying a docblock, which needs a parser this tree does not have and a
-   dependency **ADR 0001** is the reason it does not take.

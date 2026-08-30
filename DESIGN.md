@@ -184,6 +184,17 @@ text sits. **Its length is the row against the biggest figure on screen**, never
 the top row of a ten-person fight is a full bar, and the share in brackets is what states the
 fraction.
 
+**A ranking row does not say which side is the reader's, and that is a decision.** The strip under
+the list totals both sides and the tabs narrow to either, which is where the question is answered.
+The row itself does not answer it, and the two channels that could are both spoken for: the hue says
+a profession, and the lightness of the name cannot — a row's name sits over its own bar, and over
+the worst bar in the palette the plain ink clears the AA floor at 5.09 while the quiet ink reaches
+2.26 against 4.5, with the last neutral grey that clears it indistinguishable from plain (measured
+over the whole palette, 2026-08-30). What is left is a carrier that is neither ink nor hue — the
+edge a bar grows from, which breaks comparing two lengths; a rule under the row spending `ours` and
+`theirs`, which is colour again and the worst pair for it; or a mark before the name, which costs
+the width the profession letter was removed for. None was worth its cost.
+
 ⚠️ **The row says a profession in its hue and in nothing else, and that is a decision.** Six
 professions cannot be made mutually distinguishable by hue on this background, so the hue is a hint
 and the card a reader opens by pointing is the answer — it names the profession in words. A second
