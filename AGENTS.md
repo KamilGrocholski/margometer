@@ -61,8 +61,8 @@ this language does not have would be**; each states what binds instead.
 - **S3.** The cost of one payload is **measured** over the recordings, never assumed, and a change
   to the decode path that raises it is a finding.
 - **S4.** No function is longer than 70 lines, which is one printed page.
-- **S5.** Assertion density averages at least two per function across `src/` and `tools/` — the code
-  that ships and the code that runs. **ADR 0007.** See **Assertions**.
+- **S5.** Assertion density averages at least two per function across `libs/`, `project/`, `src/`
+  and `tools/` — the code that ships and the code that runs. **ADR 0007.** See **Assertions**.
 - **S6.** Declare at the smallest possible scope, `const` by default, at the point of use.
 - **S7.** Every return value is used or explicitly discarded; every parameter is checked. Held by
   the compiler.
@@ -137,7 +137,9 @@ this language does not have would be**; each states what binds instead.
 - **E8. `ui/` throws nothing.** A panel failure is state, not an exception. **ADR 0004.**
 - **E9.** Reading a value never throws: it returns `null`, and the caller picks assert, error or
   unknown. Writing asserts, because the number is ours.
-- **E10.** Never substitute `0` for a failed read. Zero is a measurement.
+- **E10.** Never substitute `0` for a failed read. Zero is a measurement. **Where the read could
+  have carried the substitute** — `null` out of JSON, `undefined` written as no text at all — E9's
+  `null` cannot say which happened, and the answer says whether it worked instead. **ADR 0021.**
 - **E11. No failure is discarded silently.** Every caught failure leaves a mark a reader can see and
   exactly one branded console entry, once, not per render. An empty `catch` breaks this.
 
@@ -389,6 +391,7 @@ the same thing a second way.
 | `tests/repository/errors.test.ts`        | E1, E2, E11, each with a sample                    |
 | `tests/repository/names.test.ts`         | N1, N11, each with a sample                        |
 | `tests/repository/protocol-keys.test.ts` | the register help claims against the frozen counts |
+| `tests/repository/libraries.test.ts`     | `libs/` and `project/` reaching into no layer      |
 | `tests/ui/blow-vocabulary.test.ts`       | N13 for what a blow carried, against `captures/`   |
 
 A guard joins this table in the commit that makes it pass, and the known-gaps list shrinks by the

@@ -8,7 +8,7 @@
  */
 
 import { assert } from "@std/assert";
-import { composeJsonText } from "@/src/core/unknown-reading.ts";
+import { composeJsonWriting } from "@/libs/json-text.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import type {
     CombatantFigures,
@@ -188,7 +188,7 @@ export function composeReportText(
     assert(surroundings.capturedAt.length > 0, "and the moment it was taken at");
     assert(surroundings.gameBuild !== "", "a build it could not read is absent, never empty");
     assert(surroundings.userAgent !== "", "and so is a browser that said nothing of itself");
-    return composeJsonText({
+    const writing = composeJsonWriting({
         addOn: { name: ADD_ON_NAME, version: BUILD_VERSION },
         game: { world: surroundings.world, build: surroundings.gameBuild },
         // The same fact a recording carries as `przegladarka`, so the two artefacts a reader can
@@ -197,4 +197,7 @@ export function composeReportText(
         capturedAt: surroundings.capturedAt,
         fight: subject === null ? null : composeReportFight(subject),
     }, INDENT_SPACES);
+    if (!writing.isOk) return null;
+    assert(writing.text.length > 0, "a report written as text says something");
+    return writing.text;
 }

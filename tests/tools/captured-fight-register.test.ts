@@ -7,7 +7,8 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
-import { getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
+import { getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
 import {
     getRecordedEngineUpdates,
     getRecordedMessages,
@@ -55,7 +56,9 @@ function getRecordingRows(text: string): string[][] {
 }
 
 function getEnvelopeField(path: string, field: string): string {
-    const stated = getValueFromJsonText(Deno.readTextFileSync(path));
+    const reading = getJsonReading(Deno.readTextFileSync(path));
+    assert(reading.isOk, `${path}: a recording is JSON`);
+    const stated = reading.value;
     assert(isRecord(stated), `${path}: a recording is a record`);
     const value = stated[field];
     if (value === null) return NO_BUILD;

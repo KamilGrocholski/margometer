@@ -8,7 +8,7 @@
 import { assert } from "@std/assert";
 import { getIntegerFromText } from "@/src/core/protocol-number.ts";
 import { ENGINE_SPELLINGS, getEnginesFromPage } from "@/src/game/engine-attachment.ts";
-import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/src/core/unknown-reading.ts";
+import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 
 /**
  * Carried from v1's reading of production build `53XkBRxF` and development build

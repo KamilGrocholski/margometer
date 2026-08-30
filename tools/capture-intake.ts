@@ -10,13 +10,14 @@
  */
 
 import { assert } from "@std/assert";
-import { composeJsonText, getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
+import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
 import { getIntegerFromText } from "@/src/core/protocol-number.ts";
 import { CAPTURE_FIELDS } from "@/src/game/fight-capture.ts";
 import { WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
 import { CaptureIntakeError } from "@/tools/margometer-tool-error.ts";
+import { RECORDING_DIRECTORY, RECORDING_SUFFIX } from "@/project/repository-layout.ts";
 
-const CAPTURES_DIRECTORY = "captures";
 /** Written by this tool and by nothing else, which is why they are spelled here. */
 const SUBSTITUTED_COUNT = "pseudonimow";
 const REMOVED_COUNT = "opisow";
@@ -376,13 +377,15 @@ export function composeIntake(recording: unknown): Intake {
             named.changed,
         [REMOVED_COUNT]: getCarriedCount(described.recording, REMOVED_COUNT) + described.removed,
     };
-    const text = composeJsonText(written, INDENT_SPACES);
-    if (text === null) {
-        throw new CaptureIntakeError("the redacted recording would not be written as text");
+    const writing = composeJsonWriting(written, INDENT_SPACES);
+    if (!writing.isOk) {
+        throw new CaptureIntakeError("the redacted recording would not be written as text", {
+            cause: writing.cause,
+        });
     }
-    assert(text.length > 0, "and what was written says something");
+    assert(writing.text.length > 0, "and what was written says something");
     return {
-        text: `${text}\n`,
+        text: `${writing.text}\n`,
         changed: named.changed,
         removed: described.removed,
         substitutions: named.substitutions,
@@ -443,7 +446,7 @@ export function composeIntakePath(recording: unknown, slug: string): string {
         throw new CaptureIntakeError(`\`--name ${slug}\` is not a kebab-case slug`);
     }
     assert(day.length === 10, "a path is named for one day");
-    return `${CAPTURES_DIRECTORY}/${day}-${world}-${slug}.json`;
+    return `${RECORDING_DIRECTORY}/${day}-${world}-${slug}${RECORDING_SUFFIX}`;
 }
 
 function isPathTaken(path: string): boolean {
@@ -460,17 +463,19 @@ function isPathTaken(path: string): boolean {
 
 function writeIntake(source: string, slug: string): void {
     assert(source.length > 0, "a recording is read from somewhere");
-    const read = getValueFromJsonText(Deno.readTextFileSync(source));
-    if (read === null) {
-        throw new CaptureIntakeError(`${source} is not JSON this tool can read`);
+    const reading = getJsonReading(Deno.readTextFileSync(source));
+    if (!reading.isOk) {
+        throw new CaptureIntakeError(`${source} is not JSON this tool can read`, {
+            cause: reading.cause,
+        });
     }
-    const target = composeIntakePath(read, slug);
+    const target = composeIntakePath(reading.value, slug);
     // Material is never overwritten: a recording already here is evidence somebody has written a
     // test against.
     if (isPathTaken(target)) {
         throw new CaptureIntakeError(`${target} already exists — material is not overwritten`);
     }
-    const intake = composeIntake(read);
+    const intake = composeIntake(reading.value);
     Deno.writeTextFileSync(target, intake.text);
     console.log(`wrote ${target}`);
     console.log(

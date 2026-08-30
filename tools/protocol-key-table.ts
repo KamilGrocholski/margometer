@@ -10,7 +10,8 @@
  */
 
 import { assert } from "@std/assert";
-import { composeJsonText } from "@/src/core/unknown-reading.ts";
+import { getEndOfRun, isDigitAt } from "@/libs/text-walk.ts";
+import { composeJsonWriting } from "@/libs/json-text.ts";
 import { composeIntegerText, getIntegerFromText } from "@/src/core/protocol-number.ts";
 import { getCachedBundle, getCachedClientSource } from "@/tools/game-client-source.ts";
 import { ProtocolKeyTableError } from "@/tools/margometer-tool-error.ts";
@@ -110,41 +111,14 @@ const DEFAULT_BRANCH_SHAPES: readonly (readonly ShapeStep[])[] = [
     ],
 ];
 
-function isDigitAt(source: string, index: number): boolean {
-    const character = source.charAt(index);
-    assert(character.length <= 1, "one character is looked at");
-    if (character < "0") return false;
-    return character <= "9";
-}
-
-function getEndOfDigits(source: string, from: number): number {
-    let at = from;
-    while (at < source.length) {
-        if (!isDigitAt(source, at)) break;
-        at += 1;
-    }
-    assert(at >= from, "a run never ends before it starts");
-    assert(at <= source.length, "and never past what it walked");
-    return at;
-}
-
 function isNameCharacterAt(source: string, index: number): boolean {
     const character = source.charAt(index);
     if (character === "") return false;
+    assert(character.length === 1, "one character is looked at");
+    assert(index >= 0, "and it is looked for inside the source");
     if (character >= "a" && character <= "z") return true;
     if (character >= "A" && character <= "Z") return true;
     return NAME_CHARACTERS.includes(character);
-}
-
-function getEndOfNameCharacters(source: string, from: number): number {
-    let at = from;
-    while (at < source.length) {
-        if (!isNameCharacterAt(source, at)) break;
-        at += 1;
-    }
-    assert(at >= from, "a name never ends before it starts");
-    assert(at <= source.length, "and never past what it walked");
-    return at;
 }
 
 /** The text inside a quoted literal at `open`, and where it ends. */
@@ -211,14 +185,14 @@ function getFieldsAt(
             continue;
         }
         if (step.kind === "segmentKey") {
-            const name = getEndOfNameCharacters(bundle, index);
+            const name = getEndOfRun(bundle, index, isNameCharacterAt);
             if (name === index) return null;
             if (!bundle.startsWith(SEGMENT_INDEX, name)) return null;
             index = name + SEGMENT_INDEX.length;
             continue;
         }
         if (step.kind === "digits") {
-            const digits = getEndOfDigits(bundle, index);
+            const digits = getEndOfRun(bundle, index, isDigitAt);
             if (digits === index) return null;
             fields.set(step.field, bundle.slice(index, digits));
             index = digits;
@@ -350,11 +324,15 @@ export function getProtocolKeys(bundle: string): string[] {
 
 /** A value written back as the text a reader will see, refusing rather than writing `null`. */
 function requireWrittenText(value: unknown): string {
-    const text = composeJsonText(value);
-    if (text === null) throw new ProtocolKeyTableError("a value of the table cannot be written");
-    assert(text.length > 0, "a value that was written says something");
-    assert(typeof text === "string", "and is text by the time it is read back");
-    return text;
+    const writing = composeJsonWriting(value);
+    if (!writing.isOk) {
+        throw new ProtocolKeyTableError("a value of the table cannot be written", {
+            cause: writing.cause,
+        });
+    }
+    assert(writing.text.length > 0, "a value that was written says something");
+    assert(typeof writing.text === "string", "and is text by the time it is read back");
+    return writing.text;
 }
 
 /** The family on one line, spaced the way this tree writes an object, since it is read here. */

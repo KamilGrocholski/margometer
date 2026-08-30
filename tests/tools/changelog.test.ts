@@ -8,13 +8,8 @@
  */
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
-import {
-    CHANGELOG_FILE,
-    composeReleaseNotes,
-    CONFIGURATION_FILE,
-    getChangelogSection,
-    getDeclaredVersion,
-} from "@/tools/changelog.ts";
+import { CHANGELOG_FILE, CONFIGURATION_FILE } from "@/project/repository-layout.ts";
+import { composeReleaseNotes, getChangelogSection, getDeclaredVersion } from "@/tools/changelog.ts";
 import { ChangelogError } from "@/tools/margometer-tool-error.ts";
 
 const CHANGELOG = Deno.readTextFileSync(CHANGELOG_FILE);
@@ -33,7 +28,6 @@ Deno.test("the version this tree declares is read out of its configuration", () 
     assertThrows(
         () => getDeclaredVersion('{\n    "tasks": {}\n}\n'),
         ChangelogError,
-        CONFIGURATION_FILE,
     );
     assert(DECLARED.length > 0, "and the tree itself declares one");
 });

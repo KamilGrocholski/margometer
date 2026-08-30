@@ -7,18 +7,17 @@
  */
 
 import { assert } from "@std/assert";
+import { getEndOfRun, isDigitAt } from "@/libs/text-walk.ts";
 
 /** Every percentage in `captures/` is written to two places, 18215 of them, 2026-08-28. */
 export const HEALTH_PERCENT_PLACES = 2;
 
 function isDigitRun(text: string): boolean {
     if (text.length === 0) return false;
-    for (const character of text) {
-        if (character < "0") return false;
-        if (character > "9") return false;
-    }
+    const end = getEndOfRun(text, 0, isDigitAt);
+    assert(end <= text.length, "a run of digits ends inside the text it was read from");
     assert(text.length > 0, "a digit run holds at least one digit");
-    return true;
+    return end === text.length;
 }
 
 export function isIntegerText(text: string): boolean {

@@ -7,7 +7,8 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
-import { getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
+import { getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import {
     type CaptureSurroundings,
@@ -34,8 +35,10 @@ const SURROUNDINGS: CaptureSurroundings = {
 };
 
 function readCapture(text: string): Record<string, unknown> {
-    const read = getValueFromJsonText(text);
-    assert(isRecord(read), "a recording written as text reads back as a record");
+    const reading = getJsonReading(text);
+    assert(reading.isOk, "a recording written as text reads back as JSON");
+    const read = reading.value;
+    assert(isRecord(read), "and reads back as a record");
     return read;
 }
 

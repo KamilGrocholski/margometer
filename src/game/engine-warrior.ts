@@ -8,7 +8,7 @@
 
 import { assert } from "@std/assert";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
-import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/src/core/unknown-reading.ts";
+import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 
 const WARRIORS_KEY = "w";
 const HEALTH_KEY = "hp";

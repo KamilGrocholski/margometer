@@ -9,7 +9,8 @@
  */
 
 import { assert } from "@std/assert";
-import { composeJsonText, getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
+import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import type { CapturedCombatant } from "@/src/game/engine-warrior.ts";
 import { isFightStart } from "@/src/game/battle-session.ts";
@@ -95,9 +96,11 @@ function composeShapeKey(payload: unknown): string {
 
 function composeStateKey(combatants: readonly CapturedCombatant[]): string {
     assert(combatants.length >= 0, "a state is keyed off the cast, however small");
-    const written = composeJsonText(combatants) ?? "";
-    assert(written.length >= 0, "and a key that would not be written is no key at all");
-    return written;
+    const writing = composeJsonWriting(combatants);
+    // A cast that would not be written is no key at all, and every state then keys the same.
+    if (!writing.isOk) return "";
+    assert(writing.text.length > 0, "and a key that was written says something");
+    return writing.text;
 }
 
 /**
@@ -106,11 +109,13 @@ function composeStateKey(combatants: readonly CapturedCombatant[]): string {
  * cannot carry is dropped now rather than silently at the end.
  */
 function composeCopiedValue(value: unknown): unknown {
-    // `?? null` because a field the client left out happens, and the writer refuses `undefined`.
-    const written = composeJsonText(value ?? null);
-    assert(written === null || written.length > 0, "a copy written as text says something");
-    if (written === null) return null;
-    return getValueFromJsonText(written);
+    const writing = composeJsonWriting(value);
+    // A field the client left out has no JSON text of its own, and copies as nothing.
+    if (!writing.isOk) return null;
+    assert(writing.text.length > 0, "a copy written as text says something");
+    const reading = getJsonReading(writing.text);
+    assert(reading.isOk, "and text this writer produced is text this reader takes back");
+    return reading.value;
 }
 
 /**
@@ -171,7 +176,7 @@ export function composeCaptureText(
     assert(surroundings.gameBuild !== "", "a build it could not read is absent, never empty");
     assert(surroundings.userAgent !== "", "and so is a browser that said nothing of itself");
     assert(capture.droppedCalls >= 0, "and what was dropped is never fewer than none");
-    return composeJsonText({
+    const writing = composeJsonWriting({
         [CAPTURE_FIELDS.formatVersion]: CAPTURE_FORMAT_VERSION,
         // Not the format's number: this is the add-on's own, and the two move for different
         // reasons.
@@ -190,6 +195,9 @@ export function composeCaptureText(
             [CAPTURE_FIELDS.combatantsAfter]: call.combatantsAfter,
         })),
     }, INDENT_SPACES);
+    if (!writing.isOk) return null;
+    assert(writing.text.length > 0, "a recording written as text says something");
+    return writing.text;
 }
 
 /** Names the world and the moment, so two recordings never collide in one folder. */

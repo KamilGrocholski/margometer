@@ -17,7 +17,7 @@ const MAXIMUM_COMMENT_SHARE = 25;
 const MAXIMUM_DIRECTORY_SHARE = 22;
 const MINIMUM_ASSERTION_DENSITY = 2;
 /** The directories that hold the program and the tools that build it, which is what C16 binds. */
-const SHIPPED_ROOTS = ["src/", "tools/"];
+const SHIPPED_ROOTS = ["libs/", "project/", "src/", "tools/"];
 /** One line said twice is a citation; a block said twice is an essay with two copies. */
 const MINIMUM_REPEATED_LINES = 2;
 /** More blocks than any tree this repository will hold, so the count stays a stated bound. */

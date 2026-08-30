@@ -9,15 +9,18 @@
 
 import { assert } from "@std/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
-import { getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
+import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
 import { composeUserscriptFiles } from "@/tools/build-userscript.ts";
 import { PanelShotError } from "@/tools/margometer-tool-error.ts";
 import { setPreviewServer } from "@/tools/preview-server.ts";
 import { getNewestRecordedFight, getRecordedFights } from "@/tools/recorded-fights.ts";
 
-const SHOT_DIRECTORY = "screenshots";
+export const SHOT_DIRECTORY = "screenshots";
 /** What the set was taken from, beside the set. The guard reads it, and so does a reader. */
 export const SIDECAR_NAME = "taken-at.json";
+/** The sidecar is read by a person checking what a set was taken on, so it is indented. */
+const SIDECAR_INDENT_SPACES = 2;
 const BROWSER_VARIABLE = "MARGOMETER_BROWSER";
 /** Chrome first: it is the browser Margonem is played in, and where the panel is measured. */
 const BROWSER_CANDIDATES = ["google-chrome", "google-chrome-stable", "chromium"];
@@ -154,7 +157,13 @@ export function getReportFromDom(dom: string): Record<string, unknown> {
     const closed = dom.indexOf("</pre>", opened);
     if (opened === -1) throw new PanelShotError("the report never closed its own tag");
     if (closed === -1) throw new PanelShotError("the report never closed its own element");
-    const written = getValueFromJsonText(dom.slice(opened + 1, closed));
+    const reading = getJsonReading(dom.slice(opened + 1, closed));
+    if (!reading.isOk) {
+        throw new PanelShotError("the report is not JSON this tool can read", {
+            cause: reading.cause,
+        });
+    }
+    const written = reading.value;
     if (!isRecord(written)) throw new PanelShotError("the report is not a record");
     assert(closed > opened, "a report ends after it begins");
     assert(isRecord(written), "and what it holds is keyed");
@@ -299,8 +308,13 @@ async function setShotsMovedIn(staging: string, record: PanelShotRecord): Promis
     for (const name of record.shots) {
         await Deno.copyFile(`${staging}/${name}`, `${SHOT_DIRECTORY}/${name}`);
     }
-    const written = `${JSON.stringify(record, null, 2)}\n`;
-    await Deno.writeTextFile(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`, written);
+    const writing = composeJsonWriting(record, SIDECAR_INDENT_SPACES);
+    if (!writing.isOk) {
+        throw new PanelShotError("the sidecar naming the set cannot be written", {
+            cause: writing.cause,
+        });
+    }
+    await Deno.writeTextFile(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`, `${writing.text}\n`);
     assert(kept.size === record.shots.length + 1, "the sidecar stands beside the set it names");
 }
 

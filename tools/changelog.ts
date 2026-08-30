@@ -4,17 +4,13 @@
  *
  * A function with a test rather than a line of shell inside a workflow: a line that runs only
  * when a tag is pushed is a line whose typo surfaces at the most expensive moment.
- *
- *     deno run -A tools/changelog.ts version
- *     deno run -A tools/changelog.ts notes 0.10.1
  */
 
 import { assert } from "@std/assert";
 import { METADATA_NAME, USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
 import { ChangelogError } from "@/tools/margometer-tool-error.ts";
+import { CHANGELOG_FILE, CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 
-export const CHANGELOG_FILE = "CHANGELOG.md";
-export const CONFIGURATION_FILE = "deno.json";
 const VERSION_KEY = '"version":';
 const QUOTE = '"';
 const VERSION_HEADING_OPENER = "## [";

@@ -1,17 +1,19 @@
 /**
  * The recordings, read once for every test whose subject needs one.
  *
- * Their field names are the recordings' own and Polish, and this file is where they stop.
- * `JSON.parse` answers `unknown` here and is walked rather than cast: a shape a recording does
- * not have is a finding, not a field that quietly reads `undefined`.
+ * Their field names are the recordings' own and Polish, and are taken from the constant the
+ * file that writes them spells — **N13**. A recording arrives as `unknown` and is walked rather
+ * than cast: a shape a recording does not have is a finding, not a field that quietly reads
+ * `undefined`.
  */
 
 import { assert, assertEquals } from "@std/assert";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
-import { getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
+import { getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
 import { getCombatantFromWarrior } from "@/src/game/engine-warrior.ts";
-
-const CAPTURE_DIRECTORY = "captures";
+import { CAPTURE_FIELDS } from "@/src/game/fight-capture.ts";
+import { getRecordingPaths as getRecordingFilePaths } from "@/project/repository-layout.ts";
 
 function getNumberFromField(value: unknown, subject: string): number {
     assert(typeof value === "number", `${subject} is stated as a number`);
@@ -20,20 +22,18 @@ function getNumberFromField(value: unknown, subject: string): number {
 }
 
 export function getRecordingPaths(): string[] {
-    const paths: string[] = [];
-    for (const entry of Deno.readDirSync(CAPTURE_DIRECTORY)) {
-        if (!entry.name.endsWith(".json")) continue;
-        paths.push(`${CAPTURE_DIRECTORY}/${entry.name}`);
-    }
+    const paths = getRecordingFilePaths();
     assert(paths.length > 0, "an empty evidence directory is a finding, not a pass");
     assert(new Set(paths).size === paths.length, "a recording is listed once");
-    return paths.sort();
+    return paths;
 }
 
 function getRecordedEntries(path: string): Record<string, unknown>[] {
-    const document = getValueFromJsonText(Deno.readTextFileSync(path));
+    const reading = getJsonReading(Deno.readTextFileSync(path));
+    assert(reading.isOk, `${path} is JSON`);
+    const document = reading.value;
     assert(isRecord(document), `${path} is a record`);
-    const entries = document.wpisy;
+    const entries = document[CAPTURE_FIELDS.calls];
     assert(Array.isArray(entries), `${path} lists the calls the engine made`);
     const found: Record<string, unknown>[] = [];
     for (const entry of entries) {
@@ -46,7 +46,7 @@ function getRecordedEntries(path: string): Record<string, unknown>[] {
 export function getRecordedMessages(path: string): string[] {
     const messages: string[] = [];
     for (const entry of getRecordedEntries(path)) {
-        const carried = entry.komunikaty;
+        const carried = entry[CAPTURE_FIELDS.messages];
         assert(Array.isArray(carried), `${path} states the messages an entry carried`);
         for (const message of carried) {
             assert(typeof message === "string", `${path} carries a message as text`);
@@ -67,7 +67,7 @@ export interface RecordedHealth {
 export function getRecordedHealthReadings(path: string): RecordedHealth[] {
     const readings: RecordedHealth[] = [];
     for (const entry of getRecordedEntries(path)) {
-        const after = entry.wojownicyPo;
+        const after = entry[CAPTURE_FIELDS.combatantsAfter];
         assert(Array.isArray(after), `${path} states the combatants an entry left`);
         for (const snapshot of after) {
             assert(isRecord(snapshot), `${path} states a combatant as a record`);
@@ -88,8 +88,8 @@ export function getRecordedHealthReadings(path: string): RecordedHealth[] {
 export function getRecordedEngineUpdates(path: string): unknown[] {
     const updates: unknown[] = [];
     for (const entry of getRecordedEntries(path)) {
-        assert("ladunek" in entry, `${path} states the payload an entry carried`);
-        updates.push(entry.ladunek);
+        assert(CAPTURE_FIELDS.payload in entry, `${path} states the payload an entry carried`);
+        updates.push(entry[CAPTURE_FIELDS.payload]);
     }
     assert(updates.length > 0, `${path} carries at least one call`);
     return updates;
@@ -99,7 +99,7 @@ export function getRecordedEngineUpdates(path: string): unknown[] {
 export function getRecordedPayloads(path: string): string[][] {
     const payloads: string[][] = [];
     for (const entry of getRecordedEntries(path)) {
-        const carried = entry.komunikaty;
+        const carried = entry[CAPTURE_FIELDS.messages];
         assert(Array.isArray(carried), `${path} states the messages an entry carried`);
         const messages: string[] = [];
         for (const message of carried) {
@@ -133,7 +133,7 @@ function getRecordedCombatant(snapshot: unknown, path: string): Combatant {
 export function getRecordedCombatants(path: string): Combatant[] {
     const byId = new Map<number, Combatant>();
     for (const entry of getRecordedEntries(path)) {
-        const after = entry.wojownicyPo;
+        const after = entry[CAPTURE_FIELDS.combatantsAfter];
         assert(Array.isArray(after), `${path} states the combatants an entry left`);
         for (const snapshot of after) {
             const combatant = getRecordedCombatant(snapshot, path);

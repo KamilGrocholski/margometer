@@ -7,7 +7,7 @@
 
 import { assert, assertEquals } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { composeJsonText } from "@/src/core/unknown-reading.ts";
+import { composeJsonWriting } from "@/libs/json-text.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import type { BrowserStore } from "@/src/game/browser-store.ts";
 import {
@@ -221,23 +221,23 @@ Deno.test("a fight keeps where it was fought, and reads back without it", () => 
         }]),
         "a place is written as it stands",
     );
-    const partial = composeJsonText({
+    const partial = composeJsonWriting({
         version: 2,
         fights: [{ openedAt: 3, combatants: [], payloads: [], place: { mapName: "Mapa" } }],
     });
-    assert(partial !== null, "a shelf missing two fields of a place is text");
-    store.write(KEY, partial);
+    assert(partial.isOk, "a shelf missing two fields of a place is text");
+    store.write(KEY, partial.text);
     assertEquals(
         readKeptFights(store, KEY)[0]?.place,
         { mapName: "Mapa", x: null, y: null },
         "what was said is kept and what was not is nobody's",
     );
-    const none = composeJsonText({
+    const none = composeJsonWriting({
         version: 2,
         fights: [{ openedAt: 4, combatants: [], payloads: [] }],
     });
-    assert(none !== null, "a shelf that states no place at all is text too");
-    store.write(KEY, none);
+    assert(none.isOk, "a shelf that states no place at all is text too");
+    store.write(KEY, none.text);
     assertEquals(readKeptFights(store, KEY).length, 1, "a fight with no place at all still reads");
     assertEquals(
         readKeptFights(store, KEY)[0]?.place,
@@ -254,13 +254,13 @@ Deno.test("a fight keeps where it was fought, and reads back without it", () => 
  * learned the seat and the outcome would draw a row that says nothing about how it went.
  */
 Deno.test("a shelf of another version is dropped, and the reader is left with none", () => {
-    const older = composeJsonText({
+    const older = composeJsonWriting({
         version: 1,
         fights: [{ openedAt: 1, combatants: [], payloads: [["0;0;txt=a"]] }],
     });
-    assert(older !== null, "a shelf of the version before this one is text");
+    assert(older.isOk, "a shelf of the version before this one is text");
     const store = composeStore();
-    store.write(KEY, older);
+    store.write(KEY, older.text);
     assertEquals(readKeptFights(store, KEY), [], "and nothing of it is read as this one");
 
     const kept = composeFight(7);
@@ -283,12 +283,12 @@ Deno.test("what a reading was short of goes on the shelf with the fight", () => 
     assertEquals(read?.messagesLost, 4, "a count that was short comes back short");
     assertEquals(read?.hasJoinedInProgress, true, "and a fight joined in progress says so again");
 
-    const older = composeJsonText({
+    const older = composeJsonWriting({
         version: 2,
         fights: [{ openedAt: 5, combatants: [], payloads: [] }],
     });
-    assert(older !== null, "a shelf written before either existed is text");
-    store.write(KEY, older);
+    assert(older.isOk, "a shelf written before either existed is text");
+    store.write(KEY, older.text);
     assertEquals(readKeptFights(store, KEY)[0]?.messagesLost, 0, "it states no count");
     assertEquals(
         readKeptFights(store, KEY)[0]?.hasJoinedInProgress,

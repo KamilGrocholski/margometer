@@ -2,11 +2,8 @@
 
 import { assert } from "@std/assert";
 import { composeIntegerText, getIntegerFromText } from "@/src/core/protocol-number.ts";
-import {
-    getNumberFromUnknown,
-    getValueFromJsonText,
-    isRecord,
-} from "@/src/core/unknown-reading.ts";
+import { getJsonReading } from "@/libs/json-text.ts";
+import { getNumberFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import type { PanelElement, PanelEvent, PanelRoot } from "@/src/ui/panel-element.ts";
 import { PLACE, SPACE } from "@/src/ui/panel-look.ts";
 
@@ -94,10 +91,11 @@ function composeDraggedPosition(
  */
 export function getPositionFromStoredText(text: string): PanelPosition | null {
     assert(text.length >= 0, "a stored position is read back as text, however little of it");
-    const held = getValueFromJsonText(text);
-    if (!isRecord(held)) return null;
-    const left = getNumberFromUnknown(held["left"]);
-    const top = getNumberFromUnknown(held["top"]);
+    const reading = getJsonReading(text);
+    if (!reading.isOk) return null;
+    if (!isRecord(reading.value)) return null;
+    const left = getNumberFromUnknown(reading.value["left"]);
+    const top = getNumberFromUnknown(reading.value["top"]);
     if (left === null || top === null) return null;
     if (!Number.isSafeInteger(left)) return null;
     if (!Number.isSafeInteger(top)) return null;

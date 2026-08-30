@@ -8,11 +8,11 @@
 
 import { assert } from "@std/assert";
 import { CAPTURE_FIELDS } from "@/src/game/fight-capture.ts";
-import { getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
+import { getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
 import { PreviewBuildError } from "@/tools/margometer-tool-error.ts";
+import { composeRecordingPath, getRecordingNames } from "@/project/repository-layout.ts";
 
-const CAPTURE_DIRECTORY = "captures";
-const CAPTURE_SUFFIX = ".json";
 /** A fight holds twenty and a long one runs to thousands of calls; this is well past both. */
 const MAXIMUM_CALLS = 100000;
 
@@ -23,23 +23,25 @@ export interface RecordedFight {
 }
 
 export function getRecordedFightNames(): string[] {
-    const names: string[] = [];
-    for (const entry of Deno.readDirSync(CAPTURE_DIRECTORY)) {
-        if (!entry.name.endsWith(CAPTURE_SUFFIX)) continue;
-        names.push(entry.name.slice(0, entry.name.length - CAPTURE_SUFFIX.length));
-    }
+    const names = getRecordingNames();
     if (names.length === 0) {
         throw new PreviewBuildError("there is no recording to draw");
     }
-    assert(new Set(names).size === names.length, "a recording is listed once");
+    assert(names.length > 0, "a preview is drawn from at least one recording");
     assert(names.every((name) => name.length > 0), "and under a name that says something");
-    return names.sort();
+    return names;
 }
 
 export function getRecordedFightCalls(name: string): unknown[] {
     assert(name.length > 0, "a recording is asked for by name");
-    const path = `${CAPTURE_DIRECTORY}/${name}${CAPTURE_SUFFIX}`;
-    const document = getValueFromJsonText(Deno.readTextFileSync(path));
+    const path = composeRecordingPath(name);
+    const reading = getJsonReading(Deno.readTextFileSync(path));
+    if (!reading.isOk) {
+        throw new PreviewBuildError(`${name} is not JSON this tool can read`, {
+            cause: reading.cause,
+        });
+    }
+    const document = reading.value;
     if (!isRecord(document)) {
         throw new PreviewBuildError(`${name} is not a record`);
     }

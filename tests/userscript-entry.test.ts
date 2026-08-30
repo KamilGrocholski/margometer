@@ -12,7 +12,8 @@ import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import type { BrowserStore } from "@/src/game/browser-store.ts";
 import { readKeptFights } from "@/src/game/kept-fights.ts";
-import { getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
+import { getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
 import type { PanelElement } from "@/src/ui/panel-element.ts";
 import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
 import type { Scheduler } from "@/src/game/engine-attachment.ts";
@@ -289,7 +290,9 @@ Deno.test("a reader asks for the fight, and gets the recording the intake tool r
         "margometer-tempest-2026-08-29T10-00-00-000Z.json",
         "named for the world and the moment it was asked for",
     );
-    const written = getValueFromJsonText(file.text);
+    const reading = getJsonReading(file.text);
+    assert(reading.isOk, "and it reads back as JSON");
+    const written = reading.value;
     assert(isRecord(written), "and it reads back as a recording");
     assertEquals(written.swiat, "tempest", "which says where it came from");
     assertEquals(written.build, "53XkBRxF", "and which client stated it");

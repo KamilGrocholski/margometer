@@ -9,7 +9,8 @@
  */
 
 import { assert } from "@std/assert";
-import { composeJsonText, getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
+import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
 import {
     getGameBuildFromScriptName,
     getGameBundleNameFromScriptName,
@@ -146,12 +147,14 @@ export function getCachedClientSource(channel: GameChannel): CachedClientSource 
         // A cache nobody has filled is a cache nobody has filled: the caller decides what to do.
         return null;
     }
-    const value = getValueFromJsonText(text);
-    if (value === null) {
-        throw new GameSourceError(`cache manifest for ${channel} is unreadable`);
+    const reading = getJsonReading(text);
+    if (!reading.isOk) {
+        throw new GameSourceError(`cache manifest for ${channel} is unreadable`, {
+            cause: reading.cause,
+        });
     }
     assert(text.length > 0, "a manifest that was read says something");
-    return requireCachedClientSource(value, channel);
+    return requireCachedClientSource(reading.value, channel);
 }
 
 /** The cached bundle, refusing rather than pretending when there is none. */
@@ -205,9 +208,13 @@ async function writeClientSourceCache(channel: GameChannel): Promise<CachedClien
         fetchedAt: new Date().toISOString(),
         bundlePath,
     };
-    const text = composeJsonText(cached, INDENT_SPACES);
-    if (text === null) throw new GameSourceError(`provenance for ${channel} cannot be written`);
-    Deno.writeTextFileSync(getManifestPath(channel), `${text}\n`);
+    const writing = composeJsonWriting(cached, INDENT_SPACES);
+    if (!writing.isOk) {
+        throw new GameSourceError(`provenance for ${channel} cannot be written`, {
+            cause: writing.cause,
+        });
+    }
+    Deno.writeTextFileSync(getManifestPath(channel), `${writing.text}\n`);
     assert(cached.build.length > 0, "what was cached is dated by a build");
     return cached;
 }

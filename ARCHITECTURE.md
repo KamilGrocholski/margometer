@@ -41,6 +41,12 @@ deno.lock          What the gate is actually run against. A package the lock doe
     pages.yml      The preview published, on a push to `main`, once the gate is green.
     release.yml    What a tag turns into: the built file, and the notes its section carries.
 
+libs/              Knows nothing of this project. Imports `@std/` and its own siblings.
+  json-text.ts     JSON both ways, each answering whether it worked rather than with `null`.
+  text-walk.ts     Walking text a character at a time, by a predicate the caller hands over.
+  unknown-reading.ts   Reading a value nobody typed, answering null rather than throwing.
+project/           Knows this project, belongs to no layer of it. Reads `libs/` only.
+  repository-layout.ts  Where this repository keeps things: the root files, and the recordings.
 src/
   build-version.ts     Which build this is. The one constant a build writes over — ADR 0012.
   userscript-boot.ts   What runs when the browser loads the built file, and the one cast.
@@ -55,7 +61,6 @@ src/
     margometer-error.ts  The abstract brand every failure that ships to the browser wears.
     protocol-message.ts  One message's grammar: both ends, then its parameters.
     protocol-number.ts   The numbers the protocol states, read out of its text.
-    unknown-reading.ts   Reading a value nobody typed, answering null rather than throwing.
   game/
     battle-session.ts    One fight, accumulated payload by payload, in the order they arrive.
     browser-store.ts     The store a browser lends, wrapped so a refusal is an answer.
@@ -118,7 +123,6 @@ tests/
     health-witness.test.ts    What was read, against what the protocol says of itself.
     fight-statistics.test.ts  The figures, and the balance every point of damage keeps.
     protocol-message.test.ts  The grammar, over every message the recordings carry.
-    unknown-reading.test.ts   What counts as a shape worth reading, list and null included.
     absorption-destruction-rule.test.ts  Whose the share is: the caster's, across fights.
     anguish-rule.test.ts      The bleed charged to its victim, and the announcement with no figure.
     bandage-rule.test.ts      The figure as health, against the percentage stated before it.
@@ -151,6 +155,9 @@ tests/
     panel-screen.test.ts      The screens there are, against what a reading composes for.
     panel-tip.test.ts         What the window draws, how tall it says it is, and what it drops.
     panel-words.test.ts       What the words must never say, and how Polish counts.
+  libs/                    A test sits where its subject sits.
+    json-text.test.ts         Both directions, over the answers `null` used to stand for.
+    unknown-reading.test.ts   What counts as a shape worth reading, list and null included.
   repository/              Guards whose subject is this repository, not a layer of it.
     documents.test.ts      The rule documents and the guard register.
     decisions.test.ts      The decision records: numbering, index, lifecycle.
@@ -158,7 +165,8 @@ tests/
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
     names.test.ts          File names, exported functions and exported types.
     protocol-keys.test.ts  The register help claims, re-counted against the frozen table.
-  recorded-fight.ts        The recordings, and where their Polish field names stop.
+    libraries.test.ts      `libs/` reaching no layer, and naming nothing of this project.
+  recorded-fight.ts        The recordings, read through the constant that spells their fields.
   fake-document.ts         A document small enough to read, for a panel handed one.
   userscript-entry.test.ts  Every layer at once, driven the way a browser drives them.
   source-line.ts           A line of TypeScript with its string literals taken out.
@@ -174,6 +182,8 @@ name here exists.
 ## Target layout
 
 ```
+libs/                     Knows nothing of this project. A primitive, and nothing it is for.
+project/                  Knows this project, belongs to no layer. Reads `libs/` only.
 src/
   userscript-entry.ts     Reads the game off the page, decides every name we put on it,
                           holds the session, mounts the panel, reaches storage.
@@ -186,10 +196,12 @@ dist/                     The built userscript. Not tracked.
 .cache/                   Game client sources, fetched on demand. Not tracked.
 ```
 
-**Dependencies point one way:** `ui → core`, `game → core`, entry point → everything. `core` imports
-nothing but itself and the standard library. There is no `libs/` layer: a primitive lives beside its
-consumer, and the construct register below is what keeps "one way to read a value" from losing its
-address.
+**Dependencies point one way:** `ui → core`, `game → core`, entry point → everything, and every
+layer → `libs`. `core` imports nothing but itself, `libs` and the standard library. **`libs` imports
+no layer at all** — that is what "knows nothing of this project" means, and it is the whole of the
+rule. **ADR 0020**, superseding the sentence that said a primitive lives beside its consumer: the
+construct register was the mechanism standing in for a shared address, and three of its rows had
+drifted before anybody read them.
 
 ## Target system flow
 
@@ -287,25 +299,40 @@ answer with a value nobody wrote. `Number("")` is `0`, `parseInt("12abc")` is `1
 `any`.
 
 Reading returns `null` and throws nothing — the caller picks assert, error or unknown. Writing
-asserts, because the number is ours.
+asserts, because the number is ours. Where the value read could itself have been the `null`, the
+answer says whether it worked and the value sits behind it (**E10**, **ADR 0021**).
 
 - `Number()`, `toFixed`, `String()` on a number — `src/core/protocol-number.ts`. Every reading is
   refused before it is taken: digits are proved to be digits, then the result is proved to be a safe
   integer, so no figure downstream is a neighbour of the one the game stated.
 - `parseInt`, `parseFloat`, unary `+` — **planned**, named at its first consumer.
-- `JSON.parse` — `tests/recorded-fight.ts`, the one reader of a recording. Its result is `unknown`
-  and is walked with a predicate and `Array.isArray`; C13 forbids the cast that would skip that.
-- `JSON.stringify` — **planned**, named at its first consumer.
-- `Date.parse` — **planned**, named at its first consumer.
+- `JSON.parse` — `libs/json-text.ts`, inside `getJsonReading`. Its result is `unknown` and is walked
+  with a predicate and `Array.isArray`; C13 forbids the cast that would skip that. Measured
+  2026-08-30 it is spelled in one further place, inside browser script this repository emits as
+  text, which the owner cannot reach.
+- `JSON.stringify` — `libs/json-text.ts`, inside `composeJsonWriting`, for anything this project
+  writes and reads back. Measured 2026-08-30, it is spelled in four further places, each writing for
+  somebody else rather than for us: an HTTP body, twice into a value escaped into a tag, and once
+  inside browser script this repository emits as text. Those are **not** covered by the owner and
+  the register does not pretend otherwise. The same measurement found a fifth that **was** ours —
+  the sidecar naming a set of pictures, which this repository reads back — and it moved to the owner
+  rather than earning a line here.
+- `Date.parse` — `tools/help-article.ts`, which is the one caller that dates a cached dump.
 - `performance.now()` — **planned**, named at its first consumer.
-- `typeof … === "object"`, which is `true` for `null` — `src/core/unknown-reading.ts`, where the
-  `null` case is a line of `isRecord` rather than a clause of the first.
+- `typeof … === "object"`, which is `true` for `null` — `libs/unknown-reading.ts`, where the `null`
+  case is a line of `isRecord` rather than a clause of the first.
+- `JSON.parse` answering `null`, and `JSON.stringify` answering `undefined` — `libs/json-text.ts`,
+  which is why neither direction answers with a value. **ADR 0021.**
 - `localeCompare` — **nobody**, spelled nowhere. Bringing a collated order back means a caller
   first, then a reader, then a row here, in that order.
 
-The register is guarded by finding each construct **inside its owner and nowhere else**, in tests
-too. An owner that owns nothing stops guarding, which is why a row is added when its first consumer
-arrives and not before.
+A row names an owner so a reading has one address. **No guard holds this register yet**, and
+measuring it on 2026-08-30 found three rows stale: `JSON.parse` named a file that had stopped
+spelling it, and `JSON.stringify` and `Date.parse` both said "planned" while carrying consumers.
+Whether "nowhere else" extends to `tests/` is open and is what a guard has to settle first:
+`Number()` stands in its owner and in twelve test sites that read a written figure back, which is
+the test doing its job rather than the owner losing its address. An owner that owns nothing stops
+guarding, which is why a row is added when its first consumer arrives and not before.
 
 ## Protected contracts
 

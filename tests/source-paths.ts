@@ -8,7 +8,7 @@
 
 import { assert } from "@std/assert";
 
-export const SOURCE_DIRECTORIES = ["src", "tools", "tests"];
+export const SOURCE_DIRECTORIES = ["libs", "project", "src", "tools", "tests"];
 
 /** Deep enough for any tree this repository will hold, shallow enough to catch a cycle. */
 const MAXIMUM_DIRECTORIES = 512;

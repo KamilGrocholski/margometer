@@ -14,7 +14,7 @@ import {
     isEngineBattleWrapped,
     wrapEngineBattle,
 } from "@/src/game/engine-battle-wrap.ts";
-import { isRecord } from "@/src/core/unknown-reading.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
 
 const BATTLE_FIELD = "battle";
 /** Both spellings are in the wild, and a client renaming either breaks both readers at once. */

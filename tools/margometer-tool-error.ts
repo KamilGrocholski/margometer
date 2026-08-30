@@ -32,8 +32,8 @@ export class UserscriptBuildError extends MargoMeterToolError {
 
 /** The preview refused: no recording, or a bundle it could not put into a page. */
 export class PreviewBuildError extends MargoMeterToolError {
-    constructor(reason: string) {
-        super("PreviewBuild", reason);
+    constructor(reason: string, options?: ErrorOptions) {
+        super("PreviewBuild", reason, options);
     }
 }
 
@@ -42,8 +42,8 @@ export class PreviewBuildError extends MargoMeterToolError {
  * permanent — a nickname in a history nobody rewrites, or corrupted evidence.
  */
 export class CaptureIntakeError extends MargoMeterToolError {
-    constructor(reason: string) {
-        super("CaptureIntake", reason);
+    constructor(reason: string, options?: ErrorOptions) {
+        super("CaptureIntake", reason, options);
     }
 }
 
@@ -52,8 +52,8 @@ export class CaptureIntakeError extends MargoMeterToolError {
  * run that produced fewer pictures than the set names. `DESIGN.md` owns the first two.
  */
 export class PanelShotError extends MargoMeterToolError {
-    constructor(reason: string) {
-        super("PanelShot", reason);
+    constructor(reason: string, options?: ErrorOptions) {
+        super("PanelShot", reason, options);
     }
 }
 
@@ -66,8 +66,8 @@ export class GameSourceError extends MargoMeterToolError {
 
 /** The key table refused: a bundle the walks no longer recognise as the client's own switch. */
 export class ProtocolKeyTableError extends MargoMeterToolError {
-    constructor(reason: string) {
-        super("ProtocolKeyTable", reason);
+    constructor(reason: string, options?: ErrorOptions) {
+        super("ProtocolKeyTable", reason, options);
     }
 }
 

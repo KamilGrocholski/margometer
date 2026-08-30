@@ -8,7 +8,8 @@
  */
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
-import { getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
+import { getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
 import {
     composeIntake,
     composeIntakePath,
@@ -153,14 +154,18 @@ Deno.test("the counts are written into the file, and a second run adds to them",
         ["txt=Wiewiorka"],
     ));
     assertEquals(first.changed, 2, "the name in `w` and the name in the message");
-    const written = getValueFromJsonText(first.text);
+    const firstReading = getJsonReading(first.text);
+    assert(firstReading.isOk, "the intake is written as JSON");
+    const written = firstReading.value;
     assert(isRecord(written), "the intake is written as a record");
     assertEquals(written.pseudonimow, 2, "and states what it substituted");
     assertEquals(written.opisow, 0, "and that there was no prose to take out");
 
     const again = composeIntake(written);
     assertEquals(again.changed, 0, "a redacted recording has no nickname left to substitute");
-    const twice = getValueFromJsonText(again.text);
+    const againReading = getJsonReading(again.text);
+    assert(againReading.isOk, "the second intake is JSON too");
+    const twice = againReading.value;
     assert(isRecord(twice), "the second intake is a record too");
     assertEquals(twice.pseudonimow, 2, "and the carried count is kept rather than written over");
 });
@@ -207,8 +212,9 @@ Deno.test("every recording already admitted is a fixed point of this tool", () =
     assert(paths.length > 0, "there is material to hold this against");
     const moved: string[] = [];
     for (const path of paths) {
-        const read = getValueFromJsonText(Deno.readTextFileSync(path));
-        const intake = composeIntake(read);
+        const reading = getJsonReading(Deno.readTextFileSync(path));
+        assert(reading.isOk, `${path} is JSON`);
+        const intake = composeIntake(reading.value);
         if (intake.changed === 0 && intake.removed === 0) continue;
         moved.push(`${path}: ${intake.changed} names, ${intake.removed} descriptions`);
     }

@@ -8,6 +8,7 @@
 
 import { assert, assertEquals } from "@std/assert";
 import { getSourcePaths } from "@/tests/source-paths.ts";
+import { CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 
 const RULE_PREFIXES = "SAENCLVWG";
 const GUARD_DIRECTORY = "tests/repository";
@@ -158,7 +159,7 @@ Deno.test("every rule reference resolves to a rule that exists", () => {
 });
 
 Deno.test("the formatter is walled off from the maintainer's list", () => {
-    const config = Deno.readTextFileSync("deno.json");
+    const config = Deno.readTextFileSync(CONFIGURATION_FILE);
     const excludeAt = config.indexOf('"exclude"');
     assert(excludeAt !== -1, "deno.json states formatter exclusions");
     assert(config.indexOf('"TODO.md"', excludeAt) !== -1, "TODO.md is excluded from deno fmt");
@@ -234,7 +235,7 @@ Deno.test("the guard register names what exists, and nothing else", () => {
     assertEquals(getRegisteredGuards(elsewhere), [], "a table outside the register is not one");
 
     const registered = getRegisteredGuards(AGENTS);
-    const gateTask = Deno.readTextFileSync("deno.json");
+    const gateTask = Deno.readTextFileSync(CONFIGURATION_FILE);
     const missing: string[] = [];
     for (const entry of registered) {
         if (entry.startsWith("deno ")) {

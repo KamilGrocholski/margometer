@@ -7,7 +7,8 @@
  */
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
-import { getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
+import { getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
 import { PanelShotError } from "@/tools/margometer-tool-error.ts";
 import {
     composeFrameFromReport,
@@ -15,10 +16,9 @@ import {
     composeShotScript,
     getBrowserAsked,
     getReportFromDom,
+    SHOT_DIRECTORY,
     SIDECAR_NAME,
 } from "@/tools/panel-screenshots.ts";
-
-const SHOT_DIRECTORY = "screenshots";
 
 /** What the directory holds against what the sidecar names, in both directions. */
 function getSetDisagreements(held: readonly string[], named: readonly string[]): string[] {
@@ -56,9 +56,11 @@ Deno.test("whatever is in the directory agrees with the sidecar standing beside 
         return;
     }
     assert(held.includes(SIDECAR_NAME), "a set carries the sidecar saying where it came from");
-    const written = getValueFromJsonText(
+    const reading = getJsonReading(
         Deno.readTextFileSync(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`),
     );
+    assert(reading.isOk, "and the sidecar is JSON");
+    const written = reading.value;
     assert(isRecord(written), "and the sidecar is a record");
     const named = written.shots;
     assert(Array.isArray(named), "naming the pictures it stands beside");

@@ -11,7 +11,9 @@
  */
 
 import { assert } from "@std/assert";
-import { composeJsonText, getValueFromJsonText, isRecord } from "@/src/core/unknown-reading.ts";
+import { getEndOfRun } from "@/libs/text-walk.ts";
+import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
 import { composeIntegerText, getIntegerFromText } from "@/src/core/protocol-number.ts";
 import { HelpArticleError } from "@/tools/margometer-tool-error.ts";
 
@@ -190,17 +192,6 @@ function isWhitespaceAt(text: string, index: number): boolean {
     return WHITESPACE.includes(character);
 }
 
-function getEndOfWhitespace(text: string, from: number): number {
-    let at = from;
-    while (at < text.length) {
-        if (!isWhitespaceAt(text, at)) break;
-        at += 1;
-    }
-    assert(at >= from, "a run never ends before it starts");
-    assert(at <= text.length, "and never past what it walked");
-    return at;
-}
-
 /** Every run of whitespace down to one space, and none at either end. */
 function composeCollapsedWhitespace(text: string): string {
     let collapsed = "";
@@ -212,7 +203,7 @@ function composeCollapsedWhitespace(text: string): string {
             index += 1;
             continue;
         }
-        const end = getEndOfWhitespace(text, index);
+        const end = getEndOfRun(text, index, isWhitespaceAt);
         collapsed += `${text.slice(from, index)} `;
         from = end;
         index = end;
@@ -357,12 +348,14 @@ function getCachedHelpArticle(article: string): CachedHelpArticle | null {
         // Nothing fetched yet is not a failure: the caller says what to do about it.
         return null;
     }
-    const value = getValueFromJsonText(text);
-    if (value === null) {
-        throw new HelpArticleError(`cache manifest for ${article} is unreadable`);
+    const reading = getJsonReading(text);
+    if (!reading.isOk) {
+        throw new HelpArticleError(`cache manifest for ${article} is unreadable`, {
+            cause: reading.cause,
+        });
     }
     assert(text.length > 0, "a manifest that was read says something");
-    return requireCachedHelpArticle(value, article);
+    return requireCachedHelpArticle(reading.value, article);
 }
 
 /** Refuses rather than fetching behind the caller's back: a claim is dated by its dump. */
@@ -398,9 +391,13 @@ async function writeHelpArticleCache(article: string): Promise<CachedHelpArticle
         textPath,
         textLength: text.length,
     };
-    const written = composeJsonText(cached, INDENT_SPACES);
-    if (written === null) throw new HelpArticleError(`provenance for ${article} cannot be written`);
-    Deno.writeTextFileSync(getHelpManifestPath(article), `${written}\n`);
+    const writing = composeJsonWriting(cached, INDENT_SPACES);
+    if (!writing.isOk) {
+        throw new HelpArticleError(`provenance for ${article} cannot be written`, {
+            cause: writing.cause,
+        });
+    }
+    Deno.writeTextFileSync(getHelpManifestPath(article), `${writing.text}\n`);
     assert(cached.textLength > 0, "what was cached says something");
     return cached;
 }
@@ -472,11 +469,15 @@ export function getPhraseCounts(text: string, phrases: readonly string[]): [stri
 
 /** A value written back as the text a reader will see, refusing rather than writing `null`. */
 function requireWrittenPhraseText(value: unknown): string {
-    const text = composeJsonText(value);
-    if (text === null) throw new HelpArticleError("a phrase of the table cannot be written");
-    assert(text.length > 0, "a value that was written says something");
-    assert(typeof text === "string", "and is text by the time it is read back");
-    return text;
+    const writing = composeJsonWriting(value);
+    if (!writing.isOk) {
+        throw new HelpArticleError("a phrase of the table cannot be written", {
+            cause: writing.cause,
+        });
+    }
+    assert(writing.text.length > 0, "a value that was written says something");
+    assert(typeof writing.text === "string", "and is text by the time it is read back");
+    return writing.text;
 }
 
 /**

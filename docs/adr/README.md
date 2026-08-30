@@ -87,3 +87,7 @@ edited to agree with the new rule.
   section says, and the version is declared once. **Accepted**
 - [0019](0019-the-card-answers-the-screen-it-stands-on.md) — The card answers the screen it stands
   on, and a proc is placed by the register rather than by its sign. **Accepted**
+- [0020](0020-a-shared-address-for-what-knows-nothing.md) — A shared address for what knows nothing
+  of this project. **Accepted**
+- [0021](0021-a-read-says-whether-it-worked.md) — A read says whether it worked, and the value sits
+  behind it. **Accepted**

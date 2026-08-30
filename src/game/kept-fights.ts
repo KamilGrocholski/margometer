@@ -13,13 +13,8 @@ import type { Combatant } from "@/src/core/combatant-roster.ts";
 import type { FightOutcome } from "@/src/core/fight-statistics.ts";
 import type { BrowserStore } from "@/src/game/browser-store.ts";
 import type { FightPlace } from "@/src/game/engine-place.ts";
-import {
-    composeJsonText,
-    getNumberFromUnknown,
-    getTextFromUnknown,
-    getValueFromJsonText,
-    isRecord,
-} from "@/src/core/unknown-reading.ts";
+import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
+import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 
 /** A shelf holds this many fights and no more, oldest dropped first. */
 const MAXIMUM_KEPT = 20;
@@ -193,7 +188,9 @@ export function readKeptFights(store: BrowserStore, key: string): KeptFight[] {
     assert(key.length > 0, "a shelf is asked for by name");
     const stored = store.read(key);
     if (stored === null) return [];
-    const shelf = getValueFromJsonText(stored);
+    const reading = getJsonReading(stored);
+    if (!reading.isOk) return [];
+    const shelf = reading.value;
     if (!isRecord(shelf)) return [];
     assert(stored.length > 0, "a shelf that read back as a record was text to begin with");
     if (getNumberFromUnknown(shelf.version) !== SHELF_VERSION) return [];
@@ -247,8 +244,8 @@ export function writeKeptFights(store: BrowserStore, key: string, fights: KeptFi
     const held = composeKeptRotation(fights);
     assert(held.length <= MAXIMUM_KEPT, "a shelf written stays inside its stated bound");
     assert(held.length <= fights.length, "keeping the newest never invents one");
-    const text = composeJsonText({ version: SHELF_VERSION, fights: held });
-    if (text === null) return false;
-    assert(text.length > 0, "a shelf written as text says something");
-    return store.write(key, text);
+    const writing = composeJsonWriting({ version: SHELF_VERSION, fights: held });
+    if (!writing.isOk) return false;
+    assert(writing.text.length > 0, "a shelf written as text says something");
+    return store.write(key, writing.text);
 }

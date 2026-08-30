@@ -6,7 +6,7 @@
  */
 
 import { assertEquals } from "@std/assert";
-import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/src/core/unknown-reading.ts";
+import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 
 Deno.test("a record is keyed, so nothing and a list are not records", () => {
     assertEquals(isRecord({ m: [] }), true, "a keyed object is one");

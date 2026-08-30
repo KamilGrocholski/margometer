@@ -9,6 +9,7 @@
 import { assert } from "@std/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import { UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
+import { CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 
 const BUNDLE_ENTRY = "src/userscript-boot.ts";
 /** What the built file is called wherever it is served from, and not only under `dist/`. */
@@ -102,7 +103,7 @@ async function bundleUserscript(outputPath: string): Promise<string> {
             "bundle",
             "--platform=browser",
             "--config",
-            "deno.json",
+            CONFIGURATION_FILE,
             "-o",
             outputPath,
             BUNDLE_ENTRY,

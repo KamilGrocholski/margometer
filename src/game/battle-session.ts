@@ -16,7 +16,7 @@ import {
 } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { getIntegerFromText } from "@/src/core/protocol-number.ts";
-import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/src/core/unknown-reading.ts";
+import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import { getCombatantsFromPayload } from "@/src/game/engine-warrior.ts";
 
 const FIGHT_OPENS_KEY = "init";
