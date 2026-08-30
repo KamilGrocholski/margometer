@@ -980,7 +980,7 @@ Deno.test("a healing section names the keys the game stated, and closes against 
 });
 
 /**
- * `2026-08-06-tempest-grupa-vs-hildur.json`: five healers, four announced abilities between them,
+ * `2026-08-06-tempest-grupa-vs-hildur.json`: five healers, four announced skills between them,
  * and health moving under `heal` with nothing announced in front of it.
  *
  * The pair is read off the giving end whichever way round the screen asks, so the two screens see
@@ -1042,7 +1042,7 @@ Deno.test("a healing pair says what passed between the two, and says it from bot
 });
 
 /**
- * A single row is a repetition only where it adds no name. An announcement names the ability, which
+ * A single row is a repetition only where it adds no name. An announcement names the skill, which
  * the person row above it does not — and on the screen about what reached this combatant nothing
  * else says which of them cast which. A key adds no such name, and every single-key pair in the
  * corpus is somebody and themselves, whose keys `OD CZEGO` one rung up already lists.
@@ -1082,7 +1082,7 @@ Deno.test("a healing pair that would only repeat the row above it does not open"
                     assertEquals(
                         other.opensPair,
                         pair.parts[0]?.part.kind === "skill",
-                        `${path}: a lone row opens where it names an ability and not otherwise`,
+                        `${path}: a lone row opens where it names a skill and not otherwise`,
                     );
                 }
             }
@@ -1090,7 +1090,7 @@ Deno.test("a healing pair that would only repeat the row above it does not open"
     }
     assert(opened > 0, "some healing pairs in the corpus say more than the row above them");
     assert(closed > 0, "and some say exactly it");
-    assert(named > 0, "and some open on one row, because that row names the ability");
+    assert(named > 0, "and some open on one row, because that row names the skill");
 });
 
 /**

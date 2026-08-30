@@ -22,12 +22,12 @@ deno task drill --screen healthGiven       # one screen of it
 press away from `opened` and neither is reachable from the other, so a reader counting how far down
 they can go counts three.
 
-| view      | level | what it lists                                | how a reader gets there                |
-| --------- | ----- | -------------------------------------------- | -------------------------------------- |
-| `ranking` | 1     | one row per combatant, by the chosen figure  | the screen a tab opens on              |
-| `opened`  | 2     | that combatant's figure, in up to three cuts | pressing a ranking row                 |
-| `pair`    | 3     | what passed between two of them              | pressing a person inside an opened row |
-| `skill`   | 3     | whom one announcement reached                | pressing a skill inside an opened row  |
+| view      | level | what it lists                                          | how a reader gets there                                            |
+| --------- | ----- | ------------------------------------------------------ | ------------------------------------------------------------------ |
+| `ranking` | 1     | one row per combatant, by the chosen figure            | the screen a tab opens on                                          |
+| `opened`  | 2     | that combatant's figure, in up to three cuts           | pressing a ranking row                                             |
+| `pair`    | 3     | what one of them did to the other, by skill and by key | pressing a person in the opened row's `KOMU` / `OD KOGO` section   |
+| `skill`   | 3     | whom that one skill reached, person by person          | pressing a skill in the opened row's `CZYM (UMIEJĘTNOŚCI)` section |
 
 **Nothing on the third level opens**, in either shape and on any screen. The two are entered by
 different marks — a person carries `data-row`, a skill carries `data-skill`, set at the one place in
@@ -100,14 +100,16 @@ figure just pressed under another heading: every blow between them unannounced a
 
 **A person inside an opened row, on the healing screens.** The same question, answered by composing
 the level and counting it, because healing draws one section rather than two. It opens where that
-section would hold more than one row, or where its one row names an **ability** — an announcement
-says which one, which the person row above it does not, and on `healthRestored` nothing else states
-which of them cast which. It stays shut where that one row is a key: every such pair in the
-recordings is somebody and themselves, and the keys are already on screen a section lower.
+section would hold more than one row, or where its one row names a **skill** — the announcement says
+which one, which the person row above it does not, and on `healthRestored` nothing else states which
+of them cast which. It stays shut where that one row is a key: every such pair in the recordings is
+somebody and themselves, and the keys are already on screen a section lower.
 
-**A skill under `healthGiven`.** The level under it is whom the announcement reached. It opens where
-it reached somebody other than the combatant it was opened from, and does not where the only person
-it healed was them — a self-cast, whose level would name the reader back to themselves.
+**A skill under `healthGiven`.** The level under it lists whom that skill put health into, person by
+person — the section it stands in says what a combatant healed **with**, and this says **whom** each
+of those reached. It opens where it reached somebody other than the combatant it was opened from,
+and does not where the only person it healed was them — a self-cast, whose level would name the
+reader back to themselves.
 
 **A skill under `healthRestored` is `never`, and not by an absent condition.** The level there is
 narrowed to the pair it was entered through, so it can only ever hold one row bearing the reader's

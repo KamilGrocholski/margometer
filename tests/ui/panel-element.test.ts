@@ -1661,7 +1661,7 @@ Deno.test("every row in a list draws the same cells before its name", () => {
 });
 
 /**
- * `2026-08-06-tempest-grupa-vs-hildur.json`, the healer at 469657: two announced abilities and
+ * `2026-08-06-tempest-grupa-vs-hildur.json`, the healer at 469657: two announced skills and
  * health that moved under `heal`, which nothing announced.
  *
  * The key is drawn under the reader's own word for it and never under the token, and never under

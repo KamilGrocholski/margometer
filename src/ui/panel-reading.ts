@@ -1063,7 +1063,7 @@ function getGivenSourceCut(figures: CombatantFigures): FigureCut {
  *
  * Only the dealing screen counts what stands in it. There the remainder is swings the game
  * announced nothing before, and the count is what a figure alone cannot say; on the healing
- * screens it is health that moved under a key naming no ability, which is not a number of
+ * screens it is health that moved under a key naming no skill, which is not a number of
  * anything.
  */
 function composeSkillCut(
@@ -1210,11 +1210,11 @@ export function composePairReading(
  * alongside the composer is two spellings of one question, and the disagreement is silent — an
  * arrow leading nowhere, or none where there was something to see.
  *
- * ⚠️ **A single row is a repetition only where it adds no name.** An announcement names the ability
+ * ⚠️ **A single row is a repetition only where it adds no name.** An announcement names the skill
  * the health moved under, which the person row above it does not — and on the screen about what
- * reached this combatant nothing else states which of them cast which ability. A key adds no such
- * name: over `captures/` on 2026-08-30 every one of the 240 single-key pairs is somebody and
- * themselves, and `OD CZEGO` one rung up already lists those keys. 550 of the 558 single-ability
+ * reached this combatant nothing else states which of them cast which. A key adds no such name:
+ * over `captures/` on 2026-08-30 every one of the 240 single-key pairs is somebody and
+ * themselves, and `OD CZEGO` one rung up already lists those keys. 550 of the 558 single-skill
  * pairs are between two different people.
  */
 function getOpensPair(
