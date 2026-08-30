@@ -82,6 +82,7 @@ src/
     panel-screen.ts      Which screen the panel is on, and the strips that say so.
     panel-tip.ts         The window a row opens on hover, and the register it is looked up in.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
+    ranked-order.ts      The order a ranking is drawn in, and what decides a tie inside it.
 tools/             Never ships. Each arrives with the question it answers.
   build-userscript.ts  The file a reader installs, the version written in, and two checks.
   capture-intake.ts    How a recording becomes material: two redactions, then a file.
@@ -158,6 +159,7 @@ tests/
     panel-screen.test.ts      The screens there are, against what a reading composes for.
     panel-tip.test.ts         What the window draws, how tall it says it is, and what it drops.
     panel-words.test.ts       What the words must never say, and how Polish counts.
+    ranked-order.test.ts      The order two rows are drawn in, and the tie nothing breaks.
   libs/                    A test sits where its subject sits.
     json-text.test.ts         Both directions, over the answers `null` used to stand for.
     number-range.test.ts      Every side of two ends, and the range with no room in it.

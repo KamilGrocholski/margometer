@@ -7,6 +7,7 @@
  * share on a one-side list would be measured against a whole the list does not show.
  */
 
+import { getRankedOrder } from "@/src/ui/ranked-order.ts";
 import { assert } from "@std/assert";
 import { type CombatantRoster, getCombatantIdByName } from "@/src/core/combatant-roster.ts";
 import {
@@ -262,7 +263,7 @@ function composeCutParts(cut: FigureCut): CutPart[] {
         assert(figure >= 0, "a part of a figure is never below nothing");
         if (figure > 0) parts.push({ key, figure });
     }
-    parts.sort((one, other) => other.figure - one.figure || (one.key < other.key ? -1 : 1));
+    parts.sort((one, other) => getRankedOrder(one.figure, other.figure, one.key, other.key));
     return parts;
 }
 
@@ -944,7 +945,7 @@ function composeSkillCut(
     assert(total >= 0, "a figure being cut is never below nothing");
     if (metric === "damageTakenApplied") return { rows: [], plain: null };
     const stated = composeSkillRows(statistics, figures, metric, combatantId);
-    stated.sort((one, other) => other.figure - one.figure || (one.name < other.name ? -1 : 1));
+    stated.sort((one, other) => getRankedOrder(one.figure, other.figure, one.name, other.name));
     const held = stated.reduce((sum, one) => sum + one.figure, 0);
     assert(held <= total, "what the skills came to is no more than the figure they are a cut of");
     // Drawn even where it landed nothing: three blows that were all blocked are three blows, and
@@ -1117,7 +1118,7 @@ function composePairSkillCut(
             opensSkill: false,
         }))
         .filter((one) => one.figure > 0);
-    stated.sort((one, other) => other.figure - one.figure || (one.name < other.name ? -1 : 1));
+    stated.sort((one, other) => getRankedOrder(one.figure, other.figure, one.name, other.name));
     const held = stated.reduce((sum, one) => sum + one.figure, 0);
     assert(held <= total, "what the skills came to is no more than what passed between the two");
     const plain = total - held;

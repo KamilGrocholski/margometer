@@ -3,6 +3,7 @@
  * screen is showing.
  */
 
+import { getRankedOrder } from "@/src/ui/ranked-order.ts";
 import { assert } from "@std/assert";
 import type { CutPart, PanelMetric, RowDetail } from "@/src/ui/panel-reading.ts";
 import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
@@ -150,7 +151,7 @@ function composeCardWordedParts(
         byLabel.set(label, (byLabel.get(label) ?? 0) + part.figure);
     }
     const folded = [...byLabel].map(([label, figure]) => ({ label, figure }));
-    folded.sort((one, other) => other.figure - one.figure || (one.label < other.label ? -1 : 1));
+    folded.sort((one, other) => getRankedOrder(one.figure, other.figure, one.label, other.label));
     assert(folded.length <= parts.length, "folding a cut never makes it longer");
     return folded;
 }
