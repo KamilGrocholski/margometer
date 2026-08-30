@@ -1263,28 +1263,25 @@ function composePanelRegions(document: PanelDocument): PanelRegions {
  * The host is built once and stays. Only the regions inside it are replaced, so the listener at
  * the root outlives every redraw and a press during one is not swallowed.
  */
-export function composePanelHost(
-    document: PanelDocument,
-    handlePress: (press: PanelPress) => void,
-    handleFailure: (failure: unknown) => void,
-    placement: PanelPlacement | null = null,
-    // Once per mount, because the dictionary is built with the page and not with the fight, and a
-    // page without one never grows one. Null is the panel drawing its own words, which is what
-    // every test and every browser without the game sees.
-    translate: TranslateLabel | null = null,
-): PanelHandle {
+/**
+ * The host, and the root everything else goes into. The sheet is put in once and never replaced:
+ * a region redrawn under it keeps its look, and a browser re-parses nothing on a redraw.
+ */
+function composePanelShadow(document: PanelDocument): { host: PanelElement; root: PanelRoot } {
     const host = document.createElement("div");
     assert(HOST_NAME.startsWith("MargoMeter-"), "the host is named as ours before anything else");
     host.setAttribute("id", HOST_NAME);
     host.setAttribute(VERSION_ATTRIBUTE, BUILD_VERSION);
     const root = host.attachShadow({ mode: "open" });
-    // The sheet is put in once and never replaced: a region redrawn under it keeps its look, and
-    // a browser re-parses nothing on a redraw.
     const sheet = document.createElement("style");
     sheet.textContent = composeStyleSheet();
     root.append(sheet);
     assert(sheet.textContent.length > 0, "the panel is handed its look before it draws anything");
-    const regions = composePanelRegions(document);
+    return { host, root };
+}
+
+/** Every region in the order it is drawn in, inside the frame the fold collapses. */
+function composePanelFrame(document: PanelDocument, regions: PanelRegions): PanelElement {
     const frame = composeElement(document, "div", CLASS.frame);
     const panel = composeElement(document, "div", CLASS.panel);
     for (const region of [regions.header, regions.nouns, regions.directions, regions.crumb]) {
@@ -1297,6 +1294,23 @@ export function composePanelHost(
     panel.append(regions.sides);
     panel.append(regions.warnings);
     frame.append(panel);
+    assert(panel !== frame, "the panel is a box of its own inside the frame");
+    return frame;
+}
+
+export function composePanelHost(
+    document: PanelDocument,
+    handlePress: (press: PanelPress) => void,
+    handleFailure: (failure: unknown) => void,
+    placement: PanelPlacement | null = null,
+    // Once per mount, because the dictionary is built with the page and not with the fight, and a
+    // page without one never grows one. Null is the panel drawing its own words, which is what
+    // every test and every browser without the game sees.
+    translate: TranslateLabel | null = null,
+): PanelHandle {
+    const { host, root } = composePanelShadow(document);
+    const regions = composePanelRegions(document);
+    const frame = composePanelFrame(document, regions);
     const redraw = (standing: PanelElement, region: PanelRegion, compose: () => PanelElement) => {
         return composeRegionInPlace(document, standing, region, compose, handleFailure);
     };

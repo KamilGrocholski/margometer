@@ -26,6 +26,7 @@ import {
     getFightFromSession,
 } from "@/src/game/battle-session.ts";
 import { attachToGame, type GameAttachment, type Scheduler } from "@/src/game/engine-attachment.ts";
+import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
 import { type FightPlace, getPlaceFromPage } from "@/src/game/engine-place.ts";
 import { getGameBuildFromScriptName } from "@/src/core/game-build.ts";
 import {
@@ -859,14 +860,45 @@ function copyReport(
     copy(text);
 }
 
-export function startMargoMeter(environment: UserscriptEnvironment): GameAttachment {
-    const session = composeBattleSession();
-    const store = environment.store;
-    const screen = composeScreenState(store !== null && store.read(FOLD_KEY) === FOLDED);
-    const shelf = composeShelfKeeper(environment);
-    assert(SHELF_KEY.startsWith("MargoMeter-"), "every key this add-on writes is named as ours");
-    assert(FOLD_KEY.startsWith("MargoMeter-"), "the fold included");
-    const placement: PanelPlacement = {
+/**
+ * What is true of the fight going on now, and nothing that outlives it.
+ *
+ * These were five loose bindings the entry closed over, which is what made a payload's bookkeeping
+ * a part of the entry rather than a thing of its own — and what put `startMargoMeter` past **S4**
+ * where the reader could not see it.
+ */
+interface LiveFight {
+    /** The recording, and the state each call is entered with: the same fight, so held together. */
+    capture: FightCapture;
+    combatantsBefore: CapturedCombatant[];
+    /**
+     * Read once, on the payload that opens a fight: the client's own state is where a place is,
+     * the hero does not move while a fight is on, and reading it every payload would ask another
+     * program's object graph a question whose answer cannot have changed.
+     */
+    place: FightPlace | null;
+    openedAt: number;
+    wasOver: boolean;
+}
+
+function composeLiveFight(): LiveFight {
+    return {
+        capture: composeEmptyCapture(),
+        combatantsBefore: [],
+        place: null,
+        openedAt: 0,
+        wasOver: false,
+    };
+}
+
+/** Where the reader put the panel, and where a drag is allowed to put it. */
+function composePanelPlacement(
+    environment: UserscriptEnvironment,
+    store: BrowserStore | null,
+): PanelPlacement {
+    assert(PLACE_KEY.startsWith("MargoMeter-"), "the place the reader dragged it to is ours");
+    assert(typeof environment.readViewport === "function", "and is clamped against something");
+    return {
         position: store === null ? null : getPositionFromStoredText(store.read(PLACE_KEY) ?? ""),
         getViewport: () => environment.readViewport(),
         // Once per drag rather than once per frame, and a refusal to write is an answer: the
@@ -875,18 +907,62 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
             store?.write(PLACE_KEY, composeStoredTextFromPosition(position));
         },
     };
-    assert(PLACE_KEY.startsWith("MargoMeter-"), "and the place the reader dragged it to");
-    let wasOver = false;
-    assert(getFightFromSession(session) === null, "a session starts holding no fight");
+}
+
+/** One payload, into the fight it belongs to and into the recording beside it. */
+function readPayloadIntoLive(
+    live: LiveFight,
+    session: BattleSession,
+    shelf: ShelfKeeper,
+    environment: UserscriptEnvironment,
+    stated: { payload: unknown; battle: EngineBattle },
+): void {
+    assert(live.openedAt >= 0, "a fight opened at a moment, or has not opened");
+    addPayloadToSession(session, stated.payload);
+    live.capture = composeNextCapture(live.capture, {
+        payload: stated.payload,
+        messages: session.messagesByPayload.at(-1) ?? [],
+        combatantsBefore: live.combatantsBefore,
+        combatantsAfter: composeSnapshotFromBattle(stated.battle),
+    });
+    const fight = getFightFromSession(session);
+    if (fight !== null && fight.payloads === 1) {
+        live.place = getPlaceFromPage(environment.page);
+        live.openedAt = environment.now();
+    }
+    // Once, on the call that ends it: a fight put on the shelf twice is two fights.
+    if (fight !== null && fight.isOver && !live.wasOver) {
+        live.wasOver = true;
+        keepFight(session, shelf, live.place, live.openedAt);
+    }
+    if (fight !== null && !fight.isOver) live.wasOver = false;
+}
+
+/** Every way the attachment can fail, said once each, under the one branded line. */
+function composeGameReports(environment: UserscriptEnvironment) {
     assert(FAILURE_LINE.startsWith("MargoMeter/"), "a failure of ours says whose it is first");
+    return {
+        handleFailure: (failure: unknown) => environment.report(FAILURE_LINE, failure),
+        handleAnotherReader: () =>
+            environment.report(FAILURE_LINE, "another reader holds the game"),
+        handleRefusal: () => environment.report(FAILURE_LINE, "the game states no method to read"),
+        handleSearchAbandoned: () => environment.report(FAILURE_LINE, "no game on this page"),
+    };
+}
+
+export function startMargoMeter(environment: UserscriptEnvironment): GameAttachment {
+    const session = composeBattleSession();
+    const store = environment.store;
+    const screen = composeScreenState(store !== null && store.read(FOLD_KEY) === FOLDED);
+    const shelf = composeShelfKeeper(environment);
+    assert(SHELF_KEY.startsWith("MargoMeter-"), "every key this add-on writes is named as ours");
+    assert(FOLD_KEY.startsWith("MargoMeter-"), "the fold included");
+    const placement = composePanelPlacement(environment, store);
+    const live = composeLiveFight();
+    assert(getFightFromSession(session) === null, "a session starts holding no fight");
     // The panel goes up when the wrap goes on, and not before: a copy that stood down never gets
     // one, and a page with no game on it is left as it was found.
     let isMounted = false;
-    // Read once, on the payload that opens a fight: the client's own state is where a place is,
-    // the hero does not move while a fight is on, and reading it every payload would ask another
-    // program's object graph a question whose answer cannot have changed.
-    let place: FightPlace | null = null;
-    let liveOpenedAt = 0;
     const mount = (): void => {
         if (isMounted) return;
         environment.mount.show(panel.element);
@@ -894,22 +970,18 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     };
     const draw = (): void => {
         assert(screen.current.length > 0, "a draw is of a panel that is on a screen");
-        assert(liveOpenedAt >= 0, "and of a fight that opened at a moment, or has not opened");
-        showFight(session, screen, panel, shelf, place, environment.readClock, liveOpenedAt);
+        assert(live.openedAt >= 0, "and of a fight that opened at a moment, or has not opened");
+        showFight(session, screen, panel, shelf, live.place, environment.readClock, live.openedAt);
     };
     const showAndMount = (): void => {
         draw();
         mount();
     };
-    // The recording, and the state each call is entered with. Held beside the session because it
-    // is the same fight: `composeNextCapture` clears on the key `addPayloadToSession` clears on.
-    let capture = composeEmptyCapture();
-    let combatantsBefore: CapturedCombatant[] = [];
     const panel = composePanelHost(
         environment.document,
         (press) => {
-            if (press.kind === "save") saveRecording(environment, capture);
-            if (press.kind === "copy") copyReport(environment, session, place);
+            if (press.kind === "save") saveRecording(environment, live.capture);
+            if (press.kind === "copy") copyReport(environment, session, live.place);
             const isShelfPress = setShelfFromPress(shelf, press);
             if (!isShelfPress && !handlePress(screen, press)) return;
             // A refusal to write is an answer: the panel folds either way, and only the next visit
@@ -931,33 +1003,12 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
             mount();
         },
         handleBeforeCall: (battle) => {
-            combatantsBefore = composeSnapshotFromBattle(battle);
+            live.combatantsBefore = composeSnapshotFromBattle(battle);
         },
         handlePayload: (payload, battle) => {
-            addPayloadToSession(session, payload);
-            capture = composeNextCapture(capture, {
-                payload,
-                messages: session.messagesByPayload.at(-1) ?? [],
-                combatantsBefore,
-                combatantsAfter: composeSnapshotFromBattle(battle),
-            });
-            const fight = getFightFromSession(session);
-            if (fight !== null && fight.payloads === 1) {
-                place = getPlaceFromPage(environment.page);
-                liveOpenedAt = environment.now();
-            }
-            // Once, on the call that ends it: a fight put on the shelf twice is two fights.
-            if (fight !== null && fight.isOver && !wasOver) {
-                wasOver = true;
-                keepFight(session, shelf, place, liveOpenedAt);
-            }
-            if (fight !== null && !fight.isOver) wasOver = false;
+            readPayloadIntoLive(live, session, shelf, environment, { payload, battle });
             showAndMount();
         },
-        handleFailure: (failure) => environment.report(FAILURE_LINE, failure),
-        handleAnotherReader: () =>
-            environment.report(FAILURE_LINE, "another reader holds the game"),
-        handleRefusal: () => environment.report(FAILURE_LINE, "the game states no method to read"),
-        handleSearchAbandoned: () => environment.report(FAILURE_LINE, "no game on this page"),
+        ...composeGameReports(environment),
     });
 }

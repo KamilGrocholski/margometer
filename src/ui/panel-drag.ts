@@ -179,6 +179,33 @@ function getPointerFromEvent(event: PanelEvent): PanelPosition | null {
  * damage than one that shows a wrong number, and a pointer handler is the one place a throw of
  * ours would reach a page that listens for the same event.
  */
+/**
+ * What a press on the bar starts, or null where it starts nothing: a press somewhere else, a
+ * pointer the event does not state, or a page that has not said how wide it is — a drag from a
+ * guessed origin jumps under the hand.
+ */
+function composePanelDragGrab(
+    event: PanelEvent,
+    position: PanelPosition | null,
+    placement: PanelPlacement,
+): PanelGrab | null {
+    assert(typeof placement.getViewport === "function", "a grab is clamped against something");
+    if (event.target?.getAttribute(GRIP_ATTRIBUTE) === null) return null;
+    const pointer = getPointerFromEvent(event);
+    if (pointer === null) return null;
+    const from = position ?? composeDefaultPosition(placement.getViewport());
+    if (from === null) return null;
+    // Without this the browser starts its own text or image drag from the bar.
+    event.preventDefault?.();
+    assert(Number.isFinite(from.left), "a drag starts from a place the panel actually has");
+    return {
+        pointerLeft: pointer.left,
+        pointerTop: pointer.top,
+        panelLeft: from.left,
+        panelTop: from.top,
+    };
+}
+
 export function setPanelDrag(
     root: PanelRoot,
     host: PanelElement,
@@ -217,21 +244,9 @@ export function setPanelDrag(
         });
     };
     setGuarded("pointerdown", (event) => {
-        if (event.target?.getAttribute(GRIP_ATTRIBUTE) === null) return;
-        const pointer = getPointerFromEvent(event);
-        if (pointer === null) return;
-        // Null means the page did not say how wide it is, and a drag from a guessed origin
-        // would jump under the hand.
-        const from = position ?? composeDefaultPosition(placement.getViewport());
-        if (from === null) return;
-        // Without this the browser starts its own text or image drag from the bar.
-        event.preventDefault?.();
-        grab = {
-            pointerLeft: pointer.left,
-            pointerTop: pointer.top,
-            panelLeft: from.left,
-            panelTop: from.top,
-        };
+        const started = composePanelDragGrab(event, position, placement);
+        if (started === null) return;
+        grab = started;
         setPointerHeld(getBar(), true, event.pointerId, handleFailure);
     });
     setGuarded("pointermove", (event) => {

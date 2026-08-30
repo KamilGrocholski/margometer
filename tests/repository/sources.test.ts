@@ -22,6 +22,8 @@ const SHIPPED_ROOTS = ["libs/", "project/", "src/", "tools/"];
 const MINIMUM_REPEATED_LINES = 2;
 /** More blocks than any tree this repository will hold, so the count stays a stated bound. */
 const MAXIMUM_COMMENT_BLOCKS = 4096;
+/** A declaration wrapped over more lines than this is a signature nobody can read anyway. */
+const MAXIMUM_DECLARATION_LINES = 12;
 
 interface SourceReading {
     lines: number;
@@ -38,13 +40,41 @@ function isCommentLine(line: string): boolean {
 }
 
 /** A declaration, not a callback: `function`, a named arrow, or a test. */
-function isFunctionOpener(line: string): boolean {
+function isDeclarationOpener(line: string): boolean {
     const trimmed = line.trimStart();
     if (trimmed.startsWith("function ") || trimmed.startsWith("export function ")) return true;
     if (trimmed.startsWith("Deno.test(")) return true;
-    const isNamedArrow = (trimmed.startsWith("const ") || trimmed.startsWith("export const ")) &&
-        (trimmed.includes(" = (") || trimmed.includes(" = async ("));
-    return isNamedArrow && trimmed.includes("=>");
+    if (!trimmed.startsWith("const ") && !trimmed.startsWith("export const ")) return false;
+    return trimmed.includes(" = (") || trimmed.includes(" = async (");
+}
+
+/**
+ * Whether a declaration opens a **block**, reading across as many lines as it takes.
+ *
+ * ⚠️ **A declaration is not a line, and reading it as one broke this guard twice.** A named arrow
+ * wrapped over three lines — `const read = (`, its parameters, `) => {` — carried no arrow on the
+ * line that named it, so S4 and S5 never saw it. And a one-line `const read = () => value;`
+ * carried one, so it was read as opening a body that never closed: every line after it, the next
+ * declaration included, was collected as its own, and a later call to it read as a call to itself.
+ * A false positive is worse than a blind spot, and this had one of each.
+ *
+ * So the answer is the brace, not the arrow. An expression-bodied arrow opens no block, and this
+ * counts none: it has no body to measure against S4 and nowhere to put an assertion for S5.
+ */
+function getBlockOpenedAt(lines: readonly string[], from: number): number | null {
+    assert(from >= 0, "a declaration starts somewhere inside the file");
+    const first = (lines[from] ?? "").trimStart();
+    // A `const` says nothing about being a function until its arrow, and the arrow may be lines
+    // away — `const total = (a + b) * 2;` opens with the same three tokens as a named arrow does.
+    let needsArrow = first.startsWith("const ") || first.startsWith("export const ");
+    const limit = Math.min(lines.length, from + MAXIMUM_DECLARATION_LINES);
+    for (let at = from; at < limit; at += 1) {
+        const code = getCodeOutsideStrings(lines[at] ?? "").trimEnd();
+        if (code.includes("=>")) needsArrow = false;
+        if (code.endsWith(";")) return null;
+        if (code.endsWith("{")) return needsArrow ? null : at;
+    }
+    return null;
 }
 
 function getSourceReading(path: string): SourceReading {
@@ -61,7 +91,11 @@ function getSourceReading(path: string): SourceReading {
     for (const [offset, line] of lines.entries()) {
         if (isCommentLine(line)) reading.commentLines += 1;
         reading.assertions += countCallsOutsideStrings(line, ASSERTION_CALLS);
-        if (isFunctionOpener(line)) {
+        // The declaration is measured from the line that names it, and it counts only where a
+        // block opens: the brace is what says there is a body to measure.
+        const isOpener = openedAt === -1 && isDeclarationOpener(line) &&
+            getBlockOpenedAt(lines, offset) !== null;
+        if (isOpener) {
             reading.functions += 1;
             openedAt = offset;
         } else if (openedAt !== -1 && (line === "}" || line === "});")) {
@@ -253,17 +287,47 @@ Deno.test("the readers know a declaration from a callback", () => {
     assert(isCommentLine("  // why this is here"), "a comment is recognised");
     assert(!isCommentLine("const rate = a / b;"), "division is not a comment");
 
-    assert(isFunctionOpener("function getFightStatistics(): void {"), "a declaration");
-    assert(isFunctionOpener("const readSector = (at: number) => {"), "a named arrow");
-    assert(!isFunctionOpener("    items.filter((one) => one > 0);"), "a callback is not one");
-    assert(!isFunctionOpener("const total = (a + b) * 2;"), "an expression is not one");
+    assert(isDeclarationOpener("function getFightStatistics(): void {"), "a declaration");
+    assert(isDeclarationOpener("const readSector = (at: number) => {"), "a named arrow");
+    assert(!isDeclarationOpener("    items.filter((one) => one > 0);"), "a callback is not one");
+    // The opener is a prefilter and says only that a declaration might start here; whether one
+    // does is the block's answer, because a `const` and a `(` are not yet a function.
+    assertEquals(
+        getBlockOpenedAt(["const total = (a + b) * 2;"], 0),
+        null,
+        "an expression that never reaches an arrow opens no function",
+    );
 });
 
-Deno.test("a declaration whose arrow is on the next line is not yet counted", () => {
-    const wrapped = "const readSector = (\n    at: number,\n) => {";
-    const first = wrapped.split("\n")[0] ?? "";
-    assert(!isFunctionOpener(first), "the known limit, pinned so it cannot drift unnoticed");
-    assert(first.includes("=>") === false, "the arrow is what the reader needs and does not have");
+/** The blind spot that was, and the false positive beside it. Both were pinned; both are gone. */
+Deno.test("a declaration is read across the lines it takes, and by the brace that ends it", () => {
+    const wrapped = ["const readSector = (", "    at: number,", ") => {"];
+    assert(isDeclarationOpener(wrapped[0] ?? ""), "the line that names it is a declaration");
+    assertEquals(getBlockOpenedAt(wrapped, 0), 2, "and the block it opens is two lines down");
+
+    const expression = ["const readSector = (at: number) => at + 1;", "", "function next() {"];
+    assert(isDeclarationOpener(expression[0] ?? ""), "an expression-bodied arrow declares one too");
+    assertEquals(getBlockOpenedAt(expression, 0), null, "and opens no block, so nothing counts it");
+
+    const plain = ["function readSector(at: number): number {"];
+    assertEquals(getBlockOpenedAt(plain, 0), 0, "a declaration and its brace on one line");
+});
+
+/**
+ * The damage the false positive did, from the other end: an expression-bodied arrow swallowed the
+ * declaration after it, so a call to the swallowed one read as a call to itself.
+ */
+Deno.test("an arrow with no block never collects the declaration standing after it", () => {
+    const text =
+        "const name = () => 1;\n\nfunction walk(at: number): number {\n    return name();\n}";
+    const bodies = getFunctionBodies(text);
+    assert(!bodies.has("name"), "the arrow has no body to collect");
+    assert(bodies.has("walk"), "and the declaration after it is its own");
+    assertEquals(
+        (bodies.get("walk") ?? []).some((line) => line.includes("name(")),
+        true,
+        "which calls the arrow rather than itself",
+    );
 });
 
 /** Each declared function with the lines of its body, by brace depth. */
@@ -273,8 +337,8 @@ export function getFunctionBodies(text: string): Map<string, string[]> {
     let name = "";
     let depth = 0;
     let body: string[] = [];
-    for (const line of lines) {
-        if (name === "" && isFunctionOpener(line)) {
+    for (const [offset, line] of lines.entries()) {
+        if (name === "" && isDeclarationOpener(line) && getBlockOpenedAt(lines, offset) !== null) {
             name = getDeclaredName(line);
             depth = 0;
             body = [];
