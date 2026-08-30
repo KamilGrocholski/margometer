@@ -1,0 +1,33 @@
+# The repository gate, on every push and every pull request. Same command a hand runs:
+# `deno task check` is formatting, lint, types, the tests and the build, and the build is in it
+# because it assembles the userscript and can fail on its own.
+#
+# ⚠️ **This is the run G7 waits for.** A release pushes `develop`, waits for this to go green, then
+# pushes `main` and only then the tag. Branch protection on `main` refuses a push while this is
+# going, and that refusal is cheap — the tag going out first is not.
+name: check
+
+on:
+    # Every branch, not a list. A named list is a claim about how this repository is worked on, and
+    # v1's outlived the branch it named by a month — it still said `rewrite/2026-08` is where the
+    # work happens long after that branch had been merged.
+    # `pull_request` stays: it is the only thing that runs the gate on a fork.
+    push:
+    pull_request:
+
+jobs:
+    check:
+        runs-on: ubuntu-latest
+        steps:
+            # The whole history, because part of the gate reads `git ls-files` and the screenshot
+            # guard asks git about the tree. A full checkout of this repository costs seconds.
+            - uses: actions/checkout@v4
+
+            # Pinned, and to the same version `pages.yml` and `release.yml` pin: "latest" means the
+            # gate turns red one day with no change in the code, and then nobody knows whether it
+            # is a regression or a new Deno.
+            - uses: denoland/setup-deno@v2
+              with:
+                  deno-version: 2.9.6
+
+            - run: deno task check

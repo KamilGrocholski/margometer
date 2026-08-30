@@ -38,6 +38,7 @@ deno.lock          What the gate is actually run against. A package the lock doe
 .gitignore         What never enters git, including the cache.
 .github/
   workflows/
+    check.yml      The gate, on every push and every pull request. The run G7 waits for.
     pages.yml      The preview published, on a push to `main`, once the gate is green.
     release.yml    What a tag turns into: the built file, and the notes its section carries.
 
@@ -364,9 +365,9 @@ commit that opens or closes one.
    blow, what fired beside one and what it destroyed on the other side, and on the screen about
    being struck what a defence stopped, cut by the defence (**ADR 0019**). Two proc keys reach no
    row — `-tenacity` and `+superspell-dispel`, whose end article view,372 does not settle — and they
-   are decoded and charged to nobody until material does. The rest of the tools and the release
-   plumbing — `README.md` and the `check` workflow — are unwritten, and nothing yet consumes the
-   photographs `.github/workflows/pages.yml` does not publish.
+   are decoded and charged to nobody until material does. What is left of the release plumbing is
+   `README.md`, which is unwritten, and nothing yet consumes the photographs
+   `.github/workflows/pages.yml` does not publish.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
@@ -437,9 +438,9 @@ commit that opens or closes one.
     gap 10 is the other half of the same reader.
 14. **No release has been cut on this branch.** `CHANGELOG.md` is written, carried from v1 and
     opened with what the rewrite changed for a player; `tools/changelog.ts` composes the body of a
-    release out of it, and `.github/workflows/release.yml` publishes one. **None of it has run
-    here.** `README.md`, the `check` workflow and the screenshots are unwritten, so **G7**'s wait
-    for a green `check` run has no run of its own, and the release path is held by its tests alone.
+    release out of it, `.github/workflows/check.yml` is the run **G7** waits for, and
+    `.github/workflows/release.yml` publishes one. **None of it has run here.** `README.md` and the
+    screenshots are unwritten, and the release path is held by its tests alone.
 15. **Nothing says which side is the reader's.** `PanelRow.side` carries the game's own team number
     and nothing turns it into `ours` or `theirs`: that needs `Engine.hero.d.id` read against
     `warriorsList`, which `game/` has not done. The two tokens `DESIGN.md` states for it are unspent
