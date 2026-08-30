@@ -33,6 +33,7 @@ Read the documents relevant to the change:
 - [`DESIGN.md`](DESIGN.md) — the panel's visual system.
 - [`docs/adr/README.md`](docs/adr/README.md) — accepted decisions and their lifecycle.
 - [`docs/protocol-keys.md`](docs/protocol-keys.md) — what each protocol key means, and how we know.
+- [`docs/drill-levels.md`](docs/drill-levels.md) — which rows of the panel open, and which do not.
 
 **Target is not proof.** `PRODUCT.md` and the target sections of `ARCHITECTURE.md` are design
 constraints, not evidence that a feature exists. Do not describe target behaviour as implemented
@@ -392,6 +393,7 @@ the same thing a second way.
 | `tests/repository/names.test.ts`         | N1, N11, each with a sample                        |
 | `tests/repository/protocol-keys.test.ts` | the register help claims against the frozen counts |
 | `tests/repository/libraries.test.ts`     | `libs/` and `project/` reaching into no layer      |
+| `tests/tools/drill-report.test.ts`       | `docs/drill-levels.md` against every level drawn   |
 | `tests/ui/blow-vocabulary.test.ts`       | N13 for what a blow carried, against `captures/`   |
 
 A guard joins this table in the commit that makes it pass, and the known-gaps list shrinks by the

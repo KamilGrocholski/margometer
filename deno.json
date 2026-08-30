@@ -21,6 +21,9 @@
         // The same material the other way round: what the figures come to, per combatant, as the
         // panel would draw them.
         "figures": "deno run -A tools/fight-figures.ts",
+        // Which rows of the panel open onto another level, measured rather than remembered.
+        // `docs/drill-levels.md` carries the verdicts; `--cases` states the counts behind them.
+        "drill": "deno run -A tools/drill-report.ts",
         // How a recording the add-on wrote becomes material: two redactions, then a file.
         "intake": "deno run -A tools/capture-intake.ts",
         // The client fetched and dated, so a claim about it can name the build it was read on.

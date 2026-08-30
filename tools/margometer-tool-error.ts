@@ -12,7 +12,8 @@ export type MargoMeterToolErrorCode =
     | "GameSource"
     | "ProtocolKeyTable"
     | "HelpArticle"
-    | "Changelog";
+    | "Changelog"
+    | "DrillReport";
 
 export abstract class MargoMeterToolError extends Error {
     readonly code: MargoMeterToolErrorCode;
@@ -94,5 +95,12 @@ export class HelpArticleError extends MargoMeterToolError {
 export class ChangelogError extends MargoMeterToolError {
     constructor(reason: string) {
         super("Changelog", reason);
+    }
+}
+
+/** The drill report refused: a screen named on the command line that the panel does not draw. */
+export class DrillReportError extends MargoMeterToolError {
+    constructor(reason: string) {
+        super("DrillReport", reason);
     }
 }

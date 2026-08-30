@@ -90,6 +90,7 @@ tools/             Never ships. Each arrives with the question it answers.
   fight-replay.ts      A recording put back through the layers that read it live.
   decoding-status.ts   What the decoder could not read, counted over whatever it is handed.
   fight-figures.ts     What a fight adds up to, per combatant, as a table at a terminal.
+  drill-report.ts      Which rows of the panel open, measured level by level over a fight.
   preview-page.ts      The harness page, whole, as one string. It speaks neither language.
   preview-server.ts    That page served, rebuilt on a change under `src/`, and reloaded.
   preview-site.ts      That page written down, one per recording, for somebody with no clone.
@@ -107,6 +108,7 @@ frozen/            Dated readings of the game, written by tooling.
   help-phrases.ts  GENERATED. How often each cited phrase occurs in the help.
 docs/
   protocol-keys.md   What has been looked into, key by key: verdict, evidence, state.
+  drill-levels.md    Which kind of row opens onto another level, and which is the last.
   captured-fights.md What each recording holds, and how much protocol it carries.
   browser-support.md What the shipped file asks of a browser.
   adr/               Decisions costly or surprising to reverse.
@@ -148,6 +150,7 @@ tests/
     fight-replay.test.ts      One fight by two routes through the core, and every recording.
     decoding-status.test.ts   A sample it must flag, and the corpus it must not.
     fight-figures.test.ts     The table read back, and the reading block that prints at zero.
+    drill-report.test.ts      The register against every level drawn, both ways round.
     preview-page.test.ts      The page, read back: the order of its scripts, and its escaping.
     preview-server.test.ts    Every route, against a bundle handed in rather than built.
     preview-site.test.ts      A page per recording, addressed relatively and asking nothing.
@@ -455,27 +458,21 @@ commit that opens or closes one.
    distinguishable by hue on the panel's background — `DESIGN.md` measures that. The row carried the
    letter as a second channel until 2026-08-29 and no longer does, so a reader who cannot separate
    two hues cannot tell those two professions apart at all. Nothing replaces it yet.
-8. **There is no drill register.** Every level v1 drew is drawn — a ranking, a row opened onto its
-   three cuts, a pair opened onto what passed between the two, and a skill opened onto whom it
-   reached — but nothing enumerates which rows open and which do not, the way v1's
-   `docs/drill-levels.md` did from a tool that measured it both ways. That document is readable at
-   `git show develop:docs/drill-levels.md`; the register here returns **generated**, not carried,
-   when there is a tool to generate it from.
-9. **Two commands in the `verify` skill still name v1.** `.agents/skills/verify/SKILL.md` carries
+8. **Two commands in the `verify` skill still name v1.** `.agents/skills/verify/SKILL.md` carries
    the procedural knowledge for driving the add-on in a browser and reading what the panel drew, and
    its preview, screenshot and selector halves were corrected against this tree on 2026-08-29. What
    is left naming modules that do not exist here is `tools/fight-dump-parser.ts` and
    `tools/fight-report.ts`. Corrected module by module as each lands.
-10. **A function declaration whose arrow sits on the next line is not counted.** `isFunctionOpener`
-    in `tests/repository/sources.test.ts` reads a declaration from one line, so a named arrow
-    wrapped across two is invisible to S4 and S5. The limit is pinned by a test rather than left to
-    be discovered, and closes when a file in this tree is written that way.
-11. **Every key in `captures/` is read, and no recording is short.** `healall_per` was the last, and
+9. **A function declaration whose arrow sits on the next line is not counted.** `isFunctionOpener`
+   in `tests/repository/sources.test.ts` reads a declaration from one line, so a named arrow wrapped
+   across two is invisible to S4 and S5. The limit is pinned by a test rather than left to be
+   discovered, and closes when a file in this tree is written that way.
+10. **Every key in `captures/` is read, and no recording is short.** `healall_per` was the last, and
     ADR 0010 carries how a share stated about a whole side is sized onto its members. Measured over
     `captures/` on 2026-08-29: 115 casts across 22 recordings, every one of them whole, and no
     message anywhere unread — so the doubt mark never fires on the material this repository holds.
     It is held by probes only, and the next protocol change is what it exists for.
-12. **A payload can move health with no message stating it.** Every comparison between the health
+11. **A payload can move health with no message stating it.** Every comparison between the health
     the protocol states about a combatant and the movement decoded from its own messages agrees
     inside the reading's tolerance, bar three kinds: a killing blow landing more than the health
     that was left, health restored by a share the decoder states without an amount, and **one
@@ -487,26 +484,26 @@ commit that opens or closes one.
     at one so a second cannot arrive unnoticed. The figures stood here too until 2026-08-30, in a
     second reckoning that counted the first two kinds as disagreements where the test does not — two
     numbers for one measurement, which **V5** is the rule against.
-13. **The recursion guard misreads a one-line named arrow.** `getFunctionBodies` in
+12. **The recursion guard misreads a one-line named arrow.** `getFunctionBodies` in
     `tests/repository/sources.test.ts` collects lines until the brace depth returns to zero, and a
     `const name = () => expression;` opens no brace — so every line after it is read as that
     function's body, and a later call to it reads as a call to itself. Found by writing one in
     `tests/userscript-entry.test.ts`, which now carries a block body and a comment saying why. A
     false positive is worse than a blind spot, so this is the next thing that guard should learn;
     gap 10 is the other half of the same reader.
-14. **No release has been cut on this branch.** `CHANGELOG.md` is written, carried from v1 and
+13. **No release has been cut on this branch.** `CHANGELOG.md` is written, carried from v1 and
     opened with what the rewrite changed for a player; `tools/changelog.ts` composes the body of a
     release out of it, `.github/workflows/check.yml` is the run **G7** waits for, and
     `.github/workflows/release.yml` publishes one. **None of it has run here.** `README.md` and the
     screenshots are unwritten, and the release path is held by its tests alone.
-15. **A ranking row does not say which side is the reader's.** The seat itself is read — the payload
+14. **A ranking row does not say which side is the reader's.** The seat itself is read — the payload
     that opens a fight states it under `myteam`, `game/battle-session.ts` keeps it once seen, and it
     already decides the order of a shelf row's sides and whether a fight was won from that seat. It
     is `PanelRow.side` that stops short: it carries the game's own team number and nothing turns it
     into `ours` or `theirs`. The two tokens `DESIGN.md` states for it are unspent — a ranking row is
     coloured by profession instead, which needs no side. Whatever spends them will need a carrier
     that is not colour, so the two halves open together.
-16. **A restatement in different words is unheld, and it is the worse kind.**
+15. **A restatement in different words is unheld, and it is the worse kind.**
     `tests/repository/sources.test.ts` holds C15's second half by comparing block text, so a comment
     repeated word for word is a finding and one reworded is not — which is backwards from the cost,
     since two copies that read differently drift without ever looking like copies. Found by reading
@@ -515,7 +512,7 @@ commit that opens or closes one.
     over a panel that draws two. **ADR 0016.** C14 is unheld for the same reason and has no guard
     shape yet; the one that would hold it counts declarations carrying a docblock, which needs a
     parser this tree does not have.
-17. **An `injure` tick is charged to nobody, and the register says it is the wound's attacker.**
+16. **An `injure` tick is charged to nobody, and the register says it is the wound's attacker.**
     `docs/protocol-keys.md` states the cause of a tick as the attacker whose wound is ticking, and
     v1 made that join in `src/core/fight-statistics.ts`. Nothing here reads the key past the health
     it moves, so the damage stands against the victim and is dealt by nobody — every attacker's
@@ -525,7 +522,7 @@ commit that opens or closes one.
     landing on an unwounded one, over material where three attackers wound one victim. That test
     also pins the charge to nobody, so taking the join makes it fail rather than pass under a
     reading it no longer describes.
-18. **The cast column of `docs/captured-fights.md` is held by reading.**
+17. **The cast column of `docs/captured-fights.md` is held by reading.**
     `tests/tools/captured-fight-register.test.ts` re-earns the set of recordings both ways and, for
     each, the world, the build, the calls and the messages. What it does not compose is the
     professions, their counts and the level range, so a row stating those wrongly passes the gate.

@@ -442,7 +442,7 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
     for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
     const host = shown[0] as FakeElement;
     // A block body, not a one-line arrow: the recursion guard reads a one-line named arrow as
-    // running to the end of the block it sits in (`ARCHITECTURE.md`, known gap 13). The name is
+    // running to the end of the block it sits in (`ARCHITECTURE.md`, known gap 12). The name is
     // not `find` for the same reason — a reader over source cannot tell that call from this one.
     const getRegion = (className: string) => {
         return getElementsWithin(host).find((one) => one.className === className);
