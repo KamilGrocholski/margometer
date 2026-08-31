@@ -634,6 +634,30 @@ export function composeUnplacedHealWarning(count: number): string {
         "więc leczenie może być zaniżone.";
 }
 
+/**
+ * The same two doubts, said about one person rather than about the fight.
+ *
+ * Both say **whose** figure is short, which is the whole of why they exist beside the four above:
+ * a sentence under the list qualifies every row on it, and a reader wanting to know if the row
+ * they are looking at is one of them had no way to ask. `postać` is feminine, so the possessive
+ * is `jej` whoever the row stands for.
+ */
+export function composeUnreadRowWarning(count: number): string {
+    assert(count > 0, "a row is marked because something with it in went unread");
+    const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
+    assert(said.length > 0, "and the mark says how much of it there was");
+    return `Nie udało się odczytać wszystkiego z jej udziałem — ${said} bez odczytu, ` +
+        "więc jej liczby mogą być zaniżone.";
+}
+
+export function composeUnplacedHealRowWarning(count: number): string {
+    assert(count > 0, "a row is marked because a cast of theirs could not be placed");
+    const said = composeCountedNoun(count, COUNTED_NOUNS.heals);
+    assert(said.length > 0, "and the mark says how much of it there was");
+    return `Nie da się rozdzielić jej leczenia drużyny — ${said} bez podziału, ` +
+        "więc jej leczenie może być zaniżone.";
+}
+
 export const REGION_WORDS = {
     header: "nagłówka",
     tabs: "zakładek",

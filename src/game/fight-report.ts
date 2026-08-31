@@ -94,6 +94,8 @@ function composeReportRow(figures: CombatantFigures): ReportRow {
     assert(figures.damageDealtRaw >= 0, "a figure written into a report is never below nothing");
     assert(figures.healthRestored >= 0, "what was put back included");
     return {
+        unreadMessages: figures.unreadMessages,
+        castsUnplaced: figures.castsUnplaced,
         damageDealtRaw: figures.damageDealtRaw,
         damageDealtApplied: figures.damageDealtApplied,
         damageTakenRaw: figures.damageTakenRaw,

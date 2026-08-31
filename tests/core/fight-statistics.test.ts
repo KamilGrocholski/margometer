@@ -317,6 +317,52 @@ Deno.test("a cast sized reaches the figures, and one nobody could place is count
     assertEquals(unsized.castsUnplaced, 1, "and the cast is counted as one nobody placed");
 });
 
+/**
+ * The mark on a row answers *whose figure is short*, which the fight-wide count cannot: a reader
+ * looking at one person had no way to ask whether the doubt under the list was about them.
+ */
+Deno.test("an unread message is charged to both of the ends it named, once each", () => {
+    const events = decodeFightMessages([
+        "1=87.63;2=87.63;tspell=Zdrowa atmosfera;skillId=79;whatever_per=30",
+    ], null);
+    const statistics = composeFightStatistics(events, new Map());
+    assertEquals(statistics.unreadMessages, 1, "one message went unread");
+    assertEquals(statistics.byCombatantId.get(1)?.unreadMessages, 1, "and it names this end");
+    assertEquals(statistics.byCombatantId.get(2)?.unreadMessages, 1, "and this one");
+});
+
+Deno.test("a message naming one end twice charges that row once", () => {
+    const events = decodeFightMessages([
+        "469657=87.63;469657=87.63;tspell=Zdrowa atmosfera;skillId=79;whatever_per=30",
+    ], null);
+    const statistics = composeFightStatistics(events, new Map());
+    assertEquals(statistics.unreadMessages, 1, "one message");
+    assertEquals(statistics.byCombatantId.get(469657)?.unreadMessages, 1, "and one row's doubt");
+});
+
+Deno.test("a message the grammar refuses is charged to nobody, because it named nobody", () => {
+    const statistics = composeFightStatistics(
+        decodeFightMessages(["gracz;0;step"], null),
+        new Map(),
+    );
+    assertEquals(statistics.unreadMessages, 1, "the fight knows it lost a message");
+    assertEquals(statistics.byCombatantId.size, 0, "and no row is marked for it");
+});
+
+Deno.test("a cast nobody could place is charged to whoever announced it", () => {
+    const roster = composeCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: 2000 },
+    ]);
+    const events = decodeFightMessages([
+        "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
+    ], roster);
+    const unsized = composeFightStatistics(events, new Map());
+    assertEquals(unsized.castsUnplaced, 1, "the fight counts the cast it could not place");
+    assertEquals(unsized.byCombatantId.get(1)?.castsUnplaced, 1, "and the caster carries it");
+    assertEquals(unsized.byCombatantId.size, 1, "and nobody else has a row for it to stand on");
+});
+
 Deno.test("what the recordings restore is mostly what a cast put back", () => {
     let restored = 0;
     let unplaced = 0;

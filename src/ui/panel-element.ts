@@ -14,8 +14,8 @@ import type {
     PairReading,
     PanelMetric,
     PanelReading,
-    PanelRow,
     PanelSides,
+    PersonRow,
     PinnedRow,
     RankingRow,
     ShelfRow,
@@ -24,6 +24,7 @@ import type {
     SkillRow,
     UnnamedRow,
 } from "@/src/ui/panel-reading.ts";
+import { getRowHasDoubt } from "@/src/ui/panel-reading.ts";
 import {
     composeDirectionTabs,
     composeNounTabs,
@@ -226,6 +227,8 @@ interface RowReading {
     profession: string | null;
     rank: number | null;
     uses?: number | null | undefined;
+    /** Whether this row's own figure is short of something. Only a person's row can be. */
+    hasDoubt?: boolean | undefined;
 }
 
 /**
@@ -328,6 +331,13 @@ function composeRowElement(
     const rank = composeElement(document, "span", CLASS.rowRank);
     rank.textContent = reading.rank === null ? "" : `${composeFigureText(reading.rank)}.`;
     parts.push(rank);
+    // Built only where there is one to build: this runs per row per redraw, and a node made to be
+    // thrown away is a cost paid a fight's worth of times.
+    if (reading.hasDoubt === true) {
+        const mark = composeElement(document, "span", CLASS.rowWarning);
+        mark.textContent = WARNING_MARK;
+        parts.push(mark);
+    }
     const name = composeElement(document, "span", CLASS.rowName);
     name.textContent = reading.name;
     const value = composeElement(document, "span", CLASS.rowValue);
@@ -348,7 +358,11 @@ function composeRowElement(
     return element;
 }
 
-function composeCombatantReading(row: PanelRow, rank: number | null): RowReading {
+function composeCombatantReading(
+    row: PersonRow,
+    rank: number | null,
+    metric: PanelMetric,
+): RowReading {
     assert(row.figure >= 0, "a combatant's figure is never below nothing");
     assert(row.shareText.length > 0, "and their row states a share of the screen");
     return {
@@ -359,6 +373,7 @@ function composeCombatantReading(row: PanelRow, rank: number | null): RowReading
         colour: getColourForProfession(row.profession),
         profession: row.profession,
         rank,
+        hasDoubt: getRowHasDoubt(row.detail, metric),
     };
 }
 
@@ -634,7 +649,7 @@ function composeRankingElement(
     const figure = getWordsForScreen(metric);
     assert(figure.length > 0, "a row states what its figure is a figure of");
     for (const [at, row] of reading.rows.entries()) {
-        const reader = composeCombatantReading(row, at + 1);
+        const reader = composeCombatantReading(row, at + 1, metric);
         const tip = {
             register,
             key: `row:${row.combatantId}`,
@@ -758,7 +773,14 @@ function composeOpponentSection(
             },
         };
         const opens = row.opensPair ? `${row.combatantId}` : null;
-        list.append(composeRowElement(document, composeCombatantReading(row, at + 1), opens, tip));
+        list.append(
+            composeRowElement(
+                document,
+                composeCombatantReading(row, at + 1, stated.metric),
+                opens,
+                tip,
+            ),
+        );
     }
     if (cut.unnamed === null) return;
     // Which end is missing is the direction's: a given screen names no receiver, a received one
@@ -1118,7 +1140,14 @@ function composeSkillElement(
             share,
             compose: composePersonCard(row, place, false),
         };
-        list.append(composeRowElement(document, composeCombatantReading(row, at + 1), null, tip));
+        list.append(
+            composeRowElement(
+                document,
+                composeCombatantReading(row, at + 1, view.current),
+                null,
+                tip,
+            ),
+        );
     }
     return list;
 }

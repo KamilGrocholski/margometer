@@ -16,7 +16,9 @@ import {
     composeDrillReading,
     composePairReading,
     composePanelReading,
+    composeRowWarnings,
     composeSkillReading,
+    getRowHasDoubt,
     getTextForNamedPart,
     NOTHING_MISSED,
 } from "@/src/ui/panel-reading.ts";
@@ -1337,6 +1339,62 @@ Deno.test("what shortens a reading is said before what shortens one figure on it
     assert(reading.warnings[0]?.includes("w trakcie"), "the start nobody saw comes first");
     assert(reading.warnings[1]?.includes("nie dotarła"), "then what never arrived");
     assert(reading.warnings[2]?.includes("odczytać"), "then what arrived and could not be read");
+});
+
+/**
+ * The same two doubts, charged to the row they are about. A cast is the one that turns on the
+ * screen: it puts back health, so beside a damage figure it would qualify a figure that cannot
+ * carry it — which is the rule the fight's own warnings follow one level up.
+ */
+Deno.test("a doubt about one person qualifies the screens their figure is on", () => {
+    const { roster } = readFight(HILDUR);
+    const events = decodeFightMessages([
+        "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
+    ], roster);
+    const statistics = composeFightStatistics(events, new Map());
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const caster = reading.rows.find((row) => row.combatantId === 1);
+    assert(caster !== undefined, "the caster is on the list");
+    assertEquals(caster.detail.castsUnplaced, 1, "carrying the cast nobody could place");
+
+    assert(getRowHasDoubt(caster.detail, "healthGiven"), "which marks their row where it counts");
+    assert(getRowHasDoubt(caster.detail, "healthRestored"), "on either healing screen");
+    assert(!getRowHasDoubt(caster.detail, "damageDealtApplied"), "and on neither damage one");
+    assert(!getRowHasDoubt(caster.detail, "damageTakenApplied"), "where it qualifies no figure");
+
+    const said = composeRowWarnings(caster.detail, "healthGiven");
+    assertEquals(said.length, 1, "and the mark opens onto one sentence");
+    assert(said[0]?.includes("jej leczenia"), "saying whose leczenie is short, not the fight's");
+    assertEquals(composeRowWarnings(caster.detail, "damageDealtApplied"), [], "and nothing else");
+});
+
+Deno.test("a message that went unread marks the rows it named, on every screen", () => {
+    const { roster } = readFight(HILDUR);
+    const events = decodeFightMessages(["1=100.00;2=100.00;whatever_per=30"], roster);
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    for (const metric of SCREENS) {
+        const reading = composePanelReading(
+            statistics,
+            roster,
+            metric,
+            "everyone",
+            null,
+            NOTHING_MISSED,
+        );
+        const named = reading.rows.filter((row) => getRowHasDoubt(row.detail, metric));
+        assertEquals(named.length, 2, `${metric}: the two ends the message named, and nobody else`);
+        const first = named[0];
+        assert(first !== undefined, `${metric}: one of them is a row the panel draws`);
+        const said = composeRowWarnings(first.detail, metric);
+        assert(said[0]?.includes("z jej udziałem"), `${metric}: the sentence says whose it is`);
+    }
 });
 
 /**

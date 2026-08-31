@@ -31,7 +31,9 @@ import {
     composeLostMessageWarning,
     composeShareText,
     composeShareTexts,
+    composeUnplacedHealRowWarning,
     composeUnplacedHealWarning,
+    composeUnreadRowWarning,
     composeUnreadWarning,
 } from "@/src/ui/panel-words.ts";
 
@@ -109,6 +111,13 @@ export interface RowDetail {
     procsWhenStruck: readonly CutPart[];
     damagePreventedByDefence: readonly CutPart[];
     statisticsDestroyed: readonly CutPart[];
+    /**
+     * This person's own share of the fight's two doubts, which is what puts a mark on their row
+     * rather than under the whole list (`src/core/fight-statistics.ts` says why neither sums to
+     * the fight's own count).
+     */
+    unreadMessages: number;
+    castsUnplaced: number;
 }
 
 /**
@@ -120,9 +129,12 @@ export interface CutPart {
     figure: number;
 }
 
-export interface RankingRow extends PanelRow {
+/** A row with somebody behind it, wherever it stands: the ranking, an end, or an opened skill. */
+export interface PersonRow extends PanelRow {
     detail: RowDetail;
 }
+
+export type RankingRow = PersonRow;
 
 export type PanelUnnamedEnd = "actor" | "target";
 
@@ -195,6 +207,8 @@ export const NOTHING_MISSED: FightDoubts = { messagesLost: 0, hasJoinedInProgres
 
 /** The list below is the bound, not anything a fight can do. */
 const MAXIMUM_WARNINGS = 4;
+/** And a row carries the two of the four that can be charged to one person. */
+const ROW_WARNINGS = 2;
 
 /**
  * Widening to narrowing. The first three qualify every screen; a cast nobody could place puts back
@@ -219,6 +233,38 @@ function composeWarnings(
     }
     assert(said.length <= MAXIMUM_WARNINGS, "a screen says at most the four things it can");
     return said;
+}
+
+/**
+ * What this row's own figure is short of, as sentences a reader can act on.
+ *
+ * The screen decides which of the two are owed for the same reason it decides the fight's own:
+ * a cast nobody could place puts back health, so saying it beside a damage figure would be a
+ * doubt over a figure that cannot carry it. Composed on demand, like a card's other words.
+ */
+export function composeRowWarnings(detail: RowDetail, metric: PanelMetric): string[] {
+    assert(detail.unreadMessages >= 0, "a count of what went unread is never below nothing");
+    assert(detail.castsUnplaced >= 0, "and neither is a count of casts nobody could place");
+    const said: string[] = [];
+    if (detail.unreadMessages > 0) said.push(composeUnreadRowWarning(detail.unreadMessages));
+    const isHealing = getNounForScreen(metric) === "healing";
+    if (isHealing && detail.castsUnplaced > 0) {
+        said.push(composeUnplacedHealRowWarning(detail.castsUnplaced));
+    }
+    assert(said.length <= ROW_WARNINGS, "a row says at most the two things it can");
+    return said;
+}
+
+/**
+ * Whether the row wears the mark, which is the same question `composeRowWarnings` answers and
+ * asked without composing a sentence: this runs per row per redraw and that runs when a pointer
+ * stops on one.
+ */
+export function getRowHasDoubt(detail: RowDetail, metric: PanelMetric): boolean {
+    assert(SCREEN_ORDER.includes(metric), "a row is qualified on a screen the strips draw");
+    if (detail.unreadMessages > 0) return true;
+    if (getNounForScreen(metric) !== "healing") return false;
+    return detail.castsUnplaced > 0;
 }
 
 /**
@@ -309,6 +355,8 @@ function composeRowDetail(figures: CombatantFigures, level: number | null): RowD
         procsWhenStruck: composeCutParts(figures.procsWhenStruck),
         damagePreventedByDefence: composeCutParts(figures.damagePreventedByDefence),
         statisticsDestroyed: composeCutParts(figures.statisticsDestroyed),
+        unreadMessages: figures.unreadMessages,
+        castsUnplaced: figures.castsUnplaced,
     };
 }
 
@@ -741,9 +789,8 @@ export interface SkillCut {
  * The card stands over this row too, so the row carries what the card states — the same figures
  * the ranking's own row holds, because the card is about the person and not about the cut.
  */
-export interface OpponentRow extends PanelRow {
+export interface OpponentRow extends PersonRow {
     opensPair: boolean;
-    detail: RowDetail;
 }
 
 export interface OpponentCut {

@@ -5,7 +5,12 @@
 
 import { getRankedOrder } from "@/src/ui/ranked-order.ts";
 import { assert } from "@std/assert";
-import type { CutPart, PanelMetric, RowDetail } from "@/src/ui/panel-reading.ts";
+import {
+    composeRowWarnings,
+    type CutPart,
+    type PanelMetric,
+    type RowDetail,
+} from "@/src/ui/panel-reading.ts";
 import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 import type { TipGroup, TipLine, TipReading } from "@/src/ui/panel-tip.ts";
 import {
@@ -50,6 +55,8 @@ interface CardFigure {
 
 /** No screen draws more than two, and a card that carried a page of them is not a card. */
 const MAXIMUM_CARD_WARNINGS = 4;
+/** The fight's four, plus the two of them that can be charged to the person the card is about. */
+const MAXIMUM_CARD_DOUBTS = 6;
 /** The figures, the counters, the two runs and the notes. A sixth is a card nobody designed. */
 const MAXIMUM_CARD_GROUPS = 5;
 /** Past the widest cut a card draws: fourteen worded procs, four destroyed, three defences. */
@@ -318,7 +325,14 @@ function composeCardNoteLines(subject: CardSubject): TipLine[] {
     if (getIsRawStated(subject.detail)) {
         lines.push({ kind: "note", text: CARD_WORDS.damageNote, isWarning: false });
     }
-    for (const warning of subject.warnings) {
+    // This person's own first, and the fight's under them: the card is about the person, and the
+    // mark on their row is what a reader followed here to have explained.
+    const said = [
+        ...composeRowWarnings(subject.detail, subject.metric),
+        ...subject.warnings,
+    ];
+    assert(said.length <= MAXIMUM_CARD_DOUBTS, "and inside them with the row's own added");
+    for (const warning of said) {
         assert(warning.length > 0, "a doubt the panel states is a sentence");
         lines.push({ kind: "note", text: `${WARNING_MARK}${warning}`, isWarning: true });
     }

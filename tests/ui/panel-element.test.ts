@@ -42,6 +42,7 @@ import {
     getWordsForStorage,
     getWordsForUnannounced,
     PANEL_WORDS,
+    WARNING_MARK,
 } from "@/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
@@ -375,6 +376,40 @@ Deno.test("a doubt about the reading is said under the strip, in words and once"
     assert(list !== undefined, "the list is a region of its own");
     const under = getElementsWithin(list).filter((one) => one.className === "warning");
     assertEquals(under, [], "and the doubt is not a row, so it never scrolls away with one");
+});
+
+/**
+ * A doubt about one person goes on their row and nowhere else: a sentence under the list qualifies
+ * every row on it, and a reader looking at one of them could not tell whether it meant theirs.
+ * `DESIGN.md` — put a warning where its consequence is.
+ */
+Deno.test("a doubt about one person is a mark on their row, and on nobody else's", () => {
+    const reading = readFight();
+    const first = reading.rows[0];
+    assert(first !== undefined, "there is a row to mark");
+    const host = draw({
+        ...reading,
+        rows: reading.rows.map((row) =>
+            row.combatantId === first.combatantId
+                ? { ...row, detail: { ...row.detail, unreadMessages: 2 } }
+                : row
+        ),
+    });
+    const marks = getElementsWithin(host).filter((one) => one.className === CLASS.rowWarning);
+    assertEquals(marks.length, 1, "one row wears it, out of a fight of eleven");
+    assertEquals(marks[0]?.textContent, WARNING_MARK, "as a glyph, never as a colour alone");
+    assertEquals(
+        getTextsByClass(host, "warning"),
+        [],
+        "and nothing about it stands under the list",
+    );
+
+    const unmarked = draw(reading);
+    assertEquals(
+        getElementsWithin(unmarked).filter((one) => one.className === CLASS.rowWarning),
+        [],
+        "a fight nothing went unread in draws no mark at all",
+    );
 });
 
 Deno.test("every listener sits on the root, where a press is not retargeted", () => {

@@ -146,6 +146,18 @@ export interface CombatantFigures {
      * it. The two are counted in different units, which `src/core/battle-event.ts` states.
      */
     statisticsDestroyed: Map<string, number>;
+    /**
+     * This combatant's own share of the two doubts the fight-wide counts below hold: messages
+     * left unread that **named them**, and casts of theirs nobody could size onto a side.
+     *
+     * ⚠️ **Neither sums to the count of the same name on `FightStatistics`, and neither is meant
+     * to.** One unread message may name both ends, so it stands on two rows and is one message;
+     * a cast whose caster went unread stands on no row at all. What these answer is whose figure
+     * a doubt qualifies, which is a different question from how much of the fight went unread —
+     * so `composeTotals` leaves them out.
+     */
+    unreadMessages: number;
+    castsUnplaced: number;
 }
 
 /**
@@ -215,6 +227,8 @@ export function composeCombatantFigures(): CombatantFigures {
         procsWhenStruck: new Map(),
         damagePreventedByDefence: new Map(),
         statisticsDestroyed: new Map(),
+        unreadMessages: 0,
+        castsUnplaced: 0,
     };
 }
 
@@ -797,6 +811,31 @@ function addNamedHealingEvent(build: StatisticsBuild, event: BattleEvent): void 
 }
 
 /**
+ * A message left unread, charged to every end its grammar named — which is nobody at all where the
+ * grammar itself is what failed. Counted once per row however often a row is named in it: what the
+ * mark says is *something about this person went unread*, and twice is not more true than once.
+ */
+function addUnreadMessage(build: StatisticsBuild, combatantIds: readonly number[]): void {
+    assert(combatantIds.length <= MAXIMUM_COMBATANTS, "a message names ends inside the bound");
+    const charged = new Set<number>();
+    for (const combatantId of combatantIds) {
+        if (charged.has(combatantId)) continue;
+        charged.add(combatantId);
+        getFiguresForCombatant(build.byCombatantId, combatantId).unreadMessages += 1;
+    }
+    assert(charged.size <= combatantIds.length, "a row is charged for it once, or not at all");
+}
+
+/** A cast nobody could size, charged to whoever cast it. Nowhere, where nobody named them. */
+function addUnplacedCast(build: StatisticsBuild, casterId: number | null): void {
+    if (casterId === null) return;
+    assert(Number.isSafeInteger(casterId), "a cast is charged to somebody the protocol named");
+    const figures = getFiguresForCombatant(build.byCombatantId, casterId);
+    figures.castsUnplaced += 1;
+    assert(figures.castsUnplaced > 0, "a doubt charged to a row is one the row now carries");
+}
+
+/**
  * What a cast put back, per member. A cast nobody could size, or one sized for only part of its
  * side, is counted as unplaced as well — a partial answer is never read as a whole one.
  */
@@ -807,9 +846,16 @@ function addTeamHeal(
 ): void {
     if (heal === undefined) {
         build.castsUnplaced += 1;
+        // The announcement is the only place a caster is stated for a cast nobody could size: the
+        // sizing is what would otherwise have named one. Where nothing announced it, the doubt is
+        // the fight's and stands on no row.
+        addUnplacedCast(build, announced?.actorId ?? null);
         return;
     }
-    if (!heal.isWhole) build.castsUnplaced += 1;
+    if (!heal.isWhole) {
+        build.castsUnplaced += 1;
+        addUnplacedCast(build, heal.casterId);
+    }
     for (const [combatantId, amount] of heal.restoredByCombatantId) {
         assert(amount >= 0, "a cast puts back no less than nothing");
         getFiguresForCombatant(build.byCombatantId, combatantId).healthRestored += amount;
@@ -936,7 +982,10 @@ export function composeFightStatistics(
     };
     assert(events.length >= 0, "a fight decodes to a list");
     for (const event of events) {
-        if (event.kind === "unknown-message") build.unreadMessages += 1;
+        if (event.kind === "unknown-message") {
+            build.unreadMessages += 1;
+            addUnreadMessage(build, event.combatantIds);
+        }
         if (event.kind === "unaccounted-health") {
             addTeamHeal(build, event.announced, heals.get(event));
         }

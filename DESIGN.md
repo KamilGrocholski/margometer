@@ -208,6 +208,13 @@ and the card a reader opens by pointing is the answer — it names the professio
 channel in the row was tried and removed on 2026-08-29: a letter beside every name took width from
 the one cell that has to shorten, to say a thing the card already said. **ADR 0023.**
 
+**A row whose own figure is short wears the doubt mark**, before the name and drawn only there. It
+is not the second channel the paragraph above refuses: that one would stand on every row to say a
+thing the card already says, and this stands on the rows a doubt actually reaches — none of the rows
+in `captures/`. What it opens onto is the sentence naming whose figure is short, which the sentence
+under the list cannot: that one qualifies every row at once, and a reader looking at one of them had
+no way to ask whether it meant theirs. _Put a warning where its consequence is._
+
 **Pinned row.** Stands apart from the ranking, below it and outside the list, for figures that
 belong to no combatant. It is a row, not a footnote: same height, same shape — with a dashed rule
 cutting it off the ranking and a hatched bar, because it is not a combatant and must not look like

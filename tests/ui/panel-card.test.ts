@@ -47,6 +47,8 @@ const HILDUR: RowDetail = {
         { key: "acdmg", figure: 940 },
         { key: "resdmg", figure: 26 },
     ],
+    unreadMessages: 0,
+    castsUnplaced: 0,
 };
 
 /** Somebody the roster holds and the fight never touched, which is a reading and not a gap. */
@@ -73,6 +75,8 @@ const NOBODY: RowDetail = {
     /** Defences and destroyed statistics are kept under the client's token, procs under the key. */
     damagePreventedByDefence: [],
     statisticsDestroyed: [],
+    unreadMessages: 0,
+    castsUnplaced: 0,
 };
 
 /** One group as a reader meets it, so an expectation reads like the window does. */
@@ -355,6 +359,47 @@ Deno.test("what the screen doubts is said again where the figures it doubts are"
         notes.lines.every((line) => line.kind === "note" && line.isWarning),
         "each drawn as a doubt, which is a mark as well as a colour",
     );
+});
+
+/**
+ * The mark on a row is what a reader followed here, so the sentence explaining it stands over the
+ * fight's own: this card is about the person, and the fight's doubt is about every row at once.
+ */
+Deno.test("a card states this person's own doubt before the whole fight's", () => {
+    const card = composeCardReading({
+        name: "Hildur Muza Śmierci",
+        profession: "m",
+        detail: { ...HILDUR, unreadMessages: 2, castsUnplaced: 1 },
+        metric: "healthGiven",
+        warnings: ["Nie udało się odczytać wszystkiego."],
+        opens: false,
+        isRowNarrower: false,
+        translate: null,
+    });
+    const notes = card.groups.at(-1);
+    assert(notes !== undefined, "the doubts are the last thing the card says");
+    const said = readGroup(notes).filter((line) => line.startsWith(WARNING_MARK));
+    assertEquals(said.length, 3, "two of this person's own, and the fight's under them");
+    assert(said[0]?.includes("z jej udziałem"), "what went unread with them in comes first");
+    assert(said[1]?.includes("jej leczenia"), "then the cast of theirs nobody could place");
+    assert(said[2]?.includes("wszystkiego."), "and the fight's own last, qualifying every row");
+});
+
+Deno.test("a card on a damage screen says nothing about a cast, which puts back health", () => {
+    const card = composeCardReading({
+        name: "Hildur Muza Śmierci",
+        profession: "m",
+        detail: { ...HILDUR, unreadMessages: 0, castsUnplaced: 1 },
+        metric: "damageDealtApplied",
+        warnings: [],
+        opens: false,
+        isRowNarrower: false,
+        translate: null,
+    });
+    const said = card.groups.flatMap((group) => readGroup(group)).filter((line) =>
+        line.startsWith(WARNING_MARK)
+    );
+    assertEquals(said, [], "a doubt over a figure that cannot carry it is not drawn");
 });
 
 /**

@@ -82,6 +82,7 @@ export const CLASS = {
     rowPinSet: "pinned",
     rowValue: "row-value",
     rowShare: "row-share",
+    rowWarning: "row-warning",
     bar: "bar",
     barCap: "bar-cap",
     pinned: "pinned-region",
@@ -539,6 +540,11 @@ function composeRowRules(): string {
         `font-variant-numeric:tabular-nums;flex:none;` +
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.rowName}{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}` +
+        // Before the name and never in place of it: the name is the cell that shortens, and a
+        // mark taking width from it every row would be the cost ADR 0023 refused. This one is
+        // drawn on the rows a doubt reaches, which is none of the rows in `captures/`.
+        `.${CLASS.rowWarning}{position:relative;color:var(${VARIABLE_PREFIX}suspect);flex:none;` +
+        `padding-right:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.rowSize}{flex:none;padding-right:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.row}.${CLASS.rowChosen}{box-shadow:inset 3px 0 0 var(${VARIABLE_PREFIX}text);}` +
         // ★ and ☆ measured 13.87px each in Firefox on 2026-08-26, and the row walked sideways
