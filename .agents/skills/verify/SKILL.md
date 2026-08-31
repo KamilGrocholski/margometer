@@ -50,7 +50,12 @@ it.
 ```bash
 deno task screenshots
 deno task screenshots --browser /usr/bin/google-chrome   # or MARGOMETER_BROWSER
+deno task screenshots --release                          # a release, and only a release
 ```
+
+`--release` puts the number `deno.json` declares on the panel instead of the `-dev` mark a build
+nobody tagged wears (ADR 0037). It belongs to a release and nowhere else — `docs/releasing.md` is
+where it sits in the sequence.
 
 Five pictures into `screenshots/`, with `taken-at.json` beside them naming the commit, the recording
 and the moment. It **refuses to shoot while `src/` carries anything no commit holds** — `DESIGN.md`

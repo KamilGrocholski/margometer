@@ -32,6 +32,7 @@ Read the documents relevant to the change:
   captured material.
 - [`DESIGN.md`](DESIGN.md) — the panel's visual system.
 - [`docs/adr/README.md`](docs/adr/README.md) — accepted decisions and their lifecycle.
+- [`docs/releasing.md`](docs/releasing.md) — the steps a release runs, each citing what owns it.
 - [`docs/protocol-keys.md`](docs/protocol-keys.md) — what each protocol key means, and how we know.
 - [`docs/drill-levels.md`](docs/drill-levels.md) — which rows of the panel open, and which do not.
 

@@ -113,6 +113,7 @@ frozen/            Dated readings of the game, written by tooling.
   help-phrases.ts  GENERATED. How often each cited phrase occurs in the help.
 docs/
   protocol-keys.md   What has been looked into, key by key: verdict, evidence, state.
+  releasing.md       The steps a release runs, and which of them a machine holds.
   drill-levels.md    Which kind of row opens onto another level, and which is the last.
   captured-fights.md What each recording holds, and how much protocol it carries.
   browser-support.md What the shipped file asks of a browser.
@@ -481,13 +482,16 @@ commit that opens or closes one.
    one so a second cannot arrive unnoticed. The figures stood here too until 2026-08-30, in a second
    reckoning that counted the first two kinds as disagreements where the test does not — two numbers
    for one measurement, which **V5** is the rule against.
-7. **No release has been cut on this branch.** `CHANGELOG.md` is written, carried from v1 and opened
-   with what the rewrite changed for a player; `tools/changelog.ts` composes the body of a release
-   out of it, `.github/workflows/check.yml` is the run **G7** waits for, and
-   `.github/workflows/release.yml` publishes one. **None of it has run here.** The release path is
-   held by its tests alone. What is written since is the front page: both READMEs, against a set of
-   pictures shot at the commit that drew them, and `tests/repository/readmes.test.ts` holding the
-   three to each other.
+7. **The release path has run once, and one step of it has never run at all.** `v0.11.0` went out on
+   2026-08-31: `CHANGELOG.md`'s section became the body of the release (`tools/changelog.ts`),
+   `.github/workflows/check.yml` was the run **G7** waited for, and `.github/workflows/release.yml`
+   held the tag against the declaration, rebuilt at the tag's version and published both files. What
+   that release shipped wrong is what **ADR 0037** was written for: its five pictures state
+   `0.11.0-dev`, a version nobody can install. The step holding the shot set to the tag was added
+   after it and **has never run at a tag** — it is held by the reading in
+   `tests/tools/panel-screenshots.test.ts` and by nothing else, and `v0.12.0` is the first release
+   to exercise it. `docs/releasing.md` is the sequence; the table at the end of it says which of its
+   steps a machine holds and which a person does.
 8. **A restatement in different words is unheld, and it is the worse kind.**
    `tests/repository/sources.test.ts` holds two bands of C15's second half now: a block standing
    twice **verbatim**, and a block standing in two **files** whatever its length — the second added

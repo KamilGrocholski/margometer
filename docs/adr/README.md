@@ -121,3 +121,5 @@ edited to agree with the new rule.
   named takes the declaration and marks it. **Accepted**
 - [0036](0036-a-pinned-figure-stands-on-every-list.md) — A pinned figure stands on every list,
   charged to the side it is on. **Accepted**
+- [0037](0037-a-release-run-states-the-number-the-tree-declares.md) — A run that says it is the
+  release states the number the tree declares. **Accepted**
