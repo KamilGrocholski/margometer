@@ -110,7 +110,7 @@ starego nie znajdzie, a zapisanych wcześniej walk nie da się już odzyskać.
 
 - **Zmiana** — Karta nie mówi już o prawym przycisku myszy. Kończy się linijką „LPM — rozbicie" i
   stoi ona tylko tam, gdzie naciśnięcie faktycznie coś otwiera — prawy przycisk wraca tak jak dotąd,
-  tylko nic o tym nie mówi. Napis wracający z rozbicia mówi teraz „skład" zamiast „wróć".
+  tylko nic o tym nie mówi.
 
 - **Zmiana** — Umiejętność, którą ktoś uderzył, a cios został w całości zatrzymany, stoi teraz w
   rozbiciu przy zerze i mówi, ile razy poszła w ruch. Wcześniej znikała z listy, więc wyglądało to
