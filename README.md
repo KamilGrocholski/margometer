@@ -7,30 +7,30 @@ grą. SKADA albo Details!, dla Margonem.
 
 <table>
 <tr>
-<td valign="bottom" align="center">
-<a href="screenshots/panel-ranking.png"><img src="screenshots/panel-ranking.png" width="110"
-alt="Ranking walczących po otrzymanych obrażeniach"></a>
+<td valign="top" align="center">
+<img src="screenshots/panel-ranking.png" width="276"
+alt="Ranking walczących po otrzymanych obrażeniach">
 <br><sub><b>Ranking</b></sub>
+<br><br>
+<img src="screenshots/panel-deep.png" width="276"
+alt="Najgłębszy poziom: co przeszło między tą dwójką">
+<br><sub><b>Trzeci poziom</b></sub>
+<br><br>
+<img src="screenshots/panel-shelf.png" width="276"
+alt="Półka z walkami, które są jeszcze zapisane">
+<br><sub><b>Półka walk</b></sub>
 </td>
-<td valign="bottom" align="center">
-<a href="screenshots/panel-opened.png"><img src="screenshots/panel-opened.png" width="110"
-alt="Rozwinięty wiersz: od kogo padły obrażenia"></a>
+<td valign="top" align="center">
+<img src="screenshots/panel-opened.png" width="276"
+alt="Rozwinięty wiersz: od kogo padły obrażenia">
 <br><sub><b>Rozwinięty wiersz</b></sub>
 </td>
-<td valign="bottom" align="center">
-<a href="screenshots/panel-deep.png"><img src="screenshots/panel-deep.png" width="110"
-alt="Najgłębszy poziom: co przeszło między tą dwójką"></a>
-<br><sub><b>Trzeci poziom</b></sub>
-</td>
-<td valign="bottom" align="center">
-<a href="screenshots/panel-card.png"><img src="screenshots/panel-card.png" width="110"
-alt="Karta postaci otwarta obok panelu"></a>
+</tr>
+<tr>
+<td colspan="2" align="center">
+<img src="screenshots/panel-card.png" width="530"
+alt="Karta postaci otwarta obok panelu">
 <br><sub><b>Karta postaci</b></sub>
-</td>
-<td valign="bottom" align="center">
-<a href="screenshots/panel-shelf.png"><img src="screenshots/panel-shelf.png" width="110"
-alt="Półka z walkami, które są jeszcze zapisane"></a>
-<br><sub><b>Półka walk</b></sub>
 </td>
 </tr>
 </table>
