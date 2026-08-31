@@ -35,6 +35,12 @@ const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.j
 const ANOTHER = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
 /** A third, so two fights are on the shelf at once while a fourth is the one going on. */
 const THIRD = "captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json";
+/**
+ * Two fights of one party, so a row opened in the first is opened by an id the second states too:
+ * ten combatants are shared between them, read 2026-08-31.
+ */
+const FIRST_OF_A_PAIR = "captures/2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none.json";
+const SECOND_OF_A_PAIR = "captures/2026-08-15-tempest-grupa-vs-hildur-2-1786514810315-none.json";
 
 function composeStillClock(): Scheduler {
     return { every: () => 1, cancel: () => {} };
@@ -758,6 +764,81 @@ Deno.test("a panel goes up when the reading starts, saying there has been no fig
     assert(
         getElementsWithin(list).some((one) => one.className.split(" ")[0] === "row"),
         "with a row for somebody in it, rather than the sentence it opened on",
+    );
+});
+
+/**
+ * A page reloaded between fights, which is a page with a shelf and no session.
+ *
+ * Answering *no fight yet* there put both the fights and the strip saying where they are kept
+ * behind a control that redrew the waiting screen on every press.
+ */
+Deno.test("a panel reloaded between fights opens on the shelf rather than on nothing", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const first = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(first.environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    assert(first.getShelf("local").size > 0, "the fight was kept where a reload will look");
+
+    // The reader comes back, and no fight has started yet: no payload reaches this copy at all.
+    const second = composeEnvironment({ Engine: { battle: { updateData: () => 1 } } });
+    for (const [key, value] of first.held) second.held.set(key, value);
+    for (const [key, value] of first.getShelf("local")) second.getShelf("local").set(key, value);
+    startMargoMeter(second.environment);
+    const host = second.shown[0] as FakeElement;
+    assertEquals(getTextsByClass(host, "empty"), [], "the panel does not say there has been none");
+    const list = getElementsWithin(host).find((one) => one.className === "list");
+    assert(list !== undefined, "it draws the newest fight it kept");
+    assert(
+        getElementsWithin(list).some((one) => one.className.split(" ")[0] === "row"),
+        "with that fight's own rows on it",
+    );
+
+    const control = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assert(control !== undefined, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", control);
+    assertEquals(getTextsByClass(host, "row-size"), ["10×1"], "which opens onto the fight kept");
+});
+
+/**
+ * The next fight starts while a row is open. A row is opened by the game's own combatant id and a
+ * party keeps its ids, so a row left open finds somebody in the new fight and draws it opened on a
+ * rung nobody asked for.
+ */
+Deno.test("a fight that opens puts the reader back on the ranking", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(FIRST_OF_A_PAIR)) update(payload);
+    const host = shown[0] as FakeElement;
+    // A block body, and not named `find`, for the reason the row test beside this one gives.
+    const getRegion = (className: string) => {
+        return getElementsWithin(host).find((one) => one.className === className);
+    };
+    // A player's row and not the first one on the list: the opponent in these two recordings is
+    // an NPC, whose id the game states afresh for each fight (`-10000545`, then `-10000547`), so a
+    // row opened on it closes by itself and would prove nothing about what carries over.
+    const name = getElementsWithin(host).find((one) => {
+        if (one.className !== "row-name") return false;
+        const stated = one.attributes.get("data-row");
+        if (stated === undefined) return false;
+        return !stated.startsWith("-");
+    });
+    assert(name !== undefined, "there is a player's row to open");
+    pressElement(host, "pointerdown", name);
+    assert(getRegion("crumb") !== undefined, "and pressing it opens that row");
+    const person = getRegion("crumb-here")?.textContent;
+    assert(person !== undefined, "the crumb says whose row it is");
+
+    for (const payload of getRecordedEngineUpdates(SECOND_OF_A_PAIR)) update(payload);
+    assertEquals(getRegion("crumb"), undefined, "the next fight is drawn from its own ranking");
+    assert(
+        getTextsByClass(host, "row-name").includes(person),
+        "and that person is in it, so the id the row was opened by would have been found",
     );
 });
 

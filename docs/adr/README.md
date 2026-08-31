@@ -113,3 +113,5 @@ edited to agree with the new rule.
   scrollbar, and no region reserves a gutter. **Accepted**
 - [0032](0032-the-card-says-everything-wherever-a-person-stands.md) — The card says everything,
   wherever a person stands. **Accepted**
+- [0033](0033-a-panel-with-no-live-fight-opens-on-the-shelf.md) — A panel with no live fight opens
+  on the shelf. **Accepted**

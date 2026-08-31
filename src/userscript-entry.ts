@@ -485,9 +485,46 @@ function composeFightFigures(session: BattleSession): FightFigures | null {
     return { fight, roster, statistics };
 }
 
+/** The newest fight on the shelf, or nothing where it holds none. */
+function getNewestKeptFight(fights: readonly KeptFight[]): KeptFight | null {
+    assert(fights.length >= 0, "a shelf holds the fights it holds");
+    let newest: KeptFight | null = null;
+    for (const one of fights) {
+        if (newest === null) newest = one;
+        else if (one.openedAt > newest.openedAt) newest = one;
+    }
+    assert(newest === null || newest.openedAt >= 0, "and the newest of them opened at a moment");
+    return newest;
+}
+
 /**
- * Puts what the session holds into the panel that is already on the page. A fight nobody has seen
- * draws nothing, because a panel of zeroes over a game that has not started is a claim.
+ * The fight the panel draws, and the kept one it was read off where that is what it is.
+ *
+ * A page between fights has no live reading and the shelf is what it has instead, which is the
+ * whole of why the newest kept one is an answer here. **ADR 0033.**
+ */
+function getStandingFight(
+    live: FightFigures | null,
+    screen: ScreenState,
+    shelf: ShelfKeeper,
+): { figures: FightFigures; kept: KeptFight | null } | null {
+    const chosen = screen.openFightId === null
+        ? null
+        : shelf.fights.find((one) => one.openedAt === screen.openFightId) ?? null;
+    const kept = chosen ?? (live === null ? getNewestKeptFight(shelf.fights) : null);
+    if (kept !== null) {
+        assert(kept.payloads.length > 0, "a fight off the shelf was kept from something");
+        return { figures: shelf.readFigures(kept), kept };
+    }
+    if (live === null) return null;
+    assert(live.fight.payloads > 0, "a live fight that is drawn was built from something");
+    return { figures: live, kept: null };
+}
+
+/**
+ * Puts what the session holds into the panel that is already on the page. False where there is
+ * nothing to put there — no fight and an empty shelf — because a panel of zeroes over a game that
+ * has not started is a claim.
  */
 function showFight(
     session: BattleSession,
@@ -497,13 +534,11 @@ function showFight(
     place: FightPlace | null,
     readClock: (atMs: number) => { hour: number; minute: number } | null,
     openedAt: number,
-): void {
+): boolean {
     const live = composeFightFigures(session);
-    if (live === null) return;
-    const chosen = screen.openFightId === null
-        ? null
-        : shelf.fights.find((one) => one.openedAt === screen.openFightId) ?? null;
-    const figures = chosen === null ? live : shelf.readFigures(chosen);
+    const standing = getStandingFight(live, screen, shelf);
+    if (standing === null) return false;
+    const { figures, kept } = standing;
     const { fight, roster, statistics } = figures;
     const reading = composePanelReading(
         statistics,
@@ -524,13 +559,15 @@ function showFight(
         hasReaderSide: fight.readerSide !== null,
         shelf: composeShelfRows(
             shelf.fights,
-            {
+            live === null ? null : {
                 fight: live.fight,
                 place,
                 openedAt,
                 outcome: getOutcomeForFigures(live),
             },
-            screen.openFightId,
+            // The row the panel is actually drawing, which is the kept one wherever there is no
+            // live fight for the shelf to mark instead.
+            screen.openFightId ?? kept?.openedAt ?? null,
             readClock,
             (one) => shelf.readFigures(one),
         ),
@@ -540,9 +577,10 @@ function showFight(
         drill,
         pair,
         skill,
-        place: getPlaceWords(chosen === null ? place : chosen.place),
+        place: getPlaceWords(kept === null ? place : kept.place),
         isCollapsed: screen.isCollapsed,
     });
+    return true;
 }
 
 interface OpenedReadings {
@@ -912,14 +950,36 @@ function composePanelPlacement(
     };
 }
 
-/** One payload, into the fight it belongs to and into the recording beside it. */
+/**
+ * A fight that opens puts the panel back on its ranking, and only for a reader on the live fight.
+ *
+ * ⚠️ **A row left open would find somebody in the next fight.** A row is opened by the game's own
+ * combatant id and a party keeps its ids from one fight to the next — ten of them shared between
+ * `captures/2026-08-15-tempest-grupa-vs-hildur-1` and `-2`, read 2026-08-31 — so the next fight
+ * drew itself opened on a rung nobody asked for. A reader who is on a fight off the shelf is left
+ * where they are: what they are reading did not change.
+ */
+function setLiveFightOpened(screen: ScreenState): void {
+    assert(screen.current.length > 0, "a fight opens onto a screen the panel is on");
+    if (screen.openFightId !== null) return;
+    screen.openRowId = null;
+    screen.openPairId = null;
+    screen.openSkillName = null;
+    assert(screen.openRowId === null, "a fight that opens is read from its ranking");
+    assert(screen.openPairId === null, "with no pair standing over it");
+}
+
+/**
+ * One payload, into the fight it belongs to and into the recording beside it. True where the
+ * payload is the one that opened a fight.
+ */
 function readPayloadIntoLive(
     live: LiveFight,
     session: BattleSession,
     shelf: ShelfKeeper,
     environment: UserscriptEnvironment,
     stated: { payload: unknown; battle: EngineBattle },
-): void {
+): boolean {
     assert(live.openedAt >= 0, "a fight opened at a moment, or has not opened");
     addPayloadToSession(session, stated.payload);
     live.capture = composeNextCapture(live.capture, {
@@ -929,7 +989,8 @@ function readPayloadIntoLive(
         combatantsAfter: composeSnapshotFromBattle(stated.battle),
     });
     const fight = getFightFromSession(session);
-    if (fight !== null && fight.payloads === 1) {
+    const isOpening = fight !== null && fight.payloads === 1;
+    if (isOpening) {
         live.place = getPlaceFromPage(environment.page);
         live.openedAt = environment.now();
     }
@@ -939,6 +1000,7 @@ function readPayloadIntoLive(
         keepFight(session, shelf, live, environment.readSurroundings().gameBuild);
     }
     if (fight !== null && !fight.isOver) live.wasOver = false;
+    return isOpening;
 }
 
 /** Every way the attachment can fail, said once each, under the one branded line. */
@@ -974,7 +1036,16 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     const draw = (): void => {
         assert(screen.current.length > 0, "a draw is of a panel that is on a screen");
         assert(live.openedAt >= 0, "and of a fight that opened at a moment, or has not opened");
-        showFight(session, screen, panel, shelf, live.place, environment.readClock, live.openedAt);
+        const isDrawn = showFight(
+            session,
+            screen,
+            panel,
+            shelf,
+            live.place,
+            environment.readClock,
+            live.openedAt,
+        );
+        if (!isDrawn) panel.showWaiting(screen.isCollapsed);
     };
     const showAndMount = (): void => {
         draw();
@@ -987,8 +1058,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
             const isShelfPress = setShelfFromPress(shelf, press);
             if (!isShelfPress && !handlePress(screen, press)) return;
             if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
-            if (getFightFromSession(session) === null) panel.showWaiting(screen.isCollapsed);
-            else draw();
+            draw();
         },
         (failure) => environment.report(FAILURE_LINE, failure),
         placement,
@@ -998,15 +1068,16 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     );
     assert(!isMounted, "nothing is on the page until a payload arrives");
     return attachToGame(environment.page, environment.schedule, {
-        handleAttached: () => {
-            panel.showWaiting(screen.isCollapsed);
-            mount();
-        },
+        handleAttached: showAndMount,
         handleBeforeCall: (battle) => {
             live.combatantsBefore = composeSnapshotFromBattle(battle);
         },
         handlePayload: (payload, battle) => {
-            readPayloadIntoLive(live, session, shelf, environment, { payload, battle });
+            const isOpening = readPayloadIntoLive(live, session, shelf, environment, {
+                payload,
+                battle,
+            });
+            if (isOpening) setLiveFightOpened(screen);
             showAndMount();
         },
         ...composeGameReports(environment),
