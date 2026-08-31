@@ -1,6 +1,6 @@
 # 0019. The card answers the screen it stands on
 
-- **Status:** Accepted
+- **Status:** Superseded by 0032
 - **Date:** 2026-08-30
 
 ## Context
