@@ -42,6 +42,16 @@ Wszystko, co dodatek zapamiętał, zaczyna się od zera: zapisane walki, położ
 zwinięty, i wybór miejsca, w którym walki są trzymane. Trzyma to teraz pod innymi nazwami, więc
 starego nie znajdzie, a zapisanych wcześniej walk nie da się już odzyskać.
 
+- **Nowość** — Każdy wiersz, pod którym cokolwiek stoi, da się teraz otworzyć. Wejście w postać
+  prowadzi do tego, co między wami padło — również wtedy, gdy leczyła sama siebie i gdy stoi tam
+  jeden wiersz. Wejście w umiejętność, w rodzaj obrażeń albo w to, czym gra nazwała leczenie,
+  pokazuje, kogo to dosięgło, osoba po osobie. Wcześniej połowa tych wierszy nie robiła nic, a
+  jedynym znakiem, że nie robi, był kursor.
+
+- **Nowość** — Na leczeniu widać wreszcie, czym kto leczył — także wtedy, gdy leczył wyłącznie
+  siebie. Lista tego, czym poszło zdrowie, stoi teraz zawsze, nawet jeśli jest na niej jedna pozycja
+  i jedna osoba.
+
 - **Nowość** — Na zakładce „otrzymane" widać wreszcie, czym cię trafili. Pod postacią, która ci
   zadała obrażenia, stoi teraz lista jej umiejętności z liczbami, a to, czego gra niczym nie
   zapowiedziała, zbiera się na dole w jednym wierszu „Zwykły cios". Dotąd ta zakładka mówiła tylko
@@ -95,10 +105,6 @@ starego nie znajdzie, a zapisanych wcześniej walk nie da się już odzyskać.
   czego gra nie podała ani czy ta liczba jest już policzona w liście nad nimi, i nie da się w nie
   wejść, żeby zobaczyć, co w tej puli siedzi. Zniknął też trzeci taki wiersz, „Nie do przypisania".
 
-- **Zmiana** — W obrażeniach zadanych nie da się już wejść w umiejętność, żeby zobaczyć, komu
-  zadała. Wejście w postać działa jak dotąd, a na „leczeniu danym" wejście w umiejętność zostaje —
-  znika tylko po stronie obrażeń.
-
 - **Zmiana** — Karta postaci nie rozdziela już liczby na „z ciosów" i „poza ciosem". Trucizna, ogień
   i zranienie liczą się do tej samej liczby co ciosy, ale nie widać już, ile z niej padło bez ciosu.
 
@@ -113,6 +119,12 @@ starego nie znajdzie, a zapisanych wcześniej walk nie da się już odzyskać.
 - **Zmiana** — Po odświeżeniu strony panel otwiera się na najnowszej zapisanej walce, a nie na tej,
   którą miałeś wtedy na ekranie. Kiedy zaczyna się następna walka, panel przechodzi na nią — tak jak
   dotąd.
+
+- **Poprawka** — Naciśnięcie nazwy albo liczby w wierszu z umiejętnością działa tak samo jak
+  naciśnięcie samego wiersza. Dotąd trafienie w napis nie robiło nic.
+
+- **Poprawka** — Cofanie z listy „kogo dosięgła" wraca do postaci, z której się w nią weszło, a nie
+  na sam początek zakładki.
 
 ## [0.10.1] — 2026-08-28
 

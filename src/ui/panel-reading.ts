@@ -727,6 +727,7 @@ export function composePanelSides(
 export interface ElementRow {
     /** The client's own token. What a reader is shown for it is the panel's, not the reading's. */
     element: string;
+    opensPart: boolean;
     figure: number;
     fill: number;
     shareText: string;
@@ -739,25 +740,27 @@ export interface UnnamedRow {
 }
 
 /**
- * What a row of a cut stands for: what an announcement called it, or the key the protocol wrote it
- * under. A discriminant rather than a name that may be either, because the two are worded from
- * different tables — `heal` is in the gain table and the loss table both, and named from the wrong
- * one it reads as a kind of damage.
+ * What a row of a cut stands for: what an announcement called it, the key the protocol wrote it
+ * under, or the kind the blows carried. A discriminant rather than a name that may be any of the
+ * three, because they are worded from different tables — `heal` is in the gain table and the loss
+ * table both, and named from the wrong one it reads as a kind of damage.
  */
 export type NamedPart =
     | { kind: "skill"; name: string }
-    | { kind: "source"; source: string };
+    | { kind: "source"; source: string }
+    | { kind: "element"; element: string };
 
 /** The text a part is ordered by where two of them come to the same figure. */
 export function getTextForNamedPart(part: NamedPart | { kind: "plain" }): string {
     if (part.kind === "skill") return part.name;
     if (part.kind === "source") return part.source;
+    if (part.kind === "element") return part.element;
     return "";
 }
 
 export interface SkillRow {
     part: NamedPart;
-    opensSkill: boolean;
+    opensPart: boolean;
     /**
      * How many times it was announced, and null where a count would be a claim the protocol
      * never makes — the section below says under which heading that happens.
@@ -833,12 +836,13 @@ export interface PairReading {
 }
 
 /**
- * The other last rung, and the only one a skill has. It exists on the giving side of healing
- * alone: what a skill did to somebody is stated on the row of whoever announced it, and a screen
- * about what reached **you** cuts by the skills that reached you rather than by their targets.
+ * The other last rung, and every kind of row in a cut reaches it: whom one skill, one key or one
+ * kind of a figure reached, person by person. It is the column the section it was opened from
+ * does not have — a name folds every caster's announcement into one row, and this says which of
+ * them it came from.
  */
-export interface SkillReading {
-    name: string;
+export interface PartReading {
+    part: NamedPart;
     total: number;
     byOpponent: OpponentCut;
 }
@@ -911,7 +915,11 @@ function compareElementRows(one: { element: string; figure: number }, other: {
  * that forgot the cut should leave a reader a row saying so rather than a region that failed to
  * draw.
  */
-function composeElementCut(cut: FigureCut, total: number): ElementCut {
+function composeElementCut(
+    cut: FigureCut,
+    total: number,
+    opens: (element: string) => boolean,
+): ElementCut {
     assert(total >= 0, "a figure being cut is never below nothing");
     const stated: Array<{ element: string; figure: number }> = [];
     let held = 0;
@@ -934,6 +942,7 @@ function composeElementCut(cut: FigureCut, total: number): ElementCut {
     return {
         rows: stated.map((one, at) => ({
             ...one,
+            opensPart: opens(one.element),
             fill: getFill(one.figure, largest),
             shareText: shares[at] ?? "",
         })),
@@ -1002,11 +1011,19 @@ function composeOpponentCut(
     };
 }
 
-interface UnsharedSkill {
+interface UnsharedPart {
     part: NamedPart;
+    /**
+     * How many times it was announced, and null where a count would be a claim the protocol
+     * never makes — `SkillRow` says under which heading that happens.
+     */
     uses: number | null;
     figure: number;
-    opensSkill: boolean;
+}
+
+/** The same row once the level under it has been composed and counted. */
+interface UnsharedSkill extends UnsharedPart {
+    opensPart: boolean;
 }
 
 /**
@@ -1021,20 +1038,12 @@ interface UnsharedSkill {
  * and `legbon_holytouch_heal` 3.0%, of 1,429,693 points — and the last two are legendary bonuses
  * rather than a regeneration, which is why the section names each and not the lot.
  */
-function composeSourceRows(cut: FigureCut): UnsharedSkill[] {
+function composeSourceRows(cut: FigureCut): UnsharedPart[] {
     assert(cut.size <= MAXIMUM_CUT_PARTS, "a cut stays inside the bound it is kept to");
-    const stated: UnsharedSkill[] = [];
+    const stated: UnsharedPart[] = [];
     for (const [source, figure] of cut) {
-        // No count, and nothing to open: the protocol states no number of applications, and a
-        // movement under a key has no second cut to open onto.
-        if (figure > 0) {
-            stated.push({
-                part: { kind: "source", source },
-                uses: null,
-                figure,
-                opensSkill: false,
-            });
-        }
+        // No count: the protocol states no number of applications of a key.
+        if (figure > 0) stated.push({ part: { kind: "source", source }, uses: null, figure });
     }
     return stated;
 }
@@ -1053,7 +1062,7 @@ function composeSkillRowsReceived(
     statistics: FightStatistics,
     combatantId: number,
     getCut: (skill: SkillFigures) => FigureCut,
-): UnsharedSkill[] {
+): UnsharedPart[] {
     assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its bound");
     const byName = new Map<string, number>();
     for (const held of statistics.byCombatantId.values()) {
@@ -1069,7 +1078,6 @@ function composeSkillRowsReceived(
         part: { kind: "skill" as const, name },
         uses: null,
         figure,
-        opensSkill: false,
     }));
 }
 
@@ -1089,6 +1097,22 @@ function composeSkillRows(
     metric: PanelMetric,
     combatantId: number,
 ): UnsharedSkill[] {
+    const stated = composeSkillRowsStated(statistics, figures, metric, combatantId);
+    // Asked by composing the level and counting it, rather than by a rule written beside the
+    // composer: two spellings of one question disagree silently, and the reader meets the
+    // disagreement as an arrow leading nowhere.
+    return stated.map((one) => ({
+        ...one,
+        opensPart: composePartCut(statistics, figures, metric, combatantId, one.part) !== null,
+    }));
+}
+
+function composeSkillRowsStated(
+    statistics: FightStatistics,
+    figures: CombatantFigures,
+    metric: PanelMetric,
+    combatantId: number,
+): UnsharedPart[] {
     assert(SCREEN_ORDER.includes(metric), "a cut is composed for a screen the strips draw");
     if (metric === "healthRestored") {
         return [
@@ -1108,7 +1132,6 @@ function composeSkillRows(
                 part: { kind: "skill" as const, name: one.name },
                 uses: one.uses,
                 figure: one.restored,
-                opensSkill: getOpensSkill(figures, metric, combatantId, one.name),
             })),
             ...composeSourceRows(getGivenSourceCut(figures)),
         ];
@@ -1117,7 +1140,6 @@ function composeSkillRows(
         part: { kind: "skill" as const, name: one.name },
         uses: one.uses,
         figure: one.dealt,
-        opensSkill: false,
     }));
 }
 
@@ -1203,72 +1225,155 @@ function composeSkillCut(
 }
 
 /**
- * Null where the screen states no such cut, and null where the skill reached nobody but the
- * combatant it was opened from — that level would name the reader back to themselves.
+ * Whom one part of an opened figure reached, person by person — the level a skill row, a key row
+ * or a kind row opens onto, and the same shape whichever of the three it was.
+ *
+ * ⚠️ **It lists everybody, the one it was opened from included.** Health somebody put into
+ * themselves is health they gave, and it stands inside the figure on the row that was pressed: a
+ * level narrowed against the caster closed against a smaller number and said nothing about the
+ * difference — 31 of the 74 levels a reader could then reach, 143,888 points, the largest single
+ * drop 13,167, over `captures/` on 2026-08-30.
  */
-export function composeSkillReading(
+export function composePartReading(
     statistics: FightStatistics,
     roster: CombatantRoster,
     metric: PanelMetric,
     combatantId: number,
-    name: string,
-): SkillReading | null {
-    assert(name.length > 0, "a skill is opened by the name it was announced under");
-    if (metric !== "healthGiven") return null;
-    const skill = statistics.byCombatantId.get(combatantId)?.skills.get(name);
-    if (skill === undefined) return null;
-    // Whether it opens is asked of everybody **but** the one who announced it; what it lists once
-    // open is everybody, themselves included. The two are different questions, and answering the
-    // second with the first left the level short of the row that was pressed.
-    if (composeReachedCut(skill.restoredByOpponent, combatantId).size === 0) return null;
-    assert(skill.restored >= 0, "what a skill put back is never below nothing");
+    part: NamedPart,
+): PartReading | null {
+    const figures = statistics.byCombatantId.get(combatantId);
+    if (figures === undefined) return null;
+    const cut = composePartCut(statistics, figures, metric, combatantId, part);
+    if (cut === null) return null;
+    const total = getPartTotal(figures, metric, part, cut);
+    assert(total >= 0, "a part opened states a figure that is not below nothing");
     return {
-        name: skill.name,
-        total: skill.restored,
-        byOpponent: composeOpponentCut(
-            skill.restoredByOpponent,
-            statistics,
-            roster,
-            skill.restored,
-            () => false,
-        ),
+        part,
+        total,
+        byOpponent: composeOpponentCut(cut, statistics, roster, total, () => false),
     };
 }
 
 /**
- * Everybody but the one who announced it, and it answers one question: whether the level under a
- * skill row says anything. A skill cast on nobody else opens onto the reader's own name and the
- * figure they pressed, which is that row twice.
- *
- * ⚠️ **Never what the level lists.** Health somebody put into themselves is health they gave, and
- * it is inside the figure on the row above — so a level built from this closed against a smaller
- * number than the row that opened it and said nothing about the difference. Over `captures/` on
- * 2026-08-30 that was 31 of the 74 levels a reader can reach, 143,888 points, the largest single
- * drop 13,167.
+ * The people one part of a figure reached, and null where the statistics keep no such cut. Null
+ * is the whole of the register's `never`: a key on the screen about what reached you names no
+ * giver, and neither does a kind of it.
  */
-function composeReachedCut(cut: FigureCut, combatantId: number): FigureCut {
-    const reached = new Map<string, number>();
-    assert(cut.size <= MAXIMUM_ROWS, "a skill reaches the people a fight holds, at most");
-    assert(Number.isSafeInteger(combatantId), "and is read from the row it was opened on");
-    for (const [other, figure] of cut) {
-        if (other === `${combatantId}`) continue;
-        if (figure <= 0) continue;
-        reached.set(other, figure);
+function composePartCut(
+    statistics: FightStatistics,
+    figures: CombatantFigures,
+    metric: PanelMetric,
+    combatantId: number,
+    part: NamedPart,
+): FigureCut | null {
+    assert(SCREEN_ORDER.includes(metric), "a part is opened on a screen the strips draw");
+    if (part.kind === "skill") {
+        return composePartCutForSkill(statistics, figures, metric, combatantId, part.name);
     }
-    return reached;
+    if (part.kind === "source") {
+        // Only the giving side keeps a key per person: a key names whoever received the health,
+        // so a received row has no second end to be cut by.
+        if (metric !== "healthGiven") return null;
+        return composePartCutFromPairs(
+            figures.healthGivenWithoutSkillByReceiverAndSource,
+            part.source,
+        );
+    }
+    if (metric === "damageDealtApplied") {
+        return composePartCutFromPairs(figures.damageDealtByOpponentAndKind, part.element);
+    }
+    if (metric === "damageTakenApplied") {
+        return composePartCutFromPairs(figures.damageTakenByOpponentAndKind, part.element);
+    }
+    // A key the health moved under is the receiver's, and the giver is not kept beside it.
+    return null;
 }
 
-function getOpensSkill(
+/**
+ * An announcement is kept on the record of whoever **made** it, so a skill is read off this row
+ * where the direction is giving and off everybody's where it is receiving. The receiving side is
+ * the level worth the most: the section above folds every caster under one name, and this is the
+ * column that says which of them it came from.
+ */
+function composePartCutForSkill(
+    statistics: FightStatistics,
     figures: CombatantFigures,
     metric: PanelMetric,
     combatantId: number,
     name: string,
-): boolean {
-    assert(name.length > 0, "a skill is asked about by name");
-    if (metric !== "healthGiven") return false;
-    const skill = figures.skills.get(name);
-    if (skill === undefined) return false;
-    return composeReachedCut(skill.restoredByOpponent, combatantId).size > 0;
+): FigureCut | null {
+    assert(name.length > 0, "a skill is opened by the name it was announced under");
+    const isDamage = getNounForScreen(metric) === "damage";
+    if (getDirectionForScreen(metric) === "given") {
+        const skill = figures.skills.get(name);
+        if (skill === undefined) return null;
+        return composePartCutStated(isDamage ? skill.dealtByOpponent : skill.restoredByOpponent);
+    }
+    assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its bound");
+    const reached = new Map<string, number>();
+    for (const [otherId, held] of statistics.byCombatantId) {
+        for (const skill of held.skills.values()) {
+            if (skill.name !== name) continue;
+            const cut = isDamage ? skill.dealtByOpponent : skill.restoredByOpponent;
+            const figure = cut.get(`${combatantId}`) ?? 0;
+            if (figure > 0) reached.set(`${otherId}`, (reached.get(`${otherId}`) ?? 0) + figure);
+        }
+        assert(reached.size <= MAXIMUM_ROWS, "and so does the level under one of its rows");
+    }
+    return reached.size === 0 ? null : reached;
+}
+
+/** A cut of a cut, read the other way round: the part is named, and the people are the rows. */
+function composePartCutFromPairs(
+    pairs: ReadonlyMap<string, FigureCut>,
+    named: string,
+): FigureCut | null {
+    assert(named.length > 0, "a part is opened under the name the game wrote it under");
+    assert(pairs.size <= MAXIMUM_ROWS, "a fight stays inside its bound");
+    const reached = new Map<string, number>();
+    for (const [other, cut] of pairs) {
+        const figure = cut.get(named) ?? 0;
+        if (figure > 0) reached.set(other, figure);
+    }
+    return reached.size === 0 ? null : reached;
+}
+
+/** A reading of the cut and never the cut itself, and a part that came to nothing is no part. */
+function composePartCutStated(cut: FigureCut): FigureCut | null {
+    assert(cut.size <= MAXIMUM_ROWS, "a part reaches the people a fight holds, at most");
+    const stated = new Map<string, number>();
+    for (const [other, figure] of cut) {
+        if (figure > 0) stated.set(other, figure);
+    }
+    return stated.size === 0 ? null : stated;
+}
+
+/**
+ * The figure the row that was pressed states, and never the sum of the level under it: a blow the
+ * protocol tied to nobody is inside what a skill dealt and outside every row of whom it reached,
+ * and the difference is the row `composeOpponentCut` draws for nobody. Read off the same field
+ * the section read, so a level cannot open under a figure the reader never saw.
+ */
+function getPartTotal(
+    figures: CombatantFigures,
+    metric: PanelMetric,
+    part: NamedPart,
+    cut: FigureCut,
+): number {
+    if (part.kind === "element") {
+        return getCutsForMetric(figures, metric).byElement?.get(part.element) ??
+            getTotalFromCut(cut);
+    }
+    if (part.kind === "skill") {
+        if (getDirectionForScreen(metric) === "given") {
+            const skill = figures.skills.get(part.name);
+            if (skill === undefined) return getTotalFromCut(cut);
+            return getNounForScreen(metric) === "damage" ? skill.dealt : skill.restored;
+        }
+    }
+    // What was received under a name, and what a key gave, are read by folding the same cut the
+    // level is: the section above states no second figure for either.
+    return getTotalFromCut(cut);
 }
 
 /**
@@ -1296,49 +1401,11 @@ export function composePairReading(
         otherProfession: held?.profession ?? null,
         total,
         parts: composePairParts(statistics, metric, combatantId, otherId, total),
-        byElement: kinds === null ? { rows: [], unnamed: null } : composeElementCut(kinds, total),
+        // Nothing on the last rung opens: the protocol states no further cut of a pair.
+        byElement: kinds === null
+            ? { rows: [], unnamed: null }
+            : composeElementCut(kinds, total, () => false),
     };
-}
-
-/**
- * It opens where the level under it would say something the row does not, and stays shut where that
- * level would be one row repeating the figure just pressed.
- *
- * Two branches, because the two screens draw a different number of sections. On damage the kinds
- * stand in a section of their own beside the announcements, so more than one kind is already a
- * level worth opening; on healing there is one section, and the honest answer is to compose it and
- * count. Answered by composing the level rather than by a second rule about it: a predicate written
- * alongside the composer is two spellings of one question, and the disagreement is silent — an
- * arrow leading nowhere, or none where there was something to see.
- *
- * ⚠️ **A single row is a repetition only where it adds no name.** An announcement names the skill
- * the health moved under, which the person row above it does not — and on the screen about what
- * reached this combatant nothing else states which of them cast which. A key adds no such name:
- * over `captures/` on 2026-08-30 every one of the 240 single-key pairs is somebody and
- * themselves, and `OD CZEGO` one rung up already lists those keys. 550 of the 558 single-skill
- * pairs are between two different people.
- */
-function getOpensPair(
-    statistics: FightStatistics,
-    figures: CombatantFigures,
-    metric: PanelMetric,
-    combatantId: number,
-    otherId: number,
-): boolean {
-    assert(Number.isSafeInteger(otherId), "the other end of a pair is named by a number");
-    const kinds = getPairKinds(figures, metric, otherId);
-    if (kinds !== null) {
-        if (kinds.size > 1) return true;
-        const named = composePairPartFigures(statistics, metric, combatantId, otherId);
-        return named.some((one) => one.part.kind === "skill");
-    }
-    const total = getPairTotal(figures, metric, otherId);
-    if (total === null) return false;
-    const stated = composePairPartFigures(statistics, metric, combatantId, otherId);
-    const held = getTotalFromParts(stated);
-    assert(held <= total, "what the parts came to is no more than what passed between the two");
-    if (stated.length + (held < total ? 1 : 0) > 1) return true;
-    return stated.some((one) => one.part.kind === "skill");
 }
 
 function getPairKinds(
@@ -1358,12 +1425,18 @@ function getPairKinds(
 
 /**
  * What passed between the two, on the screen being read — and null where nothing did, which is a
- * pair that does not exist rather than one standing at nothing.
+ * pair that does not exist rather than one standing at nothing. It is the whole of the question a
+ * person row inside an opened row is asked: where there is a figure between the two, the level
+ * exists and the row opens onto it.
  *
  * On healing it is read off the flat cut the opponent row above it was drawn from, so an opened
  * pair states the figure that was pressed rather than a sum of the rows under it. A cut of the
  * skills would close against a figure nobody pressed: a pair no announcement covered would come to
  * nothing and open onto an empty level.
+ *
+ * One branch per screen rather than a fall-through past the kinds: a damage screen whose cut of a
+ * cut was missing an opponent the flat cut holds would answer with a figure off the healing maps,
+ * and a figure under the wrong noun is the one thing a drill must never state.
  */
 function getPairTotal(
     figures: CombatantFigures,
@@ -1371,8 +1444,10 @@ function getPairTotal(
     otherId: number,
 ): number | null {
     assert(Number.isSafeInteger(otherId), "the other end of a pair is named by a number");
-    const kinds = getPairKinds(figures, metric, otherId);
-    if (kinds !== null) return getTotalFromCut(kinds);
+    if (getNounForScreen(metric) === "damage") {
+        const kinds = getPairKinds(figures, metric, otherId);
+        return kinds === null ? null : getTotalFromCut(kinds);
+    }
     if (metric === "healthGiven") return figures.healthGivenByReceiver.get(`${otherId}`) ?? null;
     return figures.healthRestoredByGiver.get(`${otherId}`) ?? null;
 }
@@ -1385,12 +1460,12 @@ function getTotalFromCut(cut: FigureCut): number {
     return total;
 }
 
-interface UnsharedPart {
+interface UnsharedPairPart {
     part: PairPart;
     figure: number;
 }
 
-function getTotalFromParts(parts: readonly UnsharedPart[]): number {
+function getTotalFromParts(parts: readonly UnsharedPairPart[]): number {
     let total = 0;
     for (const one of parts) {
         assert(one.figure > 0, "a part that is drawn is a part with a figure in it");
@@ -1433,11 +1508,11 @@ function composePairPartFigures(
     metric: PanelMetric,
     combatantId: number,
     otherId: number,
-): UnsharedPart[] {
+): UnsharedPairPart[] {
     const end = getPairGivingEnd(statistics, metric, combatantId, otherId);
     if (end.figures === undefined) return [];
     const isDamage = getNounForScreen(metric) === "damage";
-    const stated: UnsharedPart[] = [];
+    const stated: UnsharedPairPart[] = [];
     for (const skill of end.figures.skills.values()) {
         const figure = isDamage
             ? skill.dealtByOpponent.get(end.subject) ?? 0
@@ -1525,11 +1600,17 @@ export function composeDrillReading(
         statistics,
         roster,
         total,
-        (otherId) => getOpensPair(statistics, figures, metric, combatantId, otherId),
+        (otherId) => getPairTotal(figures, metric, otherId) !== null,
     );
-    const byElement = cuts.byElement === null
-        ? { rows: [], unnamed: null }
-        : composeElementCut(cuts.byElement, total);
+    const byElement = cuts.byElement === null ? { rows: [], unnamed: null } : composeElementCut(
+        cuts.byElement,
+        total,
+        (element) =>
+            composePartCut(statistics, figures, metric, combatantId, {
+                kind: "element",
+                element,
+            }) !== null,
+    );
     assert(byOpponent.rows.length <= MAXIMUM_ROWS, "an opened row stays inside the fight's bound");
     assert(byElement.rows.every((one) => one.figure >= 0), "and no kind of it is below nothing");
     return {

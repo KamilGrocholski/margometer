@@ -641,6 +641,55 @@ function setScreenKept(
     }
 }
 
+/**
+ * The other shape of the third level, and the way out of it. The two are entered by different
+ * marks and left by the same control, so a way back that knew only about the pair walked a reader
+ * to the ranking while the crumb beside it named the person they had opened.
+ */
+Deno.test("a reader opens what a figure was made of, and the way back is one rung", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    const getRegion = (className: string) => {
+        return getElementsWithin(host).find((one) => one.className === className);
+    };
+    const name = getRegion("row-name");
+    assert(name !== undefined, "a reader presses a row of the ranking");
+    pressElement(host, "pointerdown", name);
+    const person = getRegion("crumb-here")?.textContent;
+    assert(person !== undefined, "which opens onto their figure, and says whose it is");
+
+    const part = getElementsWithin(host).find((one) => {
+        if (one.className !== "row-name") return false;
+        return one.attributes.get("data-skill") !== undefined;
+    });
+    assert(part !== undefined, "an announcement inside it is pressed by its own name");
+    const named = part.textContent;
+    pressElement(host, "pointerdown", part);
+    assertEquals(
+        getRegion("crumb-here")?.textContent,
+        named,
+        "and the level over the screen is that announcement",
+    );
+    assert(
+        getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row").length > 0,
+        "listing whom it reached",
+    );
+
+    pressElement(host, "pointerdown", getRegion("crumb-back") ?? host);
+    assertEquals(
+        getRegion("crumb-here")?.textContent,
+        person,
+        "and the way back off it goes to the person it was opened from, one rung at a time",
+    );
+    pressElement(host, "pointerdown", getRegion("crumb-back") ?? host);
+    assertEquals(getRegion("crumb"), undefined, "and the next press closes the row");
+});
+
 Deno.test("a row belonging to nobody in the fight opens nothing", () => {
     const battle: Record<string, unknown> = { updateData: () => 1 };
     const { environment, shown } = composeEnvironment({ Engine: { battle } });

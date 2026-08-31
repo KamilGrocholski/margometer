@@ -16,7 +16,7 @@ import {
     composeDrillReading,
     composePairReading,
     composePanelReading,
-    composeSkillReading,
+    composePartReading,
     NOTHING_MISSED,
     type PanelMetric,
 } from "@/src/ui/panel-reading.ts";
@@ -128,14 +128,19 @@ function composeSectionsForScreenRow(
             total: pair.total,
         });
     }
-    for (const named of drill.bySkill.rows) {
-        if (named.part.kind !== "skill") continue;
-        const skill = composeSkillReading(statistics, roster, metric, combatantId, named.part.name);
-        if (skill === null) continue;
+    // Every kind of part, and the kinds beside the announcements: each opens onto a level of
+    // its own, and a column that came to ninety-something on any of them is the finding.
+    const parts = [
+        ...drill.bySkill.rows.map((one) => one.part),
+        ...drill.byElement.rows.map((one) => ({ kind: "element" as const, element: one.element })),
+    ];
+    for (const part of parts) {
+        const held = composePartReading(statistics, roster, metric, combatantId, part);
+        if (held === null) continue;
         found.push({
-            where: `${metric}/skill.byOpponent`,
-            rows: composeCutShares(skill.byOpponent.rows, skill.byOpponent.unnamed),
-            total: skill.total,
+            where: `${metric}/part.byOpponent`,
+            rows: composeCutShares(held.byOpponent.rows, held.byOpponent.unnamed),
+            total: held.total,
         });
     }
     return found;
@@ -211,7 +216,7 @@ Deno.test("every column of shares the panel draws comes to a hundred", () => {
     }
     // The reader is proved by what it found as well as by what it passed: a sweep that stopped
     // reaching the rungs would agree with every screen it never opened.
-    assertEquals(drawn, 27_541, "every column the corpus draws, 2026-08-31");
+    assertEquals(drawn, 41_348, "every column the corpus draws, 2026-08-31");
 });
 
 function composeSection(where: string, rows: ShareRow[], total: number): Section {

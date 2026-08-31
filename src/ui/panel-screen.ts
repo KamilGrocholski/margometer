@@ -7,7 +7,7 @@
  */
 
 import { assert } from "@std/assert";
-import type { PanelMetric } from "@/src/ui/panel-reading.ts";
+import type { NamedPart, PanelMetric } from "@/src/ui/panel-reading.ts";
 import {
     getWordsForDirection,
     getWordsForNoun,
@@ -76,7 +76,8 @@ export interface ScreenState {
     isOnShelf: boolean;
     openRowId: number | null;
     openPairId: number | null;
-    openSkillName: string | null;
+    /** Which row of a cut stands open — a skill, a key or a kind, and never two of them. */
+    openPart: NamedPart | null;
     /** A fight chosen is read from what was kept of it, never from figures somebody stored. */
     openFightId: number | null;
     isCollapsed: boolean;
@@ -89,14 +90,14 @@ export function composeScreenState(isCollapsed: boolean): ScreenState {
         isOnShelf: false,
         openRowId: null,
         openPairId: null,
-        openSkillName: null,
+        openPart: null,
         openFightId: null,
         isCollapsed,
     };
     assert(SCREEN_ORDER.includes(state.current), "a panel opens on a screen it can draw");
     assert(state.openRowId === null, "and with every row closed");
     assert(state.openPairId === null, "and no pair standing over one");
-    assert(state.openSkillName === null, "and no skill standing over that");
+    assert(state.openPart === null, "and no part of a cut standing over that");
     assert(state.openFightId === null, "and the fight being read is the one going on");
     assert(state.side === "everyone", "and listing everybody, before a reader has narrowed it");
     assert(state.isCollapsed === isCollapsed, "and folded exactly as the reader last left it");

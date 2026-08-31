@@ -15,12 +15,11 @@ import type {
     PanelMetric,
     PanelReading,
     PanelSides,
+    PartReading,
     PersonRow,
     PinnedRow,
     RankingRow,
     ShelfRow,
-    SkillCut,
-    SkillReading,
     SkillRow,
     UnnamedRow,
 } from "@/src/ui/panel-reading.ts";
@@ -29,6 +28,7 @@ import {
     composeDirectionTabs,
     composeNounTabs,
     composeSideTabs,
+    getDirectionForScreen,
     getNounForScreen,
     getWordsForKindCut,
     getWordsForOpponentCut,
@@ -140,7 +140,10 @@ const SCREEN_ATTRIBUTE = "data-screen";
 const SIDE_ATTRIBUTE = "data-side";
 const ROW_ATTRIBUTE = "data-row";
 const BACK_ATTRIBUTE = "data-back";
+/** One per kind of part, so what a row opens is read off an attribute rather than parsed. */
 const SKILL_ATTRIBUTE = "data-skill";
+const SOURCE_ATTRIBUTE = "data-source";
+const KIND_ATTRIBUTE = "data-kind";
 const FIGHT_ATTRIBUTE = "data-fight";
 const PIN_ATTRIBUTE = "data-pin";
 const STORAGE_ATTRIBUTE = "data-storage";
@@ -210,12 +213,17 @@ interface RowTip {
     figure: string;
     share: string | null;
     compose?: TipCompose | undefined;
-    /**
-     * Whether pressing the row leads anywhere, where that cannot be read off the mark it wears.
-     * One kind of row needs it: a skill opens by `data-skill`, which its caller sets afterwards,
-     * so the row itself is built saying it states nothing.
-     */
-    opens?: boolean | undefined;
+}
+
+/**
+ * What a row is pressed by: the attribute the listener reads it off, and what it says. A row that
+ * opens nothing wears none, and that one answer decides the cursor, the note on the card and
+ * whether a press lands — spelling them apart is how a section came to have half its rows
+ * pressable and nothing saying which.
+ */
+interface RowMark {
+    attribute: string;
+    stated: string;
 }
 
 interface RowReading {
@@ -317,15 +325,14 @@ function composeRowTipReading(reading: RowReading, tip: RowTip, opens: boolean):
 function composeRowElement(
     document: PanelDocument,
     reading: RowReading,
-    stated: string | null,
+    mark: RowMark | null,
     tip: RowTip,
 ): PanelElement {
     assert(reading.figure >= 0, "a row drawn states a figure that is not below nothing");
-    // What the row states when pressed decides the cursor; whether it leads anywhere decides what
-    // the tip says. They are the same answer everywhere but under a skill, which opens by its own
-    // mark — so the tip is told, and falls back on the mark where nobody told it.
-    const opens = tip.opens ?? stated !== null;
-    const kind = stated === null ? CLASS.rowLeaf : CLASS.rowDrillable;
+    // The mark it wears is the whole answer: the cursor, the note the card carries and what a
+    // press resolves to are one question asked once.
+    const opens = mark !== null;
+    const kind = opens ? CLASS.rowDrillable : CLASS.rowLeaf;
     const element = composeElement(document, "div", `${CLASS.row} ${kind}`);
     const parts = composeBarElements(document, reading);
     const rank = composeElement(document, "span", CLASS.rowRank);
@@ -351,7 +358,9 @@ function composeRowElement(
     for (const part of parts) element.append(part);
     parts.push(share);
     const marked = [element, ...parts];
-    if (stated !== null) setRowMarks(marked, ROW_ATTRIBUTE, stated);
+    // Every span and not the row alone: a listener reads what was pressed off the node under the
+    // hand, and a mark on the row only swallows a press that landed on the name or the figure.
+    if (mark !== null) setRowMarks(marked, mark.attribute, mark.stated);
     tip.register.add(tip.key, tip.compose ?? (() => composeRowTipReading(reading, tip, opens)));
     setRowMarks(marked, TIP_ATTRIBUTE, tip.key);
     assert(name.textContent.length > 0, "a row names somebody, or says it cannot");
@@ -537,7 +546,13 @@ function composeCrumbRegion(document: PanelDocument, view: PanelView): PanelElem
     }
     if (view.drill === null) return composeSlotElement(document);
     const opened = view.drill.name ?? PANEL_WORDS.unknown;
-    if (view.skill !== null) return composeCrumbElement(document, view.skill.name, opened);
+    if (view.part !== null) {
+        return composeCrumbElement(
+            document,
+            getWordsForNamedPart(view.part.part, view.current),
+            opened,
+        );
+    }
     if (view.pair === null) return composeCrumbElement(document, opened);
     return composeCrumbElement(document, view.pair.otherName ?? PANEL_WORDS.unknown, opened);
 }
@@ -560,35 +575,6 @@ function composeCrumbElement(
     assert(back.textContent.startsWith(BACK_MARK), "the way back is marked as the way back");
     assert(here.textContent.length > 0, "the row standing open names somebody, or says it cannot");
     return crumb;
-}
-
-function getIsRepetition(
-    rows: readonly { figure: number }[],
-    extra: { figure: number } | null,
-    total: number,
-): boolean {
-    assert(total >= 0, "a figure a cut stands under is never below nothing");
-    assert(rows.length >= 0, "and a cut holds the rows it holds, however few");
-    if (extra !== null) return rows.length === 0 && extra.figure === total;
-    return rows.length === 1 && (rows[0]?.figure ?? 0) === total;
-}
-
-/**
- * The skills section answers to the same rule with two exemptions, and both are the same argument:
- * a row is a repetition only where it says nothing the heading does not.
- *
- * `Zwykły cios 2 644 (100% · ×8)` says eight blows. **A named skill says its name** — the heading
- * carries the figure and never what it was dealt with, so one row holding the whole of it is the
- * one place a reader learns which skill that was. A lone key row is not exempt: `DESIGN.md` puts
- * the keys on screen a section lower.
- */
-function getIsSkillRepetition(cut: SkillCut, total: number): boolean {
-    if ((cut.plain?.blows ?? 0) > 0) return false;
-    if (cut.rows.length === 1) {
-        const only = cut.rows[0];
-        if (only?.part.kind === "skill") return false;
-    }
-    return getIsRepetition(cut.rows, cut.plain, total);
 }
 
 function composeSectionElement(
@@ -661,7 +647,10 @@ function composeRankingElement(
                 true,
             ),
         };
-        list.append(composeRowElement(document, reader, `${row.combatantId}`, tip));
+        list.append(composeRowElement(document, reader, {
+            attribute: ROW_ATTRIBUTE,
+            stated: `${row.combatantId}`,
+        }, tip));
     }
     return list;
 }
@@ -772,12 +761,14 @@ function composeOpponentSection(
                 compose: composePersonCard(row, stated.place, row.opensPair),
             },
         };
-        const opens = row.opensPair ? `${row.combatantId}` : null;
+        const mark = row.opensPair
+            ? { attribute: ROW_ATTRIBUTE, stated: `${row.combatantId}` }
+            : null;
         list.append(
             composeRowElement(
                 document,
                 composeCombatantReading(row, at + 1, stated.metric),
-                opens,
+                mark,
                 tip,
             ),
         );
@@ -806,9 +797,18 @@ function composeOpponentSection(
 function getWordsForNamedPart(part: NamedPart | { kind: "plain" }, metric: PanelMetric): string {
     if (part.kind === "skill") return part.name;
     if (part.kind === "plain") return getWordsForUnannounced(metric);
+    const named = part.kind === "source" ? part.source : part.element;
     return getNounForScreen(metric) === "damage"
-        ? getWordsForDamageKind(part.source)
-        : getWordsForHealthSource(part.source);
+        ? getWordsForDamageKind(named)
+        : getWordsForHealthSource(named);
+}
+
+/** The mark a part row wears, and null where the level under it holds nothing. */
+function getMarkForNamedPart(part: NamedPart, opens: boolean): RowMark | null {
+    if (!opens) return null;
+    if (part.kind === "skill") return { attribute: SKILL_ATTRIBUTE, stated: part.name };
+    if (part.kind === "source") return { attribute: SOURCE_ATTRIBUTE, stated: part.source };
+    return { attribute: KIND_ATTRIBUTE, stated: part.element };
 }
 
 /** One key per part and per section, so a tip is never the one a row beside it registered. */
@@ -816,6 +816,7 @@ function getKeyForNamedPart(where: string, part: NamedPart | { kind: "plain" }):
     assert(where.length > 0, "a tip is registered under the section it was drawn in");
     if (part.kind === "skill") return `${where}-skill:${part.name}`;
     if (part.kind === "plain") return `${where}-skill:plain`;
+    if (part.kind === "element") return `${where}-kind:${part.element}`;
     return `${where}-source:${part.source}`;
 }
 
@@ -828,7 +829,6 @@ function composeSkillSection(
     const cut = drill.bySkill;
     assert(cut.rows.length <= MAXIMUM_SKILLS, "a cut stays inside the bound it is kept to");
     if (cut.rows.length === 0 && cut.plain === null) return;
-    if (getIsSkillRepetition(cut, drill.total)) return;
     list.append(composeSectionElement(document, PANEL_WORDS.skills, drill.total));
     const share = PANEL_WORDS.shareOfFigure;
     for (const [at, row] of cut.rows.entries()) {
@@ -837,15 +837,10 @@ function composeSkillSection(
             key: getKeyForNamedPart("skill", row.part),
             figure: stated.figure,
             share,
-            opens: row.opensSkill,
         };
         const reading = composeSkillRowReading(row, stated.metric, at + 1);
-        const element = composeRowElement(document, reading, null, tip);
-        // A skill opens by the name it was announced under, and a key opens nothing at all.
-        if (row.part.kind === "skill") {
-            if (row.opensSkill) setRowMarks([element], SKILL_ATTRIBUTE, row.part.name);
-        }
-        list.append(element);
+        const mark = getMarkForNamedPart(row.part, row.opensPart);
+        list.append(composeRowElement(document, reading, mark, tip));
     }
     if (cut.plain === null) return;
     const tip = { register: stated.register, key: "skill:plain", figure: stated.figure, share };
@@ -882,7 +877,6 @@ function composeElementSection(
     assert(cut.rows.length <= MAXIMUM_KINDS, "a cut stays inside the bound it is kept to");
     assert(drill.total >= 0, "a cut stands under a figure that is not below nothing");
     if (cut.rows.length === 0 && cut.unnamed === null) return;
-    if (getIsRepetition(cut.rows, cut.unnamed, drill.total)) return;
     list.append(composeSectionElement(document, getWordsForKindCut(stated.metric), drill.total));
     const noun = getNounForScreen(stated.metric);
     const share = PANEL_WORDS.shareOfFigure;
@@ -893,8 +887,14 @@ function composeElementSection(
             figure: stated.figure,
             share,
         };
+        const part = { kind: "element" as const, element: row.element };
         list.append(
-            composeRowElement(document, composeElementReading(row, noun, at + 1), null, tip),
+            composeRowElement(
+                document,
+                composeElementReading(row, noun, at + 1),
+                getMarkForNamedPart(part, row.opensPart),
+                tip,
+            ),
         );
     }
     if (cut.unnamed === null) return;
@@ -1072,7 +1072,7 @@ export interface PanelView {
     isOnShelf: boolean;
     drill: DrillReading | null;
     pair: PairReading | null;
-    skill: SkillReading | null;
+    part: PartReading | null;
     place: string | null;
     isCollapsed: boolean;
 }
@@ -1081,7 +1081,7 @@ export type PanelPress =
     | { kind: "screen"; screen: string }
     | { kind: "side"; side: string }
     | { kind: "row"; stated: string }
-    | { kind: "skill"; name: string }
+    | { kind: "part"; part: NamedPart }
     | { kind: "fight"; stated: string }
     | { kind: "pin"; stated: string }
     | { kind: "storage"; name: string }
@@ -1099,8 +1099,8 @@ function composeViewList(
     assert(SCREEN_ORDER.includes(view.current), "a view is on a screen the strip draws");
     assert(view.shelf.length >= 0, "and carries the fights behind it, however few");
     if (view.isOnShelf) return composeShelfElement(document, view, register);
-    if (view.skill !== null) {
-        return composeSkillElement(document, view, view.skill, register, translate);
+    if (view.part !== null) {
+        return composePartElement(document, view, view.part, register, translate);
     }
     if (view.pair !== null) return composePairElement(document, view, view.pair, register);
     if (view.drill !== null) {
@@ -1109,21 +1109,26 @@ function composeViewList(
     return composeRankingElement(document, view.reading, view.current, register, translate);
 }
 
-function composeSkillElement(
+/**
+ * Whom one part of an opened figure reached. The heading is the direction's, so a level opened on
+ * a screen about what reached the reader is headed by whom it came from.
+ */
+function composePartElement(
     document: PanelDocument,
     view: PanelView,
-    skill: SkillReading,
+    part: PartReading,
     register: TipRegister,
     translate: TranslateLabel | null,
 ): PanelElement {
-    const rows = skill.byOpponent.rows.length + (skill.byOpponent.unnamed === null ? 0 : 1);
-    assert(rows > 0, "a skill that opens reached somebody");
+    const rows = part.byOpponent.rows.length + (part.byOpponent.unnamed === null ? 0 : 1);
+    assert(rows > 0, "a part that opens reached somebody");
     const list = composeListElement(document, Math.max(rows + 1, view.reading.visibleRows));
     const figure = getWordsForScreen(view.current);
-    assert(skill.total >= 0, "a skill opened states a figure that is not below nothing");
-    assert(skill.name.length > 0, "and the name it was announced under");
-    const heading = `${PANEL_WORDS.dealtTo} — ${skill.name}`;
-    list.append(composeSectionElement(document, heading, skill.total));
+    assert(part.total >= 0, "a part opened states a figure that is not below nothing");
+    const named = getWordsForNamedPart(part.part, view.current);
+    assert(named.length > 0, "and the name it was drawn under");
+    const heading = `${getWordsForOpponentCut(view.current)} — ${named}`;
+    list.append(composeSectionElement(document, heading, part.total));
     const share = PANEL_WORDS.shareOfFigure;
     // Nothing on this rung opens, so no card here promises a gesture (`docs/drill-levels.md`).
     const place: CardPlace = {
@@ -1132,7 +1137,7 @@ function composeSkillElement(
         translate,
         isRowNarrower: true,
     };
-    for (const [at, row] of skill.byOpponent.rows.entries()) {
+    for (const [at, row] of part.byOpponent.rows.entries()) {
         const tip = {
             register,
             key: `reached:${row.combatantId}`,
@@ -1149,6 +1154,15 @@ function composeSkillElement(
             ),
         );
     }
+    if (part.byOpponent.unnamed === null) return list;
+    // The end the protocol left out of a blow this part carried: it is inside the figure over the
+    // level, so the column comes to a hundred with it and falls short without it.
+    const words = getDirectionForScreen(view.current) === "given"
+        ? PANEL_WORDS.withoutTarget
+        : PANEL_WORDS.withoutActor;
+    const tip = { register, key: "reached:nobody", figure, share };
+    const reading = composeUnnamedReading(part.byOpponent.unnamed, words);
+    list.append(composeRowElement(document, reading, null, tip));
     return list;
 }
 
@@ -1207,7 +1221,6 @@ function composePairKinds(
     const cut = pair.byElement;
     assert(cut.rows.length <= MAXIMUM_KINDS, "a cut stays inside the bound it is kept to");
     if (cut.rows.length === 0) return;
-    if (getIsRepetition(cut.rows, cut.unnamed, pair.total)) return;
     list.append(composeSectionElement(document, PANEL_WORDS.damageKind, pair.total));
     for (const [at, row] of cut.rows.entries()) {
         const tip = { ...stated, key: `pair-kind:${row.element}` };
@@ -1253,7 +1266,11 @@ function getPressFromTarget(
     const stated = target.getAttribute(ROW_ATTRIBUTE);
     if (stated !== null) return { kind: "row", stated };
     const name = target.getAttribute(SKILL_ATTRIBUTE);
-    if (name !== null) return { kind: "skill", name };
+    if (name !== null) return { kind: "part", part: { kind: "skill", name } };
+    const source = target.getAttribute(SOURCE_ATTRIBUTE);
+    if (source !== null) return { kind: "part", part: { kind: "source", source } };
+    const element = target.getAttribute(KIND_ATTRIBUTE);
+    if (element !== null) return { kind: "part", part: { kind: "element", element } };
     const fight = target.getAttribute(FIGHT_ATTRIBUTE);
     if (fight !== null) return { kind: "fight", stated: fight };
     const pinned = target.getAttribute(PIN_ATTRIBUTE);

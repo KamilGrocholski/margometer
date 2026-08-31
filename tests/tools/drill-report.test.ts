@@ -167,7 +167,7 @@ Deno.test("every row of every ranking carries the mark that opens it", () => {
             shelfWarnings: [],
             drill: null,
             pair: null,
-            skill: null,
+            part: null,
             place: null,
             isCollapsed: false,
         });
@@ -204,14 +204,16 @@ Deno.test("the report is the composition, and states the material it was taken o
 
 Deno.test("a recording walked row by row names whom each level was opened from", () => {
     const replay = composeFightReplay(getRecordedFightAt(HILDUR));
-    const lines = composeDrillReport(replay, ["healthGiven"]);
+    const lines = composeDrillReport(replay, ["healthGiven", "healthRestored"]);
     assert(
         lines.includes("=== 2026-08-06-tempest-grupa-vs-hildur-1785244275300-none ==="),
         "named for its file",
     );
-    assert(lines.includes("  --- healthGiven ---"), "and for the screen it walked");
+    assert(lines.includes("  --- healthGiven ---"), "and for the screens it walked");
+    assert(lines.includes("  --- healthRestored ---"), "both of them");
     assert(lines.some((line) => line.includes("person  opens")), "some rows of it open");
-    assert(lines.some((line) => line.includes("person  leaf")), "and some do not");
+    // The receiving side keeps a key flat, with nobody beside it, so its rows open onto nothing.
+    assert(lines.some((line) => line.includes("source leaf")), "and some do not");
     assert(
         !lines.some((line) => line.includes("--- damageDealtApplied ---")),
         "a screen nobody asked for is not walked",

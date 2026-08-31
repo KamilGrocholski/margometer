@@ -115,3 +115,5 @@ edited to agree with the new rule.
   wherever a person stands. **Accepted**
 - [0033](0033-a-panel-with-no-live-fight-opens-on-the-shelf.md) — A panel with no live fight opens
   on the shelf. **Accepted**
+- [0034](0034-every-row-with-a-level-under-it-opens.md) — Every row with a level under it opens, and
+  every cut that holds a row is drawn. **Accepted**

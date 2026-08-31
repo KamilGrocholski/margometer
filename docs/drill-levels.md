@@ -18,21 +18,27 @@ deno task drill --screen healthGiven       # one screen of it
 
 ## The four views, at three levels
 
-**The panel is three levels deep, and the third has two shapes.** `pair` and `skill` are both a
-press away from `opened` and neither is reachable from the other, so a reader counting how far down
-they can go counts three.
+**The panel is three levels deep, and the third has two shapes.** `pair` and `part` are both a press
+away from `opened` and neither is reachable from the other, so a reader counting how far down they
+can go counts three.
 
-| view      | level | what it lists                                          | how a reader gets there                                            |
-| --------- | ----- | ------------------------------------------------------ | ------------------------------------------------------------------ |
-| `ranking` | 1     | one row per combatant, by the chosen figure            | the screen a tab opens on                                          |
-| `opened`  | 2     | that combatant's figure, in up to three cuts           | pressing a ranking row                                             |
-| `pair`    | 3     | what one of them did to the other, by skill and by key | pressing a person in the opened row's `KOMU` / `OD KOGO` section   |
-| `skill`   | 3     | whom that one skill reached, person by person          | pressing a skill in the opened row's `CZYM (UMIEJĘTNOŚCI)` section |
+| view      | level | what it lists                                          | how a reader gets there                                      |
+| --------- | ----- | ------------------------------------------------------ | ------------------------------------------------------------ |
+| `ranking` | 1     | one row per combatant, by the chosen figure            | the screen a tab opens on                                    |
+| `opened`  | 2     | that combatant's figure, in up to three cuts           | pressing a ranking row                                       |
+| `pair`    | 3     | what one of them did to the other, by skill and by key | pressing a person in the opened row's `KOMU` / `OD KOGO` cut |
+| `part`    | 3     | whom one row of a cut reached, person by person        | pressing a skill, a key or a kind inside the opened row      |
+
+**A row opens wherever there is a level under it.** What decides it is never whether that level
+would say something new — a cut of one row states what the figure over it was made of, which the
+heading never does, and a reader who cannot press a row learns nothing at all. What stays shut is
+what the statistics keep no second cut of, and **ADR 0034** carries the argument.
 
 **Nothing on the third level opens**, in either shape and on any screen. The two are entered by
-different marks — a person carries `data-row`, a skill carries `data-skill`, set at the one place in
-`src/ui/panel-element.ts` that sets it — which is why a skill row wears the leaf's cursor while
-still opening something.
+different marks: a person carries `data-row`, and a part carries one of `data-skill`, `data-source`
+and `data-kind` — one attribute per kind of part, so what a press asks for is read off the node
+rather than parsed out of it. Every mark goes on the row **and on every cell in it**, because a
+listener reads what was pressed off the node under the hand and walks no ancestors.
 
 ## The kinds of row
 
@@ -62,69 +68,60 @@ A verdict outside that list is refused rather than read as silence.
 | -------------------- | --------- | ------------ | ----------- |
 | `damageDealtApplied` | `ranking` | `person`     | `always`    |
 | `damageDealtApplied` | `ranking` | `half-named` | `never`     |
-| `damageDealtApplied` | `opened`  | `person`     | `sometimes` |
-| `damageDealtApplied` | `opened`  | `skill`      | `never`     |
+| `damageDealtApplied` | `opened`  | `person`     | `always`    |
+| `damageDealtApplied` | `opened`  | `skill`      | `always`    |
 | `damageDealtApplied` | `opened`  | `closing`    | `never`     |
-| `damageDealtApplied` | `opened`  | `kind`       | `never`     |
+| `damageDealtApplied` | `opened`  | `kind`       | `always`    |
 | `damageDealtApplied` | `pair`    | `skill`      | `never`     |
 | `damageDealtApplied` | `pair`    | `closing`    | `never`     |
 | `damageDealtApplied` | `pair`    | `kind`       | `never`     |
+| `damageDealtApplied` | `part`    | `person`     | `never`     |
 | `damageTakenApplied` | `ranking` | `person`     | `always`    |
 | `damageTakenApplied` | `ranking` | `half-named` | `never`     |
-| `damageTakenApplied` | `opened`  | `person`     | `sometimes` |
+| `damageTakenApplied` | `opened`  | `person`     | `always`    |
 | `damageTakenApplied` | `opened`  | `half-named` | `never`     |
-| `damageTakenApplied` | `opened`  | `skill`      | `never`     |
+| `damageTakenApplied` | `opened`  | `skill`      | `always`    |
 | `damageTakenApplied` | `opened`  | `closing`    | `never`     |
-| `damageTakenApplied` | `opened`  | `kind`       | `never`     |
+| `damageTakenApplied` | `opened`  | `kind`       | `sometimes` |
 | `damageTakenApplied` | `pair`    | `skill`      | `never`     |
 | `damageTakenApplied` | `pair`    | `closing`    | `never`     |
 | `damageTakenApplied` | `pair`    | `kind`       | `never`     |
+| `damageTakenApplied` | `part`    | `person`     | `never`     |
 | `healthGiven`        | `ranking` | `person`     | `always`    |
-| `healthGiven`        | `opened`  | `person`     | `sometimes` |
-| `healthGiven`        | `opened`  | `skill`      | `sometimes` |
-| `healthGiven`        | `opened`  | `source`     | `never`     |
+| `healthGiven`        | `opened`  | `person`     | `always`    |
+| `healthGiven`        | `opened`  | `skill`      | `always`    |
+| `healthGiven`        | `opened`  | `source`     | `always`    |
 | `healthGiven`        | `pair`    | `skill`      | `never`     |
 | `healthGiven`        | `pair`    | `source`     | `never`     |
-| `healthGiven`        | `skill`   | `person`     | `never`     |
+| `healthGiven`        | `part`    | `person`     | `never`     |
 | `healthRestored`     | `ranking` | `person`     | `always`    |
-| `healthRestored`     | `opened`  | `person`     | `sometimes` |
-| `healthRestored`     | `opened`  | `skill`      | `never`     |
+| `healthRestored`     | `opened`  | `person`     | `always`    |
+| `healthRestored`     | `opened`  | `skill`      | `always`    |
 | `healthRestored`     | `opened`  | `source`     | `never`     |
 | `healthRestored`     | `opened`  | `kind`       | `never`     |
 | `healthRestored`     | `pair`    | `skill`      | `never`     |
 | `healthRestored`     | `pair`    | `source`     | `never`     |
+| `healthRestored`     | `part`    | `person`     | `never`     |
 
-## The four cells that say `sometimes`
+## The one cell that says `sometimes`
 
-**A person inside an opened row, on the damage screens.** The level under them is what passed
-between the two, and it opens where that says something the row does not: where the blows between
-them carried more than one kind, or where an announcement named one for that pair. Both screens ask
-it and both ask it of the **striker's** row, so the two answer alike — 429 pairs open and 7 do not,
-the same count on either, over `captures/` on 2026-08-31. It stays shut where the level would be the
-figure just pressed under another heading: every blow between them unannounced and of one type.
+**A kind inside an opened row, on `damageTakenApplied`.** The level under it lists who dealt the
+figure that kind, read by turning the cut of a cut round: it opens where the protocol named the
+other end of at least one blow that carried it, and stays shut where it named none.
 
-**A person inside an opened row, on the healing screens.** The same question, answered by composing
-the level and counting it, because healing draws one section rather than two. It opens where that
-section would hold more than one row, or where its one row names a **skill** — the announcement says
-which one, which the person row above it does not, and on `healthRestored` nothing else states which
-of them cast which. It stays shut where that one row is a key: every such pair in the recordings is
-somebody and themselves, and the keys are already on screen a section lower.
+The shut ones are the bare movement, and nothing else — 58 rows over `captures/` on 2026-08-31,
+across all 28 recordings: `poison` 32, `heal` 9, `fire` 6, `light` 4, `anguish` 4, `wound` 3. Each
+is a key the game states against the combatant it happened to, with nobody at the other end of it,
+so `damageTakenByOpponentAndKind` holds nothing under that name while `damageTakenByElement` holds
+the figure. The dealing screen has no such row, because a figure this combatant dealt was dealt to
+somebody: `damageDealtApplied` opens all 602 of its kind rows.
 
-**A skill under `healthGiven`.** The level under it lists whom that skill put health into, person by
-person — the section it stands in says what a combatant healed **with**, and this says **whom** each
-of those reached. It opens where it reached somebody other than the combatant it was opened from,
-and does not where the only person it healed was them — a self-cast, whose level would name the
-reader back to themselves.
+## What opens, in numbers
 
-⚠️ **That condition decides whether it opens and never what it lists.** Once open the level names
-everybody the skill reached, whoever announced it included: health somebody put into themselves is
-health they gave, and it stands inside the figure on the row that was pressed. A level built from
-the same narrowing closed against a smaller number and said nothing about the difference.
-
-**A skill under `healthRestored` is `never`, and not by an absent condition.** The level there is
-narrowed to the pair it was entered through, so it can only ever hold one row bearing the reader's
-own name and the figure they pressed. `composeSkillReading` answers `null` for every screen but
-`healthGiven`, which is that decision written where the compiler keeps it.
+Over `captures/` on 2026-08-31: of the rows a reader meets inside an opened row, **4,917 open and
+1,049 do not**, and the third level they reach holds **4,361 person rows**. The shut thousand is
+`closing`, `half-named`, and the key and kind rows on the screens whose statistics keep no second
+cut of them — never a row the panel decided against.
 
 ## Where a row that opens nothing still says something
 
@@ -156,19 +153,10 @@ reads its `skill` rows off the striker's row and closes the rest against `Zwykł
 walk `healthRestored` has always made over `restoredByOpponent`, `getPairGivingEnd` turning on the
 direction rather than on the noun.
 
-## A section that is not drawn at all
-
-Separate from every verdict above, and it removes the row rather than shutting it: `getIsRepetition`
-in `src/ui/panel-element.ts` drops a whole cross-section whose one row would equal the figure
-standing over it. `DESIGN.md` owns that rule and the two exemptions the skills section carries, so a
-row in the register above may be produced here and still not reach the panel.
-
-⚠️ **The rule reaches the kinds at both levels and the announcements only at the opened one.** A
-pair whose striker announced nothing draws its section all the same, holding one `closing` row at
-the whole of the figure above it — 42 of the 429 drawn pair sections on each damage screen, over
-`captures/` on 2026-08-31, and the same 42 pairs on either. Deliberate, and the cost of the other
-answer is what decided it: neither exemption fits — a pair states no count of blows — so dropping
-the section would be dropping the one place that says the game announced nothing here.
+**Which is what a received skill row opens onto.** A section folds every caster's announcement under
+one name — two healers both announcing `Leczenie ran` are one row — and the level under it is the
+column that says which of them it came from. It is read by walking everybody's record for that name,
+because that is where an announcement is kept.
 
 ## What the code cannot draw
 
@@ -180,7 +168,9 @@ rather than a gap in the material:
 - **The damage screens have no `source` row.** Those are healing's, where a key names the cause.
 - **Neither healing screen has a `closing` row**, at either level — `composeSkillCut` asserts as
   much, and the pair's parts come to its figure exactly.
-- **Only `healthGiven` has a `skill` level at all.** `composeSkillReading` answers `null` otherwise.
+- **A key on `healthRestored` opens nothing, and neither does a kind.** Both cuts are flat on the
+  receiving side: a key names whoever received the health, so nothing is kept beside it saying who
+  gave it. On `healthGiven` the same key opens, because the cut there is kept per receiver.
 - **A pair has no `no kind` row.** Its figure is read off the cut its kinds come from, so there is
   nothing for them to fall short of.
 
@@ -192,7 +182,7 @@ Shapes the code would draw, absent from `captures/`, so no verdict is claimed. E
 - a `half-named` row on either healing screen, at either level, and on `damageDealtApplied` inside
   an opened row;
 - a `no kind` row anywhere;
-- a `half-named` row under an opened skill.
+- a `half-named` row on the third level, under a part.
 
 `tests/ui/panel-element.test.ts` and `tests/ui/panel-reading.test.ts` draw several of these from
 fights built by hand, which is where their shape is held.

@@ -11,13 +11,13 @@ import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import type { PanelMetric } from "@/src/ui/panel-reading.ts";
+import type { NamedPart, PanelMetric } from "@/src/ui/panel-reading.ts";
 import {
     composeDrillReading,
     composePairReading,
     composePanelReading,
+    composePartReading,
     composeRowWarnings,
-    composeSkillReading,
     getRowHasDoubt,
     getTextForNamedPart,
     NOTHING_MISSED,
@@ -969,7 +969,13 @@ Deno.test("what a skill dealt holds the figures stated against a name, not only 
     assert((figures?.blowsStruck ?? 0) > 0, "and the blows themselves were struck all the same");
 });
 
-Deno.test("a pair that would only repeat the row above it does not open", () => {
+/**
+ * A level that repeats the figure over it still says which pair it was read for, and a row that
+ * cannot be pressed says nothing at all. Both shapes stand in this recording, which is why the
+ * count of each is kept: a sweep meeting only the many-part pairs would agree with a rule that
+ * had never been lifted.
+ */
+Deno.test("every person row inside an opened row opens onto the pair under it", () => {
     const { roster, statistics } = readFight(BOTH_KINDS_OF_PAIR);
     const reading = composePanelReading(
         statistics,
@@ -979,8 +985,8 @@ Deno.test("a pair that would only repeat the row above it does not open", () => 
         null,
         NOTHING_MISSED,
     );
-    let closed = 0;
-    let opened = 0;
+    let repeats = 0;
+    let says = 0;
     for (const row of reading.rows) {
         const drill = composeDrillReading(
             statistics,
@@ -998,67 +1004,94 @@ Deno.test("a pair that would only repeat the row above it does not open", () => 
                 other.combatantId,
             );
             assert(pair !== null, "and every row of its cut names a pair");
-            // The level under a pair says something where it holds more than one kind, or where
-            // an announcement names what the row above it does not. One kind beside one closing
-            // row is the figure just pressed under two headings.
+            assert(other.opensPair, "which is what the row above it is marked with");
+            assertEquals(pair.total, other.figure, "at the figure that was pressed");
             const named = pair.parts.filter((one) => one.part.kind === "skill");
-            const says = pair.byElement.rows.length > 1 || named.length > 0;
-            if (other.opensPair) opened += 1;
-            else closed += 1;
-            assertEquals(other.opensPair, says, "which is what decides whether it opens");
+            if (pair.byElement.rows.length > 1 || named.length > 0) says += 1;
+            else repeats += 1;
         }
     }
-    // Both answers occur on this fight, so neither branch of the rule is being read on faith.
-    assert(opened > 0, "some pairs on this recording say more than the row above them");
-    assert(closed > 0, "and some say exactly it");
+    // Both shapes occur on this fight, so the rule is read on the one it was lifted for as well.
+    assert(says > 0, "some pairs on this recording say more than the row above them");
+    assert(repeats > 0, "and some repeat it, and open all the same");
 });
 
 /**
  * A level closes against the row that opened it, one rung deeper than the columns do.
  *
- * Health somebody put into themselves is health they gave, and it is inside the figure on the skill
- * row — so a level that left the caster out stated a smaller number than the row just pressed and
- * said nothing about the difference. Over `captures/` on 2026-08-30 that was 31 of the 74 levels a
- * reader can reach, 143,888 points, the largest single drop 13,167.
+ * Health somebody put into themselves is health they gave, and it is inside the figure on the
+ * skill row — so a level that left the caster out stated a smaller number than the row just
+ * pressed and said nothing about the difference. Over `captures/` on 2026-08-30 that was 31 of the
+ * 74 levels a reader could then reach, 143,888 points, the largest single drop 13,167.
+ *
+ * Asked of every kind of part and every screen: a skill, a key and a kind open onto the same shape
+ * of level, and each is read off a different cut of the statistics.
  */
-Deno.test("a skill opened states the figure of the row that opened it, self-casts included", () => {
-    let levels = 0;
+Deno.test("a part opened states the figure of the row that opened it, self-casts included", () => {
+    const levels = new Map<string, number>();
     let withSelf = 0;
     for (const path of getRecordingPaths()) {
         const { roster, statistics } = readFight(path);
-        for (const combatantId of statistics.byCombatantId.keys()) {
-            const drill = composeDrillReading(statistics, roster, "healthGiven", combatantId);
-            if (drill === null) continue;
-            for (const row of drill.bySkill.rows) {
-                if (!row.opensSkill) continue;
-                if (row.part.kind !== "skill") continue;
-                const skill = composeSkillReading(
-                    statistics,
-                    roster,
-                    "healthGiven",
-                    combatantId,
-                    row.part.name,
-                );
-                assert(skill !== null, `${path}: a skill marked as opening opens`);
-                levels += 1;
-                assertEquals(
-                    skill.total,
-                    row.figure,
-                    `${path}: ${row.part.name} states the figure of the row it was opened from`,
-                );
-                const held = skill.byOpponent.rows.reduce((sum, one) => sum + one.figure, 0);
-                assertEquals(
-                    held + (skill.byOpponent.unnamed?.figure ?? 0),
-                    skill.total,
-                    `${path}: and the people under it come to the whole of it`,
-                );
-                const own = skill.byOpponent.rows.find((one) => one.combatantId === combatantId);
-                if (own !== undefined) withSelf += 1;
+        for (const metric of SCREENS) {
+            for (const combatantId of statistics.byCombatantId.keys()) {
+                const drill = composeDrillReading(statistics, roster, metric, combatantId);
+                if (drill === null) continue;
+                const rows: { part: NamedPart; figure: number; opensPart: boolean }[] = [
+                    ...drill.bySkill.rows,
+                    ...drill.byElement.rows.map((one) => ({
+                        part: { kind: "element" as const, element: one.element },
+                        figure: one.figure,
+                        opensPart: one.opensPart,
+                    })),
+                ];
+                for (const row of rows) {
+                    const held = composePartReading(
+                        statistics,
+                        roster,
+                        metric,
+                        combatantId,
+                        row.part,
+                    );
+                    if (!row.opensPart) {
+                        assertEquals(held, null, `${path}: a row marked shut opens nothing`);
+                        continue;
+                    }
+                    assert(held !== null, `${path}: a part marked as opening opens`);
+                    const seen = `${metric} ${row.part.kind}`;
+                    levels.set(seen, (levels.get(seen) ?? 0) + 1);
+                    assertEquals(
+                        held.total,
+                        row.figure,
+                        `${path}: ${metric} states the figure of the row it was opened from`,
+                    );
+                    const reached = held.byOpponent.rows.reduce((sum, one) => sum + one.figure, 0);
+                    assertEquals(
+                        reached + (held.byOpponent.unnamed?.figure ?? 0),
+                        held.total,
+                        `${path}: and the people under it come to the whole of it`,
+                    );
+                    const own = held.byOpponent.rows.find((one) => one.combatantId === combatantId);
+                    if (own !== undefined) withSelf += 1;
+                }
             }
         }
     }
-    assert(levels > 0, "the corpus holds skills a reader can open");
-    assert(withSelf > 0, "and some of them put health into whoever announced them");
+    // Every kind of part on every screen that keeps a cut of it, so a walk that stopped reaching
+    // one of them is a failure here rather than a smaller number nobody counted.
+    assertEquals(
+        [...levels.keys()].sort(),
+        [
+            "damageDealtApplied element",
+            "damageDealtApplied skill",
+            "damageTakenApplied element",
+            "damageTakenApplied skill",
+            "healthGiven skill",
+            "healthGiven source",
+            "healthRestored skill",
+        ],
+        "the corpus opens a level of every shape the statistics keep",
+    );
+    assert(withSelf > 0, "and some of them reached whoever the row was opened from");
 });
 
 /**
@@ -1089,10 +1122,16 @@ Deno.test("a healing section names the keys the game stated, and closes against 
                 for (const row of cut.rows) {
                     if (row.part.kind === "skill") announced += 1;
                     else stated += 1;
-                    // A key opens nothing: the protocol states no second cut of one, and no count.
+                    // A key counts nothing, and opens onto whom it reached on the one screen that
+                    // keeps a key per person — the giving side, where the pair names whose cause
+                    // it is. The receiving side keeps the key flat, so there is nobody to list.
                     if (row.part.kind !== "source") continue;
                     assertEquals(row.uses, null, `${path}: a key counts nothing`);
-                    assertEquals(row.opensSkill, false, `${path}: and opens nothing`);
+                    assertEquals(
+                        row.opensPart,
+                        metric === "healthGiven",
+                        `${path}: and opens where the screen keeps a cut of it`,
+                    );
                 }
             }
         }
@@ -1166,15 +1205,14 @@ Deno.test("a healing pair says what passed between the two, and says it from bot
 });
 
 /**
- * A single row is a repetition only where it adds no name. An announcement names the skill, which
- * the person row above it does not — and on the screen about what reached this combatant nothing
- * else says which of them cast which. A key adds no such name, and every single-key pair in the
- * corpus is somebody and themselves, whose keys `OD CZEGO` one rung up already lists.
+ * The pair a healing row opens onto is where a reader learns **what** the health moved under, and
+ * the commonest shape of it is one person healing themselves under one key — a level that repeats
+ * the figure over it and names the one thing the row above does not.
  */
-Deno.test("a healing pair that would only repeat the row above it does not open", () => {
-    let closed = 0;
+Deno.test("a healing pair opens whatever its level holds, one key included", () => {
+    let repeats = 0;
     let opened = 0;
-    let named = 0;
+    let keys = 0;
     for (const path of getRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         for (const metric of ["healthGiven", "healthRestored"] as const) {
@@ -1190,40 +1228,27 @@ Deno.test("a healing pair that would only repeat the row above it does not open"
                         other.combatantId,
                     );
                     assert(pair !== null, "a row of the cut names a pair");
-                    if (other.opensPair) opened += 1;
-                    else closed += 1;
-                    const holds = pair.parts.length > 1 ||
-                        pair.parts.some((one) => one.part.kind === "skill");
-                    if (other.opensPair && pair.parts.length === 1) named += 1;
-                    assertEquals(
-                        other.opensPair,
-                        holds,
-                        `${path}: which is what decides whether it opens`,
-                    );
-                    // A row that opens on its own is an announcement and never a key: the key
-                    // would be the figure just pressed under a word already on the screen above.
-                    if (pair.parts.length !== 1) continue;
-                    assertEquals(
-                        other.opensPair,
-                        pair.parts[0]?.part.kind === "skill",
-                        `${path}: a lone row opens where it names a skill and not otherwise`,
-                    );
+                    assert(other.opensPair, `${path}: and the row above it says so`);
+                    opened += 1;
+                    assertEquals(pair.total, other.figure, `${path}: at the figure pressed`);
+                    if (pair.parts.length > 1) continue;
+                    repeats += 1;
+                    if (pair.parts[0]?.part.kind === "source") keys += 1;
                 }
             }
         }
     }
-    assert(opened > 0, "some healing pairs in the corpus say more than the row above them");
-    assert(closed > 0, "and some say exactly it");
-    assert(named > 0, "and some open on one row, because that row names the skill");
+    assert(opened > 0, "the corpus holds healing pairs to open");
+    assert(repeats > 0, "some of them hold one row, at the figure that was pressed");
+    assert(keys > 0, "and some of those name a key, which is the row this level was opened for");
 });
 
 /**
  * A shape the recordings do not carry, held by a fight built by hand.
  *
  * Measured over `captures/` on 2026-08-29: one announced heal restores anything at all, and it
- * restores it to the combatant who announced it — a self-cast, which is the one case this level
- * refuses to open. So the announcement reaching somebody else is written out here rather than
- * waiting for a recording of it.
+ * restores it to the combatant who announced it. So an announcement reaching somebody **else** is
+ * written out here rather than waiting for a recording of it.
  */
 /** The movement an announcement put behind it, aimed wherever the case being written needs it. */
 function composeAnnouncedHeal(
@@ -1241,7 +1266,7 @@ function composeAnnouncedHeal(
     };
 }
 
-Deno.test("a skill that reached somebody else opens onto whom, and a self-cast does not", () => {
+Deno.test("a skill opens onto whom it reached, a self-cast onto whoever announced it", () => {
     const { roster } = readFight(HILDUR);
     const [healer, healed] = [...roster.byId.keys()];
     assert(healer !== undefined && healed !== undefined, "the fight holds two people");
@@ -1268,31 +1293,84 @@ Deno.test("a skill that reached somebody else opens onto whom, and a self-cast d
     assert(row !== undefined, "onto the skill they announced");
     assertEquals(row.figure, 500, "at what it put back");
     assertEquals(row.uses, 1, "and how many times it was announced");
-    assert(row.opensSkill, "and it opens, because it reached somebody other than them");
+    assert(row.opensPart, "and it opens, because there is a level under it");
 
-    const skill = composeSkillReading(
-        statistics,
-        roster,
-        "healthGiven",
-        healer,
-        announced.skillName,
-    );
+    const part = { kind: "skill" as const, name: announced.skillName };
+    const skill = composePartReading(statistics, roster, "healthGiven", healer, part);
     assert(skill !== null, "the skill opens");
     assertEquals(skill.total, 500, "at the figure the row that opened it stated");
     assertEquals(skill.byOpponent.rows.length, 1, "onto the one person it reached");
     assertEquals(skill.byOpponent.rows[0]?.combatantId, healed, "who is that person");
     assert(!(skill.byOpponent.rows[0]?.opensPair ?? true), "and nothing on this rung opens");
 
-    // The same skill cast on nobody but the one who announced it: the level under it would name
-    // the reader back to themselves, so there is nothing to open.
+    // The same skill cast on nobody but the one who announced it: the level names them, which is
+    // what a reader asking what somebody healed themselves with came to find out.
     const alone = composeFightStatistics([composeAnnouncedHeal(announced, healer)], new Map());
     const own = composeDrillReading(alone, roster, "healthGiven", healer);
     assert(own !== null, "a self-cast still opens the healer's own row");
-    assert(!(own.bySkill.rows[0]?.opensSkill ?? true), "and the skill on it opens nothing");
+    assert(own.bySkill.rows[0]?.opensPart ?? false, "and the skill on it opens too");
+    const cast = composePartReading(alone, roster, "healthGiven", healer, part);
+    assert(cast !== null, "which is what asking for that level answers");
+    assertEquals(cast.total, 500, "at the whole of what the announcement put back");
+    assertEquals(cast.byOpponent.rows.length, 1, "onto the one person it reached");
+    assertEquals(cast.byOpponent.rows[0]?.combatantId, healer, "who is the one who announced it");
+});
+
+/**
+ * Another shape the recordings do not carry: over `captures/` on 2026-08-31 no kind of damage
+ * taken is both dealt by somebody named and ticked with nobody named — the 58 kind rows that open
+ * onto nothing are bare movements and nothing else. So the level closing against the row rather
+ * than against its own rows is written out here.
+ */
+Deno.test("a kind opened states the whole of the row, nobody's share included", () => {
+    const { roster } = readFight(HILDUR);
+    const [striker, struck] = [...roster.byId.keys()];
+    assert(striker !== undefined && struck !== undefined, "the fight holds two people");
+    const statistics = composeFightStatistics([
+        {
+            kind: "attack",
+            actorId: striker,
+            targetId: struck,
+            actorHealthPercent: null,
+            targetHealthPercent: null,
+            raw: [{ element: "poison", amount: 300 }],
+            applied: [{ element: "poison", amount: 300 }],
+            prevented: [],
+            destroyed: [],
+            procs: [],
+            declared: [],
+            announced: null,
+        },
+        {
+            kind: "health-change",
+            combatantId: struck,
+            amount: -200,
+            healthPercent: null,
+            source: "poison",
+            declared: [],
+            announced: null,
+        },
+    ], new Map());
+
+    const drill = composeDrillReading(statistics, roster, "damageTakenApplied", struck);
+    assert(drill !== null, "the struck combatant's row opens");
+    const kind = drill.byElement.rows.find((one) => one.element === "poison");
+    assert(kind !== undefined, "onto the kind both movements were made of");
+    assertEquals(kind.figure, 500, "at the two of them together");
+    assert(kind.opensPart, "and it opens, because one of them named who dealt it");
+
+    const part = composePartReading(statistics, roster, "damageTakenApplied", struck, {
+        kind: "element",
+        element: "poison",
+    });
+    assert(part !== null, "the kind opens");
+    assertEquals(part.total, 500, "at the figure the row that opened it stated");
+    assertEquals(part.byOpponent.rows.length, 1, "onto the one striker the protocol named");
+    assertEquals(part.byOpponent.rows[0]?.figure, 300, "at what they dealt");
     assertEquals(
-        composeSkillReading(alone, roster, "healthGiven", healer, announced.skillName),
-        null,
-        "which is what asking for that level answers",
+        part.byOpponent.unnamed?.figure,
+        200,
+        "and the tick nobody was named for stands beside them, so the column comes to a hundred",
     );
 });
 

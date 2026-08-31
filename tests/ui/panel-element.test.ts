@@ -16,8 +16,9 @@ import {
     composeDrillReading,
     composePairReading,
     composePanelReading,
-    composeSkillReading,
+    composePartReading,
     NOTHING_MISSED,
+    type PanelMetric,
     type PanelReading,
 } from "@/src/ui/panel-reading.ts";
 import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
@@ -112,7 +113,7 @@ function draw(reading: PanelReading): FakeElement {
         shelfWarnings: [],
         drill: null,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -182,7 +183,7 @@ Deno.test("the side strip is drawn where the client said which side is the reade
         shelfWarnings: [],
         drill: null,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -222,7 +223,7 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
         shelfWarnings: [],
         drill: null,
         pair: null,
-        skill: null,
+        part: null,
         place: "Mapa (1, 2)",
         isCollapsed: false,
     });
@@ -447,7 +448,7 @@ Deno.test("a press on a tab reaches the panel, and a press on anything else does
         shelfWarnings: [],
         drill: null,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -480,7 +481,7 @@ Deno.test("a press on a side asks for that side, and on the shelf for the shelf"
         shelfWarnings: [],
         drill: null,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -513,7 +514,7 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         shelfWarnings: [],
         drill: null,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -531,7 +532,7 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         shelfWarnings: [],
         drill: null,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -589,7 +590,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         shelfWarnings: [],
         drill: null,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -635,7 +636,7 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
         shelfWarnings: [],
         drill,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -731,7 +732,7 @@ Deno.test("a kind's row carries a bar of its own, measured against its own cut",
         shelfWarnings: [],
         drill,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -782,7 +783,7 @@ Deno.test("a part of a figure no kind was stated for is drawn last, under the ki
             },
         },
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -809,7 +810,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         shelfWarnings: [],
         drill: null,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -831,7 +832,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         shelfWarnings: [],
         drill,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -862,7 +863,7 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
         shelfWarnings: [],
         drill: null,
         pair: null,
-        skill: null,
+        part: null,
         isCollapsed: false,
     };
     panel.show({ ...view, place: "Mapa (12, 34)" });
@@ -902,7 +903,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
         shelfWarnings: [],
         drill: null,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     };
@@ -962,7 +963,7 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
         shelfWarnings: [],
         drill: null,
         pair: null,
-        skill: null,
+        part: null,
         isCollapsed: false,
         place: "Mapa (12, 34)",
     });
@@ -1190,7 +1191,7 @@ Deno.test("a person inside an opened row opens the card the ranking opens", () =
         shelfWarnings: [],
         drill,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -1256,16 +1257,10 @@ Deno.test("a person under an opened skill opens a card promising no gesture", ()
     );
     const drill = composeDrillReading(statistics, roster, "healthGiven", HEALER);
     assert(drill !== null, "the healer's row opens");
-    const announced = drill.bySkill.rows.find((one) => one.opensSkill);
+    const announced = drill.bySkill.rows.find((one) => one.opensPart);
     assert(announced !== undefined, "onto a skill that reached somebody else");
     assert(announced.part.kind === "skill", "and one the game announced by name");
-    const skill = composeSkillReading(
-        statistics,
-        roster,
-        "healthGiven",
-        HEALER,
-        announced.part.name,
-    );
+    const skill = composePartReading(statistics, roster, "healthGiven", HEALER, announced.part);
     assert(skill !== null, "which opens onto the people it reached");
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
@@ -1280,7 +1275,7 @@ Deno.test("a person under an opened skill opens a card promising no gesture", ()
         shelfWarnings: [],
         drill,
         pair: null,
-        skill,
+        part: skill,
         place: null,
         isCollapsed: false,
     });
@@ -1317,7 +1312,7 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
         shelfWarnings: [],
         drill,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -1367,7 +1362,7 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
         shelfWarnings: [],
         drill: null,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -1456,7 +1451,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
         shelfWarnings: [],
         drill: null,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -1543,7 +1538,7 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
             shelfWarnings: [],
             drill,
             pair: null,
-            skill: null,
+            part: null,
             place: null,
             isCollapsed: false,
         });
@@ -1583,7 +1578,7 @@ Deno.test("a row opened on a screen its own figure is nothing on says so, about 
         // because the strips carry an opened row from screen to screen.
         drill: { ...drill, total: 0, byOpponent: { rows: [], unnamed: null } },
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -1612,7 +1607,7 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
             shelfWarnings: [],
             drill: open,
             pair: null,
-            skill: null,
+            part: null,
             place: null,
             isCollapsed: false,
         });
@@ -1657,7 +1652,12 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
     );
 });
 
-Deno.test("a cut that only repeats the figure above it is not drawn at all", () => {
+/**
+ * A cut of one row states the whole of the figure over it, and states what that figure was made
+ * of — which the heading does not. Drawn, therefore, and pressable: the row a reader cannot press
+ * is the row that answers nothing.
+ */
+Deno.test("a cut that repeats the figure above it is drawn all the same", () => {
     const { reading, drill } = openFirstRow();
     const headings = (open: typeof drill) => {
         const document = composeFakeDocument();
@@ -1673,7 +1673,7 @@ Deno.test("a cut that only repeats the figure above it is not drawn at all", () 
             shelfWarnings: [],
             drill: open,
             pair: null,
-            skill: null,
+            part: null,
             place: null,
             isCollapsed: false,
         });
@@ -1691,7 +1691,11 @@ Deno.test("a cut that only repeats the figure above it is not drawn at all", () 
         bySkill: { rows: [], plain: null },
         byElement: { rows: [one], unnamed: null },
     };
-    assertEquals(headings(repeated), [PANEL_WORDS.takenFrom], "so the cut of one is left undrawn");
+    assertEquals(
+        headings(repeated),
+        [PANEL_WORDS.takenFrom, PANEL_WORDS.damageKind],
+        "so the cut of one is drawn under its own heading",
+    );
 
     const two = drill.byElement.rows.slice(0, 2);
     assert(two.length === 2, "and the fight cuts it by more than one");
@@ -1709,11 +1713,12 @@ Deno.test("a cut that only repeats the figure above it is not drawn at all", () 
 });
 
 /**
- * The skills section is exempt, and for the reason the closing row is: the heading carries the
- * figure and never what it was dealt with, so one row holding the whole of it is where a reader
- * learns which skill that was. A key row is not — `DESIGN.md` puts the keys a section lower.
+ * The heading carries the figure and never what it was dealt with, so one row holding the whole
+ * of it is where a reader learns which skill that was — and a key row answers the same question
+ * in the game's own word for it. Neither is a repetition, and the keys standing a section lower
+ * on one screen is no reason to take the answer off this one.
  */
-Deno.test("a lone skill row is not a repetition, because the heading never names one", () => {
+Deno.test("a lone row of a section names what the heading over it never does", () => {
     const { reading, drill } = openFirstRow();
     const headings = (open: typeof drill) => {
         const document = composeFakeDocument();
@@ -1729,7 +1734,7 @@ Deno.test("a lone skill row is not a repetition, because the heading never names
             shelfWarnings: [],
             drill: open,
             pair: null,
-            skill: null,
+            part: null,
             place: null,
             isCollapsed: false,
         });
@@ -1751,7 +1756,7 @@ Deno.test("a lone skill row is not a repetition, because the heading never names
 
     const key = { ...only, part: { kind: "source" as const, source: "heal" } };
     const keyed = { ...alone, bySkill: { rows: [key], plain: null } };
-    assertEquals(headings(keyed), [], "while a lone key row says nothing the heading does not");
+    assertEquals(headings(keyed), [PANEL_WORDS.skills], "and so is a lone key row");
 });
 
 Deno.test("a blow nothing announced closes the skills, and says how many there were", () => {
@@ -1774,7 +1779,7 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
             bySkill: { rows: [], plain: { blows: 3, figure: 0, fill: 0, shareText: "0%" } },
         },
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -1786,7 +1791,12 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
     assert(shares.includes("(0% · ×3)"), "carrying the count only its absence of a skill states");
 });
 
-Deno.test("a skill that opens asks for itself by name, and the rest of them ask nothing", () => {
+/**
+ * ⚠️ **The mark goes on every span of the row, and this is why.** A listener reads what was
+ * pressed off the node under the hand and walks no ancestors, so a mark on the row alone left the
+ * name and the figure swallowing the press — the two thirds of a row a reader actually aims at.
+ */
+Deno.test("a skill that opens asks for itself by name, wherever the press lands on it", () => {
     const { reading, drill } = openFirstRow();
     const pressed: PanelPress[] = [];
     const document = composeFakeDocument();
@@ -1798,7 +1808,7 @@ Deno.test("a skill that opens asks for itself by name, and the rest of them ask 
             figure: 500,
             fill: 1,
             shareText: "50%",
-            opensSkill: true,
+            opensPart: true,
         },
         {
             part: { kind: "skill" as const, name: "Zmrrożenie" },
@@ -1806,7 +1816,7 @@ Deno.test("a skill that opens asks for itself by name, and the rest of them ask 
             figure: 500,
             fill: 1,
             shareText: "50%",
-            opensSkill: false,
+            opensPart: false,
         },
     ];
     panel.show({
@@ -1820,7 +1830,7 @@ Deno.test("a skill that opens asks for itself by name, and the rest of them ask 
         shelfWarnings: [],
         drill: { ...drill, total: 1000, bySkill: { rows, plain: null } },
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -1829,13 +1839,23 @@ Deno.test("a skill that opens asks for itself by name, and the rest of them ask 
     const opening = named.filter((one) => one.textContent === "Dotyk anioła");
     assertEquals(opening.length, 1, "the skill that reached somebody else is drawn");
     const marked = getElementsWithin(host).filter((one) => one.attributes.has("data-skill"));
-    assertEquals(marked.length, 1, "and it is the one thing on the screen that opens");
-    pressElement(host, "pointerdown", marked[0] ?? host);
     assertEquals(
-        pressed.at(-1),
-        { kind: "skill", name: "Dotyk anioła" },
-        "asking for itself by the name it was announced under, which is not a number",
+        [...new Set(marked.map((one) => one.attributes.get("data-skill")))],
+        ["Dotyk anioła"],
+        "and it is the one thing on the screen that opens",
     );
+    // The name first, which is where a reader aims and where the press used to be swallowed, and
+    // the count beside the value: a press that lands nowhere leaves the one before it standing.
+    for (const [at, part] of [opening[0], marked[0]].entries()) {
+        assert(part !== undefined, "the row and the name a reader aims at both carry the mark");
+        pressElement(host, "pointerdown", part);
+        assertEquals(pressed.length, at + 1, "every press on the row lands");
+        assertEquals(
+            pressed.at(-1),
+            { kind: "part", part: { kind: "skill", name: "Dotyk anioła" } },
+            "asking for itself by the name it was announced under, which is not a number",
+        );
+    }
 });
 
 /** Where a row's name starts, which is the sum of every cell drawn before it. */
@@ -1868,7 +1888,7 @@ Deno.test("every row in a list draws the same cells before its name", () => {
         storage: "local" as const,
         shelfWarnings: [],
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     };
@@ -1925,7 +1945,7 @@ Deno.test("a healing section draws the key the game named, not a row saying it d
         shelfWarnings: [],
         drill,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -1985,7 +2005,7 @@ Deno.test("an opened healing pair draws its announcements and its keys as one se
         shelfWarnings: [],
         drill,
         pair,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -2018,9 +2038,9 @@ Deno.test("an opened healing pair draws its announcements and its keys as one se
 });
 
 /**
- * A reader inside an opened row meets two kinds of person row, and until the note reached them
- * only the cursor told the two apart. Measured over `captures/` on 2026-08-30: 1,576 rows that
- * open against 588 that do not, in the same sections.
+ * A reader inside an opened row meets rows that open and rows that do not, and only the cursor
+ * ever told the two apart. What stays shut is what the statistics keep no second cut of: damage
+ * that ticked with nobody named at the other end has no level of people to open onto.
  */
 Deno.test("a row that opens says so, and a row that does not says nothing of the kind", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(BOTH_KINDS_OF_PAIR));
@@ -2040,9 +2060,9 @@ Deno.test("a row that opens says so, and a row that does not says nothing of the
     const drill = composeDrillReading(statistics, roster, "damageTakenApplied", first.combatantId);
     assert(drill !== null, "and it opens");
     const opening = drill.byOpponent.rows.find((one) => one.opensPair);
-    const closed = drill.byOpponent.rows.find((one) => !one.opensPair);
-    assert(opening !== undefined, "onto somebody the level under says something about");
-    assert(closed !== undefined, "and somebody it does not — both kinds stand in one section");
+    const shut = drill.byElement.rows.find((one) => !one.opensPart);
+    assert(opening !== undefined, "onto everybody it passed between, all of whom open");
+    assert(shut !== undefined, "and onto a kind of it nobody was named at the other end of");
 
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
@@ -2057,7 +2077,7 @@ Deno.test("a row that opens says so, and a row that does not says nothing of the
         shelfWarnings: [],
         drill,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
@@ -2079,44 +2099,45 @@ Deno.test("a row that opens says so, and a row that does not says nothing of the
         "the row that opens says what pressing it does, last of the card's sentences",
     );
     assert(
-        !pointAtRow(`to:${closed.combatantId}`).includes(CARD_WORDS.gesture),
+        !pointAtRow(`kind:${shut.element}`).includes(CARD_WORDS.gesture),
         "and the one that does not promises no gesture",
     );
     // Said at every level the card stands on, because the row under it states a cut of the figure
     // the card holds and nothing else on screen says the card means the whole fight.
-    for (const row of [opening, closed]) {
+    for (const row of drill.byOpponent.rows) {
         assert(
             pointAtRow(`to:${row.combatantId}`).includes(CARD_WORDS.scope),
-            "and both say the figures over them are the fight's",
+            "and every person row says the figures over them are the fight's",
         );
     }
 });
 
-/** The other mark, on the one section that opens by it: a skill states the same instruction. */
-Deno.test("a skill that opens says so under the same words a person does", () => {
+/**
+ * The notes on the rows of one opened figure, read off the drawn panel: the name a row is drawn
+ * under, and what its detail says about pressing it.
+ */
+function composeNotesForOpenedRow(
+    metric: PanelMetric,
+    combatantId: number,
+): Map<string, string[]> {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
     const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     const reading = composePanelReading(
         statistics,
         roster,
-        "healthGiven",
+        metric,
         "everyone",
         null,
         NOTHING_MISSED,
     );
-    const drill = composeDrillReading(statistics, roster, "healthGiven", 469657);
-    assert(drill !== null, "the healer's row opens");
-    const opening = drill.bySkill.rows.find((one) => one.opensSkill);
-    const key = drill.bySkill.rows.find((one) => one.part.kind === "source");
-    assert(opening !== undefined, "onto a skill that reached somebody else");
-    assert(key !== undefined, "and a key stands beside it, which opens nothing");
-
+    const drill = composeDrillReading(statistics, roster, metric, combatantId);
+    assert(drill !== null, "the row opens");
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
         reading,
-        current: "healthGiven" as const,
+        current: metric,
         side: "everyone" as const,
         hasReaderSide: false,
         shelf: [],
@@ -2125,27 +2146,40 @@ Deno.test("a skill that opens says so under the same words a person does", () =>
         shelfWarnings: [],
         drill,
         pair: null,
-        skill: null,
+        part: null,
         place: null,
         isCollapsed: false,
     });
     const host = panel.element as FakeElement;
-    const notesOf = (part: { attributes: Map<string, string> }) => {
-        const found = getElementsWithin(host).find((one) => {
-            if (one.className !== "row-name") return false;
-            return one.attributes.get("data-tip") === part.attributes.get("data-tip");
-        });
-        assert(found !== undefined, "the row is on the panel");
-        pointAtElement(host, "pointermove", found, 412);
+    const found = new Map<string, string[]>();
+    for (const row of getElementsWithin(host).filter((one) => one.className === "row-name")) {
+        pointAtElement(host, "pointermove", row, 412);
         const tip = (host.shadow ?? []).find((one) => one.className.startsWith(CLASS.tip));
-        assert(tip !== undefined, "and pointing at it opens the detail");
-        return getTextsByClass(tip, CLASS.tipNote);
-    };
-    const rows = getElementsWithin(host).filter((one) => one.className === "row-name");
-    const drawnSkill = rows.find((one) => one.textContent === "Zdrowa atmosfera");
-    const drawnKey = rows.find((one) => one.textContent === getWordsForHealthSource("heal"));
-    assert(drawnSkill !== undefined, "the announcement is drawn");
-    assert(drawnKey !== undefined, "and so is the key beside it");
-    assertEquals(notesOf(drawnSkill), [CARD_WORDS.gesture], "the skill says pressing it opens");
-    assertEquals(notesOf(drawnKey), [], "the key promises nothing, because it opens nothing");
+        assert(tip !== undefined, "and pointing at a row of it opens the detail");
+        found.set(row.textContent, getTextsByClass(tip, CLASS.tipNote));
+    }
+    return found;
+}
+
+/** The other mark, on the sections that open by it: a part states the same instruction. */
+Deno.test("a part that opens says so under the same words a person does", () => {
+    const given = composeNotesForOpenedRow("healthGiven", 469657);
+    assertEquals(
+        given.get("Zdrowa atmosfera"),
+        [CARD_WORDS.gesture],
+        "an announcement says pressing it opens",
+    );
+    assertEquals(
+        given.get(getWordsForHealthSource("heal")),
+        [CARD_WORDS.gesture],
+        "and so does the key beside it, which opens onto whom the health reached",
+    );
+    // The same key on the screen about what reached this combatant: a key names whoever received
+    // the health, so the receiving side keeps no giver to list and the row promises nothing.
+    const restored = composeNotesForOpenedRow("healthRestored", 469657);
+    assertEquals(
+        restored.get(getWordsForHealthSource("heal")),
+        [],
+        "the key promises nothing where the statistics keep no cut of it",
+    );
 });

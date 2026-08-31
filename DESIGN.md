@@ -241,13 +241,16 @@ the only strip drawn while the shelf is up, and it is about the list rather than
 **Three levels, and the third has two shapes.** The ranking lists people; pressing one opens their
 own figure cut by the other end of each movement, by what it was announced with, and by what it was
 made of; and pressing a row inside **that** opens the third — the pair and what passed between the
-two, where a person was pressed, or whom it reached, where an announcement was. Both are entered
-from the second level and neither from the other, so the panel is never more than three deep.
-Nothing on the third opens: the protocol states no further cut of it. A row opens only where the
-level under it would say something the row does not — a pair whose every blow was unannounced and of
-one kind is the figure just pressed under another heading, and pressing it would spend a gesture on
-nothing. Which kind of row that comes to on each screen is `docs/drill-levels.md`'s to say, and it
-is measured rather than claimed.
+two, where a person was pressed, or whom it reached, where a skill, a key or a kind was. Both are
+entered from the second level and neither from the other, so the panel is never more than three
+deep. Nothing on the third opens: the protocol states no further cut of it.
+
+**Every row with a level under it opens, and only what has none stays shut.** A cut of one row is
+not a repetition to be spared: it states what the figure over it was made of, which the heading
+never does. What decides the answer is whether the statistics keep a second cut of that row — and
+where they do not, the row wears the leaf's cursor and its card promises nothing. Which kind of row
+that comes to on each screen is `docs/drill-levels.md`'s to say, and it is measured rather than
+claimed. **ADR 0034.**
 
 **A row that opens says so, and a row that does not stays silent about it.** Half the rows of one
 section leading somewhere and none of them saying which is a panel that teaches a reader to stop
@@ -272,13 +275,11 @@ carry a point. A `<1%` row spends no point of the column, so the shares printed 
 to a hundred. Both rules are held by `tests/ui/share-column.test.ts`, over every recording, screen,
 seat and rung.
 
-**A cut that only repeats the figure above it is not drawn.** The section a level is _about_ is
-always drawn; the cross-sections beside it answer to this. Two exemptions, and they are one argument
-— a row repeats the heading only where it says nothing the heading does not.
-`Zwykły cios 2 644 (100% · ×8)` says eight blows where the figure above says none. **A named skill
-says its name**: the heading carries the figure and never what it was dealt with, so a skills
-section holding one row is where a reader learns which skill that was. A lone **key** row is not
-exempt — the keys stand again a section lower.
+**Every cut that holds a row is drawn, however few rows it holds.** A section of one row states the
+figure over it a second time and states what that figure was made of: `Zwykły cios` says how many
+blows where the heading says none, a lone announcement says which skill it was, and a lone key says
+the game's own word for what moved the health. The heading carries a figure and never a name, so the
+one row under it is the answer and not an echo. **ADR 0034.**
 
 **Section heading.** Over each cut of an opened figure, carrying the figure it stands over, and
 stuck to the top of the list while its own section scrolls: a figure read under the wrong heading is
