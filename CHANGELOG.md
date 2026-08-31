@@ -33,6 +33,23 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Okienko postaci otwiera się teraz także w rozwiniętym wierszu. Najedź na kogoś w
+  sekcji „komu" albo „od kogo" — albo na kogoś, kogo sięgnęła otwarta umiejętność — i zobaczysz to
+  samo okienko, co na głównej liście. Na dole stoi zdanie, że jego liczby są z całej walki, bo
+  wiersz pod nim mówi tylko o jednej jej części.
+
+- **Zmiana** — Liczba sprzed redukcji nazywa się teraz „surowe z ciosów", bo tylko z ciosów się
+  liczy. Gra podaje ją przy ciosie i nigdzie indziej, a na liczbę nad nią składa się jeszcze to, co
+  padło pod czyimś imieniem, oraz trucizny i podpalenia — więc „surowe" potrafiło wyjść mniejsze od
+  tego, co faktycznie weszło, i wyglądać na pomyłkę. Zdanie pod spodem mówi teraz wprost, czego jest
+  sumą i dlaczego nie należy jednej odejmować od drugiej.
+
+- **Zmiana** — Okienko postaci mówi to samo na każdej zakładce. Dotąd na obrażeniach zadanych
+  pokazywało tylko krytyki i to, co padło przy ciosach, na otrzymanych tylko to, co zatrzymała
+  obrona, a na obu zakładkach leczenia nie mówiło o walce nic. Teraz stoi tam jedno i drugie, pod
+  nagłówkami mówiącymi, która połowa jest która. Zakładka decyduje już tylko o tym, która z czterech
+  liczb jest pogrubiona.
+
 - **Zmiana** — Lista w panelu nie ma już paska przewijania przy prawej krawędzi. Przewija się
   dokładnie tak samo, kółkiem i palcem, a miejsce po pasku dostały nazwy postaci — mieści się ich
   więcej, zanim zostaną ucięte. To, że lista sięga dalej w dół, widać teraz dopiero po przewinięciu.
