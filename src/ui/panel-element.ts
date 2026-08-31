@@ -10,12 +10,14 @@ import type {
     DrillReading,
     ElementRow,
     NamedPart,
+    OpponentRow,
     PairReading,
     PanelMetric,
     PanelReading,
     PanelRow,
     PanelSides,
     PinnedRow,
+    RankingRow,
     ShelfRow,
     SkillCut,
     SkillReading,
@@ -248,13 +250,50 @@ function composeBarElements(document: PanelDocument, reading: RowReading): Panel
 }
 
 /**
- * The tip a row falls back on where it has no card, and the one instruction the panel gives.
+ * Where the card is standing, which decides two of its lines and nothing else about it. The
+ * figures are the fight's at every level, so a card over a row stating a cut of one says so.
+ */
+interface CardPlace {
+    metric: PanelMetric;
+    warnings: readonly string[];
+    translate: TranslateLabel | null;
+    isRowNarrower: boolean;
+}
+
+/**
+ * The card a person's row opens, and **the same card at every level a person stands on** — the
+ * ranking, the ends an opened figure reached, and whom one skill reached. A row with nobody
+ * behind it has no card to compose: a skill, a kind and an end the protocol left out fall back
+ * on `composeRowTipReading`. `DESIGN.md` owns the rule; **ADR 0032** owns why.
+ */
+function composePersonCard(
+    row: RankingRow | OpponentRow,
+    place: CardPlace,
+    opens: boolean,
+): TipCompose {
+    assert(SCREEN_ORDER.includes(place.metric), "a card stands on a screen the strips draw");
+    assert(Number.isSafeInteger(row.combatantId), "and over a row the panel can name somebody by");
+    return () =>
+        composeCardReading({
+            name: row.name ?? PANEL_WORDS.unknown,
+            profession: row.profession,
+            detail: row.detail,
+            metric: place.metric,
+            warnings: place.warnings,
+            opens,
+            isRowNarrower: place.isRowNarrower,
+            translate: place.translate,
+        });
+}
+
+/**
+ * The tip a row falls back on where nobody stands behind it, and the one instruction the panel
+ * gives. A skill, a kind, an end the protocol left out and a fight on the shelf get this.
  *
  * ⚠️ **A row that opens says so, at every level and not only on the ranking.** The note used to be
- * the card's alone, and the card is drawn on a ranking row and nowhere else — so of the rows a
- * reader meets inside an opened one, the 1,576 that open (`captures/`, 2026-08-30) were told apart
- * from the 588 that do not by the cursor and by nothing else. Half a section being pressable and
- * silent about it teaches a reader that none of it is.
+ * the card's alone, and of the rows a reader meets inside an opened one, the 1,576 that open
+ * (`captures/`, 2026-08-30) were told apart from the 588 that do not by the cursor and by nothing
+ * else. Half a section being pressable and silent about it teaches a reader that none of it is.
  */
 function composeRowTipReading(reading: RowReading, tip: RowTip, opens: boolean): TipReading {
     assert(reading.name.length > 0, "a row that says nothing else at least names itself");
@@ -601,16 +640,11 @@ function composeRankingElement(
             key: `row:${row.combatantId}`,
             figure,
             share: PANEL_WORDS.share,
-            compose: () =>
-                composeCardReading({
-                    name: reader.name,
-                    profession: row.profession,
-                    detail: row.detail,
-                    metric,
-                    warnings: reading.warnings,
-                    opens: true,
-                    translate,
-                }),
+            compose: composePersonCard(
+                row,
+                { metric, warnings: reading.warnings, translate, isRowNarrower: false },
+                true,
+            ),
         };
         list.append(composeRowElement(document, reader, `${row.combatantId}`, tip));
     }
@@ -703,7 +737,7 @@ function composeOpponentSection(
     document: PanelDocument,
     list: PanelElement,
     drill: DrillReading,
-    stated: { metric: PanelMetric; register: TipRegister; figure: string },
+    stated: { metric: PanelMetric; register: TipRegister; figure: string; place: CardPlace },
 ): void {
     const cut = drill.byOpponent;
     assert(cut.rows.length <= MAXIMUM_ROWS, "an opened row stays inside the fight's bound");
@@ -720,6 +754,7 @@ function composeOpponentSection(
             ...{
                 figure: stated.figure,
                 share,
+                compose: composePersonCard(row, stated.place, row.opensPair),
             },
         };
         const opens = row.opensPair ? `${row.combatantId}` : null;
@@ -876,11 +911,23 @@ function composeDrillElement(
     view: PanelView,
     drill: DrillReading,
     register: TipRegister,
+    translate: TranslateLabel | null,
 ): PanelElement {
     const list = composeListElement(document, getRowsForDrill(drill, view.reading.visibleRows));
     const figure = getWordsForScreen(view.current);
     assert(figure.length > 0, "an opened row states what its figure is a figure of");
-    composeOpponentSection(document, list, drill, { metric: view.current, register, figure });
+    const place: CardPlace = {
+        metric: view.current,
+        warnings: view.reading.warnings,
+        translate,
+        isRowNarrower: true,
+    };
+    composeOpponentSection(document, list, drill, {
+        metric: view.current,
+        register,
+        figure,
+        place,
+    });
     composeSkillSection(document, list, drill, { metric: view.current, register, figure });
     composeElementSection(document, list, drill, { metric: view.current, register, figure });
     assert(drill.total >= 0, "a figure opened is never below nothing");
@@ -1030,10 +1077,12 @@ function composeViewList(
     assert(SCREEN_ORDER.includes(view.current), "a view is on a screen the strip draws");
     assert(view.shelf.length >= 0, "and carries the fights behind it, however few");
     if (view.isOnShelf) return composeShelfElement(document, view, register);
-    if (view.skill !== null) return composeSkillElement(document, view, view.skill, register);
+    if (view.skill !== null) {
+        return composeSkillElement(document, view, view.skill, register, translate);
+    }
     if (view.pair !== null) return composePairElement(document, view, view.pair, register);
     if (view.drill !== null) {
-        return composeDrillElement(document, view, view.drill, register);
+        return composeDrillElement(document, view, view.drill, register, translate);
     }
     return composeRankingElement(document, view.reading, view.current, register, translate);
 }
@@ -1043,6 +1092,7 @@ function composeSkillElement(
     view: PanelView,
     skill: SkillReading,
     register: TipRegister,
+    translate: TranslateLabel | null,
 ): PanelElement {
     const rows = skill.byOpponent.rows.length + (skill.byOpponent.unnamed === null ? 0 : 1);
     assert(rows > 0, "a skill that opens reached somebody");
@@ -1053,8 +1103,21 @@ function composeSkillElement(
     const heading = `${PANEL_WORDS.dealtTo} — ${skill.name}`;
     list.append(composeSectionElement(document, heading, skill.total));
     const share = PANEL_WORDS.shareOfFigure;
+    // Nothing on this rung opens, so no card here promises a gesture (`docs/drill-levels.md`).
+    const place: CardPlace = {
+        metric: view.current,
+        warnings: view.reading.warnings,
+        translate,
+        isRowNarrower: true,
+    };
     for (const [at, row] of skill.byOpponent.rows.entries()) {
-        const tip = { register, key: `reached:${row.combatantId}`, figure, share };
+        const tip = {
+            register,
+            key: `reached:${row.combatantId}`,
+            figure,
+            share,
+            compose: composePersonCard(row, place, false),
+        };
         list.append(composeRowElement(document, composeCombatantReading(row, at + 1), null, tip));
     }
     return list;

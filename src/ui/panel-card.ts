@@ -1,6 +1,6 @@
 /**
- * What a ranking row says on demand: every figure a combatant has, and not only the one the
- * screen is showing.
+ * What a person's row says on demand, at whichever level it stands: every figure a combatant has
+ * and not only the one the screen is showing, and both runs and not only the screen's.
  */
 
 import { getRankedOrder } from "@/src/ui/ranked-order.ts";
@@ -30,6 +30,12 @@ export interface CardSubject {
     metric: PanelMetric;
     warnings: readonly string[];
     opens: boolean;
+    /**
+     * Whether the row the card stands over states a narrower figure than the card does. True
+     * inside an opened row, where the row is a cut and the card is still the whole fight, and
+     * `CARD_WORDS.scope` is what the card then owes the reader.
+     */
+    isRowNarrower: boolean;
     /** Asked only for a key this repository has no word for. Null on a page with no game on it. */
     translate: TranslateLabel | null;
 }
@@ -44,6 +50,8 @@ interface CardFigure {
 
 /** No screen draws more than two, and a card that carried a page of them is not a card. */
 const MAXIMUM_CARD_WARNINGS = 4;
+/** The figures, the counters, the two runs and the notes. A sixth is a card nobody designed. */
+const MAXIMUM_CARD_GROUPS = 5;
 /** Past the widest cut a card draws: fourteen worded procs, four destroyed, three defences. */
 const MAXIMUM_CARD_PARTS = 64;
 /** Counted in the line above it rather than beside it, so the card never says it twice. */
@@ -276,21 +284,24 @@ function composeCardStruckLines(detail: RowDetail, translate: TranslateLabel | n
 }
 
 /**
- * The one part of the card the screen decides, and it is decided **exhaustively**: a fifth screen
- * becomes a question the compiler asks. The healing screens state nothing here on purpose — the
- * protocol says less on that side, and a section invented to match the damage ones would be
- * matching it out of nothing. `DESIGN.md` owns why the rest of the card does not move.
+ * The two runs, each under the heading naming its end, and a run that came to nothing is not
+ * drawn at all. **Neither of them turns on the screen**: a reader asking what held has the same
+ * card as one asking what landed, and the screen decides only which of the four figures is bold.
+ * `DESIGN.md` owns the rest of the card's shape.
  */
-function composeCardScreenLines(
-    detail: RowDetail,
-    metric: PanelMetric,
-    translate: TranslateLabel | null,
-): TipLine[] {
-    assert(SCREEN_ORDER.includes(metric), "a card stands on a screen the strips draw");
-    if (metric === "damageDealtApplied") return composeCardStrikingLines(detail, translate);
-    if (metric === "damageTakenApplied") return composeCardStruckLines(detail, translate);
-    if (metric === "healthGiven") return [];
-    return [];
+function composeCardRunGroups(detail: RowDetail, translate: TranslateLabel | null): TipGroup[] {
+    const runs = [
+        { heading: CARD_WORDS.striking, lines: composeCardStrikingLines(detail, translate) },
+        { heading: CARD_WORDS.struck, lines: composeCardStruckLines(detail, translate) },
+    ];
+    const groups: TipGroup[] = [];
+    for (const run of runs) {
+        assert(run.heading.length > 0, "a run the card draws stands under a heading");
+        if (run.lines.length === 0) continue;
+        groups.push({ lines: [{ kind: "heading", text: run.heading }, ...run.lines] });
+    }
+    assert(groups.length <= runs.length, "and no run is drawn twice");
+    return groups;
 }
 
 function getIsRawStated(detail: RowDetail): boolean {
@@ -311,6 +322,11 @@ function composeCardNoteLines(subject: CardSubject): TipLine[] {
         assert(warning.length > 0, "a doubt the panel states is a sentence");
         lines.push({ kind: "note", text: `${WARNING_MARK}${warning}`, isWarning: true });
     }
+    // Last of the sentences and before the instruction, because it answers for every figure above
+    // it rather than for one of them.
+    if (subject.isRowNarrower) {
+        lines.push({ kind: "note", text: CARD_WORDS.scope, isWarning: false });
+    }
     if (subject.opens) {
         lines.push({ kind: "note", text: CARD_WORDS.gesture, isWarning: false });
     }
@@ -323,19 +339,14 @@ export function composeCardReading(subject: CardSubject): TipReading {
     const groups: TipGroup[] = [
         { lines: composeCardFigureLines(subject.detail, subject.metric) },
     ];
-    for (
-        const lines of [
-            composeCardCounterLines(subject.detail),
-            composeCardScreenLines(subject.detail, subject.metric, subject.translate),
-            composeCardNoteLines(subject),
-        ]
-    ) {
-        if (lines.length === 0) continue;
-        groups.push({ lines });
-    }
+    const counters = composeCardCounterLines(subject.detail);
+    if (counters.length > 0) groups.push({ lines: counters });
+    groups.push(...composeCardRunGroups(subject.detail, subject.translate));
+    const notes = composeCardNoteLines(subject);
+    if (notes.length > 0) groups.push({ lines: notes });
     assert(
-        groups.length <= 4,
-        "and says it in the figures, the counters, the screen's own and the notes",
+        groups.length <= MAXIMUM_CARD_GROUPS,
+        "and says it in the figures, the counters, the two runs and the notes",
     );
     return {
         name: subject.name,

@@ -16,6 +16,7 @@ import {
     composeDrillReading,
     composePairReading,
     composePanelReading,
+    composeSkillReading,
     NOTHING_MISSED,
     type PanelReading,
 } from "@/src/ui/panel-reading.ts";
@@ -55,6 +56,8 @@ import { getRecordedCombatants, getRecordedPayloads } from "@/tests/recorded-fig
 import { getDeclaration, getRuleBody } from "@/tests/style-sheet.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
+/** Whose row on _leczenie dane_ opens onto a skill that reached somebody else. */
+const HEALER = 469657;
 /**
  * A fight whose hardest-hit row opens onto both kinds of opponent: one the level under says more
  * about, and one it says exactly the row again about. On `HILDUR` every pair opens, because the
@@ -953,6 +956,7 @@ function readTip(host: FakeElement): {
     className: string;
     name: string[];
     subtitle: string[];
+    notes: string[];
     lines: string[];
     stated: TipLineRead[];
 } {
@@ -963,6 +967,7 @@ function readTip(host: FakeElement): {
         className: tip.className,
         name,
         subtitle: getTextsByClass(tip, CLASS.tipSubtitle),
+        notes: getTextsByClass(tip, CLASS.tipNote),
         lines: [
             ...name,
             ...getTextsByClass(tip, CLASS.tipLabel),
@@ -1129,6 +1134,137 @@ Deno.test("crossing from one part of a row to another is not leaving it", () => 
         "and a crossing that lands on the same row's mark leaves the card standing",
     );
     assertEquals(readTip(host).lines, opened.lines, "saying what it was already saying");
+});
+
+/**
+ * The same card at every level a person stands on, and its figures are the fight's: the card is
+ * about the person, and the row it stands over is one cut of them. **ADR 0032.**
+ */
+Deno.test("a person inside an opened row opens the card the ranking opens", () => {
+    const { reading, drill, opened } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "damageDealtApplied",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill,
+        pair: null,
+        skill: null,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const other = drill.byOpponent.rows[0];
+    assert(other !== undefined, "the opened figure reached somebody");
+    const listed = reading.rows.find((one) => one.combatantId === other.combatantId);
+    assert(listed !== undefined, "and the ranking holds them too");
+    const pointAt = (key: string) => {
+        const part = getElementsWithin(host).find(
+            (one) => one.attributes.get("data-tip") === key,
+        );
+        assert(part !== undefined, `${key} is a row on the panel`);
+        pointAtElement(host, "pointermove", part, 300);
+        return readTip(host);
+    };
+    const card = pointAt(`to:${other.combatantId}`);
+    assertEquals(card.name, [other.name ?? PANEL_WORDS.unknown], "the card names them in full");
+    assertEquals(
+        SCREEN_ORDER.map(getWordsForCardMetric).filter((words) => !card.lines.includes(words)),
+        [],
+        "and states all four of their figures, the way the ranking's card does",
+    );
+    const words = getWordsForCardMetric("damageDealtApplied");
+    const dealt = card.stated.find((line) => line.label === words);
+    assert(dealt !== undefined, "the screen's own figure among them");
+    assertEquals(
+        dealt.value,
+        composeFigureText(listed.detail.damageDealtApplied),
+        "read off the whole fight, and not off the cut the row under it states",
+    );
+    assert(
+        dealt.value !== composeFigureText(other.figure),
+        "which on this recording is a different number, so the two cannot be confused",
+    );
+    assert(card.notes.includes(CARD_WORDS.scope), "and the card says which of the two it means");
+    // The one card whose figures are its row's: on the ranking the two are the same number, so
+    // the sentence saying otherwise would answer nobody's question.
+    const ranking = draw(reading);
+    const listedPart = getElementsWithin(ranking).find(
+        (one) => one.attributes.get("data-tip") === `row:${opened.combatantId}`,
+    );
+    assert(listedPart !== undefined, "the row this level was opened from is one of the ranking's");
+    pointAtElement(ranking, "pointermove", listedPart, 300);
+    assert(!readTip(ranking).notes.includes(CARD_WORDS.scope), "and says no such thing");
+});
+
+/**
+ * The other rung a person stands on, and the last: whom one skill reached. Nothing there opens
+ * (`docs/drill-levels.md`), so the card carries the figures and not the instruction.
+ */
+Deno.test("a person under an opened skill opens a card promising no gesture", () => {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const drill = composeDrillReading(statistics, roster, "healthGiven", HEALER);
+    assert(drill !== null, "the healer's row opens");
+    const announced = drill.bySkill.rows.find((one) => one.opensSkill);
+    assert(announced !== undefined, "onto a skill that reached somebody else");
+    assert(announced.part.kind === "skill", "and one the game announced by name");
+    const skill = composeSkillReading(
+        statistics,
+        roster,
+        "healthGiven",
+        HEALER,
+        announced.part.name,
+    );
+    assert(skill !== null, "which opens onto the people it reached");
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        reading,
+        current: "healthGiven",
+        side: "everyone" as const,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill,
+        pair: null,
+        skill,
+        place: null,
+        isCollapsed: false,
+    });
+    const host = panel.element as FakeElement;
+    const reached = skill.byOpponent.rows[0];
+    assert(reached !== undefined, "somebody it reached");
+    const part = getElementsWithin(host).find(
+        (one) => one.attributes.get("data-tip") === `reached:${reached.combatantId}`,
+    );
+    assert(part !== undefined, "and they are a row somebody can point at");
+    pointAtElement(host, "pointermove", part, 300);
+    const card = readTip(host);
+    assertEquals(
+        SCREEN_ORDER.map(getWordsForCardMetric).filter((words) => !card.lines.includes(words)),
+        [],
+        "the card states all four of their figures here too",
+    );
+    assert(card.notes.includes(CARD_WORDS.scope), "and says the figures are the whole fight's");
+    assert(!card.notes.includes(CARD_WORDS.gesture), "and promises nothing, because nothing opens");
 });
 
 Deno.test("a share inside an opened row is of that row, never of the fight", () => {
@@ -1903,15 +2039,22 @@ Deno.test("a row that opens says so, and a row that does not says nothing of the
         return getTextsByClass(tip, CLASS.tipNote);
     };
     assertEquals(
-        pointAtRow(`to:${opening.combatantId}`),
-        [CARD_WORDS.gesture],
-        "the row that opens says what pressing it does",
+        pointAtRow(`to:${opening.combatantId}`).at(-1),
+        CARD_WORDS.gesture,
+        "the row that opens says what pressing it does, last of the card's sentences",
     );
-    assertEquals(
-        pointAtRow(`to:${closed.combatantId}`),
-        [],
+    assert(
+        !pointAtRow(`to:${closed.combatantId}`).includes(CARD_WORDS.gesture),
         "and the one that does not promises no gesture",
     );
+    // Said at every level the card stands on, because the row under it states a cut of the figure
+    // the card holds and nothing else on screen says the card means the whole fight.
+    for (const row of [opening, closed]) {
+        assert(
+            pointAtRow(`to:${row.combatantId}`).includes(CARD_WORDS.scope),
+            "and both say the figures over them are the fight's",
+        );
+    }
 });
 
 /** The other mark, on the one section that opens by it: a skill states the same instruction. */

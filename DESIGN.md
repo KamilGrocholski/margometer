@@ -319,23 +319,25 @@ the rule and the air each run of them spends over itself. A wrapping sentence is
 of characters per line, so the count is never short: a card reserving a line it did not need stands
 higher up the screen, which is the direction that keeps it on one.
 
-**On a ranking row the tooltip is a card.** The name in full, then what they are and how far along
-on one line under it — which is where the hue on the bar is finally said in words, and the only
-place it is. Then all four figures rather than the one the screen is showing, with that one in bold;
-under each, the part of it the protocol named only that row's end of; then how they fought, then
-what the screen itself asks about, and last what qualifies every figure above. A figure stated
-before reduction carries the sentence that says not to subtract it. Nowhere else is it a card: a
-skill, a kind, a fight on the shelf and a row inside an opened figure each get the name their own
-cell had to cut.
+**Wherever a person's row stands, the tooltip is a card.** The name in full, then what they are and
+how far along on one line under it — which is where the hue on the bar is finally said in words, and
+the only place it is. Then all four figures rather than the one the screen is showing, with that one
+in bold; under each, the part of it the protocol named only that row's end of; then how they fought
+at each end, and last what qualifies every figure above. A figure stated before reduction carries
+the sentence that says not to subtract it. **A card whose row states a narrower figure says so**, in
+one sentence under the doubts and over the instruction: the card is about the person and its figures
+are the fight's, while the row it stands over is one cut of them. Nowhere else is it a card, because
+nowhere else is there a person to compose one from: a skill, a kind, an end the protocol left out
+and a fight on the shelf each get the name their own cell had to cut.
 
-**One run of the card is the screen's, and only that one.** The screen about striking states the
-criticals as a share of the blows struck, the hardest blow, what else fired, and what those blows
-destroyed on the other side — under a heading, because points of armour and percentage points of
-resistance are two quantities and never one sum. The screen about being struck states what a defence
-stopped with the defences it is made of under it, what fired on that combatant's side of somebody
-else's blow, and the hardest blow that reached them. Both healing screens state nothing there: the
-protocol says less on that side and a run invented to match would be matched out of nothing. **ADR
-0019.**
+**Both runs stand, on every screen, each under the heading naming its end.** The run about striking
+states the criticals as a share of the blows struck, the hardest blow, what else fired, and what
+those blows destroyed on the other side — under a heading of its own, because points of armour and
+percentage points of resistance are two quantities and never one sum. The run about being struck
+states what a defence stopped with the defences it is made of under it, what fired on that
+combatant's side of somebody else's blow, and the hardest blow that reached them. Which end a key
+belongs to is read per key and never off its sign, so the heading is what says whose each line is. A
+run that came to nothing is not drawn, and neither is its heading. **ADR 0032.**
 
 **A line of a card never folds.** Its height is arithmetic and a stat line is counted as one, so a
 label too long for the column is cut with an ellipsis rather than wrapped — a card that folded a

@@ -69,10 +69,10 @@ const MAXIMUM_TIPS = 128;
  */
 const NOTE_CHARACTERS_PER_LINE = 32;
 /**
- * Past every card this panel composes: four figures and their parts, the counters, the run the
- * screen adds — the criticals, the defences, the procs and what a blow destroyed — and the notes.
- * The tallest card any recording composes is 25 lines, measured over `captures/` on
- * 2026-08-30, so the bound is headroom rather than a limit anything has met.
+ * Past every card this panel composes: four figures and their parts, the counters, both runs —
+ * the criticals, the defences, the procs and what a blow destroyed — and the notes. The tallest
+ * card any recording composes is 33 lines, measured over every combatant, screen and place a
+ * card stands in over `captures/` on 2026-08-31 — headroom, rather than a limit anything meets.
  */
 const MAXIMUM_TIP_LINES = 64;
 /** A custom property, which is the one kind `src/ui/panel-look.ts`'s reset leaves standing. */

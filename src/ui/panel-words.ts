@@ -166,7 +166,12 @@ export function getWordsForCardMetric(metric: PanelMetric): string {
 }
 
 export const CARD_WORDS = {
-    raw: "surowe",
+    /**
+     * **The qualifier is the label.** Called `surowe` alone it read as the raw half of the figure
+     * above it, and stood below that figure on hundreds of rows — the measurement, and what the
+     * protocol states a raw on, are in `tests/ui/panel-card.test.ts`.
+     */
+    raw: "surowe z ciosów",
     blows: "Ciosy",
     blowsWithoutSkill: "bez umiejętności",
     skillUses: "Użycia umiejętności",
@@ -177,17 +182,27 @@ export const CARD_WORDS = {
     blowLargestDealt: "Największy cios",
     blowLargestTaken: "Największy przyjęty cios",
     /**
+     * A heading each, because the two runs stand together and half the keys under them belong to
+     * the other end: `+legbon_curse` fires when its holder attacks and `-legbon_cleanse` when its
+     * holder is hit (`docs/protocol-keys.md`). **ADR 0032.**
+     */
+    striking: "W ciosach zadanych",
+    struck: "W ciosach przyjętych",
+    /** Said only where the row under the card states a narrower figure than the card does. */
+    scope: "Liczby z całej walki.",
+    /**
      * A heading over a run of parts and **never a sum of them**: points of armour and percentage
      * points of resistance stand under it, and one number over both would be two quantities
      * wearing one word (`src/core/battle-event.ts`).
      */
     destroyed: "Zniszczone",
     /**
-     * Owed wherever `raw` stands: a reader meeting the two will try the subtraction, and armour
-     * and resistance reduce unreported (`src/core/battle-event.ts`).
+     * Owed wherever `raw` stands, and two things are owed: what the figure is a sum of, and that
+     * the subtraction a reader will try does not work (`src/core/battle-event.ts`).
      */
-    damageNote: "Surowe to obrażenia przed redukcją. Różnicy nie zatrzymała obrona — " +
-        "pancerza ani odporności gra nie podaje.",
+    damageNote: "Surowe z ciosów to obrażenia przed redukcją, i liczą się tylko z ciosów — " +
+        "liczba nad nimi może trzymać więcej. Nie odejmuj jednej od drugiej: pancerza ani " +
+        "odporności gra nie podaje.",
     /**
      * The one instruction the panel gives, and it stands wherever pressing leads somewhere —
      * `DESIGN.md` owns that rule. The right press is not named beside it: it goes back, from

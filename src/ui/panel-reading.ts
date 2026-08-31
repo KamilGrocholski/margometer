@@ -77,8 +77,14 @@ export interface PanelRow {
 export interface RowDetail {
     level: number | null;
     damageDealtApplied: number;
-    damageDealtRaw: number;
     damageTakenApplied: number;
+    /**
+     * **The raw of the blows, and never the raw of the figure beside it.** The protocol states a
+     * figure before reduction on a blow and nowhere else, while an applied figure grows from
+     * blows, from damage named against somebody and from health moving outside one. What the card
+     * owes for drawing these is the label saying what they are a sum of (`src/ui/panel-words.ts`).
+     */
+    damageDealtRaw: number;
     damageTakenRaw: number;
     healthGiven: number;
     healthRestored: number;
@@ -284,8 +290,8 @@ function composeRowDetail(figures: CombatantFigures, level: number | null): RowD
     return {
         level,
         damageDealtApplied: figures.damageDealtApplied,
-        damageDealtRaw: figures.damageDealtRaw,
         damageTakenApplied: figures.damageTakenApplied,
+        damageDealtRaw: figures.damageDealtRaw,
         damageTakenRaw: figures.damageTakenRaw,
         healthGiven: figures.healthGiven,
         healthRestored: figures.healthRestored,
@@ -304,6 +310,24 @@ function composeRowDetail(figures: CombatantFigures, level: number | null): RowD
         damagePreventedByDefence: composeCutParts(figures.damagePreventedByDefence),
         statisticsDestroyed: composeCutParts(figures.statisticsDestroyed),
     };
+}
+
+/**
+ * The card's figures for one combatant, wherever their row stands. Somebody the statistics never
+ * saw is handed an empty set rather than nothing: they are on the roster and did nothing, which is
+ * a reading.
+ */
+function composeRowDetailFor(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    combatantId: number,
+): RowDetail {
+    assert(Number.isSafeInteger(combatantId), "a card is composed for somebody the panel names");
+    assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "out of a fight inside its stated bound");
+    return composeRowDetail(
+        statistics.byCombatantId.get(combatantId) ?? composeCombatantFigures(),
+        roster.byId.get(combatantId)?.level ?? null,
+    );
 }
 
 /** By figure, then by id — a tie broken by something that does not move between draws. */
@@ -562,10 +586,7 @@ export function composePanelReading(
         ...row,
         fill: getFill(row.figure, largest),
         shareText: shares[at] ?? "",
-        detail: composeRowDetail(
-            statistics.byCombatantId.get(row.combatantId) ?? composeCombatantFigures(),
-            roster.byId.get(row.combatantId)?.level ?? null,
-        ),
+        detail: composeRowDetailFor(statistics, roster, row.combatantId),
     }));
     assert(rows.length <= MAXIMUM_ROWS, "a list stays inside the fight's stated bound");
     assert(rows.every((one) => one.shareText.length > 0), "and every row states a share");
@@ -716,8 +737,13 @@ export interface SkillCut {
     plain: PlainRow | null;
 }
 
+/**
+ * The card stands over this row too, so the row carries what the card states — the same figures
+ * the ranking's own row holds, because the card is about the person and not about the cut.
+ */
 export interface OpponentRow extends PanelRow {
     opensPair: boolean;
+    detail: RowDetail;
 }
 
 export interface OpponentCut {
@@ -883,6 +909,7 @@ function composeElementCut(cut: FigureCut, total: number): ElementCut {
  */
 function composeOpponentCut(
     cut: FigureCut,
+    statistics: FightStatistics,
     roster: CombatantRoster,
     total: number,
     opens: (otherId: number) => boolean,
@@ -916,6 +943,7 @@ function composeOpponentCut(
             fill: getFill(row.figure, largest),
             shareText: shares[at] ?? "",
             opensPair: opens(row.combatantId),
+            detail: composeRowDetailFor(statistics, roster, row.combatantId),
         })),
         unnamed: unnamed > 0
             ? {
@@ -1152,6 +1180,7 @@ export function composeSkillReading(
         total: skill.restored,
         byOpponent: composeOpponentCut(
             skill.restoredByOpponent,
+            statistics,
             roster,
             skill.restored,
             () => false,
@@ -1446,6 +1475,7 @@ export function composeDrillReading(
     const total = getFigure(figures, metric);
     const byOpponent = composeOpponentCut(
         cuts.byOpponent,
+        statistics,
         roster,
         total,
         (otherId) => getOpensPair(statistics, figures, metric, combatantId, otherId),

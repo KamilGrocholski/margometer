@@ -111,3 +111,5 @@ edited to agree with the new rule.
   builds it stands between. **Accepted**
 - [0031](0031-the-list-scrolls-without-drawing-a-scrollbar.md) — The list scrolls without drawing a
   scrollbar, and no region reserves a gutter. **Accepted**
+- [0032](0032-the-card-says-everything-wherever-a-person-stands.md) — The card says everything,
+  wherever a person stands. **Accepted**
