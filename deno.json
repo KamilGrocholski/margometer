@@ -4,7 +4,8 @@
         // The gate. One command, so there is no version of "I ran the tests but not the build".
         // `build` writes `dist/`, which git does not carry: what ships is checked as a file.
         "check": "deno fmt --check && deno lint && deno check && deno test -A && deno task build",
-        // The file a reader installs. A release passes its version; a build without one says so.
+        // The file a reader installs. A release passes its version; a build without one takes
+        // what `deno.json` declares and marks it `-dev` — ADR 0035.
         "build": "deno run -A tools/build-userscript.ts",
         // The panel in a browser, changing while you edit it: the add-on over a recording,
         // rebuilt and reloaded on a change under `src/`.

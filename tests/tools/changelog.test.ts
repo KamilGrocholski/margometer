@@ -1,15 +1,13 @@
 /**
- * The changelog against the version being released.
- *
- * This is the release gate moved into the tests: the tag comes from `deno.json` and the body of
- * the release comes from `CHANGELOG.md`, so a version bumped without a section would publish a
- * release that says nothing about itself. Each reader carries a sample it must flag and a sample
- * it must not, because a reader that has stopped finding its subject passes every walk.
+ * The changelog against the version being released, which is the release gate moved into the
+ * tests: a version bumped without a section would publish a release saying nothing about itself.
+ * The declaration it is asked about is `tests/tools/declared-version.test.ts`'s.
  */
 
 import { assert, assertEquals, assertThrows } from "@std/assert";
 import { CHANGELOG_FILE, CONFIGURATION_FILE } from "@/project/repository-layout.ts";
-import { composeReleaseNotes, getChangelogSection, getDeclaredVersion } from "@/tools/changelog.ts";
+import { composeReleaseNotes, getChangelogSection } from "@/tools/changelog.ts";
+import { getDeclaredVersion } from "@/tools/declared-version.ts";
 import { ChangelogError } from "@/tools/margometer-tool-error.ts";
 
 const CHANGELOG = Deno.readTextFileSync(CHANGELOG_FILE);
@@ -18,19 +16,6 @@ const DECLARED = getDeclaredVersion(Deno.readTextFileSync(CONFIGURATION_FILE));
 const ENTRY_KINDS = ["**Nowość**", "**Zmiana**", "**Poprawka**"];
 /** What opens a version's own heading, and so what a section must stop before. */
 const VERSION_HEADING = "## [";
-
-Deno.test("the version this tree declares is read out of its configuration", () => {
-    const sample = '{\n    "version": "1.2.3",\n    "tasks": {}\n}\n';
-    assertEquals(getDeclaredVersion(sample), "1.2.3", "the reader finds its own sample");
-    const commented =
-        '{\n    // "version": "9.9.9" was the shape before\n    "version": "1.2.3"\n}';
-    assertEquals(getDeclaredVersion(commented), "1.2.3", "a comment is not a declaration");
-    assertThrows(
-        () => getDeclaredVersion('{\n    "tasks": {}\n}\n'),
-        ChangelogError,
-    );
-    assert(DECLARED.length > 0, "and the tree itself declares one");
-});
 
 Deno.test("the declared version has a section, and it says something", () => {
     const section = getChangelogSection(CHANGELOG, DECLARED);

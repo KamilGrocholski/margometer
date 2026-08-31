@@ -8,7 +8,7 @@
  */
 
 import { assert } from "@std/assert";
-import { BUILD_VERSION } from "@/src/build-version.ts";
+import { getDevelopmentVersion } from "@/tools/declared-version.ts";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
@@ -409,7 +409,7 @@ export async function writePanelShots(browser: string): Promise<PanelShotRecord>
     const commit = await getCommitForShots();
     const fight = getPreviewRecordedFight(getRecordedFights());
     const shots = composePanelShots();
-    const built = await composeUserscriptFiles(BUILD_VERSION);
+    const built = await composeUserscriptFiles(getDevelopmentVersion());
     const staging = await Deno.makeTempDir({ prefix: "margometer-shots-" });
     try {
         for (const shot of shots) {

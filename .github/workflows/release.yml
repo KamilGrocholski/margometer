@@ -64,9 +64,11 @@ jobs:
 
             - run: deno task check
 
-            # The gate builds at `0.0.0-dev`, which is what a tree nobody tagged honestly says
-            # (ADR 0012), so `dist/` is written again at the tag's version and both files are read
-            # back. A release whose banner names the previous version updates nobody.
+            # The gate builds at the declaration marked `-dev`, which is what a tree nobody
+            # tagged honestly says (ADR 0035), so `dist/` is written again at the tag's version
+            # and both files are read back. A release whose banner names the previous version
+            # updates nobody — and the step above has already held the tag and the declaration
+            # level, so this is what proves the built file carries what they agreed on.
             - name: the built files carry the tagged version
               run: |
                   version="${GITHUB_REF_NAME#v}"

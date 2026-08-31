@@ -9,7 +9,7 @@
  */
 
 import { assert } from "@std/assert";
-import { BUILD_VERSION } from "@/src/build-version.ts";
+import { getDevelopmentVersion } from "@/tools/declared-version.ts";
 import { composeUserscriptFiles, USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
 import {
     composePreviewPage,
@@ -140,7 +140,7 @@ export function composePreviewSitePages(): PreviewSiteFile[] {
  */
 export async function composePreviewSiteFiles(): Promise<PreviewSiteFile[]> {
     const bundle = await composeUserscriptFiles(
-        BUILD_VERSION,
+        getDevelopmentVersion(),
         `${OUTPUT_DIRECTORY}/${USERSCRIPT_NAME}`,
     );
     assert(bundle.script.length > 0, "the pages carry the add-on they are a preview of");

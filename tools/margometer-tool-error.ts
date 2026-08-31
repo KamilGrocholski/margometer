@@ -12,6 +12,7 @@ export type MargoMeterToolErrorCode =
     | "GameSource"
     | "ProtocolKeyTable"
     | "HelpArticle"
+    | "DeclaredVersion"
     | "Changelog"
     | "DrillReport";
 
@@ -88,6 +89,13 @@ export class ProtocolKeyTableError extends MargoMeterToolError {
 export class HelpArticleError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super("HelpArticle", reason, options);
+    }
+}
+
+/** The tree declares no version: nothing to build at, and nothing to release. */
+export class DeclaredVersionError extends MargoMeterToolError {
+    constructor(reason: string) {
+        super("DeclaredVersion", reason);
     }
 }
 

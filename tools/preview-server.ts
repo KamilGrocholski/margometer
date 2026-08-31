@@ -10,7 +10,7 @@
 
 import { getValueWithin } from "@/libs/number-range.ts";
 import { assert } from "@std/assert";
-import { BUILD_VERSION } from "@/src/build-version.ts";
+import { getDevelopmentVersion } from "@/tools/declared-version.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { composeUserscriptFiles, USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
 import { UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
@@ -104,9 +104,10 @@ export interface PreviewServer {
 
 /** The bundle as the browser gets it, built where nothing else is looking for a file. */
 function readBuiltUserscript(): Promise<string> {
-    assert(BUILD_VERSION.length > 0, "a preview states the version it was built at");
+    const version = getDevelopmentVersion();
+    assert(version.length > 0, "a preview states the version it was built at");
     assert(USERSCRIPT_NAME.length > 0, "and serves it under the name a page asks for");
-    return composeUserscriptFiles(BUILD_VERSION).then((files) => files.script);
+    return composeUserscriptFiles(version).then((files) => files.script);
 }
 
 /** A reload stream still open, and the way to say something into it. */

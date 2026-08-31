@@ -1,6 +1,6 @@
 /**
- * The version this tree declares, and what `CHANGELOG.md` says about it — which is the body of a
- * release. **ADR 0018.**
+ * What `CHANGELOG.md` says about the version this tree declares — which is the body of a
+ * release. **ADR 0018.** The declaration itself is `tools/declared-version.ts`'s to read.
  *
  * A function with a test rather than a line of shell inside a workflow: a line that runs only
  * when a tag is pushed is a line whose typo surfaces at the most expensive moment.
@@ -8,36 +8,13 @@
 
 import { assert } from "@std/assert";
 import { METADATA_NAME, USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
+import { getDeclaredVersion } from "@/tools/declared-version.ts";
 import { ChangelogError } from "@/tools/margometer-tool-error.ts";
 import { CHANGELOG_FILE, CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 
-const VERSION_KEY = '"version":';
-const QUOTE = '"';
 const VERSION_HEADING_OPENER = "## [";
 const SECTION_OPENER = "## ";
 const USAGE = "usage: deno run -A tools/changelog.ts version | notes <version>";
-
-/**
- * The version this tree declares, read by walking rather than parsed: `deno.json` carries
- * comments, so `JSON.parse` refuses the file and a reader of JSON with comments would be a
- * dependency this repository has no other use for. The first `"version":` is the tree's own — a
- * later one would belong to something nested inside it.
- */
-export function getDeclaredVersion(configuration: string): string {
-    assert(configuration.length > 0, "a configuration that was read says something");
-    for (const line of configuration.split("\n")) {
-        const stated = line.trim();
-        if (!stated.startsWith(VERSION_KEY)) continue;
-        const opening = stated.indexOf(QUOTE, VERSION_KEY.length);
-        if (opening === -1) break;
-        const closing = stated.indexOf(QUOTE, opening + 1);
-        if (closing === -1) break;
-        const declared = stated.slice(opening + 1, closing);
-        assert(declared.length > 0, "a version that is declared is spelled out");
-        return declared;
-    }
-    throw new ChangelogError(`${CONFIGURATION_FILE} declares no version to release`);
-}
 
 /**
  * The body of a version's section, without its heading, or `null` where the file has none.

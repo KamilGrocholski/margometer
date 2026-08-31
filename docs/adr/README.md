@@ -117,3 +117,5 @@ edited to agree with the new rule.
   on the shelf. **Accepted**
 - [0034](0034-every-row-with-a-level-under-it-opens.md) — Every row with a level under it opens, and
   every cut that holds a row is drawn. **Accepted**
+- [0035](0035-a-build-with-no-version-named-takes-the-declaration.md) — A build with no version
+  named takes the declaration and marks it. **Accepted**

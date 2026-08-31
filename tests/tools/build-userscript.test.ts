@@ -51,7 +51,11 @@ Deno.test("a build writes its version over the constant, and refuses a text with
         'const version = "1.2.3"; console.log("1.2.3");',
         "every place the bundler inlined it is written over, not the first",
     );
-    assertEquals(setVersionInBundle(said, BUILD_VERSION), said, "and a dev build changes nothing");
+    assertEquals(
+        setVersionInBundle(said, BUILD_VERSION),
+        said,
+        "and writing the constant over itself leaves the text as it was",
+    );
     assertThrows(
         () => setVersionInBundle("const version = 1;", "1.2.3"),
         UserscriptBuildError,

@@ -8,6 +8,7 @@
 
 import { assert } from "@std/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
+import { getDevelopmentVersion } from "@/tools/declared-version.ts";
 import { UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
 import { CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 
@@ -163,7 +164,7 @@ export async function buildUserscript(version: string): Promise<string> {
 }
 
 if (import.meta.main) {
-    const version = Deno.args[0] ?? BUILD_VERSION;
+    const version = Deno.args[0] ?? getDevelopmentVersion();
     const written = await buildUserscript(version);
     console.log(`${written} at ${version}`);
 }

@@ -102,7 +102,8 @@ tools/             Never ships. Each arrives with the question it answers.
   game-client-source.ts  The client fetched and dated, and the cache nothing published leaves.
   protocol-key-table.ts  Every key that client branches on, lifted out of its own switch.
   help-article.ts      The published help cached, searched raw, and counted into a reading.
-  changelog.ts         The version this tree declares, and what a release says about it.
+  declared-version.ts  The one place a version is written down, and what a dev build says.
+  changelog.ts         What a release says about the version this tree declares.
   margometer-tool-error.ts  The abstract brand a terminal failure wears, and the build's own.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
 screenshots/       One set of the panel, with the sidecar naming the commit it was shot at.
@@ -165,6 +166,7 @@ tests/
     protocol-key-table.test.ts  The switch in either spelling, and the material against it.
     help-article.test.ts      A page turned into text, and a dump that says how old it is.
     changelog.test.ts         A section against its neighbours, and the release that has none.
+    declared-version.test.ts  The declaration read both ways, and the mark a dev build wears.
   ui/
     blow-vocabulary.test.ts   Every key a blow carried, against the words the panel has for it.
     panel-card.test.ts        Every figure a card states, and the parts it draws under them.
