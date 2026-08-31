@@ -11,6 +11,8 @@ import { getJsonReading } from "@/libs/json-text.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import { PLACE, SPACE, TIP } from "@/src/ui/panel-look.ts";
+import { CONFIGURATION_FILE } from "@/project/repository-layout.ts";
+import { getDeclaredVersion, isVersionOfTree } from "@/tools/declared-version.ts";
 import { PanelShotError } from "@/tools/margometer-tool-error.ts";
 import {
     composeFrameFromReport,
@@ -75,6 +77,32 @@ Deno.test("whatever is in the directory agrees with the sidecar standing beside 
     const named = written.shots;
     assert(Array.isArray(named), "naming the pictures it stands beside");
     assertEquals(getSetDisagreements(held, named as string[]), [], "DESIGN.md: the set is the set");
+});
+
+/**
+ * The version the panel in the pictures states, against the version this tree is. A number bumped
+ * for a release with no reshoot leaves the release before it on the front page, and every picture
+ * still opens at the right size: the sidecar is the only thing that says which build drew them.
+ * `isVersionOfTree` is proved on samples in `tests/tools/declared-version.test.ts`.
+ */
+Deno.test("the set was taken at a version this tree is", () => {
+    let sidecar = "";
+    try {
+        sidecar = Deno.readTextFileSync(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`);
+    } catch {
+        // No set has been taken yet, which is a tree with no version to disagree about.
+        return;
+    }
+    const reading = getJsonReading(sidecar);
+    assert(reading.isOk, "the sidecar beside the set is JSON");
+    assert(isRecord(reading.value), "and is a record");
+    const stated = reading.value.version;
+    assert(typeof stated === "string", "saying the version the set was taken at");
+    const declared = getDeclaredVersion(Deno.readTextFileSync(CONFIGURATION_FILE));
+    assert(
+        isVersionOfTree(stated, declared),
+        `the set says ${stated} and the tree declares ${declared} — take the set again`,
+    );
 });
 
 Deno.test("a state is reached by a press and never by a click", () => {

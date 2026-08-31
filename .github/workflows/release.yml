@@ -76,6 +76,17 @@ jobs:
                   grep -qx "// @version      ${version}" dist/margometer.user.js
                   grep -qx "// @version      ${version}" dist/margometer.meta.js
 
+            # The pictures a README shows are of the panel, and the panel states the version it
+            # was built at. A set taken before the version was bumped, or one taken without
+            # `--release`, puts `0.11.0` or `0.11.0-dev` on the front page of a release that is
+            # neither — and nothing about a PNG looks wrong. `deno task check` holds the set to the
+            # declaration on every push (`tools/panel-screenshots.ts`); this is what holds it to
+            # the tag, which is the only place the mark itself can be caught. ADR 0037.
+            - name: the pictures were taken at the tagged version
+              run: |
+                  version="${GITHUB_REF_NAME#v}"
+                  grep -qF "\"version\": \"${version}\"" screenshots/taken-at.json
+
             # The notes are this version's section of CHANGELOG.md, which is the one document here
             # written for players — not a generated list of commit subjects, for the reason ADR
             # 0018 gives. A version with no section fails here, before anything is public.
