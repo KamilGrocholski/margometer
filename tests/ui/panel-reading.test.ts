@@ -49,6 +49,8 @@ const BOTH_KINDS_OF_PAIR = "captures/2026-08-12-tempest-grupa-vs-hildur-1-178651
 const POISONED = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
 const POISONED_ID = -255967;
 const POISON = "-255967=19.27;0;poison=140,14";
+/** A blow the protocol gives no striker and no target: `0` is the segment that names nobody. */
+const NEITHER_END = "0;0;+dmg=700;-dmg=700";
 /**
  * `2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`: an announcement and the
  * swing under it,
@@ -533,8 +535,11 @@ Deno.test("a share on one side's list is a share of that side, and the shares co
     assertEquals(ours.total, figure, "the total is the list's own, not the fight's");
     assert(ours.total < statistics.totals.damageDealtApplied, "which is less than the whole fight");
     const shares = ours.rows.map((row) => Number(row.shareText.slice(0, -1)));
-    const together = shares.reduce((sum, one) => sum + one, 0);
-    assertEquals(together, 100, "and every row together is that side, once");
+    const apart = ours.pinned.filter((one) => one.standing === "apart");
+    // The pinned figure is a part of this side like any row, so the hundred is theirs together.
+    const pinned = apart.map((one) => Number(one.shareText.slice(0, -1)));
+    const together = [...shares, ...pinned].reduce((sum, one) => sum + one, 0);
+    assertEquals(together, 100, "and every part of it together is that side, once");
 });
 
 /**
@@ -589,13 +594,19 @@ Deno.test("a reader whose own side nobody stated is shown everybody, whatever wa
 });
 
 /**
- * What belongs to nobody belongs to no side either. Putting it inside one side's total would be
- * claiming a side the log never stated, so it is shown only where everybody is.
+ * What names **neither** end is the one figure no side can be charged with, and no recording holds
+ * any of it — `byNeitherEnd` is zero on all of `captures/`, 2026-08-31 — so the fight is built by
+ * hand. A blow whose striker and target are both nobody is inside `dealtByNobody` and on no row,
+ * which is what makes it a refusal rather than a third side.
  */
 Deno.test("a figure nobody can be charged with is shown under everybody and nowhere else", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster } = readFight(HILDUR);
     const [readerSide] = [...new Set([...roster.byId.values()].map((one) => one.side))];
     assert(readerSide !== undefined, "the fight states a side");
+    const events = decodeFightMessages([NEITHER_END], roster);
+    const statistics = composeFightStatistics(events, new Map());
+    assertEquals(statistics.byNeitherEnd, 700, "the fight is one blow naming neither end");
+    assertEquals(statistics.byCombatantId.size, 0, "and it stands on nobody's row");
     const everyone = composePanelReading(
         statistics,
         roster,
@@ -604,7 +615,7 @@ Deno.test("a figure nobody can be charged with is shown under everybody and nowh
         readerSide,
         NOTHING_MISSED,
     );
-    assert(everyone.pinned.length > 0, "this fight has damage tied to no attacker");
+    assertEquals(everyone.pinned.map((one) => one.figure), [700], "under everybody it is drawn");
     for (const choice of ["reader", "opposing"] as const) {
         const narrowed = composePanelReading(
             statistics,
@@ -614,8 +625,149 @@ Deno.test("a figure nobody can be charged with is shown under everybody and nowh
             readerSide,
             NOTHING_MISSED,
         );
-        assertEquals(narrowed.pinned, [], `${choice}: nothing is charged to a side by default`);
+        assertEquals(narrowed.pinned, [], `${choice}: no side is charged with it`);
     }
+});
+
+/**
+ * The charge ADR 0013 states for the strip, read on the ranking standing under it: a list a
+ * reader narrowed to one side divides its shares by that side's own figure, pinned rows included.
+ * The two arms reach it through different fields — the rows off each combatant's own figure, the
+ * pinned row off whoever the game did name at the other end — so a charge that stopped agreeing
+ * with the strip lights this up rather than quietly shortening a list. **ADR 0036.**
+ */
+Deno.test("a one-side list divides by the figure the strip states for that side", () => {
+    let checked = 0;
+    let charged = 0;
+    for (const path of getRecordingPaths()) {
+        const { roster, statistics } = readFight(path);
+        for (const side of new Set([...roster.byId.values()].map((one) => one.side))) {
+            if (side === null) continue;
+            for (const metric of SCREENS) {
+                for (const choice of ["reader", "opposing"] as const) {
+                    const reading = composePanelReading(
+                        statistics,
+                        roster,
+                        metric,
+                        choice,
+                        side,
+                        NOTHING_MISSED,
+                    );
+                    const sides = reading.sides;
+                    assert(sides !== null, `${path}: a seat states two figures`);
+                    const apart = reading.pinned
+                        .filter((one) => one.standing === "apart")
+                        .reduce((sum, one) => sum + one.figure, 0);
+                    assertEquals(
+                        reading.total + apart,
+                        choice === "reader" ? sides.ours : sides.theirs,
+                        `${path}: ${metric} under ${choice} is that side's own figure`,
+                    );
+                    checked += 1;
+                    if (apart > 0) charged += 1;
+                }
+            }
+        }
+    }
+    assertEquals(checked, 432, "every seat of the corpus, on every screen, both ways round");
+    assertEquals(charged, 76, "and this many of them stand over a figure charged to that side");
+});
+
+/**
+ * The mirror ADR 0013 pays for the strip with, read off the ranking instead: a blow the protocol
+ * gave no striker stands apart on the side it is charged to and as a cut of the rows on the side
+ * that took it, at one figure. The two are summed from different fields of the statistics, so a
+ * crossing rule that stopped crossing breaks the equality rather than moving a figure.
+ */
+Deno.test("what one side dealt with no striker named is what the other took from nobody", () => {
+    let seats = 0;
+    let together = 0;
+    for (const path of getRecordingPaths()) {
+        const { roster, statistics } = readFight(path);
+        for (const side of new Set([...roster.byId.values()].map((one) => one.side))) {
+            if (side === null) continue;
+            const dealt = composePanelReading(
+                statistics,
+                roster,
+                "damageDealtApplied",
+                "reader",
+                side,
+                NOTHING_MISSED,
+            );
+            const taken = composePanelReading(
+                statistics,
+                roster,
+                "damageTakenApplied",
+                "opposing",
+                side,
+                NOTHING_MISSED,
+            );
+            const apart = dealt.pinned.find((one) => one.standing === "apart");
+            const cut = taken.pinned.find((one) => one.standing === "cut");
+            assertEquals(
+                apart?.figure ?? 0,
+                cut?.figure ?? 0,
+                `${path}: what we dealt with no striker is what they took from nobody`,
+            );
+            seats += 1;
+            together += apart?.figure ?? 0;
+        }
+    }
+    assertEquals(seats, 54, "every seat of the corpus reads the mirror");
+    assertEquals(together, 607970, "and this is what it comes to over all of them");
+});
+
+/** Two people, one apiece, so a side can be charged with something or with nothing. */
+const TWO_SIDES = composeCombatantRoster([
+    { id: 1, name: "Gracz 1", side: 1, profession: "t", level: 100, healthMaximum: 5000 },
+    { id: 2, name: "Gracz 2", side: 2, profession: "w", level: 100, healthMaximum: 5000 },
+]);
+
+/**
+ * Zero at the boundary, and one beside it: a side charged with a single point says so, and the
+ * side charged with none of it draws no row at all rather than a row reading nothing. The blow
+ * lands on the other side, so the charge is the crossing one — which is the point of the sample.
+ */
+Deno.test("a side charged with a point states it, one charged with none draws nothing", () => {
+    const struck = composeFightStatistics(
+        decodeFightMessages(["0;2=90.00;+dmg=1;-dmg=1"], TWO_SIDES),
+        new Map(),
+    );
+    const read = (statistics: typeof struck, choice: "reader" | "opposing") =>
+        composePanelReading(statistics, TWO_SIDES, "damageDealtApplied", choice, 1, NOTHING_MISSED);
+    assertEquals(read(struck, "reader").pinned.map((one) => one.figure), [1], "one point, stated");
+    assertEquals(read(struck, "opposing").pinned, [], "and the side it is not charged to has none");
+    const quiet = composeFightStatistics([], new Map());
+    assertEquals(read(quiet, "reader").pinned, [], "a fight with no such blow pins nothing");
+    assertEquals(read(quiet, "opposing").pinned, [], "on either side of it");
+});
+
+/**
+ * Healing does not cross, so the giver a message left out is charged to the side of whoever it
+ * reached — and both screens of one side say the same figure, one apart and one as a cut. No
+ * recording states restored health with no giver (`givenByNobody` is zero over `captures/`,
+ * 2026-08-31), so the figure is built rather than looked for.
+ */
+Deno.test("a giver the protocol left out is charged to the side the health reached", () => {
+    const statistics = composeFightStatistics([{
+        kind: "health-change",
+        combatantId: 1,
+        amount: 500,
+        healthPercent: null,
+        source: "bandage",
+        declared: [],
+        announced: null,
+    }], new Map());
+    const read = (metric: PanelMetric, choice: "reader" | "opposing") =>
+        composePanelReading(statistics, TWO_SIDES, metric, choice, 1, NOTHING_MISSED);
+    const given = read("healthGiven", "reader");
+    assertEquals(given.pinned.map((one) => one.standing), ["apart"], "no row of ours holds it");
+    assertEquals(given.pinned[0]?.figure, 500, "at the whole of the figure");
+    const restored = read("healthRestored", "reader");
+    assertEquals(restored.pinned.map((one) => one.standing), ["cut"], "the row that got it does");
+    assertEquals(restored.pinned[0]?.figure, 500, "at the same figure, said once");
+    assertEquals(read("healthGiven", "opposing").pinned, [], "and the other side gave none of it");
+    assertEquals(read("healthRestored", "opposing").pinned, [], "nor received any");
 });
 
 /** The screen that did not exist while healing was a noun with no direction. */

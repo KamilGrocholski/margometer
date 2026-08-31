@@ -31,6 +31,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [Niewydane]
+
+- **Zmiana** — Wiersz „Nieznany sprawca" i wiersz „Nieznany cel" widać teraz także wtedy, gdy
+  patrzysz tylko na swoją albo tylko na drugą stronę. Do tej pory znikały poza widokiem „Wszyscy",
+  więc lista jednej strony była krótsza od paska nad nią i nic tego nie tłumaczyło. Liczba trafia na
+  tę stronę, którą gra podała po drugim końcu ciosu — obrażenia idą do przeciwnika, leczenie zostaje
+  u swoich — a to, czego gra nie przypisała żadnej ze stron, dalej stoi wyłącznie pod „Wszyscy".
+
 ## [0.11.0] — 2026-08-31
 
 Dodatek jest napisany **od zera**, drugi raz po `0.6.0`. Z wersji `0.10.1` nie zostało nic poza

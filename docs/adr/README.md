@@ -119,3 +119,5 @@ edited to agree with the new rule.
   every cut that holds a row is drawn. **Accepted**
 - [0035](0035-a-build-with-no-version-named-takes-the-declaration.md) — A build with no version
   named takes the declaration and marks it. **Accepted**
+- [0036](0036-a-pinned-figure-stands-on-every-list.md) — A pinned figure stands on every list,
+  charged to the side it is on. **Accepted**

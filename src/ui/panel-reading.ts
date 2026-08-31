@@ -2,9 +2,10 @@
  * One screen's worth of a fight: the rows, in the order they are drawn.
  *
  * A row's figure is the one the statistics already hold, and no figure here is ever recomputed
- * from the events. The one sum this file does is the listed side's total, which the statistics
- * cannot hold because nothing under `ui/` tells them who is on which side — and without it a
- * share on a one-side list would be measured against a whole the list does not show.
+ * from the events. What this file does sum is what turns on who is on which side: the listed
+ * side's total, and that side's share of what the protocol half-named. The statistics cannot hold
+ * either, because nothing under `ui/` tells them the seat — and without them a share on a
+ * one-side list would be measured against a whole the list does not show.
  */
 
 import { getRankedOrder } from "@/src/ui/ranked-order.ts";
@@ -441,40 +442,99 @@ function getListedTotal(
 }
 
 /**
- * Shown only where everybody is listed. It belongs to nobody, so it belongs to no side either,
- * and putting it inside one side's total would be claiming a side the log never stated.
+ * The ends the protocol can leave out, as figures standing under the list that is showing.
+ *
+ * Under everybody they are the fight's own counts. Under one side they are read off the rows: a
+ * figure standing `apart` is charged by the end the game **did** name, which is the strip's own
+ * rule, and one standing as a `cut` is summed over the rows on the list, which are that named end
+ * themselves. What names neither end is in the counts and on nobody's row, so it stands under
+ * everybody and nowhere else. **ADR 0036.**
  */
 function composePinnedFigures(
     statistics: FightStatistics,
+    roster: CombatantRoster,
+    rows: readonly UnsharedRow[],
     metric: PanelMetric,
     choice: PanelSideChoice,
+    readerSide: number | null,
 ): Array<{ end: PanelUnnamedEnd; standing: PinnedStanding; figure: number }> {
     assert(SIDE_CHOICES.includes(choice), "a figure is pinned for a choice a reader could make");
     assert(statistics.dealtByNobody >= 0, "and one that is never below nothing");
-    if (choice !== "everyone") return [];
+    const part = getPartListed(choice, readerSide);
+    const apart = getPinnedApart(statistics, roster, metric, part, readerSide);
+    const cut = getHalfNamedTotal(statistics, rows, metric);
     const found: Array<{ end: PanelUnnamedEnd; standing: PinnedStanding; figure: number }> = [];
     if (metric === "damageDealtApplied") {
-        found.push({ end: "actor", standing: "apart", figure: statistics.dealtByNobody });
+        found.push({ end: "actor", standing: "apart", figure: apart });
     }
     if (metric === "healthGiven") {
-        found.push({ end: "actor", standing: "apart", figure: statistics.givenByNobody });
+        found.push({ end: "actor", standing: "apart", figure: apart });
     }
     if (metric === "damageTakenApplied") {
-        found.push({
-            end: "actor",
-            standing: "cut",
-            figure: getHalfNamedTotal(statistics, metric),
-        });
-        found.push({ end: "target", standing: "apart", figure: statistics.takenByNobody });
+        found.push({ end: "actor", standing: "cut", figure: cut });
+        found.push({ end: "target", standing: "apart", figure: apart });
     }
     if (metric === "healthRestored") {
-        found.push({
-            end: "actor",
-            standing: "cut",
-            figure: getHalfNamedTotal(statistics, metric),
-        });
+        found.push({ end: "actor", standing: "cut", figure: cut });
     }
     return found.filter((one) => one.figure > 0);
+}
+
+/**
+ * Which part of the strip a list is showing, or nothing where it is showing everybody. With no
+ * seat to read from, every list is everybody: `getIsRowListed` answers that way and this has to
+ * answer the same, or a figure would be charged to a side no row was filtered by.
+ */
+function getPartListed(choice: PanelSideChoice, readerSide: number | null): PanelSidePart | null {
+    assert(SIDE_CHOICES.includes(choice), "a list is shown for a choice a reader could make");
+    assert(readerSide === null || Number.isFinite(readerSide), "from a seat, or from none at all");
+    if (choice === "everyone") return null;
+    if (readerSide === null) return null;
+    if (choice === "reader") return "ours";
+    return "theirs";
+}
+
+/**
+ * A figure standing apart from the list: the fight's own count under everybody, and that count's
+ * share charged to one side under either of the other two.
+ */
+function getPinnedApart(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    metric: PanelMetric,
+    part: PanelSidePart | null,
+    readerSide: number | null,
+): number {
+    assert(SCREEN_ORDER.includes(metric), "a figure is pinned on a screen the strips draw");
+    assert(statistics.takenByNobody >= 0, "and one that is never below nothing");
+    if (part !== null) return getHalfNamedForPart(statistics, roster, metric, part, readerSide);
+    if (metric === "damageDealtApplied") return statistics.dealtByNobody;
+    if (metric === "healthGiven") return statistics.givenByNobody;
+    if (metric === "damageTakenApplied") return statistics.takenByNobody;
+    return 0;
+}
+
+/**
+ * One side's share of a fight-wide count, charged by the end the game did name. The charge is the
+ * strip's — `getPartCharged` holds the crossing rule, and there is one copy of it — so the two
+ * reach the same figure through the same field. **ADR 0036.**
+ */
+function getHalfNamedForPart(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    metric: PanelMetric,
+    part: PanelSidePart,
+    readerSide: number | null,
+): number {
+    assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its stated bound");
+    assert(part !== "nobody", "a figure is charged to a side, never to the refusal beside them");
+    let total = 0;
+    for (const [combatantId, figures] of statistics.byCombatantId) {
+        const held = getPartOfSide(roster.byId.get(combatantId)?.side ?? null, readerSide);
+        if (getPartCharged(held, metric) === part) total += getHalfNamed(figures, metric);
+    }
+    assert(Number.isSafeInteger(total), "a total stays inside what a number holds exactly");
+    return total;
 }
 
 /**
@@ -482,16 +542,24 @@ function composePinnedFigures(
  * being the row itself. It is what the received screens can say and the given ones cannot: a row
  * that took damage holds the blow whether or not anybody was named for striking it.
  *
- * Not the same reading as the one the two sides are charged from, which asks the opposite
- * question: there the named end is the row and the figure belongs to whoever is not on it.
+ * Summed over the rows the list is showing rather than over the fight, which is what makes it a
+ * cut of that list on every choice of side. The rows are the named end here; `getHalfNamedForPart`
+ * asks the opposite question, where the named end is somebody else's row.
  */
-function getHalfNamedTotal(statistics: FightStatistics, metric: PanelMetric): number {
-    assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its stated bound");
+function getHalfNamedTotal(
+    statistics: FightStatistics,
+    rows: readonly UnsharedRow[],
+    metric: PanelMetric,
+): number {
+    assert(rows.length <= MAXIMUM_ROWS, "a list stays inside the fight's stated bound");
     assert(metric.length > 0, "and a screen asked for by name");
+    const listed = new Set(rows.map((one) => one.combatantId));
     let total = 0;
-    for (const figures of statistics.byCombatantId.values()) {
-        if (metric === "damageTakenApplied") total += figures.damageTakenFromNobody;
-        if (metric === "healthRestored") total += figures.healthRestoredByNobody;
+    for (const [combatantId, figures] of statistics.byCombatantId) {
+        if (listed.has(combatantId)) {
+            if (metric === "damageTakenApplied") total += figures.damageTakenFromNobody;
+            if (metric === "healthRestored") total += figures.healthRestoredByNobody;
+        }
     }
     return total;
 }
@@ -622,7 +690,7 @@ export function composePanelReading(
     );
     listed.sort(compareRows);
     const total = getListedTotal(statistics, listed, metric, choice);
-    const pinned = composePinnedFigures(statistics, metric, choice);
+    const pinned = composePinnedFigures(statistics, roster, listed, metric, choice, readerSide);
     // Only a figure standing apart joins the whole: one standing as a cut is already inside the
     // rows, so paying it out of the hundred would take a point off a row that owns one.
     const apart = pinned.filter((one) => one.standing === "apart");
@@ -640,6 +708,8 @@ export function composePanelReading(
     assert(rows.every((one) => one.shareText.length > 0), "and every row states a share");
     const isEveryone = choice === "everyone" || readerSide === null;
     assert(!isEveryone || rows.length >= roster.byId.size, "everybody listed is everybody drawn");
+    const sides = composePanelSides(statistics, roster, metric, readerSide);
+    assertWholeIsTheSide(whole, sides, getPartListed(choice, readerSide));
     return {
         rows,
         outcome: getOutcomeForReader(statistics, roster, readerSide),
@@ -647,9 +717,27 @@ export function composePanelReading(
         total,
         pinned: composePinnedRows(pinned, shares.slice(listed.length), whole, largest),
         warnings: composeWarnings(statistics, metric, doubts),
-        sides: composePanelSides(statistics, roster, metric, readerSide),
+        sides,
         visibleRows: choice === "everyone" ? RANKING_ROWS : SIDE_ROWS,
     };
+}
+
+/**
+ * What a one-side list divides its shares by is the figure the strip states for that side, and
+ * the two are read apart: the list off each row's own figure, the strip off the row the game did
+ * name. A charge that stopped agreeing with the list it stands over is a broken invariant, not a
+ * figure that quietly moved. **ADR 0036.**
+ */
+function assertWholeIsTheSide(
+    whole: number,
+    sides: PanelSides | null,
+    part: PanelSidePart | null,
+): void {
+    assert(whole >= 0, "a list divides by a whole that is never below nothing");
+    if (part === null) return;
+    if (sides === null) return;
+    const stated = part === "ours" ? sides.ours : sides.theirs;
+    assert(whole === stated, "a one-side list divides by that side's own figure");
 }
 
 /** Null without a seat: two sides nothing can tell apart are not two figures. */
