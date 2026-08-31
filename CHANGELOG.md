@@ -31,7 +31,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
-## [Niewydane]
+## [0.11.0] — 2026-08-31
 
 Dodatek jest napisany **od zera**, drugi raz po `0.6.0`. Z wersji `0.10.1` nie zostało nic poza
 nagraniami walk, na których sprawdzane są liczby: panel, odczyt walki i to, co dodatek trzyma w
