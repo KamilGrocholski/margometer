@@ -33,128 +33,86 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
-- **Nowość** — Okienko postaci otwiera się teraz także w rozwiniętym wierszu. Najedź na kogoś w
-  sekcji „komu" albo „od kogo" — albo na kogoś, kogo sięgnęła otwarta umiejętność — i zobaczysz to
-  samo okienko, co na głównej liście. Na dole stoi zdanie, że jego liczby są z całej walki, bo
-  wiersz pod nim mówi tylko o jednej jej części.
+Dodatek jest napisany **od zera**, drugi raz po `0.6.0`. Z wersji `0.10.1` nie zostało nic poza
+nagraniami walk, na których sprawdzane są liczby: panel, odczyt walki i to, co dodatek trzyma w
+przeglądarce, są nowe. Kilku rzeczy, które były w `0.10.1`, tu po prostu nie ma — stoją niżej wśród
+**Zmian** i warto je przeczytać przed aktualizacją.
 
-- **Zmiana** — Liczba sprzed redukcji nazywa się teraz „surowe z ciosów", bo tylko z ciosów się
-  liczy. Gra podaje ją przy ciosie i nigdzie indziej, a na liczbę nad nią składa się jeszcze to, co
-  padło pod czyimś imieniem, oraz trucizny i podpalenia — więc „surowe" potrafiło wyjść mniejsze od
-  tego, co faktycznie weszło, i wyglądać na pomyłkę. Zdanie pod spodem mówi teraz wprost, czego jest
-  sumą i dlaczego nie należy jednej odejmować od drugiej.
-
-- **Zmiana** — Okienko postaci mówi to samo na każdej zakładce. Dotąd na obrażeniach zadanych
-  pokazywało tylko krytyki i to, co padło przy ciosach, na otrzymanych tylko to, co zatrzymała
-  obrona, a na obu zakładkach leczenia nie mówiło o walce nic. Teraz stoi tam jedno i drugie, pod
-  nagłówkami mówiącymi, która połowa jest która. Zakładka decyduje już tylko o tym, która z czterech
-  liczb jest pogrubiona.
-
-- **Zmiana** — Lista w panelu nie ma już paska przewijania przy prawej krawędzi. Przewija się
-  dokładnie tak samo, kółkiem i palcem, a miejsce po pasku dostały nazwy postaci — mieści się ich
-  więcej, zanim zostaną ucięte. To, że lista sięga dalej w dół, widać teraz dopiero po przewinięciu.
-
-- **Zmiana** — Plik z walką, który zapisuje `⭳`, ma teraz w nazwie wersję gry i wersję dodatku, a w
-  środku nazwy pól po angielsku — `gameBuild`, `addOnVersion`, `capturedAt` zamiast skrótów. Widać z
-  samej nazwy załącznika, z czego pochodzi, bez otwierania go.
-
-- **Zmiana** — Panel otwiera się na środku ekranu, a nie w prawym górnym rogu. Jest tam, gdzie i tak
-  patrzysz, a przeciągnięty raz zostaje tam, gdzie go postawisz — tak samo jak dotąd.
-
-- **Zmiana** — Na belce jest teraz jeden przycisk zamiast dwóch: `⭳` zapisuje walkę do pliku.
-  Wcześniej obok niego stał drugi, który kopiował same liczby do schowka — teraz jeden plik niesie
-  jedno i drugie, policzone liczby i surowy zapis prosto z gry. Do zgłoszeń wystarczy go załączyć.
+Wszystko, co dodatek zapamiętał, zaczyna się od zera: zapisane walki, położenie panelu, to, czy był
+zwinięty, i wybór miejsca, w którym walki są trzymane. Trzyma to teraz pod innymi nazwami, więc
+starego nie znajdzie, a zapisanych wcześniej walk nie da się już odzyskać.
 
 - **Nowość** — Na zakładce „otrzymane" widać wreszcie, czym cię trafili. Pod postacią, która ci
-  zadała obrażenia, stoi teraz lista jej umiejętności z liczbami — a to, czego gra niczym nie
+  zadała obrażenia, stoi teraz lista jej umiejętności z liczbami, a to, czego gra niczym nie
   zapowiedziała, zbiera się na dole w jednym wierszu „Zwykły cios". Dotąd ta zakładka mówiła tylko
   kto i jakim typem obrażeń.
 
-- **Nowość** — Sześć rzeczy, które padały przy ciosach, ma wreszcie nazwy: cztery bonusy legendarne
-  oraz dwie, których gra nie opisuje w poradniku. Dotąd stały w okienku postaci jako surowy zapis z
-  gry, w rodzaju `-tenacity`. Teraz pyta o nie Twojego własnego klienta gry i pokazuje to, czym
-  nazywa je Twoja wersja — nie wymyślamy nic sami. Gdzie klient nie odpowiada, zostaje po staremu.
+- **Nowość** — Karta postaci mówi teraz, ile obrażeń padło przed redukcją, obok liczby, która
+  naprawdę weszła. Pod liczbami stoi zdanie, czego z tych dwóch nie da się wyliczyć: różnicy nie
+  zatrzymała sama obrona, bo pancerza ani odporności gra nie podaje.
 
-- **Nowość** — Wiersz, który da się rozwinąć, mówi to wprost. Po najechaniu na niego okienko kończy
-  się linijką „LPM — rozbicie" — i stoi ona tylko tam, gdzie naciśnięcie faktycznie coś otwiera.
-  Dotąd mówił to wyłącznie wiersz z głównej listy, więc w rozwiniętym wierszu połowa pozycji
-  prowadziła dalej, nie mówiąc o tym nic poza kształtem kursora.
-
-- **Nowość** — Na obu zakładkach leczenia można wejść głębiej. W rozwiniętym wierszu naciśnięcie
-  postaci pokazuje, co przeszło między tą dwójką: umiejętności, którymi ktoś kogoś leczył, i — obok
-  nich — życie, które gra zapisała pod własnym kluczem, bez żadnej zapowiedzi. Nie otwiera się
-  wiersz, pod którym stałby sam klucz gry — te same klucze widać sekcję wyżej, pod „od czego".
-
-- **Nowość** — Okienko postaci mówi teraz, ile obrażeń padło przed redukcją, obok liczby, która
-  naprawdę weszła. Pod liczbami stoi zdanie, że różnicy nie zatrzymała obrona — pancerza ani
-  odporności gra nie podaje, więc nie da się z tych dwóch liczb wyliczyć, ile zatrzymała.
-
-- **Nowość** — Okienko postaci mówi znowu, jak ktoś walczył. Na obrażeniach zadanych: ile ciosów
-  weszło krytycznie i jaka to część wszystkich, najmocniejszy cios, co jeszcze przy nich padło —
-  przebicia, ogłuszenia, zamrożenia — i ile pancerza oraz odporności zdjęto przeciwnikowi. Na
-  obrażeniach otrzymanych: ile zatrzymała obrona i czym, ile było uników i kontr, oraz najmocniejszy
-  cios, który mimo wszystko wszedł.
-
-- **Nowość** — Ta część okienka zmienia się razem z zakładką i pokazuje tylko to, o co pyta wybrana
-  liczba. Na leczeniu nie ma jej wcale — gra po tej stronie nie podaje tyle, żeby było co napisać.
-  Cztery liczby postaci, jej nazwa i ostrzeżenia stoją jak stały, na każdej zakładce.
+- **Nowość** — Karta mówi też, co padło, kiedy to ciebie trafiali — uniki, kontry, zatrzymane ciosy
+  — obok tego, co padło przy Twoich własnych. Każda z tych połówek stoi pod własnym nagłówkiem, a
+  doszły do nich najmocniejszy przyjęty cios i to, ile z każdej liczby postaci padło pod nieznanym
+  końcem.
 
 - **Zmiana** — Zapisane walki są od teraz trzymane tak, jak przysłała je gra, a nie jako gotowe
   liczby. Dzięki temu poprawka w odczycie sięga też walk sprzed niej: stara walka z listy pokazuje
-  liczby policzone przez wersję, którą masz teraz, a nie przez tę, która ją zapisała. Cena jest
-  jedna i jednorazowa — po aktualizacji lista zapisanych walk zaczyna się pusta.
+  liczby policzone przez wersję, którą masz teraz, a nie przez tę, która ją zapisała.
 
 - **Zmiana** — Kiedy w przeglądarce brakuje miejsca, najstarsze walki ustępują nowej, zamiast nowej
   nie zapisać w ogóle. Przypięte zostają, a panel mówi wprost, że musiał zrobić miejsce, i
   przypomina, żeby przypiąć te, których nie chcesz stracić.
 
-- **Zmiana** — „Przywracanie życia" nazywa się w panelu po imieniu. Sekcja „czym" na obu zakładkach
-  leczenia nie kończy się już wierszem „Bez podanej umiejętności": w jego miejscu stoją wiersze z
-  nazwą tego, co gra podała. Największy z nich to regeneracja z ekwipunku — pomoc gry mówi o niej,
-  że wyzwala się w turze, w której masz mniej życia niż na starcie walki, i słabnie o 5% po każdym
-  wyzwoleniu. Nazwa mówiąca, że nie wiadomo, była nieprawdą: gra podawała, tylko nie jako
-  zapowiedzianą umiejętność.
+- **Zmiana** — Na belce jest teraz jeden przycisk `⭳` zamiast dwóch. Wcześniej stały tam osobno:
+  jeden kopiował same liczby do schowka, drugi zapisywał surowy zapis walki do pliku — teraz jeden
+  plik niesie jedno i drugie, a w jego nazwie stoi wersja gry i wersja dodatku. Do zgłoszeń
+  wystarczy go załączyć.
 
-- **Zmiana** — Zatrzymane obrażenia nie stoją już jako jedna liczba: pod nią widać, ile zebrał blok,
-  a ile wchłanianie. Efekt, którego gra nigdzie nie nazywa po polsku, pokazujemy jej własnym
-  oznaczeniem — wolimy, żeby było widać, że coś padło, niż wymyślać temu nazwę.
+- **Zmiana** — Panel otwiera się na środku ekranu, a nie w prawym górnym rogu. Przeciągnięty raz
+  zostaje tam, gdzie go postawisz — tak samo jak dotąd.
+
+- **Zmiana** — Lista w panelu nie ma już paska przewijania przy prawej krawędzi. Przewija się
+  dokładnie tak samo, kółkiem i palcem, a miejsce po pasku dostały nazwy postaci — mieści się ich
+  więcej, zanim zostaną ucięte. To, że lista sięga dalej w dół, widać dopiero po przewinięciu.
 
 - **Zmiana** — Przy nazwie postaci nie stoi już litera profesji. Profesję niesie sam kolor wiersza,
-  a jej nazwę — „Wojownik", „Mag" — mówi okienko, które otwiera się po najechaniu na wiersz. Dwie
-  profesje o zbliżonym kolorze trudniej teraz rozróżnić na samej liście.
+  a jej nazwę — „Wojownik", „Mag" — razem z poziomem mówi karta, która otwiera się po najechaniu na
+  wiersz. Dwie profesje o zbliżonym kolorze trudniej teraz rozróżnić na samej liście.
 
-- **Poprawka** — Zranienie liczy się temu, kto je zadał. Dotąd każde tyknięcie stało po stronie
-  ranionego i nie miało sprawcy, więc każdy, kto kiedykolwiek zranił, miał zaniżone obrażenia
-  zadane, a panel mówił tylko, że suma jest krótka, nie mówiąc czyja. Na zapisanych walkach chodzi o
-  28 521 punktów w 13 z 28 nagrań. Tyknięcie podające inną liczbę, niż zapowiedziało zranienie,
-  dalej zostaje bez sprawcy — zgadywać nie będziemy.
+- **Zmiana** — To, co pada przy ciosie, nazywa się krócej i naszymi słowami: „krytyk" zamiast „cios
+  krytyczny", „kontra" zamiast „kontratak", „blok" zamiast „zablokowane", „trzeci atak" zamiast
+  „trzeci cios". Dotąd dodatek pytał najpierw Twój własny klient gry i brał nazwę, którą widzisz w
+  oknie walki; teraz pyta go tylko tam, gdzie własnej nazwy nie ma — przy czterech bonusach
+  legendarnych i dwóch rzeczach, o których poradnik gry milczy.
 
-- **Poprawka** — Po wejściu w umiejętność na zakładce „leczenie dane" liczba w nagłówku zgadza się z
-  wierszem, który się nacisnęło. Wcześniej potrafiła być mniejsza bez słowa wyjaśnienia: brakowało
-  tego, co postać wyleczyła sama sobie tą umiejętnością. Teraz stoi tam jako zwykły wiersz, obok
-  pozostałych.
+- **Zmiana** — Ostrzeżenia stoją teraz w dwóch miejscach naraz. Znak ⚠ przy nazwie postaci działa
+  jak dotąd: po najechaniu karta mówi, czego przy tej jednej postaci nie dało się odczytać. Pod tym
+  zdaniem stoi jeszcze to, co dotyczy całej walki — to samo, co pod listą — więc widać obie
+  odpowiedzi bez odrywania wzroku od wiersza.
 
-- **Poprawka** — Każda sekcja w rozwiniętym wierszu sumuje się teraz do 100%. Na obu zakładkach
-  leczenia w sekcji „czym" stoi obok umiejętności to życie, którego żadna z nich nie zapowiedziała —
-  po jednym wierszu na to, co gra sama nazwała: „przywracanie życia", „ostatni ratunek", „dotyk
-  anioła". Wcześniej takiej liczby nie było gdzie zobaczyć i kolumna udziałów kończyła się na 94%
-  albo 76%.
+- **Zmiana** — Wiersze „Nieznany sprawca" i „Nieznany cel" mówią mniej. Nie tłumaczą już w karcie,
+  czego gra nie podała ani czy ta liczba jest już policzona w liście nad nimi, i nie da się w nie
+  wejść, żeby zobaczyć, co w tej puli siedzi. Zniknął też trzeci taki wiersz, „Nie do przypisania".
 
-- **Poprawka** — Sekcja „czym" na obrażeniach zadanych liczy teraz także obrażenia, które gra podaje
-  z imieniem — te, które przy ataku w jeden cel padają na kogoś obok. Dotąd całość szła pod „Zwykły
-  cios", choć gra przy nich nazywała umiejętność; u postaci, która nie wyprowadziła ani jednego
-  ciosu bez zapowiedzi, wiersz „Zwykły cios" potrafił stać z liczbą i zerem ciosów.
+- **Zmiana** — W obrażeniach zadanych nie da się już wejść w umiejętność, żeby zobaczyć, komu
+  zadała. Wejście w postać działa jak dotąd, a na „leczeniu danym" wejście w umiejętność zostaje —
+  znika tylko po stronie obrażeń.
 
-- **Poprawka** — Leczenie mówi wreszcie, czym i od kogo. Wiersz rozwinięty na obu zakładkach
-  leczenia nie wymieniał żadnej umiejętności, a część przywróconego życia stała pod napisem
-  „Nieznany sprawca" — choć gra podawała nazwę umiejętności i tego, kto ją rzucił, w tej samej
-  wiadomości. Teraz „Leczenie dane" pokazuje, czym ktoś leczył i kogo, a „Leczenie otrzymane" — od
-  kogo życie przyszło i pod jaką nazwą.
+- **Zmiana** — Karta postaci nie rozdziela już liczby na „z ciosów" i „poza ciosem". Trucizna, ogień
+  i zranienie liczą się do tej samej liczby co ciosy, ale nie widać już, ile z niej padło bez ciosu.
 
-- **Poprawka** — Sekcja „czym" na obrażeniach zadanych pokazuje tylko to, czym ktoś bił. Stały tam
-  przy zerze aury, okrzyki i leczenie — wszystko, co postać w walce zapowiedziała — więc niemal
-  połowa sekcji nie mówiła o obrażeniach nic. Umiejętność, którą ktoś uderzył, a cios został w
-  całości zatrzymany, zostaje: stoi przy zerze i mówi, ile razy poszła w ruch.
+- **Zmiana** — Karta nie mówi już o prawym przycisku myszy. Kończy się linijką „LPM — rozbicie" i
+  stoi ona tylko tam, gdzie naciśnięcie faktycznie coś otwiera — prawy przycisk wraca tak jak dotąd,
+  tylko nic o tym nie mówi. Napis wracający z rozbicia mówi teraz „skład" zamiast „wróć".
+
+- **Zmiana** — Umiejętność, którą ktoś uderzył, a cios został w całości zatrzymany, stoi teraz w
+  rozbiciu przy zerze i mówi, ile razy poszła w ruch. Wcześniej znikała z listy, więc wyglądało to
+  tak, jakby nikt jej nie użył.
+
+- **Zmiana** — Po odświeżeniu strony panel otwiera się na najnowszej zapisanej walce, a nie na tej,
+  którą miałeś wtedy na ekranie. Kiedy zaczyna się następna walka, panel przechodzi na nią — tak jak
+  dotąd.
 
 ## [0.10.1] — 2026-08-28
 
