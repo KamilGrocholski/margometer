@@ -9,7 +9,7 @@
  */
 
 import { assert } from "@std/assert";
-import { getDevelopmentVersion } from "@/tools/declared-version.ts";
+import { getVersionForRun } from "@/tools/declared-version.ts";
 import { composeUserscriptFiles, USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
 import {
     composePreviewPage,
@@ -138,9 +138,10 @@ export function composePreviewSitePages(): PreviewSiteFile[] {
  * own HTML turns the tag into a syntax error in every visitor's console — on a page whose whole
  * purpose is to look like nothing is wrong.
  */
-export async function composePreviewSiteFiles(): Promise<PreviewSiteFile[]> {
+export async function composePreviewSiteFiles(version: string): Promise<PreviewSiteFile[]> {
+    assert(version.length > 0, "a published page states the version it draws");
     const bundle = await composeUserscriptFiles(
-        getDevelopmentVersion(),
+        version,
         `${OUTPUT_DIRECTORY}/${USERSCRIPT_NAME}`,
     );
     assert(bundle.script.length > 0, "the pages carry the add-on they are a preview of");
@@ -156,8 +157,8 @@ export async function composePreviewSiteFiles(): Promise<PreviewSiteFile[]> {
     return files;
 }
 
-async function writePreviewSiteFiles(): Promise<string> {
-    const files = await composePreviewSiteFiles();
+async function writePreviewSiteFiles(version: string): Promise<string> {
+    const files = await composePreviewSiteFiles(version);
     await Deno.mkdir(OUTPUT_DIRECTORY, { recursive: true });
     for (const file of files) {
         await Deno.writeTextFile(`${OUTPUT_DIRECTORY}/${file.name}`, file.text);
@@ -168,7 +169,7 @@ async function writePreviewSiteFiles(): Promise<string> {
 }
 
 if (import.meta.main) {
-    const written = await writePreviewSiteFiles();
+    const written = await writePreviewSiteFiles(getVersionForRun(Deno.args));
     console.log(`serve that directory, or let .github/workflows/pages.yml publish it`);
     console.log(`opened from disk it works too: ${written}/index.html`);
 }

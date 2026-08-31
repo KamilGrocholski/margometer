@@ -11,10 +11,12 @@
         // rebuilt and reloaded on a change under `src/`.
         "preview": "deno run -A tools/preview-server.ts",
         // The same panel, written down for somebody who has installed nothing: one page per
-        // recording under `dist/preview`, which `.github/workflows/pages.yml` publishes.
+        // recording under `dist/preview`, which `.github/workflows/pages.yml` publishes. That
+        // workflow passes `--release`, which is what the published panel states — ADR 0037.
         "preview:site": "deno run -A tools/preview-site.ts",
         // The panel photographed, one picture per state a README shows. It refuses a tree whose
-        // `src/` is not in a commit, which is `DESIGN.md`'s rule and not this file's.
+        // `src/` is not in a commit, which is `DESIGN.md`'s rule and not this file's. A release
+        // takes the set again with `--release`, and the panel then states the number it ships as.
         "screenshots": "deno run -A tools/panel-screenshots.ts",
         // What the decoder could not read, over the corpus or over a recording you name — the
         // question that decides whether an intake is worth starting.

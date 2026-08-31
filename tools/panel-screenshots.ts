@@ -8,7 +8,7 @@
  */
 
 import { assert } from "@std/assert";
-import { getDevelopmentVersion } from "@/tools/declared-version.ts";
+import { getVersionForRun } from "@/tools/declared-version.ts";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
@@ -76,11 +76,12 @@ export interface PanelShot {
 /**
  * What the set names, so the sidecar and the directory can be held to each other.
  *
- * The commit is written because a picture cannot say which build drew it, and the recording
- * because a figure in a picture means nothing without the fight it was counted over.
+ * The commit and the version are written because a picture cannot say which build drew it, and
+ * the recording because a figure in a picture means nothing without the fight it was counted over.
  */
 export interface PanelShotRecord {
     commit: string;
+    version: string;
     fight: string;
     takenAt: string;
     shots: string[];
@@ -405,11 +406,12 @@ async function setShotsMovedIn(staging: string, record: PanelShotRecord): Promis
  * pictures with it: a machine with no browser would otherwise be left holding a `screenshots/`
  * that a README points at and that is empty.
  */
-export async function writePanelShots(browser: string): Promise<PanelShotRecord> {
+export async function writePanelShots(browser: string, version: string): Promise<PanelShotRecord> {
+    assert(version.length > 0, "a set is taken at a version the panel in it will state");
     const commit = await getCommitForShots();
     const fight = getPreviewRecordedFight(getRecordedFights());
     const shots = composePanelShots();
-    const built = await composeUserscriptFiles(getDevelopmentVersion());
+    const built = await composeUserscriptFiles(version);
     const staging = await Deno.makeTempDir({ prefix: "margometer-shots-" });
     try {
         for (const shot of shots) {
@@ -434,6 +436,7 @@ export async function writePanelShots(browser: string): Promise<PanelShotRecord>
         for (const shot of shots) await Deno.stat(`${staging}/${shot.name}`);
         const record: PanelShotRecord = {
             commit,
+            version,
             fight: fight.name,
             takenAt: new Date().toISOString(),
             shots: shots.map((shot) => shot.name),
@@ -452,8 +455,8 @@ if (import.meta.main) {
     const browser = await getBrowserFound(
         getBrowserAsked(argued, Deno.env.get(BROWSER_VARIABLE) ?? null),
     );
-    const record = await writePanelShots(browser);
+    const record = await writePanelShots(browser, getVersionForRun(Deno.args));
     console.log(`${SHOT_DIRECTORY}, ${record.shots.length} pictures, taken with ${browser}`);
-    console.log(`over ${record.fight}, at ${record.commit}`);
+    console.log(`over ${record.fight}, at ${record.commit}, saying ${record.version}`);
     console.log("open every one before committing it — DESIGN.md leaves nobody an exemption");
 }

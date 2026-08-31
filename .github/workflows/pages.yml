@@ -60,7 +60,10 @@ jobs:
                   deno-version: 2.9.6
 
             - run: deno task check
-            - run: deno task preview:site
+            # `--release` and not the bare task: this runs on `main`, which is the latest
+            # release, and both READMEs tell a reader the page is drawn by the file from that
+            # release. Without it the panel on the published page states `-dev` — ADR 0037.
+            - run: deno task preview:site --release
 
             # GitHub's own actions, so the only third-party one here is setup-deno.
             - uses: actions/configure-pages@v5
