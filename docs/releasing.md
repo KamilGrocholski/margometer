@@ -22,21 +22,47 @@ Which branch holds what: **G6**. The order the three pushes go in, and where the
       the last one is a finding, not a release.
 - [ ] `deno task drill` — `docs/drill-levels.md` still says what is measured.
 - [ ] Read the accepted decisions **against the tree of the last tag**, never against `develop`:
-      `git show v0.11.0:docs/adr/README.md`. An audit run against the working tree reads every
-      record as outstanding, including the ones the last release already shipped. The lifecycle a
-      status may name is `docs/adr/README.md`'s.
+      `git show "$(git describe --tags --abbrev=0 main):docs/adr/README.md"`. The tag is asked for
+      rather than spelled, because a number written here is right for one release and wrong for
+      every one after it. An audit run against the working tree reads every record as outstanding,
+      including the ones the last release already shipped. The lifecycle a status may name is
+      `docs/adr/README.md`'s.
 - [ ] `ARCHITECTURE.md`'s known gaps — close what closed, and say what a release running has changed
       about the list.
 - [ ] Both READMEs, sentence by sentence. Every claim on the front page is about what a stranger is
       about to install.
 
-## 2. The release commit
+## 2. The release commit — the number and the pictures, in one commit
 
-Move what has accumulated under the new number with its date, and bump the declaration. How a
-section is written and what the move is: the header comment of `CHANGELOG.md`. Why the section is
-the body of the release, and why the declaration is in one place: **ADR 0018**.
+Move what has accumulated under the new number with its date, bump the declaration, and photograph
+the panel at the number it ships as. All three, **uncommitted**, and then one commit over the lot.
 
-The number itself is SemVer, and what `0.x` promises is the warning `CHANGELOG.md` opens with.
+```bash
+# `CHANGELOG.md` and `deno.json` are edited first, and left in the working tree.
+deno task screenshots --release
+```
+
+How a section is written and what the move is: the header comment of `CHANGELOG.md`. Why the section
+is the body of the release, and why the declaration is in one place: **ADR 0018**. The number itself
+is SemVer, and what `0.x` promises is the warning `CHANGELOG.md` opens with. The flag is what puts
+the release number on the panel in the pictures instead of the mark a build nobody tagged wears —
+**ADR 0037**, standing on **ADR 0035**. Without it the front page shows a version nobody can
+install, and no picture looks wrong.
+
+**Why one commit and not two.** `tests/tools/panel-screenshots.test.ts` holds the sidecar to the
+declaration, so neither half is green alone: bump first and the set still states the release before
+it, shoot first and the set states a number the tree does not declare. **G5** wants every commit
+green on its own, and this is the only order that gives it. The shoot is legal on a tree carrying
+this edit because `tools/panel-screenshots.ts` refuses uncommitted work under `src/` and nowhere
+else — the declaration is not `src/`.
+
+- [ ] **Open all five.** No machine can say whether the state in a picture is reachable, and this is
+      the standing obligation _The Frame Is Not A Screen Rule_ in `DESIGN.md` leaves nobody an
+      exemption from.
+- [ ] The title bar reads the bare number in every one of them.
+- [ ] `screenshots/taken-at.json` states that number unmarked. It is the string
+      `.github/workflows/release.yml` greps for at the tag, and the tag is where a marked set is
+      caught if this is not.
 
 ```
 build(release): <the number>, and what it is
@@ -45,33 +71,14 @@ build(release): <the number>, and what it is
 `deno task check` refuses a declaration with no section, so this commit is where a forgotten section
 is caught rather than at the tag.
 
-## 3. Photograph the panel at the number it ships as
-
-```bash
-deno task screenshots --release
-```
-
-The flag is what puts the release number on the panel in the pictures instead of the mark a build
-nobody tagged wears — **ADR 0037**, standing on **ADR 0035**. Without it the front page shows a
-version nobody can install, and no picture looks wrong.
-
-- [ ] **Open all five.** No machine can say whether the state in a picture is reachable, and this is
-      the standing obligation _The Frame Is Not A Screen Rule_ in `DESIGN.md` leaves nobody an
-      exemption from.
-- [ ] The title bar reads the bare number in every one of them.
-
-```
-docs(screenshots): the set is taken again, at <the number>
-```
-
-## 4. The gate
+## 3. The gate
 
 - [ ] `git add`, then `deno task check`. Part of the gate lists what it reads with `git ls-files`,
       so a file written straight to disk is invisible to it — **W2**, and **W1** for when the gate
       runs at all.
 - [ ] Every commit in the release leaves it green on its own — **G5**.
 
-## 5. Push, in three takts
+## 4. Push, in three takts
 
 The branches, the order and the one wait: **G7**. The tag is last, and the reason it is last is in
 that rule and in `.github/workflows/release.yml`'s own comment — branch protection refuses `main`
@@ -79,7 +86,7 @@ while a run is going and that refusal is cheap, where a tag pushed early is not.
 
 Permission for each push is asked for, every time — **G1**.
 
-## 6. After the tag
+## 5. After the tag
 
 `.github/workflows/release.yml` builds again at the tag's version, holds three things level, and
 publishes. Then, by hand:
@@ -106,4 +113,4 @@ publishes. Then, by hand:
 | the tag sits on `main`                               | `.github/workflows/release.yml`         |
 
 Everything else on this page is held by somebody reading it: the audits in step 1, the five pictures
-in step 3, and the install in step 6.
+in step 2, and the install in step 5.
