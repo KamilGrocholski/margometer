@@ -105,7 +105,7 @@ function composeCountLine(caption: string, count: number): string {
 }
 
 function composeTallyLines(tally: readonly (readonly [string, number])[]): string[] {
-    assert(tally.length >= 0, "a tally with nothing in it is still a tally");
+    assert(tally.length <= MAXIMUM_TALLY, "a tally stays inside its stated bound");
     const lines = tally.map(([key, count]) =>
         `  ${composeIntegerText(count).padStart(COUNT_WIDTH)}  ${key}`
     );
@@ -121,7 +121,7 @@ export function composeStatusReport(replayed: ReplayedMaterial): string[] {
     const status = composeDecodingStatus(replayed.replays);
     assert(replayed.material.length > 0, "a report names the material it was taken on");
     const unread = status.unreadKeysByFrequency;
-    assert(unread.length >= 0, "and a list of unread keys, however short");
+    assert(unread.length <= MAXIMUM_TALLY, "and a list of unread keys stays inside it too");
     return [
         `material          ${replayed.material}`,
         composeCountLine("recordings", status.recordings),

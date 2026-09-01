@@ -44,7 +44,7 @@ export function getStorageFromName(name: string): PanelStorageChoice | null {
     for (const choice of STORAGE_CHOICES) {
         if (choice === name) return choice;
     }
-    assert(name.length >= 0, "a name that was asked for is text");
+    assert(!STORAGE_CHOICES.some((one) => one === name), "a name a choice answers to went back");
     return null;
 }
 
@@ -115,7 +115,7 @@ export function getScreenFromName(name: string): PanelMetric | null {
     for (const screen of SCREEN_ORDER) {
         if (screen === name) return screen;
     }
-    assert(name.length >= 0, "a name that was asked for is text");
+    assert(!SCREEN_ORDER.some((one) => one === name), "a name a screen answers to went back");
     return null;
 }
 
@@ -123,7 +123,7 @@ export function getSideFromName(name: string): PanelSideChoice | null {
     for (const choice of SIDE_CHOICES) {
         if (choice === name) return choice;
     }
-    assert(name.length >= 0, "a name that was asked for is text");
+    assert(!SIDE_CHOICES.some((one) => one === name), "a name a side answers to went back");
     return null;
 }
 

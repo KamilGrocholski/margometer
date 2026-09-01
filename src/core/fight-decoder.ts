@@ -227,6 +227,8 @@ const VALUELESS_DECLARATION_KEYS = [
 const MAXIMUM_MESSAGES = 4096;
 /** The longest message in `captures/` carries 40 parameters, 2026-08-28. */
 const MAXIMUM_PARAMETERS = 512;
+/** A skill's name is a phrase; the longest in `captures/` is far short of this, 2026-09-01. */
+const MAXIMUM_NAME = 4096;
 const UNREAD_REASON = "keys with no meaning yet";
 const EMPTY_REASON = "a message stating no parameter";
 
@@ -336,7 +338,7 @@ function namesOneCombatant(parsed: ProtocolMessage): boolean {
 }
 
 function readSkillName(key: string, value: string, parsed: ProtocolMessage): string | null {
-    assert(value.length >= 0, "a value is text, however short");
+    assert(value.length <= MAXIMUM_NAME, "a name read off a message stays inside its bound");
     if (key === SKILL_NAME_KEY) return value;
     if (key !== CUSTOM_SKILL_NAME_KEY) return null;
     if (!namesOneCombatant(parsed)) return null;

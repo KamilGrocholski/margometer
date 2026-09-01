@@ -12,6 +12,7 @@
 import { assert } from "@std/assert";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
+import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import type { CapturedCombatant } from "@/src/game/engine-warrior.ts";
 import { composeReportFight, type ReportSubject } from "@/src/game/fight-report.ts";
@@ -48,6 +49,7 @@ export const CAPTURE_FIELDS = {
  * start of the fight is useless, one without the end still carries material.
  */
 export const MAXIMUM_CALLS = 2000;
+const MAXIMUM_SHAPE_KEYS = 256;
 /** So a difference between two recordings is something a person can read. */
 const INDENT_SPACES = 2;
 /** In a name, where the register writes `none stated` in a sentence (`docs/captured-fights.md`). */
@@ -97,13 +99,13 @@ export function composeEmptyCapture(): FightCapture {
 function composeShapeKey(payload: unknown): string {
     if (!isRecord(payload)) return "";
     const keys = Object.keys(payload).sort();
-    assert(keys.length >= 0, "a payload states the keys it states, however few");
+    assert(keys.length <= MAXIMUM_SHAPE_KEYS, "a shape is read off a payload inside its bound");
     assert(keys.length === Object.keys(payload).length, "and each of them once");
     return keys.join(",");
 }
 
 function composeStateKey(combatants: readonly CapturedCombatant[]): string {
-    assert(combatants.length >= 0, "a state is keyed off the cast, however small");
+    assert(combatants.length <= MAXIMUM_COMBATANTS, "a state is keyed off a cast inside its bound");
     const writing = composeJsonWriting(combatants);
     // A cast that would not be written is no key at all, and every state then keys the same.
     if (!writing.isOk) return "";

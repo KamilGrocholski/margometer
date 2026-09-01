@@ -1025,12 +1025,12 @@ function composeHalfNamedRows(
 }
 
 function getLargestFigure(figures: readonly number[]): number {
-    assert(figures.length >= 0, "a screen states the figures it draws, however few");
+    assert(figures.every((one) => Number.isFinite(one)), "a screen draws figures that are numbers");
     let largest = 0;
     for (const figure of figures) {
         if (figure > largest) largest = figure;
     }
-    assert(largest >= 0, "the biggest figure on a screen is never below nothing");
+    assert(figures.every((one) => one <= largest), "and none of them stands above the biggest");
     return largest;
 }
 
@@ -1107,7 +1107,10 @@ export function getOutcomeForSeat(
     roster: CombatantRoster,
     readerSide: number | null,
 ): PanelOutcome | null {
-    assert(outcome.wonNames.length >= 0, "a side that is named is named in full, or not at all");
+    assert(
+        outcome.wonNames.every((one) => one.length > 0),
+        "a side is named by names that say something",
+    );
     if (outcome.isDrawn) return "drawn";
     if (readerSide === null) return null;
     if (getIsOurSideNamed(roster, readerSide, outcome.wonNames)) return "won";

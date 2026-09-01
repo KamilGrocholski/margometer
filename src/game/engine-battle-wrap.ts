@@ -7,6 +7,9 @@
 
 import { assert } from "@std/assert";
 
+/** Past anything a fight produces: a collector failing this often has stopped working. */
+const MAXIMUM_FAILURES = 1048576;
+
 /** Production build `1785244275300`: `on_f` ends with `Engine.battle.updateData(e, t)`. */
 const WRAPPED_METHOD = "updateData";
 /** The name is the contract, not the value: a wrap of ours from any build is a second count. */
@@ -67,7 +70,7 @@ export function wrapEngineBattle(
     const countFailure = (failure: unknown): void => {
         failures += 1;
         assert(failures > 0, "a failure that happened is counted");
-        assert(failures <= Number.MAX_SAFE_INTEGER, "and the count stays a number");
+        assert(failures <= MAXIMUM_FAILURES, "and the count stays inside its stated bound");
         if (failures === 1) reader.handleFirstFailure(failure);
     };
     const wrapper: WrappedUpdate = function (this: unknown, ...args: unknown[]): unknown {

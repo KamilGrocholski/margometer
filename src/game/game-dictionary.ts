@@ -19,12 +19,14 @@ const TRANSLATE_FIELD = "_t";
 const DIRECTION_SIGNS = "+-";
 const HOLE_MARK = "%";
 const FULL_STOP = ".";
+/** An entry is a label with at most a hole in it; this is far past any the game states. */
+const MAXIMUM_ENTRY = 4096;
 
 export type TranslateLabel = (id: string) => string | null;
 
 /** Two marks with nothing between them is a hole, and any second mark is by definition that. */
 function hasHole(entry: string): boolean {
-    assert(entry.length >= 0, "text is walked, however short");
+    assert(entry.length <= MAXIMUM_ENTRY, "text walked for a hole stays inside its stated bound");
     const open = entry.indexOf(HOLE_MARK);
     if (open === -1) return false;
     assert(open >= 0, "a mark found sits somewhere in the text");
@@ -33,7 +35,7 @@ function hasHole(entry: string): boolean {
 
 /** Exported because it is the only place the rule can be checked: the dictionary is not here. */
 export function getLabelFromEntry(entry: string): string | null {
-    assert(entry.length >= 0, "an entry is text, however short");
+    assert(entry.length <= MAXIMUM_ENTRY, "an entry read for a label stays inside that bound");
     if (hasHole(entry)) return null;
     const first = entry[0];
     const isSigned = first !== undefined && DIRECTION_SIGNS.includes(first);
@@ -62,7 +64,7 @@ export function getDictionaryReader(page: unknown): TranslateLabel | null {
             return null;
         }
         if (typeof entry !== "string") return null;
-        assert(entry.length >= 0, "an answer read as a label is text");
+        assert(entry.length <= MAXIMUM_ENTRY, "an answer the game gave stays inside it too");
         return getLabelFromEntry(entry);
     };
 }

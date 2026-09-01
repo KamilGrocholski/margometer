@@ -350,6 +350,8 @@ export function composeDrillCases(replays: readonly FightReplay[]): DrillCase[] 
     return cases;
 }
 
+/** A run names a screen and a handful of recordings; this is far past that. */
+const MAXIMUM_ARGUMENTS = 256;
 const SCREEN_WIDTH = 20;
 const RUNG_WIDTH = 13;
 const ROW_WIDTH = 12;
@@ -493,8 +495,8 @@ interface DrillArguments {
 function getArguments(stated: readonly string[]): DrillArguments {
     const held: DrillArguments = { isCases: false, screen: null, paths: [] };
     let wantsScreen = false;
+    assert(stated.length <= MAXIMUM_ARGUMENTS, "a run is given no more arguments than are read");
     for (const one of stated) {
-        assert(one.length >= 0, "an argument is text");
         if (wantsScreen) {
             held.screen = one;
             wantsScreen = false;

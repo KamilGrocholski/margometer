@@ -21,7 +21,6 @@ const MAXIMUM_LOOKS = 256;
 
 function isAlphanumeric(character: string): boolean {
     assert(character.length <= 1, "one character is looked at");
-    assert(character.length >= 0, "and it is a character rather than nothing typed");
     if (character >= "0" && character <= "9") return true;
     if (character >= "a" && character <= "z") return true;
     return character >= "A" && character <= "Z";

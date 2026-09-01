@@ -10,6 +10,9 @@
 
 import { getValueWithin } from "@/libs/number-range.ts";
 import { assert } from "@std/assert";
+
+/** A preview is watched by the pages one person has open; this is far past that — **S11**. */
+const MAXIMUM_LISTENERS = 64;
 import { getDevelopmentVersion } from "@/tools/declared-version.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { composeUserscriptFiles, USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
@@ -170,7 +173,7 @@ function composeFightLinks(fights: readonly RecordedFight[]): PreviewFightLink[]
  */
 function setListenersTold(listeners: Set<ReloadListener>, event: string, data: string): void {
     assert(event.length > 0, "something is being said");
-    assert(listeners.size >= 0, "to however many are listening");
+    assert(listeners.size <= MAXIMUM_LISTENERS, "to no more of them than the server holds");
     for (const listener of [...listeners]) {
         try {
             listener.send(event, data);
@@ -200,7 +203,7 @@ function composeReloadResponse(listeners: Set<ReloadListener>): Response {
             if (listener !== null) listeners.delete(listener);
         },
     });
-    assert(listeners.size >= 0, "a stream that opened is one the set can be told about");
+    assert(listeners.size <= MAXIMUM_LISTENERS, "a set told about a stream stays inside its bound");
     return new Response(stream.pipeThrough(new TextEncoderStream()), {
         headers: { "content-type": "text/event-stream", "cache-control": "no-cache" },
     });
@@ -264,7 +267,7 @@ function composeCallsResponse(state: PreviewState, address: URL): Response {
 }
 
 function setRebuilt(state: PreviewState): void {
-    assert(state.listeners.size >= 0, "a rebuild is announced to whoever is listening");
+    assert(state.listeners.size <= MAXIMUM_LISTENERS, "a rebuild is announced inside that bound");
     void state.readBundle().then(
         (script) => {
             assert(script.length > 0, "a build that succeeded produced something");
@@ -290,7 +293,6 @@ async function readFileEvents(watcher: Deno.FsWatcher, state: PreviewState): Pro
         timer = setTimeout(() => setRebuilt(state), REBUILD_AFTER_QUIET_MS);
     }
     if (timer !== null) clearTimeout(timer);
-    assert(timer !== null || timer === null, "a watcher that closed leaves no rebuild pending");
 }
 
 function getPortFromServer(server: Deno.HttpServer<Deno.NetAddr>): number {

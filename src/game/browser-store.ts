@@ -9,6 +9,9 @@
 
 import { assert } from "@std/assert";
 
+/** Far past anything this add-on writes, which is a shelf of twenty fights — **S11**. */
+const MAXIMUM_VALUE_LENGTH = 4194304;
+
 export interface BrowserStore {
     read(key: string): string | null;
     /** False where the browser refused, which is an answer and not a failure. */
@@ -39,7 +42,7 @@ export function composeBrowserStore(storage: PageStorage): BrowserStore {
         },
         write: (key, value) => {
             assert(key.length > 0, "what is written is written by name");
-            assert(value.length >= 0, "and written as text, however short");
+            assert(value.length <= MAXIMUM_VALUE_LENGTH, "and no longer than what is written here");
             try {
                 storage.setItem(key, value);
                 return true;
@@ -76,7 +79,7 @@ export function composeMemoryStore(): BrowserStore {
         },
         write: (key, value) => {
             assert(key.length > 0, "what is written is written by name");
-            assert(value.length >= 0, "and written as text, however short");
+            assert(value.length <= MAXIMUM_VALUE_LENGTH, "and no longer than what is written here");
             held.set(key, value);
             return true;
         },

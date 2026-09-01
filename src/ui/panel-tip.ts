@@ -92,7 +92,7 @@ export function composeTipRegister(): TipRegister {
             held.set(key, compose);
         },
         get(key: string): TipCompose | null {
-            assert(key.length >= 0, "a key looked up is text");
+            assert(key.length > 0, "a tip is asked for by the name it was registered under");
             assert(held.size <= MAXIMUM_TIPS, "a register read stays inside its stated bound");
             return held.get(key) ?? null;
         },

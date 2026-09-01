@@ -710,7 +710,7 @@ function composeShelfElement(
     register: TipRegister,
 ): PanelElement {
     const list = composeListElement(document, view.reading.visibleRows);
-    assert(view.shelf.length >= 0, "a shelf holds what it holds");
+    assert(view.shelf.length <= MAXIMUM_ROWS, "a shelf draws no more rows than a list holds");
     assert(view.isOnShelf, "and is drawn where the reader asked for it");
     if (view.shelf.length === 0) {
         list.append(composeEmptyElement(document, PANEL_WORDS.shelfEmpty));
@@ -1154,7 +1154,7 @@ function composeViewList(
     translate: TranslateLabel | null,
 ): PanelElement {
     assert(SCREEN_ORDER.includes(view.current), "a view is on a screen the strip draws");
-    assert(view.shelf.length >= 0, "and carries the fights behind it, however few");
+    assert(view.shelf.length <= MAXIMUM_ROWS, "and carries no more of them than a list draws");
     if (view.isOnShelf) return composeShelfElement(document, view, register);
     if (view.part !== null) {
         return composePartElement(document, view, view.part, register, translate);

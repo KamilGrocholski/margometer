@@ -1051,7 +1051,7 @@ export function composeFightStatistics(
         castsUnplaced: 0,
         outcome: null,
     };
-    assert(events.length >= 0, "a fight decodes to a list");
+    assert(build.byCombatantId.size === 0, "a fight is counted up from nobody");
     for (const event of events) {
         if (event.kind === "unknown-message") {
             build.unreadMessages += 1;

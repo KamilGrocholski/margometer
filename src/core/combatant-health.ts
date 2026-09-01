@@ -8,7 +8,7 @@
 import { getValueWithin } from "@/libs/number-range.ts";
 import { assert } from "@std/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
-import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
+import { type CombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import { HEALTH_PERCENT_PLACES } from "@/src/core/protocol-number.ts";
 
 const PERCENT_WHOLE = 100;
@@ -81,7 +81,7 @@ export function composeFightEntryHealth(
     roster: CombatantRoster,
 ): FightEntryHealth {
     const entered = new Map<number, number>();
-    assert(roster.byId.size >= 0, "a roster states who is in the fight, however few");
+    assert(roster.byId.size <= MAXIMUM_COMBATANTS, "a roster stays inside its stated bound");
     for (const event of events) {
         for (const [combatantId, percent] of getStatedHealthFromEvent(event)) {
             if (entered.has(combatantId)) continue;

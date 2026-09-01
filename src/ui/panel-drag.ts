@@ -1,6 +1,9 @@
 /** Where the panel sits, and how a reader moves it. Nothing here measures the document. */
 
 import { assert } from "@std/assert";
+
+/** A position is two numbers written as JSON; text longer than this is not one. */
+const MAXIMUM_STORED = 4096;
 import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { getValueWithin } from "@/libs/number-range.ts";
@@ -98,7 +101,7 @@ function composeDraggedPosition(
  * shape all read the same, which is *no position*.
  */
 export function getPositionFromStoredText(text: string): PanelPosition | null {
-    assert(text.length >= 0, "a stored position is read back as text, however little of it");
+    assert(text.length <= MAXIMUM_STORED, "a stored position is shorter than one can be written");
     const reading = getJsonReading(text);
     if (!reading.isOk) return null;
     if (!isRecord(reading.value)) return null;

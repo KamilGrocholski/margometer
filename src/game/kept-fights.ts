@@ -153,7 +153,6 @@ function composeShelfWithoutOldestUnpinned(fights: readonly KeptFight[]): KeptFi
  * hold.
  */
 export function composeKeptRotation(fights: readonly KeptFight[]): KeptFight[] {
-    assert(fights.length >= 0, "a shelf holds the fights it holds");
     if (fights.length <= MAXIMUM_KEPT) return [...fights];
     let held = [...fights];
     for (let dropped = 0; dropped < fights.length; dropped += 1) {
@@ -163,6 +162,7 @@ export function composeKeptRotation(fights: readonly KeptFight[]): KeptFight[] {
         held = shorter;
     }
     assert(held.length >= MAXIMUM_KEPT, "a rotation drops no more than it had to");
+    assert(held.length <= fights.length, "and never grows the shelf it was handed");
     return held.length <= MAXIMUM_KEPT ? held : held.slice(0, MAXIMUM_KEPT);
 }
 

@@ -539,7 +539,7 @@ function removeFlagText(argv: string[], flag: string, fallback: string): string 
     const value = argv[at + 1];
     if (value === undefined) throw new HelpArticleError(`${flag} takes a value`);
     argv.splice(at, 2);
-    assert(value.length >= 0, "a flag that was read states something");
+    assert(!value.startsWith("--"), "a flag takes a value rather than the flag standing after it");
     assert(!argv.includes(flag), "and is taken out of what is left to read");
     return value;
 }

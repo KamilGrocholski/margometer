@@ -10,7 +10,7 @@
  */
 
 import { assert } from "@std/assert";
-import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
+import { type CombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import type {
     CombatantFigures,
     FightStatistics,
@@ -20,6 +20,10 @@ import type {
 import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { composeReplayedMaterial, type FightReplay } from "@/tools/fight-replay.ts";
 
+/** As many members as the widest cut a card draws: the kinds, the defences, the procs. */
+const MAXIMUM_CUT_PARTS = 64;
+/** What one combatant's own skills are kept inside, measured in `src/ui/panel-reading.ts`. */
+const MAXIMUM_SKILLS = 256;
 const NAME_WIDTH = 26;
 const NUMBER_WIDTH = 10;
 const CAPTION_WIDTH = 20;
@@ -41,7 +45,7 @@ function getCutOrder(one: readonly [string, number], other: readonly [string, nu
  * can place.
  */
 function composeCutText(cut: FigureCut, roster: CombatantRoster | null): string {
-    assert(cut.size >= 0, "a cut with nothing in it is still a cut");
+    assert(cut.size <= MAXIMUM_CUT_PARTS, "a cut stays inside the parts a card draws");
     if (cut.size === 0) return NOTHING;
     const written = [...cut].sort(getCutOrder).map(([key, amount]) => {
         // Through the owner rather than through `Number`: a key that is not an id — an element,
@@ -55,7 +59,7 @@ function composeCutText(cut: FigureCut, roster: CombatantRoster | null): string 
 }
 
 function composeSkillText(skills: ReadonlyMap<string, SkillFigures>): string {
-    assert(skills.size >= 0, "a combatant announcing nothing announced nothing");
+    assert(skills.size <= MAXIMUM_SKILLS, "a combatant announces no more than it is bounded to");
     if (skills.size === 0) return NOTHING;
     const written = [...skills.values()]
         .sort((one, other) => other.uses - one.uses)
@@ -133,7 +137,6 @@ function composeMembersBySide(replay: FightReplay): Map<number | null, number[]>
         if (replay.roster.byId.has(id)) continue;
         bySide.set(null, [...(bySide.get(null) ?? []), id]);
     }
-    assert(bySide.size >= 0, "a fight is fought on the sides it was fought on");
     assert(bySide.size <= replay.roster.byId.size + 1, "and on no more than one side each");
     return bySide;
 }
@@ -201,8 +204,9 @@ function composeReadingLines(replay: FightReplay): string[] {
 /** Both sides by name and no verdict: a recording does not record who recorded it. */
 function composeOutcomeLines(statistics: FightStatistics): string[] {
     const outcome = statistics.outcome;
-    assert(outcome === null || outcome.wonNames.length >= 0, "an outcome names a side or nobody");
     if (outcome === null) return ["  —— the fight states no outcome ——"];
+    assert(outcome.wonNames.length <= MAXIMUM_COMBATANTS, "an outcome names a bounded cast");
+    assert(outcome.lostNames.length <= MAXIMUM_COMBATANTS, "at either end of it");
     return [
         "  —— how it ended ——",
         ...(outcome.isDrawn ? ["    drawn: nobody won this fight"] : []),

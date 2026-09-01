@@ -59,6 +59,8 @@ const INDENT_SPACES = 2;
 const MAXIMUM_VALUES = 4194304;
 /** A fight holds twenty and every one of them is named at most a handful of times. */
 const MAXIMUM_NAMES = 4096;
+/** A slug and a version are typed by a hand at a terminal; this is far past either. */
+const MAXIMUM_OFFERED = 256;
 
 /**
  * What replaces an ability description. Visible on purpose: a blank would read as "the game sent
@@ -143,7 +145,6 @@ export function composeRecordingInEnglish(recording: unknown): unknown {
 function getIdentityFromValue(value: unknown): number | null {
     if (typeof value === "number") return Number.isInteger(value) ? value : null;
     if (typeof value !== "string") return null;
-    assert(value.length >= 0, "an id stated as text is text");
     const read = getIntegerFromText(value);
     assert(read === null || Number.isInteger(read), "and reads back as a whole number or nothing");
     return read;
@@ -234,7 +235,7 @@ function requireEveryCombatantDecided(roll: Roll): void {
 }
 
 function composeSubstitutions(roll: Roll): Map<string, string> {
-    assert(roll.isPlayerById.size >= 0, "a roll states who is a person, however few");
+    assert(roll.isPlayerById.size <= MAXIMUM_NAMES, "a roll names no more than it is bounded to");
     const substitutions = new Map<string, string>();
     const players = [...roll.namesById.keys()]
         .filter((id) => roll.isPlayerById.get(id) === true)
@@ -382,7 +383,7 @@ export function removeSkillDescriptions(recording: unknown): DescriptionRemoval 
                     `${FIELDS_PER_ABILITY} — the layout this was measured against changed`,
             );
         }
-        assert(abilities.length >= 0, "an ability list has a length");
+        assert(abilities.length % FIELDS_PER_ABILITY === 0, "an ability list is whole groups");
         for (let at = DESCRIPTION_FIELD; at < abilities.length; at += FIELDS_PER_ABILITY) {
             const stated = abilities[at];
             if (typeof stated !== "string") continue;
@@ -486,7 +487,7 @@ export function composeIntake(recording: unknown): Intake {
 
 /** Lower-case letters, digits and single dashes, with a dash at neither end. Walked — **C7**. */
 export function isSlugText(text: string): boolean {
-    assert(text.length >= 0, "a slug offered is text");
+    assert(text.length <= MAXIMUM_OFFERED, "a slug offered is shorter than one is typed");
     if (text.length === 0) return false;
     if (text.startsWith("-")) return false;
     if (text.endsWith("-")) return false;
@@ -510,7 +511,7 @@ export function isSlugText(text: string): boolean {
  * Walked rather than matched (**C7**).
  */
 export function isVersionText(text: string): boolean {
-    assert(text.length >= 0, "a version offered is text");
+    assert(text.length <= MAXIMUM_OFFERED, "a version offered is shorter than one is typed");
     if (text.length === 0) return false;
     for (const [at, character] of [...text].entries()) {
         const isLetter = (character >= "a" && character <= "z") ||

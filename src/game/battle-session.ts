@@ -106,7 +106,7 @@ function getMessagesFromPayload(payload: Record<string, unknown>): string[] {
 function getMessageCountFromPayload(payload: Record<string, unknown>): number {
     const stated = payload[MESSAGE_COUNT_KEY];
     if (!Array.isArray(stated)) return 0;
-    assert(stated.length >= 0, "a list states a length");
+    assert(stated.length <= MAXIMUM_EVENTS, "a payload states no more messages than a fight holds");
     return stated.length;
 }
 

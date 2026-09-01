@@ -303,7 +303,7 @@ function composeShelfKeeper(environment: UserscriptEnvironment): ShelfKeeper {
             setWritten(writeKeptFights(store, SHELF_KEY, keeper.fights), offered);
         },
     };
-    assert(keeper.fights.length >= 0, "a shelf read back holds the fights it holds");
+    assert(keeper.fights.length <= MAXIMUM_KEPT, "a shelf read back stays inside its stated bound");
     return keeper;
 }
 
@@ -324,7 +324,7 @@ function composeShelfRows(
     readFigures: (fight: KeptFight) => FightFigures,
 ): ShelfRow[] {
     assert(typeof readClock === "function", "a shelf row is timed by the reader's own clock");
-    assert(kept.length >= 0, "and a shelf holds the fights it holds");
+    assert(kept.length <= MAXIMUM_KEPT, "and a shelf stays inside the bound it is rotated to");
     const rows: ShelfRow[] = [];
     // One row for one fight: the one that has just ended is both the live one and a kept one
     // until the next begins. It keeps the live row's wording and the kept row's pin.
@@ -367,7 +367,10 @@ function composeShelfRows(
 }
 
 function getOutcomeForFigures(figures: FightFigures): PanelOutcome | null {
-    assert(figures.roster.byId.size >= 0, "a fight is called against the cast that fought it");
+    assert(
+        figures.roster.byId.size <= MAXIMUM_COMBATANTS,
+        "a fight is called against a bounded cast",
+    );
     const outcome = figures.statistics.outcome;
     if (outcome === null) return null;
     return getOutcomeForSeat(outcome, figures.roster, figures.fight.readerSide);
@@ -545,7 +548,7 @@ function composeFightFigures(session: BattleSession): FightFigures | null {
 
 /** The newest fight on the shelf, or nothing where it holds none. */
 function getNewestKeptFight(fights: readonly KeptFight[]): KeptFight | null {
-    assert(fights.length >= 0, "a shelf holds the fights it holds");
+    assert(fights.length <= MAXIMUM_KEPT, "a shelf stays inside its stated bound");
     let newest: KeptFight | null = null;
     for (const one of fights) {
         if (newest === null) newest = one;
@@ -606,7 +609,10 @@ function showFight(
         fight.readerSide,
         { messagesLost: fight.messagesLost, hasJoinedInProgress: fight.hasJoinedInProgress },
     );
-    assert(reading.rows.length >= 0, "a reading states its rows, however few");
+    assert(
+        reading.sizes.length <= reading.rows.length,
+        "a reading sizes no more rows than it holds",
+    );
     const { drill, pair, part, halfNamed, halfNamedDrill } = composeOpenedReadings(
         figures,
         screen,
@@ -801,6 +807,8 @@ export interface DownloadAnchor extends PanelElement {
 
 /** The one class a reader could meet outside the panel, so it is named as ours (`SECURITY.md`). */
 const DOWNLOAD_ANCHOR_CLASS = "MargoMeter-download";
+/** A page states a handful; this is far past any page the add-on is installed on. */
+const MAXIMUM_SCRIPTS = 4096;
 const SCRIPT_WITH_SOURCE = "script[src]";
 
 /**
@@ -814,14 +822,14 @@ const SCRIPT_WITH_SOURCE = "script[src]";
 function getWorldFromPage(page: UserscriptWindow): string {
     const stated = page.location.hostname ?? "";
     const world = stated.split(".")[0] ?? "";
-    assert(world.length >= 0, "a world read off a page is text");
+    assert(world.length <= stated.length, "a world is the first label of the host it was read off");
     if (world.length === 0) return "unknown";
     return world;
 }
 
 function getGameBuildFromPage(page: UserscriptWindow): string | null {
     const scripts = page.document.querySelectorAll(SCRIPT_WITH_SOURCE);
-    assert(scripts.length >= 0, "a page states the scripts it states, however few");
+    assert(scripts.length <= MAXIMUM_SCRIPTS, "a page states no more scripts than are walked");
     for (let at = 0; at < scripts.length; at += 1) {
         const source = getTextFromUnknown(scripts[at]?.src) ?? "";
         const build = getGameBuildFromScriptName(source);
