@@ -24,8 +24,8 @@ import {
 } from "@/tests/e2e/browser-page.ts";
 
 /** The window every test lays out in, wide enough that nothing is clipped by the frame. */
-export const WINDOW_WIDTH = 1280;
-export const WINDOW_HEIGHT = 900;
+const WINDOW_WIDTH = 1280;
+const WINDOW_HEIGHT = 900;
 
 /**
  * The bundle, built once for the whole run. `composeUserscriptFiles` shells out to a bundler, so
@@ -33,7 +33,7 @@ export const WINDOW_HEIGHT = 900;
  */
 let building: Promise<string> | null = null;
 
-export function readUserscriptForTests(): Promise<string> {
+function readUserscriptForTests(): Promise<string> {
     if (building === null) {
         building = composeUserscriptFiles(getDevelopmentVersion()).then((files) => files.script);
     }

@@ -208,10 +208,10 @@ tests/
     browser-page.ts        The page it drives: a probe, a game, the bundle, a fight replayed.
     browser-host.ts        That page on a real origin, and the Chrome this machine has.
     panel-boot.test.ts     The file a reader installs, run by a browser.
-    panel-gesture.test.ts  A press an engine retargets, and the menu a right press stops.
-    panel-sheet.test.ts    The stylesheet as an engine resolves it, not as it is written.
     panel-place.test.ts    A drag by a real pointer, and what a real reload finds waiting.
-    panel-silence.test.ts  Every recording through a page, with nothing said and nothing thrown.
+    panel-crawler.ts       The crawl itself, as one expression a page is handed.
+    panel-crawl.test.ts    Every control on every screen, opened, walked and closed behind.
+    panel-controls.test.ts The strip along the bar, and the bar itself, driven by a real pointer.
   source-line.ts           A line of TypeScript with its string literals taken out.
   style-sheet.ts           The panel's stylesheet read back, for the guards that read it.
   source-paths.ts          Every TypeScript file under the directories that hold one.

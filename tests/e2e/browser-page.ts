@@ -9,9 +9,10 @@ import { assert, assertStringIncludes } from "@std/assert";
 import { USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
 
 export const PROBE_NAME = "margometerE2e";
-export const ENGINE_ANSWER = "e2e-engine";
+/** What the stub answers `updateData` with, so it answers the game something. */
+const ENGINE_ANSWER = "e2e-engine";
 /** The place the stub names, which no recording carries and every bar states. */
-export const PLACE_NAME = "E2E";
+const PLACE_NAME = "E2E";
 /** A build id in the shape `src/core/game-build.ts` reads, on a tag that loads nothing. */
 const GAME_BUILD = "1785244275300";
 export const GAME_SCRIPT_NAME = `main.min${GAME_BUILD}.js`;
@@ -25,11 +26,20 @@ export interface BrowserPageOptions {
 
 /**
  * What the page saw, installed **before** anything else runs. `console.error` is wrapped rather
- * than listened to because there is no event for it, and it is the one console the add-on holds
- * (`src/ui/panel-listener.ts`). It still calls through, so a headful run reads the failure too.
+ * than listened to because there is no event for it, and it is the one console the add-on holds.
  */
 function composeProbe(): string {
-    const probe = `window.${PROBE_NAME} = { failures: [], said: [], answers: [], calls: 0 };
+    const probe = `window.${PROBE_NAME} = { failures: [], said: [], saved: [] };
+(function setSavedKept() {
+  // The file the panel hands over is a Blob it builds and an object URL it clicks
+  // (\`saveRecording\`, \`src/userscript-entry.ts\`). Wrapping the constructor keeps the text
+  // synchronously; reading it back off the URL would be a promise, and a page's replay is not.
+  var Made = window.Blob;
+  window.Blob = function (parts, options) {
+    window.${PROBE_NAME}.saved.push(String(parts && parts[0]));
+    return new Made(parts, options);
+  };
+})();
 window.addEventListener("error", function handleError(event) {
   window.${PROBE_NAME}.failures.push(String(event.message));
 });
@@ -49,6 +59,7 @@ window.addEventListener("unhandledrejection", function handleRejection(event) {
   }
 })();`;
     assertStringIncludes(probe, "unhandledrejection", "a promise nobody caught is a failure seen");
+    assertStringIncludes(probe, "window.Blob", "and a file handed over is kept where a test reads");
     assertStringIncludes(probe, "console[name]", "and the one console the add-on holds is watched");
     return probe;
 }
@@ -76,7 +87,6 @@ function composeGame(): string {
           window.Engine.battle.warriorsList[id] = roster[id];
         }
       }
-      window.${PROBE_NAME}.calls += 1;
       return ${JSON.stringify(ENGINE_ANSWER)};
     }
   },
@@ -91,19 +101,17 @@ function composeGame(): string {
 /**
  * The replay, synchronous and finished before `load` fires. Every payload goes through
  * `Engine.battle.updateData`, which by then is MargoMeter's wrapper, so the calls enter at the
- * production boundary. What each answered is kept: the wrap's one promise is that the game's own
- * value comes back untouched.
+ * production boundary rather than beside it.
  */
 function composeDriver(): string {
     const driver = `(function setFightFed() {
   var settings = JSON.parse(document.getElementById("e2e-settings").textContent);
-  var probe = window.${PROBE_NAME};
   for (var at = 0; at < settings.entryIndex; at += 1) {
-    probe.answers.push(window.Engine.battle.updateData(settings.calls[at]));
+    window.Engine.battle.updateData(settings.calls[at]);
   }
 })();`;
     assertStringIncludes(driver, "Engine.battle.updateData", "fed through the wrap, not past it");
-    assertStringIncludes(driver, "answers.push", "and what the game answered is kept");
+    assertStringIncludes(driver, "settings.entryIndex", "as far as the page was told to");
     return driver;
 }
 
