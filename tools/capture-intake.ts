@@ -16,7 +16,12 @@ import { getIntegerFromText } from "@/libs/number-text.ts";
 import { CAPTURE_FIELDS, NOTHING_STATED } from "@/src/game/fight-capture.ts";
 import { WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
 import { CaptureIntakeError } from "@/tools/margometer-tool-error.ts";
-import { RECORDING_DIRECTORY, RECORDING_SUFFIX } from "@/project/repository-layout.ts";
+import { getRecordedFights, type RecordedFight } from "@/tools/recorded-fights.ts";
+import {
+    composeRecordingPath,
+    RECORDING_DIRECTORY,
+    RECORDING_SUFFIX,
+} from "@/project/repository-layout.ts";
 
 /** Written by this tool and by nothing else, which is why they are spelled here. */
 const SUBSTITUTED_COUNT = "namesSubstituted";
@@ -61,6 +66,10 @@ const MAXIMUM_VALUES = 4194304;
 const MAXIMUM_NAMES = 4096;
 /** A slug and a version are typed by a hand at a terminal; this is far past either. */
 const MAXIMUM_OFFERED = 256;
+/** `captures/` holds 28 recordings, measured 2026-09-01. */
+const MAXIMUM_ADMITTED = 4096;
+/** The longest recording in `captures/` made 111 calls, measured 2026-09-01. */
+const MAXIMUM_CALLS_PRINTED = 100000;
 
 /**
  * What replaces an ability description. Visible on purpose: a blank would read as "the game sent
@@ -425,6 +434,8 @@ export function removeReport(recording: unknown): ReportRemoval {
 
 export interface Intake {
     text: string;
+    /** What the text says, so a caller that must look at the result does not read it back. */
+    recording: unknown;
     changed: number;
     removed: number;
     wasReportRemoved: boolean;
@@ -482,11 +493,88 @@ export function composeIntake(recording: unknown): Intake {
     assert(writing.text.length > 0, "and what was written says something");
     return {
         text: `${writing.text}\n`,
+        recording: written,
         changed: named.changed,
         removed: described.removed,
         wasReportRemoved: counted.wasRemoved,
         substitutions: named.substitutions,
     };
+}
+
+/**
+ * A recording carrying no call at all. The add-on writes one where a session ended having seen
+ * nothing: three arrived that way on 2026-08-26 and 2026-08-28, off add-on `0.10.1`. Admitted,
+ * each would earn a row in `docs/captured-fights.md` for a file with nothing behind it.
+ */
+export function requireCallsCarried(recording: unknown): void {
+    const calls = getCallsFromRecording(recording);
+    if (calls.length > 0) {
+        assert(isRecord(recording), "a recording that carries a call is a record");
+        return;
+    }
+    throw new CaptureIntakeError(
+        `\`${CAPTURE_FIELDS.calls}\` carries no call the engine made — a recording stating ` +
+            "nothing is not evidence of anything",
+    );
+}
+
+/** The payloads a recording carries, read as `tools/recorded-fights.ts` reads an admitted one. */
+function getPayloadsFromRecording(recording: unknown): unknown[] {
+    const payloads: unknown[] = [];
+    for (const call of getCallsFromRecording(recording)) {
+        if (!(CAPTURE_FIELDS.payload in call)) continue;
+        payloads.push(call[CAPTURE_FIELDS.payload]);
+    }
+    assert(payloads.length <= MAXIMUM_CALLS_PRINTED, "a recording stays inside its stated bound");
+    return payloads;
+}
+
+function composePayloadPrint(payloads: readonly unknown[]): string {
+    assert(payloads.length <= MAXIMUM_CALLS_PRINTED, "a print covers a bounded number of calls");
+    const writing = composeJsonWriting(payloads);
+    if (!writing.isOk) {
+        throw new CaptureIntakeError("a payload here cannot be written as text to compare", {
+            cause: writing.cause,
+        });
+    }
+    assert(writing.text.length > 0, "and a print that was taken says something");
+    return writing.text;
+}
+
+/**
+ * A recording of a fight that is already here. The envelope cannot answer this: a recording
+ * replayed through `tools/preview-page.ts` states the day, world and build of the replay, so
+ * `isPathTaken` sees a free path and a second copy of the material lands beside the first, under
+ * a world it was never fought in.
+ *
+ * ⚠️ **Payloads and not snapshots.** A replay carries the game's payloads and messages through
+ * unchanged and rebuilds the snapshots itself — measured on
+ * `margometer-localhost-2026-08-30T20-57-52-542Z.json` against
+ * `captures/2026-08-15-tempest-grupa-vs-hildur-4-1786514810315-none.json`: 52 of 52 payloads
+ * identical, 9 snapshot entries where the recording has 11. A comparison over the snapshots is
+ * the one that misses.
+ *
+ * ⚠️ **The redacted form, never the source.** Redaction rewrites `payload.w[].name` and
+ * `payload.skills`, and everything in `captures/` has been through it, so a comparison before it
+ * finds nothing on a file whose nicknames are still real.
+ *
+ * Two admitted recordings share no payload sequence: 28 recordings, 28 prints, measured
+ * 2026-09-01.
+ */
+export function requireRecordingIsNew(
+    recording: unknown,
+    admitted: readonly RecordedFight[],
+): void {
+    assert(admitted.length <= MAXIMUM_ADMITTED, "the material compared against is bounded");
+    const offered = composePayloadPrint(getPayloadsFromRecording(recording));
+    assert(offered.startsWith("["), "and what is offered prints as the list of payloads it is");
+    for (const fight of admitted) {
+        if (composePayloadPrint(fight.calls) !== offered) continue;
+        throw new CaptureIntakeError(
+            `this fight is already here as \`${composeRecordingPath(fight.name)}\` — the ` +
+                "payloads are the same ones, whatever day, world and build the envelope states",
+        );
+    }
 }
 
 /** Lower-case letters, digits and single dashes, with a dash at neither end. Walked — **C7**. */
@@ -614,6 +702,9 @@ function writeIntake(source: string, slug: string): void {
     // Spelled before it is filed: a recording from an older add-on states its world and its
     // moment under names this would otherwise look for and not find.
     const recording = composeRecordingInEnglish(reading.value);
+    // Before the path is composed, so a file carrying nothing is refused for carrying nothing
+    // rather than for a world it never got as far as stating.
+    requireCallsCarried(recording);
     const target = composeIntakePath(recording, slug);
     // Material is never overwritten: a recording already here is evidence somebody has written a
     // test against.
@@ -621,6 +712,8 @@ function writeIntake(source: string, slug: string): void {
         throw new CaptureIntakeError(`${target} already exists — material is not overwritten`);
     }
     const intake = composeIntake(recording);
+    // After the redaction rather than before it, because that is the form the material is in.
+    requireRecordingIsNew(intake.recording, getRecordedFights());
     Deno.writeTextFileSync(target, intake.text);
     console.log(`wrote ${target}`);
     console.log(

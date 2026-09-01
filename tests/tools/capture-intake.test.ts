@@ -24,7 +24,10 @@ import {
     isSlugText,
     REMOVED_DESCRIPTION,
     removeSkillDescriptions,
+    requireCallsCarried,
+    requireRecordingIsNew,
 } from "@/tools/capture-intake.ts";
+import { getRecordedFights } from "@/tools/recorded-fights.ts";
 import { CaptureIntakeError } from "@/tools/margometer-tool-error.ts";
 import { getRecordingPaths } from "@/tests/recorded-fight.ts";
 
@@ -337,4 +340,67 @@ Deno.test("every recording already admitted is a fixed point of this tool", () =
         moved.push(`${path}: ${intake.changed} names, ${intake.removed} descriptions`);
     }
     assertEquals(moved, [], "a recording in this repository that still has something to redact");
+});
+
+Deno.test("a recording carrying no call is refused, because nothing is not evidence", () => {
+    // The envelope of `margometer-luvia-2026-08-28T07-50-36-018Z.json`, which add-on `0.10.1`
+    // wrote with an empty `wpisy` — twice that day, and once on 2026-08-26.
+    const nothing = {
+        formatVersion: 3,
+        capturedAt: "2026-08-28T07:50:36.018Z",
+        world: "luvia",
+        gameBuild: "53XkBRxF",
+        addOnVersion: "0.10.1",
+        calls: [],
+    };
+    assertThrows(() => requireCallsCarried(nothing), CaptureIntakeError, "no call");
+    assertThrows(() => requireCallsCarried({ ...nothing, calls: [1, "two"] }), CaptureIntakeError);
+    // And the sample it must not flag, without which this only says the reader still finds one.
+    requireCallsCarried(composeRecording({ "5": { id: 5, npc: 0, name: "Wiewiorka" } }));
+});
+
+/**
+ * The replay case, and the reason the envelope cannot answer it: a recording played back through
+ * the preview states the day, world and build of the replay, so the path it composes is free.
+ */
+Deno.test("a fight already here is refused, whatever day, world and build are claimed", () => {
+    const [admitted] = getRecordingPaths();
+    assertExists(admitted, "there is material to hold this against");
+    const reading = getJsonReading(Deno.readTextFileSync(admitted));
+    assert(reading.isOk, `${admitted} is JSON`);
+    assert(isRecord(reading.value), "and a recording");
+    const replayed = {
+        ...reading.value,
+        capturedAt: "2026-09-01T12:00:00.000Z",
+        world: "localhost",
+        gameBuild: null,
+        addOnVersion: "0.0.0-dev",
+    };
+    assertEquals(
+        composeIntakePath(replayed, "podglad"),
+        "captures/2026-09-01-localhost-podglad-none-0.0.0-dev.json",
+        "a path nothing is filed under, which is what lets the copy in",
+    );
+    const refusal = assertThrows(
+        () => requireRecordingIsNew(composeIntake(replayed).recording, getRecordedFights()),
+        CaptureIntakeError,
+    );
+    assertStringIncludes(refusal.message, admitted, "and the refusal names the file it is already");
+});
+
+Deno.test("a fight nobody has admitted passes the door", () => {
+    const fresh = composeRecording({ "7": { id: 7, npc: 0, name: "Wiewiorka" } });
+    requireCallsCarried(fresh);
+    requireRecordingIsNew(composeIntake(fresh).recording, getRecordedFights());
+    // Every admitted recording is a duplicate of itself, which is the reader's other side.
+    const held = getRecordedFights();
+    assert(held.length > 0, "there is material to hold this against");
+    for (const fight of held) {
+        assertThrows(
+            () =>
+                requireRecordingIsNew({ calls: fight.calls.map((payload) => ({ payload })) }, held),
+            CaptureIntakeError,
+            fight.name,
+        );
+    }
 });

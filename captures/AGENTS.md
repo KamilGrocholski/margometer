@@ -38,6 +38,8 @@ whitespace. There is no such thing as a cosmetic edit to evidence.
   `docs/captured-fights.md`.
 - **The intake tool refuses what it cannot redact.** A recording it cannot fully process is
   rejected, not admitted with a warning.
+- **The intake tool refuses a recording of a fight already here**, whatever day, world and build
+  its envelope states, and one carrying no call at all. **ADR 0045.**
 
 ## Why the snapshots matter
 
