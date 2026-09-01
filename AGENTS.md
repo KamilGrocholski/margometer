@@ -96,6 +96,11 @@ this language does not have would be**; each states what binds instead.
 - **A8.** An assertion is not an error class, and `AssertionError` is in neither branded hierarchy.
   `assert` is for what must never happen; a failure you know can occur is data or a branded error.
   Assertions carry no `code`, because nobody can act on a broken invariant.
+- **A9. The assertion that reports more is the one used.** Where a `@std/assert` function says what
+  `assert` cannot — the value, the diff, the narrowed type — it is what stands there; where it
+  discards the message naming the invariant, `assert` is. Which does which is measured, and **ADR
+  0040** carries the table. The failure is quiet: an assertion that fires having thrown away the
+  only sentence saying what broke.
 
 ## Errors
 
@@ -250,6 +255,12 @@ TypeScript idiom, with the naming rules stated here.
 - **C16.** Comment share of a directory under `src/` or `tools/` stays under 22%. A file may sit
   near C5's ceiling; a directory may not, because a per-file bound cannot see a directory walking to
   it. **ADR 0016.**
+- **C17. The standard library is asked before a function is written.** `@std` is carried already
+  (**ADR 0001**), so a walk written here is a walk somebody else has tested. Where its edge case
+  differs from the one needed, keep your own and **name the difference where the code stands** — an
+  unexplained local copy is indistinguishable from not having looked. A new package is still a
+  dependency, and **Ask first** still governs it. **ADR 0040.** _(`by-reading` whether the library
+  was asked)_
 
 ## Language
 
