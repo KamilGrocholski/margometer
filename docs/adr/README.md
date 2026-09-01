@@ -139,3 +139,5 @@ edited to agree with the new rule.
   checked. **Accepted**
 - [0045](0045-a-recording-of-a-fight-already-here-is-refused.md) — A recording of a fight already
   here is refused at the door. **Accepted**
+- [0046](0046-an-action-is-counted-and-a-turn-is-not-read.md) — An action is counted, and a turn is
+  not read. **Accepted**

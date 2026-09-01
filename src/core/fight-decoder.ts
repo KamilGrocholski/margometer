@@ -209,6 +209,12 @@ const DECLARATION_KEYS = [
     "txt",
 ];
 /**
+ * A combatant moving, which is the one declaration a reading of what somebody did on their turn
+ * counts (`tools/action-count.ts`). Exported so the two files that spell it spell it once — the
+ * key is the game's and `docs/protocol-keys.md` owns what it means (**N13**).
+ */
+export const STEP_KEY = "step";
+/**
  * The same, stating the key and nothing else — and read **only** while they carry none. The
  * client composes `+legbon_holytouch` with a hole for a figure, so it is a declaration whose
  * figure is absent rather than a proc, and one arriving with a value goes back to unread.
@@ -221,7 +227,7 @@ const VALUELESS_DECLARATION_KEYS = [
     "removedot-allies",
     "removeslow-allies",
     "removestun-allies",
-    "step",
+    STEP_KEY,
 ];
 /** The longest message list in one payload of `captures/` holds 627, 2026-08-28. */
 const MAXIMUM_MESSAGES = 4096;
