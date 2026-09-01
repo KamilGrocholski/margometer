@@ -851,9 +851,15 @@ function readGameBuildFromPage(page: UserscriptWindow): string | null {
  * here: nothing throws, the panel looks like it saved, and no file arrives. A fake document
  * exercises none of it — `click()` there does nothing — so it is checked in a browser.
  */
-function writeTextToFile(page: UserscriptWindow, name: string, text: string): void {
+function writeTextToFile(
+    page: UserscriptWindow,
+    name: string,
+    text: string,
+    handleFailure: (failure: unknown) => void,
+): void {
     assert(name.length > 0, "a file handed to a browser is handed a name");
     assert(text.length > 0, "and something to put in it");
+    assert(typeof handleFailure === "function", "and a way to say it did not arrive");
     const url = page.URL.createObjectURL(new page.Blob([text], { type: "application/json" }));
     const anchor = page.document.createElement("a");
     anchor.href = url;
@@ -864,7 +870,15 @@ function writeTextToFile(page: UserscriptWindow, name: string, text: string): vo
         anchor.click();
     } finally {
         anchor.remove();
-        page.setTimeout(() => page.URL.revokeObjectURL(url), 0);
+        // The clock is the browser's, so a revoke that throws unwinds into the timer and reaches
+        // nobody (**E12**). A URL nobody released is memory this page keeps until it is left.
+        page.setTimeout(() => {
+            try {
+                page.URL.revokeObjectURL(url);
+            } catch (failure) {
+                handleFailure(failure);
+            }
+        }, 0);
     }
 }
 
@@ -930,6 +944,7 @@ function composeStoreForChoice(page: UserscriptWindow, choice: PanelStorageChoic
 export function startFromWindow(page: UserscriptWindow): GameAttachment {
     assert(typeof page.setInterval === "function", "a page states the clock this asks for");
     let shown: PanelElement | null = null;
+    const report = (line: string, failure: unknown): void => page.console.error(line, failure);
     return startMargoMeter({
         page,
         document: page.document,
@@ -946,10 +961,11 @@ export function startFromWindow(page: UserscriptWindow): GameAttachment {
             },
         },
         readViewport: () => readViewportFromPage(page),
-        report: (line, failure) => page.console.error(line, failure),
+        report,
         store: composeStoreForChoice(page, STORAGE_DEFAULT),
         composeShelfStore: (choice) => composeStoreForChoice(page, choice),
-        save: (name, text) => writeTextToFile(page, name, text),
+        save: (name, text) =>
+            writeTextToFile(page, name, text, (failure) => report(FAILURE_LINE, failure)),
         readSurroundings: () => ({
             world: readWorldFromPage(page),
             gameBuild: readGameBuildFromPage(page),

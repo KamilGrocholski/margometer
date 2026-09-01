@@ -6,6 +6,7 @@
 import { assert } from "@std/assert/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import { composeDecimalText } from "@/libs/number-text.ts";
+import { setGuardedListener } from "@/src/ui/panel-listener.ts";
 import type {
     DrillReading,
     ElementCut,
@@ -1607,10 +1608,11 @@ function setPanelRootListeners(
     root: PanelRoot,
     handlePress: (press: PanelPress) => void,
     handleHover: (key: string | null, clientY: number) => void,
+    handleFailure: (failure: unknown) => void,
 ): void {
     assert(typeof handlePress === "function", "a press reaches somebody who can act on it");
     assert(typeof handleHover === "function", "and so does the pointer that opens the detail");
-    root.addEventListener(PRESS_EVENT, (event) => {
+    setGuardedListener(root, PRESS_EVENT, (event) => {
         // The primary button alone: without this a right press would open a row and the listener
         // below would step straight back out of it, which is worse than either half.
         if ((event.button ?? PRIMARY_BUTTON) !== PRIMARY_BUTTON) return;
@@ -1618,21 +1620,21 @@ function setPanelRootListeners(
         if (target === null) return;
         const press = getPressFromTarget(target);
         if (press !== null) handlePress(press);
-    });
+    }, handleFailure);
     // One gesture in, one gesture out, and the way out works from anywhere on the panel: a back
     // control alone would make the cheapest gesture the one that needs aiming.
-    root.addEventListener(BACK_EVENT, (event) => {
+    setGuardedListener(root, BACK_EVENT, (event) => {
         event.preventDefault?.();
         handlePress({ kind: "back" });
-    });
-    root.addEventListener(MOVE_EVENT, (event) => {
+    }, handleFailure);
+    setGuardedListener(root, MOVE_EVENT, (event) => {
         const target = event.target;
         handleHover(target === null ? null : target.getAttribute(TIP_ATTRIBUTE), event.clientY);
-    });
-    root.addEventListener(LEAVE_EVENT, (event) => {
+    }, handleFailure);
+    setGuardedListener(root, LEAVE_EVENT, (event) => {
         const went = event.relatedTarget ?? null;
         handleHover(went === null ? null : went.getAttribute(TIP_ATTRIBUTE), event.clientY);
-    });
+    }, handleFailure);
 }
 
 export interface PanelHandle {
@@ -1747,6 +1749,14 @@ export function composePanelHost(
         return composeRegionInPlace(document, standing, region, compose, handleFailure);
     };
     const register = composeTipRegister();
+    const setFoldDrawn = (isCollapsed: boolean): void => {
+        regions.title = redraw(
+            regions.title,
+            "header",
+            () => composeTitleElement(document, isCollapsed),
+        );
+        frame.className = isCollapsed ? `${CLASS.frame} ${CLASS.folded}` : CLASS.frame;
+    };
     // Null until a drag writes one, and null for good on a panel never made movable.
     let getPosition: () => PanelPosition | null = () => null;
     const tip: TipHandle = composeTipHandle(
@@ -1758,7 +1768,8 @@ export function composePanelHost(
     root.append(regions.title);
     root.append(frame);
     root.append(tip.element);
-    setPanelRootListeners(root, handlePress, (key, clientY) => tip.show(key, clientY));
+    const showTip = (key: string | null, clientY: number): void => tip.show(key, clientY);
+    setPanelRootListeners(root, handlePress, showTip, handleFailure);
     // After the listeners that read a press, and on the same root: a drag is four more of them,
     // and the bar is the only thing on the panel that starts one.
     if (placement !== null) {
@@ -1770,12 +1781,7 @@ export function composePanelHost(
         element: host,
         show(view: PanelView): void {
             register.reset();
-            regions.title = redraw(
-                regions.title,
-                "header",
-                () => composeTitleElement(document, view.isCollapsed),
-            );
-            frame.className = view.isCollapsed ? `${CLASS.frame} ${CLASS.folded}` : CLASS.frame;
+            setFoldDrawn(view.isCollapsed);
             if (view.isCollapsed) setPanelFolded(document, regions, redraw);
             else setPanelBody(document, regions, view, register, translate, redraw);
             tip.refresh();
@@ -1784,12 +1790,7 @@ export function composePanelHost(
         },
         showWaiting(isCollapsed: boolean): void {
             register.reset();
-            regions.title = redraw(
-                regions.title,
-                "header",
-                () => composeTitleElement(document, isCollapsed),
-            );
-            frame.className = isCollapsed ? `${CLASS.frame} ${CLASS.folded}` : CLASS.frame;
+            setFoldDrawn(isCollapsed);
             setPanelFolded(document, regions, redraw);
             if (!isCollapsed) {
                 regions.list = redraw(regions.list, "list", () => composeWaitingElement(document));

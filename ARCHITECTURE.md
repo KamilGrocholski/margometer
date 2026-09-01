@@ -80,6 +80,7 @@ src/
     panel-card.ts        What a person's row says on demand, out of the figures it holds.
     panel-drag.ts        Where the panel sits, and how a reader moves it.
     panel-element.ts     The panel drawn into a document it is handed, region by region.
+    panel-listener.ts    The one handover of a listener to the browser, and its guard.
     panel-look.ts        The panel's tokens, the classes its rules select, and the stylesheet.
     panel-reading.ts     One screen's worth of a fight, and one row's worth of a screen.
     panel-screen.ts      Which screen the panel is on, and the strips that say so.
@@ -188,7 +189,7 @@ tests/
   repository/              Guards whose subject is this repository, not a layer of it.
     documents.test.ts      The rule documents and the guard register.
     decisions.test.ts      The decision records: numbering, index, lifecycle.
-    sources.test.ts        S1, S2, C5, C15, C16, S4 and S5 over every TypeScript file.
+    sources.test.ts        S1, S2, S13, C5, C15, C16, S4 and S5 over every TypeScript file.
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
     names.test.ts          File names, exported functions and exported types.
     protocol-keys.test.ts  The register help claims, re-counted against the frozen table.
@@ -520,3 +521,21 @@ commit that opens or closes one.
    own — some are **N16**'s finding and some are **N2** drift, `setPreviewServer` and `setRebuilt`
    among them. They are converted as each file is next edited for its own reasons, which is the
    shape gap 3 already has.
+
+10. **The handover guard reads a fixed list, and reads only `src/`.** **E12** binds everywhere, and
+    the three handovers in `src/` were converted in the commit that stated it (**ADR 0043**).
+    `tests/repository/errors.test.ts` knows four spellings — `.addEventListener(`, `.setTimeout(`,
+    `.setInterval(` and `schedule.every(` — so a callback handed to a name outside that list lights
+    nothing, and a callback passed as an identifier rather than written at the call is not read into
+    at all. `tools/` is not read: a throw in a `Deno.serve` handler still becomes a 500 and a log
+    line somebody sees, so the stakes are lower than in a browser, and each handover there needs a
+    judgement of its own because some are meant to stay loud (**E7**). Converted as each file is
+    next edited for its own reasons, which is the shape gap 3 already has.
+
+11. **The floating-promise guard sees only what is discarded on purpose.** **E13**'s reader finds a
+    statement opening with `void` whose call carries no rejection handler. A promise from somebody
+    else's API dropped without `void` — `server.shutdown()` or `Deno.writeTextFile` called and not
+    awaited — passes it, and **S7** holds that only as far as the compiler does. The reader also
+    works a line at a time, so a `void` inside a template literal this repository serves to a
+    browser would be read as code; there is none today, and the sample that proves the reader is
+    what would catch its arrival.

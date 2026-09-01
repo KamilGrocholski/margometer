@@ -133,3 +133,5 @@ edited to agree with the new rule.
   on the card, before anybody presses it. **Accepted**
 - [0042](0042-the-naming-convention-is-transplanted-not-copied.md) — A naming convention is
   transplanted, not copied. **Accepted**
+- [0043](0043-a-failure-at-a-handover-has-nobody-to-catch-it.md) — A failure at a handover has
+  nobody to catch it. **Accepted**

@@ -780,3 +780,71 @@ Deno.test("what the bundle carries imports the assertion by module path", () => 
         "and the module path is not read as the barrel it starts with",
     );
 });
+
+/** S13: the words a bundle that must stay synchronous never spells. */
+const ASYNCHRONOUS_WORDS = ["async", "await", "Promise"];
+
+function isWordCharacter(character: string): boolean {
+    if (character >= "a" && character <= "z") return true;
+    if (character >= "A" && character <= "Z") return true;
+    if (character >= "0" && character <= "9") return true;
+    return character === "_" || character === "$";
+}
+
+/** A word standing on its own, so `asynchronous` is not read as the keyword it starts with. */
+function hasWordOutsideStrings(code: string, word: string): boolean {
+    assert(word.length > 0, "a word being looked for is a word");
+    let at = code.indexOf(word);
+    let steps = 0;
+    while (at !== -1) {
+        steps += 1;
+        assert(steps <= code.length, "the scan stays inside the line's bound");
+        const before = at === 0 ? " " : code.charAt(at - 1);
+        const after = code.charAt(at + word.length);
+        if (!isWordCharacter(before)) {
+            if (!isWordCharacter(after)) return true;
+        }
+        at = code.indexOf(word, at + word.length);
+    }
+    return false;
+}
+
+function getAsynchronousLines(text: string): number[] {
+    const found: number[] = [];
+    for (const [offset, line] of text.split("\n").entries()) {
+        if (isCommentLine(line)) continue;
+        const code = getCodeOutsideStrings(line);
+        if (ASYNCHRONOUS_WORDS.some((word) => hasWordOutsideStrings(code, word))) {
+            found.push(offset + 1);
+            continue;
+        }
+        if (code.includes(".then(")) found.push(offset + 1);
+    }
+    assert(found.every((one) => one > 0), "a line number is one-based");
+    assert(found.length <= text.length, "no more findings than characters");
+    return found;
+}
+
+Deno.test("what the bundle carries is synchronous", () => {
+    assertEquals(getAsynchronousLines("async function read() {}"), [1], "the reader flags async");
+    assertEquals(getAsynchronousLines("  await read();"), [1], "and an await");
+    assertEquals(getAsynchronousLines("read().then(mark);"), [1], "and a continuation");
+    assertEquals(getAsynchronousLines("function read(): Promise<void> {}"), [1], "and the type");
+    assertEquals(getAsynchronousLines(" * a matter of promises"), [], "prose is not code");
+    assertEquals(getAsynchronousLines('const said = "await";'), [], "a literal is not a keyword");
+    assertEquals(
+        getAsynchronousLines("const asynchronous = 1;"),
+        [],
+        "and neither is a longer word",
+    );
+
+    assert(BUNDLED_ROOTS.length > 0, "there are roots that ship");
+    const found: string[] = [];
+    for (const path of getSourcePaths()) {
+        if (!BUNDLED_ROOTS.some((root) => path.startsWith(root))) continue;
+        for (const line of getAsynchronousLines(Deno.readTextFileSync(path))) {
+            found.push(`${path}:${line}`);
+        }
+    }
+    assertEquals(found, [], "S13: a promise where the engine call is taken from the game's stack");
+});

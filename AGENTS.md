@@ -78,6 +78,10 @@ this language does not have would be**; each states what binds instead.
   collection is `[ASK]`.
 - **S12.** Split compound conditions into nested branches rather than `&&` chains, and state
   invariants positively: `if (index < count)`, not `if (index >= count)`.
+- **S13. What the bundle carries is synchronous.** No `async`, `await`, `Promise` or `.then` in
+  `src/`, or in the `libs/` modules it reaches. **E5**'s inbound boundary is the wrapped engine
+  call, taken from the game's own stack: a promise there answers the game before the fight is read,
+  and the `try` around a synchronous call catches no rejection arriving after it. **ADR 0043.**
 
 ## Assertions
 
@@ -135,16 +139,17 @@ this language does not have would be**; each states what binds instead.
 - **E4. Catch narrowly — exactly the error you expect.** The one exception is a **kind of place**,
   and the test is mechanical: **a broad catch is legal exactly where its `try` contains a call this
   project did not author.** Anywhere else it is a bug, and most of the `catch` clauses in shipped
-  code sit at one of the four below.
-- **E5. There are four boundaries in the add-on, and they are enumerable.** A new one is `[ASK]`,
+  code sit at one of the five below.
+- **E5. There are five boundaries in the add-on, and they are enumerable.** A new one is `[ASK]`,
   because an unlisted broad catch is indistinguishable from a swallowed bug.
 
-  | Boundary                  | Direction | A failure there becomes         |
-  | ------------------------- | --------- | ------------------------------- |
-  | the wrapped engine call   | inbound   | a fight that decodes no further |
-  | one render region         | outbound  | that region undrawn, in place   |
-  | browser storage           | outbound  | a refusal, which is an answer   |
-  | the game's own page state | outbound  | a reading marked unknown        |
+  | Boundary                       | Direction | A failure there becomes               |
+  | ------------------------------ | --------- | ------------------------------------- |
+  | the wrapped engine call        | inbound   | a fight that decodes no further       |
+  | one render region              | outbound  | that region undrawn, in place         |
+  | browser storage                | outbound  | a refusal, which is an answer         |
+  | the game's own page state      | outbound  | a reading marked unknown              |
+  | a callback somebody else calls | inbound   | that gesture dropped, and marked once |
 
   In `tools/` the same test applies and the boundaries are the network and a subprocess.
 - **E6.** Pass the original in `cause` when wrapping.
@@ -159,8 +164,18 @@ this language does not have would be**; each states what binds instead.
 - **E11. No failure is discarded silently.** Every caught failure leaves the mark **E5**'s table
   names for its boundary, where a reader can see it. Where a failure also reaches the console it is
   one branded entry, once, never per render, and the entry is the only place that holds a console.
-  An empty `catch` breaks this. **ADR 0025.** Who throws what. Where a broad catch is legal is
-  **E5**'s table, not this one.
+  An empty `catch` breaks this. **ADR 0025.**
+- **E12. Every callback handed to an API this project did not author is guarded at the handover** —
+  an event listener, a scheduler's step, a promise's continuation. A throw out of one unwinds into a
+  dispatch loop that drops it, so the gesture does nothing, no mark reaches anybody, and a clock
+  repeats the same failure for as long as the page is open. This is where **A7** puts a broken
+  invariant when the nearest boundary is a loop this project does not own. **ADR 0043.**
+- **E13. A promise is awaited, or handed a rejection handler in the same statement.** `void` on a
+  call that answers one discards a failure, not a value. One exception, and it is stated: the
+  top-level `if (import.meta.main)` block, where **E7**'s loud throw is the mark and the exit code
+  is what a person and CI read. **ADR 0043.**
+
+Who throws what. Where a broad catch is legal is **E5**'s table, not this one.
 
 | Layer      | Throws                | Catches by type      |
 | ---------- | --------------------- | -------------------- |
@@ -430,8 +445,8 @@ the same thing a second way.
 | `deno test`                                   | every guard below                                |
 | `tests/repository/documents.test.ts`          | the rule documents and this register             |
 | `tests/repository/decisions.test.ts`          | the decision records                             |
-| `tests/repository/sources.test.ts`            | S1, S2, A10, C5, C8, C15 in part, C16, S4, S5    |
-| `tests/repository/errors.test.ts`             | E1, E2, E11, each with a sample                  |
+| `tests/repository/sources.test.ts`            | S1, S2, S4, S5, S13, A10, C5, C8, C15 part, C16  |
+| `tests/repository/errors.test.ts`             | E1, E2, E11, E12, E13, each with a sample        |
 | `tests/repository/names.test.ts`              | N1, N11, N14, N15, N16, each with a sample       |
 | `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts   |
 | `tests/repository/readmes.test.ts`            | the two READMEs, and both against the shot set   |

@@ -6,8 +6,8 @@
  * sample it must flag. The sample proves the reader; the walk proves the tree.
  */
 
-import { assert, assertEquals } from "@std/assert";
-import { getCodeOutsideStrings, hasOutsideStrings } from "@/tests/source-line.ts";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import { getCodeOutsideStrings, hasOutsideStrings, isCommentLine } from "@/tests/source-line.ts";
 import { getSourcePaths } from "@/tests/source-paths.ts";
 
 const ERROR_BASE_FILES = [
@@ -142,4 +142,190 @@ Deno.test("no base is ever thrown, and every failure has a class of its own", ()
     }
     assert(subclasses > 0, "there are failures, and each of them is a class");
     assertEquals(offenders, [], "E2: a base thrown leaves every catch nothing narrower to name");
+});
+
+/**
+ * E12: the calls that hand a function of ours to a loop somebody else runs, spelled with the
+ * receiver they are reached through. `every` alone would be `Array.prototype.every`, which is
+ * ours and runs here — the scheduler's is the one that hands a step to a clock.
+ */
+const HANDOVER_SPELLINGS = [
+    ".addEventListener(",
+    ".setTimeout(",
+    ".setInterval(",
+    "schedule.every(",
+];
+/** E13's exception: below this line a throw is the mark, and the exit code is what is read. */
+const MAIN_OPENER = "if (import.meta.main)";
+
+/** Code with comment and string bodies blanked, every line kept at the length it had. */
+function getCodeOfText(text: string): string {
+    const kept: string[] = [];
+    for (const line of text.split("\n")) {
+        const bare = isCommentLine(line) ? "" : getCodeOutsideStrings(line);
+        kept.push(bare.padEnd(line.length, " ").slice(0, line.length));
+    }
+    const code = kept.join("\n");
+    assertStrictEquals(code.length, text.length, "blanking leaves every offset where it was");
+    return code;
+}
+
+function getLineOfOffset(code: string, offset: number): number {
+    assert(offset <= code.length, "an offset falls inside the text it is read from");
+    let line = 1;
+    for (let at = 0; at < offset; at += 1) {
+        if (code.charAt(at) === "\n") line += 1;
+    }
+    return line;
+}
+
+/**
+ * One call's arguments, from the paren after the name to the one closing it, read across lines.
+ * A handover written over four of them is the shape that hid one, so a line at a time is no use.
+ */
+function getCallArguments(code: string, opensAt: number): string {
+    assertStrictEquals(code.charAt(opensAt), "(", "a call's arguments open on a paren");
+    let depth = 0;
+    let at = opensAt;
+    while (at < code.length) {
+        const character = code.charAt(at);
+        if (character === "(") depth += 1;
+        if (character === ")") {
+            depth -= 1;
+            if (depth === 0) return code.slice(opensAt + 1, at);
+        }
+        at += 1;
+    }
+    return "";
+}
+
+/** Whether the function handed over opens with the `try` **E12** asks for. */
+function isHandoverGuarded(argumentText: string): boolean {
+    const arrowAt = argumentText.indexOf("=>");
+    if (arrowAt === -1) return true;
+    const body = argumentText.slice(arrowAt + 2).trimStart();
+    if (!body.startsWith("{")) return false;
+    return body.slice(1).trimStart().startsWith("try");
+}
+
+function getUnguardedHandovers(text: string): number[] {
+    const code = getCodeOfText(text);
+    const found: number[] = [];
+    for (const spelling of HANDOVER_SPELLINGS) {
+        let at = code.indexOf(spelling);
+        let steps = 0;
+        while (at !== -1) {
+            steps += 1;
+            assert(steps <= code.length, "the scan stays inside the file's bound");
+            const args = getCallArguments(code, at + spelling.length - 1);
+            if (!isHandoverGuarded(args)) found.push(getLineOfOffset(code, at));
+            at = code.indexOf(spelling, at + spelling.length);
+        }
+    }
+    return found.sort((one, other) => one - other);
+}
+
+Deno.test("no callback is handed to somebody else's loop unguarded", () => {
+    const bare = "root.addEventListener(PRESS, (event) => {\n    handle(event);\n});";
+    assertEquals(getUnguardedHandovers(bare), [1], "the reader flags a bare listener");
+    const spread = "schedule.every(\n    () => look(search),\n    250,\n);";
+    assertEquals(getUnguardedHandovers(spread), [1], "and one written over four lines");
+    const guarded = "root.addEventListener(PRESS, (event) => {\n    try {\n        handle(event);" +
+        "\n    } catch (failure) {\n        mark(failure);\n    }\n});";
+    assertEquals(getUnguardedHandovers(guarded), [], "a listener opening on a try is guarded");
+    const passed = "page.setInterval(step, everyMilliseconds);";
+    assertEquals(getUnguardedHandovers(passed), [], "a step already guarded is passed, not made");
+    const stated = "    every(step: () => void, everyMilliseconds: number): number;";
+    assertEquals(getUnguardedHandovers(stated), [], "an interface states a step, it hands none");
+    const ours = 'assert(found.every((one) => one.name.length > 0), "each is named");';
+    assertEquals(
+        getUnguardedHandovers(ours),
+        [],
+        "a walk of our own runs in this loop, not theirs",
+    );
+
+    const found: string[] = [];
+    for (const path of getSourcePaths()) {
+        if (!path.startsWith("src/")) continue;
+        for (const line of getUnguardedHandovers(Deno.readTextFileSync(path))) {
+            found.push(`${path}:${line}`);
+        }
+    }
+    assertEquals(found, [], "E12: a failure unwinding into a loop nobody here runs");
+});
+
+function hasTopLevelComma(argumentText: string): boolean {
+    let depth = 0;
+    for (let at = 0; at < argumentText.length; at += 1) {
+        const character = argumentText.charAt(at);
+        if ("([{".includes(character)) depth += 1;
+        if (")]}".includes(character)) depth -= 1;
+        if (character === "," && depth === 0) return true;
+    }
+    return false;
+}
+
+/** One statement from the line it opens on, joined until the semicolon closing it. */
+function getStatementFrom(lines: readonly string[], startsAt: number): string {
+    let joined = "";
+    let depth = 0;
+    for (let at = startsAt; at < lines.length; at += 1) {
+        const code = getCodeOutsideStrings(lines[at] ?? "");
+        joined += code;
+        for (let index = 0; index < code.length; index += 1) {
+            const character = code.charAt(index);
+            if (character === "(") depth += 1;
+            if (character === ")") depth -= 1;
+        }
+        if (depth === 0) {
+            if (code.trimEnd().endsWith(";")) return joined;
+        }
+    }
+    return joined;
+}
+
+/** A rejection is read where `.then` is handed a second function, which is what `catch` is. */
+function isRejectionRead(statement: string): boolean {
+    const thenAt = statement.indexOf(".then(");
+    if (thenAt === -1) return false;
+    return hasTopLevelComma(getCallArguments(statement, thenAt + ".then".length));
+}
+
+function getFloatingPromiseLines(text: string): number[] {
+    const lines = text.split("\n");
+    const found: number[] = [];
+    for (const [offset, line] of lines.entries()) {
+        if (hasOutsideStrings(line, MAIN_OPENER)) return found;
+        if (isCommentLine(line)) continue;
+        if (!getCodeOutsideStrings(line).trimStart().startsWith("void ")) continue;
+        const statement = getStatementFrom(lines, offset);
+        // A `void` over a plain value is S7's explicit discard; only a call answers a promise.
+        if (!statement.includes("(")) continue;
+        if (!isRejectionRead(statement)) found.push(offset + 1);
+    }
+    assert(found.every((one) => one > 0), "a line number is one-based");
+    return found;
+}
+
+Deno.test("no promise is left with its rejection unread", () => {
+    const dropped = "    void readFileEvents(watcher, state);";
+    assertEquals(getFloatingPromiseLines(dropped), [1], "the reader flags a discarded promise");
+    const half = "    void state.readBundle().then((script) => {\n        set(script);\n    });";
+    assertEquals(getFloatingPromiseLines(half), [1], "and one told only how it went right");
+    const read = "    void state.readBundle().then(\n        (script) => set(script),\n" +
+        "        (failure: unknown) => mark(failure),\n    );";
+    assertEquals(getFloatingPromiseLines(read), [], "a second function is where a rejection lands");
+    const loud = `${MAIN_OPENER} {\n    void preview.stop();\n}`;
+    assertEquals(getFloatingPromiseLines(loud), [], "E7 is the mark below the entry line");
+    const discarded = "    void refusal;";
+    assertEquals(getFloatingPromiseLines(discarded), [], "a value discarded is not a promise");
+
+    const found: string[] = [];
+    for (const path of getSourcePaths()) {
+        if (!path.startsWith("tools/")) continue;
+        for (const line of getFloatingPromiseLines(Deno.readTextFileSync(path))) {
+            found.push(`${path}:${line}`);
+        }
+    }
+    assertEquals(found, [], "E13: a promise discarded is a failure discarded");
 });

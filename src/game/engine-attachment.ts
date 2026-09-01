@@ -84,6 +84,7 @@ interface Search {
     handle: number | null;
     isDone: boolean;
     hasRefused: boolean;
+    hasFailed: boolean;
 }
 
 function stopLooking(search: Search, schedule: Scheduler): void {
@@ -130,18 +131,53 @@ function look(page: unknown, report: AttachmentReport, schedule: Scheduler, sear
     report.handleRefusal();
 }
 
+/**
+ * A look that threw, marked once and charged to the search that made it (**E12**).
+ *
+ * The clock is the browser's, so a throw out of the step unwinds into the timer, which drops it
+ * and fires again a quarter second later: one broken invariant would be reported four times a
+ * second for as long as the page is open. A look that threw is still a look, so the search runs
+ * out where a search finding nothing runs out, and the page stops paying for it.
+ */
+function handleLookFailure(
+    failure: unknown,
+    report: AttachmentReport,
+    schedule: Scheduler,
+    search: Search,
+): void {
+    assert(search.looks > 0, "a failure belongs to a look that happened");
+    if (!search.hasFailed) {
+        search.hasFailed = true;
+        report.handleFailure(failure);
+    }
+    assert(search.hasFailed, "a failure that was marked stays marked");
+    if (search.looks < MAXIMUM_LOOKS) return;
+    stopLooking(search, schedule);
+    report.handleSearchAbandoned();
+}
+
 export function attachToGame(
     page: unknown,
     schedule: Scheduler,
     report: AttachmentReport,
 ): GameAttachment {
-    const search: Search = { wrap: null, looks: 0, handle: null, isDone: false, hasRefused: false };
+    const search: Search = {
+        wrap: null,
+        looks: 0,
+        handle: null,
+        isDone: false,
+        hasRefused: false,
+        hasFailed: false,
+    };
     look(page, report, schedule, search);
     if (!search.isDone) {
-        search.handle = schedule.every(
-            () => look(page, report, schedule, search),
-            LOOK_EVERY_MILLISECONDS,
-        );
+        search.handle = schedule.every(() => {
+            try {
+                look(page, report, schedule, search);
+            } catch (failure) {
+                handleLookFailure(failure, report, schedule, search);
+            }
+        }, LOOK_EVERY_MILLISECONDS);
     }
     assert(search.looks > 0, "the first look happens before any clock is asked for");
     assert(search.looks <= MAXIMUM_LOOKS, "and stays inside the bound like every other");

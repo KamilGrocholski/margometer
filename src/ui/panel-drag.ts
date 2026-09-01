@@ -9,6 +9,7 @@ import { getJsonReading } from "@/libs/json-text.ts";
 import { getValueWithin } from "@/libs/number-range.ts";
 import { getNumberFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import type { PanelElement, PanelEvent, PanelRoot } from "@/src/ui/panel-element.ts";
+import { setGuardedListener } from "@/src/ui/panel-listener.ts";
 import { PLACE, SPACE } from "@/src/ui/panel-look.ts";
 
 export interface PanelPosition {
@@ -246,14 +247,11 @@ export function setPanelDrag(
     }
     const setGuarded = (type: string, handle: (event: PanelEvent) => void): void => {
         assert(type.startsWith("pointer"), "a drag listens for the pointer and nothing else");
-        assert(typeof handle === "function", "and each of its four does something");
-        root.addEventListener(type, (event) => {
-            try {
-                handle(event);
-            } catch (failure) {
-                grab = null;
-                handleFailure(failure);
-            }
+        setGuardedListener(root, type, handle, (failure) => {
+            // A grab left standing after a failure moves the panel under the next pointer that
+            // crosses it, with nobody having pressed the bar.
+            grab = null;
+            handleFailure(failure);
         });
     };
     setGuarded("pointerdown", (event) => {
