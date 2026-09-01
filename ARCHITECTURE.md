@@ -211,6 +211,7 @@ tests/
     panel-gesture.test.ts  A press an engine retargets, and the menu a right press stops.
     panel-sheet.test.ts    The stylesheet as an engine resolves it, not as it is written.
     panel-place.test.ts    A drag by a real pointer, and what a real reload finds waiting.
+    panel-silence.test.ts  Every recording through a page, with nothing said and nothing thrown.
   source-line.ts           A line of TypeScript with its string literals taken out.
   style-sheet.ts           The panel's stylesheet read back, for the guards that read it.
   source-paths.ts          Every TypeScript file under the directories that hold one.

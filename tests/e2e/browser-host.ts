@@ -146,6 +146,39 @@ export async function withBrowserPage(
     }
 }
 
+/**
+ * The same, over many fights in one browser. A launch is most of what a page costs here — 0.9 s
+ * against 0.1 s for a page, measured on Chrome 152, 2026-09-01 — so a claim asked of every
+ * recording is asked inside one.
+ */
+export async function withBrowserPagesOver(
+    fights: readonly BrowserPageOptions[],
+    handle: (page: Page, at: number) => Promise<void>,
+): Promise<void> {
+    assert(fights.length > 0, "a sweep is over recordings there are some of");
+    const bundle = await readUserscriptForTests();
+    const profile = await Deno.makeTempDir({ prefix: "margometer-e2e-" });
+    try {
+        const browser = await launchBrowserForTests(profile);
+        try {
+            for (const [at, fight] of fights.entries()) {
+                const host = setBrowserHost(composeBrowserPage(fight), bundle);
+                try {
+                    const page = await browser.newPage(host.url);
+                    await handle(page, at);
+                    await page.close();
+                } finally {
+                    await host.stop();
+                }
+            }
+        } finally {
+            await browser.close();
+        }
+    } finally {
+        await setProfileRemoved(profile);
+    }
+}
+
 /** A browser of its own, and one page in it, both let go of whatever the handler did. */
 async function withOpenedPage(
     url: string,
