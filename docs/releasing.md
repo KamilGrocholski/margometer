@@ -17,7 +17,7 @@ Which branch holds what: **G6**. The order the three pushes go in, and where the
 
 ## 1. Before the number moves
 
-- [ ] On `develop`, working tree clean, `deno task check` green.
+- [ ] On `develop`, working tree clean, `deno task check` green, `deno task e2e` green.
 - [ ] `deno task decoding` — nothing newly unread over `captures/`. A release that decodes less than
       the last one is a finding, not a release.
 - [ ] `deno task drill` — `docs/drill-levels.md` still says what is measured.
@@ -77,6 +77,8 @@ is caught rather than at the tag.
       so a file written straight to disk is invisible to it — **W2**, and **W1** for when the gate
       runs at all.
 - [ ] Every commit in the release leaves it green on its own — **G5**.
+- [ ] `deno task e2e` — the built file in a real Chrome. It is not in the gate and CI runs it
+      separately, so a release is where a hand runs it deliberately — **W9**, **ADR 0046**.
 
 ## 4. Push, in three takts
 

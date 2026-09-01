@@ -9,6 +9,7 @@ export type MargoMeterToolErrorCode =
     | "CaptureIntake"
     | "RecordingRead"
     | "PanelShot"
+    | "InstalledBrowser"
     | "GameSource"
     | "ProtocolKeyTable"
     | "HelpArticle"
@@ -68,6 +69,16 @@ export class RecordingReadError extends MargoMeterToolError {
 export class PanelShotError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super("PanelShot", reason, options);
+    }
+}
+
+/**
+ * No browser on this machine to drive. Its own class and not the photographer's: a picture and a
+ * test both ask this question, and **E2** asks for a class per failure rather than per caller.
+ */
+export class InstalledBrowserError extends MargoMeterToolError {
+    constructor(reason: string) {
+        super("InstalledBrowser", reason);
     }
 }
 

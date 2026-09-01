@@ -8,6 +8,13 @@ description: Run the built userscript against a captured fight in a real browser
 The add-on's surface is a browser page. `deno task check` is not that surface: it typechecks, runs
 the suite and builds the bundle, and every one of those can be green while the panel is broken.
 
+**`deno task e2e` is part of that surface and is not part of the gate** (ADR 0046). It drives the
+built file in a real Chrome and asserts what a fake document cannot — the bundle running, a press
+retargeted by a real shadow root, the sheet as an engine resolves it, real input, real storage, and
+a fight reaching the end with the console shut. Run it before calling a change to `src/` done
+(**W9**). What it does not cover is everything below: whether a state is _reachable_, and whether
+what was drawn is what a person wanted to see.
+
 ## The server
 
 ```bash
@@ -123,7 +130,8 @@ strips in order, `[data-side]` for the audience strip, `[data-row]`, `[data-shel
 - **A synthetic `PointerEvent` aborts a drag.** `setPointerCapture` throws for a pointerId no real
   pointer owns, and the guarded handler swallows the whole drag. Stub
   `setPointerCapture`/`releasePointerCapture` on the title bar before dispatching, and say so in the
-  report. A real pointer does not hit this.
+  report. A real pointer does not hit this — and neither does `deno task e2e`, which drives the
+  mouse through the browser rather than dispatching an event at it.
 - **The world reads as `localhost`.** `readWorldFromPage` takes the first label of the hostname, so
   a preview says `localhost` where a real page says `tempest`. Correct behaviour, not a fault to
   chase.

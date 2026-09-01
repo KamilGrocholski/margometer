@@ -18,6 +18,11 @@ import { composeUserscriptFiles } from "@/tools/build-userscript.ts";
 import { PanelShotError } from "@/tools/margometer-tool-error.ts";
 import { setPreviewServer } from "@/tools/preview-server.ts";
 import { getPreviewRecordedFight, getRecordedFights } from "@/tools/recorded-fights.ts";
+import {
+    BROWSER_VARIABLE,
+    getBrowserAsked,
+    readInstalledBrowser,
+} from "@/tools/installed-browser.ts";
 
 export const SHOT_DIRECTORY = "screenshots";
 /** What the set was taken from, beside the set. The guard reads it, and so does a reader. */
@@ -28,9 +33,6 @@ export const SIDECAR_NAME = "taken-at.json";
  * this tool left the tree unformatted after every run and `deno fmt` quietly widened it back.
  */
 const SIDECAR_INDENT_SPACES = 4;
-const BROWSER_VARIABLE = "MARGOMETER_BROWSER";
-/** Chrome first: it is the browser Margonem is played in, and where the panel is measured. */
-const BROWSER_CANDIDATES = ["google-chrome", "google-chrome-stable", "chromium"];
 /** A length the sheet states, as the whole pixels it states it in. */
 function getSheetPixels(stated: string): number {
     assert(stated.endsWith("px"), "a length read off the sheet is stated in pixels");
@@ -283,35 +285,6 @@ export function composeFrameFromReport(report: Record<string, unknown>): [number
     return [width, height];
 }
 
-/**
- * Which browser takes the pictures: what was asked for, then what the environment names, then
- * whatever is on the path. Chrome leads the candidates because it is the browser the game is
- * played in, and a picture taken in another engine is a picture of another layout.
- */
-export function getBrowserAsked(argued: string | null, named: string | null): string[] {
-    const candidates: string[] = [];
-    if (argued !== null) candidates.push(argued);
-    if (named !== null) candidates.push(named);
-    for (const candidate of BROWSER_CANDIDATES) candidates.push(candidate);
-    assert(candidates.length >= BROWSER_CANDIDATES.length, "there is somewhere to look");
-    assert(candidates.every((one) => one.length > 0), "and each place looked in is named");
-    return candidates;
-}
-
-async function getBrowserFound(candidates: readonly string[]): Promise<string> {
-    assert(candidates.length > 0, "somewhere to look was named");
-    for (const candidate of candidates) {
-        try {
-            const asked = await new Deno.Command(candidate, { args: ["--version"] }).output();
-            if (asked.success) return candidate;
-        } catch {
-            // Not on the path under that name, which is the question this was asking.
-            continue;
-        }
-    }
-    throw new PanelShotError(`no browser to photograph with: tried ${candidates.join(", ")}`);
-}
-
 async function readBrowserOutput(browser: string, args: readonly string[]): Promise<string> {
     assert(browser.length > 0, "a browser was found before it is run");
     // A profile of its own, always: a shared one is shared state between two runs.
@@ -472,7 +445,7 @@ export async function writePanelShots(browser: string, version: string): Promise
 
 if (import.meta.main) {
     const argued = parseArgs(Deno.args, { string: ["browser"] }).browser ?? null;
-    const browser = await getBrowserFound(
+    const browser = await readInstalledBrowser(
         getBrowserAsked(argued, Deno.env.get(BROWSER_VARIABLE) ?? null),
     );
     const record = await writePanelShots(browser, getVersionForRun(Deno.args));

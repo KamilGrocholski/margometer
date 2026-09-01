@@ -100,6 +100,7 @@ tools/             Never ships. Each arrives with the question it answers.
   preview-server.ts    That page served, rebuilt on a change under `src/`, and reloaded.
   preview-site.ts      That page written down, one per recording, for somebody with no clone.
   panel-screenshots.ts The panel photographed, at a frame measured off the panel itself.
+  installed-browser.ts Which browser on this machine a run drives, and the refusal with none.
   game-client-source.ts  The client fetched and dated, and the cache nothing published leaves.
   protocol-key-table.ts  Every key that client branches on, lifted out of its own switch.
   help-article.ts      The published help cached, searched raw, and counted into a reading.
@@ -164,6 +165,7 @@ tests/
     preview-server.test.ts    Every route, against a bundle handed in rather than built.
     preview-site.test.ts      A page per recording, addressed relatively and asking nothing.
     panel-screenshots.test.ts The set against its sidecar, and the frame a report sizes.
+    installed-browser.test.ts Where a run looks for a browser, and the refusal with none.
     game-client-source.test.ts  Both names a world serves, and git asked about the cache.
     protocol-key-table.test.ts  The switch in either spelling, and the material against it.
     help-article.test.ts      A page turned into text, and a dump that says how old it is.
@@ -197,10 +199,15 @@ tests/
     readmes.test.ts        The two READMEs to one skeleton, and both to one set of shots.
     cited-paths.test.ts    Every rooted path a document names, against the tree it names into.
     constructs.test.ts     The construct register, against the files it says own each reading.
+    game-vocabulary.test.ts  The two pages standing a game up, held to one spelling of it.
     libraries.test.ts      `libs/` reaching no layer, and naming nothing of this project.
   recorded-fight.ts        The recordings, read through the constant that spells their fields.
   fake-document.ts         A document small enough to read, for a panel handed one.
   userscript-entry.test.ts  Every layer at once, driven the way a browser drives them.
+  e2e/                     The built file in a real Chrome. Outside the gate — ADR 0046.
+    browser-page.ts        The page it drives: a probe, a game, the bundle, a fight replayed.
+    browser-host.ts        That page on a real origin, and the Chrome this machine has.
+    panel-boot.test.ts     The file a reader installs, run by a browser.
   source-line.ts           A line of TypeScript with its string literals taken out.
   style-sheet.ts           The panel's stylesheet read back, for the guards that read it.
   source-paths.ts          Every TypeScript file under the directories that hold one.

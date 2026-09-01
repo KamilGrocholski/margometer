@@ -365,6 +365,11 @@ TypeScript idiom, with the naming rules stated here.
   standing.
 - **W8.** Never update a golden expectation merely to make a behaviour change pass. _(`by-reading`
   whether an expectation moved for a reason)_
+- **W9. A change under `src/` is not done until `deno task e2e` is green as well.** The gate asks
+  for no browser and stays runnable on a machine with none; that suite asks for an installed Chrome,
+  and what it holds nothing else can — the built file running, a press retargeted by a real shadow
+  root, the sheet as an engine resolves it, real input, real storage, and a fight reaching the end
+  of a page with the console shut. **ADR 0046.**
 
 ## Git and releases
 
@@ -461,6 +466,7 @@ the same thing a second way.
 | `tests/repository/readmes.test.ts`            | the two READMEs, and both against the shot set   |
 | `tests/repository/cited-paths.test.ts`        | every rooted path a document cites               |
 | `tests/repository/constructs.test.ts`         | the construct register, both ways                |
+| `tests/repository/game-vocabulary.test.ts`    | N13 for the two pages standing a game up         |
 | `tests/repository/libraries.test.ts`          | `libs/` and `project/` reaching into no layer    |
 | `tests/tools/browser-support.test.ts`         | `docs/browser-support.md` against the stylesheet |
 | `tests/tools/captured-fight-register.test.ts` | `docs/captured-fights.md` against `captures/`    |

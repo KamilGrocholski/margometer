@@ -3,7 +3,13 @@
     "tasks": {
         // The gate. One command, so there is no version of "I ran the tests but not the build".
         // `build` writes `dist/`, which git does not carry: what ships is checked as a file.
-        "check": "deno fmt --check && deno lint && deno check && deno test -A && deno task build",
+        // `tests/e2e/` is ignored here and nowhere else: the gate asks for no browser, so it
+        // stays runnable on a machine that has none. `e2e` below is where that suite runs.
+        "check": "deno fmt --check && deno lint && deno check && deno test -A --ignore=tests/e2e && deno task build",
+        // The same tree in a real browser: the built file, driven in Chrome. Kept out of the
+        // gate on purpose — ADR 0046 — and run by CI and before a release. It asks for an
+        // installed Chrome and refuses rather than downloading one.
+        "e2e": "deno test -A tests/e2e",
         // The file a reader installs. A release passes its version; a build without one takes
         // what `deno.json` declares and marks it `-dev` — ADR 0035.
         "build": "deno run -A tools/build-userscript.ts",
@@ -64,6 +70,10 @@
     },
     "imports": {
         "@/": "./",
+        // The browser driver `tests/e2e/` runs on, and the only dependency here that is not
+        // `@std`. Nothing under `src/` may import it: what ships is held to no dependency at
+        // all, and `tools/build-userscript.ts` reads the built file to prove it — ADR 0046.
+        "@astral/astral": "jsr:@astral/astral@^0.5.6",
         "@std/assert": "jsr:@std/assert@^1",
         // The barrel re-exports every module, and `deno bundle` keeps the top-level
         // `new Set(…)` and `new RegExp(…)` of two it cannot prove pure: 911 dead bytes

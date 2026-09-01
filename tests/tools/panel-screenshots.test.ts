@@ -26,7 +26,6 @@ import {
     composeShotAddress,
     composeShotScript,
     FRAME_PARAMETER,
-    getBrowserAsked,
     getReportFromDom,
     MEASURING_WIDTH,
     SHOT_DIRECTORY,
@@ -208,7 +207,4 @@ Deno.test("a page that wrote nothing down is a refusal, not a frame of some othe
         undefined,
         "a dumped page with no report in it",
     );
-    const asked = getBrowserAsked("firefox", "chromium");
-    assertEquals(asked[0], "firefox", "what was asked for is looked for first");
-    assertArrayIncludes(asked, ["google-chrome"], "and Chrome is in the list either way");
 });

@@ -31,3 +31,9 @@ jobs:
                   deno-version: 2.9.6
 
             - run: deno task check
+
+            # The browser layer, which the gate deliberately does not carry — ADR 0046. No install
+            # step and no download: this image ships Google Chrome, and `tools/installed-browser.ts`
+            # finds it on the path. A runner that stopped shipping one fails here rather than
+            # quietly running nothing.
+            - run: deno task e2e
