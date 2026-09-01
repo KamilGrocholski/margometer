@@ -9,7 +9,7 @@
  * a loud unknown rather than by reading half a message as if it were understood.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { MargoMeterError } from "@/src/core/margometer-error.ts";
 import { composeIntegerText, getIntegerFromText, isIntegerText } from "@/libs/number-text.ts";
 import { composeHealthPercentText, getHealthPercentFromText } from "@/src/core/protocol-number.ts";
@@ -79,7 +79,7 @@ function parseMessageParameter(segment: string): MessageParameter {
     if (separator === -1) return { key: segment, value: null };
     const key = segment.slice(0, separator);
     const value = segment.slice(separator + 1);
-    assert(key.length + value.length + 1 === segment.length, "a segment splits into two parts");
+    assertEquals(key.length + value.length + 1, segment.length, "a segment splits into two parts");
     return { key, value };
 }
 
@@ -90,8 +90,8 @@ export function parseProtocolMessage(message: string): ProtocolMessage {
     }
     assert(segments.length <= MAXIMUM_SEGMENTS, "a message stays inside its stated bound");
     const [actorSegment, targetSegment] = segments;
-    assert(actorSegment !== undefined, "a message split in two has a first segment");
-    assert(targetSegment !== undefined, "a message split in two has a second segment");
+    assertExists(actorSegment, "a message split in two has a first segment");
+    assertExists(targetSegment, "a message split in two has a second segment");
     const parameters = segments.slice(SIDE_SEGMENTS).map(parseMessageParameter);
     assert(
         parameters.length === segments.length - SIDE_SEGMENTS,

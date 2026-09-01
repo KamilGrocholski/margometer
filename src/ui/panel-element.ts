@@ -3,7 +3,7 @@
  * the surface this asks of a browser declared rather than assumed.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals, assertExists, assertNotEquals } from "@std/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import { composeDecimalText } from "@/libs/number-text.ts";
 import type {
@@ -207,14 +207,14 @@ function composeElement(document: PanelDocument, tag: string, className: string)
     assert(tag.length > 0, "an element is made under a tag the document knows");
     const element = document.createElement(tag);
     element.className = className;
-    assert(element.className === className, "an element wears the class it was given");
+    assertEquals(element.className, className, "an element wears the class it was given");
     return element;
 }
 
 function composeSlotElement(document: PanelDocument): PanelElement {
     const slot = composeElement(document, "div", CLASS.slot);
-    assert(slot.textContent === "", "a slot that draws nothing says nothing");
-    assert(slot.className === CLASS.slot, "and is the slot it says it is");
+    assertEquals(slot.textContent, "", "a slot that draws nothing says nothing");
+    assertEquals(slot.className, CLASS.slot, "and is the slot it says it is");
     return slot;
 }
 
@@ -468,7 +468,7 @@ function composeTabElement(
 function composeNounStripElement(document: PanelDocument, view: PanelView): PanelElement {
     const strip = composeElement(document, "div", CLASS.tabs);
     assert(SCREEN_ORDER.includes(view.current), "the panel is on a screen the strips draw");
-    assert(strip.textContent === "", "and the region begins saying nothing of its own");
+    assertEquals(strip.textContent, "", "and the region begins saying nothing of its own");
     for (const tab of composeNounTabs(view.current)) {
         strip.append(composeTabElement(document, SCREEN_ATTRIBUTE, getShownTab(tab, view)));
     }
@@ -503,7 +503,7 @@ function composeFoldControl(document: PanelDocument, isCollapsed: boolean): Pane
     control.setAttribute(FOLD_ATTRIBUTE, "");
     control.setAttribute(TITLE_ATTRIBUTE, isCollapsed ? PANEL_WORDS.expand : PANEL_WORDS.collapse);
     assert(control.textContent.length > 0, "a control a reader could press wears a mark");
-    assert(control.className === CLASS.control, "and is a control by name before it is pressed");
+    assertEquals(control.className, CLASS.control, "and is a control by name before it is pressed");
     return control;
 }
 
@@ -643,7 +643,7 @@ function composeEmptyElement(document: PanelDocument, words: string): PanelEleme
     assert(words.length > 0, "a list with nothing on it says so in words");
     const empty = composeElement(document, "div", CLASS.empty);
     empty.textContent = words;
-    assert(empty.textContent === words, "and says exactly that");
+    assertEquals(empty.textContent, words, "and says exactly that");
     return empty;
 }
 
@@ -1029,7 +1029,7 @@ function composeSidesPart(
 
 function composeSidesElement(document: PanelDocument, view: PanelView): PanelElement {
     const sides = view.reading.sides;
-    assert(sides !== null, "a strip of two sides is drawn where there are two to tell apart");
+    assertExists(sides, "a strip of two sides is drawn where there are two to tell apart");
     const block = composeElement(document, "div", CLASS.sides);
     assert(sides.ours >= 0, "a side's own figure is never below nothing");
     assert(sides.theirs >= 0, "and neither is the other's");
@@ -1481,7 +1481,7 @@ function composePinnedElement(
     const mark = { attribute: UNNAMED_ATTRIBUTE, stated: row.end };
     block.append(composeRowElement(document, reading, mark, tip));
     assert(row.figure > 0, "a figure is pinned because there is one to pin");
-    assert(block.className === CLASS.pinned, "and the block saying so is one of its own");
+    assertEquals(block.className, CLASS.pinned, "and the block saying so is one of its own");
     return block;
 }
 
@@ -1615,7 +1615,7 @@ function composePanelRegions(document: PanelDocument): PanelRegions {
         warnings: composeSlotElement(document),
     };
     assert(regions.title.className === CLASS.title, "the bar is the bar before anything is drawn");
-    assert(regions.warnings.className === CLASS.slot, "and every other begins as a slot");
+    assertEquals(regions.warnings.className, CLASS.slot, "and every other begins as a slot");
     return regions;
 }
 
@@ -1654,7 +1654,7 @@ function composePanelFrame(document: PanelDocument, regions: PanelRegions): Pane
     panel.append(regions.sides);
     panel.append(regions.warnings);
     frame.append(panel);
-    assert(panel !== frame, "the panel is a box of its own inside the frame");
+    assertNotEquals(panel, frame, "the panel is a box of its own inside the frame");
     return frame;
 }
 
@@ -1692,7 +1692,7 @@ export function composePanelHost(
         assert(typeof placement.getViewport === "function", "a panel is moved inside something");
         getPosition = setPanelDrag(root, host, () => regions.title, placement, handleFailure);
     }
-    assert(host.className === "", "the host wears no class of the game's making");
+    assertEquals(host.className, "", "the host wears no class of the game's making");
     return {
         element: host,
         show(view: PanelView): void {
@@ -1706,7 +1706,7 @@ export function composePanelHost(
             if (view.isCollapsed) setPanelFolded(document, regions, redraw);
             else setPanelBody(document, regions, view, register, translate, redraw);
             tip.refresh();
-            assert(regions.list !== regions.sides, "the regions are that many elements");
+            assertNotEquals(regions.list, regions.sides, "the regions are that many elements");
             assert(regions.title !== regions.header, "and none of them stands in for another");
         },
         showWaiting(isCollapsed: boolean): void {
@@ -1722,8 +1722,8 @@ export function composePanelHost(
                 regions.list = redraw(regions.list, "list", () => composeWaitingElement(document));
             }
             tip.refresh();
-            assert(regions.sides.className === CLASS.slot, "with nothing standing under it");
-            assert(regions.nouns.className === CLASS.slot, "and no strip of tabs over it");
+            assertEquals(regions.sides.className, CLASS.slot, "with nothing standing under it");
+            assertEquals(regions.nouns.className, CLASS.slot, "and no strip of tabs over it");
         },
     };
 }

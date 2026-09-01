@@ -8,7 +8,7 @@
  * under `dist/`, which git does not carry. `NOTICE.md` says what a published page holds.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { getVersionForRun } from "@/tools/declared-version.ts";
 import { composeUserscriptFiles, USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
 import {
@@ -127,8 +127,8 @@ export function composePreviewSitePages(): PreviewSiteFile[] {
             text: composePageOfFight(fight, links),
         });
     }
-    assert(pages.length === fights.length + 1, "a page each, and the one a visitor lands on");
-    assert(new Set(pages.map((page) => page.name)).size === pages.length, "each filed once");
+    assertEquals(pages.length, fights.length + 1, "a page each, and the one a visitor lands on");
+    assertEquals(new Set(pages.map((page) => page.name)).size, pages.length, "each filed once");
     return pages;
 }
 

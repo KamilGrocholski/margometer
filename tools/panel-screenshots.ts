@@ -7,7 +7,7 @@
  * which is why opening every one before committing it stays a standing obligation.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import { getVersionForRun } from "@/tools/declared-version.ts";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
@@ -117,7 +117,7 @@ export function composePanelShots(): PanelShot[] {
         { name: "panel-shelf.png", steps: `setPressed("[data-shelf]", 0);` },
     ];
     assert(shots.length > 1, "a set is more than one picture");
-    assert(new Set(shots.map((shot) => shot.name)).size === shots.length, "each named once");
+    assertEquals(new Set(shots.map((shot) => shot.name)).size, shots.length, "each named once");
     return shots;
 }
 
@@ -399,7 +399,7 @@ async function setShotsMovedIn(staging: string, record: PanelShotRecord): Promis
         });
     }
     await Deno.writeTextFile(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`, `${writing.text}\n`);
-    assert(kept.size === record.shots.length + 1, "the sidecar stands beside the set it names");
+    assertEquals(kept.size, record.shots.length + 1, "the sidecar stands beside the set it names");
 }
 
 /**
@@ -443,7 +443,7 @@ export async function writePanelShots(browser: string, version: string): Promise
             shots: shots.map((shot) => shot.name),
         };
         await setShotsMovedIn(staging, record);
-        assert(record.shots.length === shots.length, "every picture asked for was moved in");
+        assertEquals(record.shots.length, shots.length, "every picture asked for was moved in");
         return record;
     } finally {
         await Deno.remove(staging, { recursive: true });

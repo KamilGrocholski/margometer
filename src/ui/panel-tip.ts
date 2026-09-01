@@ -6,7 +6,7 @@
  * and the sheet multiplies.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { CLASS } from "@/src/ui/panel-look.ts";
 
@@ -98,7 +98,7 @@ export function composeTipRegister(): TipRegister {
         },
         reset(): void {
             held.clear();
-            assert(held.size === 0, "a redraw starts with nothing said about any row");
+            assertEquals(held.size, 0, "a redraw starts with nothing said about any row");
         },
     };
 }
@@ -195,7 +195,7 @@ function composeTipGroupElement(document: PanelDocument, group: TipGroup): Panel
     const element = document.createElement("div");
     element.className = CLASS.tipGroup;
     for (const line of group.lines) element.append(composeTipLineElement(document, line));
-    assert(element.className === CLASS.tipGroup, "and stands under a rule of its own");
+    assertEquals(element.className, CLASS.tipGroup, "and stands under a rule of its own");
     return element;
 }
 
@@ -293,7 +293,7 @@ export function composeTipHandle(
         if (openKey === null) return;
         openKey = null;
         setTipHidden(standing, true);
-        assert(openKey === null, "and the detail is open for nobody once it is hidden");
+        assertEquals(openKey, null, "and the detail is open for nobody once it is hidden");
     };
     return {
         element: standing,

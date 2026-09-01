@@ -6,7 +6,7 @@
  * nothing, because it is evidence and an absent field is a fact about the fight.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
 import {
@@ -125,7 +125,7 @@ function composeShallowCopy(value: unknown): unknown {
     if (!isRecord(value)) return value ?? null;
     const copied = { ...value };
     assert(copied !== value, "a snapshot holds a copy rather than what the game goes on changing");
-    assert(Object.keys(copied).length === Object.keys(value).length, "and loses nothing to it");
+    assertEquals(Object.keys(copied).length, Object.keys(value).length, "and loses nothing to it");
     return copied;
 }
 

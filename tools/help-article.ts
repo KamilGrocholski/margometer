@@ -10,7 +10,7 @@
  * `.cache/` (NOTICE.md).
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import { getEndOfRun } from "@/libs/text-walk.ts";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
@@ -189,7 +189,7 @@ function composeWithoutTags(html: string): string {
 function isWhitespaceAt(text: string, index: number): boolean {
     const character = text.charAt(index);
     if (character === "") return false;
-    assert(character.length === 1, "one character is looked at");
+    assertEquals(character.length, 1, "one character is looked at");
     return WHITESPACE.includes(character);
 }
 
@@ -325,7 +325,7 @@ export function requireCachedHelpArticle(value: unknown, article: string): Cache
     if (textLength === null) {
         throw new HelpArticleError(`cache manifest for ${article}: textLength is not a number`);
     }
-    assert(stated === article, "a manifest names the article it was asked for");
+    assertEquals(stated, article, "a manifest names the article it was asked for");
     assert(textLength >= 0, "and states a length that is one");
     return {
         article,
@@ -410,7 +410,7 @@ function writeHelpStatusReport(article: string): void {
     console.log(
         `view,${article}  ${size} characters  ${composeAgeText(cached.fetchedAt, Date.now())}`,
     );
-    assert(cached.article === article, "the report names the article it was asked for");
+    assertEquals(cached.article, article, "the report names the article it was asked for");
     assert(size.length > 0, "and states a size a reader can compare");
 }
 

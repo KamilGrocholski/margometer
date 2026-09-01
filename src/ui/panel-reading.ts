@@ -9,7 +9,7 @@
  */
 
 import { getRankedOrder } from "@/src/ui/ranked-order.ts";
-import { assert } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { type CombatantRoster, getCombatantIdByName } from "@/src/core/combatant-roster.ts";
 import {
     type CombatantFigures,
@@ -1200,7 +1200,7 @@ function assertWholeIsTheSide(
     if (part === null) return;
     if (sides === null) return;
     const stated = part === "ours" ? sides.ours : sides.theirs;
-    assert(whole === stated, "a one-side list divides by that side's own figure");
+    assertEquals(whole, stated, "a one-side list divides by that side's own figure");
 }
 
 /** Null without a seat: two sides nothing can tell apart are not two figures. */

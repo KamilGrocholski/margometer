@@ -9,7 +9,7 @@
  * one reports keys unread that the panel reads.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
@@ -72,7 +72,7 @@ export function composeReplayedMaterial(paths: readonly string[]): ReplayedMater
         ? getRecordedFights()
         : paths.map((path) => getRecordedFightAt(path));
     const replays = fights.map((fight) => composeFightReplay(fight));
-    assert(replays.length === fights.length, "every recording read is a recording replayed");
+    assertEquals(replays.length, fights.length, "every recording read is a recording replayed");
     assert(replays.length > 0, "and something was replayed");
     return {
         material: paths.length === 0 ? `${RECORDING_DIRECTORY}/` : paths.join(" "),

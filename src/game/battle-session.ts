@@ -7,7 +7,7 @@
  * has been seen is read all the same, because the reader may have joined a fight in progress.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import {
     type Combatant,
@@ -84,7 +84,7 @@ export function composeBattleSession(): BattleSession {
         hasFight: false,
         readerSide: null,
     };
-    assert(session.events.length === 0, "a session starts holding no fight of its own");
+    assertEquals(session.events.length, 0, "a session starts holding no fight of its own");
     assert(!session.hasFight, "and says so, rather than reading as a fight with no figures");
     return session;
 }
@@ -119,8 +119,8 @@ function resetSession(session: BattleSession): void {
     session.isOver = false;
     session.payloads = 0;
     session.readerSide = null;
-    assert(session.events.length === 0, "a fight opens holding nothing");
-    assert(session.combatants.length === 0, "and knowing nobody until its payload states them");
+    assertEquals(session.events.length, 0, "a fight opens holding nothing");
+    assertEquals(session.combatants.length, 0, "and knowing nobody until its payload states them");
 }
 
 /**

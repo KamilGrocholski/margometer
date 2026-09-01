@@ -10,7 +10,7 @@
  * because they change with the next recording (**V5**).
  */
 
-import { assert } from "@std/assert";
+import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import {
@@ -220,7 +220,7 @@ function addUnnamedRungToTally(tally: DrillTally, replay: FightReplay, kase: Pin
         "everyone",
         replay.reading.readerSide,
     );
-    assert(held !== null, "a pinned row that is drawn has a level under it");
+    assertExists(held, "a pinned row that is drawn has a level under it");
     for (const one of held.rows) {
         assert(one.figure > 0, "a person under a pinned row carries some of its figure");
         // Always: their share of the figure is keyed throughout, which `src/core/` asserts.
@@ -251,7 +251,11 @@ function addUnnamedCutToTally(
         const opened = { kind: "person" as const, combatantId: person.combatantId };
         const under = composeUnnamedCut(replay, kase, opened);
         if (under === null) continue;
-        assert(under.opened === "person", "a person opens onto what their share was dealt with");
+        assertStrictEquals(
+            under.opened,
+            "person",
+            "a person opens onto what a share was dealt with",
+        );
         for (const one of under.kinds.rows) {
             addToTally(tally, screen, { rung: "unnamed cut", row: "kind" }, one.opensPart);
         }
@@ -260,7 +264,7 @@ function addUnnamedCutToTally(
         if (!kind.opensPart) continue;
         const under = composeUnnamedCut(replay, kase, { kind: "element", element: kind.element });
         if (under === null) continue;
-        assert(under.opened === "element", "and a key onto whoever carries it");
+        assertStrictEquals(under.opened, "element", "and a key onto whoever carries it");
         for (const one of under.rows) {
             assert(one.figure > 0, "each carrying some of that key");
             addToTally(tally, screen, { rung: "unnamed cut", row: "person" }, false);

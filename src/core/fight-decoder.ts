@@ -6,7 +6,7 @@
  * on an unknown event, keys and ends included, so a panel can say which total may be short.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals, assertNotEquals } from "@std/assert";
 import type {
     AnnouncedSkill,
     AttackEvent,
@@ -342,7 +342,7 @@ function readSkillName(key: string, value: string, parsed: ProtocolMessage): str
     if (key === SKILL_NAME_KEY) return value;
     if (key !== CUSTOM_SKILL_NAME_KEY) return null;
     if (!namesOneCombatant(parsed)) return null;
-    assert(key === CUSTOM_SKILL_NAME_KEY, "only the custom key reaches the rule above");
+    assertEquals(key, CUSTOM_SKILL_NAME_KEY, "only the custom key reaches the rule above");
     return value;
 }
 
@@ -422,7 +422,7 @@ function addValuelessKey(reading: AttackReading, key: string): void {
         reading.declared.push({ effect: key, amount: null, text: null });
         return;
     }
-    assert(getProcEnd(key) === null, "a proc never reaches the unread branch");
+    assertEquals(getProcEnd(key), null, "a proc never reaches the unread branch");
     reading.unreadKeys.push(key);
 }
 
@@ -439,7 +439,7 @@ function addSkillKey(
         reading.skillKeys += 1;
         return true;
     }
-    assert(key !== SKILL_NAME_KEY, "a name is read once, above");
+    assertNotEquals(key, SKILL_NAME_KEY, "a name is read once, above");
     if (key !== SKILL_ID_KEY) return false;
     reading.skillId = getIntegerFromText(value);
     reading.skillKeys += 1;
@@ -448,7 +448,7 @@ function addSkillKey(
 
 /** An id with no name is a skill nothing can put on screen, and the protocol has never sent one. */
 function closeSkillReading(reading: AttackReading): void {
-    assert(reading.skill === null, "a reading's announcement is closed once");
+    assertEquals(reading.skill, null, "a reading's announcement is closed once");
     assert(reading.skillKeys >= 0, "a key is counted once");
     if (reading.skillName !== null) {
         reading.skill = { skillName: reading.skillName, skillId: reading.skillId };
@@ -672,7 +672,7 @@ function getAnnouncedForMessage(
     if (parsed.actor === null) return null;
     if (parsed.actor.combatantId !== standing.actorId) return null;
     assert(standing.skillName.length > 0, "a standing announcement names something");
-    assert(parsed.actor.combatantId === standing.actorId, "one actor holds both halves");
+    assertEquals(parsed.actor.combatantId, standing.actorId, "one actor holds both halves");
     return standing;
 }
 

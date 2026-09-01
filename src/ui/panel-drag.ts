@@ -1,6 +1,6 @@
 /** Where the panel sits, and how a reader moves it. Nothing here measures the document. */
 
-import { assert } from "@std/assert";
+import { assert, assertExists } from "@std/assert";
 
 /** A position is two numbers written as JSON; text longer than this is not one. */
 const MAXIMUM_STORED = 4096;
@@ -72,8 +72,8 @@ export function composeDefaultPosition(viewport: PanelViewport | null): PanelPos
     if (viewport === null) return null;
     const width = getIntegerFromText(PLACE.width.slice(0, -2));
     const share = getIntegerFromText(SPACE.heightShareMaximum.slice(0, -2));
-    assert(width !== null, "the panel is as wide as the sheet says, in whole pixels");
-    assert(share !== null, "and as tall as the share of the window the sheet allows it");
+    assertExists(width, "the panel is as wide as the sheet says, in whole pixels");
+    assertExists(share, "and as tall as the share of the window the sheet allows it");
     const height = viewport.height * share / 100;
     assert(height >= 0, "a window a panel is centred in has a height");
     return composeClampedPosition({
@@ -151,8 +151,8 @@ export function composeTipLeft(
     // rather than anything a page did — zero would place the window against the wrong edge.
     const width = getIntegerFromText(PLACE.width.slice(0, -2));
     const gap = getIntegerFromText(SPACE.small.slice(0, -2));
-    assert(width !== null, "the panel's own width is stated in whole pixels");
-    assert(gap !== null, "and so is the gap beside it");
+    assertExists(width, "the panel's own width is stated in whole pixels");
+    assertExists(gap, "and so is the gap beside it");
     const beside = position.left - tipWidth - gap;
     if (beside >= 0) return beside;
     const other = position.left + width + gap;

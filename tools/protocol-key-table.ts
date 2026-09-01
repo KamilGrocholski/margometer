@@ -9,7 +9,7 @@
  * sentences the game composes from them stay in the cache (NOTICE.md).
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals, assertNotEquals } from "@std/assert";
 import { getEndOfRun, isDigitAt } from "@/libs/text-walk.ts";
 import { composeJsonWriting } from "@/libs/json-text.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
@@ -114,7 +114,7 @@ const DEFAULT_BRANCH_SHAPES: readonly (readonly ShapeStep[])[] = [
 function isNameCharacterAt(source: string, index: number): boolean {
     const character = source.charAt(index);
     if (character === "") return false;
-    assert(character.length === 1, "one character is looked at");
+    assertEquals(character.length, 1, "one character is looked at");
     assert(index >= 0, "and it is looked for inside the source");
     if (character >= "a" && character <= "z") return true;
     if (character >= "A" && character <= "Z") return true;
@@ -165,7 +165,7 @@ function getBlockBody(source: string, from: number): string {
             }
         }
     }
-    assert(depth !== 0, "a block that never closed was walked to the end");
+    assertNotEquals(depth, 0, "a block that never closed was walked to the end");
     throw new ProtocolKeyTableError("the switch block never closes");
 }
 
@@ -343,7 +343,7 @@ function composeFamilyText(family: ComputedKeyFamily): string {
         `${requireWrittenText("markerLength")}: ${composeIntegerText(family.markerLength)}`,
         `${requireWrittenText("dealtSign")}: ${requireWrittenText(family.dealtSign)}`,
     ];
-    assert(fields.length === 4, "a family states four things about itself");
+    assertEquals(fields.length, 4, "a family states four things about itself");
     assert(family.markerLength > 0, "and a marker with something in it");
     return `{ ${fields.join(", ")} }`;
 }

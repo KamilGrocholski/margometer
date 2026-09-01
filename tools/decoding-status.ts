@@ -9,7 +9,7 @@
  * none of them belongs in prose (**V5**).
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { BATTLE_EVENT_KINDS } from "@/src/core/battle-event.ts";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import {
@@ -60,7 +60,7 @@ function addToTally(tally: Map<string, number>, key: string, amount: number): vo
 function composeEmptyEventTally(): Map<string, number> {
     const tally = new Map<string, number>();
     for (const kind of BATTLE_EVENT_KINDS) tally.set(kind, 0);
-    assert(tally.size === BATTLE_EVENT_KINDS.length, "every kind the union holds has a line");
+    assertEquals(tally.size, BATTLE_EVENT_KINDS.length, "every kind the union holds has a line");
     assert(tally.size > 0, "and there is at least one of them");
     return tally;
 }
@@ -109,7 +109,7 @@ function composeTallyLines(tally: readonly (readonly [string, number])[]): strin
     const lines = tally.map(([key, count]) =>
         `  ${composeIntegerText(count).padStart(COUNT_WIDTH)}  ${key}`
     );
-    assert(lines.length === tally.length, "every row of the tally is written down");
+    assertEquals(lines.length, tally.length, "every row of the tally is written down");
     return lines;
 }
 

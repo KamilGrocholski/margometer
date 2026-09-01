@@ -3,7 +3,7 @@
  * rather than a function inside the changelog, for the cycle **ADR 0035** names.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertNotEquals } from "@std/assert";
 import { parse as parseJsonc } from "@std/jsonc";
 import { DeclaredVersionError } from "@/tools/margometer-tool-error.ts";
 import { getStatedTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
@@ -42,7 +42,7 @@ export function getDevelopmentVersion(): string {
     const declared = getReleaseVersion();
     const version = `${declared}${DEVELOPMENT_SUFFIX}`;
     assert(version.startsWith(declared), "a development build names the work it is built from");
-    assert(version !== declared, "and never passes for the release that number belongs to");
+    assertNotEquals(version, declared, "and never passes for the release that number belongs to");
     return version;
 }
 

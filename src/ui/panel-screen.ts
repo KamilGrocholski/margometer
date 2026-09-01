@@ -6,7 +6,7 @@
  * expressed at all and the compiler counts the rows.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import type { NamedPart, PanelMetric, PanelUnnamedEnd } from "@/src/ui/panel-reading.ts";
 import {
     getWordsForDirection,
@@ -101,13 +101,13 @@ export function composeScreenState(isCollapsed: boolean): ScreenState {
         isCollapsed,
     };
     assert(SCREEN_ORDER.includes(state.current), "a panel opens on a screen it can draw");
-    assert(state.openRowId === null, "and with every row closed");
-    assert(state.openUnnamedEnd === null, "the ends the protocol leaves out among them");
-    assert(state.openPairId === null, "and no pair standing over one");
-    assert(state.openPart === null, "and no part of a cut standing over that");
-    assert(state.openFightId === null, "and the fight being read is the one going on");
-    assert(state.side === "everyone", "and listing everybody, before a reader has narrowed it");
-    assert(state.isCollapsed === isCollapsed, "and folded exactly as the reader last left it");
+    assertEquals(state.openRowId, null, "and with every row closed");
+    assertEquals(state.openUnnamedEnd, null, "the ends the protocol leaves out among them");
+    assertEquals(state.openPairId, null, "and no pair standing over one");
+    assertEquals(state.openPart, null, "and no part of a cut standing over that");
+    assertEquals(state.openFightId, null, "and the fight being read is the one going on");
+    assertEquals(state.side, "everyone", "and listing everybody, before a reader has narrowed it");
+    assertEquals(state.isCollapsed, isCollapsed, "and folded exactly as the reader last left it");
     return state;
 }
 
@@ -181,7 +181,7 @@ function getScreenAfterNoun(noun: PanelNoun, current: PanelMetric): PanelMetric 
     const screens = getScreensForNoun(noun);
     const kept = screens.find((screen) => SCREEN_AXES[screen].direction === wanted);
     const reached = kept ?? screens[0] ?? current;
-    assert(SCREEN_AXES[reached].noun === noun, "a noun's tab reaches that noun's own screen");
+    assertEquals(SCREEN_AXES[reached].noun, noun, "a noun's tab reaches that noun's own screen");
     assert(SCREEN_ORDER.includes(reached), "and one the strips draw");
     return reached;
 }
@@ -193,7 +193,7 @@ export function composeNounTabs(current: PanelMetric): ScreenTab[] {
         words: getWordsForNoun(noun),
         isCurrent: noun === SCREEN_AXES[current].noun,
     }));
-    assert(tabs.filter((one) => one.isCurrent).length === 1, "and marks the noun being read");
+    assertEquals(tabs.filter((one) => one.isCurrent).length, 1, "and marks the noun being read");
     return tabs;
 }
 
@@ -215,6 +215,6 @@ export function composeSideTabs(current: PanelSideChoice): ScreenTab[] {
         words: getWordsForSide(choice),
         isCurrent: choice === current,
     }));
-    assert(tabs.filter((one) => one.isCurrent).length === 1, "and marks the one that was made");
+    assertEquals(tabs.filter((one) => one.isCurrent).length, 1, "and marks the one that was made");
     return tabs;
 }

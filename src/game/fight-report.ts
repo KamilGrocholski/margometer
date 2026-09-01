@@ -7,7 +7,7 @@
  * numbers stands in the envelope and is never repeated here. **ADR 0027.**
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import type {
     CombatantFigures,
@@ -152,7 +152,7 @@ function composeReportSkills(
             restoredByOpponent: composeReportCut(skill.restoredByOpponent),
         };
     }
-    assert(Object.keys(written).length === skills.size, "and every one of them is written down");
+    assertEquals(Object.keys(written).length, skills.size, "and every one of them is written down");
     return written;
 }
 
@@ -164,7 +164,7 @@ function composeReportPairCut(
         assert(key.length > 0, "a cut of a cut is kept under a name");
         written[key] = composeReportCut(held);
     }
-    assert(Object.keys(written).length === cut.size, "and every one of them is written down");
+    assertEquals(Object.keys(written).length, cut.size, "and every one of them is written down");
     return written;
 }
 
@@ -175,6 +175,6 @@ function composeReportCut(cut: ReadonlyMap<string, number>): Record<string, numb
         assert(key.length > 0, "a cut of a figure is kept under a name");
         written[key] = amount;
     }
-    assert(Object.keys(written).length === cut.size, "and every one of them is written down");
+    assertEquals(Object.keys(written).length, cut.size, "and every one of them is written down");
     return written;
 }

@@ -9,7 +9,7 @@
  * (`tools/fight-replay.ts`).
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 import { type CombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import type {
     CombatantFigures,
@@ -54,7 +54,7 @@ function composeCutText(cut: FigureCut, roster: CombatantRoster | null): string 
         const named = roster === null || id === null ? null : roster.byId.get(id);
         return `${named?.name ?? key} ${composeIntegerText(amount)}`;
     });
-    assert(written.length === cut.size, "every member of the cut is written down");
+    assertEquals(written.length, cut.size, "every member of the cut is written down");
     return written.join("  ");
 }
 
@@ -64,7 +64,7 @@ function composeSkillText(skills: ReadonlyMap<string, SkillFigures>): string {
     const written = [...skills.values()]
         .sort((one, other) => other.uses - one.uses)
         .map((skill) => `${skill.name} ×${composeIntegerText(skill.uses)}`);
-    assert(written.length === skills.size, "every skill announced is written down");
+    assertEquals(written.length, skills.size, "every skill announced is written down");
     return written.join("  ");
 }
 
@@ -148,7 +148,7 @@ function composeMembersBySide(replay: FightReplay): Map<number | null, number[]>
  */
 function composeSideLines(replay: FightReplay): string[] {
     const empty: CombatantFigures[] = [];
-    assert(empty.length === 0, "a row nothing named is a row of zeroes, not a missing row");
+    assertEquals(empty.length, 0, "a row nothing named is a row of zeroes, not a missing row");
     const lines: string[] = [];
     const sides = [...composeMembersBySide(replay)].sort(
         (one, other) => (one[0] ?? Number.MAX_SAFE_INTEGER) - (other[0] ?? Number.MAX_SAFE_INTEGER),

@@ -6,7 +6,7 @@
  * reader can see the size of what could not be placed instead of finding it folded into a row.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import type {
     AnnouncedSkill,
     AttackEvent,
@@ -431,7 +431,7 @@ function addFightOutcome(build: StatisticsBuild, event: BattleEvent): void {
     if (event.result === "drawn") build.outcome = { ...held, isDrawn: true };
     if (event.result === "won") build.outcome = { ...held, wonNames: [...event.combatantNames] };
     if (event.result === "lost") build.outcome = { ...held, lostNames: [...event.combatantNames] };
-    assert(build.outcome !== null, "a fight that stated its end holds one");
+    assertExists(build.outcome, "a fight that stated its end holds one");
 }
 
 /** The other end of a blow as a cut is keyed, or null where the protocol named nobody. */
@@ -455,7 +455,7 @@ function addBlowProcs(
     assert(procs.length <= MAXIMUM_PROCS, "a blow fires no more procs than it is bounded to");
     for (const key of procs) {
         const end = getProcEnd(key);
-        assert(end !== null, "a proc the decoder stated is a proc this table places");
+        assertExists(end, "a proc the decoder stated is a proc this table places");
         if (end === "actor") {
             if (striker !== null) addToCut(striker.procsWhenStriking, key, 1);
         }
@@ -1051,7 +1051,7 @@ export function composeFightStatistics(
         castsUnplaced: 0,
         outcome: null,
     };
-    assert(build.byCombatantId.size === 0, "a fight is counted up from nobody");
+    assertEquals(build.byCombatantId.size, 0, "a fight is counted up from nobody");
     for (const event of events) {
         if (event.kind === "unknown-message") {
             build.unreadMessages += 1;
@@ -1072,10 +1072,10 @@ export function composeFightStatistics(
     }
     assert(build.byCombatantId.size <= MAXIMUM_COMBATANTS, "a fight stays inside its bound");
     assert(build.unreadMessages <= events.length, "a message is counted unread once");
-    assert(getAppliedBalance(build) === 0, "every point applied is counted once at each end");
-    assert(getRestoredBalance(build) === 0, "and every point restored once at each of its own");
+    assertEquals(getAppliedBalance(build), 0, "every point applied is counted once at each end");
+    assertEquals(getRestoredBalance(build), 0, "and every point restored once at each of its own");
     assert(getHalfNamedBalance(build) === 0, "and every half-named point is on the row it named");
-    assert(getHalfNamedKindBalance(build) === 0, "and under the key it was stated with");
+    assertEquals(getHalfNamedKindBalance(build), 0, "and under the key it was stated with");
     assert(
         getPreventedBalance(build) === 0,
         "and what the defences stopped is stopped by one of them",

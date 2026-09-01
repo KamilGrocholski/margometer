@@ -6,7 +6,7 @@
  * the first — an owner among them would be a cycle. **ADR 0003** placed the recordings.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertEquals } from "@std/assert";
 
 export const CONFIGURATION_FILE = "deno.json";
 export const CHANGELOG_FILE = "CHANGELOG.md";
@@ -20,7 +20,7 @@ export function getRecordingNames(): string[] {
         if (!entry.name.endsWith(RECORDING_SUFFIX)) continue;
         names.push(entry.name.slice(0, entry.name.length - RECORDING_SUFFIX.length));
     }
-    assert(new Set(names).size === names.length, "a recording is listed once");
+    assertEquals(new Set(names).size, names.length, "a recording is listed once");
     assert(names.every((name) => name.length > 0), "and under a name that says something");
     return names.sort();
 }
@@ -35,7 +35,7 @@ export function composeRecordingPath(name: string): string {
 /** The same set as paths, for a reader that opens them rather than naming them. */
 export function getRecordingPaths(): string[] {
     const paths = getRecordingNames().map(composeRecordingPath);
-    assert(new Set(paths).size === paths.length, "a recording is opened once");
+    assertEquals(new Set(paths).size, paths.length, "a recording is opened once");
     assert(paths.every((path) => path.startsWith(RECORDING_DIRECTORY)), "and from where they sit");
     return paths;
 }
