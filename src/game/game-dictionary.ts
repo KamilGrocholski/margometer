@@ -49,7 +49,7 @@ export function getLabelFromEntry(entry: string): string | null {
 }
 
 /** Null on a page with no game on it, which is every page but the one. */
-export function getDictionaryReader(page: unknown): TranslateLabel | null {
+export function readDictionaryFromPage(page: unknown): TranslateLabel | null {
     if (!isRecord(page)) return null;
     const translate = page[TRANSLATE_FIELD];
     if (typeof translate !== "function") return null;

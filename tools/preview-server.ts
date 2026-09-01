@@ -31,10 +31,12 @@ import {
 } from "@/tools/recorded-fights.ts";
 
 const DEFAULT_PORT = 4173;
+/** The one console this file holds, branded so it is not read as the game's or Deno's — **E11**. */
+const FAILURE_LINE = "MargoMeterTool/Preview";
 /** Collapses the pair of events one save fires, and a format-on-save touching several files. */
-const REBUILD_AFTER_QUIET_MS = 60;
+const REBUILD_AFTER_QUIET_MILLISECONDS = 60;
 /** So a proxy between the browser and this process cannot close an idle stream on its own. */
-const KEEP_ALIVE_EVERY_MS = 15000;
+const KEEP_ALIVE_EVERY_MILLISECONDS = 15000;
 /**
  * `tools/` is deliberately absent: this process has already imported it, so a rebuild could not
  * pick a change up and watching it would promise a reload carrying nothing new.
@@ -288,7 +290,7 @@ function setRebuilt(state: PreviewState): void {
 /** Drains the watcher until it is closed, which is what `stop` below does to end this. */
 async function readFileEvents(watcher: Deno.FsWatcher, state: PreviewState): Promise<void> {
     assert(WATCHED_PATHS.length > 0, "there is something to watch");
-    const rebuild = debounce(() => setRebuilt(state), REBUILD_AFTER_QUIET_MS);
+    const rebuild = debounce(() => setRebuilt(state), REBUILD_AFTER_QUIET_MILLISECONDS);
     for await (const event of watcher) {
         if (event.kind === "access") continue;
         rebuild();
@@ -339,10 +341,18 @@ export function setPreviewServer(options: PreviewServerOptions = {}): PreviewSer
     const watcher = (options.shouldWatch ?? true)
         ? Deno.watchFs(WATCHED_PATHS, { recursive: true })
         : null;
-    if (watcher !== null) void readFileEvents(watcher, state);
-    const keepAlive = watcher === null
-        ? null
-        : setInterval(() => setListenersTold(state.listeners, "ping", ""), KEEP_ALIVE_EVERY_MS);
+    // The drain answers a promise nobody awaits, so its rejection needs a reader of its own
+    // (**E13**). `stop` closing the watcher ends it normally; anything else is the watch dying
+    // while the server keeps serving, which is said once and left to be restarted by hand.
+    if (watcher !== null) {
+        void readFileEvents(watcher, state).then(() => {}, (failure: unknown) => {
+            console.error(FAILURE_LINE, failure);
+        });
+    }
+    const keepAlive = watcher === null ? null : setInterval(
+        () => setListenersTold(state.listeners, "ping", ""),
+        KEEP_ALIVE_EVERY_MILLISECONDS,
+    );
     const port = getPortFromServer(server);
     assert(port > 0, "a server that started is one a browser can be pointed at");
     return {
@@ -375,7 +385,13 @@ if (import.meta.main) {
     console.log("a change in tools/ does not, because this process already imported it: restart");
     for (const signal of ["SIGINT", "SIGTERM"] as const) {
         Deno.addSignalListener(signal, () => {
-            void preview.stop().then(() => Deno.exit(0));
+            // Both ways out of the shutdown end the process (**E13**). A rejection with no
+            // reader leaves `Deno.exit` unreached, which hangs Ctrl+C on a server that has
+            // already stopped answering.
+            void preview.stop().then(() => Deno.exit(0), (failure: unknown) => {
+                console.error(FAILURE_LINE, failure);
+                Deno.exit(1);
+            });
         });
     }
 }

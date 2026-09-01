@@ -27,7 +27,7 @@ import {
 } from "@/src/game/battle-session.ts";
 import { attachToGame, type GameAttachment, type Scheduler } from "@/src/game/engine-attachment.ts";
 import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
-import { type FightPlace, getPlaceFromPage } from "@/src/game/engine-place.ts";
+import { type FightPlace, readPlaceFromPage } from "@/src/game/engine-place.ts";
 import { getGameBuildFromScriptName } from "@/src/core/game-build.ts";
 import {
     type BrowserStore,
@@ -54,7 +54,7 @@ import {
     writeKeptFights,
 } from "@/src/game/kept-fights.ts";
 import type { ReportSubject } from "@/src/game/fight-report.ts";
-import { getDictionaryReader } from "@/src/game/game-dictionary.ts";
+import { readDictionaryFromPage } from "@/src/game/game-dictionary.ts";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
 import {
@@ -136,7 +136,7 @@ export interface UserscriptEnvironment {
     save: ((name: string, text: string) => void) | null;
     readSurroundings(): CaptureSurroundings;
     now(): number;
-    readClock(atMs: number): { hour: number; minute: number } | null;
+    readClock(atMilliseconds: number): { hour: number; minute: number } | null;
     /** One branded line, and the failure itself, so a console shows whose it is first. */
     report(line: string, failure: unknown): void;
 }
@@ -320,7 +320,7 @@ function composeShelfRows(
         outcome: PanelOutcome | null;
     } | null,
     chosenId: number | null,
-    readClock: (atMs: number) => { hour: number; minute: number } | null,
+    readClock: (atMilliseconds: number) => { hour: number; minute: number } | null,
     readFigures: (fight: KeptFight) => FightFigures,
 ): ShelfRow[] {
     assert(typeof readClock === "function", "a shelf row is timed by the reader's own clock");
@@ -593,7 +593,7 @@ function showFight(
     panel: PanelHandle,
     shelf: ShelfKeeper,
     place: FightPlace | null,
-    readClock: (atMs: number) => { hour: number; minute: number } | null,
+    readClock: (atMilliseconds: number) => { hour: number; minute: number } | null,
     openedAt: number,
 ): boolean {
     const live = composeFightFigures(session);
@@ -759,9 +759,9 @@ export interface UserscriptWindow {
     document: UserscriptDocument;
     innerWidth?: number | undefined;
     innerHeight?: number | undefined;
-    setInterval(step: () => void, everyMs: number): number;
+    setInterval(step: () => void, everyMilliseconds: number): number;
     clearInterval(handle: number): void;
-    setTimeout(step: () => void, afterMs: number): number;
+    setTimeout(step: () => void, afterMilliseconds: number): number;
     console: { error(line: string, failure: unknown): void };
     /**
      * The two a browser lends, and both optional: a private window or a third-party-storage rule
@@ -771,7 +771,7 @@ export interface UserscriptWindow {
     sessionStorage?: PageStorage | undefined;
     Date: {
         now(): number;
-        new (atMs: number): {
+        new (atMilliseconds: number): {
             toISOString(): string;
             /** Absent on a document that lends no clock of its own, which answers no time. */
             getHours?(): number;
@@ -819,7 +819,7 @@ const SCRIPT_WITH_SOURCE = "script[src]";
  * file was named `margometer--2026-…json`, with a hole where the answer goes. A value nobody
  * wrote must never read as an answer. Seen on a `file://` page, in v1.
  */
-function getWorldFromPage(page: UserscriptWindow): string {
+function readWorldFromPage(page: UserscriptWindow): string {
     const stated = page.location.hostname ?? "";
     const world = stated.split(".")[0] ?? "";
     assert(world.length <= stated.length, "a world is the first label of the host it was read off");
@@ -827,7 +827,7 @@ function getWorldFromPage(page: UserscriptWindow): string {
     return world;
 }
 
-function getGameBuildFromPage(page: UserscriptWindow): string | null {
+function readGameBuildFromPage(page: UserscriptWindow): string | null {
     const scripts = page.document.querySelectorAll(SCRIPT_WITH_SOURCE);
     assert(scripts.length <= MAXIMUM_SCRIPTS, "a page states no more scripts than are walked");
     for (let at = 0; at < scripts.length; at += 1) {
@@ -875,13 +875,13 @@ function writeTextToFile(page: UserscriptWindow, name: string, text: string): vo
  * null where it will not read one: a row with no time says nothing rather than saying `00:00`,
  * which is a reading of nothing wearing the shape of one.
  */
-function getClockFromPage(
+function readClockFromPage(
     page: UserscriptWindow,
-    atMs: number,
+    atMilliseconds: number,
 ): { hour: number; minute: number } | null {
     assert(typeof page.Date === "function" || typeof page.Date === "object", "a page has a clock");
-    if (!Number.isFinite(atMs)) return null;
-    const held = new page.Date(atMs);
+    if (!Number.isFinite(atMilliseconds)) return null;
+    const held = new page.Date(atMilliseconds);
     const hour = getNumberFromUnknown(held.getHours?.());
     const minute = getNumberFromUnknown(held.getMinutes?.());
     if (hour === null || minute === null) return null;
@@ -894,7 +894,7 @@ function getClockFromPage(
  * How big the window is, or nothing at all. A page that states one and not the other states no
  * viewport: half a size clamps a panel against a number nobody wrote.
  */
-function getViewportFromPage(page: UserscriptWindow): PanelViewport | null {
+function readViewportFromPage(page: UserscriptWindow): PanelViewport | null {
     const width = getNumberFromUnknown(page.innerWidth);
     const height = getNumberFromUnknown(page.innerHeight);
     if (width === null || height === null) return null;
@@ -934,7 +934,7 @@ export function startFromWindow(page: UserscriptWindow): GameAttachment {
         page,
         document: page.document,
         schedule: {
-            every: (step, everyMs) => page.setInterval(step, everyMs),
+            every: (step, everyMilliseconds) => page.setInterval(step, everyMilliseconds),
             cancel: (handle) => page.clearInterval(handle),
         },
         mount: {
@@ -945,19 +945,19 @@ export function startFromWindow(page: UserscriptWindow): GameAttachment {
                 shown = panel;
             },
         },
-        readViewport: () => getViewportFromPage(page),
+        readViewport: () => readViewportFromPage(page),
         report: (line, failure) => page.console.error(line, failure),
         store: composeStoreForChoice(page, STORAGE_DEFAULT),
         composeShelfStore: (choice) => composeStoreForChoice(page, choice),
         save: (name, text) => writeTextToFile(page, name, text),
         readSurroundings: () => ({
-            world: getWorldFromPage(page),
-            gameBuild: getGameBuildFromPage(page),
+            world: readWorldFromPage(page),
+            gameBuild: readGameBuildFromPage(page),
             capturedAt: new page.Date(page.Date.now()).toISOString(),
             userAgent: page.navigator.userAgent ?? null,
         }),
         now: () => page.Date.now(),
-        readClock: (atMs) => getClockFromPage(page, atMs),
+        readClock: (atMilliseconds) => readClockFromPage(page, atMilliseconds),
     });
 }
 
@@ -1125,7 +1125,7 @@ function readPayloadIntoLive(
     const fight = getFightFromSession(session);
     const isOpening = fight !== null && fight.payloads === 1;
     if (isOpening) {
-        live.place = getPlaceFromPage(environment.page);
+        live.place = readPlaceFromPage(environment.page);
         live.openedAt = environment.now();
     }
     // Once, on the call that ends it: a fight put on the shelf twice is two fights.
@@ -1198,7 +1198,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
         placement,
         // Once per mount: the dictionary is built with the page and not with the fight, and a page
         // without one never grows one. Null is the panel drawing its own words (ADR 0024).
-        getDictionaryReader(environment.page),
+        readDictionaryFromPage(environment.page),
     );
     assert(!isMounted, "nothing is on the page until a payload arrives");
     return attachToGame(environment.page, environment.schedule, {

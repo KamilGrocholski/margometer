@@ -159,9 +159,8 @@ this language does not have would be**; each states what binds instead.
 - **E11. No failure is discarded silently.** Every caught failure leaves the mark **E5**'s table
   names for its boundary, where a reader can see it. Where a failure also reaches the console it is
   one branded entry, once, never per render, and the entry is the only place that holds a console.
-  An empty `catch` breaks this. **ADR 0025.**
-
-Who throws what. Where a broad catch is legal is **E5**'s table, not this one.
+  An empty `catch` breaks this. **ADR 0025.** Who throws what. Where a broad catch is legal is
+  **E5**'s table, not this one.
 
 | Layer      | Throws                | Catches by type      |
 | ---------- | --------------------- | -------------------- |
@@ -184,6 +183,8 @@ TypeScript idiom, with the naming rules stated here.
   | --------- | ----------------------------------------------------------------------- |
   | `get`     | Accesses data immediately                                               |
   | `set`     | Assigns from one value to another                                       |
+  | `read`    | Takes a value from **outside** this program — **N16**                   |
+  | `write`   | Puts a value outside this program — **N16**                             |
   | `reset`   | Restores to the initial state                                           |
   | `remove`  | Takes something **out of** somewhere                                    |
   | `delete`  | Erases something from existence                                         |
@@ -198,7 +199,7 @@ TypeScript idiom, with the naming rules stated here.
   inverse is `delete`. `parse` and `decode` are not synonyms, and the split keeps the layers apart.
   Other verbs are allowed where they are more precise, but never a **synonym** for one in the table.
 - **N3.** Units and qualifiers go **last**, sorted by descending significance: `damageRawTotal`,
-  `latencyMsMax` — never `maxLatencyMs`.
+  `latencyMillisecondsMax` — never `maxLatencyMilliseconds`.
 - **N4.** No abbreviations. `button`, not `btn`; `percent`, not `hpp`. Abbreviate only where the
   game does, and say so in a comment. _(`by-reading` whether a shortened word is an abbreviation or
   the game's own spelling)_
@@ -207,7 +208,9 @@ TypeScript idiom, with the naming rules stated here.
 - **N6.** A helper called by one function is prefixed with that function's name; a callback goes
   last in the parameter list.
 - **N7.** Names follow A/HC/LC — `prefix? + action + high context + low context?`.
-- **N8.** Booleans carry a prefix: `is`, `has`, `should`, `min`/`max`, `prev`/`next`.
+- **N8.** Booleans carry a prefix, in the tense that fits: `is`, `was`, `will` for a state, `has`
+  for what is held, `does` for what a thing can do, `should` for a condition with an action behind
+  it, and `min`/`max`, `previous`/`next` for an edge.
 - **N9.** Do not overload a name with context-dependent meanings, and do not duplicate the context a
   name already sits in.
 - **N10.** Files are named for their contents, never their category. `utils.ts`, `helpers.ts`,
@@ -218,6 +221,21 @@ TypeScript idiom, with the naming rules stated here.
 - **N13.** A name this repository did not choose is spelled **once**, by the file that reads it.
   Where two files must spell it, a guard holds them to one vocabulary — the failure is never loud:
   an unstyled row, a field reading `undefined`, a console line that looks like the game's.
+- **N14.** A unit is spelled in full, where **N3** puts it: `afterMilliseconds`, `healthPercent` —
+  never `Ms`, `Sec`, `Pct`. **N4** forbids the shortening already; this names the case that keeps
+  escaping it, because a unit reads as punctuation rather than as a word. **ADR 0042.**
+- **N15.** A boolean names the state that holds and is negated where it is **read**: `!isDrawn`,
+  never `isNotDrawn` or `hasNoRows`. A name carrying its own negation reads twice over the moment a
+  caller negates it. `unattributed`, `unaccounted`, `undrawn` and `unread` are `CONTEXT.md`'s words
+  for claims of their own (**N12**), not negations of ours.
+- **N16. A value from outside this program is `read`; a value put outside it is `written`.** `get`
+  and `set` are for what this program holds. Outside is **E5**'s boundaries — the game's page state
+  and the browser's store here, a file, a subprocess and the network in `tools/`. `libs/` has no
+  boundary: it is handed its values. **ADR 0042.**
+- **N17.** A collection is plural and never says which container holds it: `combatants`, not
+  `combatantList` — the type is in the signature, and the suffix goes stale the day a `Map` becomes
+  an array. A map is named for the lookup it takes: `damageByElement`. _(`by-reading` whether a name
+  ends in a container or in a word that happens to spell one)_
 
 ## Code
 
@@ -414,7 +432,7 @@ the same thing a second way.
 | `tests/repository/decisions.test.ts`          | the decision records                             |
 | `tests/repository/sources.test.ts`            | S1, S2, A10, C5, C8, C15 in part, C16, S4, S5    |
 | `tests/repository/errors.test.ts`             | E1, E2, E11, each with a sample                  |
-| `tests/repository/names.test.ts`              | N1, N11, each with a sample                      |
+| `tests/repository/names.test.ts`              | N1, N11, N14, N15, N16, each with a sample       |
 | `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts   |
 | `tests/repository/readmes.test.ts`            | the two READMEs, and both against the shot set   |
 | `tests/repository/cited-paths.test.ts`        | every rooted path a document cites               |

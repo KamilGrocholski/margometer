@@ -6,7 +6,7 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
-import { getCombatantFromWarrior, getCombatantsFromPayload } from "@/src/game/engine-warrior.ts";
+import { readCombatantFromWarrior, readCombatantsFromPayload } from "@/src/game/engine-warrior.ts";
 import {
     getRecordedCombatants,
     getRecordedEngineUpdates,
@@ -19,33 +19,33 @@ const NO_SNAPSHOTS =
 
 Deno.test("a warrior missing what a row needs is refused, not filled in", () => {
     const whole = { id: 1, name: "Gracz 1", team: 2, prof: "w", lvl: 40, hp: { max: 745 } };
-    assertEquals(getCombatantFromWarrior(whole)?.healthMaximum, 745, "a whole warrior reads");
-    assertEquals(getCombatantFromWarrior({ ...whole, team: undefined }), null, "no side, no row");
-    assertEquals(getCombatantFromWarrior({ ...whole, name: "" }), null, "an empty name is none");
-    assertEquals(getCombatantFromWarrior(null), null, "and `null` is not a warrior");
-    const bare = getCombatantFromWarrior({ id: 1, name: "Gracz 1", team: 2 });
+    assertEquals(readCombatantFromWarrior(whole)?.healthMaximum, 745, "a whole warrior reads");
+    assertEquals(readCombatantFromWarrior({ ...whole, team: undefined }), null, "no side, no row");
+    assertEquals(readCombatantFromWarrior({ ...whole, name: "" }), null, "an empty name is none");
+    assertEquals(readCombatantFromWarrior(null), null, "and `null` is not a warrior");
+    const bare = readCombatantFromWarrior({ id: 1, name: "Gracz 1", team: 2 });
     assertEquals(bare?.healthMaximum, null, "what the game did not state stays unstated");
     assertEquals(bare?.level, null, "rather than standing in as a zero");
 });
 
 Deno.test("a cast is a cast, keyed by id or listed in order", () => {
     const whole = { id: 1, name: "Gracz 1", team: 2, prof: "w", lvl: 40, hp: { max: 745 } };
-    const keyed = getCombatantsFromPayload({ w: { "1": whole } });
-    const listed = getCombatantsFromPayload({ w: [whole] });
+    const keyed = readCombatantsFromPayload({ w: { "1": whole } });
+    const listed = readCombatantsFromPayload({ w: [whole] });
     assertEquals(keyed.length, 1, "the client keys them by id, which is what every payload does");
     assertEquals(listed, keyed, "and a list of the same people reads as the same cast");
-    assertEquals(getCombatantsFromPayload({ w: "one" }), [], "text is neither, and states nobody");
+    assertEquals(readCombatantsFromPayload({ w: "one" }), [], "text is neither, and states nobody");
 });
 
 Deno.test("a payload states the whole cast or none of it", () => {
-    assertEquals(getCombatantsFromPayload(null), [], "nothing is not a payload");
-    assertEquals(getCombatantsFromPayload([]), [], "a list is not a payload either");
-    assertEquals(getCombatantsFromPayload({}), [], "and neither is a payload with no warriors");
+    assertEquals(readCombatantsFromPayload(null), [], "nothing is not a payload");
+    assertEquals(readCombatantsFromPayload([]), [], "a list is not a payload either");
+    assertEquals(readCombatantsFromPayload({}), [], "and neither is a payload with no warriors");
     let whole = 0;
     let moved = 0;
     for (const path of getRecordingPaths()) {
         for (const update of getRecordedEngineUpdates(path)) {
-            if (getCombatantsFromPayload(update).length > 0) whole += 1;
+            if (readCombatantsFromPayload(update).length > 0) whole += 1;
             else moved += 1;
         }
     }
@@ -59,7 +59,7 @@ Deno.test("what a payload states about a combatant is what the snapshot states",
     for (const path of getRecordingPaths()) {
         const snapshots = new Map(getRecordedCombatants(path).map((one) => [one.id, one]));
         for (const update of getRecordedEngineUpdates(path)) {
-            for (const combatant of getCombatantsFromPayload(update)) {
+            for (const combatant of readCombatantsFromPayload(update)) {
                 const snapshot = snapshots.get(combatant.id);
                 if (snapshot === undefined) {
                     withoutSnapshot += 1;

@@ -13,9 +13,9 @@ import { assert, assertStringIncludes } from "@std/assert";
 export const STATE_VALUE_MAXIMUM = 200;
 /** The whole hash. A browser takes far more; an address somebody has to look at does not. */
 export const STATE_TEXT_MAXIMUM = 2000;
-/** How long the panel is waited for, in tries of `STATE_WAIT_EVERY_MS`. */
+/** How long the panel is waited for, in tries of `STATE_WAIT_EVERY_MILLISECONDS`. */
 export const STATE_WAIT_TRIES = 40;
-const STATE_WAIT_EVERY_MS = 25;
+const STATE_WAIT_EVERY_MILLISECONDS = 25;
 
 export const STATE_ENTRY_NAME = "e";
 export const STATE_SCREEN_NAME = "s";
@@ -224,7 +224,7 @@ var panelTimer = window.setInterval(function handlePanelWaited() {
     return;
   }
   if (panelTries >= ${STATE_WAIT_TRIES}) window.clearInterval(panelTimer);
-}, ${STATE_WAIT_EVERY_MS});`;
+}, ${STATE_WAIT_EVERY_MILLISECONDS});`;
     assertStringIncludes(watch, "clearInterval", "a panel that arrived stops being waited for");
     assertStringIncludes(watch, `>= ${STATE_WAIT_TRIES}`, "and one that never does is given up on");
     return watch;

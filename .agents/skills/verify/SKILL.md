@@ -124,8 +124,8 @@ strips in order, `[data-side]` for the audience strip, `[data-row]`, `[data-shel
   pointer owns, and the guarded handler swallows the whole drag. Stub
   `setPointerCapture`/`releasePointerCapture` on the title bar before dispatching, and say so in the
   report. A real pointer does not hit this.
-- **The world reads as `localhost`.** `getWorldFromPage` takes the first label of the hostname, so a
-  preview says `localhost` where a real page says `tempest`. Correct behaviour, not a fault to
+- **The world reads as `localhost`.** `readWorldFromPage` takes the first label of the hostname, so
+  a preview says `localhost` where a real page says `tempest`. Correct behaviour, not a fault to
   chase.
 - **Nothing the add-on stores outlives the page.** The harness installs its own store over
   `localStorage` and `sessionStorage` before the bundle runs, so a visitor to the published preview

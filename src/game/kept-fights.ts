@@ -53,7 +53,7 @@ export type ShelfWriting =
  * A payload nobody can read is a fight dropped, not a payload skipped: a gap in the middle of a
  * fight decodes to figures that look like a fight and are not one.
  */
-function getKeptPayloadsFromValue(value: unknown): unknown[] | null {
+function readKeptPayloadsFromValue(value: unknown): unknown[] | null {
     if (!Array.isArray(value)) return null;
     if (value.length === 0) return null;
     if (value.length > MAXIMUM_CALLS) return null;
@@ -72,7 +72,7 @@ function getKeptPayloadsFromValue(value: unknown): unknown[] | null {
  * fight was fought at, and a fight is worth keeping without it. The three fields fail apart, as
  * they do when they are read off the client.
  */
-function getKeptPlaceFromValue(value: unknown): FightPlace | null {
+function readKeptPlaceFromValue(value: unknown): FightPlace | null {
     if (!isRecord(value)) return null;
     const place: FightPlace = {
         mapName: getStatedTextFromUnknown(value.mapName),
@@ -87,18 +87,18 @@ function getKeptPlaceFromValue(value: unknown): FightPlace | null {
 }
 
 /** Null for anything a reader of this version does not recognise, whole fight and all. */
-function getKeptFightFromValue(value: unknown): KeptFight | null {
+function readKeptFightFromValue(value: unknown): KeptFight | null {
     if (!isRecord(value)) return null;
     const openedAt = getNumberFromUnknown(value.openedAt);
     if (openedAt === null) return null;
-    const payloads = getKeptPayloadsFromValue(value.payloads);
+    const payloads = readKeptPayloadsFromValue(value.payloads);
     if (payloads === null) return null;
     assert(openedAt >= 0, "a moment kept is not before the epoch");
     assert(payloads.length > 0, "a fight kept was kept from something");
     return {
         openedAt,
         payloads,
-        place: getKeptPlaceFromValue(value.place),
+        place: readKeptPlaceFromValue(value.place),
         gameBuild: getStatedTextFromUnknown(value.gameBuild),
         isPinned: value.isPinned === true,
     };
@@ -118,7 +118,7 @@ export function readKeptFights(store: BrowserStore, key: string): KeptFight[] {
     const kept: KeptFight[] = [];
     assert(Array.isArray(shelf.fights), "a shelf that is read holds a list of fights");
     for (const stated of shelf.fights) {
-        const fight = getKeptFightFromValue(stated);
+        const fight = readKeptFightFromValue(stated);
         if (fight === null) continue;
         kept.push(fight);
     }

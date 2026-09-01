@@ -11,7 +11,7 @@ import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/ass
 import type { Combatant } from "@/src/core/combatant-roster.ts";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
-import { getCombatantFromWarrior } from "@/src/game/engine-warrior.ts";
+import { readCombatantFromWarrior } from "@/src/game/engine-warrior.ts";
 import { CAPTURE_FIELDS } from "@/src/game/fight-capture.ts";
 import { getRecordingPaths as getRecordingFilePaths } from "@/project/repository-layout.ts";
 
@@ -117,7 +117,7 @@ export function getRecordedPayloads(path: string): string[][] {
  * live client does not promise and the material has held on every entry.
  */
 function getRecordedCombatant(snapshot: unknown, path: string): Combatant {
-    const combatant = getCombatantFromWarrior(snapshot);
+    const combatant = readCombatantFromWarrior(snapshot);
     assertExists(combatant, `${path} states a combatant the roster can hold`);
     assertExists(combatant.profession, `${path}: a profession`);
     assertExists(combatant.level, `${path}: a level`);

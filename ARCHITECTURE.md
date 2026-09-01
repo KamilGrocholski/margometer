@@ -512,3 +512,11 @@ commit that opens or closes one.
    nothing, in `ui/panel-reading.ts` and in the entry; the two error bases each spelling out that no
    base is ever thrown, which **E2** owns. Each is editorial work — which copy survives, and whether
    the second should cite instead — so the band closes a few at a time rather than in one round.
+
+9. **`tools/` still `get`s across a boundary.** **N16** binds everywhere, and `src/` was converted
+   in the commit that stated it (**ADR 0042**); `tests/repository/names.test.ts` reads `src/game/`
+   and `src/userscript-entry.ts`, where the game is reached. The names in `tools/` that reach a
+   file, a subprocess or the network still say `get` and `set`, and each needs a judgement of its
+   own — some are **N16**'s finding and some are **N2** drift, `setPreviewServer` and `setRebuilt`
+   among them. They are converted as each file is next edited for its own reasons, which is the
+   shape gap 3 already has.

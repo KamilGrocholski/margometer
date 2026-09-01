@@ -21,7 +21,7 @@ import {
     getStatedTextFromUnknown,
     isRecord,
 } from "@/libs/unknown-reading.ts";
-import { getCombatantsFromPayload } from "@/src/game/engine-warrior.ts";
+import { readCombatantsFromPayload } from "@/src/game/engine-warrior.ts";
 
 const FIGHT_OPENS_KEY = "init";
 const FIGHT_ENDS_KEY = "endBattle";
@@ -89,7 +89,7 @@ export function composeBattleSession(): BattleSession {
     return session;
 }
 
-function getMessagesFromPayload(payload: Record<string, unknown>): string[] {
+function readMessagesFromPayload(payload: Record<string, unknown>): string[] {
     const carried = payload[MESSAGES_KEY];
     if (!Array.isArray(carried)) return [];
     const messages: string[] = [];
@@ -103,7 +103,7 @@ function getMessagesFromPayload(payload: Record<string, unknown>): string[] {
     return messages;
 }
 
-function getMessageCountFromPayload(payload: Record<string, unknown>): number {
+function readMessageCountFromPayload(payload: Record<string, unknown>): number {
     const stated = payload[MESSAGE_COUNT_KEY];
     if (!Array.isArray(stated)) return 0;
     assert(stated.length <= MAXIMUM_EVENTS, "a payload states no more messages than a fight holds");
@@ -128,7 +128,7 @@ function resetSession(session: BattleSession): void {
  * recordings state `"1"` and the client compares loosely, so a stricter reading would quietly
  * stop finding it the day the game sends the other one.
  */
-function getReaderSideFromPayload(payload: Record<string, unknown>): number | null {
+function readReaderSideFromPayload(payload: Record<string, unknown>): number | null {
     assert(READER_SIDE_KEY.length > 0, "the reader's own side is stated under a key with a name");
     const stated = payload[READER_SIDE_KEY];
     const side = typeof stated === "string"
@@ -151,14 +151,14 @@ export function addPayloadToSession(session: BattleSession, payload: unknown): v
     if (session.payloads === 0) session.hasJoinedInProgress = !isFightStart(payload);
     session.hasFight = true;
     session.payloads += 1;
-    for (const combatant of getCombatantsFromPayload(payload)) session.combatants.push(combatant);
+    for (const combatant of readCombatantsFromPayload(payload)) session.combatants.push(combatant);
     // Kept once seen, because only the opening payload carries it: a fragment saying nothing
     // about the side would otherwise take the reader's own away mid-fight.
-    session.readerSide = getReaderSideFromPayload(payload) ?? session.readerSide;
+    session.readerSide = readReaderSideFromPayload(payload) ?? session.readerSide;
     const roster = composeCombatantRoster(session.combatants);
-    const messages = getMessagesFromPayload(payload);
+    const messages = readMessagesFromPayload(payload);
     session.messagesByPayload.push(messages);
-    const stated = getMessageCountFromPayload(payload);
+    const stated = readMessageCountFromPayload(payload);
     if (stated > messages.length) session.messagesLost += stated - messages.length;
     assert(session.messagesLost >= 0, "what a payload stated and nobody read is never negative");
     for (const event of decodeFightMessages(messages, roster)) session.events.push(event);

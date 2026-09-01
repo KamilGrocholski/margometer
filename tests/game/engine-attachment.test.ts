@@ -9,7 +9,7 @@ import { assert, assertEquals } from "@std/assert";
 import {
     type AttachmentReport,
     attachToGame,
-    getEnginesFromPage,
+    readEnginesFromPage,
     type Scheduler,
 } from "@/src/game/engine-attachment.ts";
 
@@ -64,9 +64,9 @@ function composeScheduler(): { schedule: Scheduler; tick: (times: number) => voi
 }
 
 Deno.test("the page is asked for a game in both spellings", () => {
-    assertEquals(getEnginesFromPage({ Engine: "a" }), ["a"], "the field, where there is one");
-    assertEquals(getEnginesFromPage({ getEngine: () => "b" }), [undefined, "b"], "and the call");
-    assertEquals(getEnginesFromPage(null), [], "a page that is not one is asked nothing");
+    assertEquals(readEnginesFromPage({ Engine: "a" }), ["a"], "the field, where there is one");
+    assertEquals(readEnginesFromPage({ getEngine: () => "b" }), [undefined, "b"], "and the call");
+    assertEquals(readEnginesFromPage(null), [], "a page that is not one is asked nothing");
 });
 
 Deno.test("a game already on the page is wrapped at the first look", () => {

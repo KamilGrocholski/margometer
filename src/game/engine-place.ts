@@ -7,7 +7,7 @@
 
 import { assert } from "@std/assert/assert";
 import { getIntegerFromText } from "@/libs/number-text.ts";
-import { ENGINE_SPELLINGS, getEnginesFromPage } from "@/src/game/engine-attachment.ts";
+import { ENGINE_SPELLINGS, readEnginesFromPage } from "@/src/game/engine-attachment.ts";
 import {
     getNumberFromUnknown,
     getStatedTextFromUnknown,
@@ -33,7 +33,7 @@ export interface FightPlace {
     y: number | null;
 }
 
-function getDataFromEngineField(engine: unknown, field: string): Record<string, unknown> | null {
+function readDataFromEngineField(engine: unknown, field: string): Record<string, unknown> | null {
     assert(field.length > 0, "a field of the client's is named");
     if (!isRecord(engine)) return null;
     const held = engine[field];
@@ -45,7 +45,7 @@ function getDataFromEngineField(engine: unknown, field: string): Record<string, 
 }
 
 /** Either spelling, because the client itself does arithmetic on one and compares the other. */
-function getCoordinateFromValue(value: unknown): number | null {
+function readCoordinateFromValue(value: unknown): number | null {
     const text = getTextFromUnknown(value);
     if (text !== null) {
         const written = getIntegerFromText(text);
@@ -58,14 +58,14 @@ function getCoordinateFromValue(value: unknown): number | null {
 }
 
 /** Null where the page said nothing, so *no game here* is not *a game that would not say*. */
-export function getPlaceFromEngine(engine: unknown): FightPlace | null {
+export function readPlaceFromEngine(engine: unknown): FightPlace | null {
     try {
-        const map = getDataFromEngineField(engine, ENGINE_MAP_FIELD);
-        const hero = getDataFromEngineField(engine, ENGINE_HERO_FIELD);
+        const map = readDataFromEngineField(engine, ENGINE_MAP_FIELD);
+        const hero = readDataFromEngineField(engine, ENGINE_HERO_FIELD);
         const place: FightPlace = {
             mapName: map === null ? null : getStatedTextFromUnknown(map[MAP_NAME_FIELD]),
-            x: hero === null ? null : getCoordinateFromValue(hero[HERO_X_FIELD]),
-            y: hero === null ? null : getCoordinateFromValue(hero[HERO_Y_FIELD]),
+            x: hero === null ? null : readCoordinateFromValue(hero[HERO_X_FIELD]),
+            y: hero === null ? null : readCoordinateFromValue(hero[HERO_Y_FIELD]),
         };
         assert(place.mapName === null || place.mapName.length > 0, "a name read says something");
         assert(place.x === null || Number.isFinite(place.x), "a tile read is a number");
@@ -85,11 +85,11 @@ export function getPlaceFromEngine(engine: unknown): FightPlace | null {
  * The place off whichever spelling of the game the page holds. The first that says anything wins:
  * a page carrying both spellings carries one game behind them, so two answers cannot disagree.
  */
-export function getPlaceFromPage(page: unknown): FightPlace | null {
-    const engines = getEnginesFromPage(page);
+export function readPlaceFromPage(page: unknown): FightPlace | null {
+    const engines = readEnginesFromPage(page);
     assert(engines.length <= ENGINE_SPELLINGS, "a page holds a game in two spellings and no more");
     for (const engine of engines) {
-        const place = getPlaceFromEngine(engine);
+        const place = readPlaceFromEngine(engine);
         if (place !== null) return place;
     }
     return null;

@@ -44,7 +44,7 @@ const WARRIOR_COLLECTIONS = ["warriorsList", "warriors"];
 const NAME_KEY = "name";
 const IDENTITY_KEYS = ["id", "originalId"];
 
-export function getCombatantFromWarrior(value: unknown): Combatant | null {
+export function readCombatantFromWarrior(value: unknown): Combatant | null {
     if (!isRecord(value)) return null;
     const id = getNumberFromUnknown(value[WARRIOR_FIELDS.identity]);
     if (id === null) return null;
@@ -73,7 +73,7 @@ export function getCombatantFromWarrior(value: unknown): Combatant | null {
  * cast to a shape that means what the other one means. Only the payload holding them is asked to
  * be keyed, because that is looked up by name.
  */
-function getWarriorsFromValue(value: unknown): unknown[] {
+function readWarriorsFromValue(value: unknown): unknown[] {
     if (Array.isArray(value)) return value;
     if (!isRecord(value)) return [];
     const stated = Object.values(value);
@@ -83,11 +83,11 @@ function getWarriorsFromValue(value: unknown): unknown[] {
 }
 
 /** Every combatant a payload states in full. One stating only what moved states none. */
-export function getCombatantsFromPayload(payload: unknown): Combatant[] {
+export function readCombatantsFromPayload(payload: unknown): Combatant[] {
     if (!isRecord(payload)) return [];
     const found: Combatant[] = [];
-    for (const value of getWarriorsFromValue(payload[WARRIORS_KEY])) {
-        const combatant = getCombatantFromWarrior(value);
+    for (const value of readWarriorsFromValue(payload[WARRIORS_KEY])) {
+        const combatant = readCombatantFromWarrior(value);
         if (combatant === null) continue;
         found.push(combatant);
     }
@@ -129,7 +129,7 @@ function composeShallowCopy(value: unknown): unknown {
     return copied;
 }
 
-function getIdentityFromWarrior(warrior: Record<string, unknown>): number | null {
+function readIdentityFromWarrior(warrior: Record<string, unknown>): number | null {
     for (const key of IDENTITY_KEYS) {
         const stated = getNumberFromUnknown(warrior[key]);
         if (stated !== null) return stated;
@@ -142,7 +142,7 @@ function composeCapturedCombatant(warrior: Record<string, unknown>): CapturedCom
     assert(NAME_KEY.length > 0, "a combatant put in a snapshot was found by a name");
     assert(isRecord(warrior), "and is a record before any field is read off it");
     return {
-        id: getIdentityFromWarrior(warrior),
+        id: readIdentityFromWarrior(warrior),
         name: warrior[NAME_KEY] ?? null,
         team: warrior.team ?? null,
         prof: warrior.prof ?? null,
@@ -154,7 +154,7 @@ function composeCapturedCombatant(warrior: Record<string, unknown>): CapturedCom
     };
 }
 
-function getNamedWarriors(collection: unknown): Record<string, unknown>[] {
+function readNamedWarriors(collection: unknown): Record<string, unknown>[] {
     if (!isRecord(collection)) return [];
     const named: Record<string, unknown>[] = [];
     for (const warrior of Object.values(collection)) {
@@ -169,7 +169,7 @@ function getNamedWarriors(collection: unknown): Record<string, unknown>[] {
 /** An empty list where neither collection answers: a snapshot saying nothing, not a guess. */
 export function composeSnapshotFromBattle(battle: Record<string, unknown>): CapturedCombatant[] {
     for (const field of WARRIOR_COLLECTIONS) {
-        const named = getNamedWarriors(battle[field]);
+        const named = readNamedWarriors(battle[field]);
         if (named.length === 0) continue;
         assert(named.length > 0, "a collection that answered answered with somebody");
         return named.map((warrior) => composeCapturedCombatant(warrior));

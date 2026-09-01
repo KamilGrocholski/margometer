@@ -131,3 +131,5 @@ edited to agree with the new rule.
   function is written. **Accepted**
 - [0041](0041-a-pinned-row-states-its-kinds-before-it-is-pressed.md) — A pinned row states its kinds
   on the card, before anybody presses it. **Accepted**
+- [0042](0042-the-naming-convention-is-transplanted-not-copied.md) — A naming convention is
+  transplanted, not copied. **Accepted**

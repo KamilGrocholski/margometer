@@ -22,12 +22,12 @@ const ENGINE_FIELD = "Engine";
 const ENGINE_CALL_FIELD = "getEngine";
 /** The field and the call: a page holds a game in two spellings and no more. */
 export const ENGINE_SPELLINGS = 2;
-const LOOK_EVERY_MS = 250;
+const LOOK_EVERY_MILLISECONDS = 250;
 /** Four looks a second for a minute. A game that has not arrived by then is not arriving. */
 const MAXIMUM_LOOKS = 240;
 
 export interface Scheduler {
-    every(step: () => void, everyMs: number): number;
+    every(step: () => void, everyMilliseconds: number): number;
     cancel(handle: number): void;
 }
 
@@ -54,7 +54,7 @@ export interface GameAttachment {
 }
 
 /** Both spellings, in the order tried. A call into their program may throw, and that is theirs. */
-export function getEnginesFromPage(page: unknown): unknown[] {
+export function readEnginesFromPage(page: unknown): unknown[] {
     if (!isRecord(page)) return [];
     assert(isRecord(page), "a page that is asked is a page");
     const found: unknown[] = [page[ENGINE_FIELD]];
@@ -66,8 +66,8 @@ export function getEnginesFromPage(page: unknown): unknown[] {
     return found;
 }
 
-function getBattleFromPage(page: unknown): EngineBattle | null {
-    const engines = getEnginesFromPage(page);
+function readBattleFromPage(page: unknown): EngineBattle | null {
+    const engines = readEnginesFromPage(page);
     assert(engines.length <= ENGINE_SPELLINGS, "a page holds a game in two spellings and no more");
     for (const engine of engines) {
         if (!isRecord(engine)) continue;
@@ -99,7 +99,7 @@ function look(page: unknown, report: AttachmentReport, schedule: Scheduler, sear
     if (search.isDone) return;
     search.looks += 1;
     assert(search.looks <= MAXIMUM_LOOKS, "the search stays inside its stated bound");
-    const battle = getBattleFromPage(page);
+    const battle = readBattleFromPage(page);
     if (battle === null) {
         if (search.looks < MAXIMUM_LOOKS) return;
         stopLooking(search, schedule);
@@ -138,7 +138,10 @@ export function attachToGame(
     const search: Search = { wrap: null, looks: 0, handle: null, isDone: false, hasRefused: false };
     look(page, report, schedule, search);
     if (!search.isDone) {
-        search.handle = schedule.every(() => look(page, report, schedule, search), LOOK_EVERY_MS);
+        search.handle = schedule.every(
+            () => look(page, report, schedule, search),
+            LOOK_EVERY_MILLISECONDS,
+        );
     }
     assert(search.looks > 0, "the first look happens before any clock is asked for");
     assert(search.looks <= MAXIMUM_LOOKS, "and stays inside the bound like every other");

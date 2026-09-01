@@ -7,7 +7,7 @@
  */
 
 import { assertEquals, assertExists } from "@std/assert";
-import { getDictionaryReader, getLabelFromEntry } from "@/src/game/game-dictionary.ts";
+import { getLabelFromEntry, readDictionaryFromPage } from "@/src/game/game-dictionary.ts";
 
 const CRITICAL_ID = "msg_+crit";
 
@@ -41,14 +41,14 @@ Deno.test("an entry with no words in it is refused, and a lone mark is not a wor
 });
 
 Deno.test("a page with no game on it lends no dictionary", () => {
-    assertEquals(getDictionaryReader({}), null, "nothing where the client never loaded");
-    assertEquals(getDictionaryReader({ _t: "not a function" }), null, "nor where it is not one");
-    assertEquals(getDictionaryReader(null), null, "and nothing where there is no page at all");
-    assertEquals(getDictionaryReader("a page"), null, "nor where it is not an object graph");
+    assertEquals(readDictionaryFromPage({}), null, "nothing where the client never loaded");
+    assertEquals(readDictionaryFromPage({ _t: "not a function" }), null, "nor where it is not one");
+    assertEquals(readDictionaryFromPage(null), null, "and nothing where there is no page at all");
+    assertEquals(readDictionaryFromPage("a page"), null, "nor where it is not an object graph");
 });
 
 Deno.test("a reader answers what the client answers, and nothing where it answers nothing", () => {
-    const read = getDictionaryReader({
+    const read = readDictionaryFromPage({
         _t: (id: string) => (id === CRITICAL_ID ? "+Critical hit" : undefined),
     });
     assertExists(read, "a page with the dictionary on it lends a reader");
@@ -58,14 +58,14 @@ Deno.test("a reader answers what the client answers, and nothing where it answer
 });
 
 Deno.test("an answer of the wrong kind is no answer either", () => {
-    const read = getDictionaryReader({ _t: () => 42 });
+    const read = readDictionaryFromPage({ _t: () => 42 });
     assertExists(read, "the page still lends a reader");
     assertEquals(read(CRITICAL_ID), null, "which refuses what is not text");
 });
 
 /** The exception must not travel on: the panel is drawn inside a call the game made (**E5**). */
 Deno.test("a dictionary that throws leaves the panel drawing its own word", () => {
-    const read = getDictionaryReader({
+    const read = readDictionaryFromPage({
         // A real fault rather than a thrown Error: a torn-down page context looks like this.
         _t: (): string => (undefined as unknown as { missing: () => string }).missing(),
     });
