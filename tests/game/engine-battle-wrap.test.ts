@@ -5,7 +5,7 @@
  * inside, and a second copy of the add-on stands down rather than counting the fight twice.
  */
 
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertExists, assertThrows } from "@std/assert";
 import {
     type EngineBattle,
     type EngineBattleReader,
@@ -39,7 +39,7 @@ Deno.test("the engine's own call runs first, and its value comes back untouched"
         battle,
         composeReader({ handlePayload: (payload) => void seen.push(payload) }),
     );
-    assert(wrap !== null, "the wrap went on");
+    assertExists(wrap, "the wrap went on");
     const update = battle.updateData;
     assert(typeof update === "function", "and left a function behind it");
     assertEquals(update({ m: [] }, 2), "the engine's own answer", "the value is the engine's");
@@ -60,7 +60,7 @@ Deno.test("the order is the engine's call, then ours, and nothing between", () =
         battle,
         composeReader({ handlePayload: () => void order.push("ours") }),
     );
-    assert(wrap !== null, "the wrap went on");
+    assertExists(wrap, "the wrap went on");
     const update = battle.updateData;
     assert(typeof update === "function", "and left a function behind it");
     update({});
@@ -79,7 +79,7 @@ Deno.test("a failure of ours never reaches the page, and is said once", () => {
             handleFirstFailure: (failure) => void reported.push(failure),
         }),
     );
-    assert(wrap !== null, "the wrap went on");
+    assertExists(wrap, "the wrap went on");
     const update = battle.updateData;
     assert(typeof update === "function", "and left a function behind it");
     assertEquals(update({}), 1, "the engine's value comes back even though we failed");
@@ -96,7 +96,7 @@ Deno.test("the engine's own failure is the engine's, and is not swallowed", () =
         },
     };
     const wrap = wrapEngineBattle(battle, composeReader({}));
-    assert(wrap !== null, "the wrap went on");
+    assertExists(wrap, "the wrap went on");
     const update = battle.updateData;
     assert(typeof update === "function", "and left a function behind it");
     assertThrows(() => update({}), RangeError, "the game's own");
@@ -105,7 +105,7 @@ Deno.test("the engine's own failure is the engine's, and is not swallowed", () =
 Deno.test("a second copy of the add-on stands down", () => {
     const battle = composeBattle(1);
     const first = wrapEngineBattle(battle, composeReader({}));
-    assert(first !== null, "the first wrap went on");
+    assertExists(first, "the first wrap went on");
     assertEquals(wrapEngineBattle(battle, composeReader({})), null, "and the second stands down");
     assertEquals(
         wrapEngineBattle({}, composeReader({})),
@@ -118,13 +118,13 @@ Deno.test("a detach puts back what was there, and only where ours is outermost",
     const battle = composeBattle(1);
     const original = battle.updateData;
     const wrap = wrapEngineBattle(battle, composeReader({}));
-    assert(wrap !== null, "the wrap went on");
+    assertExists(wrap, "the wrap went on");
     wrap.detach();
     assertEquals(battle.updateData, original, "and came off again");
 
     const second = composeBattle(1);
     const held = wrapEngineBattle(second, composeReader({}));
-    assert(held !== null, "a wrap that somebody else builds on");
+    assertExists(held, "a wrap that somebody else builds on");
     const somebodyElse = () => 2;
     second.updateData = somebodyElse;
     held.detach();

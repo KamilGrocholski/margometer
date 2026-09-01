@@ -7,7 +7,7 @@
  * on every admitted recording, and the shape it depends on is the shape those files have.
  */
 
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertExists, assertThrows } from "@std/assert";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import {
@@ -88,7 +88,7 @@ Deno.test("a combatant nobody can be told the kind of stops the write", () => {
     const recording = composeRecording({ "5": { id: 5, npc: 0, name: "Wiewiorka" } });
     const held = recording as { calls: { combatantsAfter: unknown[] }[] };
     const call = held.calls[0];
-    assert(call !== undefined, "the recording carries the call this is about");
+    assertExists(call, "the recording carries the call this is about");
     call.combatantsAfter = [{ id: 77, name: "Nieznajomy" }];
     assertThrows(
         () => composePseudonymisedRecording(recording),

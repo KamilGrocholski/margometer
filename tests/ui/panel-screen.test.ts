@@ -6,7 +6,7 @@
  * a tab that reaches nothing and a screen no tab reaches are the same defect from either end.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { composePanelReading, NOTHING_MISSED } from "@/src/ui/panel-reading.ts";
@@ -72,7 +72,7 @@ Deno.test("every screen is reachable through the two strips, and every tab reach
     const reached = new Set<string>();
     for (const screen of SCREEN_ORDER) {
         for (const tab of [...composeNounTabs(screen), ...composeDirectionTabs(screen)]) {
-            assert(getScreenFromName(tab.name) !== null, `${tab.name} is a screen that exists`);
+            assertExists(getScreenFromName(tab.name), `${tab.name} is a screen that exists`);
             reached.add(tab.name);
         }
     }

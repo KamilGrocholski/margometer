@@ -6,7 +6,7 @@
  * stated percentage instead, and this is where that chain is walked (`docs/protocol-keys.md`).
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { getStatedHealthFromEvent } from "@/src/core/combatant-health.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
@@ -27,15 +27,15 @@ Deno.test("every tick takes the percentage stated before it down by its own figu
     for (const event of decodeFightMessages(getRecordedMessages(WOUND), roster)) {
         const isTick = event.kind === "health-change" && event.source === TICK_KEY;
         if (isTick) {
-            assert(event.kind === "health-change", "a tick is a health change");
+            assertStrictEquals(event.kind, "health-change", "a tick is a health change");
             assert(event.amount < 0, "and takes health rather than putting it back");
             const id = event.combatantId;
-            assert(id !== null, "a tick names whose health moved");
+            assertExists(id, "a tick names whose health moved");
             const before = percentById.get(id);
             const maximum = maximumById.get(id) ?? null;
-            assert(before !== undefined, "the protocol stated this combatant before the tick");
-            assert(maximum !== null, "and the snapshot beside it states their pool");
-            assert(event.healthPercent !== null, "the tick states where they stand after it");
+            assertExists(before, "the protocol stated this combatant before the tick");
+            assertExists(maximum, "and the snapshot beside it states their pool");
+            assertExists(event.healthPercent, "the tick states where they stand after it");
             const expected = before + (event.amount * 100) / maximum;
             // The killing tick is the one the arithmetic cannot reach: the figure would take the
             // player past zero and the game states zero, which is the floor and not a reading.
@@ -62,8 +62,8 @@ Deno.test("the key is read as damage, and all of it lands on the combatant it ti
     assertEquals(ticked.length, 15, "the material carries this many ticks, 2026-08-30");
     const victims = new Set<number>();
     for (const event of ticked) {
-        assert(event.kind === "health-change", "a tick is a health change");
-        assert(event.combatantId !== null, "naming whose health moved");
+        assertStrictEquals(event.kind, "health-change", "a tick is a health change");
+        assertExists(event.combatantId, "naming whose health moved");
         victims.add(event.combatantId);
     }
     assertEquals(victims.size, 1, "and every one of them names the same combatant");

@@ -6,7 +6,7 @@
  * points of their pool comes to (`docs/protocol-keys.md`).
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { getStatedHealthFromEvent } from "@/src/core/combatant-health.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
@@ -30,12 +30,12 @@ Deno.test("the figure is health, and raises the percentage stated before it by i
     for (const event of decodeFightMessages(getRecordedMessages(BANDAGE), roster)) {
         if (event.kind === "health-change" && event.source === KEY) {
             const id = event.combatantId;
-            assert(id !== null, "the healing names whose health moved");
+            assertExists(id, "the healing names whose health moved");
             const before = percentById.get(id);
             const maximum = maximumById.get(id) ?? null;
-            assert(before !== undefined, "the protocol stated them before it");
-            assert(maximum !== null, "and the snapshot states their pool");
-            assert(event.healthPercent !== null, "and it says where they stand after");
+            assertExists(before, "the protocol stated them before it");
+            assertExists(maximum, "and the snapshot states their pool");
+            assertExists(event.healthPercent, "and it says where they stand after");
             assert(event.amount > 0, "health came back rather than going out");
             const expected = before + (event.amount * 100) / maximum;
             const off = Math.abs(expected - event.healthPercent);

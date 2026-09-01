@@ -6,7 +6,7 @@
  * nothing to stand on (`docs/protocol-keys.md`).
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
@@ -34,7 +34,7 @@ Deno.test("every tick names its victim in the actor slot and nobody at the other
             const carries = parsed.parameters.some((one) => one.key === TICK_KEY);
             if (!carries) continue;
             ticks += 1;
-            assert(parsed.actor !== null, `${path}: a tick states whose health moved`);
+            assertExists(parsed.actor, `${path}: a tick states whose health moved`);
             assertEquals(parsed.target, null, `${path}: and states nobody at the other end`);
         }
     }
@@ -78,12 +78,12 @@ Deno.test("a tick is charged to its victim, and to nobody who applied the bleed"
     assertEquals(ticked.length, 25, "and this many ticks come back off it");
     const victims = new Set<number>();
     for (const event of ticked) {
-        assert(event.kind === "health-change", "a tick is a health change");
+        assertStrictEquals(event.kind, "health-change", "a tick is a health change");
         assert(event.amount < 0, "a bleed takes health rather than putting it back");
         assertEquals(event.announced, null, "and nothing announced the tick itself");
         // Not `add(combatantId)`: a reading off the empty slot answers null for every tick, and a
         // set of one null is a set of one — which is what a first draft of this test accepted.
-        assert(event.combatantId !== null, "a tick names whose health moved");
+        assertExists(event.combatantId, "a tick names whose health moved");
         victims.add(event.combatantId);
     }
     assertEquals(victims.size, 1, "every tick lands on the one victim both appliers reached");
@@ -108,7 +108,7 @@ Deno.test("the bleed reaches the victim's own figures and credits nobody with de
         new Map(),
     );
     const victim = [...only.byCombatantId.entries()][0];
-    assert(victim !== undefined, "the victim has a row of their own");
+    assertExists(victim, "the victim has a row of their own");
     assertEquals(only.byCombatantId.size, 1, "and is the only combatant the ticks name");
     assertEquals(victim[1].damageTakenApplied, total, "who is charged the whole of the bleed");
     assertEquals(only.dealtByNobody, total, "while it is dealt by nobody the protocol named");

@@ -4,7 +4,7 @@
  * The declaration it is asked about is `tests/tools/declared-version.test.ts`'s.
  */
 
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertExists, assertThrows } from "@std/assert";
 import { CHANGELOG_FILE, CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 import { composeReleaseNotes, getChangelogSection } from "@/tools/changelog.ts";
 import { getDeclaredVersion } from "@/tools/declared-version.ts";
@@ -19,7 +19,7 @@ const VERSION_HEADING = "## [";
 
 Deno.test("the declared version has a section, and it says something", () => {
     const section = getChangelogSection(CHANGELOG, DECLARED);
-    assert(section !== null, `${CHANGELOG_FILE} says nothing about ${DECLARED}`);
+    assertExists(section, `${CHANGELOG_FILE} says nothing about ${DECLARED}`);
     assert(
         ENTRY_KINDS.some((kind) => section.includes(kind)),
         "a section carries at least one entry, opened with its kind",

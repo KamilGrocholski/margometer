@@ -6,7 +6,7 @@
  * the share the caster's (`docs/protocol-keys.md`).
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { getRecordedMessages, getRecordingPaths } from "@/tests/recorded-fight.ts";
 
@@ -21,8 +21,8 @@ function getReports(): { path: string; caster: number; share: string }[] {
             const parsed = parseProtocolMessage(message);
             for (const one of parsed.parameters) {
                 if (one.key !== KEY) continue;
-                assert(one.value !== null, `${path}: a share that states nothing`);
-                assert(parsed.actor !== null, `${path}: a share nobody declared`);
+                assertExists(one.value, `${path}: a share that states nothing`);
+                assertExists(parsed.actor, `${path}: a share nobody declared`);
                 found.push({ path, caster: parsed.actor.combatantId, share: one.value });
             }
         }

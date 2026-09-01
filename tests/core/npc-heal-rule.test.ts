@@ -6,7 +6,7 @@
  * (`docs/protocol-keys.md`).
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
@@ -48,8 +48,8 @@ Deno.test("the restoration is the actor's, and the figure a share of their own p
     const targets = new Set<number>();
     for (const message of messages) {
         const parsed = parseProtocolMessage(message);
-        assert(parsed.actor !== null, "each names an actor");
-        assert(parsed.target !== null, "and a target, which is what makes the slot a choice");
+        assertExists(parsed.actor, "each names an actor");
+        assertExists(parsed.target, "and a target, which is what makes the slot a choice");
         actors.add(parsed.actor.combatantId);
         targets.add(parsed.target.combatantId);
     }
@@ -57,9 +57,9 @@ Deno.test("the restoration is the actor's, and the figure a share of their own p
     assert(targets.size > 1, "while the other slot names several, so the two cannot be confused");
 
     const [healed] = [...actors];
-    assert(healed !== undefined, "a set of one has a member");
+    assertExists(healed, "a set of one has a member");
     const maximum = combatants.find((one) => one.id === healed)?.healthMaximum ?? null;
-    assert(maximum !== null, "the snapshot beside the fight states that combatant's pool");
+    assertExists(maximum, "the snapshot beside the fight states that combatant's pool");
     for (const event of decodeFightMessages(messages, roster)) {
         if (event.kind !== "health-change") continue;
         assertEquals(event.combatantId, healed, "every event lands on the actor slot's combatant");

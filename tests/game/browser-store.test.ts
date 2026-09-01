@@ -5,7 +5,7 @@
  * quota already spent — and neither is a failure of this add-on's, so both come back as answers.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assertEquals } from "@std/assert";
 import { composeBrowserStore, type PageStorage } from "@/src/game/browser-store.ts";
 
 /**
@@ -40,5 +40,5 @@ Deno.test("a browser that refuses is answered, not thrown out of", () => {
     const store = composeBrowserStore(composeRefusingStorage());
     assertEquals(store.read("MargoMeter-fights"), null, "a reading that threw has nothing in it");
     assertEquals(store.write("MargoMeter-fights", "{}"), false, "and a refused write says false");
-    assert(store.read("MargoMeter-folded") === null, "a second key fares no differently");
+    assertEquals(store.read("MargoMeter-folded"), null, "a second key fares no differently");
 });

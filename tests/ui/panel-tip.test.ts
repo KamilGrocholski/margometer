@@ -6,7 +6,7 @@
  * because the arithmetic that would have needed measuring is in the stylesheet and not here.
  */
 
-import { assert, assertEquals, AssertionError, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertExists, AssertionError, assertThrows } from "@std/assert";
 import {
     composeTipElement,
     composeTipHandle,
@@ -214,7 +214,7 @@ Deno.test("the detail follows the pointer, and lets go of a row that stopped bei
     register.add("row:7", () => HILDUR);
     handle.show("row:7", 412);
     const shown = first.replacedBy;
-    assert(shown !== null, "a row hovered puts a detail where the empty one stood");
+    assertExists(shown, "a row hovered puts a detail where the empty one stood");
     assertEquals(getTextsByClass(shown, CLASS.tipName), [HILDUR.name], "saying whose row it is");
     assert(
         shown.attributes.get("style")?.startsWith("--MargoMeter-tip-top:412px"),
@@ -236,7 +236,7 @@ Deno.test("the detail follows the pointer, and lets go of a row that stopped bei
     }));
     handle.refresh();
     const later = shown.replacedBy;
-    assert(later !== null, "a redraw puts the same row's detail up again");
+    assertExists(later, "a redraw puts the same row's detail up again");
     assertEquals(getTextsByClass(later, CLASS.tipValue), ["400 000"], "with the new one");
     assertEquals(
         later.attributes.get("style"),
@@ -255,12 +255,12 @@ Deno.test("a move inside one pixel writes nothing, because there is nowhere new 
     register.add("row:7", () => HILDUR);
     handle.show("row:7", 412);
     const shown = first.replacedBy;
-    assert(shown !== null, "a row hovered opens the detail");
+    assertExists(shown, "a row hovered opens the detail");
     shown.attributes.delete("style");
     handle.show("row:7", 412.4);
     assertEquals(shown.attributes.get("style"), undefined, "a move that rounds to the same place");
     handle.show("row:7", 413);
-    assert(shown.attributes.get("style") !== undefined, "and a move to the next one does write");
+    assertExists(shown.attributes.get("style"), "and a move to the next one does write");
 });
 
 Deno.test("nobody under the pointer hides it, and a row nobody drew never opens it", () => {
@@ -272,7 +272,7 @@ Deno.test("nobody under the pointer hides it, and a row nobody drew never opens 
     register.add("row:7", () => HILDUR);
     handle.show("row:7", 200);
     const shown = first.replacedBy;
-    assert(shown !== null, "a key it did register opens it");
+    assertExists(shown, "a key it did register opens it");
     handle.show(null, 200);
     assertEquals(shown.className, `${CLASS.tip} ${CLASS.tipHidden}`, "and leaving hides it again");
 });

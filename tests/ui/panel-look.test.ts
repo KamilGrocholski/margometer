@@ -5,7 +5,7 @@
  * screen — which is what `DESIGN.md` asks for and what a screenshot cannot show.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists, assertNotEquals } from "@std/assert";
 import {
     CLASS,
     composeBarColour,
@@ -218,7 +218,7 @@ function getTermPixels(stated: string): number {
     if (stated.startsWith("var(")) {
         const name = stated.slice("var(--MargoMeter-".length, stated.length - 1);
         const held = Object.entries(SPACE).find(([token]) => getTokenSpelling(token) === name);
-        assert(held !== undefined, `${stated} spends a token SPACE does not hold`);
+        assertExists(held, `${stated} spends a token SPACE does not hold`);
         written = held[1];
     }
     if (written === "0") return 0;
@@ -292,7 +292,7 @@ function getAirAround(sheet: string, selector: string, margin: number): number[]
     const body = getRuleBody(sheet, selector);
     const [insetAbove, insetBelow] = getEdgesDown(body, selector, "padding");
     const [marginAbove, marginBelow] = getEdgesDown(body, selector, "margin");
-    assert(insetAbove !== undefined, `${selector} states what insets it`);
+    assertExists(insetAbove, `${selector} states what insets it`);
     return [
         (marginAbove ?? 0) + (insetAbove ?? 0),
         (insetBelow ?? 0) + margin + (marginBelow ?? 0),
@@ -313,7 +313,7 @@ function getOperatorsAtDepth(stated: string): string[] {
         if (character === "+") found.push(character);
         if (character === "-") found.push(character);
     }
-    assert(depth === 0, "a height closes every group it opens");
+    assertEquals(depth, 0, "a height closes every group it opens");
     return found;
 }
 
@@ -326,7 +326,7 @@ Deno.test("what stands over a region's first bar is what stands under its last",
     // lays anything out, and none of them adds up what a rule spends either.
     const sheet = composeStyleSheet();
     const margin = getDeclaration(getRuleBody(sheet, `.${CLASS.row}`), "margin-bottom");
-    assert(margin !== null, "a row carries its own margin, which the last row carries too");
+    assertExists(margin, "a row carries its own margin, which the last row carries too");
     const carried = getPixels(margin);
     assert(carried > 0, "and that margin is a length a reader can see");
     for (const region of [CLASS.list, CLASS.pinned]) {
@@ -350,7 +350,7 @@ Deno.test("a rule between two regions has the same air on either side of it", ()
     // between two of them, and the seam is what a reader sees as a line drawn off centre.
     const sheet = composeStyleSheet();
     const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.row}`), "margin-bottom");
-    assert(stated !== null, "a row carries its own margin into the space under the last bar");
+    assertExists(stated, "a row carries its own margin into the space under the last bar");
     const margin = getPixels(stated);
     const list = getAirAround(sheet, `.${CLASS.list}`, margin);
     const pinned = getAirAround(sheet, `.${CLASS.pinned}`, margin);
@@ -370,7 +370,7 @@ Deno.test("a rule between two regions has the same air on either side of it", ()
 Deno.test("a list is as tall as the rows it promises, and carries no term besides", () => {
     const sheet = composeStyleSheet();
     const stated = getDeclaration(getRuleBody(sheet, `.${CLASS.list}`), "height");
-    assert(stated !== null, "the list states a height rather than taking one");
+    assertExists(stated, "the list states a height rather than taking one");
     // `:host` resets `box-sizing` to `content-box` and this rule does not set it, so a term added
     // for the padding is reserved twice over and lands as dead space under the last bar. What the
     // guard reads is the operators the height spends at its own depth — a row's cost is one
@@ -392,9 +392,9 @@ function getLineHeights(sheet: string): string[] {
         assert(tried < RULES_IN_A_SHEET, "the walk stays inside the sheet's stated bound");
         tried += 1;
         const slash = sheet.indexOf("/", at);
-        assert(slash !== -1, "a font shorthand here states a line height");
+        assertNotEquals(slash, -1, "a font shorthand here states a line height");
         const ends = sheet.indexOf(" ", slash);
-        assert(ends !== -1, "and a stack after it");
+        assertNotEquals(ends, -1, "and a stack after it");
         found.push(sheet.slice(slash + 1, ends));
         at = sheet.indexOf("font:", at + 1);
     }
@@ -428,13 +428,13 @@ Deno.test("a row drops its ink onto its middle and stays the height the list cou
     );
     const [above, below] = getEdgesDown(body, `.${CLASS.row}`, "padding");
     assertEquals(below, 0, "a row carries the drop over its contents and nothing under them");
-    assert(above !== undefined, "and states what it carries over them");
+    assertExists(above, "and states what it carries over them");
     assert(above > 0, "which is a length a reader can see");
     const height = getDeclaration(body, "height");
-    assert(height !== null, "a row states a height rather than taking one from its contents");
+    assertExists(height, "a row states a height rather than taking one from its contents");
     assertEquals(getPixels(height), getPixels(SPACE.rowHeight), "and it is the one a row costs");
     const line = getLineHeights(getRuleBody(sheet, `.${CLASS.panel}`));
-    assert(line[0] !== undefined, "the panel states the line a row's cells are drawn on");
+    assertExists(line[0], "the panel states the line a row's cells are drawn on");
     const spare = getPixels(SPACE.rowHeight) - (above ?? 0) - getPixels(line[0]);
     assertEquals(spare % 2, 0, `a row centres its cells onto half a pixel: ${spare}px to share`);
 });

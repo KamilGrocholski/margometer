@@ -6,7 +6,7 @@
  * development build and the release whose number it would otherwise wear.
  */
 
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertNotEquals, assertThrows } from "@std/assert";
 import { CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 import {
     getDeclaredVersion,
@@ -36,7 +36,7 @@ Deno.test("a build nobody tagged says the declaration and is not mistaken for it
     const declared = getDeclaredVersion(Deno.readTextFileSync(CONFIGURATION_FILE));
     const development = getDevelopmentVersion();
     assertEquals(development, `${declared}-dev`, "the number comes from the one declaration");
-    assert(development !== declared, "and never reads as the release of that number");
+    assertNotEquals(development, declared, "and never reads as the release of that number");
     assert(development.length > declared.length, "the mark is added rather than substituted");
 });
 

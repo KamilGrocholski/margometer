@@ -12,7 +12,7 @@
  * pictures in the same order, the same places the links go — which is the half that rots silently.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists, assertNotEquals } from "@std/assert";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { getEndOfRun } from "@/libs/text-walk.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
@@ -95,12 +95,12 @@ function getTagPicturePaths(source: string): string[] {
         // A source past the tag's own end belongs to whatever comes after it.
         if (opened !== -1 && opened < ended) {
             const closed = source.indexOf(`"`, opened + PICTURE_SOURCE.length);
-            assert(closed !== -1, "a source that opens a quote closes it");
+            assertNotEquals(closed, -1, "a source that opens a quote closes it");
             found.push(source.slice(opened + PICTURE_SOURCE.length, closed));
         }
         index = source.indexOf(PICTURE_TAG, ended);
     }
-    assert(index === -1, "a document shows no more pictures than the bound allows");
+    assertEquals(index, -1, "a document shows no more pictures than the bound allows");
     assert(found.length <= seen, "and each tag found is read at most once");
     return found;
 }
@@ -206,7 +206,7 @@ Deno.test("the two send their links to the same places", () => {
  */
 Deno.test("each translation offers the other on its first line", () => {
     for (const [file, other] of [[POLISH, ENGLISH], [ENGLISH, POLISH]]) {
-        assert(file !== undefined, "a translation is named");
+        assertExists(file, "a translation is named");
         const firstLine = getSource(file).split("\n")[0] ?? "";
         assert(firstLine.includes(`(${other})`), `${file}: does not offer ${other}`);
     }

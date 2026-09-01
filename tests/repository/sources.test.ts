@@ -151,7 +151,7 @@ function getSourceReading(path: string): SourceReading {
     assert(reading.commentLines <= reading.lines, "a comment line is a line");
     assert(reading.longestFunctionLines <= reading.lines, "a function fits inside its file");
     assert(reading.functions <= reading.lines, "a function opener is a line");
-    assert(openedAt === -1, "every function opened is closed");
+    assertEquals(openedAt, -1, "every function opened is closed");
     assert(reading.longestFunctionAt <= reading.lines, "a line number is inside the file");
     return reading;
 }
@@ -160,7 +160,7 @@ function getReadings(): Map<string, SourceReading> {
     const paths = getSourcePaths();
     const readings = new Map(paths.map((path) => [path, getSourceReading(path)]));
     assert(readings.size > 0, "there is TypeScript to measure");
-    assert(readings.size === paths.length, "each path is read once");
+    assertEquals(readings.size, paths.length, "each path is read once");
     assert([...readings.values()].every((one) => one.lines > 0), "an empty file is a finding");
     return readings;
 }
@@ -354,7 +354,7 @@ Deno.test("assertion density averages two per function where the program is", ()
         assertions += reading.assertions;
         functions += reading.functions;
     }
-    assert(MINIMUM_ASSERTION_DENSITY === 2, "S5 states two");
+    assertEquals(MINIMUM_ASSERTION_DENSITY, 2, "S5 states two");
     if (functions === 0) return;
     const density = assertions / functions;
     assert(
@@ -619,7 +619,7 @@ function getImportSpecifier(line: string): string {
     if (end === -1) return "";
     const specifier = code.slice(start, end);
     assert(!specifier.includes('"'), "a specifier stops at its closing quote");
-    assert(specifier.length === end - start, "the slice is the specifier and nothing else");
+    assertEquals(specifier.length, end - start, "the slice is the specifier and nothing else");
     return specifier;
 }
 

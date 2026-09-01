@@ -6,7 +6,7 @@
  * nothing about the protocol.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
@@ -428,7 +428,7 @@ Deno.test("a cut by both ends comes to the same figure as the cut by one", () =>
             ) {
                 for (const [other, amount] of flat) {
                     const kinds = deep.get(other);
-                    assert(kinds !== undefined, `${where}: a pair cut by one end and not by both`);
+                    assertExists(kinds, `${where}: a pair cut by one end and not by both`);
                     let total = 0;
                     for (const figure of kinds.values()) total += figure;
                     assertEquals(total, amount, `${where}: the two cuts disagree about ${other}`);

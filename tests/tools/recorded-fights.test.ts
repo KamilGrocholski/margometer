@@ -6,7 +6,7 @@
  * assumed, because a recording arriving without it would make the rewind silently wrong.
  */
 
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertInstanceOf, assertThrows } from "@std/assert";
 import { isFightStart } from "@/src/game/battle-session.ts";
 import {
     getPreviewRecordedFight,
@@ -35,7 +35,7 @@ Deno.test("a recording nothing filed is refused rather than read as empty", () =
         "a name nobody filed is a refusal",
     );
     const refused = assertThrows(() => getRecordedFightCalls("2026-08-04"));
-    assert(refused instanceof Error, "and it is an error, whatever the reading tripped on");
+    assertInstanceOf(refused, Error, "and it is an error, whatever the reading tripped on");
 });
 
 Deno.test("every fight carries its calls, and one of them is the one a preview opens on", () => {

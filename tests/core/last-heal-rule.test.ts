@@ -6,7 +6,7 @@
  * arithmetic is held here instead (`docs/protocol-keys.md`).
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import {
@@ -35,7 +35,7 @@ const SAME_PERCENT = 0.005;
 function readNamed(value: string): { amount: number; name: string; percent: number } {
     const members = value.split(",");
     const last = members[members.length - 1];
-    assert(last !== undefined, "a value that split has a last member");
+    assertExists(last, "a value that split has a last member");
     const open = last.lastIndexOf("(");
     const close = last.lastIndexOf("%)");
     assert(open > 0, "the name is followed by the percentage it was left on");
@@ -93,12 +93,12 @@ function getOccurrences(): Occurrence[] {
             }
             for (const [at, one] of parsed.parameters.entries()) {
                 if (one.key !== HEAL_KEY) continue;
-                assert(one.value !== null, `${path}: a bonus stating nothing`);
+                assertExists(one.value, `${path}: a bonus stating nothing`);
                 const heal = readNamed(one.value);
                 const id = roster.idByName.get(heal.name) ?? null;
-                assert(id !== null, `${path}: the bonus names somebody in the fight`);
+                assertExists(id, `${path}: the bonus names somebody in the fight`);
                 const healthMaximum = roster.byId.get(id)?.healthMaximum ?? null;
-                assert(healthMaximum !== null, `${path}: and the snapshot states their pool`);
+                assertExists(healthMaximum, `${path}: and the snapshot states their pool`);
                 const named = (from: number, to: number) =>
                     parsed.parameters.slice(from, to)
                         .filter((other) => other.key === NAMED_DAMAGE_KEY)
@@ -180,7 +180,7 @@ Deno.test("a segment past the bonus's percentage is another blow, and breaks the
         const left = (one.heal.percent * one.healthMaximum) / 100 - one.heal.amount;
         const paired = one.paired.reduce((sum, amount) => sum + amount, 0);
         const everything = one.past.reduce((sum, amount) => sum + amount, paired);
-        assert(one.percentBefore !== null, "a chain with a percentage to close on");
+        assertExists(one.percentBefore, "a chain with a percentage to close on");
         const wrong = Math.abs(((left + everything) / one.healthMaximum) * 100 - one.percentBefore);
         assert(wrong > TOLERANCE, `${one.path}: taking every segment closed anyway`);
     }

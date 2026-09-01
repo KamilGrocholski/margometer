@@ -5,7 +5,7 @@
  * carry — so the reading can be checked against the client rather than against itself.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import {
     composeFightEntryHealth,
     composeTeamHeals,
@@ -61,7 +61,7 @@ Deno.test("a stated percentage reads back to the health the client holds", () =>
     for (const path of getRecordingPaths()) {
         for (const reading of getRecordedHealthReadings(path)) {
             const health = getHealthFromPercent(reading.healthPercent, reading.healthMaximum);
-            assert(health !== null, `${path}: a stated maximum reads`);
+            assertExists(health, `${path}: a stated maximum reads`);
             const distance = Math.abs(health - reading.health);
             const tolerance = getHealthToleranceFromMaximum(reading.healthMaximum);
             assert(distance <= tolerance, `${path}: ${distance} past a bound of ${tolerance}`);
@@ -84,8 +84,8 @@ Deno.test("every combatant in every recording is stated before anything happens 
         const health = composeFightEntryHealth(events, roster);
         for (const combatant of cast) {
             const held = health.get(combatant.id);
-            assert(held !== undefined, `${path}: ${combatant.id} was never stated`);
-            assert(combatant.healthMaximum !== null, `${path}: and has a pool`);
+            assertExists(held, `${path}: ${combatant.id} was never stated`);
+            assertExists(combatant.healthMaximum, `${path}: and has a pool`);
             assert(held <= combatant.healthMaximum, `${path}: nobody enters above their own pool`);
             entered += 1;
             if (held === combatant.healthMaximum) full += 1;

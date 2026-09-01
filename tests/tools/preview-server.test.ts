@@ -5,7 +5,7 @@
  * what a reload stream says, and a real bundle would add a subprocess to every one of them.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { setPreviewServer } from "@/tools/preview-server.ts";
 import {
     getPreviewRecordedFight,
@@ -136,7 +136,7 @@ Deno.test("the reload stream opens, and stopping the server takes it with it", a
     const answer = await fetch(`${preview.url}/reload`);
     assertEquals(answer.headers.get("content-type"), "text/event-stream", "a stream is opened");
     const body = answer.body;
-    assert(body !== null, "and it carries one");
+    assertExists(body, "and it carries one");
     const reader = body.getReader();
     const first = await reader.read();
     const opening = new TextDecoder().decode(first.value);

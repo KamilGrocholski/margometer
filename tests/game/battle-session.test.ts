@@ -6,7 +6,7 @@
  * the difference that matters in the last test here.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import {
@@ -49,7 +49,7 @@ Deno.test("a recording replayed call by call reads as the whole of itself", () =
             decoded += decodeFightMessages(payload, roster).length;
         }
         const fight = replay(path);
-        assert(fight !== null, `${path}: the replay produced a fight`);
+        assertExists(fight, `${path}: the replay produced a fight`);
         assertEquals(fight.events.length, decoded, `${path}: the session lost or invented one`);
         assertEquals(fight.payloads, getRecordedEngineUpdates(path).length, `${path}: every call`);
         assert(fight.isOver, `${path}: every recording carries the end of its fight`);
@@ -98,7 +98,7 @@ Deno.test("every recording is read whole, by the count the payloads themselves s
 
 Deno.test("a fight whose calls carry no snapshot still has a cast", () => {
     const fight = replay(NO_SNAPSHOTS);
-    assert(fight !== null, "the recording produced a fight");
+    assertExists(fight, "the recording produced a fight");
     assertEquals(getRecordedCombatants(NO_SNAPSHOTS).length, 0, "the snapshots state nobody");
     assertEquals(fight.roster.byId.size, 3, "and the opening payload states all three");
     const placed = fight.events.filter((event) =>
@@ -185,7 +185,7 @@ Deno.test("a session says whether it saw the payload that opened the fight", () 
 Deno.test("no recording is a fight joined in progress, and each says so", () => {
     for (const path of getRecordingPaths()) {
         const fight = replay(path);
-        assert(fight !== null, `${path}: the replay produced a fight`);
+        assertExists(fight, `${path}: the replay produced a fight`);
         assertEquals(
             fight.hasJoinedInProgress,
             false,

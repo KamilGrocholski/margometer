@@ -6,7 +6,7 @@
  * (`docs/protocol-keys.md`).
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { getRecordedMessages, getRecordingPaths } from "@/tests/recorded-fight.ts";
 
@@ -52,7 +52,7 @@ Deno.test("what a skill spends is a count, never a quantity", () => {
         for (const message of getRecordedMessages(path)) {
             for (const one of parseProtocolMessage(message).parameters) {
                 if (one.key !== COUNT_KEY) continue;
-                assert(one.value !== null, `${path}: a count stating nothing`);
+                assertExists(one.value, `${path}: a count stating nothing`);
                 const spent = Number(one.value);
                 assert(Number.isSafeInteger(spent), `${path}: a count spelled ${one.value}`);
                 assert(spent > 0, `${path}: a skill spending no points states none`);
@@ -104,7 +104,7 @@ Deno.test("three keys state their figure on the announcement itself, and name an
             for (const key of ["heal_target", "healall_per", "bandage"]) {
                 if (!keys.includes(key)) continue;
                 assert(isAnnouncement(keys), `${path}: ${key} on a message announcing no skill`);
-                assert(parsed.actor !== null, `${path}: ${key} on a message naming no actor`);
+                assertExists(parsed.actor, `${path}: ${key} on a message naming no actor`);
                 counted.set(key, (counted.get(key) ?? 0) + 1);
             }
         }

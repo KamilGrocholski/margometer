@@ -6,7 +6,7 @@
  * wrong thing.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeCardReading } from "@/src/ui/panel-card.ts";
 import type { PanelMetric, RowDetail } from "@/src/ui/panel-reading.ts";
 import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
@@ -103,7 +103,7 @@ Deno.test("a card states all four figures, and the one on screen is the one in b
     assertEquals(card.name, "Hildur Muza Śmierci", "the name in full");
     assertEquals(card.subtitle, "Paladyn (83)", "what they are and how far along, under it");
     const [figures, counters, , , notes] = card.groups;
-    assert(figures !== undefined, "a card states the four figures");
+    assertExists(figures, "a card states the four figures");
     assertEquals(
         readGroup(figures),
         [
@@ -119,7 +119,7 @@ Deno.test("a card states all four figures, and the one on screen is the one in b
         ],
         "each with the part of it the protocol named only this row's end of, under it",
     );
-    assert(counters !== undefined, "and how they fought, under a rule of its own");
+    assertExists(counters, "and how they fought, under a rule of its own");
     assertEquals(
         readGroup(counters),
         [
@@ -129,7 +129,7 @@ Deno.test("a card states all four figures, and the one on screen is the one in b
         ],
         "the blows, the ones nothing stood in front of, and the announcements",
     );
-    assert(notes !== undefined, "and what to be careful of");
+    assertExists(notes, "and what to be careful of");
     assertEquals(
         readGroup(notes),
         [CARD_WORDS.damageNote, CARD_WORDS.gesture],
@@ -201,7 +201,7 @@ Deno.test("the card says what they did when they struck, and what held when they
         translate: null,
     });
     const [, , striking, struck] = card.groups;
-    assert(striking !== undefined, "how they struck stands under a heading naming that end");
+    assertExists(striking, "how they struck stands under a heading naming that end");
     assertEquals(
         readGroup(striking),
         [
@@ -216,7 +216,7 @@ Deno.test("the card says what they did when they struck, and what held when they
         ],
         "the criticals against the blows, the hardest one, what else fired and what it took off",
     );
-    assert(struck !== undefined, "and what happened when somebody struck them, under the other");
+    assertExists(struck, "and what happened when somebody struck them, under the other");
     assertEquals(
         readGroup(struck),
         [
@@ -306,7 +306,7 @@ Deno.test("a combatant the fight never touched states four zeros and nothing els
     assertEquals(card.subtitle, null, "and a line drawn for neither is a question, not an answer");
     assertEquals(card.groups.length, 1, "and nothing they did is nothing to put under a rule");
     const [figures] = card.groups;
-    assert(figures !== undefined, "the four still stand: zero happened, and is not unknown");
+    assertExists(figures, "the four still stand: zero happened, and is not unknown");
     assertEquals(
         readGroup(figures),
         [
@@ -349,7 +349,7 @@ Deno.test("what the screen doubts is said again where the figures it doubts are"
         translate: null,
     });
     const notes = card.groups[1];
-    assert(notes !== undefined, "a doubt about the screen is a doubt about every figure on it");
+    assertExists(notes, "a doubt about the screen is a doubt about every figure on it");
     assertEquals(
         readGroup(notes),
         [`${WARNING_MARK}Nie udało się odczytać wszystkiego.`],
@@ -377,7 +377,7 @@ Deno.test("a card states this person's own doubt before the whole fight's", () =
         translate: null,
     });
     const notes = card.groups.at(-1);
-    assert(notes !== undefined, "the doubts are the last thing the card says");
+    assertExists(notes, "the doubts are the last thing the card says");
     const said = readGroup(notes).filter((line) => line.startsWith(WARNING_MARK));
     assertEquals(said.length, 3, "two of this person's own, and the fight's under them");
     assert(said[0]?.includes("z jej udziałem"), "what went unread with them in comes first");
@@ -420,7 +420,7 @@ Deno.test("both runs stand on every screen, and the screen moves only the bold f
             translate: null,
         }).groups.map(readGroup);
     const [first, ...rest] = SCREEN_ORDER.map(readScreen);
-    assert(first !== undefined, "there is a screen to read the card on");
+    assertExists(first, "there is a screen to read the card on");
     // Said of one screen before the four are compared: four cards agreeing with each other agree
     // just as well when a run has been dropped from all of them.
     assertEquals(
@@ -568,8 +568,8 @@ Deno.test("two keys the panel words the same way are one line, not two of one wo
         translate: null,
     });
     const [, counters, striking] = card.groups;
-    assert(counters !== undefined, "they struck, so the counters stand");
-    assert(striking !== undefined, "and the run about striking says what fired");
+    assertExists(counters, "they struck, so the counters stand");
+    assertExists(striking, "and the run about striking says what fired");
     assertEquals(
         readGroup(striking),
         [`[${CARD_WORDS.striking}]`, "ogłuszenie 6", "zamrożenie 2"],

@@ -5,7 +5,7 @@
  * states the case that works beside the case that does not, which is what one answer hid.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertInstanceOf } from "@std/assert";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 
 Deno.test("text that carried null read, and text that would not read, are told apart", () => {
@@ -16,7 +16,7 @@ Deno.test("text that carried null read, and text that would not read, are told a
     const refused = getJsonReading("{oops");
     assert(!refused.isOk, "text that is not JSON did not read");
     assertEquals(refused.error, "unreadable", "and says so rather than answering null");
-    assert(refused.cause instanceof Error, "carrying what the reader threw");
+    assertInstanceOf(refused.cause, Error, "carrying what the reader threw");
 
     const empty = getJsonReading("");
     assert(!empty.isOk, "text saying nothing is not JSON either");
@@ -51,7 +51,7 @@ Deno.test("a value with no JSON text and a writer that threw are told apart", ()
     const refused = composeJsonWriting(cycle);
     assert(!refused.isOk, "a structure that closes on itself was refused");
     assertEquals(refused.error, "unwritable", "which is not the same as having no text");
-    assert(refused.cause instanceof Error, "carrying what the writer threw");
+    assertInstanceOf(refused.cause, Error, "carrying what the writer threw");
 });
 
 Deno.test("a writing answers the text it wrote, empty text included", () => {

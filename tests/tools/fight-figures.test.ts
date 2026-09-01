@@ -5,7 +5,7 @@
  * composition and never parses another program's output (**W6**).
  */
 
-import { assert } from "@std/assert";
+import { assert, assertExists } from "@std/assert";
 import { composeFigureReport } from "@/tools/fight-figures.ts";
 import { composeFightReplay, composeReplayedMaterial } from "@/tools/fight-replay.ts";
 import { getRecordedFightAt } from "@/tools/recorded-fights.ts";
@@ -41,7 +41,7 @@ Deno.test("everybody the roster holds gets a row, and the fight gets its totals"
         );
     }
     const totals = lines.find((line) => line.trim().startsWith("everybody"));
-    assert(totals !== undefined, "the fight's own sums close the table");
+    assertExists(totals, "the fight's own sums close the table");
     assert(
         totals.includes(`${replay.statistics.totals.damageDealtApplied}`),
         "and they are the aggregate's, not this tool's",
@@ -60,7 +60,7 @@ Deno.test("the reading block prints at zero, on a fight where nothing went wrong
     );
     for (const caption of ["unread messages", "casts unplaced", "messages lost"]) {
         const line = lines.find((one) => one.trim().startsWith(caption));
-        assert(line !== undefined, `${caption} is stated`);
+        assertExists(line, `${caption} is stated`);
         assert(line.trim().endsWith("0"), `${caption} is stated at zero rather than dropped`);
     }
 });

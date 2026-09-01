@@ -6,7 +6,7 @@
  * C7 forbids a pattern and this file is the first place that rule costs anything.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists, assertNotEquals } from "@std/assert";
 import { existsSync } from "@std/fs";
 import { isCommentLine } from "@/tests/source-line.ts";
 import { getSourcePaths } from "@/tests/source-paths.ts";
@@ -131,7 +131,7 @@ function getWrittenPaths(): string[] {
     const generated = "frozen/";
     const written = found.filter((path) => !path.startsWith(generated));
     assert(written.length > CANONICAL.length, "the walk reaches past the canonical documents");
-    assert(new Set(written).size === written.length, "a path is listed once");
+    assertEquals(new Set(written).size, written.length, "a path is listed once");
     return written;
 }
 
@@ -144,7 +144,7 @@ Deno.test("rule numbering runs without a gap", () => {
             .sort((left, right) => left - right);
         if (numbers.length === 0) continue;
         const highest = numbers[numbers.length - 1];
-        assert(highest !== undefined, "a non-empty run has a last member");
+        assertExists(highest, "a non-empty run has a last member");
         assertEquals(numbers.length, highest, `${prefix} numbering has a hole or a repeat`);
         assertEquals(numbers[0], 1, `${prefix} numbering starts at 1`);
     }
@@ -167,7 +167,7 @@ Deno.test("every rule reference resolves to a rule that exists", () => {
 Deno.test("the formatter is walled off from the maintainer's list", () => {
     const config = Deno.readTextFileSync(CONFIGURATION_FILE);
     const excludeAt = config.indexOf('"exclude"');
-    assert(excludeAt !== -1, "deno.json states formatter exclusions");
+    assertNotEquals(excludeAt, -1, "deno.json states formatter exclusions");
     assert(config.indexOf('"TODO.md"', excludeAt) !== -1, "TODO.md is excluded from deno fmt");
 });
 
@@ -329,7 +329,7 @@ Deno.test("no rule is both machine-held and marked as needing a reader", () => {
 /** The fenced block under ARCHITECTURE.md's current state, which claims to mirror the tree. */
 function getStructureBlock(text: string): string {
     const opening = text.indexOf("```");
-    assert(opening !== -1, "the current state carries a fenced block");
+    assertNotEquals(opening, -1, "the current state carries a fenced block");
     const closing = text.indexOf("```", opening + 3);
     assert(closing > opening, "the fence is closed");
     return text.slice(opening + 3, closing);

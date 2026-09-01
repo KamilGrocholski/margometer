@@ -5,7 +5,7 @@
  * same chain a live one does — which the test naming both of them holds it to.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeJsonWriting } from "@/libs/json-text.ts";
 import {
     addPayloadToSession,
@@ -182,7 +182,7 @@ Deno.test("a shelf with every slot pinned refuses the newest rather than droppin
     // One unpinned among them and the rotation has something to take, which is the boundary the
     // sentence about every slot being pinned sits on.
     const [oldest, ...rest] = full;
-    assert(oldest !== undefined, "there is an oldest");
+    assertExists(oldest, "there is an oldest");
     const nearly = [{ ...oldest, isPinned: false }, ...rest, composeFight(20)];
     assertEquals(getIsEverySlotPinned(nearly), false, "one unpinned slot is a slot");
     assertEquals(
@@ -239,7 +239,7 @@ Deno.test("a store with room for nothing keeps nothing, and does not pretend oth
  */
 Deno.test("a fight off the shelf reads as the fight that went on it, through one chain", () => {
     const [path] = getRecordingPaths();
-    assert(path !== undefined, "a recording to keep");
+    assertExists(path, "a recording to keep");
     const payloads = getRecordedEngineUpdates(path);
     const store = composeStore();
     assert(
@@ -253,7 +253,7 @@ Deno.test("a fight off the shelf reads as the fight that went on it, through one
         "kept",
     );
     const kept = readKeptFights(store, KEY)[0];
-    assert(kept !== undefined, "and read back");
+    assertExists(kept, "and read back");
 
     const offShelf = composeBattleSession();
     for (const payload of kept.payloads) addPayloadToSession(offShelf, payload);
@@ -262,8 +262,8 @@ Deno.test("a fight off the shelf reads as the fight that went on it, through one
 
     const read = getFightFromSession(offShelf);
     const watched = getFightFromSession(live);
-    assert(read !== null, "a fight off the shelf is a fight");
-    assert(watched !== null, "and so is the one that was watched");
+    assertExists(read, "a fight off the shelf is a fight");
+    assertExists(watched, "and so is the one that was watched");
     assertEquals(read.payloads, payloads.length, "every call the game made went on and came back");
     assertEquals(read.events, watched.events, "the same events, by the code that is running now");
     assertEquals(read.roster.byId.size, watched.roster.byId.size, "and the same cast");

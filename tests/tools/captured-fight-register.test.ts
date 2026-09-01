@@ -6,7 +6,7 @@
  * material produces; what it refuses is a row nothing produces and a recording no row names.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists, assertNotEquals } from "@std/assert";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import {
@@ -229,7 +229,7 @@ function getReaderSide(path: string): number {
         if (!isRecord(update)) continue;
         found = getNumberFromUnknown(update[READER_SIDE_KEY]);
     }
-    assert(found !== null, `${path}: no payload states the reader's own side`);
+    assertExists(found, `${path}: no payload states the reader's own side`);
     return found;
 }
 
@@ -259,7 +259,7 @@ function composeCastText(cast: readonly RecordedWarrior[]): string {
 
 function getSection(text: string, from: string, to: string): string {
     const start = text.indexOf(from);
-    assert(start !== -1, `${from} is a section of the register`);
+    assertNotEquals(start, -1, `${from} is a section of the register`);
     const end = text.indexOf(to, start);
     assert(end > start, `${from} ends where ${to} starts`);
     return text.slice(start, end);
@@ -284,7 +284,7 @@ Deno.test("the cast each row states is the cast the recording's payloads state",
     let checked = 0;
     for (const path of getRecordingPaths()) {
         const row = rows.find((cells) => cells[0] === path);
-        assert(row !== undefined, `${path}: no row states its cast`);
+        assertExists(row, `${path}: no row states its cast`);
         const seat = getReaderSide(path);
         const cast = [...getRecordedWarriors(path).values()];
         const ours = cast.filter((one) => one.side === seat);

@@ -6,7 +6,7 @@
  * operator's writing stays out of this repository in any form (`NOTICE.md`).
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assertEquals, assertExists } from "@std/assert";
 import { getDictionaryReader, getLabelFromEntry } from "@/src/game/game-dictionary.ts";
 
 const CRITICAL_ID = "msg_+crit";
@@ -51,7 +51,7 @@ Deno.test("a reader answers what the client answers, and nothing where it answer
     const read = getDictionaryReader({
         _t: (id: string) => (id === CRITICAL_ID ? "+Critical hit" : undefined),
     });
-    assert(read !== null, "a page with the dictionary on it lends a reader");
+    assertExists(read, "a page with the dictionary on it lends a reader");
     assertEquals(read(CRITICAL_ID), "Critical hit", "the label inside what it answered");
     // A miss falls off the end of `_t` — development build `1781609507010`.
     assertEquals(read("msg_nothing_here"), null, "and no answer is taken for an answer");
@@ -59,7 +59,7 @@ Deno.test("a reader answers what the client answers, and nothing where it answer
 
 Deno.test("an answer of the wrong kind is no answer either", () => {
     const read = getDictionaryReader({ _t: () => 42 });
-    assert(read !== null, "the page still lends a reader");
+    assertExists(read, "the page still lends a reader");
     assertEquals(read(CRITICAL_ID), null, "which refuses what is not text");
 });
 
@@ -69,6 +69,6 @@ Deno.test("a dictionary that throws leaves the panel drawing its own word", () =
         // A real fault rather than a thrown Error: a torn-down page context looks like this.
         _t: (): string => (undefined as unknown as { missing: () => string }).missing(),
     });
-    assert(read !== null, "the page lends a reader");
+    assertExists(read, "the page lends a reader");
     assertEquals(read(CRITICAL_ID), null, "and the failure comes back as no label");
 });

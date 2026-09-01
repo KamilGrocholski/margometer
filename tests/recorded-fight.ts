@@ -7,7 +7,7 @@
  * `undefined`.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
@@ -24,7 +24,7 @@ function getNumberFromField(value: unknown, subject: string): number {
 export function getRecordingPaths(): string[] {
     const paths = getRecordingFilePaths();
     assert(paths.length > 0, "an empty evidence directory is a finding, not a pass");
-    assert(new Set(paths).size === paths.length, "a recording is listed once");
+    assertEquals(new Set(paths).size, paths.length, "a recording is listed once");
     return paths;
 }
 
@@ -118,10 +118,10 @@ export function getRecordedPayloads(path: string): string[][] {
  */
 function getRecordedCombatant(snapshot: unknown, path: string): Combatant {
     const combatant = getCombatantFromWarrior(snapshot);
-    assert(combatant !== null, `${path} states a combatant the roster can hold`);
-    assert(combatant.profession !== null, `${path}: a profession`);
-    assert(combatant.level !== null, `${path}: a level`);
-    assert(combatant.healthMaximum !== null, `${path}: a health maximum`);
+    assertExists(combatant, `${path} states a combatant the roster can hold`);
+    assertExists(combatant.profession, `${path}: a profession`);
+    assertExists(combatant.level, `${path}: a level`);
+    assertExists(combatant.healthMaximum, `${path}: a health maximum`);
     return combatant;
 }
 

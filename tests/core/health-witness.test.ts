@@ -6,7 +6,7 @@
  * snapshots state the maximum. Where the two disagree, the disagreement is the finding.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import {
     composeTeamHeals,
@@ -73,8 +73,8 @@ interface Comparison {
 function addComparison(reading: WitnessReading, one: Comparison): void {
     const wasAt = getHealthFromPercent(one.percentBefore, one.healthMaximum);
     const isAt = getHealthFromPercent(one.percentAfter, one.healthMaximum);
-    assert(wasAt !== null, `${one.path}: a maximum that was read`);
-    assert(isAt !== null, `${one.path}: a maximum that was read`);
+    assertExists(wasAt, `${one.path}: a maximum that was read`);
+    assertExists(isAt, `${one.path}: a maximum that was read`);
     reading.compared += 1;
     const stated = isAt - wasAt;
     const tolerance = getHealthToleranceFromMaximum(one.healthMaximum) * READINGS_COMPARED;
