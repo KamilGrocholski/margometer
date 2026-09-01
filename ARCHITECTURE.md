@@ -426,11 +426,11 @@ commit that opens or closes one.
    one end of, how they fought at either end and what qualifies the lot, and says so where the row
    under it states a cut of the figure — while hovering a row with nobody behind it opens the name
    its own cell had to cut, and one the protocol left an end of says which end and where its figure
-   stands, and opens onto the end the game did name, the bar says which build drew it and the host
-   carries the same number for a screenshot to be read by, the panel folds to that bar and comes
-   back folded, a press on `⭳` hands the reader the fight in one file — the calls in the shape
-   intake reads and the figures they came to beside them, the panel carries the stylesheet
-   `DESIGN.md` specifies and the strip that always states the screen's own total, and
+   stands, and opens onto the end the game did name and what it was dealt with, the bar says which
+   build drew it and the host carries the same number for a screenshot to be read by, the panel
+   folds to that bar and comes back folded, a press on `⭳` hands the reader the fight in one file —
+   the calls in the shape intake reads and the figures they came to beside them, the panel carries
+   the stylesheet `DESIGN.md` specifies and the strip that always states the screen's own total, and
    `deno task build` writes the file they install, `deno task preview` serves it over a recording
    and reloads it on a change under `src/`, `deno task preview:site` writes the same page down for
    somebody with no clone, `deno task screenshots` photographs it, and `deno task intake` redacts a

@@ -223,6 +223,13 @@ function addUnnamedRungToTally(tally: DrillTally, replay: FightReplay, kase: Pin
     if (held.neither !== null) {
         addToTally(tally, screen, { rung: "unnamed", row: "neither end" }, false);
     }
+    for (const one of held.kinds.rows) {
+        assert(one.figure > 0, "and a kind under it carries some of it too");
+        addToTally(tally, screen, { rung: "unnamed", row: "kind" }, one.opensPart);
+    }
+    if (held.kinds.unnamed !== null) {
+        addToTally(tally, screen, { rung: "unnamed", row: "no kind" }, false);
+    }
 }
 
 function addScreenToTally(tally: DrillTally, replay: FightReplay, screen: PanelMetric): void {
@@ -393,6 +400,10 @@ function composeUnnamedLines(replay: FightReplay, kase: PinnedCase): string[] {
         lines.push(`      person  leaf   ${named} ${composeIntegerText(one.figure)}`);
     }
     if (held.neither !== null) lines.push("      neither end  leaf");
+    for (const one of held.kinds.rows) {
+        lines.push(`      kind    leaf   ${one.element} ${composeIntegerText(one.figure)}`);
+    }
+    if (held.kinds.unnamed !== null) lines.push("      no kind  leaf");
     return lines;
 }
 

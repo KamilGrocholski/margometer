@@ -42,6 +42,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   albo przybyło życia, a pod „Nieznanym celem" — lista tych, którzy uderzyli. To ten koniec ciosu,
   który gra podała: drugiego dodatek dalej nie zgaduje i nie poda żadnego imienia.
 
+- **Nowość** — I widać w nich, **czym** to poszło. Pod listą osób stoi druga: typy obrażeń, z
+  udziałami, sumujące się do tej samej liczby. Na nagraniach z testów prawie dziewięć dziesiątych
+  tego, czego nikt nie zadał, to trucizna — czyli liczba, która wyglądała na zgubioną, jest zwykłym
+  zatruciem tykającym poza ciosami.
+
 ## [0.11.0] — 2026-08-31
 
 Dodatek jest napisany **od zera**, drugi raz po `0.6.0`. Z wersji `0.10.1` nie zostało nic poza

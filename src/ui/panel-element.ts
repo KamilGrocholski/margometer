@@ -8,6 +8,7 @@ import { BUILD_VERSION } from "@/src/build-version.ts";
 import { composeDecimalText } from "@/libs/number-text.ts";
 import type {
     DrillReading,
+    ElementCut,
     ElementRow,
     HalfNamedReading,
     NamedPart,
@@ -905,17 +906,17 @@ function composeSkillRowReading(row: SkillRow, metric: PanelMetric, rank: number
     };
 }
 
+/** The cut and its figure rather than a reading holding them: two levels draw this section. */
 function composeElementSection(
     document: PanelDocument,
     list: PanelElement,
-    drill: DrillReading,
-    stated: { metric: PanelMetric; register: TipRegister; figure: string },
+    cut: ElementCut,
+    stated: { metric: PanelMetric; register: TipRegister; figure: string; total: number },
 ): void {
-    const cut = drill.byElement;
     assert(cut.rows.length <= MAXIMUM_KINDS, "a cut stays inside the bound it is kept to");
-    assert(drill.total >= 0, "a cut stands under a figure that is not below nothing");
+    assert(stated.total >= 0, "a cut stands under a figure that is not below nothing");
     if (cut.rows.length === 0 && cut.unnamed === null) return;
-    list.append(composeSectionElement(document, getWordsForKindCut(stated.metric), drill.total));
+    list.append(composeSectionElement(document, getWordsForKindCut(stated.metric), stated.total));
     const noun = getNounForScreen(stated.metric);
     const share = PANEL_WORDS.shareOfFigure;
     for (const [at, row] of cut.rows.entries()) {
@@ -989,7 +990,12 @@ function composeDrillElement(
         place,
     });
     composeSkillSection(document, list, drill, { metric: view.current, register, figure });
-    composeElementSection(document, list, drill, { metric: view.current, register, figure });
+    composeElementSection(document, list, drill.byElement, {
+        metric: view.current,
+        register,
+        figure,
+        total: drill.total,
+    });
     assert(drill.total >= 0, "a figure opened is never below nothing");
     if (drill.total === 0) {
         list.append(composeEmptyElement(document, getWordsForNothing(view.current)));
@@ -1168,13 +1174,21 @@ function composeHalfNamedElement(
     register: TipRegister,
     translate: TranslateLabel | null,
 ): PanelElement {
-    const rows = halfNamed.rows.length + (halfNamed.neither === null ? 0 : 1);
-    assert(rows > 0, "a pinned row that opens has somebody under it, or says it has nobody");
+    const named = halfNamed.rows.length + (halfNamed.neither === null ? 0 : 1);
+    const kinds = halfNamed.kinds.rows.length + (halfNamed.kinds.unnamed === null ? 0 : 1);
+    assert(named > 0, "a pinned row that opens has somebody under it, or says it has nobody");
     assert(halfNamed.total > 0, "and a figure that is there to be cut");
-    const list = composeListElement(document, Math.max(rows + 1, view.reading.visibleRows));
+    const needed = named + 1 + (kinds === 0 ? 0 : kinds + 1);
+    const list = composeListElement(document, Math.max(needed, view.reading.visibleRows));
     const heading = getWordsForHalfNamedCut(halfNamed.end);
     list.append(composeSectionElement(document, heading, halfNamed.total));
     composeHalfNamedRows(document, list, view, { halfNamed, register, translate });
+    composeElementSection(document, list, halfNamed.kinds, {
+        metric: view.current,
+        register,
+        figure: getWordsForScreen(view.current),
+        total: halfNamed.total,
+    });
     return list;
 }
 

@@ -125,3 +125,5 @@ edited to agree with the new rule.
   release states the number the tree declares. **Accepted**
 - [0038](0038-a-half-named-row-says-what-it-is-and-opens.md) — A half-named row says what it is, and
   opens onto the end the game did name. **Accepted**
+- [0039](0039-a-half-named-figure-says-what-it-was-dealt-with.md) — A half-named figure says what it
+  was dealt with, from a cut kept for it. **Accepted**

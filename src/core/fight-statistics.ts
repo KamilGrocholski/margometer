@@ -75,6 +75,15 @@ export interface CombatantFigures {
     damageDealtToNobody: number;
     healthRestoredByNobody: number;
     /**
+     * And what each of the three was made of. The flat cuts below hold these points as well, mixed
+     * in with everything a named end dealt, so a half-named figure cannot be cut back out of them:
+     * of the 609,078 points nobody was named for striking over `captures/` on 2026-09-01, 89.2%
+     * arrive under `poison`, on rows that took damage from named strikers too.
+     */
+    damageTakenFromNobodyByElement: Map<string, number>;
+    damageDealtToNobodyByElement: Map<string, number>;
+    healthRestoredByNobodyBySource: Map<string, number>;
+    /**
      * Health moving, cut by the other end and by the key it moved under. There is no flat cut of
      * what a combatant **gave** by key: the keys the protocol names belong to whoever received the
      * health, so charging one to the giver would be wording their row with somebody else's cause.
@@ -186,6 +195,8 @@ export interface FightStatistics {
      * with: it is inside `dealtByNobody` and `takenByNobody` both, and on nobody's row.
      */
     byNeitherEnd: number;
+    /** What that figure was made of. Nobody's row holds it, so nobody's row can be cut for it. */
+    byNeitherEndByElement: ReadonlyMap<string, number>;
     /** Messages the decoder could not read, which is what makes a total suspect. */
     unreadMessages: number;
     /** Casts stated about a side that nobody could size onto its members, whole or in part. */
@@ -206,6 +217,9 @@ export function composeCombatantFigures(): CombatantFigures {
         damageTakenFromNobody: 0,
         damageDealtToNobody: 0,
         healthRestoredByNobody: 0,
+        damageTakenFromNobodyByElement: new Map(),
+        damageDealtToNobodyByElement: new Map(),
+        healthRestoredByNobodyBySource: new Map(),
         healthRestoredByGiver: new Map(),
         healthGivenByReceiver: new Map(),
         healthRestoredBySource: new Map(),
@@ -238,6 +252,15 @@ const MAXIMUM_CUT = 64;
 const MAXIMUM_PROCS = 32;
 /** 81 skills are named across `captures/`, 2026-08-29, and one fight states a fraction of them. */
 const MAXIMUM_SKILLS = 256;
+
+/** The kinds one blow carried, into a cut that holds only what the protocol half-named. */
+function addKindsToCut(cut: Map<string, number>, kinds: readonly DamageFigure[]): void {
+    assert(kinds.length <= MAXIMUM_CUT, "a blow carries its kinds inside the stated bound");
+    for (const kind of kinds) {
+        assert(kind.amount >= 0, "a kind of a blow lands no less than nothing");
+        addToCut(cut, kind.element, kind.amount);
+    }
+}
 
 function addToCut(cut: Map<string, number>, key: string, amount: number): void {
     assert(key.length > 0, "a cut is kept under a name");
@@ -391,6 +414,7 @@ interface StatisticsBuild {
     takenByNobody: number;
     givenByNobody: number;
     byNeitherEnd: number;
+    byNeitherEndByElement: Map<string, number>;
     unreadMessages: number;
     outcome: FightOutcome | null;
 }
@@ -517,11 +541,14 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
     }
     if (event.targetId === null) {
         addBlowProcs(getStrikerFigures(build, event.actorId), null, event.procs);
-        addBlowWithNoTarget(build, event.actorId, applied);
+        addBlowWithNoTarget(build, event.actorId, applied, event.applied);
         return;
     }
     const target = getFiguresForCombatant(build.byCombatantId, event.targetId);
-    if (event.actorId === null) target.damageTakenFromNobody += applied;
+    if (event.actorId === null) {
+        target.damageTakenFromNobody += applied;
+        addKindsToCut(target.damageTakenFromNobodyByElement, event.applied);
+    }
     target.damageTakenRaw += raw;
     target.damageTakenApplied += applied;
     for (const figure of event.applied) {
@@ -579,11 +606,14 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
         }
     }
     if (event.targetId === null) {
-        addBlowWithNoTarget(build, event.actorId, amount);
+        addBlowWithNoTarget(build, event.actorId, amount, [event.damage]);
         return;
     }
     const target = getFiguresForCombatant(build.byCombatantId, event.targetId);
-    if (event.actorId === null) target.damageTakenFromNobody += amount;
+    if (event.actorId === null) {
+        target.damageTakenFromNobody += amount;
+        addToCut(target.damageTakenFromNobodyByElement, event.damage.element, amount);
+    }
     target.damageTakenApplied += amount;
     target.damageTakenBlowLargest = getLargerBlow(target.damageTakenBlowLargest, amount);
     addToCut(target.damageTakenByElement, event.damage.element, amount);
@@ -639,7 +669,9 @@ function addGivenHealth(
         build.givenByNobody += amount;
         assert(build.givenByNobody >= amount, "a total only grows by what it was handed");
         if (healedId === null) return;
-        getFiguresForCombatant(build.byCombatantId, healedId).healthRestoredByNobody += amount;
+        const healed = getFiguresForCombatant(build.byCombatantId, healedId);
+        healed.healthRestoredByNobody += amount;
+        addToCut(healed.healthRestoredByNobodyBySource, stated.source, amount);
         return;
     }
     const giver = getFiguresForCombatant(build.byCombatantId, giverId);
@@ -677,14 +709,22 @@ function addRestoredSource(
  * A blow the protocol found no target for. Where it names no actor either, nobody's row holds it
  * and no side can be charged with it: it is counted apart rather than folded into either count.
  */
-function addBlowWithNoTarget(build: StatisticsBuild, actorId: number | null, amount: number): void {
+function addBlowWithNoTarget(
+    build: StatisticsBuild,
+    actorId: number | null,
+    amount: number,
+    kinds: readonly DamageFigure[],
+): void {
     assert(amount >= 0, "a blow lands no less than nothing");
     build.takenByNobody += amount;
     if (actorId === null) {
         build.byNeitherEnd += amount;
+        addKindsToCut(build.byNeitherEndByElement, kinds);
         return;
     }
-    getFiguresForCombatant(build.byCombatantId, actorId).damageDealtToNobody += amount;
+    const striker = getFiguresForCombatant(build.byCombatantId, actorId);
+    striker.damageDealtToNobody += amount;
+    addKindsToCut(striker.damageDealtToNobodyByElement, kinds);
 }
 
 /**
@@ -758,6 +798,7 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
         build.takenByNobody += -event.amount;
         build.dealtByNobody += -event.amount;
         build.byNeitherEnd += -event.amount;
+        addToCut(build.byNeitherEndByElement, event.source, -event.amount);
         return;
     }
     const figures = getFiguresForCombatant(build.byCombatantId, event.combatantId);
@@ -784,6 +825,7 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
     const attackerId = getWoundAttackerId(build, event);
     if (attackerId === null) {
         figures.damageTakenFromNobody += -event.amount;
+        addToCut(figures.damageTakenFromNobodyByElement, event.source, -event.amount);
         build.dealtByNobody += -event.amount;
     } else {
         addWoundTick(build, event.combatantId, attackerId, -event.amount);
@@ -929,10 +971,38 @@ function getRestoredBalance(build: StatisticsBuild): number {
 function getPreventedBalance(build: StatisticsBuild): number {
     let apart = 0;
     for (const figures of build.byCombatantId.values()) {
-        let cut = 0;
-        for (const amount of figures.damagePreventedByDefence.values()) cut += amount;
-        assert(Number.isSafeInteger(cut), "a total stays inside what a number holds exactly");
-        apart += Math.abs(figures.damagePrevented - cut);
+        apart += getCutApart(figures.damagePrevented, figures.damagePreventedByDefence);
+    }
+    assert(apart >= 0, "a difference counted as a distance is never below nothing");
+    return apart;
+}
+
+function getCutApart(figure: number, cut: ReadonlyMap<string, number>): number {
+    assert(figure >= 0, "a figure being cut is never below nothing");
+    assert(cut.size <= MAXIMUM_CUT, "and is cut inside the stated bound");
+    let held = 0;
+    for (const amount of cut.values()) held += amount;
+    assert(Number.isSafeInteger(held), "a total stays inside what a number holds exactly");
+    return Math.abs(figure - held);
+}
+
+/**
+ * And what each half-named figure was made of, against the figure itself. A cut written beside a
+ * count is a second place for the same points to land: a kind reaching one and not the other draws
+ * a level whose rows add to a number that is not the one over them.
+ */
+function getHalfNamedKindBalance(build: StatisticsBuild): number {
+    let apart = getCutApart(build.byNeitherEnd, build.byNeitherEndByElement);
+    for (const figures of build.byCombatantId.values()) {
+        apart += getCutApart(
+            figures.damageTakenFromNobody,
+            figures.damageTakenFromNobodyByElement,
+        );
+        apart += getCutApart(figures.damageDealtToNobody, figures.damageDealtToNobodyByElement);
+        apart += getCutApart(
+            figures.healthRestoredByNobody,
+            figures.healthRestoredByNobodyBySource,
+        );
     }
     assert(apart >= 0, "a difference counted as a distance is never below nothing");
     return apart;
@@ -976,6 +1046,7 @@ export function composeFightStatistics(
         takenByNobody: 0,
         givenByNobody: 0,
         byNeitherEnd: 0,
+        byNeitherEndByElement: new Map(),
         unreadMessages: 0,
         castsUnplaced: 0,
         outcome: null,
@@ -1004,6 +1075,7 @@ export function composeFightStatistics(
     assert(getAppliedBalance(build) === 0, "every point applied is counted once at each end");
     assert(getRestoredBalance(build) === 0, "and every point restored once at each of its own");
     assert(getHalfNamedBalance(build) === 0, "and every half-named point is on the row it named");
+    assert(getHalfNamedKindBalance(build) === 0, "and under the key it was stated with");
     assert(
         getPreventedBalance(build) === 0,
         "and what the defences stopped is stopped by one of them",
@@ -1015,6 +1087,7 @@ export function composeFightStatistics(
         takenByNobody: build.takenByNobody,
         givenByNobody: build.givenByNobody,
         byNeitherEnd: build.byNeitherEnd,
+        byNeitherEndByElement: build.byNeitherEndByElement,
         unreadMessages: build.unreadMessages,
         castsUnplaced: build.castsUnplaced,
         outcome: build.outcome,

@@ -456,8 +456,9 @@ Deno.test("a pinned row is pressed by the end it leaves out, from any part of it
 });
 
 /**
- * What the level says, which is the end the game **did** name — and the heading turns on the row
- * rather than on the screen, so a figure with no striker is headed by whom it reached.
+ * What the level says. The people are the end the game **did** name, headed by the row rather than
+ * by the screen, so a figure with no striker is headed by whom it reached. The kinds are the one
+ * question a row naming nobody can still answer, and both cut the same figure.
  */
 Deno.test("a pinned row opens onto the end the game did name, under its own heading", () => {
     const { reading, statistics, roster } = readPinnedFight("damageDealtApplied");
@@ -474,14 +475,17 @@ Deno.test("a pinned row opens onto the end the game did name, under its own head
         .map((one) => one.children[0]?.textContent);
     assertEquals(
         sections,
-        [PANEL_WORDS.dealtTo],
-        "one section, and it names whom the health went from — the end the game stated",
+        [PANEL_WORDS.dealtTo, PANEL_WORDS.damageKind],
+        "two sections: whom the health went from, and what it was taken with",
     );
     const named = getTextsByClass(host, "row-name");
     assertEquals(
         named,
-        halfNamed.rows.map((one) => one.name ?? PANEL_WORDS.unknown),
-        "and lists them, in the order the reading ranked them",
+        [
+            ...halfNamed.rows.map((one) => one.name ?? PANEL_WORDS.unknown),
+            ...halfNamed.kinds.rows.map((one) => getWordsForDamageKind(one.element)),
+        ],
+        "and lists both, each in the order the reading ranked it",
     );
     assertEquals(
         getElementsWithin(host).filter((one) => one.className === "row drillable"),
@@ -711,41 +715,11 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
     const document = composeFakeDocument();
     const pressed: PanelPress[] = [];
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
-    panel.show({
-        reading: readFight(),
-        current: "damageDealtApplied",
-        side: "everyone" as const,
-        hasReaderSide: false,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        shelfWarnings: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show(composeShownView(readFight()));
     const host = panel.element as FakeElement;
     const before = getElementsWithin(host).filter((one) => one.className === "tabs").length;
 
-    panel.show({
-        reading: readFight(),
-        current: "healthRestored",
-        side: "everyone" as const,
-        hasReaderSide: false,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        shelfWarnings: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show(composeShownView(readFight(), "healthRestored"));
     const tabs = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "tab");
     assertEquals(
         getElementsWithin(host).filter((one) => one.className === "tabs").length,
@@ -2302,22 +2276,7 @@ Deno.test("a row that opens says so, and a row that does not says nothing of the
 
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({
-        reading,
-        current: "damageTakenApplied" as const,
-        side: "everyone" as const,
-        hasReaderSide: false,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        shelfWarnings: [],
-        drill,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show({ ...composeShownView(reading, "damageTakenApplied"), drill });
     const host = panel.element as FakeElement;
     const pointAtRow = (key: string) => {
         const part = getElementsWithin(host).find((one) => {

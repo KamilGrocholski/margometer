@@ -23,13 +23,13 @@ away from `opened` and neither is reachable from the other, so a reader counting
 can go counts three. `unnamed` sits on the second level off a branch of its own — it is opened from
 a row standing under the ranking rather than from one on it — and nothing stands under it.
 
-| view      | level | what it lists                                          | how a reader gets there                                      |
-| --------- | ----- | ------------------------------------------------------ | ------------------------------------------------------------ |
-| `ranking` | 1     | one row per combatant, by the chosen figure            | the screen a tab opens on                                    |
-| `opened`  | 2     | that combatant's figure, in up to three cuts           | pressing a ranking row                                       |
-| `unnamed` | 2     | the end the game **did** name, person by person        | pressing a pinned row under the ranking                      |
-| `pair`    | 3     | what one of them did to the other, by skill and by key | pressing a person in the opened row's `KOMU` / `OD KOGO` cut |
-| `part`    | 3     | whom one row of a cut reached, person by person        | pressing a skill, a key or a kind inside the opened row      |
+| view      | level | what it lists                                             | how a reader gets there                                      |
+| --------- | ----- | --------------------------------------------------------- | ------------------------------------------------------------ |
+| `ranking` | 1     | one row per combatant, by the chosen figure               | the screen a tab opens on                                    |
+| `opened`  | 2     | that combatant's figure, in up to three cuts              | pressing a ranking row                                       |
+| `unnamed` | 2     | the end the game **did** name, and what it was dealt with | pressing a pinned row under the ranking                      |
+| `pair`    | 3     | what one of them did to the other, by skill and by key    | pressing a person in the opened row's `KOMU` / `OD KOGO` cut |
+| `part`    | 3     | whom one row of a cut reached, person by person           | pressing a skill, a key or a kind inside the opened row      |
 
 **A row opens wherever there is a level under it.** What decides it is never whether that level
 would say something new — a cut of one row states what the figure over it was made of, which the
@@ -81,6 +81,7 @@ A verdict outside that list is refused rather than read as silence.
 | `damageDealtApplied` | `pair`    | `kind`       | `never`     |
 | `damageDealtApplied` | `part`    | `person`     | `never`     |
 | `damageDealtApplied` | `unnamed` | `person`     | `never`     |
+| `damageDealtApplied` | `unnamed` | `kind`       | `never`     |
 | `damageTakenApplied` | `ranking` | `person`     | `always`    |
 | `damageTakenApplied` | `ranking` | `half-named` | `always`    |
 | `damageTakenApplied` | `opened`  | `person`     | `always`    |
@@ -93,6 +94,7 @@ A verdict outside that list is refused rather than read as silence.
 | `damageTakenApplied` | `pair`    | `kind`       | `never`     |
 | `damageTakenApplied` | `part`    | `person`     | `never`     |
 | `damageTakenApplied` | `unnamed` | `person`     | `never`     |
+| `damageTakenApplied` | `unnamed` | `kind`       | `never`     |
 | `healthGiven`        | `ranking` | `person`     | `always`    |
 | `healthGiven`        | `opened`  | `person`     | `always`    |
 | `healthGiven`        | `opened`  | `skill`      | `always`    |
@@ -129,10 +131,16 @@ Over `captures/` on 2026-09-01: of the rows a reader meets inside an opened row,
 `closing`, `half-named`, and the key and kind rows on the screens whose statistics keep no second
 cut of them — never a row the panel decided against.
 
-The pinned rows open onto **90 person rows**, 45 on each damage screen. It is the same 45 read from
-both ends: on `Zadane` they are who lost the health nobody was named for striking, on `Otrzymane`
-the same figure cut by the same people — one row per person the count reaches, which is what
-`getHalfNamedBalance` in `src/core/fight-statistics.ts` asserts it is the sum of.
+The pinned rows open onto **90 person rows and 102 kind rows**, 45 and 51 on each damage screen. The
+people are the same 45 read from both ends: on `Zadane` they are who lost the health nobody was
+named for striking, on `Otrzymane` the same figure cut by the same people — one row per person the
+count reaches, which is what `getHalfNamedBalance` in `src/core/fight-statistics.ts` asserts it is
+the sum of.
+
+The kinds are the second cut of that same figure, and they are what a reader came for: over
+`captures/` on 2026-09-01 the 609,078 points nobody was named for striking are 89.2% `poison`, then
+`anguish`, `wound`, `heal`, `fire` and `light` — six keys, in 51 rows across the 28 recordings.
+Composed through the panel and tallied straight off the events, the two agree to the point.
 
 ## Where a row that opens nothing still says something
 
@@ -184,8 +192,12 @@ rather than a gap in the material:
   gave it. On `healthGiven` the same key opens, because the cut there is kept per receiver.
 - **A pair has no `no kind` row.** Its figure is read off the cut its kinds come from, so there is
   nothing for them to fall short of.
-- **Nothing under a pinned row opens.** A pair between somebody and nobody is not a pair, and the
-  end the game left out is the one thing this panel will not name (**ADR 0013**, **ADR 0036**).
+- **Nothing under a pinned row opens.** A pair between somebody and nobody is not a pair, a kind
+  under one would be a cut of a cut nothing keeps, and the end the game left out is the one thing
+  this panel will not name (**ADR 0013**, **ADR 0036**).
+- **A pinned row has no `no kind` row.** Its kinds are folded from cuts that
+  `src/core/fight-statistics.ts` asserts total the very figures they were folded beside, so there is
+  nothing for them to fall short of. **ADR 0039.**
 - **`neither end` stands only under a figure standing `apart`, and only under `Wszyscy`.** A `cut`
   is summed over rows the ranking already draws and nobody's row is not one of them; under one side
   the charge is read off a row, and there is no row to read it off. **ADR 0038.**
@@ -197,7 +209,8 @@ Shapes the code would draw, absent from `captures/`, so no verdict is claimed. E
 
 - a `half-named` row on either healing screen, at either level, and on `damageDealtApplied` inside
   an opened row;
-- a `no kind` row anywhere;
+- a `no kind` row on any level that could hold one. Under a pinned row it is not absent but
+  impossible, which is the bullet above rather than this one;
 - a `half-named` row on the third level, under a part;
 - a `neither end` row under a pinned one. `byNeitherEnd` is zero over every recording, so the row
   the code draws for it has never been drawn from material.

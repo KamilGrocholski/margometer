@@ -246,9 +246,11 @@ entered from the second level and neither from the other, so the panel is never 
 deep. Nothing on the third opens: the protocol states no further cut of it.
 
 **A pinned row opens too, onto its own second level.** It stands under the ranking rather than on
-it, so what it opens is a branch beside the one a person's row opens: the end the game **did** name,
-person by person, and nothing under that. Which end that is turns on the row and not on the screen,
-so `Otrzymane` heads its two pinned rows differently. **ADR 0038.**
+it, so what it opens is a branch beside the one a person's row opens: two sections, and nothing
+under either. The first is the end the game **did** name, person by person, headed by the row and
+not by the screen — so `Otrzymane` heads its two pinned rows differently (**ADR 0038**). The second
+is what the figure was dealt with, headed like any kind cut, and it is the section a reader came
+for: the row names nobody, and this is the question it can still answer (**ADR 0039**).
 
 **Every row with a level under it opens, and only what has none stays shut.** A cut of one row is
 not a repetition to be spared: it states what the figure over it was made of, which the heading

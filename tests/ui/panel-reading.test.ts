@@ -49,6 +49,8 @@ const SCREENS: PanelMetric[] = [
 const BOTH_KINDS_OF_PAIR = "captures/2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json";
 /** The one recording where health goes down on a key of its own, and nowhere near a blow. */
 const POISONED = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
+/** The widest spread of keys behind a half-named figure in the corpus: four of them. */
+const FOUR_KINDS = "captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json";
 const POISONED_ID = -255967;
 const POISON = "-255967=19.27;0;poison=140,14";
 /** A blow the protocol gives no striker and no target: `0` is the segment that names nobody. */
@@ -632,13 +634,16 @@ Deno.test("a figure nobody can be charged with is shown under everybody and nowh
 });
 
 /**
- * The invariant the level exists to keep: a pinned row is the sum of what stands under it. The two
- * are one walk in `src/ui/panel-reading.ts`, so this holds that walk to the figure the row draws
- * beside it — over every recording, every screen and every choice of side. **ADR 0038.**
+ * The invariant the level exists to keep: a pinned row is the sum of what stands under it — **of
+ * each of its two sections separately**, which is what makes them two cuts of one number rather
+ * than two numbers. The people and the kinds are folded from one walk in `src/ui/panel-reading.ts`,
+ * so this holds that walk to the figure the row draws beside it, over every recording, every screen
+ * and every choice of side. **ADR 0038**, **ADR 0039**.
  */
 Deno.test("a pinned row is the whole of what stands under it, on every list", () => {
     let opened = 0;
     let people = 0;
+    let kinds = 0;
     for (const path of getRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         const sides = [...new Set([...roster.byId.values()].map((one) => one.side))];
@@ -669,8 +674,16 @@ Deno.test("a pinned row is the whole of what stands under it, on every list", ()
                         const under = held.rows.reduce((sum, one) => sum + one.figure, 0) +
                             (held.neither?.figure ?? 0);
                         assertEquals(under, pinned.figure, `${metric} ${choice}: the level totals`);
+                        const dealt = held.kinds.rows.reduce((sum, one) => sum + one.figure, 0);
+                        assertEquals(dealt, pinned.figure, `${metric} ${choice}: the kinds total`);
+                        assertEquals(
+                            held.kinds.unnamed,
+                            null,
+                            `${metric} ${choice}: nothing of it falls outside a key`,
+                        );
                         opened += 1;
                         people += held.rows.length;
+                        kinds += held.kinds.rows.length;
                     }
                 }
             }
@@ -678,6 +691,7 @@ Deno.test("a pinned row is the whole of what stands under it, on every list", ()
     }
     assert(opened > 0, "the corpus pins figures to open");
     assert(people > 0, "and somebody stands under them");
+    assert(kinds > 0, "and the material says what each was dealt with");
 });
 
 /**
@@ -729,6 +743,39 @@ Deno.test("a half-named point opens a level, and none at all opens nothing", () 
     assert(held !== null, "and one point of it opens a level");
     assertEquals(held.total, 1, "of that one point");
     assertEquals(held.rows.map((row) => row.combatantId), [struck.id], "under whoever took it");
+    assertEquals(
+        held.kinds.rows.map((row) => [row.element, row.figure]),
+        [["dmg", 1]],
+        "and under the key the protocol stated it with",
+    );
+});
+
+/**
+ * What a row naming nobody can still answer, and the reason it is worth opening where the level
+ * above it lists one person. Read on the recording with the widest spread, so a cut that had
+ * collapsed to a single key would show — and against the keys the protocol wrote, never a word of
+ * ours. **ADR 0039.**
+ */
+Deno.test("a pinned row says what its figure was dealt with, key by key", () => {
+    const { roster, statistics } = readFight(FOUR_KINDS);
+    const kase = getPinnedCase("damageDealtApplied", "actor");
+    assert(kase !== null, "damage dealt pins the striker the game left out");
+    const held = composeHalfNamedReading(statistics, roster, kase, "everyone", null);
+    assert(held !== null, "and this fight has such a figure");
+    assertEquals(
+        held.kinds.rows.map((one) => [one.element, one.figure]),
+        [["poison", 7195], ["fire", 4104], ["wound", 1700], ["light", 428]],
+        "the keys the protocol stated it under, ranked by the figure",
+    );
+    const dealt = held.kinds.rows.reduce((sum, one) => sum + one.figure, 0);
+    assertEquals(dealt, held.total, "and they are the whole of it");
+    const reached = held.rows.reduce((sum, one) => sum + one.figure, 0);
+    assertEquals(
+        reached,
+        held.total,
+        "as are the people, which is what makes them two cuts of one",
+    );
+    assertEquals(held.kinds.rows.some((one) => one.opensPart), false, "and no key of it opens");
 });
 
 /**
@@ -752,6 +799,11 @@ Deno.test("a blow with nobody at the far end opens onto whoever struck it", () =
     assertEquals(held.rows.map((one) => one.combatantId), [striker.id], "and names who swung");
     assertEquals(held.rows[0]?.figure, 500, "at the whole of the figure");
     assertEquals(held.neither, null, "with nothing left over, because one end was named");
+    assertEquals(
+        held.kinds.rows.map((one) => [one.element, one.figure]),
+        [["dmg", 500]],
+        "and says what it was dealt with, on the one case no recording carries",
+    );
 });
 
 /**
@@ -772,6 +824,11 @@ Deno.test("what named neither end closes the level it is inside", () => {
     assertEquals(held.rows, [], "and nobody stands under it, because nobody was named");
     assertEquals(held.neither?.figure, 700, "the whole of it closes against what named no end");
     assertEquals(held.total, 700, "which is the figure the row states");
+    assertEquals(
+        held.kinds.rows.map((one) => [one.element, one.figure]),
+        [["dmg", 700]],
+        "and it still says what it was dealt with: a key is stated against the movement itself",
+    );
     for (const choice of ["reader", "opposing"] as const) {
         assertEquals(
             composeHalfNamedReading(statistics, roster, kase, choice, readerSide),
@@ -991,6 +1048,11 @@ Deno.test("healing no giver can be read for is apart on one screen and a cut on 
         assertEquals(held.rows.map((one) => one.figure), [400], `${kase}: on one person's row`);
         assertEquals(held.rows[0]?.combatantId, healed, `${kase}: whoever the health reached`);
         assertEquals(held.neither, null, `${kase}: healing never names neither end`);
+        assertEquals(
+            held.kinds.rows.map((one) => [one.element, one.figure]),
+            [["bandage", 400]],
+            `${kase}: and the key it moved under, which on this screen is what restored it`,
+        );
     }
 });
 

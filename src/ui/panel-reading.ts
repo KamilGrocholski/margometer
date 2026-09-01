@@ -169,11 +169,18 @@ export type PinnedCase =
 /** The end the game **did** name, as the per-combatant figure that end carries. */
 type HalfNamedField = "damageTakenFromNobody" | "damageDealtToNobody" | "healthRestoredByNobody";
 
+/** And the same figure cut by the key it was stated under, which is what it was dealt with. */
+type HalfNamedKindField =
+    | "damageTakenFromNobodyByElement"
+    | "damageDealtToNobodyByElement"
+    | "healthRestoredByNobodyBySource";
+
 interface PinnedShape {
     metric: PanelMetric;
     end: PanelUnnamedEnd;
     standing: PinnedStanding;
     field: HalfNamedField;
+    kinds: HalfNamedKindField;
 }
 
 /**
@@ -181,9 +188,10 @@ interface PinnedShape {
  * cannot acquire an end it states no figure for, and a standing cannot drift from the end it was
  * chosen for.
  *
- * `field` is what both the figure and the level under it are read off, and
- * `src/core/fight-statistics.ts` asserts the three of them total the fight's own counts — which is
- * what lets a pinned row be summed from the rows standing under it rather than beside them.
+ * `field` is what both the figure and the level under it are read off, and `kinds` is the same
+ * figure cut by the key it was stated under. `src/core/fight-statistics.ts` asserts the three
+ * fields total the fight's own counts and each cut totals its own field — which is what lets a
+ * pinned row be summed from what stands under it rather than beside it, twice over.
  */
 const PINNED_SHAPES: Record<PinnedCase, PinnedShape> = {
     dealtWithNoActor: {
@@ -191,30 +199,35 @@ const PINNED_SHAPES: Record<PinnedCase, PinnedShape> = {
         end: "actor",
         standing: "apart",
         field: "damageTakenFromNobody",
+        kinds: "damageTakenFromNobodyByElement",
     },
     givenWithNoActor: {
         metric: "healthGiven",
         end: "actor",
         standing: "apart",
         field: "healthRestoredByNobody",
+        kinds: "healthRestoredByNobodyBySource",
     },
     takenWithNoActor: {
         metric: "damageTakenApplied",
         end: "actor",
         standing: "cut",
         field: "damageTakenFromNobody",
+        kinds: "damageTakenFromNobodyByElement",
     },
     takenWithNoTarget: {
         metric: "damageTakenApplied",
         end: "target",
         standing: "apart",
         field: "damageDealtToNobody",
+        kinds: "damageDealtToNobodyByElement",
     },
     restoredWithNoActor: {
         metric: "healthRestored",
         end: "actor",
         standing: "cut",
         field: "healthRestoredByNobody",
+        kinds: "healthRestoredByNobodyBySource",
     },
 };
 
@@ -278,14 +291,19 @@ export type HalfNamedRow = PersonRow;
  * What stands under a pinned row — the end the game **did** name, person by person, and the part
  * of the figure naming neither end where there is one.
  *
- * Nothing on it opens. A pair between somebody and nobody is not a pair, and the level under it
- * would be a cut of a figure the statistics keep no second cut of.
+ * Nothing on it opens. A pair between somebody and nobody is not a pair, and a kind under it
+ * would be a cut of a cut the statistics do not keep.
  */
 export interface HalfNamedReading {
     case: PinnedCase;
     end: PanelUnnamedEnd;
     total: number;
     rows: HalfNamedRow[];
+    /**
+     * What the figure was dealt with — the one question a row naming nobody can still answer, and
+     * the reason it is worth opening at all where the level above lists a single person.
+     */
+    kinds: ElementCut;
     /**
      * The part of the figure that named **neither** end — inside the count above it and on nobody's
      * row, so a section without it falls short of what it is a cut of.
@@ -736,13 +754,6 @@ function composePinnedFigures(
     return found.filter((one) => one.figure > 0);
 }
 
-/**
- * What stands under a pinned row, composed only when a reader asks for it. Null where that row is
- * not on the screen at all — a figure of nothing is not pinned, so there is nothing to open.
- *
- * The rows are the same walk the pinned figure was summed from, so the section totals the figure
- * over it by construction rather than by a second count agreeing with the first.
- */
 export function composeHalfNamedReading(
     statistics: FightStatistics,
     roster: CombatantRoster,
@@ -767,12 +778,52 @@ export function composeHalfNamedReading(
         end: getEndForPinned(kase),
         total,
         rows: composeHalfNamedRows(statistics, roster, parts, shares, largest),
+        kinds: composeHalfNamedKinds(statistics, kase, parts, neither, total),
         neither: neither <= 0 ? null : {
             figure: neither,
             fill: getFill(neither, largest),
             shareText: shares[parts.length] ?? "",
         },
     };
+}
+
+/**
+ * What the figure was dealt with, folded from the **same** people it was summed from — so the two
+ * sections under one pinned row are two cuts of one number rather than two numbers.
+ *
+ * The fold is the panel's because the set of people is: a reader narrowing to one side narrows
+ * what is folded, and `src/core/fight-statistics.ts` cannot know what they narrowed it to. What
+ * that file does hold is each person's own cut against each person's own figure, which is what
+ * makes this sum the figure over it.
+ */
+function composeHalfNamedKinds(
+    statistics: FightStatistics,
+    kase: PinnedCase,
+    parts: readonly HalfNamedPart[],
+    neither: number,
+    total: number,
+): ElementCut {
+    assert(total > 0, "a figure being cut by kind is a figure there is something of");
+    assert(neither >= 0, "and what named neither end is never below nothing");
+    const shape = PINNED_SHAPES[kase];
+    const folded = new Map<string, number>();
+    for (const one of parts) {
+        const figures = statistics.byCombatantId.get(one.combatantId);
+        if (figures === undefined) continue;
+        addFoldedCut(folded, figures[shape.kinds]);
+    }
+    if (neither > 0) addFoldedCut(folded, statistics.byNeitherEndByElement);
+    return composeElementCut(folded, total, () => false);
+}
+
+/** One person's own cut into the fold, under the key the protocol wrote it with. */
+function addFoldedCut(folded: Map<string, number>, held: FigureCut): void {
+    assert(folded.size <= MAXIMUM_CUT_PARTS, "a fold stays inside the bound one cut is kept to");
+    assert(held.size <= MAXIMUM_CUT_PARTS, "and so does each cut folded into it");
+    for (const [key, figure] of held) {
+        assert(figure >= 0, "a part of a figure is never below nothing");
+        folded.set(key, (folded.get(key) ?? 0) + figure);
+    }
 }
 
 /** Ranked the way every list here is: by the figure, then by the name beside it. */
