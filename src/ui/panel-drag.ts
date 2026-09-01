@@ -1,6 +1,6 @@
 /** Where the panel sits, and how a reader moves it. Nothing here measures the document. */
 
-import { assert, assertExists } from "@std/assert";
+import { assert, assertExists, assertStringIncludes } from "@std/assert";
 
 /** A position is two numbers written as JSON; text longer than this is not one. */
 const MAXIMUM_STORED = 4096;
@@ -134,7 +134,7 @@ export function composePositionStyle(position: PanelPosition): string {
     const left = composeIntegerText(position.left);
     const top = composeIntegerText(position.top);
     const style = `left:${left}px;top:${top}px;${TOP_VARIABLE}:${top}px;right:auto`;
-    assert(style.includes(TOP_VARIABLE), "the ceiling is told where the panel's top edge is");
+    assertStringIncludes(style, TOP_VARIABLE, "the ceiling is told where the panel's top edge is");
     assert(style.endsWith("right:auto"), "and the corner the sheet anchored to is released");
     return style;
 }

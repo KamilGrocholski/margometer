@@ -6,7 +6,14 @@
  * C7 forbids a pattern and this file is the first place that rule costs anything.
  */
 
-import { assert, assertEquals, assertExists, assertNotEquals } from "@std/assert";
+import {
+    assert,
+    assertArrayIncludes,
+    assertEquals,
+    assertExists,
+    assertNotStrictEquals,
+    assertStrictEquals,
+} from "@std/assert";
 import { existsSync } from "@std/fs";
 import { isCommentLine } from "@/tests/source-line.ts";
 import { getSourcePaths } from "@/tests/source-paths.ts";
@@ -131,7 +138,7 @@ function getWrittenPaths(): string[] {
     const generated = "frozen/";
     const written = found.filter((path) => !path.startsWith(generated));
     assert(written.length > CANONICAL.length, "the walk reaches past the canonical documents");
-    assertEquals(new Set(written).size, written.length, "a path is listed once");
+    assertStrictEquals(new Set(written).size, written.length, "a path is listed once");
     return written;
 }
 
@@ -167,8 +174,12 @@ Deno.test("every rule reference resolves to a rule that exists", () => {
 Deno.test("the formatter is walled off from the maintainer's list", () => {
     const config = Deno.readTextFileSync(CONFIGURATION_FILE);
     const excludeAt = config.indexOf('"exclude"');
-    assertNotEquals(excludeAt, -1, "deno.json states formatter exclusions");
-    assert(config.indexOf('"TODO.md"', excludeAt) !== -1, "TODO.md is excluded from deno fmt");
+    assertNotStrictEquals(excludeAt, -1, "deno.json states formatter exclusions");
+    assertNotStrictEquals(
+        config.indexOf('"TODO.md"', excludeAt),
+        -1,
+        "TODO.md is excluded from deno fmt",
+    );
 });
 
 Deno.test("a nested AGENTS.md never restates the root", () => {
@@ -329,7 +340,7 @@ Deno.test("no rule is both machine-held and marked as needing a reader", () => {
 /** The fenced block under ARCHITECTURE.md's current state, which claims to mirror the tree. */
 function getStructureBlock(text: string): string {
     const opening = text.indexOf("```");
-    assertNotEquals(opening, -1, "the current state carries a fenced block");
+    assertNotStrictEquals(opening, -1, "the current state carries a fenced block");
     const closing = text.indexOf("```", opening + 3);
     assert(closing > opening, "the fence is closed");
     return text.slice(opening + 3, closing);
@@ -384,7 +395,11 @@ function getDescribedPaths(block: string): DescribedTree {
 Deno.test("the structure block describes every file, by path and not by name", () => {
     const sample = "tests/\n  repository/\n    documents.test.ts   what it holds\n";
     const read = getDescribedPaths(sample + "src/\n  core/\n  ui/\n  game/\nAGENTS.md  rules\n");
-    assert(read.files.includes("tests/repository/documents.test.ts"), "a nested path is rebuilt");
+    assertArrayIncludes(
+        read.files,
+        ["tests/repository/documents.test.ts"],
+        "a nested path is rebuilt",
+    );
     assert(!read.files.includes("documents.test.ts"), "a bare name is never a path");
 
     const described = getDescribedPaths(

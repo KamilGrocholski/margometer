@@ -6,7 +6,7 @@
  * material produces; what it refuses is a row nothing produces and a recording no row names.
  */
 
-import { assert, assertEquals, assertExists, assertNotEquals } from "@std/assert";
+import { assert, assertEquals, assertExists, assertNotStrictEquals } from "@std/assert";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import {
@@ -259,7 +259,7 @@ function composeCastText(cast: readonly RecordedWarrior[]): string {
 
 function getSection(text: string, from: string, to: string): string {
     const start = text.indexOf(from);
-    assertNotEquals(start, -1, `${from} is a section of the register`);
+    assertNotStrictEquals(start, -1, `${from} is a section of the register`);
     const end = text.indexOf(to, start);
     assert(end > start, `${from} ends where ${to} starts`);
     return text.slice(start, end);

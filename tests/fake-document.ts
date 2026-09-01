@@ -5,7 +5,7 @@
  * test drives is the panel's own use of a document rather than a browser's implementation of one.
  */
 
-import { assert, assertEquals, assertNotEquals } from "@std/assert";
+import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
 import type { PanelDocument, PanelElement, PanelEvent, PanelRoot } from "@/src/ui/panel-element.ts";
 
 export interface FakeElement extends PanelElement {
@@ -97,14 +97,14 @@ export function composeFakeDocument(): PanelDocument & { created: FakeElement[] 
                     }
                 },
                 append(child: PanelElement): void {
-                    assertNotEquals(child, element, "an element never holds itself");
+                    assertNotStrictEquals(child, element, "an element never holds itself");
                     element.children.push(child as FakeElement);
                 },
                 setAttribute(name: string, value: string): void {
                     element.attributes.set(name, value);
                 },
                 attachShadow(): PanelRoot {
-                    assertEquals(element.shadow, null, "a root is attached once");
+                    assertStrictEquals(element.shadow, null, "a root is attached once");
                     const inside: FakeElement[] = [];
                     element.shadow = inside;
                     return {

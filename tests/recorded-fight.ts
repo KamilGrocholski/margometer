@@ -7,7 +7,7 @@
  * `undefined`.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
@@ -24,7 +24,7 @@ function getNumberFromField(value: unknown, subject: string): number {
 export function getRecordingPaths(): string[] {
     const paths = getRecordingFilePaths();
     assert(paths.length > 0, "an empty evidence directory is a finding, not a pass");
-    assertEquals(new Set(paths).size, paths.length, "a recording is listed once");
+    assertStrictEquals(new Set(paths).size, paths.length, "a recording is listed once");
     return paths;
 }
 

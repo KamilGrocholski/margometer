@@ -5,7 +5,13 @@
  * holds over all of them, which is where a key family that stops being read would show.
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertStrictEquals,
+    assertStringIncludes,
+} from "@std/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
@@ -98,10 +104,14 @@ Deno.test("a message the grammar refuses is an event, not a silence", () => {
     const events = decodeFightMessages(["gracz;0;step"], null);
     assertEquals(events.length, 1, "one event");
     const event = events[0];
-    assert(event?.kind === "unknown-message", "the refusal reaches the panel as a reading");
+    assertStrictEquals(
+        event?.kind,
+        "unknown-message",
+        "the refusal reaches the panel as a reading",
+    );
     assertEquals(event.unreadKeys, [], "no key was reached, which is not a claim about keys");
     assertEquals(event.combatantIds, [], "and no end was read either");
-    assert(event.reason.includes("side"), "the reason names the half that failed");
+    assertStringIncludes(event.reason, "side", "the reason names the half that failed");
 });
 
 Deno.test("health moves on the key's own slot, and its sign is the key's", () => {
@@ -213,7 +223,11 @@ Deno.test("an announcement reaches only the message straight after it", () => {
 Deno.test("a name the game did not take from its table is read where one is named", () => {
     const events = decodeFightMessages([CUSTOM], null);
     const used = events.filter((event) => event.kind === "skill-used");
-    assert(used[0]?.kind === "skill-used", "one combatant at both ends, so nobody is guessed at");
+    assertStrictEquals(
+        used[0]?.kind,
+        "skill-used",
+        "one combatant at both ends, so nobody is guessed at",
+    );
     assertEquals(used[0].skillName, "Przelotna elfia kołysanka", "read like any other name");
 
     // No recording carries this shape; it probes the rule the register states for the key.
@@ -242,9 +256,17 @@ Deno.test("damage stated against a name reaches the person it names", () => {
     const events = decodeFightMessages([AGAINST_NAMES], roster);
     const hits = events.filter((event) => event.kind === "damage-to-named-combatant");
     assertEquals(hits.length, 2, "each name carries its own figure");
-    assert(hits[0]?.kind === "damage-to-named-combatant", "the first is the message's own target");
+    assertStrictEquals(
+        hits[0]?.kind,
+        "damage-to-named-combatant",
+        "the first is the message's own target",
+    );
     assertEquals(hits[0].targetId, 445202, "which the roster resolves like any other name");
-    assert(hits[1]?.kind === "damage-to-named-combatant", "the second is somebody else entirely");
+    assertStrictEquals(
+        hits[1]?.kind,
+        "damage-to-named-combatant",
+        "the second is somebody else entirely",
+    );
     assertEquals(hits[1].targetName, "Gracz 10", "named here and nowhere else in the message");
     assertEquals(hits[1].targetId, 475890, "and put on that combatant, not on the blow's target");
     assertEquals(hits[1].targetHealthPercent, 70.85, "with where the named combatant stands");
@@ -254,7 +276,11 @@ Deno.test("damage stated against a name reaches the person it names", () => {
 Deno.test("a name nothing can resolve keeps its figure and says whose it is not", () => {
     const events = decodeFightMessages([AGAINST_NAMES], null);
     const hits = events.filter((event) => event.kind === "damage-to-named-combatant");
-    assert(hits[0]?.kind === "damage-to-named-combatant", "the figure is read without a roster");
+    assertStrictEquals(
+        hits[0]?.kind,
+        "damage-to-named-combatant",
+        "the figure is read without a roster",
+    );
     assertEquals(hits[0].targetId, null, "and lands on nobody rather than on a guess");
     assertEquals(hits[0].targetName, "Gracz 4", "while the name the game stated is kept");
 });
@@ -361,7 +387,11 @@ Deno.test("a fight nobody won is stated on the winners' key alone", () => {
     assertEquals(drawn[0].combatantNames, [], "naming nobody, which is the whole of what it says");
 
     const refused = decodeFightMessages(["0;0;loser=?"], null);
-    assert(refused[0]?.kind === "unknown-message", "the same mark on the other key is not read");
+    assertStrictEquals(
+        refused[0]?.kind,
+        "unknown-message",
+        "the same mark on the other key is not read",
+    );
     assertEquals(refused.filter((one) => one.kind === "fight-outcome").length, 0, "no side of `?`");
 });
 
@@ -481,7 +511,11 @@ Deno.test("healing stated by name is read from the value, never from a slot", ()
     assertEquals(restored[0].targetName, "Gracz 8", "and the name it states second");
     assertEquals(restored[0].targetHealthPercent, 42, "where that combatant stands after it");
     assertExists(restored[0].targetId, "which the roster resolves");
-    assert(restored[1]?.kind === "healing-to-named-combatant", "and the second is not lost");
+    assertStrictEquals(
+        restored[1]?.kind,
+        "healing-to-named-combatant",
+        "and the second is not lost",
+    );
     assertEquals(restored[1].targetName, "Gracz 5", "who is somebody else again");
     assert(
         restored[0].targetId !== 466747 && restored[1].targetId !== 466747,

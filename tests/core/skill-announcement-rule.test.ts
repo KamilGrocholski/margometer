@@ -6,7 +6,7 @@
  * (`docs/protocol-keys.md`).
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { getRecordedMessages, getRecordingPaths } from "@/tests/recorded-fight.ts";
 
@@ -86,7 +86,11 @@ Deno.test("a declaration rides a name the game did not take from its own table",
         }
     }
     for (const key of ["aura-ac_per", "aura-resall", "critval-allies", "critmval-allies"]) {
-        assert(found.includes(key), `${key} rides a custom name in the material and was not found`);
+        assertArrayIncludes(
+            found,
+            [key],
+            `${key} rides a custom name in the material and was not found`,
+        );
     }
 });
 

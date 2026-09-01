@@ -7,7 +7,7 @@
  * which is why opening every one before committing it stays a standing obligation.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertStrictEquals, assertStringIncludes } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import { getVersionForRun } from "@/tools/declared-version.ts";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
@@ -117,7 +117,11 @@ export function composePanelShots(): PanelShot[] {
         { name: "panel-shelf.png", steps: `setPressed("[data-shelf]", 0);` },
     ];
     assert(shots.length > 1, "a set is more than one picture");
-    assertEquals(new Set(shots.map((shot) => shot.name)).size, shots.length, "each named once");
+    assertStrictEquals(
+        new Set(shots.map((shot) => shot.name)).size,
+        shots.length,
+        "each named once",
+    );
     return shots;
 }
 
@@ -128,7 +132,7 @@ export function composePanelShots(): PanelShot[] {
  */
 export function composeShotScript(steps: string): string {
     assert(steps.length > 0, "a picture is of a state something reached");
-    assert(steps.includes("set"), "and a state is reached by doing something");
+    assertStringIncludes(steps, "set", "and a state is reached by doing something");
     return `var getPanelHost = function () {
   var host = document.getElementById("MargoMeter-Panel");
   if (host === null) throw new ReferenceError("there is no panel on this page");
@@ -331,7 +335,7 @@ async function readBrowserOutput(browser: string, args: readonly string[]): Prom
  * joins them rather than opening a query of its own.
  */
 export function composeShotAddress(address: string, frameWidth: number): string {
-    assert(address.includes("?"), "a shot address already asks the preview for a fight");
+    assertStringIncludes(address, "?", "a shot address already asks the preview for a fight");
     assert(frameWidth > 0, "and is photographed at a frame with a width");
     return `${address}&${FRAME_PARAMETER}=${frameWidth}`;
 }
@@ -399,7 +403,11 @@ async function setShotsMovedIn(staging: string, record: PanelShotRecord): Promis
         });
     }
     await Deno.writeTextFile(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`, `${writing.text}\n`);
-    assertEquals(kept.size, record.shots.length + 1, "the sidecar stands beside the set it names");
+    assertStrictEquals(
+        kept.size,
+        record.shots.length + 1,
+        "the sidecar stands beside the set it names",
+    );
 }
 
 /**
@@ -443,7 +451,11 @@ export async function writePanelShots(browser: string, version: string): Promise
             shots: shots.map((shot) => shot.name),
         };
         await setShotsMovedIn(staging, record);
-        assertEquals(record.shots.length, shots.length, "every picture asked for was moved in");
+        assertStrictEquals(
+            record.shots.length,
+            shots.length,
+            "every picture asked for was moved in",
+        );
         return record;
     } finally {
         await Deno.remove(staging, { recursive: true });

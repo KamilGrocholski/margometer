@@ -9,7 +9,7 @@
  * walks through untouched, which is why this ends by naming the step that is a person's.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertStrictEquals } from "@std/assert";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
@@ -190,7 +190,7 @@ function addPayloadToRoll(roll: Roll, call: Record<string, unknown>): void {
 
 function addSnapshotsToRoll(roll: Roll, call: Record<string, unknown>): void {
     const sides = [call[CAPTURE_FIELDS.combatantsBefore], call[CAPTURE_FIELDS.combatantsAfter]];
-    assertEquals(sides.length, 2, "a call carries a snapshot on either side of it");
+    assertStrictEquals(sides.length, 2, "a call carries a snapshot on either side of it");
     for (const side of sides) {
         if (!Array.isArray(side)) continue;
         for (const stated of side) {
@@ -383,7 +383,11 @@ export function removeSkillDescriptions(recording: unknown): DescriptionRemoval 
                     `${FIELDS_PER_ABILITY} — the layout this was measured against changed`,
             );
         }
-        assertEquals(abilities.length % FIELDS_PER_ABILITY, 0, "an ability list is whole groups");
+        assertStrictEquals(
+            abilities.length % FIELDS_PER_ABILITY,
+            0,
+            "an ability list is whole groups",
+        );
         for (let at = DESCRIPTION_FIELD; at < abilities.length; at += FIELDS_PER_ABILITY) {
             const stated = abilities[at];
             if (typeof stated !== "string") continue;
@@ -532,9 +536,9 @@ function getDayFromMoment(text: string): string | null {
     const DAY_LENGTH = 10;
     if (text.length < DAY_LENGTH) return null;
     const day = text.slice(0, DAY_LENGTH);
-    assertEquals(day.length, DAY_LENGTH, "a day taken off the front is that long");
+    assertStrictEquals(day.length, DAY_LENGTH, "a day taken off the front is that long");
     const shape = "dddd-dd-dd";
-    assertEquals(shape.length, DAY_LENGTH, "a day is written to one length");
+    assertStrictEquals(shape.length, DAY_LENGTH, "a day is written to one length");
     for (const [at, wanted] of [...shape].entries()) {
         const character = day.charAt(at);
         if (wanted === "-" && character !== "-") return null;
@@ -581,7 +585,7 @@ export function composeIntakePath(recording: unknown, slug: string): string {
     }
     const build = getVersionFromEnvelope(envelope, CAPTURE_FIELDS.gameBuild);
     const addOn = getVersionFromEnvelope(envelope, CAPTURE_FIELDS.addOnVersion);
-    assertEquals(day.length, 10, "a path is named for one day");
+    assertStrictEquals(day.length, 10, "a path is named for one day");
     assert(build.length > 0, "for the build of the game it came off");
     assert(addOn.length > 0, "and for the build of ours that wrote it");
     return `${RECORDING_DIRECTORY}/${day}-${world}-${slug}-${build}-${addOn}${RECORDING_SUFFIX}`;

@@ -6,7 +6,7 @@
  * reader can see the size of what could not be placed instead of finding it folded into a row.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import type {
     AnnouncedSkill,
     AttackEvent,
@@ -909,7 +909,11 @@ function addTeamHeal(
             announced,
         });
         if (announced === null) continue;
-        assert(announced.actorId === heal.casterId, "one combatant cast it and one announced it");
+        assertStrictEquals(
+            announced.actorId,
+            heal.casterId,
+            "one combatant cast it and one announced it",
+        );
         addSkillRestored(build, announced, amount, combatantId);
     }
     assert(build.castsUnplaced >= 0, "a count of casts never falls below nothing");
@@ -1051,7 +1055,7 @@ export function composeFightStatistics(
         castsUnplaced: 0,
         outcome: null,
     };
-    assertEquals(build.byCombatantId.size, 0, "a fight is counted up from nobody");
+    assertStrictEquals(build.byCombatantId.size, 0, "a fight is counted up from nobody");
     for (const event of events) {
         if (event.kind === "unknown-message") {
             build.unreadMessages += 1;
@@ -1072,10 +1076,22 @@ export function composeFightStatistics(
     }
     assert(build.byCombatantId.size <= MAXIMUM_COMBATANTS, "a fight stays inside its bound");
     assert(build.unreadMessages <= events.length, "a message is counted unread once");
-    assertEquals(getAppliedBalance(build), 0, "every point applied is counted once at each end");
-    assertEquals(getRestoredBalance(build), 0, "and every point restored once at each of its own");
-    assert(getHalfNamedBalance(build) === 0, "and every half-named point is on the row it named");
-    assertEquals(getHalfNamedKindBalance(build), 0, "and under the key it was stated with");
+    assertStrictEquals(
+        getAppliedBalance(build),
+        0,
+        "every point applied is counted once at each end",
+    );
+    assertStrictEquals(
+        getRestoredBalance(build),
+        0,
+        "and every point restored once at each of its own",
+    );
+    assertStrictEquals(
+        getHalfNamedBalance(build),
+        0,
+        "and every half-named point is on the row it named",
+    );
+    assertStrictEquals(getHalfNamedKindBalance(build), 0, "and under the key it was stated with");
     assert(
         getPreventedBalance(build) === 0,
         "and what the defences stopped is stopped by one of them",

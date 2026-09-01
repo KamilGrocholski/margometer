@@ -8,7 +8,14 @@
  * rather than matched, C7.
  */
 
-import { assert, assertEquals, assertExists, assertNotEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertNotStrictEquals,
+    assertStrictEquals,
+    assertStringIncludes,
+} from "@std/assert";
 import { getDecimalFromText } from "@/libs/number-text.ts";
 import { composeStyleSheet } from "@/src/ui/panel-look.ts";
 
@@ -110,7 +117,7 @@ function getDeclarations(body: string): string[] {
         held += character;
     }
     if (held.trim() !== "") declarations.push(held);
-    assertEquals(depth, 0, "a rule closes every group it opens");
+    assertStrictEquals(depth, 0, "a rule closes every group it opens");
     return declarations;
 }
 
@@ -227,19 +234,19 @@ function getTableConstructs(document: string): string[] {
 /** The four settled lists, each read from its label up to the next one. */
 function getSettledConstructs(document: string): Map<string, string[]> {
     const from = document.indexOf("### Settled");
-    assertNotEquals(from, -1, "the register carries a settled section");
+    assertNotStrictEquals(from, -1, "the register carries a settled section");
     const to = document.indexOf("\n## ", from);
-    assertNotEquals(to, -1, "and the section ends at a heading");
+    assertNotStrictEquals(to, -1, "and the section ends at a heading");
     const section = document.slice(from, to);
     const held = new Map<string, string[]>();
     for (const [offset, label] of SETTLED_LABELS.entries()) {
         const at = section.indexOf(label);
-        assertNotEquals(at, -1, `the settled section lists ${label}`);
+        assertNotStrictEquals(at, -1, `the settled section lists ${label}`);
         const next = SETTLED_LABELS[offset + 1];
         const end = next === undefined ? section.length : section.indexOf(next);
         held.set(label, getQuotedNames(section.slice(at, end)));
     }
-    assertEquals(held.size, SETTLED_LABELS.length, "every settled list is read");
+    assertStrictEquals(held.size, SETTLED_LABELS.length, "every settled list is read");
     return held;
 }
 
@@ -389,7 +396,7 @@ function getFloorRows(section: string): FloorRow[] {
 
 function getSection(document: string, from: string, to: string): string {
     const start = document.indexOf(from);
-    assertNotEquals(start, -1, `${from} is a section of the register`);
+    assertNotStrictEquals(start, -1, `${from} is a section of the register`);
     const end = document.indexOf(to, start);
     assert(end > start, `${from} ends where ${to} starts`);
     return document.slice(start, end);
@@ -425,7 +432,7 @@ Deno.test("every construct the JavaScript register names is still spelled where 
         const path = getQuotedNames(row.second)[0] ?? "";
         assert(path.startsWith("src/"), `${row.construct} names a file that ships`);
         const source = Deno.readTextFileSync(path);
-        assert(source.includes(row.construct), `${path} no longer spells ${row.construct}`);
+        assertStringIncludes(source, row.construct, `${path} no longer spells ${row.construct}`);
         assert(
             row.versions.every((one) => one > 0),
             `${row.construct} states a version per engine`,

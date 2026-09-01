@@ -6,7 +6,14 @@
  * out is what a reader would be looking at.
  */
 
-import { assert, assertEquals, assertExists, assertNotEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertNotStrictEquals,
+    assertStrictEquals,
+    assertStringIncludes,
+} from "@std/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import { startMargoMeter, type UserscriptEnvironment } from "@/src/userscript-entry.ts";
 import {
@@ -139,7 +146,7 @@ Deno.test("a recording played through the add-on ends on the panel a reader woul
         row.children.find((one) => one.className === "row-name")?.textContent
     );
     assert(names.every((name) => name !== undefined && name.length > 0), "every row is named");
-    assertEquals(new Set(names).size, names.length, "and each row is somebody of their own");
+    assertStrictEquals(new Set(names).size, names.length, "and each row is somebody of their own");
     for (const [at, figure] of figures.entries()) {
         if (at === 0) continue;
         const above = figures[at - 1];
@@ -1130,7 +1137,7 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
     for (const payload of second) update(payload);
     const now = drawnFigures();
     assert(now.length > 0, "the panel is drawing the second fight");
-    assertNotEquals(now[0], live[0], "which states figures of its own");
+    assertNotStrictEquals(now[0], live[0], "which states figures of its own");
 
     // What was kept is the cast and the messages, so what is drawn is decoded again rather than
     // restored from figures somebody stored.
@@ -1176,5 +1183,5 @@ Deno.test("a fight the reader walked into says so on the panel", () => {
     const drawn = getWarnings();
     assertExists(drawn, "the panel drew the region a doubt is said in");
     const said = getElementsWithin(drawn).map((one) => one.textContent ?? "").join(" ");
-    assert(said.includes("w trakcie"), "and says the reading began after the fight did");
+    assertStringIncludes(said, "w trakcie", "and says the reading began after the fight did");
 });

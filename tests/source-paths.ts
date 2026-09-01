@@ -4,7 +4,7 @@
  * wants is stated below over what comes back.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertStrictEquals } from "@std/assert";
 import { walkSync } from "@std/fs";
 
 export const SOURCE_DIRECTORIES = ["libs", "project", "src", "tools", "tests"];
@@ -21,6 +21,6 @@ export function getSourcePaths(): string[] {
         }
     }
     assert(found.length > 0, "there is TypeScript to walk");
-    assertEquals(new Set(found).size, found.length, "a path is walked once");
+    assertStrictEquals(new Set(found).size, found.length, "a path is walked once");
     return found;
 }

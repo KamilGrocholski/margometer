@@ -5,7 +5,14 @@
  * screen here is what would be on screen in play.
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertArrayIncludes,
+    assertEquals,
+    assertExists,
+    assertStrictEquals,
+    assertStringIncludes,
+} from "@std/assert";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
@@ -264,7 +271,7 @@ Deno.test("the side strip is drawn where the client said which side is the reade
     assertEquals(sides.length, composeSideTabs("reader").length, "one tab for each choice");
     const lower = strips[1];
     assertExists(lower, "the lower row is drawn");
-    assert(lower.children.includes(sides[0] ?? lower), "and the side tabs stand on it");
+    assertArrayIncludes(lower.children, [sides[0] ?? lower], "and the side tabs stand on it");
     assert(
         lower.children.some((one) => one.className === "tabs-gap"),
         "behind the gap that holds them against the right edge",
@@ -407,7 +414,11 @@ Deno.test("a pinned row says what the game left out, and where its figure stands
         ],
         "under everybody it says two things, and that pressing leads somewhere",
     );
-    assert(held.card.lines.includes(PANEL_WORDS.share), "over the share it takes of the screen");
+    assertArrayIncludes(
+        held.card.lines,
+        [PANEL_WORDS.share],
+        "over the share it takes of the screen",
+    );
 
     const narrowed = readPinned("damageDealtApplied", "reader");
     assertEquals(
@@ -426,7 +437,7 @@ Deno.test("a pinned row already counted in the list above it says so", () => {
     const held = readPinned("damageTakenApplied", "everyone");
     assertEquals(held.pinned.standing, "cut", "on this screen the rows hold the figure");
     const said = getWordsForPinnedStanding(held.pinned.case);
-    assert(held.card.notes.includes(said), "and the card says it is counted there");
+    assertArrayIncludes(held.card.notes, [said], "and the card says it is counted there");
     const apart = readPinned("damageDealtApplied", "everyone");
     assert(
         !held.card.notes.includes(getWordsForPinnedStanding(apart.pinned.case)),
@@ -449,7 +460,7 @@ Deno.test("a pinned row is pressed by the end it leaves out, from any part of it
     assertExists(block, "the pinned row stands in a block of its own");
     const row = block.children[0];
     assertExists(row, "and there is a row inside it");
-    assert(row.className.includes("drillable"), "which wears the cursor of a row that opens");
+    assertStringIncludes(row.className, "drillable", "which wears the cursor of a row that opens");
     for (const part of [row, ...row.children]) {
         assertEquals(part.attributes.get("data-unnamed"), "actor", "every cell carries the mark");
     }
@@ -870,7 +881,7 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
     }
     const named = getTextsByClass(host, "row-name");
     // The kinds this fight's top dealer carries, and none of them the physical one.
-    assert(named.includes("ogień"), "and a kind is drawn in the reader's words");
+    assertArrayIncludes(named, ["ogień"], "and a kind is drawn in the reader's words");
     assert(!named.includes("dmgf"), "never under the token the protocol stated it on");
     const kinds = rows.filter((one) => one.className === "row leaf");
     assert(kinds.length > 0, "a kind and a skill are leaves");
@@ -895,10 +906,14 @@ Deno.test("a ranking row's bar is its profession's, and colourless without one",
         const hue = getColourForProfession(row.profession);
         const bar = drawn.children.find((one) => one.className === "bar");
         const drawnBar = bar?.attributes.get("style") ?? "";
-        assert(drawnBar.includes(hue), `${row.profession}: the bar wears that profession's hue`);
+        assertStringIncludes(
+            drawnBar,
+            hue,
+            `${row.profession}: the bar wears that profession's hue`,
+        );
         // Against the biggest figure on the screen and never against the whole: the top row is a
         // full bar, which is the length every row below it is read against.
-        assert(drawnBar.includes(`${(row.fill * 100).toFixed(1)}%`), "and is that long");
+        assertStringIncludes(drawnBar, `${(row.fill * 100).toFixed(1)}%`, "and is that long");
         const cap = drawn.children.find((one) => one.className === "bar-cap");
         assert((cap?.attributes.get("style") ?? "").includes(hue), "and the cap is the full hue");
     }
@@ -958,8 +973,12 @@ Deno.test("a kind's row carries a bar of its own, measured against its own cut",
     assertExists(drawn, "there is a kind to draw a bar for");
     const style = drawn.attributes.get("style") ?? "";
     // Colourless, like every row that names no combatant: the hue on this panel says who.
-    assert(style.includes(getColourForProfession(null)), "in the colour of no category at all");
-    assert(style.includes("width:100.0%"), "and the length its share of the cut states");
+    assertStringIncludes(
+        style,
+        getColourForProfession(null),
+        "in the colour of no category at all",
+    );
+    assertStringIncludes(style, "width:100.0%", "and the length its share of the cut states");
 });
 
 /** How many rows the cut by whom drew before the kinds start, its unnamed part included. */
@@ -1280,7 +1299,11 @@ Deno.test("a region hanging off the root states its own type and its own ink", (
     const regions = (host.shadow ?? [])
         .filter((one) => one.className.length > 0)
         .map((one) => one.className.split(" ")[0] ?? "");
-    assert(regions.includes(CLASS.tip), "the detail window hangs there with the rest of them");
+    assertArrayIncludes(
+        regions,
+        [CLASS.tip],
+        "the detail window hangs there with the rest of them",
+    );
     assertEquals(
         getUndressedRegions(composeStyleSheet(), regions),
         [],
@@ -1447,7 +1470,11 @@ Deno.test("a person inside an opened row opens the card the ranking opens", () =
         dealt.value !== composeFigureText(other.figure),
         "which on this recording is a different number, so the two cannot be confused",
     );
-    assert(card.notes.includes(CARD_WORDS.scope), "and the card says which of the two it means");
+    assertArrayIncludes(
+        card.notes,
+        [CARD_WORDS.scope],
+        "and the card says which of the two it means",
+    );
     // The one card whose figures are its row's: on the ranking the two are the same number, so
     // the sentence saying otherwise would answer nobody's question.
     const ranking = draw(reading);
@@ -1515,7 +1542,11 @@ Deno.test("a person under an opened skill opens a card promising no gesture", ()
         [],
         "the card states all four of their figures here too",
     );
-    assert(card.notes.includes(CARD_WORDS.scope), "and says the figures are the whole fight's");
+    assertArrayIncludes(
+        card.notes,
+        [CARD_WORDS.scope],
+        "and says the figures are the whole fight's",
+    );
     assert(!card.notes.includes(CARD_WORDS.gesture), "and promises nothing, because nothing opens");
 });
 
@@ -1934,7 +1965,7 @@ Deno.test("a cut that repeats the figure above it is drawn all the same", () => 
     );
 
     const two = drill.byElement.rows.slice(0, 2);
-    assertEquals(two.length, 2, "and the fight cuts it by more than one");
+    assertStrictEquals(two.length, 2, "and the fight cuts it by more than one");
     const split = {
         ...drill,
         total: two.reduce((sum, row) => sum + row.figure, 0),
@@ -2130,9 +2161,13 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
     const host = panel.element as FakeElement;
     const named = getTextsByClass(host, "row-name");
     const closing = getWordsForUnannounced("damageDealtApplied");
-    assert(named.includes(closing), "the closing row stands in its own section");
+    assertArrayIncludes(named, [closing], "the closing row stands in its own section");
     const shares = getTextsByClass(host, "row-share");
-    assert(shares.includes("(0% · ×3)"), "carrying the count only its absence of a skill states");
+    assertArrayIncludes(
+        shares,
+        ["(0% · ×3)"],
+        "carrying the count only its absence of a skill states",
+    );
 });
 
 /**
@@ -2381,7 +2416,11 @@ Deno.test("an opened healing pair draws its announcements and its keys as one se
         "and nothing on this rung opens any further",
     );
     const named = getTextsByClass(host, "row-name");
-    assert(named.includes(getWordsForHealthSource("heal")), "a key is drawn in the reader's words");
+    assertArrayIncludes(
+        named,
+        [getWordsForHealthSource("heal")],
+        "a key is drawn in the reader's words",
+    );
     assert(!named.includes("heal"), "never under the token the protocol stated it on");
     assert(
         named.some((one) => one === "Zdrowa atmosfera"),

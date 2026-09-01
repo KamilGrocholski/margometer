@@ -6,7 +6,13 @@
  * follows. Text is walked, not matched — C7.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import {
+    assert,
+    assertArrayIncludes,
+    assertEquals,
+    assertStrictEquals,
+    assertStringIncludes,
+} from "@std/assert";
 import {
     countCallsOutsideStrings,
     getCodeOutsideStrings,
@@ -24,7 +30,6 @@ const ASSERTION_CALLS = [
     "assertThrows",
     "assertExists",
     "assertStrictEquals",
-    "assertNotEquals",
     "assertNotStrictEquals",
     "assertInstanceOf",
     "assertStringIncludes",
@@ -151,7 +156,7 @@ function getSourceReading(path: string): SourceReading {
     assert(reading.commentLines <= reading.lines, "a comment line is a line");
     assert(reading.longestFunctionLines <= reading.lines, "a function fits inside its file");
     assert(reading.functions <= reading.lines, "a function opener is a line");
-    assertEquals(openedAt, -1, "every function opened is closed");
+    assertStrictEquals(openedAt, -1, "every function opened is closed");
     assert(reading.longestFunctionAt <= reading.lines, "a line number is inside the file");
     return reading;
 }
@@ -160,7 +165,7 @@ function getReadings(): Map<string, SourceReading> {
     const paths = getSourcePaths();
     const readings = new Map(paths.map((path) => [path, getSourceReading(path)]));
     assert(readings.size > 0, "there is TypeScript to measure");
-    assertEquals(readings.size, paths.length, "each path is read once");
+    assertStrictEquals(readings.size, paths.length, "each path is read once");
     assert([...readings.values()].every((one) => one.lines > 0), "an empty file is a finding");
     return readings;
 }
@@ -185,7 +190,7 @@ function isShippedPath(path: string): boolean {
 
 /** The directory a file sits in, which is the unit C16 counts over. */
 function getDirectoryOfPath(path: string): string {
-    assert(path.includes("/"), "a source path names a directory before its file");
+    assertStringIncludes(path, "/", "a source path names a directory before its file");
     let at = 0;
     for (let offset = 0; offset < path.length; offset += 1) {
         if (path.charAt(offset) === "/") at = offset;
@@ -195,8 +200,16 @@ function getDirectoryOfPath(path: string): string {
 }
 
 Deno.test("no directory of the program is past its own share of comment", () => {
-    assert(getDirectoryOfPath("src/ui/panel-look.ts") === "src/ui", "the reader places a file");
-    assert(getDirectoryOfPath("src/userscript-entry.ts") === "src", "including one at a root");
+    assertStrictEquals(
+        getDirectoryOfPath("src/ui/panel-look.ts"),
+        "src/ui",
+        "the reader places a file",
+    );
+    assertStrictEquals(
+        getDirectoryOfPath("src/userscript-entry.ts"),
+        "src",
+        "including one at a root",
+    );
     assert(isShippedPath("tools/build-preview.ts"), "a tool ships");
     assert(!isShippedPath("tests/repository/sources.test.ts"), "a guard does not");
 
@@ -354,7 +367,7 @@ Deno.test("assertion density averages two per function where the program is", ()
         assertions += reading.assertions;
         functions += reading.functions;
     }
-    assertEquals(MINIMUM_ASSERTION_DENSITY, 2, "S5 states two");
+    assertStrictEquals(MINIMUM_ASSERTION_DENSITY, 2, "S5 states two");
     if (functions === 0) return;
     const density = assertions / functions;
     assert(
@@ -380,7 +393,7 @@ Deno.test("the guards carry their own density, reported and not enforced", () =>
  * a name it knows too loosely reads as one where a group of ours holds several.
  */
 Deno.test("the counter sees every assertion the library ships, and no group of our own", () => {
-    assert(ASSERTION_CALLS.includes("assert"), "the plain one is still counted");
+    assertArrayIncludes(ASSERTION_CALLS, ["assert"], "the plain one is still counted");
     assertEquals(
         countCallsOutsideStrings('    assertExists(row, "a row was drawn");', ASSERTION_CALLS),
         1,
@@ -401,6 +414,20 @@ Deno.test("the counter sees every assertion the library ships, and no group of o
         0,
         "and holding several assertions still counts as none of them",
     );
+});
+
+/** C9 over the list itself: a name nothing spells is a name that could only inflate S5. */
+Deno.test("every assertion the counter knows is one this tree writes", () => {
+    const spelled = new Set<string>();
+    for (const path of getSourcePaths()) {
+        const text = Deno.readTextFileSync(path);
+        for (const name of ASSERTION_CALLS) {
+            if (countCallsOutsideStrings(text, [name]) > 0) spelled.add(name);
+        }
+    }
+    assert(spelled.size > 0, "there are assertions to find");
+    const unspelled = ASSERTION_CALLS.filter((name) => !spelled.has(name));
+    assertEquals(unspelled, [], "a name the counter knows that nothing in the tree writes");
 });
 
 Deno.test("the readers know a declaration from a callback", () => {
@@ -572,7 +599,7 @@ function getLoopCondition(lines: string[], at: number): string {
         if (ahead > 0 && depth <= 0) break;
         if (depth === 0 && condition.includes(")")) break;
     }
-    assert(condition.includes("while"), "the reader was handed a loop");
+    assertStringIncludes(condition, "while", "the reader was handed a loop");
     assert(condition.length > 0, "a condition is never empty");
     return condition;
 }
@@ -619,7 +646,11 @@ function getImportSpecifier(line: string): string {
     if (end === -1) return "";
     const specifier = code.slice(start, end);
     assert(!specifier.includes('"'), "a specifier stops at its closing quote");
-    assertEquals(specifier.length, end - start, "the slice is the specifier and nothing else");
+    assertStrictEquals(
+        specifier.length,
+        end - start,
+        "the slice is the specifier and nothing else",
+    );
     return specifier;
 }
 

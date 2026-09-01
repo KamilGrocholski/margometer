@@ -11,7 +11,7 @@
  * is the answer.
  */
 
-import { assert, assertEquals, assertNotEquals } from "@std/assert";
+import { assert, assertEquals, assertNotStrictEquals } from "@std/assert";
 import { getCodeOutsideStrings } from "@/tests/source-line.ts";
 import { getSourcePaths } from "@/tests/source-paths.ts";
 
@@ -54,7 +54,7 @@ const WRITTEN_FOR_SOMEBODY_ELSE: Record<string, string> = {
 function getRegisterRows(): Array<{ names: string[]; owner: string }> {
     const document = Deno.readTextFileSync("ARCHITECTURE.md");
     const from = document.indexOf(REGISTER_HEADING);
-    assertNotEquals(from, -1, "the register is a section of its own");
+    assertNotStrictEquals(from, -1, "the register is a section of its own");
     const until = document.indexOf(NEXT_HEADING, from);
     assert(until > from, "and it ends where the next section starts");
     const rows: Array<{ names: string[]; owner: string }> = [];

@@ -9,7 +9,7 @@
  * a loud unknown rather than by reading half a message as if it were understood.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertExists, assertStrictEquals, assertStringIncludes } from "@std/assert";
 import { MargoMeterError } from "@/src/core/margometer-error.ts";
 import { composeIntegerText, getIntegerFromText, isIntegerText } from "@/libs/number-text.ts";
 import { composeHealthPercentText, getHealthPercentFromText } from "@/src/core/protocol-number.ts";
@@ -79,7 +79,11 @@ function parseMessageParameter(segment: string): MessageParameter {
     if (separator === -1) return { key: segment, value: null };
     const key = segment.slice(0, separator);
     const value = segment.slice(separator + 1);
-    assertEquals(key.length + value.length + 1, segment.length, "a segment splits into two parts");
+    assertStrictEquals(
+        key.length + value.length + 1,
+        segment.length,
+        "a segment splits into two parts",
+    );
     return { key, value };
 }
 
@@ -110,7 +114,7 @@ function composeMessageSide(side: MessageSide | null): string {
     assert(idText.length > 0, "an id is written as at least one character");
     if (side.healthPercent === null) return idText;
     const percentText = composeHealthPercentText(side.healthPercent);
-    assert(percentText.includes("."), "a percentage is written with its places");
+    assertStringIncludes(percentText, ".", "a percentage is written with its places");
     return `${idText}${VALUE_SEPARATOR}${percentText}`;
 }
 

@@ -7,7 +7,13 @@
  * and every rung, rather than over the one screen a change was made on.
  */
 
-import { assert, assertEquals, AssertionError, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    AssertionError,
+    assertNotStrictEquals,
+    assertThrows,
+} from "@std/assert";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
@@ -72,7 +78,11 @@ function expectShareTellsNothingFromSomething(where: string, row: ShareRow): voi
         assertEquals(row.shareText, NO_SHARE, `${where}: a row holding nothing states a share`);
         return;
     }
-    assert(row.shareText !== NO_SHARE, `${where}: ${row.figure} printed as none of the whole`);
+    assertNotStrictEquals(
+        row.shareText,
+        NO_SHARE,
+        `${where}: ${row.figure} printed as none of the whole`,
+    );
     if (row.shareText === SHARE_FLOOR) return;
     assert(getPointsFromShareText(row.shareText) > 0, `${where}: a share of nought is not a share`);
 }

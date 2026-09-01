@@ -3,7 +3,7 @@
  * browser would make of it. Here because two test files ask the same question of it.
  */
 
-import { assert, assertNotEquals } from "@std/assert";
+import { assert, assertNotStrictEquals } from "@std/assert";
 
 /**
  * What the sheet holds at its widest, measured over `composeStyleSheet()` on 2026-08-29: 78 rules,
@@ -26,10 +26,10 @@ export function getRuleBody(sheet: string, selector: string): string {
         if (sheet[at - 1] === "}") break;
         at = sheet.indexOf(opener, at + 1);
     }
-    assertNotEquals(at, -1, `${selector} is a rule of its own the sheet does not carry`);
+    assertNotStrictEquals(at, -1, `${selector} is a rule of its own the sheet does not carry`);
     const from = at + opener.length;
     const to = sheet.indexOf("}", from);
-    assertNotEquals(to, -1, `${selector} opens a rule the sheet never closes`);
+    assertNotStrictEquals(to, -1, `${selector} opens a rule the sheet never closes`);
     return sheet.slice(from, to);
 }
 

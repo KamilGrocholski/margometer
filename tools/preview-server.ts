@@ -9,7 +9,7 @@
  */
 
 import { getValueWithin } from "@/libs/number-range.ts";
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertStrictEquals } from "@std/assert";
 import { debounce } from "@std/async";
 import { parseArgs } from "@std/cli";
 
@@ -163,7 +163,7 @@ function composeFightLinks(fights: readonly RecordedFight[]): PreviewFightLink[]
         address: composeFightAddress(fight.name),
         callsAddress: composeCallsAddress(fight.name),
     }));
-    assertEquals(links.length, fights.length, "every recording is offered once");
+    assertStrictEquals(links.length, fights.length, "every recording is offered once");
     return links;
 }
 
@@ -294,7 +294,7 @@ async function readFileEvents(watcher: Deno.FsWatcher, state: PreviewState): Pro
         rebuild();
     }
     rebuild.clear();
-    assertEquals(rebuild.pending, false, "a watcher that closed leaves no rebuild pending");
+    assertStrictEquals(rebuild.pending, false, "a watcher that closed leaves no rebuild pending");
 }
 
 function getPortFromServer(server: Deno.HttpServer<Deno.NetAddr>): number {

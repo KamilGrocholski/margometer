@@ -7,7 +7,13 @@
  * on every admitted recording, and the shape it depends on is the shape those files have.
  */
 
-import { assert, assertEquals, assertExists, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertStringIncludes,
+    assertThrows,
+} from "@std/assert";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import {
@@ -76,8 +82,12 @@ Deno.test("a player becomes a numbered label wherever the name is, and a monster
     ));
     const written = JSON.stringify(said.recording);
     assert(!written.includes("Wiewiorka"), "the player's name is nowhere in the document");
-    assert(written.includes("Locha"), "and the monster's is untouched, because it is nobody's");
-    assert(written.includes("Gracz 1"), "the label stands where the name did");
+    assertStringIncludes(
+        written,
+        "Locha",
+        "and the monster's is untouched, because it is nobody's",
+    );
+    assertStringIncludes(written, "Gracz 1", "the label stands where the name did");
     assertEquals(said.changed, 3, "once in `w` and once in each of the two messages it is in");
     assertEquals([...said.substitutions], [["Wiewiorka", "Gracz 1"]], "one name, one label");
 });
@@ -133,7 +143,7 @@ Deno.test("a longer name is substituted before the one inside it", () => {
     const written = JSON.stringify(said.recording);
     assert(!written.includes("KotBury"), "the longer name went whole");
     assert(!written.includes("Kot "), "and the shorter one did too, rather than being eaten");
-    assert(written.includes("Gracz 2 trafia Gracz 1"), "each name reached its own label");
+    assertStringIncludes(written, "Gracz 2 trafia Gracz 1", "each name reached its own label");
 });
 
 Deno.test("the game's prose comes out and its functional names stay", () => {

@@ -7,7 +7,7 @@
  * a name the add-on owns: the store is carried as data, and the panel is found by its shadow root.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertStringIncludes } from "@std/assert";
 
 /** One value that travels. Past this lies the shelf, which is a fight rather than a setting. */
 export const STATE_VALUE_MAXIMUM = 200;
@@ -61,7 +61,11 @@ var PREVIEW_STATE = getPreviewStateFromHash(window.location.hash);`;
         reading.includes("PREVIEW_STATE"),
         "the state a page opens with is read before anything",
     );
-    assert(reading.includes("JSON.parse"), "and what the address carried is data, not program");
+    assertStringIncludes(
+        reading,
+        "JSON.parse",
+        "and what the address carried is data, not program",
+    );
     return reading;
 }
 
@@ -94,8 +98,12 @@ function composePreviewStateParser(): string {
   }
   return state;
 };`;
-    assert(parser.includes('split("&")'), "an address is read by walking it");
-    assert(parser.includes("catch"), "and anything that is not what this wrote reads as no state");
+    assertStringIncludes(parser, 'split("&")', "an address is read by walking it");
+    assertStringIncludes(
+        parser,
+        "catch",
+        "and anything that is not what this wrote reads as no state",
+    );
     return parser;
 }
 
@@ -110,8 +118,12 @@ export function composePreviewStateWriting(): string {
         composePreviewStateHash(),
         composePreviewStateWatch(),
     ].join("\n\n");
-    assert(writing.includes("composePreviewStateHash"), "an address is composed of what is shown");
-    assert(writing.includes("shadowRoot"), "and the panel is found without being named");
+    assertStringIncludes(
+        writing,
+        "composePreviewStateHash",
+        "an address is composed of what is shown",
+    );
+    assertStringIncludes(writing, "shadowRoot", "and the panel is found without being named");
     return writing;
 }
 
@@ -147,8 +159,8 @@ var setPreviewScreenRestored = function (root) {
     }
   }
 };`;
-    assert(panel.includes("querySelectorAll"), "the tab that was read is pressed back");
-    assert(panel.includes("pointerdown"), "and pressed as the panel listens, never clicked");
+    assertStringIncludes(panel, "querySelectorAll", "the tab that was read is pressed back");
+    assertStringIncludes(panel, "pointerdown", "and pressed as the panel listens, never clicked");
     return panel;
 }
 
@@ -179,9 +191,17 @@ var composePreviewStateHash = function () {
 var setPreviewStateWritten = function () {
   window.history.replaceState(null, "", composePreviewStateHash());
 };`;
-    assert(hash.includes("parts.pop()"), "a store too big for an address is the part that goes");
-    assert(hash.includes("composePreviewStateHashAt(fedCount)"), "and the strip's own entry is");
-    assert(hash.includes("replaceState"), "and the address is replaced rather than added to");
+    assertStringIncludes(
+        hash,
+        "parts.pop()",
+        "a store too big for an address is the part that goes",
+    );
+    assertStringIncludes(
+        hash,
+        "composePreviewStateHashAt(fedCount)",
+        "and the strip's own entry is",
+    );
+    assertStringIncludes(hash, "replaceState", "and the address is replaced rather than added to");
     return hash;
 }
 
@@ -205,7 +225,7 @@ var panelTimer = window.setInterval(function handlePanelWaited() {
   }
   if (panelTries >= ${STATE_WAIT_TRIES}) window.clearInterval(panelTimer);
 }, ${STATE_WAIT_EVERY_MS});`;
-    assert(watch.includes("clearInterval"), "a panel that arrived stops being waited for");
-    assert(watch.includes(`>= ${STATE_WAIT_TRIES}`), "and one that never does is given up on");
+    assertStringIncludes(watch, "clearInterval", "a panel that arrived stops being waited for");
+    assertStringIncludes(watch, `>= ${STATE_WAIT_TRIES}`, "and one that never does is given up on");
     return watch;
 }

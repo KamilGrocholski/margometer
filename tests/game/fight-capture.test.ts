@@ -6,7 +6,7 @@
  * here reads a recording off disk and checks the envelope against it, key by key.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
@@ -188,6 +188,6 @@ Deno.test("a file is named for the world, both versions and the moment", () => {
         "the world, the game's build, ours, then the moment",
     );
     const blind = composeCaptureFileName({ ...SURROUNDINGS, gameBuild: null });
-    assert(blind.includes("-none-"), "a build the page never stated is said to be none");
+    assertStringIncludes(blind, "-none-", "a build the page never stated is said to be none");
     assert(!name.slice(0, -".json".length).includes(":"), "no colon reaches a file's name");
 });

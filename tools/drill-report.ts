@@ -10,7 +10,7 @@
  * because they change with the next recording (**V5**).
  */
 
-import { assert, assertExists, assertStrictEquals } from "@std/assert";
+import { assert, assertArrayIncludes, assertExists, assertStrictEquals } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import {
@@ -94,7 +94,7 @@ export interface DrillCase {
  * space, so no two triples come to one key.
  */
 function composeCaseKey(screen: PanelMetric, rung: DrillRung, row: DrillRow): string {
-    assert(SCREEN_ORDER.includes(screen), "a case is counted for a screen the strips draw");
+    assertArrayIncludes(SCREEN_ORDER, [screen], "a case is counted for a screen the strips draw");
     return `${screen} | ${rung} | ${row}`;
 }
 
@@ -254,7 +254,7 @@ function addUnnamedCutToTally(
         assertStrictEquals(
             under.opened,
             "person",
-            "a person opens onto what a share was dealt with",
+            "a person opens onto what their share was dealt with",
         );
         for (const one of under.kinds.rows) {
             addToTally(tally, screen, { rung: "unnamed cut", row: "kind" }, one.opensPart);

@@ -6,7 +6,7 @@
  * expressed at all and the compiler counts the rows.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertArrayIncludes, assertStrictEquals } from "@std/assert";
 import type { NamedPart, PanelMetric, PanelUnnamedEnd } from "@/src/ui/panel-reading.ts";
 import {
     getWordsForDirection,
@@ -100,14 +100,22 @@ export function composeScreenState(isCollapsed: boolean): ScreenState {
         openFightId: null,
         isCollapsed,
     };
-    assert(SCREEN_ORDER.includes(state.current), "a panel opens on a screen it can draw");
-    assertEquals(state.openRowId, null, "and with every row closed");
-    assertEquals(state.openUnnamedEnd, null, "the ends the protocol leaves out among them");
-    assertEquals(state.openPairId, null, "and no pair standing over one");
-    assertEquals(state.openPart, null, "and no part of a cut standing over that");
-    assertEquals(state.openFightId, null, "and the fight being read is the one going on");
-    assertEquals(state.side, "everyone", "and listing everybody, before a reader has narrowed it");
-    assertEquals(state.isCollapsed, isCollapsed, "and folded exactly as the reader last left it");
+    assertArrayIncludes(SCREEN_ORDER, [state.current], "a panel opens on a screen it can draw");
+    assertStrictEquals(state.openRowId, null, "and with every row closed");
+    assertStrictEquals(state.openUnnamedEnd, null, "the ends the protocol leaves out among them");
+    assertStrictEquals(state.openPairId, null, "and no pair standing over one");
+    assertStrictEquals(state.openPart, null, "and no part of a cut standing over that");
+    assertStrictEquals(state.openFightId, null, "and the fight being read is the one going on");
+    assertStrictEquals(
+        state.side,
+        "everyone",
+        "and listing everybody, before a reader has narrowed it",
+    );
+    assertStrictEquals(
+        state.isCollapsed,
+        isCollapsed,
+        "and folded exactly as the reader last left it",
+    );
     return state;
 }
 
@@ -142,18 +150,18 @@ export function getWordsForKindCut(screen: PanelMetric): string {
 }
 
 export function getNounForScreen(screen: PanelMetric): PanelNoun {
-    assert(SCREEN_ORDER.includes(screen), "a screen asked about is one the strips draw");
+    assertArrayIncludes(SCREEN_ORDER, [screen], "a screen asked about is one the strips draw");
     return SCREEN_AXES[screen].noun;
 }
 
 export function getDirectionForScreen(screen: PanelMetric): PanelDirection {
-    assert(SCREEN_ORDER.includes(screen), "a screen asked about is one the strips draw");
+    assertArrayIncludes(SCREEN_ORDER, [screen], "a screen asked about is one the strips draw");
     return SCREEN_AXES[screen].direction;
 }
 
 export function getWordsForScreen(screen: PanelMetric): string {
     assert(screen.length > 0, "a screen is asked for by name");
-    assert(SCREEN_ORDER.includes(screen), "and one the strips draw");
+    assertArrayIncludes(SCREEN_ORDER, [screen], "and one the strips draw");
     const axes = SCREEN_AXES[screen];
     const words = `${getWordsForNoun(axes.noun)} ${getWordsForDirection(screen)}`;
     assert(words.length > 0, "a screen a reader can reach is a screen with a name");
@@ -181,40 +189,60 @@ function getScreenAfterNoun(noun: PanelNoun, current: PanelMetric): PanelMetric 
     const screens = getScreensForNoun(noun);
     const kept = screens.find((screen) => SCREEN_AXES[screen].direction === wanted);
     const reached = kept ?? screens[0] ?? current;
-    assertEquals(SCREEN_AXES[reached].noun, noun, "a noun's tab reaches that noun's own screen");
-    assert(SCREEN_ORDER.includes(reached), "and one the strips draw");
+    assertStrictEquals(
+        SCREEN_AXES[reached].noun,
+        noun,
+        "a noun's tab reaches that noun's own screen",
+    );
+    assertArrayIncludes(SCREEN_ORDER, [reached], "and one the strips draw");
     return reached;
 }
 
 export function composeNounTabs(current: PanelMetric): ScreenTab[] {
-    assert(SCREEN_ORDER.includes(current), "a strip is drawn for a screen the panel is on");
+    assertArrayIncludes(SCREEN_ORDER, [current], "a strip is drawn for a screen the panel is on");
     const tabs = PANEL_NOUNS.map((noun) => ({
         name: getScreenAfterNoun(noun, current),
         words: getWordsForNoun(noun),
         isCurrent: noun === SCREEN_AXES[current].noun,
     }));
-    assertEquals(tabs.filter((one) => one.isCurrent).length, 1, "and marks the noun being read");
+    assertStrictEquals(
+        tabs.filter((one) => one.isCurrent).length,
+        1,
+        "and marks the noun being read",
+    );
     return tabs;
 }
 
 export function composeDirectionTabs(current: PanelMetric): ScreenTab[] {
-    assert(SCREEN_ORDER.includes(current), "a strip is drawn for a screen the panel is on");
+    assertArrayIncludes(SCREEN_ORDER, [current], "a strip is drawn for a screen the panel is on");
     const tabs = getScreensForNoun(SCREEN_AXES[current].noun).map((screen) => ({
         name: screen,
         words: getWordsForDirection(screen),
         isCurrent: screen === current,
     }));
-    assert(tabs.filter((one) => one.isCurrent).length === 1, "and marks the way round being read");
+    assertStrictEquals(
+        tabs.filter((one) => one.isCurrent).length,
+        1,
+        "and marks the way round being read",
+    );
     return tabs;
 }
 
 export function composeSideTabs(current: PanelSideChoice): ScreenTab[] {
-    assert(SIDE_CHOICES.includes(current), "a strip is drawn for a choice a reader could make");
+    assertArrayIncludes(
+        SIDE_CHOICES,
+        [current],
+        "a strip is drawn for a choice a reader could make",
+    );
     const tabs = SIDE_CHOICES.map((choice) => ({
         name: choice,
         words: getWordsForSide(choice),
         isCurrent: choice === current,
     }));
-    assertEquals(tabs.filter((one) => one.isCurrent).length, 1, "and marks the one that was made");
+    assertStrictEquals(
+        tabs.filter((one) => one.isCurrent).length,
+        1,
+        "and marks the one that was made",
+    );
     return tabs;
 }

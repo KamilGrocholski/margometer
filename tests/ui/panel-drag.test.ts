@@ -3,7 +3,7 @@
  * and it is where they left it when they come back.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assertEquals, assertStringIncludes } from "@std/assert";
 import {
     composeClampedPosition,
     composeDefaultPosition,
@@ -74,12 +74,16 @@ Deno.test("a position survives a reload, and nothing else is read as one", () =>
 
 Deno.test("what puts the panel there releases the corner it was anchored to", () => {
     const style = composePositionStyle({ left: 40, top: 60 });
-    assert(style.includes("left:40px"), "the panel is put where it was dragged to");
-    assert(style.includes("top:60px"), "in both directions");
+    assertStringIncludes(style, "left:40px", "the panel is put where it was dragged to");
+    assertStringIncludes(style, "top:60px", "in both directions");
     // The ceiling that keeps the panel above the bottom edge is the window less its top, and CSS
     // cannot read a `top` back out of an inline style — so the same number is written twice.
-    assert(style.includes("--MargoMeter-panel-top:60px"), "the ceiling is told where the top is");
-    assert(style.includes("right:auto"), "and the corner the sheet anchored to is released");
+    assertStringIncludes(
+        style,
+        "--MargoMeter-panel-top:60px",
+        "the ceiling is told where the top is",
+    );
+    assertStringIncludes(style, "right:auto", "and the corner the sheet anchored to is released");
 });
 
 /** 250 pixels, which is what the sheet draws the detail window at. */

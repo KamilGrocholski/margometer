@@ -7,7 +7,7 @@
  * by a sample it must flag and a sample it must not.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertArrayIncludes, assertEquals } from "@std/assert";
 import { composeFakeDocument, type FakeElement, getElementsWithin } from "@/tests/fake-document.ts";
 import { composePanelHost } from "@/src/ui/panel-element.ts";
 import { composePanelReading, NOTHING_MISSED } from "@/src/ui/panel-reading.ts";
@@ -129,10 +129,14 @@ Deno.test("every case is one of the vocabularies the register states", () => {
     const cases = composeDrillCases([composeFightReplay(getRecordedFightAt(HILDUR))]);
     assert(cases.length > 0, "the recording produces cases");
     for (const one of cases) {
-        assert(SCREEN_ORDER.includes(one.screen), `${one.screen} is a screen the strips draw`);
-        assert(DRILL_RUNGS.includes(one.rung), `${one.rung} is a level the panel has`);
-        assert(DRILL_ROWS.includes(one.row), `${one.row} is a kind of row the panel draws`);
-        assert(DRILL_VERDICTS.includes(one.verdict), `${one.verdict} is a verdict`);
+        assertArrayIncludes(
+            SCREEN_ORDER,
+            [one.screen],
+            `${one.screen} is a screen the strips draw`,
+        );
+        assertArrayIncludes(DRILL_RUNGS, [one.rung], `${one.rung} is a level the panel has`);
+        assertArrayIncludes(DRILL_ROWS, [one.row], `${one.row} is a kind of row the panel draws`);
+        assertArrayIncludes(DRILL_VERDICTS, [one.verdict], `${one.verdict} is a verdict`);
         assert(one.opens + one.shut > 0, "and a case counted was counted at least once");
     }
 });
@@ -216,8 +220,8 @@ Deno.test("a recording walked row by row names whom each level was opened from",
         lines.includes("=== 2026-08-06-tempest-grupa-vs-hildur-1785244275300-none ==="),
         "named for its file",
     );
-    assert(lines.includes("  --- healthGiven ---"), "and for the screens it walked");
-    assert(lines.includes("  --- healthRestored ---"), "both of them");
+    assertArrayIncludes(lines, ["  --- healthGiven ---"], "and for the screens it walked");
+    assertArrayIncludes(lines, ["  --- healthRestored ---"], "both of them");
     assert(lines.some((line) => line.includes("person  opens")), "some rows of it open");
     // The receiving side keeps a key flat, with nobody beside it, so its rows open onto nothing.
     assert(lines.some((line) => line.includes("source leaf")), "and some do not");

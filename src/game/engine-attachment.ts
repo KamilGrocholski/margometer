@@ -8,7 +8,7 @@
  * A search with no end is something the page pays for forever.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertStrictEquals } from "@std/assert";
 import {
     type EngineBattle,
     isEngineBattleWrapped,
@@ -58,7 +58,7 @@ export function getEnginesFromPage(page: unknown): unknown[] {
     if (!isRecord(page)) return [];
     assert(isRecord(page), "a page that is asked is a page");
     const found: unknown[] = [page[ENGINE_FIELD]];
-    assertEquals(found.length, 1, "the field is asked for before the call is");
+    assertStrictEquals(found.length, 1, "the field is asked for before the call is");
     const stated = page[ENGINE_CALL_FIELD];
     if (typeof stated === "function") found.push(stated.call(page));
     assert(found.length >= 1, "the page is asked for a game in every spelling there is");
@@ -92,7 +92,7 @@ function stopLooking(search: Search, schedule: Scheduler): void {
     if (search.handle === null) return;
     schedule.cancel(search.handle);
     search.handle = null;
-    assertEquals(search.handle, null, "a search that stopped is holding no timer");
+    assertStrictEquals(search.handle, null, "a search that stopped is holding no timer");
 }
 
 function look(page: unknown, report: AttachmentReport, schedule: Scheduler, search: Search): void {
@@ -126,7 +126,11 @@ function look(page: unknown, report: AttachmentReport, schedule: Scheduler, sear
     // and a caller told every time would hear it once a look for a minute.
     if (search.hasRefused) return;
     search.hasRefused = true;
-    assertEquals(search.wrap, null, "a refusal is what a page with no method to wrap answers");
+    assertStrictEquals(
+        search.wrap,
+        null,
+        "a refusal is what a page with no method to wrap answers",
+    );
     report.handleRefusal();
 }
 

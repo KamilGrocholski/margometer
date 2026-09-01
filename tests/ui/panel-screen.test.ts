@@ -6,7 +6,7 @@
  * a tab that reaches nothing and a screen no tab reaches are the same defect from either end.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { composePanelReading, NOTHING_MISSED } from "@/src/ui/panel-reading.ts";
@@ -54,7 +54,7 @@ Deno.test("a name no screen answers to moves nothing", () => {
 
 Deno.test("a panel opens on a screen it can draw, folded as the reader last left it", () => {
     const state = composeScreenState(false);
-    assert(SCREEN_ORDER.includes(state.current), "the opening screen is one of them");
+    assertArrayIncludes(SCREEN_ORDER, [state.current], "the opening screen is one of them");
     assertEquals(state.current, "damageDealtApplied", "and it is what the reader did");
     assertEquals(state.side, "everyone", "and lists everybody before a reader narrows it");
     assertEquals(state.isCollapsed, false, "and a reader who folded nothing away opens unfolded");

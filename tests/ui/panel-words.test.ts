@@ -7,7 +7,13 @@
  * and no key of the game's, and that a count is spelled the way Polish spells one.
  */
 
-import { assert, assertEquals, AssertionError, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    AssertionError,
+    assertStringIncludes,
+    assertThrows,
+} from "@std/assert";
 import {
     composeCountedNoun,
     composeFigureText,
@@ -179,7 +185,11 @@ Deno.test("a figure is spaced the way the game spaces one, from three digits up"
  */
 Deno.test("a figure never offers a place to break, and never spaces what it should not", () => {
     assert(!composeFigureText(1000).includes(" "), "a figure that groups carries no plain space");
-    assert(composeFigureText(1000).includes("\u00a0"), "and groups on the one that does not break");
+    assertStringIncludes(
+        composeFigureText(1000),
+        "\u00a0",
+        "and groups on the one that does not break",
+    );
     assert(!composeFigureText(999).includes(" "), "three digits are one group and stay one word");
     assert(!composeFigureText(999).includes("\u00a0"), "with no gap opened inside them");
     assert(!composeFigureText(0).includes("\u00a0"), "and zero is a digit, not a group of them");
@@ -239,8 +249,8 @@ Deno.test("a key health moved under is worded, and one nobody named travels as w
 });
 
 Deno.test("a doubt about what never arrived counts in all three Polish forms", () => {
-    assert(composeLostMessageWarning(1).includes("1 wiadomość"), "one takes the first form");
-    assert(composeLostMessageWarning(2).includes("2 wiadomości"), "two takes the second");
-    assert(composeLostMessageWarning(5).includes("5 wiadomości"), "and five the third");
+    assertStringIncludes(composeLostMessageWarning(1), "1 wiadomość", "one takes the first form");
+    assertStringIncludes(composeLostMessageWarning(2), "2 wiadomości", "two takes the second");
+    assertStringIncludes(composeLostMessageWarning(5), "5 wiadomości", "and five the third");
     assertThrows(() => composeLostMessageWarning(0), AssertionError, "said because something");
 });

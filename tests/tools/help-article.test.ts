@@ -6,7 +6,7 @@
  * shape and the article it names — the counts themselves are a measurement, not a fixture.
  */
 
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
 import {
     CACHE_ROOT,
@@ -71,8 +71,8 @@ Deno.test("a dump says how old it is, and says it loudly once it is worth re-fet
         "the day after",
     );
     const week = composeAgeText(READ_AT, READ_AT_MILLISECONDS + 7 * MILLISECONDS_PER_DAY);
-    assert(week.includes("7 days ago"), "a week is stated in days");
-    assert(week.includes("re-fetch"), "and is the point at which the tool says so");
+    assertStringIncludes(week, "7 days ago", "a week is stated in days");
+    assertStringIncludes(week, "re-fetch", "and is the point at which the tool says so");
     const day = composeAgeText(READ_AT, READ_AT_MILLISECONDS + 6 * MILLISECONDS_PER_DAY);
     assert(!day.includes("re-fetch"), "the day before it is not");
     assert(composeAgeText("not a date", READ_AT_MILLISECONDS).includes("stale"), "nor is a guess");

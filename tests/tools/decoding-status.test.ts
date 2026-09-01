@@ -7,7 +7,7 @@
  * the next protocol change will look like.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertArrayIncludes, assertEquals } from "@std/assert";
 import { BATTLE_EVENT_KINDS } from "@/src/core/battle-event.ts";
 import { composeDecodingStatus, composeStatusReport } from "@/tools/decoding-status.ts";
 import { composeFightReplay, composeReplayedMaterial } from "@/tools/fight-replay.ts";
@@ -33,7 +33,7 @@ Deno.test("the corpus reads whole, and the report says so rather than staying si
     assert(status.messages > status.payloads, "a payload carries more than one message");
 
     const report = composeStatusReport(composeReplayedMaterial([]));
-    assert(report.includes("  every key was read"), "an empty tally is an answer, not a gap");
+    assertArrayIncludes(report, ["  every key was read"], "an empty tally is an answer, not a gap");
     assert(report.some((line) => line.startsWith("material          captures/")), "material named");
 });
 

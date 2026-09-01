@@ -5,7 +5,7 @@
  * leaves this file. The engine arrives as an argument, so the global read stays in the caller.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertNotStrictEquals } from "@std/assert";
 
 /** Past anything a fight produces: a collector failing this often has stopped working. */
 const MAXIMUM_FAILURES = 1048576;
@@ -93,7 +93,11 @@ export function wrapEngineBattle(
     wrapper[WRAP_MARKER] = WRAP_VERSION;
     battle[WRAPPED_METHOD] = wrapper;
     assert(hasMargoMeterWrap(battle[WRAPPED_METHOD]), "the wrap that went on says whose it is");
-    assert(battle[WRAPPED_METHOD] !== engineUpdate, "and stands where the engine's own stood");
+    assertNotStrictEquals(
+        battle[WRAPPED_METHOD],
+        engineUpdate,
+        "and stands where the engine's own stood",
+    );
     return {
         detach(): void {
             if (battle[WRAPPED_METHOD] !== wrapper) return;

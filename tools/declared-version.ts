@@ -3,7 +3,7 @@
  * rather than a function inside the changelog, for the cycle **ADR 0035** names.
  */
 
-import { assert, assertNotEquals } from "@std/assert";
+import { assert, assertNotStrictEquals } from "@std/assert";
 import { parse as parseJsonc } from "@std/jsonc";
 import { DeclaredVersionError } from "@/tools/margometer-tool-error.ts";
 import { getStatedTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
@@ -42,7 +42,11 @@ export function getDevelopmentVersion(): string {
     const declared = getReleaseVersion();
     const version = `${declared}${DEVELOPMENT_SUFFIX}`;
     assert(version.startsWith(declared), "a development build names the work it is built from");
-    assertNotEquals(version, declared, "and never passes for the release that number belongs to");
+    assertNotStrictEquals(
+        version,
+        declared,
+        "and never passes for the release that number belongs to",
+    );
     return version;
 }
 
@@ -63,6 +67,10 @@ export function getVersionForRun(args: readonly string[]): string {
     const isRelease = args.includes(RELEASE_FLAG);
     const version = isRelease ? getReleaseVersion() : getDevelopmentVersion();
     assert(version.length > 0, "a run states the version it is");
-    assert(isRelease !== version.endsWith(DEVELOPMENT_SUFFIX), "and marks what is not a release");
+    assertNotStrictEquals(
+        isRelease,
+        version.endsWith(DEVELOPMENT_SUFFIX),
+        "and marks what is not a release",
+    );
     return version;
 }

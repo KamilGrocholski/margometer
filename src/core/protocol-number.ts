@@ -5,7 +5,7 @@
  * are written in, which is a measurement over `captures/` and not a property of numbers.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertExists, assertStrictEquals } from "@std/assert";
 import { composeDecimalText, getDecimalFromText } from "@/libs/number-text.ts";
 import { isDigitRun } from "@/libs/text-walk.ts";
 
@@ -20,7 +20,7 @@ function isHealthPercentText(text: string): boolean {
     if (fraction.length !== HEALTH_PERCENT_PLACES) return false;
     if (!isDigitRun(text.slice(0, point))) return false;
     assert(point < text.length, "a point sits inside the text it was found in");
-    assertEquals(fraction.length, HEALTH_PERCENT_PLACES, "the fraction is the stated width");
+    assertStrictEquals(fraction.length, HEALTH_PERCENT_PLACES, "the fraction is the stated width");
     return isDigitRun(fraction);
 }
 

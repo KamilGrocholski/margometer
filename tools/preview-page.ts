@@ -7,7 +7,7 @@
  * `tools/preview-server.ts` answers requests for this; `tools/preview-site.ts` writes it down.
  */
 
-import { assert } from "@std/assert";
+import { assert, assertStringIncludes } from "@std/assert";
 import { USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
 import { composePreviewStateReading, composePreviewStateWriting } from "@/tools/preview-state.ts";
 
@@ -150,8 +150,8 @@ function composePreviewStyle(): string {
 .preview-log[data-shown="yes"] { display: block; }`;
     // The game's own page colour, read off v0.10.1's `screenshots/panel-taken.png`: a panel
     // judged against a darker page is a panel whose border reads as a colour it is not.
-    assert(sheet.includes("#14171c"), "the panel is judged against the colour the game draws");
-    assert(sheet.includes("9000"), "and the strip stands under the panel, never over it");
+    assertStringIncludes(sheet, "#14171c", "the panel is judged against the colour the game draws");
+    assertStringIncludes(sheet, "9000", "and the strip stands under the panel, never over it");
     return sheet;
 }
 
@@ -216,9 +216,17 @@ function composePreviewStore(): string {
     }
   }
 })();`;
-    assert(stood.includes("localStorage"), "the store a browser lends is taken away");
-    assert(stood.includes("sessionStorage"), "and so is the other one the add-on may be sent to");
-    assert(stood.includes("PREVIEW_STATE.store"), "and it starts holding what the address carried");
+    assertStringIncludes(stood, "localStorage", "the store a browser lends is taken away");
+    assertStringIncludes(
+        stood,
+        "sessionStorage",
+        "and so is the other one the add-on may be sent to",
+    );
+    assertStringIncludes(
+        stood,
+        "PREVIEW_STATE.store",
+        "and it starts holding what the address carried",
+    );
     return stood;
 }
 
@@ -249,8 +257,12 @@ function composePreviewGame(words: PreviewWords): string {
   map: { d: { name: ${JSON.stringify(words.placeName)} } },
   hero: { d: { x: 1, y: 1 } }
 };`;
-    assert(stood.includes("updateData"), "carrying the call the add-on puts its wrap on");
-    assert(stood.includes("map"), "and a place, which no recording carries and every bar draws");
+    assertStringIncludes(stood, "updateData", "carrying the call the add-on puts its wrap on");
+    assertStringIncludes(
+        stood,
+        "map",
+        "and a place, which no recording carries and every bar draws",
+    );
     return stood;
 }
 
@@ -307,7 +319,7 @@ var setFedTo = function (target) {
   }
   renderCount();
 };`;
-    assert(driver.includes("updateData"), "the calls reach whatever took the game's place");
+    assertStringIncludes(driver, "updateData", "the calls reach whatever took the game's place");
     assert(
         driver.includes("fedCount = 0"),
         "and a step back is the fight, fed again from its first",
@@ -334,7 +346,11 @@ function composePreviewPicks(): string {
         picks.includes("composePreviewStateHashAt(0)"),
         "the state before the first call is reachable",
     );
-    assert(picks.includes("renderPicker()"), "and every recording is in the picker before it is");
+    assertStringIncludes(
+        picks,
+        "renderPicker()",
+        "and every recording is in the picker before it is",
+    );
     return picks;
 }
 
@@ -376,8 +392,16 @@ var setStartOpened = function () {
   window.location.hash = opened;
   window.location.reload();
 };`;
-    assert(readers.includes("getFightByAddress"), "a recording is found by the address it wears");
-    assert(readers.includes("setFightShown"), "and the roster it is fed into is cleared first");
+    assertStringIncludes(
+        readers,
+        "getFightByAddress",
+        "a recording is found by the address it wears",
+    );
+    assertStringIncludes(
+        readers,
+        "setFightShown",
+        "and the roster it is fed into is cleared first",
+    );
     return readers;
 }
 
@@ -411,8 +435,8 @@ var handlePick = function () {
     window.location.href = chosen.address + composePreviewStateHash();
   });
 };`;
-    assert(handlers.includes("handlePlay"), "playing is one control, and it stops itself");
-    assert(handlers.includes("handlePick"), "choosing is the other, and a refusal navigates");
+    assertStringIncludes(handlers, "handlePlay", "playing is one control, and it stops itself");
+    assertStringIncludes(handlers, "handlePick", "choosing is the other, and a refusal navigates");
     return handlers;
 }
 
@@ -438,7 +462,11 @@ picker.addEventListener("change", handlePick);
 
 renderPicker();
 setFedTo(PREVIEW_STATE.entry === null ? PREVIEW.entryIndex : PREVIEW_STATE.entry);`;
-    assert(bindings.includes("addEventListener"), "every control reaches what it does");
-    assert(bindings.includes("PREVIEW_STATE.entry"), "and opens on the entry the address carried");
+    assertStringIncludes(bindings, "addEventListener", "every control reaches what it does");
+    assertStringIncludes(
+        bindings,
+        "PREVIEW_STATE.entry",
+        "and opens on the entry the address carried",
+    );
     return bindings;
 }

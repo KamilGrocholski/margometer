@@ -3,7 +3,14 @@
  * the surface this asks of a browser declared rather than assumed.
  */
 
-import { assert, assertEquals, assertExists, assertNotEquals } from "@std/assert";
+import {
+    assert,
+    assertArrayIncludes,
+    assertExists,
+    assertNotStrictEquals,
+    assertStrictEquals,
+    assertStringIncludes,
+} from "@std/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import { composeDecimalText } from "@/libs/number-text.ts";
 import type {
@@ -207,14 +214,14 @@ function composeElement(document: PanelDocument, tag: string, className: string)
     assert(tag.length > 0, "an element is made under a tag the document knows");
     const element = document.createElement(tag);
     element.className = className;
-    assertEquals(element.className, className, "an element wears the class it was given");
+    assertStrictEquals(element.className, className, "an element wears the class it was given");
     return element;
 }
 
 function composeSlotElement(document: PanelDocument): PanelElement {
     const slot = composeElement(document, "div", CLASS.slot);
-    assertEquals(slot.textContent, "", "a slot that draws nothing says nothing");
-    assertEquals(slot.className, CLASS.slot, "and is the slot it says it is");
+    assertStrictEquals(slot.textContent, "", "a slot that draws nothing says nothing");
+    assertStrictEquals(slot.className, CLASS.slot, "and is the slot it says it is");
     return slot;
 }
 
@@ -298,7 +305,7 @@ function composePersonCard(
     place: CardPlace,
     opens: boolean,
 ): TipCompose {
-    assert(SCREEN_ORDER.includes(place.metric), "a card stands on a screen the strips draw");
+    assertArrayIncludes(SCREEN_ORDER, [place.metric], "a card stands on a screen the strips draw");
     assert(Number.isSafeInteger(row.combatantId), "and over a row the panel can name somebody by");
     return () =>
         composeCardReading({
@@ -428,7 +435,7 @@ function composeElementReading(row: ElementRow, noun: PanelNoun, rank: number): 
  * two levels that draw such a row were spelling the same rule two ways.
  */
 function getUnnamedEndForScreen(metric: PanelMetric): PanelUnnamedEnd {
-    assert(SCREEN_ORDER.includes(metric), "an end is left out on a screen the strips draw");
+    assertArrayIncludes(SCREEN_ORDER, [metric], "an end is left out on a screen the strips draw");
     return getDirectionForScreen(metric) === "given" ? "target" : "actor";
 }
 
@@ -467,8 +474,8 @@ function composeTabElement(
 
 function composeNounStripElement(document: PanelDocument, view: PanelView): PanelElement {
     const strip = composeElement(document, "div", CLASS.tabs);
-    assert(SCREEN_ORDER.includes(view.current), "the panel is on a screen the strips draw");
-    assertEquals(strip.textContent, "", "and the region begins saying nothing of its own");
+    assertArrayIncludes(SCREEN_ORDER, [view.current], "the panel is on a screen the strips draw");
+    assertStrictEquals(strip.textContent, "", "and the region begins saying nothing of its own");
     for (const tab of composeNounTabs(view.current)) {
         strip.append(composeTabElement(document, SCREEN_ATTRIBUTE, getShownTab(tab, view)));
     }
@@ -477,7 +484,7 @@ function composeNounStripElement(document: PanelDocument, view: PanelView): Pane
 
 function composeDirectionStripElement(document: PanelDocument, view: PanelView): PanelElement {
     const strip = composeElement(document, "div", CLASS.tabs);
-    assert(SCREEN_ORDER.includes(view.current), "the panel is on a screen the strips draw");
+    assertArrayIncludes(SCREEN_ORDER, [view.current], "the panel is on a screen the strips draw");
     for (const tab of composeDirectionTabs(view.current)) {
         strip.append(composeTabElement(document, SCREEN_ATTRIBUTE, getShownTab(tab, view)));
     }
@@ -503,7 +510,11 @@ function composeFoldControl(document: PanelDocument, isCollapsed: boolean): Pane
     control.setAttribute(FOLD_ATTRIBUTE, "");
     control.setAttribute(TITLE_ATTRIBUTE, isCollapsed ? PANEL_WORDS.expand : PANEL_WORDS.collapse);
     assert(control.textContent.length > 0, "a control a reader could press wears a mark");
-    assertEquals(control.className, CLASS.control, "and is a control by name before it is pressed");
+    assertStrictEquals(
+        control.className,
+        CLASS.control,
+        "and is a control by name before it is pressed",
+    );
     return control;
 }
 
@@ -575,7 +586,7 @@ function composeHeaderElement(document: PanelDocument, view: PanelView): PanelEl
 
 function composeCrumbRegion(document: PanelDocument, view: PanelView): PanelElement {
     assert(typeof view.isOnShelf === "boolean", "a crumb is drawn for a panel that is somewhere");
-    assert(SCREEN_ORDER.includes(view.current), "and on a screen the strips draw");
+    assertArrayIncludes(SCREEN_ORDER, [view.current], "and on a screen the strips draw");
     if (view.isOnShelf) {
         return composeCrumbElement(document, PANEL_WORDS.fights, PANEL_WORDS.backFromFights);
     }
@@ -643,7 +654,7 @@ function composeEmptyElement(document: PanelDocument, words: string): PanelEleme
     assert(words.length > 0, "a list with nothing on it says so in words");
     const empty = composeElement(document, "div", CLASS.empty);
     empty.textContent = words;
-    assertEquals(empty.textContent, words, "and says exactly that");
+    assertStrictEquals(empty.textContent, words, "and says exactly that");
     return empty;
 }
 
@@ -651,7 +662,11 @@ function composeWaitingElement(document: PanelDocument): PanelElement {
     const list = composeListElement(document, ROWS_WAITING);
     list.className = `${CLASS.list} ${CLASS.listWaiting}`;
     list.append(composeEmptyElement(document, PANEL_WORDS.noFightYet));
-    assert(list.className.includes(CLASS.list), "a panel waiting is a panel at the list's height");
+    assertStringIncludes(
+        list.className,
+        CLASS.list,
+        "a panel waiting is a panel at the list's height",
+    );
     assert(ROWS_WAITING > 0, "which is a height of at least one row");
     return list;
 }
@@ -748,7 +763,7 @@ function composeShelfRow(
     setRowMarks(parts, TIP_ATTRIBUTE, `shelf:${fight.openedAt}`);
     // A moment would have to be one no kept fight could carry, and there is no such moment.
     setRowMarks(parts, FIGHT_ATTRIBUTE, fight.isLive ? LIVE_FIGHT : `${fight.openedAt}`);
-    assert(row.className.includes(CLASS.row), "a fight on the shelf is a row like any other");
+    assertStringIncludes(row.className, CLASS.row, "a fight on the shelf is a row like any other");
     return row;
 }
 
@@ -1091,7 +1106,7 @@ function composeSidesSpare(document: PanelDocument, figure: number): PanelElemen
 function composeSidesLabel(view: PanelView): string {
     const sides = `${PANEL_WORDS.ourSide} / ${PANEL_WORDS.theirSide}`;
     assert(sides.length > 0, "the two sides are named before they are totalled");
-    assert(SCREEN_ORDER.includes(view.current), "and totalled on a screen the strips draw");
+    assertArrayIncludes(SCREEN_ORDER, [view.current], "and totalled on a screen the strips draw");
     if (view.side === "everyone" && view.drill === null) return sides;
     return `${PANEL_WORDS.wholeFight} · ${sides}`;
 }
@@ -1153,7 +1168,7 @@ function composeViewList(
     register: TipRegister,
     translate: TranslateLabel | null,
 ): PanelElement {
-    assert(SCREEN_ORDER.includes(view.current), "a view is on a screen the strip draws");
+    assertArrayIncludes(SCREEN_ORDER, [view.current], "a view is on a screen the strip draws");
     assert(view.shelf.length <= MAXIMUM_ROWS, "and carries no more of them than a list draws");
     if (view.isOnShelf) return composeShelfElement(document, view, register);
     if (view.part !== null) {
@@ -1185,7 +1200,7 @@ function composeHalfNamedDrillElement(
     register: TipRegister,
 ): PanelElement {
     assert(drill.total > 0, "a level stands under a figure there is something of");
-    assert(SCREEN_ORDER.includes(view.current), "and on a screen the strips draw");
+    assertArrayIncludes(SCREEN_ORDER, [view.current], "and on a screen the strips draw");
     const figure = getWordsForScreen(view.current);
     if (drill.opened === "element") {
         assert(drill.rows.length > 0, "a key that opened has somebody's row carrying it");
@@ -1215,7 +1230,7 @@ function composeHalfNamedDrillElement(
 
 /** What the way back calls the row that is open, which is the row itself and not its level. */
 function getWordsForHalfNamedDrill(drill: HalfNamedDrillReading, metric: PanelMetric): string {
-    assert(SCREEN_ORDER.includes(metric), "a way back is drawn on a screen the strips draw");
+    assertArrayIncludes(SCREEN_ORDER, [metric], "a way back is drawn on a screen the strips draw");
     if (drill.opened === "person") return drill.row.name ?? PANEL_WORDS.unknown;
     assert(drill.element.length > 0, "and a key is named by what the protocol wrote");
     return getNounForScreen(metric) === "damage"
@@ -1453,7 +1468,7 @@ function getRowsForPair(pair: PairReading, floor: number): number {
  * pins two ends whose answers differ.
  */
 function composePinnedNotes(row: PinnedRow, metric: PanelMetric, isSideChosen: boolean): string[] {
-    assert(SCREEN_ORDER.includes(metric), "a figure is pinned on a screen the strips draw");
+    assertArrayIncludes(SCREEN_ORDER, [metric], "a figure is pinned on a screen the strips draw");
     const notes = [
         getWordsForUnnamedEnd(row.end, getNounForScreen(metric)),
         getWordsForPinnedStanding(row.case),
@@ -1481,7 +1496,7 @@ function composePinnedElement(
     const mark = { attribute: UNNAMED_ATTRIBUTE, stated: row.end };
     block.append(composeRowElement(document, reading, mark, tip));
     assert(row.figure > 0, "a figure is pinned because there is one to pin");
-    assertEquals(block.className, CLASS.pinned, "and the block saying so is one of its own");
+    assertStrictEquals(block.className, CLASS.pinned, "and the block saying so is one of its own");
     return block;
 }
 
@@ -1614,8 +1629,12 @@ function composePanelRegions(document: PanelDocument): PanelRegions {
         sides: composeSlotElement(document),
         warnings: composeSlotElement(document),
     };
-    assert(regions.title.className === CLASS.title, "the bar is the bar before anything is drawn");
-    assertEquals(regions.warnings.className, CLASS.slot, "and every other begins as a slot");
+    assertStrictEquals(
+        regions.title.className,
+        CLASS.title,
+        "the bar is the bar before anything is drawn",
+    );
+    assertStrictEquals(regions.warnings.className, CLASS.slot, "and every other begins as a slot");
     return regions;
 }
 
@@ -1654,7 +1673,7 @@ function composePanelFrame(document: PanelDocument, regions: PanelRegions): Pane
     panel.append(regions.sides);
     panel.append(regions.warnings);
     frame.append(panel);
-    assertNotEquals(panel, frame, "the panel is a box of its own inside the frame");
+    assertNotStrictEquals(panel, frame, "the panel is a box of its own inside the frame");
     return frame;
 }
 
@@ -1692,7 +1711,7 @@ export function composePanelHost(
         assert(typeof placement.getViewport === "function", "a panel is moved inside something");
         getPosition = setPanelDrag(root, host, () => regions.title, placement, handleFailure);
     }
-    assertEquals(host.className, "", "the host wears no class of the game's making");
+    assertStrictEquals(host.className, "", "the host wears no class of the game's making");
     return {
         element: host,
         show(view: PanelView): void {
@@ -1706,8 +1725,8 @@ export function composePanelHost(
             if (view.isCollapsed) setPanelFolded(document, regions, redraw);
             else setPanelBody(document, regions, view, register, translate, redraw);
             tip.refresh();
-            assertNotEquals(regions.list, regions.sides, "the regions are that many elements");
-            assert(regions.title !== regions.header, "and none of them stands in for another");
+            assertNotStrictEquals(regions.list, regions.sides, "the regions are that many");
+            assertNotStrictEquals(regions.title, regions.header, "and none stands in for another");
         },
         showWaiting(isCollapsed: boolean): void {
             register.reset();
@@ -1722,8 +1741,8 @@ export function composePanelHost(
                 regions.list = redraw(regions.list, "list", () => composeWaitingElement(document));
             }
             tip.refresh();
-            assertEquals(regions.sides.className, CLASS.slot, "with nothing standing under it");
-            assertEquals(regions.nouns.className, CLASS.slot, "and no strip of tabs over it");
+            assertStrictEquals(regions.sides.className, CLASS.slot, "with nothing under it");
+            assertStrictEquals(regions.nouns.className, CLASS.slot, "and no strip of tabs over it");
         },
     };
 }
@@ -1754,7 +1773,11 @@ function setPanelFolded(
     );
     regions.sides = redraw(regions.sides, "sides", () => composeSlotElement(document));
     regions.warnings = redraw(regions.warnings, "warnings", () => composeSlotElement(document));
-    assert(regions.warnings.className === CLASS.slot, "and every one of them is a slot after it");
+    assertStrictEquals(
+        regions.warnings.className,
+        CLASS.slot,
+        "and every one of them is a slot after it",
+    );
 }
 
 function setPanelBody(
@@ -1765,7 +1788,11 @@ function setPanelBody(
     translate: TranslateLabel | null,
     redraw: PanelRedraw,
 ): void {
-    assert(SCREEN_ORDER.includes(view.current), "a body is drawn for a screen the strips draw");
+    assertArrayIncludes(
+        SCREEN_ORDER,
+        [view.current],
+        "a body is drawn for a screen the strips draw",
+    );
     const isFight = !view.isOnShelf;
     regions.header = redraw(
         regions.header,
@@ -1856,6 +1883,10 @@ function composeWarningsElement(
         line.textContent = `${WARNING_MARK}${warning}`;
         block.append(line);
     }
-    assert(block.className === CLASS.warnings, "the block is the one thing there is always one of");
+    assertStrictEquals(
+        block.className,
+        CLASS.warnings,
+        "the block is the one thing there is always one of",
+    );
     return block;
 }

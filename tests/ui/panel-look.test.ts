@@ -5,7 +5,14 @@
  * screen — which is what `DESIGN.md` asks for and what a screenshot cannot show.
  */
 
-import { assert, assertEquals, assertExists, assertNotEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertNotStrictEquals,
+    assertStrictEquals,
+    assertStringIncludes,
+} from "@std/assert";
 import {
     CLASS,
     composeBarColour,
@@ -174,7 +181,7 @@ Deno.test("the sheet shuts the game out, and every class it selects is one the p
     const sheet = composeStyleSheet();
     assert(sheet.startsWith(":host{all:initial;"), "the reset comes before anything of ours");
     for (const [name, spelling] of Object.entries(CLASS)) {
-        assert(sheet.includes(`.${spelling}`), `${name} is a class no rule selects`);
+        assertStringIncludes(sheet, `.${spelling}`, `${name} is a class no rule selects`);
     }
     const opened = [...sheet].filter((one) => one === "{").length;
     const closed = [...sheet].filter((one) => one === "}").length;
@@ -192,8 +199,8 @@ Deno.test("a value is written once, and every rule spends it by name", () => {
         if (written > 1) twice.push(`${value} written ${written} times`);
     }
     assertEquals(twice, [], "a value the sheet writes more than once");
-    assert(sheet.includes(SURFACE.panel), "and the values it does write are the tokens");
-    assert(sheet.includes("var(--MargoMeter-"), "which a rule reaches by our own name");
+    assertStringIncludes(sheet, SURFACE.panel, "and the values it does write are the tokens");
+    assertStringIncludes(sheet, "var(--MargoMeter-", "which a rule reaches by our own name");
     assert(sheet.split("var(--MargoMeter-").length > 10, "and reaches by name many times over");
 });
 
@@ -208,7 +215,7 @@ Deno.test("a folded panel is drawn by the one region the fold hides", () => {
         "the frame folds by a selector that outranks its own rule",
     );
     assert(!sheet.includes(`;}.${CLASS.folded}{`), "and never by the bare class, which would tie");
-    assert(sheet.includes("display:none"), "what a folded region does is stop being drawn");
+    assertStringIncludes(sheet, "display:none", "what a folded region does is stop being drawn");
 });
 
 /** A token or a length, which is the whole of what a term can be. */
@@ -313,7 +320,7 @@ function getOperatorsAtDepth(stated: string): string[] {
         if (character === "+") found.push(character);
         if (character === "-") found.push(character);
     }
-    assertEquals(depth, 0, "a height closes every group it opens");
+    assertStrictEquals(depth, 0, "a height closes every group it opens");
     return found;
 }
 
@@ -380,7 +387,7 @@ Deno.test("a list is as tall as the rows it promises, and carries no term beside
         ["*"],
         `the list reserves something besides the rows it promises: ${stated}`,
     );
-    assert(stated.includes("row-height"), "and what it reserves is what a row costs");
+    assertStringIncludes(stated, "row-height", "and what it reserves is what a row costs");
 });
 
 /** Every line height the sheet states, which is the term after the slash in a `font` shorthand. */
@@ -392,9 +399,9 @@ function getLineHeights(sheet: string): string[] {
         assert(tried < RULES_IN_A_SHEET, "the walk stays inside the sheet's stated bound");
         tried += 1;
         const slash = sheet.indexOf("/", at);
-        assertNotEquals(slash, -1, "a font shorthand here states a line height");
+        assertNotStrictEquals(slash, -1, "a font shorthand here states a line height");
         const ends = sheet.indexOf(" ", slash);
-        assertNotEquals(ends, -1, "and a stack after it");
+        assertNotStrictEquals(ends, -1, "and a stack after it");
         found.push(sheet.slice(slash + 1, ends));
         at = sheet.indexOf("font:", at + 1);
     }

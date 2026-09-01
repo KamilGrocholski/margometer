@@ -6,7 +6,7 @@
  * the tree it came from looked.
  */
 
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import {
     buildUserscript,
@@ -20,8 +20,8 @@ Deno.test("the banner says what a script manager reads, and refuses to say nothi
     const banner = composeUserscriptBanner("1.2.3");
     assert(banner.startsWith("// ==UserScript==\n"), "it opens the way a manager expects");
     assert(banner.trimEnd().endsWith("// ==/UserScript=="), "and closes the same way");
-    assert(banner.includes("// @version      1.2.3"), "carrying the version it was handed");
-    assert(banner.includes("// @grant        none"), "and asking the page for nothing");
+    assertStringIncludes(banner, "// @version      1.2.3", "carrying the version it was handed");
+    assertStringIncludes(banner, "// @grant        none", "and asking the page for nothing");
     assertThrows(() => composeUserscriptBanner(""), UserscriptBuildError, "the version");
 });
 
@@ -29,8 +29,16 @@ Deno.test("the add-on stays off the operator's own site, bare domain included", 
     const banner = composeUserscriptBanner("1.2.3");
     // `*.margonem.pl` matches the bare domain as well as its subdomains, so the exclusion has to
     // name it too or the add-on loads on the site rather than only on a world.
-    assert(banner.includes("@exclude      https://margonem.pl/*"), "the bare domain is excluded");
-    assert(banner.includes("@exclude      https://forum.margonem.pl/*"), "and so is the forum");
+    assertStringIncludes(
+        banner,
+        "@exclude      https://margonem.pl/*",
+        "the bare domain is excluded",
+    );
+    assertStringIncludes(
+        banner,
+        "@exclude      https://forum.margonem.pl/*",
+        "and so is the forum",
+    );
     assert(
         banner.includes("@match        https://*.margonem.pl/*"),
         "while the worlds are matched",
@@ -67,7 +75,7 @@ Deno.test("the file that would be installed carries the banner and no way out", 
     const written = await buildUserscript("1.2.3");
     const built = await Deno.readTextFile(written);
     assert(built.startsWith("// ==UserScript==\n"), "the banner is first, where a manager looks");
-    assert(built.includes("// @version      1.2.3"), "at the version it was built for");
+    assertStringIncludes(built, "// @version      1.2.3", "at the version it was built for");
     assert(
         !built.includes(BUILD_VERSION),
         "and the panel below says that version, not the dev one",

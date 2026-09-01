@@ -69,6 +69,13 @@ For assertions the same question has a measured answer, and **A9** states it: wh
 function reports what `assert` cannot — the value, the diff, the narrowed type — that function is
 used; where it discards the message naming the invariant, `assert` is. The table above is the list.
 
+**`===` takes `assertStrictEquals` and `!==` takes `assertNotStrictEquals`, never the deep pair.**
+`assertEquals` compares deeply, and a copy is deeply equal to what it was copied from:
+`assert(copied !== value, "a snapshot holds a copy")` in `src/game/engine-warrior.ts` becomes an
+assertion that fires on every capture. The failure is worse in the other direction — an identity
+comparison rewritten deep **passes** where it should fail, and nothing says so. The strict pair
+matches `===` on every value a program here holds, and carries an `asserts` clause besides.
+
 ## Consequences
 
 - **A new package is still a dependency.** It goes in `deno.json` `imports` and in `deno.lock`, and
@@ -78,6 +85,12 @@ used; where it discards the message naming the invariant, `assert` is. The table
   carries, and the browser floor is measured over `dist/margometer.user.js` rather than over the
   sources — **ADR 0001**, `docs/browser-support.md`. A package that stays in `tools/` or `tests/`
   touches neither, which is where all six of this round's adoptions sit.
+- **The bundle pays for it, and the figure is the price of the decision.** `dist/margometer.user.js`
+  measured 305,259 bytes at `a68a4e9` and 324,695 at the end of this round — 19,436 more, 6.4%. Part
+  is the longer names in a thousand assertion messages and part is the library modules the shipped
+  code now reaches: `exists`, `strict_equals`, `string_includes`, `array_includes` and what they
+  import. There is no size guard in this repository and this is not proposing one; the number is
+  here so the next round knows what it bought.
 - **`assertExists` removes work **C12** used to force.** It narrows to `NonNullable<T>`, so a
   reading proved present no longer needs `?.` behind it, and `src/` and `tools/` keep their ban on
   `!` without paying for it.

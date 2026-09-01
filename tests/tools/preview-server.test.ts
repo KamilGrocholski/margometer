@@ -5,7 +5,7 @@
  * what a reload stream says, and a real bundle would add a subprocess to every one of them.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/assert";
 import { setPreviewServer } from "@/tools/preview-server.ts";
 import {
     getPreviewRecordedFight,
@@ -22,7 +22,7 @@ function composeTestServer() {
         readBundle: () => Promise.resolve(BUNDLE),
     });
     assert(preview.port > 0, "a server under test listened somewhere");
-    assert(preview.url.includes(`${preview.port}`), "and says where");
+    assertStringIncludes(preview.url, `${preview.port}`, "and says where");
     return preview;
 }
 
@@ -35,8 +35,8 @@ Deno.test("the page route draws what it was asked for, and refuses what nobody f
         const answer = await fetch(`${preview.url}/?fight=${encodeURIComponent(asked)}&entry=3`);
         const page = await answer.text();
         assertEquals(answer.status, 200, "a recording that exists is drawn");
-        assert(page.includes(asked), "and the page says which one it is");
-        assert(page.includes(`"entryIndex":3`), "stopping where the address said");
+        assertStringIncludes(page, asked, "and the page says which one it is");
+        assertStringIncludes(page, `"entryIndex":3`, "stopping where the address said");
 
         const missing = await fetch(`${preview.url}/?fight=nobody-recorded-this`);
         assertEquals(missing.status, 404, "and a name nobody filed is refused");
@@ -53,7 +53,7 @@ Deno.test("an address that names no entry opens on the finished fight", async ()
         const page = await answer.text();
         assertEquals(answer.status, 200, "the address a reader is handed draws");
         const fight = getPreviewRecordedFight(getRecordedFights());
-        assert(page.includes(fight.name), "the one fight every preview opens on");
+        assertStringIncludes(page, fight.name, "the one fight every preview opens on");
         assert(
             page.includes(`"entryIndex":${fight.calls.length}`),
             "counted to the end, which is what somebody starting this came to look at",
@@ -69,7 +69,11 @@ Deno.test("a rebuild reloads the page carrying what the harness had on screen", 
     try {
         const answer = await fetch(`${preview.url}/`);
         const page = await answer.text();
-        assert(page.includes(`new EventSource("/reload")`), "a served page listens for a rebuild");
+        assertStringIncludes(
+            page,
+            `new EventSource("/reload")`,
+            "a served page listens for a rebuild",
+        );
         assert(
             page.includes(`"/?fight=" + encodeURIComponent(name) + composePreviewStateHash()`),
             "and comes back on the fight it was on, carrying the state it was in",
@@ -140,7 +144,7 @@ Deno.test("the reload stream opens, and stopping the server takes it with it", a
     const reader = body.getReader();
     const first = await reader.read();
     const opening = new TextDecoder().decode(first.value);
-    assert(opening.includes("retry:"), "saying how soon a browser should come back");
+    assertStringIncludes(opening, "retry:", "saying how soon a browser should come back");
     await reader.cancel();
     await preview.stop();
 });

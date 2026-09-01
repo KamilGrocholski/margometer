@@ -5,7 +5,7 @@
  * composition and never parses another program's output (**W6**).
  */
 
-import { assert, assertExists } from "@std/assert";
+import { assert, assertArrayIncludes, assertExists } from "@std/assert";
 import { composeFigureReport } from "@/tools/fight-figures.ts";
 import { composeFightReplay, composeReplayedMaterial } from "@/tools/fight-replay.ts";
 import { getRecordedFightAt } from "@/tools/recorded-fights.ts";
@@ -84,6 +84,10 @@ Deno.test("every recording composes a report", () => {
     for (const replay of replayed.replays) {
         const lines = composeFigureReport(replay);
         assert(lines.length > 5, `${replay.name} composes a table`);
-        assert(lines.includes(`=== ${replay.name} ===`), `${replay.name} heads its own report`);
+        assertArrayIncludes(
+            lines,
+            [`=== ${replay.name} ===`],
+            `${replay.name} heads its own report`,
+        );
     }
 });

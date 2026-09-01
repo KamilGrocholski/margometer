@@ -9,7 +9,7 @@
  * the game's own prose, and never enters git — intake deals with both, once (`SECURITY.md`).
  */
 
-import { assert, assertEquals, assertNotEquals } from "@std/assert";
+import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
@@ -90,7 +90,7 @@ export function composeEmptyCapture(): FightCapture {
         shapesSeen: new Set(),
         statesSeen: new Set(),
     };
-    assertEquals(capture.calls.length, 0, "a recording starts holding no call");
+    assertStrictEquals(capture.calls.length, 0, "a recording starts holding no call");
     assert(!capture.isTruncated, "and with room for every one that arrives");
     return capture;
 }
@@ -100,7 +100,7 @@ function composeShapeKey(payload: unknown): string {
     if (!isRecord(payload)) return "";
     const keys = Object.keys(payload).sort();
     assert(keys.length <= MAXIMUM_SHAPE_KEYS, "a shape is read off a payload inside its bound");
-    assertEquals(keys.length, Object.keys(payload).length, "and each of them once");
+    assertStrictEquals(keys.length, Object.keys(payload).length, "and each of them once");
     return keys.join(",");
 }
 
@@ -184,8 +184,16 @@ export function composeCaptureText(
 ): string | null {
     assert(surroundings.world.length > 0, "a recording names the world it was taken on");
     assert(surroundings.capturedAt.length > 0, "and the moment it was taken at");
-    assertNotEquals(surroundings.gameBuild, "", "a build it could not read is absent, never empty");
-    assertNotEquals(surroundings.userAgent, "", "and so is a browser that said nothing of itself");
+    assertNotStrictEquals(
+        surroundings.gameBuild,
+        "",
+        "a build it could not read is absent, never empty",
+    );
+    assertNotStrictEquals(
+        surroundings.userAgent,
+        "",
+        "and so is a browser that said nothing of itself",
+    );
     assert(capture.droppedCalls >= 0, "and what was dropped is never fewer than none");
     const writing = composeJsonWriting({
         [CAPTURE_FIELDS.formatVersion]: CAPTURE_FORMAT_VERSION,

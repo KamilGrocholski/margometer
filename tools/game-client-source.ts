@@ -8,7 +8,7 @@
  * understand a protocol we already receive (NOTICE.md, SECURITY.md).
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertStrictEquals } from "@std/assert";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import {
@@ -125,7 +125,7 @@ export function requireCachedClientSource(
     if (stated !== channel) {
         throw new GameSourceError(`cache manifest for ${channel} says it holds ${stated}`);
     }
-    assertEquals(stated, channel, "a manifest names the channel it was asked for");
+    assertStrictEquals(stated, channel, "a manifest names the channel it was asked for");
     const read: CachedClientSource = {
         channel,
         build: requireClientSourceField(value["build"], "build", channel),
@@ -233,8 +233,8 @@ async function writeClientStatusReport(): Promise<void> {
             `${channel.padEnd(12)} served ${served}  cached ${cached?.build ?? "-"}  ${state}`,
         );
     }
-    assertEquals(channels.length, 2, "both channels were reported on");
-    assertEquals(channels[0], "production", "and production is the one that decides");
+    assertStrictEquals(channels.length, 2, "both channels were reported on");
+    assertStrictEquals(channels[0], "production", "and production is the one that decides");
 }
 
 if (import.meta.main) {

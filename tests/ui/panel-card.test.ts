@@ -6,7 +6,7 @@
  * wrong thing.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
 import { composeCardReading } from "@/src/ui/panel-card.ts";
 import type { PanelMetric, RowDetail } from "@/src/ui/panel-reading.ts";
 import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
@@ -164,7 +164,11 @@ Deno.test("a figure before reduction says it is the blows', and owes the sentenc
         CARD_WORDS.raw.includes(" "),
         "and the label is qualified rather than the bare word, which is what makes it true",
     );
-    assert(lines.includes(CARD_WORDS.damageNote), "with the sentence saying not to subtract it");
+    assertArrayIncludes(
+        lines,
+        [CARD_WORDS.damageNote],
+        "with the sentence saying not to subtract it",
+    );
     // The sample that must not carry it: nothing before reduction was stated, so neither is said.
     const without = composeCardReading({
         name: "Gracz 9",

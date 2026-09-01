@@ -6,7 +6,7 @@
  * nothing, because it is evidence and an absent field is a fact about the fight.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
 import {
@@ -92,7 +92,11 @@ export function getCombatantsFromPayload(payload: unknown): Combatant[] {
         found.push(combatant);
     }
     assert(found.length <= MAXIMUM_COMBATANTS, "a payload stays inside the fight's stated bound");
-    assert(new Set(found.map((one) => one.id)).size === found.length, "a combatant is read once");
+    assertStrictEquals(
+        new Set(found.map((one) => one.id)).size,
+        found.length,
+        "a combatant is read once",
+    );
     assert(found.every((one) => one.name.length > 0), "every combatant read is named");
     assert(found.every((one) => Number.isFinite(one.side)), "every combatant read has a side");
     return found;
@@ -124,8 +128,16 @@ export interface CapturedCombatant {
 function composeShallowCopy(value: unknown): unknown {
     if (!isRecord(value)) return value ?? null;
     const copied = { ...value };
-    assert(copied !== value, "a snapshot holds a copy rather than what the game goes on changing");
-    assertEquals(Object.keys(copied).length, Object.keys(value).length, "and loses nothing to it");
+    assertNotStrictEquals(
+        copied,
+        value,
+        "a snapshot holds a copy rather than what the game goes on changing",
+    );
+    assertStrictEquals(
+        Object.keys(copied).length,
+        Object.keys(value).length,
+        "and loses nothing to it",
+    );
     return copied;
 }
 

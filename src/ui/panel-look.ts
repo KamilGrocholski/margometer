@@ -7,7 +7,7 @@
  * `DESIGN.md` owns what these values are for; this file owns what they are.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertExists, assertStrictEquals, assertStringIncludes } from "@std/assert";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 
 export const SURFACE = {
@@ -175,7 +175,7 @@ const INK_DARK_CHANNELS = [0x14, 0x14, 0x1a];
 const INK_LIGHT_CHANNELS = [0xff, 0xff, 0xff];
 
 function getDigitFromHex(character: string): number | null {
-    assertEquals(character.length, 1, "a digit is one character");
+    assertStrictEquals(character.length, 1, "a digit is one character");
     const at = HEX_DIGITS.indexOf(character.toLowerCase());
     if (at === -1) return null;
     assert(at >= 0, "a digit that was found has a place in the run");
@@ -207,20 +207,24 @@ function getChannelsFromColour(colour: string): number[] | null {
     if (!colour.startsWith("#")) return null;
     if (colour.length !== HEX_COLOUR_LENGTH) return null;
     const channels: number[] = [];
-    assertEquals(colour.length, HEX_COLOUR_LENGTH, "a hex colour is a hash and six digits");
+    assertStrictEquals(colour.length, HEX_COLOUR_LENGTH, "a hex colour is a hash and six digits");
     for (let at = 1; at < colour.length; at += HEX_DIGITS_PER_CHANNEL) {
         const high = getDigitFromHex(colour.charAt(at));
         const low = getDigitFromHex(colour.charAt(at + 1));
         if (high === null || low === null) return null;
         channels.push(high * HEX_BASE + low);
     }
-    assertEquals(channels.length, CHANNELS_IN_A_COLOUR, "a colour is three channels");
+    assertStrictEquals(channels.length, CHANNELS_IN_A_COLOUR, "a colour is three channels");
     assert(channels.every((one) => one <= CHANNEL_MAXIMUM), "and each stays inside a byte");
     return channels;
 }
 
 function getLuminanceFromChannels(channels: readonly number[]): number {
-    assertEquals(channels.length, CHANNELS_IN_A_COLOUR, "a luminance is taken of three channels");
+    assertStrictEquals(
+        channels.length,
+        CHANNELS_IN_A_COLOUR,
+        "a luminance is taken of three channels",
+    );
     let luminance = 0;
     for (const [at, channel] of channels.entries()) {
         const share = channel / CHANNEL_MAXIMUM;
@@ -253,7 +257,11 @@ export function getContrastRatio(one: string, other: string): number {
 }
 
 function getInkForChannels(channels: readonly number[]): string {
-    assertEquals(channels.length, CHANNELS_IN_A_COLOUR, "an ink is chosen against three channels");
+    assertStrictEquals(
+        channels.length,
+        CHANNELS_IN_A_COLOUR,
+        "an ink is chosen against three channels",
+    );
     const onDark = getContrastFromChannels(channels, INK_DARK_CHANNELS);
     const onLight = getContrastFromChannels(channels, INK_LIGHT_CHANNELS);
     assert(onDark >= 1, "an ink is compared against what it sits on");
@@ -266,7 +274,11 @@ function composeBarChannels(hue: string): number[] {
     const track = getChannelsFromColour(SURFACE.track);
     assertExists(chosen, "the palette is written as colours");
     assertExists(track, "and so is the track they sit on");
-    assertEquals(chosen.length, track.length, "a hue and a track are mixed channel for channel");
+    assertStrictEquals(
+        chosen.length,
+        track.length,
+        "a hue and a track are mixed channel for channel",
+    );
     return chosen.map((channel, at) =>
         Math.round((track[at] ?? 0) * (1 - BAR_TINT) + channel * BAR_TINT)
     );
@@ -275,7 +287,11 @@ function composeBarChannels(hue: string): number[] {
 export function composeBarColour(hue: string): string {
     assert(hue.length > 0, "a bar is drawn in a colour that was chosen");
     const mixed = composeBarChannels(hue);
-    assertEquals(mixed.length, CHANNELS_IN_A_COLOUR, "a bar is three channels like any other");
+    assertStrictEquals(
+        mixed.length,
+        CHANNELS_IN_A_COLOUR,
+        "a bar is three channels like any other",
+    );
     return `rgb(${mixed[0]} ${mixed[1]} ${mixed[2]})`;
 }
 
@@ -461,7 +477,7 @@ function composeRegionRules(): string {
 function composeInsetUnderRows(inset: string): string {
     assert(inset.startsWith(VARIABLE_PREFIX), "a region's own inset is spent by name");
     const written = `calc(var(${inset}) - var(${VARIABLE_PREFIX}half))`;
-    assert(written.includes("half"), "and the row's own margin is what comes off it");
+    assertStringIncludes(written, "half", "and the row's own margin is what comes off it");
     return written;
 }
 

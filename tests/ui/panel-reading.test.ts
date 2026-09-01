@@ -5,7 +5,14 @@
  * the decoder and the statistics were held to, rather than a shape invented for a screen.
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertArrayIncludes,
+    assertEquals,
+    assertExists,
+    assertNotStrictEquals,
+    assertStrictEquals,
+} from "@std/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
@@ -382,7 +389,11 @@ Deno.test("every kind every recording states is one the panel has a word for", (
     }
     assert(kinds.size > 0, "the recordings state kinds of damage");
     for (const kind of kinds) {
-        assert(getWordsForDamageKind(kind) !== kind, `${kind} reaches a reader as a bare token`);
+        assertNotStrictEquals(
+            getWordsForDamageKind(kind),
+            kind,
+            `${kind} reaches a reader as a bare token`,
+        );
     }
 });
 
@@ -1161,7 +1172,7 @@ Deno.test("what reached somebody is cut by the skill's name, whoever announced i
     assertExists(drill, "and their row opens");
     const names = drill.bySkill.rows.map((one) => getTextForNamedPart(one.part));
     assertEquals(names.length, new Set(names).size, "no name is drawn twice");
-    assert(names.includes("Leczenie ran"), "the skill both healers announced is one row");
+    assertArrayIncludes(names, ["Leczenie ran"], "the skill both healers announced is one row");
     const held = drill.bySkill.rows.reduce((sum, one) => sum + one.figure, 0);
     assert(held <= drill.total, "and the rows hold no more than the figure they cut");
 });

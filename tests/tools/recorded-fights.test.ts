@@ -6,7 +6,13 @@
  * assumed, because a recording arriving without it would make the rewind silently wrong.
  */
 
-import { assert, assertEquals, assertInstanceOf, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertInstanceOf,
+    assertStringIncludes,
+    assertThrows,
+} from "@std/assert";
 import { isFightStart } from "@/src/game/battle-session.ts";
 import {
     getPreviewRecordedFight,
@@ -87,7 +93,11 @@ Deno.test("a file that is not a recording refuses under the reader's own brand",
         () => getRecordedFightAt("captures/no-such-recording-was-ever-made.json"),
         RecordingReadError,
     );
-    assert(missing.message.includes("open"), "a path that is not there says so");
+    assertStringIncludes(missing.message, "open", "a path that is not there says so");
     const unreadable = assertThrows(() => getRecordedFightAt("deno.lock"), RecordingReadError);
-    assert(unreadable.message.includes("calls"), "and a file listing no call says that instead");
+    assertStringIncludes(
+        unreadable.message,
+        "calls",
+        "and a file listing no call says that instead",
+    );
 });

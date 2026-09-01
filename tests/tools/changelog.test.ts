@@ -4,7 +4,13 @@
  * The declaration it is asked about is `tests/tools/declared-version.test.ts`'s.
  */
 
-import { assert, assertEquals, assertExists, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertStringIncludes,
+    assertThrows,
+} from "@std/assert";
 import { CHANGELOG_FILE, CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 import { composeReleaseNotes, getChangelogSection } from "@/tools/changelog.ts";
 import { getDeclaredVersion } from "@/tools/declared-version.ts";
@@ -42,8 +48,8 @@ Deno.test("a section stops where the next one opens", () => {
  */
 Deno.test("a released section covers its own version and no neighbour", () => {
     const released = getChangelogSection(CHANGELOG, "0.4.0") ?? "";
-    assert(released.includes("**Nowość**"), "0.4.0 opens with what it added");
-    assert(released.includes("**Zmiana**"), "and states what it changed");
+    assertStringIncludes(released, "**Nowość**", "0.4.0 opens with what it added");
+    assertStringIncludes(released, "**Zmiana**", "and states what it changed");
     assert(!released.includes("## [0.3.0]"), "the heading below it is not part of it");
     assert(!released.includes("da się pobrać"), "and neither is what that section says");
 });
@@ -55,7 +61,11 @@ Deno.test("a released section covers its own version and no neighbour", () => {
  */
 Deno.test("a version number in the middle of an entry is not mistaken for its heading", () => {
     const first = getChangelogSection(CHANGELOG, "0.1.0") ?? "";
-    assert(first.includes("Nakładka z licznikiem obrażeń"), "0.1.0 is read from its own heading");
+    assertStringIncludes(
+        first,
+        "Nakładka z licznikiem obrażeń",
+        "0.1.0 is read from its own heading",
+    );
     assert(!first.includes("wycofana z opisu wydania"), "and never from a mention of its number");
 });
 
@@ -70,10 +80,14 @@ Deno.test("a version with no section is null rather than empty text", () => {
 
 Deno.test("the notes carry the section and say which file to click", () => {
     const notes = composeReleaseNotes(CHANGELOG, DECLARED);
-    assert(notes.includes(getChangelogSection(CHANGELOG, DECLARED) ?? ""), "the section is in it");
-    assert(notes.includes("**Instalacja:** kliknij"), "and a player is told what to press");
-    assert(notes.includes("margometer.user.js"), "the file they install is named");
-    assert(notes.includes("margometer.meta.js"), "and so is the one they must not");
+    assertStringIncludes(
+        notes,
+        getChangelogSection(CHANGELOG, DECLARED) ?? "",
+        "the section is in it",
+    );
+    assertStringIncludes(notes, "**Instalacja:** kliknij", "and a player is told what to press");
+    assertStringIncludes(notes, "margometer.user.js", "the file they install is named");
+    assertStringIncludes(notes, "margometer.meta.js", "and so is the one they must not");
 });
 
 /**

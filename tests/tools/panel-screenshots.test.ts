@@ -6,7 +6,13 @@
  * directory that does not exist passes by having nothing to find.
  */
 
-import { assert, assertEquals, assertThrows } from "@std/assert";
+import {
+    assert,
+    assertArrayIncludes,
+    assertEquals,
+    assertStringIncludes,
+    assertThrows,
+} from "@std/assert";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
@@ -67,7 +73,11 @@ Deno.test("whatever is in the directory agrees with the sidecar standing beside 
         // No set has been taken yet, which is a tree with nothing to disagree about.
         return;
     }
-    assert(held.includes(SIDECAR_NAME), "a set carries the sidecar saying where it came from");
+    assertArrayIncludes(
+        held,
+        [SIDECAR_NAME],
+        "a set carries the sidecar saying where it came from",
+    );
     const reading = getJsonReading(
         Deno.readTextFileSync(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`),
     );
@@ -107,10 +117,18 @@ Deno.test("the set was taken at a version this tree is", () => {
 
 Deno.test("a state is reached by a press and never by a click", () => {
     const script = composeShotScript(`setPressed("[data-row]", 0);`);
-    assert(script.includes("pointerdown"), "the panel listens for a press, so a press is sent");
+    assertStringIncludes(
+        script,
+        "pointerdown",
+        "the panel listens for a press, so a press is sent",
+    );
     assert(!script.includes(".click("), "a click fires nothing at all, and reports success");
-    assert(script.includes("maxHeight"), "the height cap is lifted for the photograph");
-    assert(script.includes("preview-strip"), "and the harness takes its own chrome out of frame");
+    assertStringIncludes(script, "maxHeight", "the height cap is lifted for the photograph");
+    assertStringIncludes(
+        script,
+        "preview-strip",
+        "and the harness takes its own chrome out of frame",
+    );
 });
 
 Deno.test("the panel stands where it is photographed before anything is pressed", () => {
@@ -120,8 +138,12 @@ Deno.test("the panel stands where it is photographed before anything is pressed"
     assert(taken > 0, "the panel is taken to the corner the frame is measured against");
     assert(pressed > 0, "and the state is reached by the presses that were asked for");
     assert(taken < pressed, "in that order: a card opens on the side the panel stood on");
-    assert(script.includes("[data-grip]"), "the panel is moved by its own bar");
-    assert(script.includes(`setPointer("pointerup"`), "and let go of, which is when it is kept");
+    assertStringIncludes(script, "[data-grip]", "the panel is moved by its own bar");
+    assertStringIncludes(
+        script,
+        `setPointer("pointerup"`,
+        "and let go of, which is when it is kept",
+    );
     assert(
         script.includes(`get("${FRAME_PARAMETER}")`),
         "to the corner of the frame it is taken at, which the address is what states",
@@ -188,5 +210,5 @@ Deno.test("a page that wrote nothing down is a refusal, not a frame of some othe
     );
     const asked = getBrowserAsked("firefox", "chromium");
     assertEquals(asked[0], "firefox", "what was asked for is looked for first");
-    assert(asked.includes("google-chrome"), "and Chrome is in the list either way");
+    assertArrayIncludes(asked, ["google-chrome"], "and Chrome is in the list either way");
 });

@@ -99,8 +99,9 @@ this language does not have would be**; each states what binds instead.
 - **A9. The assertion that reports more is the one used.** Where a `@std/assert` function says what
   `assert` cannot — the value, the diff, the narrowed type — it is what stands there; where it
   discards the message naming the invariant, `assert` is. Which does which is measured, and **ADR
-  0040** carries the table. The failure is quiet: an assertion that fires having thrown away the
-  only sentence saying what broke.
+  0040** carries the table. `===` takes the **strict** pair and never the deep one: deep equality
+  turns an identity check into an assertion that fires on every copy, or worse, into one that passes
+  where it should fail.
 
 ## Errors
 
