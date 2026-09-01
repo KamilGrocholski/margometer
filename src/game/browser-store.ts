@@ -7,7 +7,7 @@
  * contact with its browser declared.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 
 /** Far past anything this add-on writes, which is a shelf of twenty fights — **S11**. */
 const MAXIMUM_VALUE_LENGTH = 4194304;

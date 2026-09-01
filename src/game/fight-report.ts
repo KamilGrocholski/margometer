@@ -7,7 +7,7 @@
  * numbers stands in the envelope and is never repeated here. **ADR 0027.**
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import type {
     CombatantFigures,

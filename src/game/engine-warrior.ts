@@ -6,7 +6,7 @@
  * nothing, because it is evidence and an absent field is a fact about the fight.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
 import {

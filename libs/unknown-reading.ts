@@ -3,7 +3,7 @@
  * answers null rather than throwing: a shape the game did not send is the caller's to judge.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 
 /** A list is an object to `typeof`, and one standing for a record opened a fight nobody fought. */
 export function isRecord(value: unknown): value is Record<string, unknown> {

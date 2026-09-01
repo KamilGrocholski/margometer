@@ -7,7 +7,7 @@
  * has been seen is read all the same, because the reader may have joined a fight in progress.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import {
     type Combatant,

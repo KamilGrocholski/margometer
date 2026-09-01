@@ -3,7 +3,7 @@
  * the surface this asks of a browser declared rather than assumed.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import { composeDecimalText } from "@/libs/number-text.ts";
 import type {

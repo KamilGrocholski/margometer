@@ -6,7 +6,7 @@
  * reader can see the size of what could not be placed instead of finding it folded into a row.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import type {
     AnnouncedSkill,
     AttackEvent,

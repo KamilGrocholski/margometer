@@ -7,7 +7,7 @@
  * to the wrong combatant is the failure this project exists to prevent.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 
 export interface Combatant {
     id: number;

@@ -7,7 +7,7 @@
  * `DESIGN.md` owns what these values are for; this file owns what they are.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 
 export const SURFACE = {

@@ -3,7 +3,7 @@
  * in the same places. `DESIGN.md` owns what a ranking looks like; this is only its order.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 
 export function getRankedOrder(
     oneFigure: number,

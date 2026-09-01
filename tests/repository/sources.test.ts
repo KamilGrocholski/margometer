@@ -754,3 +754,29 @@ Deno.test("the panel reaches for no browser global, and takes its document as an
     assert(getSourcePaths().some((path) => path.startsWith("src/ui/")), "there is a panel to read");
     assertEquals(reaching, [], "the panel's surface stays declared rather than ambient");
 });
+
+/** The barrel, spelled as an import writes it. `@std/assert/assert` does not contain this. */
+const ASSERTION_BARREL = '"@std/assert"';
+
+/** Whole text rather than a line: `deno fmt` wraps an import list, never a string literal. */
+function isImportingAssertionBarrel(text: string): boolean {
+    assert(ASSERTION_BARREL.length > 0, "there is a specifier to look for");
+    assert(!"@std/assert/assert".includes(ASSERTION_BARREL), "and the module path is not it");
+    return text.includes(ASSERTION_BARREL);
+}
+
+Deno.test("what the bundle carries imports the assertion by module path", () => {
+    assert(BUNDLED_ROOTS.length > 0, "there are roots that ship");
+    const spelled: string[] = [];
+    for (const path of getSourcePaths()) {
+        if (!BUNDLED_ROOTS.some((root) => path.startsWith(root))) continue;
+        if (isImportingAssertionBarrel(Deno.readTextFileSync(path))) spelled.push(path);
+    }
+    assertEquals(spelled.sort(), [], "A10: the barrel imported where the bundle reaches");
+    // Both ways, because a reader that has stopped finding its subject calls every tree clean.
+    assert(isImportingAssertionBarrel('import { assert } from "@std/assert";'), "it finds one");
+    assert(
+        !isImportingAssertionBarrel('import { assert } from "@std/assert/assert";'),
+        "and the module path is not read as the barrel it starts with",
+    );
+});

@@ -6,7 +6,7 @@
  * expressed at all and the compiler counts the rows.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import type { NamedPart, PanelMetric, PanelUnnamedEnd } from "@/src/ui/panel-reading.ts";
 import {
     getWordsForDirection,

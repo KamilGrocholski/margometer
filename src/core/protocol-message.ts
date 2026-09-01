@@ -9,7 +9,7 @@
  * a loud unknown rather than by reading half a message as if it were understood.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import { MargoMeterError } from "@/src/core/margometer-error.ts";
 import { composeIntegerText, getIntegerFromText, isIntegerText } from "@/libs/number-text.ts";
 import { composeHealthPercentText, getHealthPercentFromText } from "@/src/core/protocol-number.ts";

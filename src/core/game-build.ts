@@ -5,7 +5,7 @@
  * worse than one admitting it has none. Text is walked rather than matched — **C7**.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 
 /**
  * What both shapes the client has served have in common. Until 2026-08-25 a bundle was

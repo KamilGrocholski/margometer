@@ -1,6 +1,6 @@
 /** Where the panel sits, and how a reader moves it. Nothing here measures the document. */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 
 /** A position is two numbers written as JSON; text longer than this is not one. */
 const MAXIMUM_STORED = 4096;

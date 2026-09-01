@@ -5,7 +5,7 @@
  * than reading it, and it can throw for reasons that are none of ours.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { ENGINE_SPELLINGS, getEnginesFromPage } from "@/src/game/engine-attachment.ts";
 import {

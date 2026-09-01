@@ -6,7 +6,7 @@
  * down here (`NOTICE.md`). What is refused, and why each refusal exists: **ADR 0024**.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import { isRecord } from "@/libs/unknown-reading.ts";
 
 /**

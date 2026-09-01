@@ -6,7 +6,7 @@
  * on an unknown event, keys and ends included, so a panel can say which total may be short.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import type {
     AnnouncedSkill,
     AttackEvent,

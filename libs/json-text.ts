@@ -5,7 +5,7 @@
  * as a value of its own, and `undefined` has no JSON text at all. **ADR 0021.**
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 
 /** `cause` is what the reader threw, so a caller can say where the text stopped making sense. */
 export type JsonReading =

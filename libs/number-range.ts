@@ -3,7 +3,7 @@
  * case a caller hits when the space it is clamping into has run out entirely.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 
 export function getValueWithin(value: number, minimum: number, maximum: number): number {
     assert(Number.isFinite(value), "a value being held between two ends is a number");

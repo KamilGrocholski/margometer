@@ -9,7 +9,7 @@
  * the game's own prose, and never enters git — intake deals with both, once (`SECURITY.md`).
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";

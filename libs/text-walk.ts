@@ -5,7 +5,7 @@
  * admits `$` and `_`, and neither belongs to every reader. What is shared is the walk.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 
 export function isDigitAt(text: string, index: number): boolean {
     const character = text.charAt(index);

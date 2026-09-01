@@ -5,7 +5,7 @@
  * leaves this file. The engine arrives as an argument, so the global read stays in the caller.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 
 /** Past anything a fight produces: a collector failing this often has stopped working. */
 const MAXIMUM_FAILURES = 1048576;

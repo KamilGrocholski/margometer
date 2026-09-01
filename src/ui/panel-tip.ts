@@ -6,7 +6,7 @@
  * and the sheet multiplies.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { CLASS } from "@/src/ui/panel-look.ts";
 

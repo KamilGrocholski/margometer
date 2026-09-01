@@ -6,7 +6,7 @@
  * letter, a token. Wording a mechanic nobody named would be a claim about the game. **ADR 0011.**
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import type {
     PanelMetric,

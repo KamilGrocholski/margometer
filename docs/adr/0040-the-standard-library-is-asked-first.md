@@ -76,6 +76,13 @@ none of the message, and the maintainer who wants the value can read it in a tes
 material. So `src/` and the `libs/` modules it reaches keep the plain `assert` — **A10** — and this
 is a rule about the reader rather than about the byte, though the byte is what made it visible.
 
+**What ships imports `assert` by module path: `@std/assert/assert`.** `@std/assert` is the package's
+barrel, and `deno bundle` tree-shakes functions but not a module-level initialiser it cannot prove
+pure. Two survived into the shipped file with no function of theirs beside them: `equal.ts` built
+`stringComparablePrototypes` with `new Set([…].filter(…).map(…))`, which pulled
+`@std/internal/styles.ts` and its `ANSI_REGEXP`. `tools/` and `tests/` keep the barrel, where they
+spell several names from it and nothing is bundled.
+
 **`===` takes `assertStrictEquals` and `!==` takes `assertNotStrictEquals`, never the deep pair.**
 `assertEquals` compares deeply, and a copy is deeply equal to what it was copied from:
 `assert(copied !== value, "a snapshot holds a copy")` in `src/game/engine-warrior.ts` becomes an
@@ -97,6 +104,10 @@ matches `===` on every value a program here holds, and carries an `asserts` clau
   a terminal leaves it at 306,518. **The conversion inside the bundle cost 18,177 bytes, 6%**,
   against 1,259 for the assertions this round rewrote to say something. There is no size guard here
   and this does not propose one — the number is the evidence for **A10**, not a budget.
+- **The barrel cost 912 bytes and a regular expression.** `dist/margometer.user.js` measured 306,518
+  bytes on the barrel and 305,606 on the module path, 2026-09-01. The regular expression is the
+  sharper half: `ANSI_REGEXP` colours a terminal nothing here has, and **C7** does not let our own
+  code write one at all.
 - **`assertExists` removes work **C12** used to force.** It narrows to `NonNullable<T>`, so a
   reading proved present no longer needs `?.` behind it, and `src/` and `tools/` keep their ban on
   `!` without paying for it.

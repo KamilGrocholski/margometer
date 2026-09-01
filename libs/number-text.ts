@@ -6,7 +6,7 @@
  * because by then the number is the caller's own.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import { isDigitRun } from "@/libs/text-walk.ts";
 
 /** Text signed twice is refused, never asserted against: a reading never throws — **E9**. */

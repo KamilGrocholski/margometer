@@ -5,7 +5,7 @@
  * are written in, which is a measurement over `captures/` and not a property of numbers.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import { composeDecimalText, getDecimalFromText } from "@/libs/number-text.ts";
 import { isDigitRun } from "@/libs/text-walk.ts";
 

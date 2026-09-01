@@ -8,7 +8,7 @@
  * A search with no end is something the page pays for forever.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import {
     type EngineBattle,
     isEngineBattleWrapped,

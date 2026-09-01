@@ -6,7 +6,7 @@
  */
 
 import { getValueWithin } from "@/libs/number-range.ts";
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { type CombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import { HEALTH_PERCENT_PLACES } from "@/src/core/protocol-number.ts";

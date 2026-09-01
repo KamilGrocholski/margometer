@@ -107,7 +107,9 @@ this language does not have would be**; each states what binds instead.
   reaches. A broken invariant there becomes a missing section at **E5**'s boundary and the person in
   front of it reads none of the message, so the value in it is bought for nobody while the bundle
   carries a module per name. Where a figure needs the value to be read, it is read where a value can
-  be read: in a test. **ADR 0040.**
+  be read: in a test. And it imports that name by module path — `@std/assert/assert`, never the
+  barrel: the barrel re-exports every module of the package, and the bundler keeps the top-level
+  initialisers of the two it cannot prove pure. **ADR 0040.**
 
 ## Errors
 

@@ -4,7 +4,7 @@
  */
 
 import { getRankedOrder } from "@/src/ui/ranked-order.ts";
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import {
     composeRowWarnings,
     type CutPart,

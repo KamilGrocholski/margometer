@@ -9,7 +9,7 @@
  */
 
 import { getRankedOrder } from "@/src/ui/ranked-order.ts";
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import { type CombatantRoster, getCombatantIdByName } from "@/src/core/combatant-roster.ts";
 import {
     type CombatantFigures,

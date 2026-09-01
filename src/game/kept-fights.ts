@@ -9,7 +9,7 @@
  * than assuming a quota, and everything read back is validated.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import type { BrowserStore } from "@/src/game/browser-store.ts";
 import type { FightPlace } from "@/src/game/engine-place.ts";
 import { MAXIMUM_CALLS } from "@/src/game/fight-capture.ts";

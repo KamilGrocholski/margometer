@@ -7,7 +7,7 @@
  * userscript's contact with its browser stated in one file and testable without one.
  */
 
-import { assert } from "@std/assert";
+import { assert } from "@std/assert/assert";
 import {
     type Combatant,
     type CombatantRoster,
