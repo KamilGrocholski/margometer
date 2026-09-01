@@ -208,6 +208,7 @@ tests/
     browser-page.ts        The page it drives: a probe, a game, the bundle, a fight replayed.
     browser-host.ts        That page on a real origin, and the Chrome this machine has.
     panel-boot.test.ts     The file a reader installs, run by a browser.
+    panel-gesture.test.ts  A press an engine retargets, and the menu a right press stops.
   source-line.ts           A line of TypeScript with its string literals taken out.
   style-sheet.ts           The panel's stylesheet read back, for the guards that read it.
   source-paths.ts          Every TypeScript file under the directories that hold one.
