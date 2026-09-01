@@ -252,6 +252,11 @@ not by the screen — so `Otrzymane` heads its two pinned rows differently (**AD
 is what the figure was dealt with, headed like any kind cut, and it is the section a reader came
 for: the row names nobody, and this is the question it can still answer (**ADR 0039**).
 
+**Both of its sections open, and onto each other.** A person there opens onto the keys their own
+share moved under, a key onto the people carrying it — one fold read both ways round, so neither is
+a figure the other cannot be checked against. That is this branch's third level, and like the other
+branch's it opens no further.
+
 **Every row with a level under it opens, and only what has none stays shut.** A cut of one row is
 not a repetition to be spared: it states what the figure over it was made of, which the heading
 never does. What decides the answer is whether the statistics keep a second cut of that row — and

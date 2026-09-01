@@ -642,10 +642,10 @@ function setScreenKept(
 }
 
 /**
- * The pinned row end to end: a press opens the level, the way back closes it, and a change of
- * screen closes it too. The last is the one that differs from a person's row — the four screens
- * pin five different figures, so the row of that name on the next screen is not this one.
- * **ADR 0038.**
+ * The pinned row end to end: a press opens the level, a press inside it opens the level under
+ * that, the way back is one rung at a time, and a change of screen closes the lot. The last is the
+ * one that differs from a person's row — the four screens pin five different figures, so the row
+ * of that name on the next screen is not this one. **ADR 0038**, **ADR 0039**.
  */
 Deno.test("a reader opens a pinned row, and it does not follow them to the next screen", () => {
     const battle: Record<string, unknown> = { updateData: () => 1 };
@@ -677,10 +677,24 @@ Deno.test("a reader opens a pinned row, and it does not follow them to the next 
     assertEquals(pinnedName(), undefined, "and the pinned row itself is off the screen");
     const named = getElementsWithin(host).filter((one) => one.className === "row-name");
     assert(named.length > 0, "the level names whoever the game did state at the other end");
+    const person = named.find((one) => one.attributes.get("data-row") !== undefined);
+    assert(person !== undefined, "and each of them opens onto what their own share was dealt with");
+
+    pressElement(host, "pointerdown", person);
     assertEquals(
-        named.filter((one) => one.attributes.get("data-row") !== undefined),
-        [],
-        "and none of them opens any further",
+        getRegion("crumb-here")?.textContent,
+        person.textContent,
+        "pressing one opens the level under it, under that person's own name",
+    );
+    const kinds = getElementsWithin(host).filter((one) => {
+        return (one.attributes.get("data-tip") ?? "").startsWith("kind:");
+    });
+    assert(kinds.length > 0, "which is the keys their share of the figure moved under");
+    pressElement(host, "pointerdown", getRegion("crumb-back") ?? host);
+    assertEquals(
+        getRegion("crumb-here")?.textContent,
+        PANEL_WORDS.withoutActor,
+        "and the way back out of it is one rung, onto the pinned row's own level",
     );
 
     pressElement(host, "pointerdown", getRegion("crumb-back") ?? host);

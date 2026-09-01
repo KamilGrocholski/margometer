@@ -10,7 +10,9 @@ import type {
     DrillReading,
     ElementCut,
     ElementRow,
+    HalfNamedDrillReading,
     HalfNamedReading,
+    HalfNamedRow,
     NamedPart,
     OpponentRow,
     PairReading,
@@ -26,7 +28,7 @@ import type {
     SkillRow,
     UnnamedRow,
 } from "@/src/ui/panel-reading.ts";
-import { getRowHasDoubt } from "@/src/ui/panel-reading.ts";
+import { getEndForPinned, getRowHasDoubt } from "@/src/ui/panel-reading.ts";
 import {
     composeDirectionTabs,
     composeNounTabs,
@@ -577,6 +579,13 @@ function composeCrumbRegion(document: PanelDocument, view: PanelView): PanelElem
     if (view.isOnShelf) {
         return composeCrumbElement(document, PANEL_WORDS.fights, PANEL_WORDS.backFromFights);
     }
+    if (view.halfNamedDrill !== null) {
+        return composeCrumbElement(
+            document,
+            getWordsForHalfNamedDrill(view.halfNamedDrill, view.current),
+            getWordsForUnnamedRow(getEndForPinned(view.halfNamedDrill.case)),
+        );
+    }
     if (view.halfNamed !== null) {
         return composeCrumbElement(document, getWordsForUnnamedRow(view.halfNamed.end));
     }
@@ -1119,6 +1128,7 @@ export interface PanelView {
     part: PartReading | null;
     /** What stands under a pinned row, where a reader has opened one. Never open beside `drill`. */
     halfNamed: HalfNamedReading | null;
+    halfNamedDrill: HalfNamedDrillReading | null;
     place: string | null;
     isCollapsed: boolean;
 }
@@ -1150,6 +1160,9 @@ function composeViewList(
         return composePartElement(document, view, view.part, register, translate);
     }
     if (view.pair !== null) return composePairElement(document, view, view.pair, register);
+    if (view.halfNamedDrill !== null) {
+        return composeHalfNamedDrillElement(document, view, view.halfNamedDrill, register);
+    }
     if (view.halfNamed !== null) {
         return composeHalfNamedElement(document, view, view.halfNamed, register, translate);
     }
@@ -1157,6 +1170,57 @@ function composeViewList(
         return composeDrillElement(document, view, view.drill, register, translate);
     }
     return composeRankingElement(document, view.reading, view.current, register, translate);
+}
+
+/**
+ * What stands under one row of that level: a person's own keys, or a key's own people. The two are
+ * one fold read both ways round, so this is one function with one branch rather than two levels.
+ *
+ * Nothing here opens. It is the third level, and the panel goes no deeper.
+ */
+function composeHalfNamedDrillElement(
+    document: PanelDocument,
+    view: PanelView,
+    drill: HalfNamedDrillReading,
+    register: TipRegister,
+): PanelElement {
+    assert(drill.total > 0, "a level stands under a figure there is something of");
+    assert(SCREEN_ORDER.includes(view.current), "and on a screen the strips draw");
+    const figure = getWordsForScreen(view.current);
+    if (drill.opened === "element") {
+        assert(drill.rows.length > 0, "a key that opened has somebody's row carrying it");
+        const rows = drill.rows.length + (drill.neither === null ? 0 : 1);
+        const list = composeListElement(document, Math.max(rows + 1, view.reading.visibleRows));
+        const heading = getWordsForHalfNamedCut(drill.end);
+        list.append(composeSectionElement(document, heading, drill.total));
+        composeHalfNamedRows(document, list, view, {
+            rows: drill.rows,
+            neither: drill.neither,
+            opens: false,
+            register,
+            translate: null,
+        });
+        return list;
+    }
+    const kinds = drill.kinds.rows.length + (drill.kinds.unnamed === null ? 0 : 1);
+    const list = composeListElement(document, Math.max(kinds + 1, view.reading.visibleRows));
+    composeElementSection(document, list, drill.kinds, {
+        metric: view.current,
+        register,
+        figure,
+        total: drill.total,
+    });
+    return list;
+}
+
+/** What the way back calls the row that is open, which is the row itself and not its level. */
+function getWordsForHalfNamedDrill(drill: HalfNamedDrillReading, metric: PanelMetric): string {
+    assert(SCREEN_ORDER.includes(metric), "a way back is drawn on a screen the strips draw");
+    if (drill.opened === "person") return drill.row.name ?? PANEL_WORDS.unknown;
+    assert(drill.element.length > 0, "and a key is named by what the protocol wrote");
+    return getNounForScreen(metric) === "damage"
+        ? getWordsForDamageKind(drill.element)
+        : getWordsForHealthSource(drill.element);
 }
 
 /**
@@ -1182,7 +1246,13 @@ function composeHalfNamedElement(
     const list = composeListElement(document, Math.max(needed, view.reading.visibleRows));
     const heading = getWordsForHalfNamedCut(halfNamed.end);
     list.append(composeSectionElement(document, heading, halfNamed.total));
-    composeHalfNamedRows(document, list, view, { halfNamed, register, translate });
+    composeHalfNamedRows(document, list, view, {
+        rows: halfNamed.rows,
+        neither: halfNamed.neither,
+        opens: true,
+        register,
+        translate,
+    });
     composeElementSection(document, list, halfNamed.kinds, {
         metric: view.current,
         register,
@@ -1203,12 +1273,15 @@ function composeHalfNamedRows(
     list: PanelElement,
     view: PanelView,
     stated: {
-        halfNamed: HalfNamedReading;
+        rows: readonly HalfNamedRow[];
+        neither: UnnamedRow | null;
+        /** False on the third level: what stands under a person there is nobody, and nothing. */
+        opens: boolean;
         register: TipRegister;
         translate: TranslateLabel | null;
     },
 ): void {
-    const { halfNamed, register, translate } = stated;
+    const { rows, neither, opens, register, translate } = stated;
     const figure = getWordsForScreen(view.current);
     const share = PANEL_WORDS.shareOfFigure;
     // The card is the fight's four figures, as it is wherever a person's row stands, and this row
@@ -1219,18 +1292,19 @@ function composeHalfNamedRows(
         translate,
         isRowNarrower: true,
     };
-    for (const [at, row] of halfNamed.rows.entries()) {
+    for (const [at, row] of rows.entries()) {
         const tip = {
             register,
             key: `named:${row.combatantId}`,
             figure,
             share,
-            compose: composePersonCard(row, place, false),
+            compose: composePersonCard(row, place, opens),
         };
         const reading = composeCombatantReading(row, at + 1, view.current);
-        list.append(composeRowElement(document, reading, null, tip));
+        const mark = opens ? { attribute: ROW_ATTRIBUTE, stated: `${row.combatantId}` } : null;
+        list.append(composeRowElement(document, reading, mark, tip));
     }
-    if (halfNamed.neither === null) return;
+    if (neither === null) return;
     const tip = {
         register,
         key: "named:nobody",
@@ -1238,7 +1312,7 @@ function composeHalfNamedRows(
         share,
         notes: [NEITHER_END_WORDS.note],
     };
-    const reading = composeUnnamedReading(halfNamed.neither, NEITHER_END_WORDS.label);
+    const reading = composeUnnamedReading(neither, NEITHER_END_WORDS.label);
     list.append(composeRowElement(document, reading, null, tip));
 }
 
@@ -1759,7 +1833,8 @@ function setPinnedRegions(
         isSideChosen: view.side !== "everyone",
         figure: getWordsForScreen(view.current),
     };
-    const isOpen = view.drill !== null || view.halfNamed !== null;
+    const isOpen = view.drill !== null || view.halfNamed !== null ||
+        view.halfNamedDrill !== null;
     const pinned = !isOpen && !view.isOnShelf ? view.reading.pinned : [];
     assert(pinned.length <= 2, "a screen pins the two ends the protocol can leave out, at most");
     for (const [end, standing] of [["actor", "pinnedActor"], ["target", "pinnedTarget"]] as const) {

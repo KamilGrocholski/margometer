@@ -18,25 +18,29 @@ deno task drill --screen healthGiven       # one screen of it
 
 ## The five views, at three levels
 
-**The panel is three levels deep, and the third has two shapes.** `pair` and `part` are both a press
-away from `opened` and neither is reachable from the other, so a reader counting how far down they
-can go counts three. `unnamed` sits on the second level off a branch of its own — it is opened from
-a row standing under the ranking rather than from one on it — and nothing stands under it.
+**The panel is three levels deep, and the third has two shapes on each of its two branches.** `pair`
+and `part` are both a press away from `opened` and neither is reachable from the other, so a reader
+counting how far down they can go counts three. `unnamed` sits on the second level off a branch of
+its own — it is opened from a row standing under the ranking rather than from one on it — and
+`unnamed cut` is that branch's third, reached from either of the two sections `unnamed` draws.
 
-| view      | level | what it lists                                             | how a reader gets there                                      |
-| --------- | ----- | --------------------------------------------------------- | ------------------------------------------------------------ |
-| `ranking` | 1     | one row per combatant, by the chosen figure               | the screen a tab opens on                                    |
-| `opened`  | 2     | that combatant's figure, in up to three cuts              | pressing a ranking row                                       |
-| `unnamed` | 2     | the end the game **did** name, and what it was dealt with | pressing a pinned row under the ranking                      |
-| `pair`    | 3     | what one of them did to the other, by skill and by key    | pressing a person in the opened row's `KOMU` / `OD KOGO` cut |
-| `part`    | 3     | whom one row of a cut reached, person by person           | pressing a skill, a key or a kind inside the opened row      |
+| view          | level | what it lists                                             | how a reader gets there                                      |
+| ------------- | ----- | --------------------------------------------------------- | ------------------------------------------------------------ |
+| `ranking`     | 1     | one row per combatant, by the chosen figure               | the screen a tab opens on                                    |
+| `opened`      | 2     | that combatant's figure, in up to three cuts              | pressing a ranking row                                       |
+| `unnamed`     | 2     | the end the game **did** name, and what it was dealt with | pressing a pinned row under the ranking                      |
+| `pair`        | 3     | what one of them did to the other, by skill and by key    | pressing a person in the opened row's `KOMU` / `OD KOGO` cut |
+| `part`        | 3     | whom one row of a cut reached, person by person           | pressing a skill, a key or a kind inside the opened row      |
+| `unnamed cut` | 3     | one person's own keys, or one key's own people            | pressing either kind of row on the `unnamed` level           |
 
 **A row opens wherever there is a level under it.** What decides it is never whether that level
 would say something new — a cut of one row states what the figure over it was made of, which the
 heading never does, and a reader who cannot press a row learns nothing at all. What stays shut is
 what the statistics keep no second cut of, and **ADR 0034** carries the argument.
 
-**Nothing on the third level opens, and nothing on `unnamed` does either.** The rungs are entered by
+**Nothing on the third level opens, on either branch.** Every row on the second does: under a pinned
+row the two sections are one fold read both ways round, so a person opens onto their own keys and a
+key onto its own people, and past that there is nothing kept to draw. The rungs are entered by
 different marks: a person carries `data-row`, a pinned row carries `data-unnamed` naming the end it
 leaves out, and a part carries one of `data-skill`, `data-source` and `data-kind` — one attribute
 per kind of row, so what a press asks for is read off the node rather than parsed out of it. Every
@@ -68,48 +72,52 @@ A verdict outside that list is refused rather than read as silence.
 
 ## The register
 
-| screen               | level     | row          | opens       |
-| -------------------- | --------- | ------------ | ----------- |
-| `damageDealtApplied` | `ranking` | `person`     | `always`    |
-| `damageDealtApplied` | `ranking` | `half-named` | `always`    |
-| `damageDealtApplied` | `opened`  | `person`     | `always`    |
-| `damageDealtApplied` | `opened`  | `skill`      | `always`    |
-| `damageDealtApplied` | `opened`  | `closing`    | `never`     |
-| `damageDealtApplied` | `opened`  | `kind`       | `always`    |
-| `damageDealtApplied` | `pair`    | `skill`      | `never`     |
-| `damageDealtApplied` | `pair`    | `closing`    | `never`     |
-| `damageDealtApplied` | `pair`    | `kind`       | `never`     |
-| `damageDealtApplied` | `part`    | `person`     | `never`     |
-| `damageDealtApplied` | `unnamed` | `person`     | `never`     |
-| `damageDealtApplied` | `unnamed` | `kind`       | `never`     |
-| `damageTakenApplied` | `ranking` | `person`     | `always`    |
-| `damageTakenApplied` | `ranking` | `half-named` | `always`    |
-| `damageTakenApplied` | `opened`  | `person`     | `always`    |
-| `damageTakenApplied` | `opened`  | `half-named` | `never`     |
-| `damageTakenApplied` | `opened`  | `skill`      | `always`    |
-| `damageTakenApplied` | `opened`  | `closing`    | `never`     |
-| `damageTakenApplied` | `opened`  | `kind`       | `sometimes` |
-| `damageTakenApplied` | `pair`    | `skill`      | `never`     |
-| `damageTakenApplied` | `pair`    | `closing`    | `never`     |
-| `damageTakenApplied` | `pair`    | `kind`       | `never`     |
-| `damageTakenApplied` | `part`    | `person`     | `never`     |
-| `damageTakenApplied` | `unnamed` | `person`     | `never`     |
-| `damageTakenApplied` | `unnamed` | `kind`       | `never`     |
-| `healthGiven`        | `ranking` | `person`     | `always`    |
-| `healthGiven`        | `opened`  | `person`     | `always`    |
-| `healthGiven`        | `opened`  | `skill`      | `always`    |
-| `healthGiven`        | `opened`  | `source`     | `always`    |
-| `healthGiven`        | `pair`    | `skill`      | `never`     |
-| `healthGiven`        | `pair`    | `source`     | `never`     |
-| `healthGiven`        | `part`    | `person`     | `never`     |
-| `healthRestored`     | `ranking` | `person`     | `always`    |
-| `healthRestored`     | `opened`  | `person`     | `always`    |
-| `healthRestored`     | `opened`  | `skill`      | `always`    |
-| `healthRestored`     | `opened`  | `source`     | `never`     |
-| `healthRestored`     | `opened`  | `kind`       | `never`     |
-| `healthRestored`     | `pair`    | `skill`      | `never`     |
-| `healthRestored`     | `pair`    | `source`     | `never`     |
-| `healthRestored`     | `part`    | `person`     | `never`     |
+| screen               | level         | row          | opens       |
+| -------------------- | ------------- | ------------ | ----------- |
+| `damageDealtApplied` | `ranking`     | `person`     | `always`    |
+| `damageDealtApplied` | `ranking`     | `half-named` | `always`    |
+| `damageDealtApplied` | `opened`      | `person`     | `always`    |
+| `damageDealtApplied` | `opened`      | `skill`      | `always`    |
+| `damageDealtApplied` | `opened`      | `closing`    | `never`     |
+| `damageDealtApplied` | `opened`      | `kind`       | `always`    |
+| `damageDealtApplied` | `pair`        | `skill`      | `never`     |
+| `damageDealtApplied` | `pair`        | `closing`    | `never`     |
+| `damageDealtApplied` | `pair`        | `kind`       | `never`     |
+| `damageDealtApplied` | `part`        | `person`     | `never`     |
+| `damageDealtApplied` | `unnamed`     | `person`     | `always`    |
+| `damageDealtApplied` | `unnamed`     | `kind`       | `always`    |
+| `damageDealtApplied` | `unnamed cut` | `person`     | `never`     |
+| `damageDealtApplied` | `unnamed cut` | `kind`       | `never`     |
+| `damageTakenApplied` | `ranking`     | `person`     | `always`    |
+| `damageTakenApplied` | `ranking`     | `half-named` | `always`    |
+| `damageTakenApplied` | `opened`      | `person`     | `always`    |
+| `damageTakenApplied` | `opened`      | `half-named` | `never`     |
+| `damageTakenApplied` | `opened`      | `skill`      | `always`    |
+| `damageTakenApplied` | `opened`      | `closing`    | `never`     |
+| `damageTakenApplied` | `opened`      | `kind`       | `sometimes` |
+| `damageTakenApplied` | `pair`        | `skill`      | `never`     |
+| `damageTakenApplied` | `pair`        | `closing`    | `never`     |
+| `damageTakenApplied` | `pair`        | `kind`       | `never`     |
+| `damageTakenApplied` | `part`        | `person`     | `never`     |
+| `damageTakenApplied` | `unnamed`     | `person`     | `always`    |
+| `damageTakenApplied` | `unnamed`     | `kind`       | `always`    |
+| `damageTakenApplied` | `unnamed cut` | `person`     | `never`     |
+| `damageTakenApplied` | `unnamed cut` | `kind`       | `never`     |
+| `healthGiven`        | `ranking`     | `person`     | `always`    |
+| `healthGiven`        | `opened`      | `person`     | `always`    |
+| `healthGiven`        | `opened`      | `skill`      | `always`    |
+| `healthGiven`        | `opened`      | `source`     | `always`    |
+| `healthGiven`        | `pair`        | `skill`      | `never`     |
+| `healthGiven`        | `pair`        | `source`     | `never`     |
+| `healthGiven`        | `part`        | `person`     | `never`     |
+| `healthRestored`     | `ranking`     | `person`     | `always`    |
+| `healthRestored`     | `opened`      | `person`     | `always`    |
+| `healthRestored`     | `opened`      | `skill`      | `always`    |
+| `healthRestored`     | `opened`      | `source`     | `never`     |
+| `healthRestored`     | `opened`      | `kind`       | `never`     |
+| `healthRestored`     | `pair`        | `skill`      | `never`     |
+| `healthRestored`     | `pair`        | `source`     | `never`     |
+| `healthRestored`     | `part`        | `person`     | `never`     |
 
 ## The one cell that says `sometimes`
 
@@ -141,6 +149,10 @@ The kinds are the second cut of that same figure, and they are what a reader cam
 `captures/` on 2026-09-01 the 609,078 points nobody was named for striking are 89.2% `poison`, then
 `anguish`, `wound`, `heal`, `fire` and `light` — six keys, in 51 rows across the 28 recordings.
 Composed through the panel and tallied straight off the events, the two agree to the point.
+
+Both of those sections open, onto **116 rows on each damage screen** — 58 keys reached from a person
+and 58 people reached from a key. They are one fold read both ways round, so the two counts are
+equal by construction rather than by coincidence.
 
 ## Where a row that opens nothing still says something
 
@@ -192,9 +204,9 @@ rather than a gap in the material:
   gave it. On `healthGiven` the same key opens, because the cut there is kept per receiver.
 - **A pair has no `no kind` row.** Its figure is read off the cut its kinds come from, so there is
   nothing for them to fall short of.
-- **Nothing under a pinned row opens.** A pair between somebody and nobody is not a pair, a kind
-  under one would be a cut of a cut nothing keeps, and the end the game left out is the one thing
-  this panel will not name (**ADR 0013**, **ADR 0036**).
+- **Nothing under a pinned row opens past the third level.** A pair between somebody and nobody is
+  not a pair, a key of one person's keys is a cut of a cut nothing keeps, and the end the game left
+  out is the one thing this panel will not name (**ADR 0013**, **ADR 0036**).
 - **A pinned row has no `no kind` row.** Its kinds are folded from cuts that
   `src/core/fight-statistics.ts` asserts total the very figures they were folded beside, so there is
   nothing for them to fall short of. **ADR 0039.**

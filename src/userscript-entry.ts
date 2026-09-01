@@ -59,6 +59,7 @@ import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
 import {
     composeDrillReading,
+    composeHalfNamedDrillReading,
     composeHalfNamedReading,
     composePairReading,
     composePanelReading,
@@ -66,6 +67,8 @@ import {
     type DrillReading,
     getOutcomeForSeat,
     getPinnedCase,
+    type HalfNamedDrillReading,
+    type HalfNamedOpened,
     type HalfNamedReading,
     type PairReading,
     type PanelOutcome,
@@ -440,8 +443,12 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         // Not a toggle, unlike the shelf's tab: an opened row covers the screen it was opened on,
         // so the row that would close it is not on the panel to be pressed a second time. A press
         // inside an opened row is the rung under it — the pair of the two of them.
-        if (screen.openRowId === null) screen.openRowId = opened;
-        else screen.openPairId = opened;
+        // Three places a person's row stands, and the rung under it is the same field in two of
+        // them: inside somebody's figure it is the pair, under a pinned row it is that person's
+        // own share of what nobody was named for.
+        if (screen.openRowId !== null) screen.openPairId = opened;
+        else if (screen.openUnnamedEnd !== null) screen.openPairId = opened;
+        else screen.openRowId = opened;
         return true;
     }
     if (press.kind === "side") return handlePressSide(screen, press.side);
@@ -600,7 +607,10 @@ function showFight(
         { messagesLost: fight.messagesLost, hasJoinedInProgress: fight.hasJoinedInProgress },
     );
     assert(reading.rows.length >= 0, "a reading states its rows, however few");
-    const { drill, pair, part, halfNamed } = composeOpenedReadings(figures, screen);
+    const { drill, pair, part, halfNamed, halfNamedDrill } = composeOpenedReadings(
+        figures,
+        screen,
+    );
     panel.show({
         reading,
         current: screen.current,
@@ -629,6 +639,7 @@ function showFight(
         pair,
         part,
         halfNamed,
+        halfNamedDrill,
         place: getPlaceWords(kept === null ? place : kept.place),
         isCollapsed: screen.isCollapsed,
     });
@@ -640,22 +651,27 @@ interface OpenedReadings {
     pair: PairReading | null;
     part: PartReading | null;
     halfNamed: HalfNamedReading | null;
+    halfNamedDrill: HalfNamedDrillReading | null;
 }
 
 function composeOpenedReadings(figures: FightFigures, screen: ScreenState): OpenedReadings {
     const { roster, statistics } = figures;
     assert(screen.current.length > 0, "a rung is opened on a screen the panel is on");
     assert(
-        screen.openPairId === null || screen.openRowId !== null,
-        "a pair is opened from inside somebody, never on its own",
+        screen.openPairId === null || screen.openRowId !== null ||
+            screen.openUnnamedEnd !== null,
+        "a person is opened from inside a figure or from under a pinned row, never on their own",
     );
     const halfNamed = composeOpenedHalfNamed(figures, screen);
+    const halfNamedDrill = composeOpenedHalfNamedDrill(figures, screen);
     const drill = screen.openRowId === null
         ? null
         : composeDrillReading(statistics, roster, screen.current, screen.openRowId);
     // A row nobody in the fight is on opens nothing, and nothing under it stands either: the
     // rungs below a row that could not be read are rungs of no figure.
-    if (drill === null) return { drill: null, pair: null, part: null, halfNamed };
+    if (drill === null) {
+        return { drill: null, pair: null, part: null, halfNamed, halfNamedDrill };
+    }
     assert(drill.total >= 0, "an opened figure is not below nothing");
     const pair = screen.openPairId === null ? null : composePairReading(
         statistics,
@@ -672,7 +688,46 @@ function composeOpenedReadings(figures: FightFigures, screen: ScreenState): Open
         screen.openPart,
     );
     assert(halfNamed === null, "a pinned row and an opened row are never both standing open");
-    return { drill, pair, part, halfNamed };
+    assert(halfNamedDrill === null, "nor is the level under one");
+    return { drill, pair, part, halfNamed, halfNamedDrill };
+}
+
+/**
+ * And what stands under one row of that level. Null unless a pinned row is open and a row of it
+ * was pressed — the marks are the ranking's and the kind cut's own, so a stale one names nothing
+ * here and gets the refusal it deserves.
+ */
+function composeOpenedHalfNamedDrill(
+    figures: FightFigures,
+    screen: ScreenState,
+): HalfNamedDrillReading | null {
+    const { roster, statistics, fight } = figures;
+    assert(screen.current.length > 0, "a level opens on a screen the panel is on");
+    if (screen.openUnnamedEnd === null) return null;
+    const kase = getPinnedCase(screen.current, screen.openUnnamedEnd);
+    if (kase === null) return null;
+    const opened = getHalfNamedOpened(screen);
+    if (opened === null) return null;
+    return composeHalfNamedDrillReading(
+        statistics,
+        roster,
+        kase,
+        screen.side,
+        fight.readerSide,
+        opened,
+    );
+}
+
+/** A person or a key, and never both: the way back closes the key first, so one of them is null. */
+function getHalfNamedOpened(screen: ScreenState): HalfNamedOpened | null {
+    assert(screen.openUnnamedEnd !== null, "a row of a pinned level is opened under a pinned row");
+    assert(screen.openRowId === null, "and never inside somebody's own figure");
+    if (screen.openPart !== null) {
+        if (screen.openPart.kind !== "element") return null;
+        return { kind: "element", element: screen.openPart.element };
+    }
+    if (screen.openPairId === null) return null;
+    return { kind: "person", combatantId: screen.openPairId };
 }
 
 /**

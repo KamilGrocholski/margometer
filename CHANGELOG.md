@@ -47,6 +47,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   tego, czego nikt nie zadał, to trucizna — czyli liczba, która wyglądała na zgubioną, jest zwykłym
   zatruciem tykającym poza ciosami.
 
+- **Nowość** — Obie te listy da się otworzyć. Naciśnij osobę, żeby zobaczyć, czym ubyło jej życia;
+  naciśnij typ obrażeń, żeby zobaczyć, komu. To ta sama liczba oglądana z dwóch stron, więc jedna
+  lista zawsze zgadza się z drugą.
+
 ## [0.11.0] — 2026-08-31
 
 Dodatek jest napisany **od zera**, drugi raz po `0.6.0`. Z wersji `0.10.1` nie zostało nic poza

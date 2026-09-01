@@ -14,12 +14,16 @@ import { assert } from "@std/assert";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import {
     composeDrillReading,
+    composeHalfNamedDrillReading,
     composeHalfNamedReading,
     composePairReading,
     composePanelReading,
     composePartReading,
     getMetricForPinned,
     getTextForNamedPart,
+    type HalfNamedDrillReading,
+    type HalfNamedOpened,
+    type HalfNamedReading,
     type NamedPart,
     NOTHING_MISSED,
     type PanelMetric,
@@ -38,7 +42,7 @@ import { DrillReportError } from "@/tools/margometer-tool-error.ts";
  * `unnamed` is the odd one and sits on the second level, off a branch of its own: it is opened
  * from a pinned row under the ranking rather than from a row on it (**ADR 0038**).
  */
-export const DRILL_RUNGS = ["ranking", "opened", "pair", "part", "unnamed"] as const;
+export const DRILL_RUNGS = ["ranking", "opened", "pair", "part", "unnamed", "unnamed cut"] as const;
 export type DrillRung = (typeof DRILL_RUNGS)[number];
 
 /**
@@ -218,7 +222,8 @@ function addUnnamedRungToTally(tally: DrillTally, replay: FightReplay, kase: Pin
     assert(held !== null, "a pinned row that is drawn has a level under it");
     for (const one of held.rows) {
         assert(one.figure > 0, "a person under a pinned row carries some of its figure");
-        addToTally(tally, screen, { rung: "unnamed", row: "person" }, false);
+        // Always: their share of the figure is keyed throughout, which `src/core/` asserts.
+        addToTally(tally, screen, { rung: "unnamed", row: "person" }, true);
     }
     if (held.neither !== null) {
         addToTally(tally, screen, { rung: "unnamed", row: "neither end" }, false);
@@ -230,6 +235,55 @@ function addUnnamedRungToTally(tally: DrillTally, replay: FightReplay, kase: Pin
     if (held.kinds.unnamed !== null) {
         addToTally(tally, screen, { rung: "unnamed", row: "no kind" }, false);
     }
+    addUnnamedCutToTally(tally, replay, kase, held);
+}
+
+/** And the level under each row of that one, which is the same fold read both ways round. */
+function addUnnamedCutToTally(
+    tally: DrillTally,
+    replay: FightReplay,
+    kase: PinnedCase,
+    held: HalfNamedReading,
+): void {
+    const screen = getMetricForPinned(kase);
+    for (const person of held.rows) {
+        const opened = { kind: "person" as const, combatantId: person.combatantId };
+        const under = composeUnnamedCut(replay, kase, opened);
+        if (under === null) continue;
+        assert(under.opened === "person", "a person opens onto what their share was dealt with");
+        for (const one of under.kinds.rows) {
+            addToTally(tally, screen, { rung: "unnamed cut", row: "kind" }, one.opensPart);
+        }
+    }
+    for (const kind of held.kinds.rows) {
+        if (!kind.opensPart) continue;
+        const under = composeUnnamedCut(replay, kase, { kind: "element", element: kind.element });
+        if (under === null) continue;
+        assert(under.opened === "element", "and a key onto whoever carries it");
+        for (const one of under.rows) {
+            assert(one.figure > 0, "each carrying some of that key");
+            addToTally(tally, screen, { rung: "unnamed cut", row: "person" }, false);
+        }
+        if (under.neither !== null) {
+            addToTally(tally, screen, { rung: "unnamed cut", row: "neither end" }, false);
+        }
+    }
+}
+
+function composeUnnamedCut(
+    replay: FightReplay,
+    kase: PinnedCase,
+    opened: HalfNamedOpened,
+): HalfNamedDrillReading | null {
+    assert(replay.name.length > 0, "a level is read off a recording with a name");
+    return composeHalfNamedDrillReading(
+        replay.statistics,
+        replay.roster,
+        kase,
+        "everyone",
+        replay.reading.readerSide,
+        opened,
+    );
 }
 
 function addScreenToTally(tally: DrillTally, replay: FightReplay, screen: PanelMetric): void {
@@ -297,7 +351,7 @@ export function composeDrillCases(replays: readonly FightReplay[]): DrillCase[] 
 }
 
 const SCREEN_WIDTH = 20;
-const RUNG_WIDTH = 9;
+const RUNG_WIDTH = 13;
 const ROW_WIDTH = 12;
 const VERDICT_WIDTH = 10;
 const COUNT_WIDTH = 8;
@@ -397,11 +451,26 @@ function composeUnnamedLines(replay: FightReplay, kase: PinnedCase): string[] {
     const lines = [`    ${kase} — ${composeIntegerText(held.total)}`];
     for (const one of held.rows) {
         const named = one.name ?? "(nobody named)";
-        lines.push(`      person  leaf   ${named} ${composeIntegerText(one.figure)}`);
+        lines.push(`      person  opens  ${named} ${composeIntegerText(one.figure)}`);
+        const opened = { kind: "person" as const, combatantId: one.combatantId };
+        const under = composeUnnamedCut(replay, kase, opened);
+        if (under === null || under.opened !== "person") continue;
+        for (const kind of under.kinds.rows) {
+            lines.push(`        kind    leaf   ${kind.element} ${composeIntegerText(kind.figure)}`);
+        }
     }
     if (held.neither !== null) lines.push("      neither end  leaf");
     for (const one of held.kinds.rows) {
-        lines.push(`      kind    leaf   ${one.element} ${composeIntegerText(one.figure)}`);
+        const verdict = one.opensPart ? "opens" : "leaf ";
+        lines.push(`      kind    ${verdict}  ${one.element} ${composeIntegerText(one.figure)}`);
+        if (!one.opensPart) continue;
+        const under = composeUnnamedCut(replay, kase, { kind: "element", element: one.element });
+        if (under === null || under.opened !== "element") continue;
+        for (const row of under.rows) {
+            const named = row.name ?? "(nobody named)";
+            lines.push(`        person  leaf   ${named} ${composeIntegerText(row.figure)}`);
+        }
+        if (under.neither !== null) lines.push("        neither end  leaf");
     }
     if (held.kinds.unnamed !== null) lines.push("      no kind  leaf");
     return lines;

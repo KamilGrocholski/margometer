@@ -169,6 +169,7 @@ Deno.test("every row of every ranking carries the mark that opens it", () => {
             pair: null,
             part: null,
             halfNamed: null,
+            halfNamedDrill: null,
             place: null,
             isCollapsed: false,
         });

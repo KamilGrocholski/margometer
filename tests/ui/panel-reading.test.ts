@@ -11,9 +11,18 @@ import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import type { NamedPart, PanelMetric } from "@/src/ui/panel-reading.ts";
+import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
+import type { FightStatistics } from "@/src/core/fight-statistics.ts";
+import type { PanelSideChoice } from "@/src/ui/panel-screen.ts";
+import type {
+    HalfNamedOpened,
+    HalfNamedReading,
+    NamedPart,
+    PanelMetric,
+} from "@/src/ui/panel-reading.ts";
 import {
     composeDrillReading,
+    composeHalfNamedDrillReading,
     composeHalfNamedReading,
     composePairReading,
     composePanelReading,
@@ -640,6 +649,41 @@ Deno.test("a figure nobody can be charged with is shown under everybody and nowh
  * so this holds that walk to the figure the row draws beside it, over every recording, every screen
  * and every choice of side. **ADR 0038**, **ADR 0039**.
  */
+/**
+ * And the level under each row of it. Both shapes come off one fold, so what is checked here is
+ * that neither reading of it loses a point: a person's keys total their own figure, a key's people
+ * total the key's — the part naming neither end among them, because the row above counted it in.
+ */
+function assertHalfNamedCutTotals(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    held: HalfNamedReading,
+    choice: PanelSideChoice,
+    readerSide: number | null,
+): void {
+    const open = (opened: HalfNamedOpened) =>
+        composeHalfNamedDrillReading(statistics, roster, held.case, choice, readerSide, opened);
+    for (const person of held.rows) {
+        const under = open({ kind: "person", combatantId: person.combatantId });
+        assert(under !== null, `${held.case}: a person on the level opens`);
+        assert(under.opened === "person", "onto what their own share was dealt with");
+        assertEquals(under.total, person.figure, "at their own figure and no other");
+        const dealt = under.kinds.rows.reduce((sum, one) => sum + one.figure, 0);
+        assertEquals(dealt, person.figure, "which its keys come to exactly");
+        assertEquals(under.kinds.unnamed, null, "with nothing of it outside a key");
+    }
+    for (const kind of held.kinds.rows) {
+        const under = open({ kind: "element", element: kind.element });
+        assertEquals(under !== null, kind.opensPart, `${kind.element}: opens where a row holds it`);
+        if (under === null) continue;
+        assert(under.opened === "element", "a key opens onto whoever carries it");
+        assertEquals(under.total, kind.figure, "at the key's own figure");
+        const carried = under.rows.reduce((sum, one) => sum + one.figure, 0) +
+            (under.neither?.figure ?? 0);
+        assertEquals(carried, kind.figure, "which its people come to exactly");
+    }
+}
+
 Deno.test("a pinned row is the whole of what stands under it, on every list", () => {
     let opened = 0;
     let people = 0;
@@ -681,6 +725,7 @@ Deno.test("a pinned row is the whole of what stands under it, on every list", ()
                             null,
                             `${metric} ${choice}: nothing of it falls outside a key`,
                         );
+                        assertHalfNamedCutTotals(statistics, roster, held, choice, readerSide);
                         opened += 1;
                         people += held.rows.length;
                         kinds += held.kinds.rows.length;
@@ -775,7 +820,43 @@ Deno.test("a pinned row says what its figure was dealt with, key by key", () => 
         held.total,
         "as are the people, which is what makes them two cuts of one",
     );
-    assertEquals(held.kinds.rows.some((one) => one.opensPart), false, "and no key of it opens");
+    assertEquals(
+        held.kinds.rows.every((one) => one.opensPart),
+        true,
+        "and each opens, because somebody's row carries it",
+    );
+});
+
+/**
+ * A key carrying both — somebody's row and the part that named neither end. No recording holds it,
+ * because `byNeitherEnd` is zero over the corpus, and it is the one shape where the level under a
+ * key would silently come to less than the key above it.
+ */
+Deno.test("a key opened carries the part of it nobody's row holds", () => {
+    const { roster } = readFight(HILDUR);
+    const struck = [...roster.byId.values()][0];
+    assert(struck !== undefined, "the fight has somebody to strike");
+    const events = decodeFightMessages([`0;${struck.id}=50.00;+dmg=1;-dmg=1`, NEITHER_END], roster);
+    const statistics = composeFightStatistics(events, new Map());
+    const kase = getPinnedCase("damageDealtApplied", "actor");
+    assert(kase !== null, "damage dealt pins the striker the game left out");
+    const held = composeHalfNamedReading(statistics, roster, kase, "everyone", null);
+    assert(held !== null, "the figure is pinned, so it opens");
+    assertEquals(held.total, 701, "one point on a row, seven hundred on nobody's");
+    assertEquals(
+        held.kinds.rows.map((one) => [one.element, one.figure]),
+        [["dmg", 701]],
+        "and both stand under the one key the protocol wrote them with",
+    );
+    const under = composeHalfNamedDrillReading(statistics, roster, kase, "everyone", null, {
+        kind: "element",
+        element: "dmg",
+    });
+    assert(under !== null, "which opens, because somebody's row carries part of it");
+    assert(under.opened === "element", "onto whoever carries it");
+    assertEquals(under.rows.map((one) => one.figure), [1], "the point that is on a row");
+    assertEquals(under.neither?.figure, 700, "and the seven hundred that is on none");
+    assertEquals(under.total, 701, "which is the figure the key above it states");
 });
 
 /**

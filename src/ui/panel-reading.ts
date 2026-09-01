@@ -311,6 +311,34 @@ export interface HalfNamedReading {
     neither: UnnamedRow | null;
 }
 
+/** Which row of a pinned level a reader pressed. The two shapes that level draws, and no third. */
+export type HalfNamedOpened =
+    | { kind: "person"; combatantId: number }
+    | { kind: "element"; element: string };
+
+/**
+ * What stands under one row of a pinned level: a person's own keys, or a key's own people. The two
+ * are the same fold read the two ways round, which is why neither opens any further.
+ */
+export type HalfNamedDrillReading =
+    | {
+        opened: "person";
+        case: PinnedCase;
+        row: HalfNamedRow;
+        total: number;
+        kinds: ElementCut;
+    }
+    | {
+        opened: "element";
+        case: PinnedCase;
+        element: string;
+        end: PanelUnnamedEnd;
+        total: number;
+        rows: HalfNamedRow[];
+        /** A key may carry part of what named neither end, and that part is on nobody's row. */
+        neither: UnnamedRow | null;
+    };
+
 export interface ShelfRow {
     openedAt: number;
     at: { hour: number; minute: number } | null;
@@ -754,6 +782,41 @@ function composePinnedFigures(
     return found.filter((one) => one.figure > 0);
 }
 
+/**
+ * What stands under a pinned row, composed only when a reader asks for it. Null where that row is
+ * not on the screen at all — a figure of nothing is not pinned, so there is nothing to open.
+ *
+ * The rows are the same walk the pinned figure was summed from, so the section totals the figure
+ * over it by construction rather than by a second count agreeing with the first.
+ */
+interface HalfNamedListing {
+    parts: HalfNamedPart[];
+    part: PanelSidePart | null;
+}
+
+/**
+ * Who stands under a pinned row on the list as it is narrowed — read once here, so the row, the
+ * level and the level under **that** are three drawings of one walk rather than three walks.
+ */
+function composeHalfNamedListing(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    kase: PinnedCase,
+    choice: PanelSideChoice,
+    readerSide: number | null,
+): HalfNamedListing {
+    assert(SIDE_CHOICES.includes(choice), "a level opens for a choice a reader could make");
+    const metric = getMetricForPinned(kase);
+    const listed = composeUnsharedRows(statistics, roster, metric).filter((row) =>
+        getIsRowListed(row.side, choice, readerSide)
+    );
+    const part = getPartListed(choice, readerSide);
+    return {
+        parts: composeHalfNamedParts(statistics, roster, kase, listed, part, readerSide),
+        part,
+    };
+}
+
 export function composeHalfNamedReading(
     statistics: FightStatistics,
     roster: CombatantRoster,
@@ -761,13 +824,7 @@ export function composeHalfNamedReading(
     choice: PanelSideChoice,
     readerSide: number | null,
 ): HalfNamedReading | null {
-    assert(SIDE_CHOICES.includes(choice), "a level opens for a choice a reader could make");
-    const metric = getMetricForPinned(kase);
-    const listed = composeUnsharedRows(statistics, roster, metric).filter((row) =>
-        getIsRowListed(row.side, choice, readerSide)
-    );
-    const part = getPartListed(choice, readerSide);
-    const parts = composeHalfNamedParts(statistics, roster, kase, listed, part, readerSide);
+    const { parts, part } = composeHalfNamedListing(statistics, roster, kase, choice, readerSide);
     const total = getPinnedFigure(statistics, kase, parts, part);
     if (total <= 0) return null;
     const neither = getNeitherEndForPinned(statistics, kase, part);
@@ -813,7 +870,32 @@ function composeHalfNamedKinds(
         addFoldedCut(folded, figures[shape.kinds]);
     }
     if (neither > 0) addFoldedCut(folded, statistics.byNeitherEndByElement);
-    return composeElementCut(folded, total, () => false);
+    // A key standing only for what named neither end has nobody's row to open onto, and a level
+    // holding one refusal says nothing the row above it did not.
+    return composeElementCut(folded, total, (element) => {
+        return getHalfNamedByKind(statistics, shape.kinds, parts, element).length > 0;
+    });
+}
+
+/** Whoever carries one key of a half-named figure, with the part of it their row holds. */
+function getHalfNamedByKind(
+    statistics: FightStatistics,
+    kinds: HalfNamedKindField,
+    parts: readonly HalfNamedPart[],
+    element: string,
+): HalfNamedPart[] {
+    assert(element.length > 0, "a key is asked about by the name the protocol wrote");
+    assert(parts.length <= MAXIMUM_ROWS, "and asked of a level inside its stated bound");
+    const found: HalfNamedPart[] = [];
+    for (const one of parts) {
+        const figures = statistics.byCombatantId.get(one.combatantId);
+        if (figures === undefined) continue;
+        const figure = figures[kinds].get(element) ?? 0;
+        assert(figure >= 0, "a part of a figure is never below nothing");
+        if (figure <= 0) continue;
+        found.push({ combatantId: one.combatantId, figure });
+    }
+    return found;
 }
 
 /** One person's own cut into the fold, under the key the protocol wrote it with. */
@@ -824,6 +906,94 @@ function addFoldedCut(folded: Map<string, number>, held: FigureCut): void {
         assert(figure >= 0, "a part of a figure is never below nothing");
         folded.set(key, (folded.get(key) ?? 0) + figure);
     }
+}
+
+/**
+ * What stands under one row of a pinned level, composed only when a reader asks for it. Null where
+ * the row pressed is not on that level — a mark left over from another screen, or a person the
+ * narrowing has since dropped — because a level of somebody else's figure is worse than none.
+ *
+ * Both shapes are read off the listing the level above was drawn from, so a figure here is a part
+ * of the figure there by construction. Nothing on this level opens: it is the third.
+ */
+export function composeHalfNamedDrillReading(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    kase: PinnedCase,
+    choice: PanelSideChoice,
+    readerSide: number | null,
+    opened: HalfNamedOpened,
+): HalfNamedDrillReading | null {
+    const { parts, part } = composeHalfNamedListing(statistics, roster, kase, choice, readerSide);
+    assert(getPinnedFigure(statistics, kase, parts, part) >= 0, "a level opens under a figure");
+    if (opened.kind === "person") {
+        return composeHalfNamedForPerson(statistics, roster, kase, parts, opened.combatantId);
+    }
+    return composeHalfNamedForKind(statistics, roster, kase, { parts, part }, opened);
+}
+
+/** One person's share of a half-named figure, cut by what the protocol says it was dealt with. */
+function composeHalfNamedForPerson(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    kase: PinnedCase,
+    parts: readonly HalfNamedPart[],
+    combatantId: number,
+): HalfNamedDrillReading | null {
+    assert(Number.isSafeInteger(combatantId), "a person is opened by the number the game named");
+    assert(parts.length <= MAXIMUM_ROWS, "on a level inside its stated bound");
+    const held = parts.find((one) => one.combatantId === combatantId);
+    if (held === undefined) return null;
+    const figures = statistics.byCombatantId.get(combatantId);
+    if (figures === undefined) return null;
+    assert(held.figure > 0, "a person on a level carries some of the figure over it");
+    const [row] = composeHalfNamedRows(statistics, roster, [held], ["100%"], held.figure);
+    if (row === undefined) return null;
+    return {
+        opened: "person",
+        case: kase,
+        row,
+        total: held.figure,
+        kinds: composeElementCut(figures[PINNED_SHAPES[kase].kinds], held.figure, () => false),
+    };
+}
+
+/**
+ * And the same fold the other way round: whoever carries one key of that figure. The part of the
+ * key that named neither end comes with it, because the level above counted it into the key's own
+ * figure — a level short of the row over it states a figure a reader cannot check.
+ */
+function composeHalfNamedForKind(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    kase: PinnedCase,
+    listing: HalfNamedListing,
+    opened: { kind: "element"; element: string },
+): HalfNamedDrillReading | null {
+    const shape = PINNED_SHAPES[kase];
+    const found = getHalfNamedByKind(statistics, shape.kinds, listing.parts, opened.element);
+    if (found.length === 0) return null;
+    const apart = getNeitherEndForPinned(statistics, kase, listing.part);
+    const neither = apart <= 0 ? 0 : statistics.byNeitherEndByElement.get(opened.element) ?? 0;
+    let total = neither;
+    for (const one of found) total += one.figure;
+    assert(total > 0, "a key that opens carries some of the figure over it");
+    const figures = [...found.map((one) => one.figure), neither];
+    const shares = composeShareTexts(figures, total);
+    const largest = getLargestFigure(figures);
+    return {
+        opened: "element",
+        case: kase,
+        element: opened.element,
+        end: shape.end,
+        total,
+        rows: composeHalfNamedRows(statistics, roster, found, shares, largest),
+        neither: neither <= 0 ? null : {
+            figure: neither,
+            fill: getFill(neither, largest),
+            shareText: shares[found.length] ?? "",
+        },
+    };
 }
 
 /** Ranked the way every list here is: by the figure, then by the name beside it. */

@@ -137,6 +137,7 @@ function composeShownView(reading: PanelReading, metric: PanelMetric = "damageDe
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     };
@@ -178,6 +179,7 @@ function draw(reading: PanelReading): FakeElement {
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -249,6 +251,7 @@ Deno.test("the side strip is drawn where the client said which side is the reade
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -290,6 +293,7 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: "Mapa (1, 2)",
         isCollapsed: false,
     });
@@ -487,10 +491,16 @@ Deno.test("a pinned row opens onto the end the game did name, under its own head
         ],
         "and lists both, each in the order the reading ranked it",
     );
+    const opens = getElementsWithin(host)
+        .filter((one) => one.className === "row drillable")
+        .map((one) => one.attributes.get("data-row") ?? one.attributes.get("data-kind"));
     assertEquals(
-        getElementsWithin(host).filter((one) => one.className === "row drillable"),
-        [],
-        "nothing on this level opens: a pair between somebody and nobody is not a pair",
+        opens,
+        [
+            ...halfNamed.rows.map((one) => `${one.combatantId}`),
+            ...halfNamed.kinds.rows.map((one) => one.element),
+        ],
+        "every row of it opens: each is one of the two folds read the other way round",
     );
     const crumb = getTextsByClass(host, "crumb-here");
     assertEquals(crumb, [PANEL_WORDS.withoutActor], "and the way back says which row is open");
@@ -660,6 +670,7 @@ Deno.test("a press on a tab reaches the panel, and a press on anything else does
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -694,6 +705,7 @@ Deno.test("a press on a side asks for that side, and on the shelf for the shelf"
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -776,6 +788,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -823,6 +836,7 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -922,6 +936,7 @@ Deno.test("a kind's row carries a bar of its own, measured against its own cut",
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -974,6 +989,7 @@ Deno.test("a part of a figure no kind was stated for is drawn last, under the ki
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -1002,6 +1018,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -1025,6 +1042,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -1057,6 +1075,7 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         isCollapsed: false,
     };
     panel.show({ ...view, place: "Mapa (12, 34)" });
@@ -1098,6 +1117,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     };
@@ -1159,6 +1179,7 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         isCollapsed: false,
         place: "Mapa (12, 34)",
     });
@@ -1388,6 +1409,7 @@ Deno.test("a person inside an opened row opens the card the ranking opens", () =
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -1473,6 +1495,7 @@ Deno.test("a person under an opened skill opens a card promising no gesture", ()
         pair: null,
         part: skill,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -1511,6 +1534,7 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -1562,6 +1586,7 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -1652,6 +1677,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -1740,6 +1766,7 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
             pair: null,
             part: null,
             halfNamed: null,
+            halfNamedDrill: null,
             place: null,
             isCollapsed: false,
         });
@@ -1781,6 +1808,7 @@ Deno.test("a row opened on a screen its own figure is nothing on says so, about 
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -1811,6 +1839,7 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
             pair: null,
             part: null,
             halfNamed: null,
+            halfNamedDrill: null,
             place: null,
             isCollapsed: false,
         });
@@ -1878,6 +1907,7 @@ Deno.test("a cut that repeats the figure above it is drawn all the same", () => 
             pair: null,
             part: null,
             halfNamed: null,
+            halfNamedDrill: null,
             place: null,
             isCollapsed: false,
         });
@@ -1940,6 +1970,7 @@ Deno.test("a lone row of a section names what the heading over it never does", (
             pair: null,
             part: null,
             halfNamed: null,
+            halfNamedDrill: null,
             place: null,
             isCollapsed: false,
         });
@@ -1986,6 +2017,7 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -2038,6 +2070,7 @@ Deno.test("a skill that opens asks for itself by name, wherever the press lands 
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -2097,6 +2130,7 @@ Deno.test("every row in a list draws the same cells before its name", () => {
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     };
@@ -2155,6 +2189,7 @@ Deno.test("a healing section draws the key the game named, not a row saying it d
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -2216,6 +2251,7 @@ Deno.test("an opened healing pair draws its announcements and its keys as one se
         pair,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
@@ -2344,6 +2380,7 @@ function composeNotesForOpenedRow(
         pair: null,
         part: null,
         halfNamed: null,
+        halfNamedDrill: null,
         place: null,
         isCollapsed: false,
     });
