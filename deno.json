@@ -34,6 +34,9 @@
         // The same material the other way round: what the figures come to, per combatant, as the
         // panel would draw them.
         "figures": "deno run -A tools/fight-figures.ts",
+        // What a fight's actions come to, and how they stand against the game's own `current`.
+        // `docs/actions-taken.md` carries the verdicts; `--cases` states the counts behind them.
+        "actions": "deno run -A tools/action-count.ts",
         // Which rows of the panel open onto another level, measured rather than remembered.
         // `docs/drill-levels.md` carries the verdicts; `--cases` states the counts behind them.
         "drill": "deno run -A tools/drill-report.ts",

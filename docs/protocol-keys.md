@@ -1920,9 +1920,9 @@ counts turns, and the panel no longer divides by them.
 
 Carries **no value at all** and names one combatant in the actor slot with no target. Every
 occurrence is a message holding nothing else, which is what a turn boundary would look like — but
-the protocol does not say that, and this entry does not either. The arithmetic agrees: the
-occurrences counted below stand against 1228 turns in the same material, and one capture contains
-none at all.
+the protocol does not say that, and this entry does not either. Some recordings carry none at all.
+What reads the key is `tools/action-count.ts`, which counts it as an action its combatant took and
+never as a boundary between two turns (**ADR 0048**).
 
 _Shape:_ 171 occurrences; alone in its message; no value
 
