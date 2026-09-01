@@ -1080,7 +1080,15 @@ function composeHeadcount(
         return one - other;
     });
     assert(unplaced >= 0, "a headcount of people on no side is never below nothing");
-    return { sizes: sides.map(([, count]) => count), unplaced };
+    const sizes = sides.map(([, count]) => count);
+    let counted = unplaced;
+    for (const size of sizes) counted += size;
+    // The invariant that matters here, and it is about sides rather than about rows: a ranking is
+    // filtered by the side strip and the headcount never is, so a fight of ten against one draws
+    // one row beside two sizes and there is no relation between the two lengths to hold.
+    assert(counted === everybody.size, "a headcount places everybody, on a side or on none");
+    assert(sizes.every((one) => one > 0), "and a side that is counted has somebody on it");
+    return { sizes, unplaced };
 }
 
 function getIsOurSideNamed(

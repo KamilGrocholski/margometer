@@ -609,10 +609,6 @@ function showFight(
         fight.readerSide,
         { messagesLost: fight.messagesLost, hasJoinedInProgress: fight.hasJoinedInProgress },
     );
-    assert(
-        reading.sizes.length <= reading.rows.length,
-        "a reading sizes no more rows than it holds",
-    );
     const { drill, pair, part, halfNamed, halfNamedDrill } = composeOpenedReadings(
         figures,
         screen,

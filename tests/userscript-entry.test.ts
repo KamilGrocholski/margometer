@@ -186,6 +186,46 @@ Deno.test("a reader presses a screen and the panel goes there, and nowhere else"
     assertEquals(current(), "damageTakenApplied", "and a screen nobody has moves nothing either");
 });
 
+/**
+ * A group against one boss is the corpus's commonest shape, and pressing the strip's other side
+ * leaves the ranking drawing a single row. Nothing about that is exceptional, so nothing of ours
+ * may fail on it — the press is what a reader does, and a dropped press is a panel that has
+ * stopped answering.
+ */
+Deno.test("a reader presses the other side of a fight against one, and the panel answers", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown, reported } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+
+    const chosen = () =>
+        getElementsWithin(host)
+            .find((one) => one.className.includes("selected") && one.attributes.has("data-side"))
+            ?.attributes.get("data-side");
+    assertEquals(chosen(), "everyone", "the panel opens on everybody in the fight");
+
+    const opposing = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-side") === "opposing"
+    );
+    assertExists(opposing, "there is a side to press");
+    pressElement(host, "pointerdown", opposing);
+    assertEquals(chosen(), "opposing", "and pressing it takes the panel to the other side");
+    assertEquals(reported, [], "and nothing of ours failed drawing one row against ten");
+
+    // The other direction, which is the same shape seen from a solo fight's seat: one row on the
+    // reader's own side against three of them.
+    const reader = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-side") === "reader"
+    );
+    assertExists(reader, "and a side of the reader's own to press");
+    pressElement(host, "pointerdown", reader);
+    assertEquals(chosen(), "reader", "which the panel goes to as well");
+    assertEquals(reported, [], "with nothing of ours failing there either");
+});
+
 Deno.test("a fight that ends goes on the shelf, once, and comes back after a reload", () => {
     const battle: Record<string, unknown> = { updateData: () => 1 };
     const first = composeEnvironment({ Engine: { battle } });
