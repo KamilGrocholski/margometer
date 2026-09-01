@@ -24,6 +24,10 @@ alt="Półka z walkami, które są jeszcze zapisane">
 <img src="screenshots/panel-opened.png" width="276"
 alt="Rozwinięty wiersz: od kogo padły obrażenia">
 <br><sub><b>Rozwinięty wiersz</b></sub>
+<br><br>
+<img src="screenshots/panel-half-named.png" width="276"
+alt="Rozwinięty „Nieznany sprawca”: kogo dosięgło i czym poszło">
+<br><sub><b>Nieznany sprawca</b></sub>
 </td>
 </tr>
 <tr>

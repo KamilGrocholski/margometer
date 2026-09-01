@@ -110,6 +110,14 @@ export function composePanelShots(): PanelShot[] {
                 `setPressed("[data-row]", 0);\nsetPressed("[data-row]", 0);`,
         },
         {
+            // The row the ranking cannot hold, opened. `[data-unnamed]` and not `[data-row]`:
+            // a pinned row stands apart from the ranking and is marked by the end it leaves
+            // out, which is the whole of what opening it asks for.
+            name: "panel-half-named.png",
+            steps: `setPressed("[data-screen]", ${TAB_DAMAGE_TAKEN});\n` +
+                `setPressed("[data-unnamed]", 0);`,
+        },
+        {
             name: "panel-card.png",
             steps:
                 `setPressed("[data-screen]", ${TAB_DAMAGE_TAKEN});\nsetHovered("[data-tip]", 0);`,

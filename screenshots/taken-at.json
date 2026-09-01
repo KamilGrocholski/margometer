@@ -1,12 +1,13 @@
 {
-    "commit": "d872c0a26cdb139bc97c7226ad72e9de28a1343d",
-    "version": "0.11.0-dev",
+    "commit": "123a2b34fdccc08001e7604a415fcd8e40fb179c",
+    "version": "0.12.0",
     "fight": "2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0",
-    "takenAt": "2026-08-31T21:23:32.602Z",
+    "takenAt": "2026-09-01T14:43:23.765Z",
     "shots": [
         "panel-ranking.png",
         "panel-opened.png",
         "panel-deep.png",
+        "panel-half-named.png",
         "panel-card.png",
         "panel-shelf.png"
     ]

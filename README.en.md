@@ -24,6 +24,10 @@ alt="The shelf of fights that are still kept">
 <img src="screenshots/panel-opened.png" width="276"
 alt="An opened row: whom the damage came from">
 <br><sub><b>An opened row</b></sub>
+<br><br>
+<img src="screenshots/panel-half-named.png" width="276"
+alt="The half-named row opened: whom it reached, and what it was dealt with">
+<br><sub><b>A half-named row</b></sub>
 </td>
 </tr>
 <tr>

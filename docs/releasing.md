@@ -56,8 +56,8 @@ green on its own, and this is the only order that gives it. The shoot is legal o
 this edit because `tools/panel-screenshots.ts` refuses uncommitted work under `src/` and nowhere
 else — the declaration is not `src/`.
 
-- [ ] **Open all five.** No machine can say whether the state in a picture is reachable, and this is
-      the standing obligation _The Frame Is Not A Screen Rule_ in `DESIGN.md` leaves nobody an
+- [ ] **Open every one.** No machine can say whether the state in a picture is reachable, and this
+      is the standing obligation _The Frame Is Not A Screen Rule_ in `DESIGN.md` leaves nobody an
       exemption from.
 - [ ] The title bar reads the bare number in every one of them.
 - [ ] `screenshots/taken-at.json` states that number unmarked. It is the string
@@ -112,5 +112,5 @@ publishes. Then, by hand:
 | the set was taken at the tagged version, unmarked    | `.github/workflows/release.yml`         |
 | the tag sits on `main`                               | `.github/workflows/release.yml`         |
 
-Everything else on this page is held by somebody reading it: the audits in step 1, the five pictures
-in step 2, and the install in step 5.
+Everything else on this page is held by somebody reading it: the audits in step 1, the pictures in
+step 2, and the install in step 5.

@@ -31,7 +31,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
-## [Niewydane]
+## [0.12.0] — 2026-09-01
 
 - **Nowość** — Wiersze „Nieznany sprawca" i „Nieznany cel" znów mówią, z czego są. Po najechaniu
   stoi tam, czego gra nie podała, i — co ważniejsze — czy tę liczbę masz doliczyć do listy nad nią,
