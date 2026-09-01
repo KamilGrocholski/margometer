@@ -8,7 +8,12 @@
 
 import { assert } from "@std/assert";
 import { composeIntegerText } from "@/libs/number-text.ts";
-import type { PanelMetric, PanelOutcome } from "@/src/ui/panel-reading.ts";
+import type {
+    PanelMetric,
+    PanelOutcome,
+    PanelUnnamedEnd,
+    PinnedCase,
+} from "@/src/ui/panel-reading.ts";
 import type { PanelNoun, PanelSideChoice, PanelStorageChoice } from "@/src/ui/panel-screen.ts";
 
 export interface CountedNoun {
@@ -164,6 +169,83 @@ export function getWordsForCardMetric(metric: PanelMetric): string {
     assert(words.length > 0, "and every one of the four has a word of its own");
     return words;
 }
+
+/**
+ * **The limit, and never our reason for it** (**L3**): a reader is told what cannot be known from
+ * what the game sent, not that a decoder of ours found no end to charge. The fourth is drawn by no
+ * pinned row — `healthGiven` states no target to leave out — and stands because the same sentence
+ * rides the rows inside an opened figure, where the end follows the direction.
+ */
+const UNNAMED_END_NOTES: Record<PanelUnnamedEnd, Record<PanelNoun, string>> = {
+    actor: {
+        damage: "Gra nie mówi, kto to zadał — wiadomo tylko, że życia ubyło.",
+        healing: "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło.",
+    },
+    target: {
+        damage: "Gra nie mówi, w kogo — wiadomo tylko, że cios wszedł.",
+        healing: "Gra nie mówi, komu — wiadomo tylko, że leczenie weszło.",
+    },
+};
+
+export function getWordsForUnnamedEnd(end: PanelUnnamedEnd, noun: PanelNoun): string {
+    assert(end.length > 0, "an end the game left out is asked about by name");
+    assert(noun.length > 0, "and about a quantity asked for by one");
+    const words = UNNAMED_END_NOTES[end][noun];
+    assert(words.length > 0, "and every end of every quantity says what was not said about it");
+    return words;
+}
+
+const APART_NOTE = "Nikt tego nie ma na swoim wierszu — dlatego stoi osobno.";
+
+/**
+ * **What decides whether a reader may add this figure to what they have just read.** Two of the
+ * five are inside the ranking and three are not, and a bar looks the same either way.
+ */
+const PINNED_STANDING_NOTES: Record<PinnedCase, string> = {
+    dealtWithNoActor: APART_NOTE,
+    givenWithNoActor: APART_NOTE,
+    takenWithNoTarget: APART_NOTE,
+    takenWithNoActor: "Te obrażenia są już policzone wyżej, u tych, którym ubyło życia.",
+    restoredWithNoActor: "To leczenie jest już policzone wyżej, u tych, którzy je dostali.",
+};
+
+export function getWordsForPinnedStanding(kase: PinnedCase): string {
+    assert(kase.length > 0, "a pinned figure is asked about by name");
+    const words = PINNED_STANDING_NOTES[kase];
+    assert(words.length > 0, "and every one of them says where it stands against the list");
+    return words;
+}
+
+/**
+ * ⚠️ **The end a figure was counted by is not always the shown team's own end.** One standing
+ * apart is charged by the end the game **did** name and damage crosses on the way
+ * (`getPartCharged`, **ADR 0013**), so on `Otrzymane` the named end is whoever swung — and a
+ * sentence naming it would read as the shown team having swung.
+ */
+const PINNED_SCOPE_NOTES: Record<PinnedCase, string> = {
+    dealtWithNoActor: "Tylko z pokazanej drużyny — to ona to zadała, choć gra nie mówi kto.",
+    givenWithNoActor: "Tylko z pokazanej drużyny — to ona to wyleczyła, choć gra nie mówi kto.",
+    takenWithNoActor: "Tylko z pokazanej drużyny — liczone po tym, komu ubyło życia.",
+    takenWithNoTarget: "Tylko z pokazanej drużyny — gra nie mówi, kogo z niej.",
+    restoredWithNoActor: "Tylko z pokazanej drużyny — liczone po tym, komu przybyło życia.",
+};
+
+export function getWordsForPinnedScope(kase: PinnedCase): string {
+    assert(kase.length > 0, "a pinned figure is asked about by name");
+    const words = PINNED_SCOPE_NOTES[kase];
+    assert(words.length > 0, "and every one of them says what a chosen side narrows it to");
+    return words;
+}
+
+/**
+ * ⚠️ **It says nothing about what the game did or did not state, and that is the point.** It
+ * covers two ways of having no end at all — a name matching nobody in the roster, or nothing
+ * stated at either end — and a sentence naming one would be false of the other.
+ */
+export const NEITHER_END_WORDS = {
+    label: "Nie do przypisania",
+    note: "Ta część nie trafiła na żaden wiersz — nie wiadomo ani kto, ani komu.",
+} as const;
 
 export const CARD_WORDS = {
     /**

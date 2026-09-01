@@ -123,3 +123,5 @@ edited to agree with the new rule.
   charged to the side it is on. **Accepted**
 - [0037](0037-a-release-run-states-the-number-the-tree-declares.md) — A run that says it is the
   release states the number the tree declares. **Accepted**
+- [0038](0038-a-half-named-row-says-what-it-is-and-opens.md) — A half-named row says what it is, and
+  opens onto the end the game did name. **Accepted**

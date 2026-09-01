@@ -9,12 +9,14 @@ import { composeDecimalText } from "@/libs/number-text.ts";
 import type {
     DrillReading,
     ElementRow,
+    HalfNamedReading,
     NamedPart,
     OpponentRow,
     PairReading,
     PanelMetric,
     PanelReading,
     PanelSides,
+    PanelUnnamedEnd,
     PartReading,
     PersonRow,
     PinnedRow,
@@ -53,10 +55,14 @@ import {
     getWordsForNothing,
     getWordsForOutcome,
     getWordsForPin,
+    getWordsForPinnedScope,
+    getWordsForPinnedStanding,
     getWordsForShelfOutcome,
     getWordsForShelfTime,
     getWordsForStorage,
     getWordsForUnannounced,
+    getWordsForUnnamedEnd,
+    NEITHER_END_WORDS,
     PANEL_WORDS,
     type PanelRegion,
     type TranslateLabel,
@@ -146,6 +152,8 @@ const SOURCE_ATTRIBUTE = "data-source";
 const KIND_ATTRIBUTE = "data-kind";
 const FIGHT_ATTRIBUTE = "data-fight";
 const PIN_ATTRIBUTE = "data-pin";
+/** Which end a pinned row leaves out, which is the whole of what opening it asks for. */
+const UNNAMED_ATTRIBUTE = "data-unnamed";
 const STORAGE_ATTRIBUTE = "data-storage";
 const LIVE_FIGHT = "live";
 const TIP_ATTRIBUTE = "data-tip";
@@ -212,6 +220,11 @@ interface RowTip {
     key: string;
     figure: string;
     share: string | null;
+    /**
+     * What a row with nobody behind it owes beyond its own figure: what the game did not say, and
+     * where the figure stands against the list. `src/ui/panel-words.ts` writes them.
+     */
+    notes?: readonly string[] | undefined;
     compose?: TipCompose | undefined;
 }
 
@@ -318,6 +331,10 @@ function composeRowTipReading(reading: RowReading, tip: RowTip, opens: boolean):
     if (tip.share !== null) {
         lines.push({ kind: "stat", label: tip.share, stated: reading.shareText, isStrong: false });
     }
+    for (const note of tip.notes ?? []) {
+        assert(note.length > 0, "a sentence a row carries says something");
+        lines.push({ kind: "note", text: note, isWarning: false });
+    }
     if (opens) lines.push({ kind: "note", text: CARD_WORDS.gesture, isWarning: false });
     return { name: reading.name, subtitle: null, groups: [{ lines }] };
 }
@@ -400,6 +417,21 @@ function composeElementReading(row: ElementRow, noun: PanelNoun, rank: number): 
         profession: null,
         rank,
     };
+}
+
+/**
+ * Which end an opened figure's cut left out. It follows the **direction** and not the screen: a
+ * given screen names no receiver, a received one names nobody who did it. One copy, because the
+ * two levels that draw such a row were spelling the same rule two ways.
+ */
+function getUnnamedEndForScreen(metric: PanelMetric): PanelUnnamedEnd {
+    assert(SCREEN_ORDER.includes(metric), "an end is left out on a screen the strips draw");
+    return getDirectionForScreen(metric) === "given" ? "target" : "actor";
+}
+
+function getWordsForUnnamedRow(end: PanelUnnamedEnd): string {
+    assert(end.length > 0, "an end the game left out is asked about by name");
+    return end === "actor" ? PANEL_WORDS.withoutActor : PANEL_WORDS.withoutTarget;
 }
 
 function composeUnnamedReading(row: UnnamedRow | PinnedRow, name: string): RowReading {
@@ -543,6 +575,9 @@ function composeCrumbRegion(document: PanelDocument, view: PanelView): PanelElem
     assert(SCREEN_ORDER.includes(view.current), "and on a screen the strips draw");
     if (view.isOnShelf) {
         return composeCrumbElement(document, PANEL_WORDS.fights, PANEL_WORDS.backFromFights);
+    }
+    if (view.halfNamed !== null) {
+        return composeCrumbElement(document, getWordsForUnnamedRow(view.halfNamed.end));
     }
     if (view.drill === null) return composeSlotElement(document);
     const opened = view.drill.name ?? PANEL_WORDS.unknown;
@@ -774,15 +809,18 @@ function composeOpponentSection(
         );
     }
     if (cut.unnamed === null) return;
-    // Which end is missing is the direction's: a given screen names no receiver, a received one
-    // names nobody who did it.
-    const words = stated.metric === "damageDealtApplied" || stated.metric === "healthGiven"
-        ? PANEL_WORDS.withoutTarget
-        : PANEL_WORDS.withoutActor;
-    const tip = { register: stated.register, key: "to:nobody", figure: stated.figure, share };
-    list.append(
-        composeRowElement(document, composeUnnamedReading(cut.unnamed, words), null, tip),
-    );
+    const end = getUnnamedEndForScreen(stated.metric);
+    const tip = {
+        register: stated.register,
+        key: "to:nobody",
+        figure: stated.figure,
+        share,
+        // What the game did not say, and only that: where this figure stands is answered by the
+        // heading over it — it is a cut of the one person's figure the level is about.
+        notes: [getWordsForUnnamedEnd(end, getNounForScreen(stated.metric))],
+    };
+    const reading = composeUnnamedReading(cut.unnamed, getWordsForUnnamedRow(end));
+    list.append(composeRowElement(document, reading, null, tip));
 }
 
 /**
@@ -1073,6 +1111,8 @@ export interface PanelView {
     drill: DrillReading | null;
     pair: PairReading | null;
     part: PartReading | null;
+    /** What stands under a pinned row, where a reader has opened one. Never open beside `drill`. */
+    halfNamed: HalfNamedReading | null;
     place: string | null;
     isCollapsed: boolean;
 }
@@ -1081,6 +1121,7 @@ export type PanelPress =
     | { kind: "screen"; screen: string }
     | { kind: "side"; side: string }
     | { kind: "row"; stated: string }
+    | { kind: "unnamed"; end: PanelUnnamedEnd }
     | { kind: "part"; part: NamedPart }
     | { kind: "fight"; stated: string }
     | { kind: "pin"; stated: string }
@@ -1103,10 +1144,88 @@ function composeViewList(
         return composePartElement(document, view, view.part, register, translate);
     }
     if (view.pair !== null) return composePairElement(document, view, view.pair, register);
+    if (view.halfNamed !== null) {
+        return composeHalfNamedElement(document, view, view.halfNamed, register, translate);
+    }
     if (view.drill !== null) {
         return composeDrillElement(document, view, view.drill, register, translate);
     }
     return composeRankingElement(document, view.reading, view.current, register, translate);
+}
+
+/**
+ * What stands under a pinned row: **the end the game did name**, person by person, and never a
+ * guess at the one it left out. Which end that is turns on the row rather than on the screen — a
+ * figure with no actor was still taken by somebody, one with no target was still struck by
+ * somebody — so `Otrzymane` heads its two rows differently. **ADR 0038.**
+ *
+ * Nothing on this level opens: a pair between somebody and nobody is not a pair.
+ */
+function composeHalfNamedElement(
+    document: PanelDocument,
+    view: PanelView,
+    halfNamed: HalfNamedReading,
+    register: TipRegister,
+    translate: TranslateLabel | null,
+): PanelElement {
+    const rows = halfNamed.rows.length + (halfNamed.neither === null ? 0 : 1);
+    assert(rows > 0, "a pinned row that opens has somebody under it, or says it has nobody");
+    assert(halfNamed.total > 0, "and a figure that is there to be cut");
+    const list = composeListElement(document, Math.max(rows + 1, view.reading.visibleRows));
+    const heading = getWordsForHalfNamedCut(halfNamed.end);
+    list.append(composeSectionElement(document, heading, halfNamed.total));
+    composeHalfNamedRows(document, list, view, { halfNamed, register, translate });
+    return list;
+}
+
+/** The end the game did name, as the heading that names it: whom it reached, or who did it. */
+function getWordsForHalfNamedCut(end: PanelUnnamedEnd): string {
+    assert(end.length > 0, "an end the game named is asked about by name");
+    return end === "actor" ? PANEL_WORDS.dealtTo : PANEL_WORDS.takenFrom;
+}
+
+function composeHalfNamedRows(
+    document: PanelDocument,
+    list: PanelElement,
+    view: PanelView,
+    stated: {
+        halfNamed: HalfNamedReading;
+        register: TipRegister;
+        translate: TranslateLabel | null;
+    },
+): void {
+    const { halfNamed, register, translate } = stated;
+    const figure = getWordsForScreen(view.current);
+    const share = PANEL_WORDS.shareOfFigure;
+    // The card is the fight's four figures, as it is wherever a person's row stands, and this row
+    // states a cut of them — so it owes the sentence saying so (**ADR 0032**).
+    const place: CardPlace = {
+        metric: view.current,
+        warnings: view.reading.warnings,
+        translate,
+        isRowNarrower: true,
+    };
+    for (const [at, row] of halfNamed.rows.entries()) {
+        const tip = {
+            register,
+            key: `named:${row.combatantId}`,
+            figure,
+            share,
+            compose: composePersonCard(row, place, false),
+        };
+        const reading = composeCombatantReading(row, at + 1, view.current);
+        list.append(composeRowElement(document, reading, null, tip));
+    }
+    if (halfNamed.neither === null) return;
+    const tip = {
+        register,
+        key: "named:nobody",
+        figure,
+        share,
+        notes: [NEITHER_END_WORDS.note],
+    };
+    const reading = composeUnnamedReading(halfNamed.neither, NEITHER_END_WORDS.label);
+    list.append(composeRowElement(document, reading, null, tip));
 }
 
 /**
@@ -1157,11 +1276,15 @@ function composePartElement(
     if (part.byOpponent.unnamed === null) return list;
     // The end the protocol left out of a blow this part carried: it is inside the figure over the
     // level, so the column comes to a hundred with it and falls short without it.
-    const words = getDirectionForScreen(view.current) === "given"
-        ? PANEL_WORDS.withoutTarget
-        : PANEL_WORDS.withoutActor;
-    const tip = { register, key: "reached:nobody", figure, share };
-    const reading = composeUnnamedReading(part.byOpponent.unnamed, words);
+    const end = getUnnamedEndForScreen(view.current);
+    const tip = {
+        register,
+        key: "reached:nobody",
+        figure,
+        share,
+        notes: [getWordsForUnnamedEnd(end, getNounForScreen(view.current))],
+    };
+    const reading = composeUnnamedReading(part.byOpponent.unnamed, getWordsForUnnamedRow(end));
     list.append(composeRowElement(document, reading, null, tip));
     return list;
 }
@@ -1239,16 +1362,42 @@ function getRowsForPair(pair: PairReading, floor: number): number {
     return Math.max(needed, floor);
 }
 
+/**
+ * What a pinned row says on demand: what the game did not state, where the figure stands against
+ * the ranking, and — only where a side is showing — what the shown team is to it.
+ *
+ * The third is asked only then because under `Wszyscy` there is no scope to state. Every one of
+ * them is `src/ui/panel-words.ts`', keyed by the case rather than by the screen: the same screen
+ * pins two ends whose answers differ.
+ */
+function composePinnedNotes(row: PinnedRow, metric: PanelMetric, isSideChosen: boolean): string[] {
+    assert(SCREEN_ORDER.includes(metric), "a figure is pinned on a screen the strips draw");
+    const notes = [
+        getWordsForUnnamedEnd(row.end, getNounForScreen(metric)),
+        getWordsForPinnedStanding(row.case),
+    ];
+    if (isSideChosen) notes.push(getWordsForPinnedScope(row.case));
+    assert(notes.length <= 3, "and says it in three sentences at the most");
+    return notes;
+}
+
 function composePinnedElement(
     document: PanelDocument,
     row: PinnedRow,
     register: TipRegister,
-    figure: string,
+    stated: { metric: PanelMetric; isSideChosen: boolean; figure: string },
 ): PanelElement {
     const block = composeElement(document, "div", CLASS.pinned);
-    const words = row.end === "actor" ? PANEL_WORDS.withoutActor : PANEL_WORDS.withoutTarget;
-    const tip = { register, key: `pinned:${row.end}`, figure, share: PANEL_WORDS.share };
-    block.append(composeRowElement(document, composeUnnamedReading(row, words), null, tip));
+    const tip = {
+        register,
+        key: `pinned:${row.end}`,
+        figure: stated.figure,
+        share: PANEL_WORDS.share,
+        notes: composePinnedNotes(row, stated.metric, stated.isSideChosen),
+    };
+    const reading = composeUnnamedReading(row, getWordsForUnnamedRow(row.end));
+    const mark = { attribute: UNNAMED_ATTRIBUTE, stated: row.end };
+    block.append(composeRowElement(document, reading, mark, tip));
     assert(row.figure > 0, "a figure is pinned because there is one to pin");
     assert(block.className === CLASS.pinned, "and the block saying so is one of its own");
     return block;
@@ -1265,6 +1414,14 @@ function getPressFromTarget(
     if (side !== null) return { kind: "side", side };
     const stated = target.getAttribute(ROW_ATTRIBUTE);
     if (stated !== null) return { kind: "row", stated };
+    const unnamed = target.getAttribute(UNNAMED_ATTRIBUTE);
+    if (unnamed !== null) {
+        // The attribute is written by this file and read by it, so a value outside the two is a
+        // stray mark rather than a press: it opens nothing rather than opening the first end.
+        if (unnamed === "actor") return { kind: "unnamed", end: "actor" };
+        if (unnamed === "target") return { kind: "unnamed", end: "target" };
+        return null;
+    }
     const name = target.getAttribute(SKILL_ATTRIBUTE);
     if (name !== null) return { kind: "part", part: { kind: "skill", name } };
     const source = target.getAttribute(SOURCE_ATTRIBUTE);
@@ -1583,8 +1740,13 @@ function setPinnedRegions(
     register: TipRegister,
     redraw: PanelRedraw,
 ): void {
-    const figure = getWordsForScreen(view.current);
-    const pinned = view.drill === null && !view.isOnShelf ? view.reading.pinned : [];
+    const stated = {
+        metric: view.current,
+        isSideChosen: view.side !== "everyone",
+        figure: getWordsForScreen(view.current),
+    };
+    const isOpen = view.drill !== null || view.halfNamed !== null;
+    const pinned = !isOpen && !view.isOnShelf ? view.reading.pinned : [];
     assert(pinned.length <= 2, "a screen pins the two ends the protocol can leave out, at most");
     for (const [end, standing] of [["actor", "pinnedActor"], ["target", "pinnedTarget"]] as const) {
         const row = pinned.find((one) => one.end === end) ?? null;
@@ -1594,7 +1756,7 @@ function setPinnedRegions(
             () =>
                 row === null
                     ? composeSlotElement(document)
-                    : composePinnedElement(document, row, register, figure),
+                    : composePinnedElement(document, row, register, stated),
         );
     }
 }

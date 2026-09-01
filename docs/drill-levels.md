@@ -16,16 +16,18 @@ deno task drill captures/<file>.json       # one recording, level by level
 deno task drill --screen healthGiven       # one screen of it
 ```
 
-## The four views, at three levels
+## The five views, at three levels
 
 **The panel is three levels deep, and the third has two shapes.** `pair` and `part` are both a press
 away from `opened` and neither is reachable from the other, so a reader counting how far down they
-can go counts three.
+can go counts three. `unnamed` sits on the second level off a branch of its own — it is opened from
+a row standing under the ranking rather than from one on it — and nothing stands under it.
 
 | view      | level | what it lists                                          | how a reader gets there                                      |
 | --------- | ----- | ------------------------------------------------------ | ------------------------------------------------------------ |
 | `ranking` | 1     | one row per combatant, by the chosen figure            | the screen a tab opens on                                    |
 | `opened`  | 2     | that combatant's figure, in up to three cuts           | pressing a ranking row                                       |
+| `unnamed` | 2     | the end the game **did** name, person by person        | pressing a pinned row under the ranking                      |
 | `pair`    | 3     | what one of them did to the other, by skill and by key | pressing a person in the opened row's `KOMU` / `OD KOGO` cut |
 | `part`    | 3     | whom one row of a cut reached, person by person        | pressing a skill, a key or a kind inside the opened row      |
 
@@ -34,23 +36,25 @@ would say something new — a cut of one row states what the figure over it was 
 heading never does, and a reader who cannot press a row learns nothing at all. What stays shut is
 what the statistics keep no second cut of, and **ADR 0034** carries the argument.
 
-**Nothing on the third level opens**, in either shape and on any screen. The two are entered by
-different marks: a person carries `data-row`, and a part carries one of `data-skill`, `data-source`
-and `data-kind` — one attribute per kind of part, so what a press asks for is read off the node
-rather than parsed out of it. Every mark goes on the row **and on every cell in it**, because a
-listener reads what was pressed off the node under the hand and walks no ancestors.
+**Nothing on the third level opens, and nothing on `unnamed` does either.** The rungs are entered by
+different marks: a person carries `data-row`, a pinned row carries `data-unnamed` naming the end it
+leaves out, and a part carries one of `data-skill`, `data-source` and `data-kind` — one attribute
+per kind of row, so what a press asks for is read off the node rather than parsed out of it. Every
+mark goes on the row **and on every cell in it**, because a listener reads what was pressed off the
+node under the hand and walks no ancestors.
 
 ## The kinds of row
 
-| row          | what it stands for                                                 |
-| ------------ | ------------------------------------------------------------------ |
-| `person`     | somebody the roster holds                                          |
-| `half-named` | the end the protocol left out — `Nieznany sprawca`, `Nieznany cel` |
-| `skill`      | an announcement, under the name it was made by                     |
-| `source`     | a key the game named with nothing announced in front of it         |
-| `closing`    | what no announcement covered, as one row — `Zwykły cios`           |
-| `kind`       | what a figure was made of                                          |
-| `no kind`    | the part of a figure its kinds do not account for                  |
+| row           | what it stands for                                                 |
+| ------------- | ------------------------------------------------------------------ |
+| `person`      | somebody the roster holds                                          |
+| `half-named`  | the end the protocol left out — `Nieznany sprawca`, `Nieznany cel` |
+| `skill`       | an announcement, under the name it was made by                     |
+| `source`      | a key the game named with nothing announced in front of it         |
+| `closing`     | what no announcement covered, as one row — `Zwykły cios`           |
+| `kind`        | what a figure was made of                                          |
+| `no kind`     | the part of a figure its kinds do not account for                  |
+| `neither end` | the part of a half-named figure that named no end at all           |
 
 ## The verdicts
 
@@ -67,7 +71,7 @@ A verdict outside that list is refused rather than read as silence.
 | screen               | level     | row          | opens       |
 | -------------------- | --------- | ------------ | ----------- |
 | `damageDealtApplied` | `ranking` | `person`     | `always`    |
-| `damageDealtApplied` | `ranking` | `half-named` | `never`     |
+| `damageDealtApplied` | `ranking` | `half-named` | `always`    |
 | `damageDealtApplied` | `opened`  | `person`     | `always`    |
 | `damageDealtApplied` | `opened`  | `skill`      | `always`    |
 | `damageDealtApplied` | `opened`  | `closing`    | `never`     |
@@ -76,8 +80,9 @@ A verdict outside that list is refused rather than read as silence.
 | `damageDealtApplied` | `pair`    | `closing`    | `never`     |
 | `damageDealtApplied` | `pair`    | `kind`       | `never`     |
 | `damageDealtApplied` | `part`    | `person`     | `never`     |
+| `damageDealtApplied` | `unnamed` | `person`     | `never`     |
 | `damageTakenApplied` | `ranking` | `person`     | `always`    |
-| `damageTakenApplied` | `ranking` | `half-named` | `never`     |
+| `damageTakenApplied` | `ranking` | `half-named` | `always`    |
 | `damageTakenApplied` | `opened`  | `person`     | `always`    |
 | `damageTakenApplied` | `opened`  | `half-named` | `never`     |
 | `damageTakenApplied` | `opened`  | `skill`      | `always`    |
@@ -87,6 +92,7 @@ A verdict outside that list is refused rather than read as silence.
 | `damageTakenApplied` | `pair`    | `closing`    | `never`     |
 | `damageTakenApplied` | `pair`    | `kind`       | `never`     |
 | `damageTakenApplied` | `part`    | `person`     | `never`     |
+| `damageTakenApplied` | `unnamed` | `person`     | `never`     |
 | `healthGiven`        | `ranking` | `person`     | `always`    |
 | `healthGiven`        | `opened`  | `person`     | `always`    |
 | `healthGiven`        | `opened`  | `skill`      | `always`    |
@@ -118,10 +124,15 @@ somebody: `damageDealtApplied` opens all 602 of its kind rows.
 
 ## What opens, in numbers
 
-Over `captures/` on 2026-08-31: of the rows a reader meets inside an opened row, **4,917 open and
+Over `captures/` on 2026-09-01: of the rows a reader meets inside an opened row, **4,917 open and
 1,049 do not**, and the third level they reach holds **4,361 person rows**. The shut thousand is
 `closing`, `half-named`, and the key and kind rows on the screens whose statistics keep no second
 cut of them — never a row the panel decided against.
+
+The pinned rows open onto **90 person rows**, 45 on each damage screen. It is the same 45 read from
+both ends: on `Zadane` they are who lost the health nobody was named for striking, on `Otrzymane`
+the same figure cut by the same people — one row per person the count reaches, which is what
+`getHalfNamedBalance` in `src/core/fight-statistics.ts` asserts it is the sum of.
 
 ## Where a row that opens nothing still says something
 
@@ -173,6 +184,11 @@ rather than a gap in the material:
   gave it. On `healthGiven` the same key opens, because the cut there is kept per receiver.
 - **A pair has no `no kind` row.** Its figure is read off the cut its kinds come from, so there is
   nothing for them to fall short of.
+- **Nothing under a pinned row opens.** A pair between somebody and nobody is not a pair, and the
+  end the game left out is the one thing this panel will not name (**ADR 0013**, **ADR 0036**).
+- **`neither end` stands only under a figure standing `apart`, and only under `Wszyscy`.** A `cut`
+  is summed over rows the ranking already draws and nobody's row is not one of them; under one side
+  the charge is read off a row, and there is no row to read it off. **ADR 0038.**
 
 ## What the recordings do not carry
 
@@ -182,7 +198,9 @@ Shapes the code would draw, absent from `captures/`, so no verdict is claimed. E
 - a `half-named` row on either healing screen, at either level, and on `damageDealtApplied` inside
   an opened row;
 - a `no kind` row anywhere;
-- a `half-named` row on the third level, under a part.
+- a `half-named` row on the third level, under a part;
+- a `neither end` row under a pinned one. `byNeitherEnd` is zero over every recording, so the row
+  the code draws for it has never been drawn from material.
 
 `tests/ui/panel-element.test.ts` and `tests/ui/panel-reading.test.ts` draw several of these from
 fights built by hand, which is where their shape is held.

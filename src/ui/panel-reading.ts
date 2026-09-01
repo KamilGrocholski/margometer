@@ -150,12 +150,147 @@ export type PanelUnnamedEnd = "actor" | "target";
  */
 export type PinnedStanding = "apart" | "cut";
 
+/**
+ * The five figures the protocol can leave half-named, one name each — and the name is the key
+ * every table about these rows is written on.
+ *
+ * **Five and not eight.** A screen states a figure for one end, so `healthGiven` has no target to
+ * leave out and `healthRestored` no second end at all. Keyed by the screen and the end instead,
+ * three of the eight cells would be sentences nobody can reach, and a table with holes in it is
+ * one nobody can reuse.
+ */
+export type PinnedCase =
+    | "dealtWithNoActor"
+    | "givenWithNoActor"
+    | "takenWithNoActor"
+    | "takenWithNoTarget"
+    | "restoredWithNoActor";
+
+/** The end the game **did** name, as the per-combatant figure that end carries. */
+type HalfNamedField = "damageTakenFromNobody" | "damageDealtToNobody" | "healthRestoredByNobody";
+
+interface PinnedShape {
+    metric: PanelMetric;
+    end: PanelUnnamedEnd;
+    standing: PinnedStanding;
+    field: HalfNamedField;
+}
+
+/**
+ * What each of the five is. **The one place the four answers are decided together**, so a screen
+ * cannot acquire an end it states no figure for, and a standing cannot drift from the end it was
+ * chosen for.
+ *
+ * `field` is what both the figure and the level under it are read off, and
+ * `src/core/fight-statistics.ts` asserts the three of them total the fight's own counts — which is
+ * what lets a pinned row be summed from the rows standing under it rather than beside them.
+ */
+const PINNED_SHAPES: Record<PinnedCase, PinnedShape> = {
+    dealtWithNoActor: {
+        metric: "damageDealtApplied",
+        end: "actor",
+        standing: "apart",
+        field: "damageTakenFromNobody",
+    },
+    givenWithNoActor: {
+        metric: "healthGiven",
+        end: "actor",
+        standing: "apart",
+        field: "healthRestoredByNobody",
+    },
+    takenWithNoActor: {
+        metric: "damageTakenApplied",
+        end: "actor",
+        standing: "cut",
+        field: "damageTakenFromNobody",
+    },
+    takenWithNoTarget: {
+        metric: "damageTakenApplied",
+        end: "target",
+        standing: "apart",
+        field: "damageDealtToNobody",
+    },
+    restoredWithNoActor: {
+        metric: "healthRestored",
+        end: "actor",
+        standing: "cut",
+        field: "healthRestoredByNobody",
+    },
+};
+
+/** In the order the screens pin them, which is the order a screen's two are drawn in. */
+export const PINNED_CASES: readonly PinnedCase[] = [
+    "dealtWithNoActor",
+    "givenWithNoActor",
+    "takenWithNoActor",
+    "takenWithNoTarget",
+    "restoredWithNoActor",
+];
+
+export function getEndForPinned(kase: PinnedCase): PanelUnnamedEnd {
+    assert(kase.length > 0, "a pinned figure is asked about by name");
+    return PINNED_SHAPES[kase].end;
+}
+
+export function getMetricForPinned(kase: PinnedCase): PanelMetric {
+    assert(kase.length > 0, "a pinned figure is asked about by name");
+    return PINNED_SHAPES[kase].metric;
+}
+
+/**
+ * Which of the five a screen and an end come to, or nothing where that screen pins no such end.
+ * Null is the answer a press deserves: a mark left over from another screen names no figure here,
+ * and opening the screen's other end instead would be a level about something else.
+ */
+export function getPinnedCase(metric: PanelMetric, end: PanelUnnamedEnd): PinnedCase | null {
+    assert(SCREEN_ORDER.includes(metric), "an end is asked about on a screen the strips draw");
+    assert(end.length > 0, "and about an end asked for by name");
+    const found = PINNED_CASES.filter((kase) => {
+        const shape = PINNED_SHAPES[kase];
+        if (shape.metric !== metric) return false;
+        return shape.end === end;
+    });
+    assert(found.length <= 1, "a screen pins one figure per end, never two");
+    return found[0] ?? null;
+}
+
+/** What one screen can pin, in the order it draws them. One screen pins two; the rest pin one. */
+function getPinnedCasesForScreen(metric: PanelMetric): PinnedCase[] {
+    assert(SCREEN_ORDER.includes(metric), "a screen pins on a screen the strips draw");
+    const named = Object.keys(PINNED_SHAPES).length;
+    assert(PINNED_CASES.length === named, "and every case the table holds is one the list names");
+    return PINNED_CASES.filter((kase) => PINNED_SHAPES[kase].metric === metric);
+}
+
 export interface PinnedRow {
+    case: PinnedCase;
     end: PanelUnnamedEnd;
     standing: PinnedStanding;
     figure: number;
     fill: number;
     shareText: string;
+}
+
+/** One person under a pinned row: the end the game named, and what it carries of that figure. */
+export type HalfNamedRow = PersonRow;
+
+/**
+ * What stands under a pinned row — the end the game **did** name, person by person, and the part
+ * of the figure naming neither end where there is one.
+ *
+ * Nothing on it opens. A pair between somebody and nobody is not a pair, and the level under it
+ * would be a cut of a figure the statistics keep no second cut of.
+ */
+export interface HalfNamedReading {
+    case: PinnedCase;
+    end: PanelUnnamedEnd;
+    total: number;
+    rows: HalfNamedRow[];
+    /**
+     * The part of the figure that named **neither** end — inside the count above it and on nobody's
+     * row, so a section without it falls short of what it is a cut of.
+     */
+    neither: UnnamedRow | null;
 }
 
 export interface ShelfRow {
@@ -442,45 +577,6 @@ function getListedTotal(
 }
 
 /**
- * The ends the protocol can leave out, as figures standing under the list that is showing.
- *
- * Under everybody they are the fight's own counts. Under one side they are read off the rows: a
- * figure standing `apart` is charged by the end the game **did** name, which is the strip's own
- * rule, and one standing as a `cut` is summed over the rows on the list, which are that named end
- * themselves. What names neither end is in the counts and on nobody's row, so it stands under
- * everybody and nowhere else. **ADR 0036.**
- */
-function composePinnedFigures(
-    statistics: FightStatistics,
-    roster: CombatantRoster,
-    rows: readonly UnsharedRow[],
-    metric: PanelMetric,
-    choice: PanelSideChoice,
-    readerSide: number | null,
-): Array<{ end: PanelUnnamedEnd; standing: PinnedStanding; figure: number }> {
-    assert(SIDE_CHOICES.includes(choice), "a figure is pinned for a choice a reader could make");
-    assert(statistics.dealtByNobody >= 0, "and one that is never below nothing");
-    const part = getPartListed(choice, readerSide);
-    const apart = getPinnedApart(statistics, roster, metric, part, readerSide);
-    const cut = getHalfNamedTotal(statistics, rows, metric);
-    const found: Array<{ end: PanelUnnamedEnd; standing: PinnedStanding; figure: number }> = [];
-    if (metric === "damageDealtApplied") {
-        found.push({ end: "actor", standing: "apart", figure: apart });
-    }
-    if (metric === "healthGiven") {
-        found.push({ end: "actor", standing: "apart", figure: apart });
-    }
-    if (metric === "damageTakenApplied") {
-        found.push({ end: "actor", standing: "cut", figure: cut });
-        found.push({ end: "target", standing: "apart", figure: apart });
-    }
-    if (metric === "healthRestored") {
-        found.push({ end: "actor", standing: "cut", figure: cut });
-    }
-    return found.filter((one) => one.figure > 0);
-}
-
-/**
  * Which part of the strip a list is showing, or nothing where it is showing everybody. With no
  * seat to read from, every list is everybody: `getIsRowListed` answers that way and this has to
  * answer the same, or a figure would be charged to a side no row was filtered by.
@@ -494,74 +590,217 @@ function getPartListed(choice: PanelSideChoice, readerSide: number | null): Pane
     return "theirs";
 }
 
+/** One person under a pinned figure, before anything has been said about how they are drawn. */
+interface HalfNamedPart {
+    combatantId: number;
+    figure: number;
+}
+
 /**
- * A figure standing apart from the list: the fight's own count under everybody, and that count's
- * share charged to one side under either of the other two.
+ * The end the game **did** name, person by person — **one walk, read by both the pinned row and
+ * the level under it**, so a figure and what stands beneath it cannot disagree. Which field is
+ * walked is `PINNED_SHAPES`', and which people are kept turns on the standing:
+ *
+ * - `cut` — the rows the list is showing, because on those screens the listed row **is** the named
+ *   end. No inference is involved.
+ * - `apart` under one side — whoever the strip charges that side with, which is ADR 0013's rule
+ *   read through `getPartCharged`. There is one copy of it, and the strip reads the same one.
+ * - `apart` under everybody — everyone the statistics hold.
+ *
+ * What names **neither** end is on nobody's row and is added by the caller, never here.
  */
-function getPinnedApart(
+function composeHalfNamedParts(
     statistics: FightStatistics,
     roster: CombatantRoster,
-    metric: PanelMetric,
+    kase: PinnedCase,
+    rows: readonly UnsharedRow[],
     part: PanelSidePart | null,
     readerSide: number | null,
-): number {
-    assert(SCREEN_ORDER.includes(metric), "a figure is pinned on a screen the strips draw");
-    assert(statistics.takenByNobody >= 0, "and one that is never below nothing");
-    if (part !== null) return getHalfNamedForPart(statistics, roster, metric, part, readerSide);
-    if (metric === "damageDealtApplied") return statistics.dealtByNobody;
-    if (metric === "healthGiven") return statistics.givenByNobody;
-    if (metric === "damageTakenApplied") return statistics.takenByNobody;
-    return 0;
-}
-
-/**
- * One side's share of a fight-wide count, charged by the end the game did name. The charge is the
- * strip's — `getPartCharged` holds the crossing rule, and there is one copy of it — so the two
- * reach the same figure through the same field. **ADR 0036.**
- */
-function getHalfNamedForPart(
-    statistics: FightStatistics,
-    roster: CombatantRoster,
-    metric: PanelMetric,
-    part: PanelSidePart,
-    readerSide: number | null,
-): number {
+): HalfNamedPart[] {
     assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its stated bound");
     assert(part !== "nobody", "a figure is charged to a side, never to the refusal beside them");
-    let total = 0;
+    const shape = PINNED_SHAPES[kase];
+    const listed = new Set(rows.map((one) => one.combatantId));
+    const found: HalfNamedPart[] = [];
     for (const [combatantId, figures] of statistics.byCombatantId) {
+        const figure = figures[shape.field];
+        assert(figure >= 0, "a half-named figure is never below nothing");
+        if (figure <= 0) continue;
         const held = getPartOfSide(roster.byId.get(combatantId)?.side ?? null, readerSide);
-        if (getPartCharged(held, metric) === part) total += getHalfNamed(figures, metric);
+        if (!getIsHalfNamedKept(shape, held, listed.has(combatantId), part)) continue;
+        found.push({ combatantId, figure });
     }
-    assert(Number.isSafeInteger(total), "a total stays inside what a number holds exactly");
-    return total;
+    assert(found.length <= MAXIMUM_ROWS, "and so does what stands under one of its pinned rows");
+    return found;
+}
+
+/** The three rules the paragraph above states, as the one condition each of them is. */
+function getIsHalfNamedKept(
+    shape: PinnedShape,
+    held: PanelSidePart,
+    isListed: boolean,
+    part: PanelSidePart | null,
+): boolean {
+    assert(shape.field.length > 0, "a figure is kept out of a cut the shape names");
+    if (shape.standing === "cut") return isListed;
+    if (part === null) return true;
+    return getPartCharged(held, shape.metric) === part;
 }
 
 /**
- * As much of what the rows on this screen hold as the protocol named only one end of — the end
- * being the row itself. It is what the received screens can say and the given ones cannot: a row
- * that took damage holds the blow whether or not anybody was named for striking it.
+ * What the pinned figure comes to: the sum of the level under it, and what named neither end where
+ * that is inside the same count.
  *
- * Summed over the rows the list is showing rather than over the fight, which is what makes it a
- * cut of that list on every choice of side. The rows are the named end here; `getHalfNamedForPart`
- * asks the opposite question, where the named end is somebody else's row.
+ * Only damage can name neither end, and only a figure standing `apart` holds it: a `cut` is summed
+ * over rows the list already draws, and nobody's row is not one of them. Under one side it drops
+ * out too — `getPartCharged` charges from a row, and there is no row to charge from.
  */
-function getHalfNamedTotal(
+function getPinnedFigure(
     statistics: FightStatistics,
+    kase: PinnedCase,
+    parts: readonly HalfNamedPart[],
+    part: PanelSidePart | null,
+): number {
+    assert(statistics.byNeitherEnd >= 0, "what names neither end is never below nothing");
+    let total = 0;
+    for (const one of parts) total += one.figure;
+    total += getNeitherEndForPinned(statistics, kase, part);
+    assert(Number.isSafeInteger(total), "a total stays inside what a number holds exactly");
+    assertPinnedTotalsTheFight(statistics, kase, total, part);
+    return total;
+}
+
+function getNeitherEndForPinned(
+    statistics: FightStatistics,
+    kase: PinnedCase,
+    part: PanelSidePart | null,
+): number {
+    assert(statistics.byNeitherEnd >= 0, "what names neither end is never below nothing");
+    assert(part !== "nobody", "and a list is narrowed to a side, never to the refusal beside them");
+    const shape = PINNED_SHAPES[kase];
+    if (part !== null) return 0;
+    if (shape.standing === "cut") return 0;
+    if (getNounForScreen(shape.metric) === "healing") return 0;
+    return statistics.byNeitherEnd;
+}
+
+const PINNED_SUM_SAID = "a pinned figure is the whole of what stands under it";
+
+/**
+ * Under everybody a figure standing apart **is** the fight's own count, and this says so out loud.
+ * `getHalfNamedBalance` in `src/core/fight-statistics.ts` is what makes it hold — the count is the
+ * sum of one field across the rows plus what named neither end, and nothing else.
+ */
+function assertPinnedTotalsTheFight(
+    statistics: FightStatistics,
+    kase: PinnedCase,
+    total: number,
+    part: PanelSidePart | null,
+): void {
+    if (part !== null) return;
+    if (PINNED_SHAPES[kase].standing === "cut") return;
+    if (kase === "dealtWithNoActor") assert(total === statistics.dealtByNobody, PINNED_SUM_SAID);
+    if (kase === "takenWithNoTarget") assert(total === statistics.takenByNobody, PINNED_SUM_SAID);
+    if (kase === "givenWithNoActor") assert(total === statistics.givenByNobody, PINNED_SUM_SAID);
+}
+
+/**
+ * The ends the protocol can leave out, as figures standing under the list that is showing.
+ *
+ * Each is summed from the level under it rather than read off a count beside it, which is what
+ * keeps the row and that level one answer. **ADR 0036** charges a one-side list the way the strip
+ * charges it; **ADR 0034** is why the level is there at all.
+ */
+function composePinnedFigures(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
     rows: readonly UnsharedRow[],
     metric: PanelMetric,
-): number {
-    assert(rows.length <= MAXIMUM_ROWS, "a list stays inside the fight's stated bound");
-    assert(metric.length > 0, "and a screen asked for by name");
-    const listed = new Set(rows.map((one) => one.combatantId));
-    let total = 0;
-    for (const [combatantId, figures] of statistics.byCombatantId) {
-        if (listed.has(combatantId)) {
-            if (metric === "damageTakenApplied") total += figures.damageTakenFromNobody;
-            if (metric === "healthRestored") total += figures.healthRestoredByNobody;
-        }
-    }
-    return total;
+    choice: PanelSideChoice,
+    readerSide: number | null,
+): Array<Omit<PinnedRow, "fill" | "shareText">> {
+    assert(SIDE_CHOICES.includes(choice), "a figure is pinned for a choice a reader could make");
+    assert(statistics.dealtByNobody >= 0, "and one that is never below nothing");
+    const part = getPartListed(choice, readerSide);
+    const found = getPinnedCasesForScreen(metric).map((kase) => {
+        const parts = composeHalfNamedParts(statistics, roster, kase, rows, part, readerSide);
+        const shape = PINNED_SHAPES[kase];
+        return {
+            case: kase,
+            end: shape.end,
+            standing: shape.standing,
+            figure: getPinnedFigure(statistics, kase, parts, part),
+        };
+    });
+    assert(found.length <= 2, "a screen pins the two ends the protocol can leave out, at most");
+    return found.filter((one) => one.figure > 0);
+}
+
+/**
+ * What stands under a pinned row, composed only when a reader asks for it. Null where that row is
+ * not on the screen at all — a figure of nothing is not pinned, so there is nothing to open.
+ *
+ * The rows are the same walk the pinned figure was summed from, so the section totals the figure
+ * over it by construction rather than by a second count agreeing with the first.
+ */
+export function composeHalfNamedReading(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    kase: PinnedCase,
+    choice: PanelSideChoice,
+    readerSide: number | null,
+): HalfNamedReading | null {
+    assert(SIDE_CHOICES.includes(choice), "a level opens for a choice a reader could make");
+    const metric = getMetricForPinned(kase);
+    const listed = composeUnsharedRows(statistics, roster, metric).filter((row) =>
+        getIsRowListed(row.side, choice, readerSide)
+    );
+    const part = getPartListed(choice, readerSide);
+    const parts = composeHalfNamedParts(statistics, roster, kase, listed, part, readerSide);
+    const total = getPinnedFigure(statistics, kase, parts, part);
+    if (total <= 0) return null;
+    const neither = getNeitherEndForPinned(statistics, kase, part);
+    const largest = getLargestFigure([...parts.map((one) => one.figure), neither]);
+    const shares = composeShareTexts([...parts.map((one) => one.figure), neither], total);
+    return {
+        case: kase,
+        end: getEndForPinned(kase),
+        total,
+        rows: composeHalfNamedRows(statistics, roster, parts, shares, largest),
+        neither: neither <= 0 ? null : {
+            figure: neither,
+            fill: getFill(neither, largest),
+            shareText: shares[parts.length] ?? "",
+        },
+    };
+}
+
+/** Ranked the way every list here is: by the figure, then by the name beside it. */
+function composeHalfNamedRows(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    parts: readonly HalfNamedPart[],
+    shares: readonly string[],
+    largest: number,
+): HalfNamedRow[] {
+    const rows = parts.map((one, at): HalfNamedRow => {
+        const held = roster.byId.get(one.combatantId);
+        return {
+            combatantId: one.combatantId,
+            name: held?.name ?? null,
+            side: held?.side ?? null,
+            profession: held?.profession ?? null,
+            figure: one.figure,
+            fill: getFill(one.figure, largest),
+            shareText: shares[at] ?? "",
+            detail: composeRowDetailFor(statistics, roster, one.combatantId),
+        };
+    });
+    rows.sort((one, other) =>
+        getRankedOrder(one.figure, other.figure, one.name ?? "", other.name ?? "")
+    );
+    assert(rows.length <= MAXIMUM_ROWS, "a level stays inside the fight's stated bound");
+    return rows;
 }
 
 function getLargestFigure(figures: readonly number[]): number {
@@ -660,7 +899,7 @@ export function getOutcomeForSeat(
  * one rounded on its own, because a cut and the rows it is a cut of overlap on purpose.
  */
 function composePinnedRows(
-    pinned: ReadonlyArray<{ end: PanelUnnamedEnd; standing: PinnedStanding; figure: number }>,
+    pinned: ReadonlyArray<Omit<PinnedRow, "fill" | "shareText">>,
     apartShares: readonly string[],
     whole: number,
     largest: number,

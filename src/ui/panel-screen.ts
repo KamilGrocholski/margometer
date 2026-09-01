@@ -7,7 +7,7 @@
  */
 
 import { assert } from "@std/assert";
-import type { NamedPart, PanelMetric } from "@/src/ui/panel-reading.ts";
+import type { NamedPart, PanelMetric, PanelUnnamedEnd } from "@/src/ui/panel-reading.ts";
 import {
     getWordsForDirection,
     getWordsForNoun,
@@ -75,6 +75,11 @@ export interface ScreenState {
     side: PanelSideChoice;
     isOnShelf: boolean;
     openRowId: number | null;
+    /**
+     * Which pinned row stands open, and it is never open beside `openRowId`: a pinned row is drawn
+     * under the ranking, so a reader inside somebody's figure has none to press.
+     */
+    openUnnamedEnd: PanelUnnamedEnd | null;
     openPairId: number | null;
     /** Which row of a cut stands open — a skill, a key or a kind, and never two of them. */
     openPart: NamedPart | null;
@@ -89,6 +94,7 @@ export function composeScreenState(isCollapsed: boolean): ScreenState {
         side: "everyone",
         isOnShelf: false,
         openRowId: null,
+        openUnnamedEnd: null,
         openPairId: null,
         openPart: null,
         openFightId: null,
@@ -96,6 +102,7 @@ export function composeScreenState(isCollapsed: boolean): ScreenState {
     };
     assert(SCREEN_ORDER.includes(state.current), "a panel opens on a screen it can draw");
     assert(state.openRowId === null, "and with every row closed");
+    assert(state.openUnnamedEnd === null, "the ends the protocol leaves out among them");
     assert(state.openPairId === null, "and no pair standing over one");
     assert(state.openPart === null, "and no part of a cut standing over that");
     assert(state.openFightId === null, "and the fight being read is the one going on");

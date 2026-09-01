@@ -245,6 +245,11 @@ two, where a person was pressed, or whom it reached, where a skill, a key or a k
 entered from the second level and neither from the other, so the panel is never more than three
 deep. Nothing on the third opens: the protocol states no further cut of it.
 
+**A pinned row opens too, onto its own second level.** It stands under the ranking rather than on
+it, so what it opens is a branch beside the one a person's row opens: the end the game **did** name,
+person by person, and nothing under that. Which end that is turns on the row and not on the screen,
+so `Otrzymane` heads its two pinned rows differently. **ADR 0038.**
+
 **Every row with a level under it opens, and only what has none stays shut.** A cut of one row is
 not a repetition to be spared: it states what the figure over it was made of, which the heading
 never does. What decides the answer is whether the statistics keep a second cut of that row — and
@@ -335,8 +340,15 @@ at each end, and last what qualifies every figure above. A figure stated before 
 the sentence that says not to subtract it. **A card whose row states a narrower figure says so**, in
 one sentence under the doubts and over the instruction: the card is about the person and its figures
 are the fight's, while the row it stands over is one cut of them. Nowhere else is it a card, because
-nowhere else is there a person to compose one from: a skill, a kind, an end the protocol left out
-and a fight on the shelf each get the name their own cell had to cut.
+nowhere else is there a person to compose one from: a skill, a kind and a fight on the shelf each
+get the name their own cell had to cut.
+
+**A row the protocol left an end of says which end, and where its figure stands.** It is not a card
+and names nobody — that is what the row is — but the two lines every leaf gets are not an answer to
+what a reader is looking at. Under the ranking it says three things: what the game did not state,
+whether the figure is already counted in the list above it, and — only where a side is showing —
+what the shown team is to it. Inside an opened figure and under an opened part it says the first
+alone: the other two are about a ranking and a side, and neither level has one. **ADR 0038.**
 
 **Both runs stand, on every screen, each under the heading naming its end.** The run about striking
 states the criticals as a share of the blows struck, the hardest blow, what else fired, and what

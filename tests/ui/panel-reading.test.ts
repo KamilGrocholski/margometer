@@ -14,10 +14,12 @@ import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import type { NamedPart, PanelMetric } from "@/src/ui/panel-reading.ts";
 import {
     composeDrillReading,
+    composeHalfNamedReading,
     composePairReading,
     composePanelReading,
     composePartReading,
     composeRowWarnings,
+    getPinnedCase,
     getRowHasDoubt,
     getTextForNamedPart,
     NOTHING_MISSED,
@@ -630,6 +632,156 @@ Deno.test("a figure nobody can be charged with is shown under everybody and nowh
 });
 
 /**
+ * The invariant the level exists to keep: a pinned row is the sum of what stands under it. The two
+ * are one walk in `src/ui/panel-reading.ts`, so this holds that walk to the figure the row draws
+ * beside it — over every recording, every screen and every choice of side. **ADR 0038.**
+ */
+Deno.test("a pinned row is the whole of what stands under it, on every list", () => {
+    let opened = 0;
+    let people = 0;
+    for (const path of getRecordingPaths()) {
+        const { roster, statistics } = readFight(path);
+        const sides = [...new Set([...roster.byId.values()].map((one) => one.side))];
+        for (const readerSide of [...sides, null]) {
+            for (const metric of SCREENS) {
+                for (const choice of ["everyone", "reader", "opposing"] as const) {
+                    const reading = composePanelReading(
+                        statistics,
+                        roster,
+                        metric,
+                        choice,
+                        readerSide,
+                        NOTHING_MISSED,
+                    );
+                    for (const pinned of reading.pinned) {
+                        const held = composeHalfNamedReading(
+                            statistics,
+                            roster,
+                            pinned.case,
+                            choice,
+                            readerSide,
+                        );
+                        assert(
+                            held !== null,
+                            `${metric} ${choice}: a drawn row opens onto a level`,
+                        );
+                        assertEquals(held.total, pinned.figure, `${metric} ${choice}: same figure`);
+                        const under = held.rows.reduce((sum, one) => sum + one.figure, 0) +
+                            (held.neither?.figure ?? 0);
+                        assertEquals(under, pinned.figure, `${metric} ${choice}: the level totals`);
+                        opened += 1;
+                        people += held.rows.length;
+                    }
+                }
+            }
+        }
+    }
+    assert(opened > 0, "the corpus pins figures to open");
+    assert(people > 0, "and somebody stands under them");
+});
+
+/**
+ * The end the game did name, and it is the **other** end from the one the row is named for: a
+ * figure with no striker was still taken by somebody. Read on one recording rather than over the
+ * corpus, because what is checked here is which people, not that the arithmetic closes.
+ */
+Deno.test("a pinned row opens onto the end the game did name, and never onto a guess", () => {
+    const { roster, statistics } = readFight(HILDUR);
+    const kase = getPinnedCase("damageDealtApplied", "actor");
+    assert(kase !== null, "damage dealt pins the striker the game left out");
+    const held = composeHalfNamedReading(statistics, roster, kase, "everyone", null);
+    assert(held !== null, "and this fight has such a figure");
+    assertEquals(held.end, "actor", "the row goes on saying which end was left out");
+    assert(held.rows.length > 0, "and the level under it names the other one");
+    for (const row of held.rows) {
+        const figures = statistics.byCombatantId.get(row.combatantId);
+        assert(figures !== undefined, "a row on the level is somebody the statistics hold");
+        assertEquals(
+            row.figure,
+            figures.damageTakenFromNobody,
+            "and carries what they took from nobody, not a share of anything",
+        );
+    }
+    const ranked = held.rows.map((one) => one.figure);
+    assertEquals([...ranked].sort((one, other) => other - one), ranked, "ranked by the figure");
+});
+
+/**
+ * Zero is a boundary, and it is the one that decides whether the row is there at all: a figure of
+ * nothing is not pinned, so there is nothing to open. One point is.
+ */
+Deno.test("a half-named point opens a level, and none at all opens nothing", () => {
+    const { roster } = readFight(HILDUR);
+    const kase = getPinnedCase("damageDealtApplied", "actor");
+    assert(kase !== null, "damage dealt pins the striker the game left out");
+    const struck = [...roster.byId.values()][0];
+    assert(struck !== undefined, "the fight has somebody to strike");
+    const nothing = composeFightStatistics(decodeFightMessages([], roster), new Map());
+    assertEquals(
+        composeHalfNamedReading(nothing, roster, kase, "everyone", null),
+        null,
+        "a fight with no such figure opens nothing",
+    );
+    const one = `0;${struck.id}=50.00;+dmg=1;-dmg=1`;
+    const events = decodeFightMessages([one], roster);
+    const statistics = composeFightStatistics(events, new Map());
+    const held = composeHalfNamedReading(statistics, roster, kase, "everyone", null);
+    assert(held !== null, "and one point of it opens a level");
+    assertEquals(held.total, 1, "of that one point");
+    assertEquals(held.rows.map((row) => row.combatantId), [struck.id], "under whoever took it");
+});
+
+/**
+ * The one pinned case whose level lists the people who **struck**, and the only one on any screen
+ * whose end is `target`. No recording carries a blow the protocol gives a striker and no target —
+ * `takenByNobody` is zero over the corpus — so the fight is built here.
+ */
+Deno.test("a blow with nobody at the far end opens onto whoever struck it", () => {
+    const { roster } = readFight(HILDUR);
+    const [striker] = [...roster.byId.values()];
+    assert(striker !== undefined, "the fight holds somebody to swing");
+    const events = decodeFightMessages([`${striker.id}=90.00;0;+dmg=500;-dmg=500`], roster);
+    const statistics = composeFightStatistics(events, new Map());
+    assertEquals(statistics.takenByNobody, 500, "the blow found nobody");
+    assertEquals(statistics.byNeitherEnd, 0, "but it was struck by somebody the game named");
+    const kase = getPinnedCase("damageTakenApplied", "target");
+    assert(kase !== null, "damage taken pins the target the game left out");
+    const held = composeHalfNamedReading(statistics, roster, kase, "everyone", striker.side);
+    assert(held !== null, "the figure is pinned, so it opens");
+    assertEquals(held.end, "target", "the row goes on saying the target was the end left out");
+    assertEquals(held.rows.map((one) => one.combatantId), [striker.id], "and names who swung");
+    assertEquals(held.rows[0]?.figure, 500, "at the whole of the figure");
+    assertEquals(held.neither, null, "with nothing left over, because one end was named");
+});
+
+/**
+ * What named neither end is inside the count and on nobody's row, so the level closes against it
+ * or falls short of the figure over it. `byNeitherEnd` is zero over every recording, so the fight
+ * is built here — `docs/drill-levels.md` says as much under what the recordings do not carry.
+ */
+Deno.test("what named neither end closes the level it is inside", () => {
+    const { roster } = readFight(HILDUR);
+    const [readerSide] = [...new Set([...roster.byId.values()].map((one) => one.side))];
+    assert(readerSide !== undefined, "the fight states a side");
+    const events = decodeFightMessages([NEITHER_END], roster);
+    const statistics = composeFightStatistics(events, new Map());
+    const kase = getPinnedCase("damageDealtApplied", "actor");
+    assert(kase !== null, "damage dealt pins the striker the game left out");
+    const held = composeHalfNamedReading(statistics, roster, kase, "everyone", readerSide);
+    assert(held !== null, "the figure is pinned, so it opens");
+    assertEquals(held.rows, [], "and nobody stands under it, because nobody was named");
+    assertEquals(held.neither?.figure, 700, "the whole of it closes against what named no end");
+    assertEquals(held.total, 700, "which is the figure the row states");
+    for (const choice of ["reader", "opposing"] as const) {
+        assertEquals(
+            composeHalfNamedReading(statistics, roster, kase, choice, readerSide),
+            null,
+            `${choice}: no side is charged with it, so no side opens it`,
+        );
+    }
+});
+
+/**
  * The charge ADR 0013 states for the strip, read on the ranking standing under it: a list a
  * reader narrowed to one side divides its shares by that side's own figure, pinned rows included.
  * The two arms reach it through different fields — the rows off each combatant's own figure, the
@@ -829,6 +981,17 @@ Deno.test("healing no giver can be read for is apart on one screen and a cut on 
     const received = read("healthRestored");
     assertEquals(received.pinned.map((one) => one.standing), ["cut"], "the rows there hold it");
     assertEquals(received.pinned[0]?.figure, 400, "at the same figure, said once");
+    // Both open onto the same person, because on both screens the end the game named is whoever
+    // the health reached. No recording pins either, so this is where the two cases are held.
+    for (const kase of ["givenWithNoActor", "restoredWithNoActor"] as const) {
+        const held = composeHalfNamedReading(statistics, roster, kase, "everyone", null);
+        assert(held !== null, `${kase}: the pinned row opens`);
+        assertEquals(held.end, "actor", `${kase}: onto the end the game did name`);
+        assertEquals(held.total, 400, `${kase}: at the figure the row states`);
+        assertEquals(held.rows.map((one) => one.figure), [400], `${kase}: on one person's row`);
+        assertEquals(held.rows[0]?.combatantId, healed, `${kase}: whoever the health reached`);
+        assertEquals(held.neither, null, `${kase}: healing never names neither end`);
+    }
 });
 
 /**

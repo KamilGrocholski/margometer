@@ -20,9 +20,14 @@ import {
     composeUnreadWarning,
     COUNTED_NOUNS,
     getWordsForHealthSource,
+    getWordsForPinnedScope,
+    getWordsForPinnedStanding,
+    getWordsForUnnamedEnd,
     HEALTH_SOURCE_WORDS,
+    NEITHER_END_WORDS,
     PANEL_WORDS,
 } from "@/src/ui/panel-words.ts";
+import { type PanelUnnamedEnd, PINNED_CASES } from "@/src/ui/panel-reading.ts";
 
 /** Words this repository chose for itself. A reader is told what is missing, never our reason. */
 const OUR_VOCABULARY = [
@@ -45,6 +50,17 @@ function getSentences(): string[] {
     for (const noun of Object.values(COUNTED_NOUNS)) {
         found.push(noun.one, noun.few, noun.many);
     }
+    // What a half-named row says, for the same reason: the tables behind these are keyed and a
+    // walk over `PANEL_WORDS` reaches none of them.
+    for (const end of ["actor", "target"] as readonly PanelUnnamedEnd[]) {
+        found.push(getWordsForUnnamedEnd(end, "damage"));
+        found.push(getWordsForUnnamedEnd(end, "healing"));
+    }
+    for (const kase of PINNED_CASES) {
+        found.push(getWordsForPinnedStanding(kase));
+        found.push(getWordsForPinnedScope(kase));
+    }
+    found.push(NEITHER_END_WORDS.label, NEITHER_END_WORDS.note);
     // The four a doubt is said in. They are composed rather than declared, so a table of the
     // panel's words does not reach them and the guards below would read past every one.
     found.push(composeJoinedInProgressWarning());

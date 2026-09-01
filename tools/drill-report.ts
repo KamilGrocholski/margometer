@@ -14,31 +14,38 @@ import { assert } from "@std/assert";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import {
     composeDrillReading,
+    composeHalfNamedReading,
     composePairReading,
     composePanelReading,
     composePartReading,
+    getMetricForPinned,
     getTextForNamedPart,
     type NamedPart,
     NOTHING_MISSED,
     type PanelMetric,
+    type PinnedCase,
 } from "@/src/ui/panel-reading.ts";
 import { getScreenFromName, SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 import { composeReplayedMaterial, type FightReplay } from "@/tools/fight-replay.ts";
 import { DrillReportError } from "@/tools/margometer-tool-error.ts";
 
 /**
- * The four views, named by what a reader did to get there — and three levels, because `pair` and
+ * The views, named by what a reader did to get there — and three levels, because `pair` and
  * `part` are two shapes of the third rather than one under the other. Both are a press away from
  * `opened` and neither is reachable from the other. A part is a skill, a key or a kind: the level
  * under all three lists people, so one rung holds them.
+ *
+ * `unnamed` is the odd one and sits on the second level, off a branch of its own: it is opened
+ * from a pinned row under the ranking rather than from a row on it (**ADR 0038**).
  */
-export const DRILL_RUNGS = ["ranking", "opened", "pair", "part"] as const;
+export const DRILL_RUNGS = ["ranking", "opened", "pair", "part", "unnamed"] as const;
 export type DrillRung = (typeof DRILL_RUNGS)[number];
 
 /**
  * Every kind of row the panel draws below a heading. `half-named` is the end the protocol left
- * out, `closing` the row that stands for what no announcement covered, and `no kind` its twin in
- * a section cut by what a figure was made of.
+ * out, `closing` the row that stands for what no announcement covered, `no kind` its twin in a
+ * section cut by what a figure was made of, and `neither end` the part of a half-named figure the
+ * protocol named no end of at all.
  */
 export const DRILL_ROWS = [
     "person",
@@ -48,6 +55,7 @@ export const DRILL_ROWS = [
     "closing",
     "kind",
     "no kind",
+    "neither end",
 ] as const;
 export type DrillRow = (typeof DRILL_ROWS)[number];
 
@@ -196,6 +204,27 @@ function addPartRungToTally(
     }
 }
 
+/** What a pinned row opens onto: the end the game did name, and what named neither. */
+function addUnnamedRungToTally(tally: DrillTally, replay: FightReplay, kase: PinnedCase): void {
+    const { roster, statistics } = replay;
+    const screen = getMetricForPinned(kase);
+    const held = composeHalfNamedReading(
+        statistics,
+        roster,
+        kase,
+        "everyone",
+        replay.reading.readerSide,
+    );
+    assert(held !== null, "a pinned row that is drawn has a level under it");
+    for (const one of held.rows) {
+        assert(one.figure > 0, "a person under a pinned row carries some of its figure");
+        addToTally(tally, screen, { rung: "unnamed", row: "person" }, false);
+    }
+    if (held.neither !== null) {
+        addToTally(tally, screen, { rung: "unnamed", row: "neither end" }, false);
+    }
+}
+
 function addScreenToTally(tally: DrillTally, replay: FightReplay, screen: PanelMetric): void {
     const reading = composePanelReading(
         replay.statistics,
@@ -214,8 +243,9 @@ function addScreenToTally(tally: DrillTally, replay: FightReplay, screen: PanelM
         addToTally(tally, screen, { rung: "ranking", row: "person" }, true);
     }
     for (const pinned of reading.pinned) {
-        assert(pinned.figure >= 0, "a half-named figure is never below nothing");
-        addToTally(tally, screen, { rung: "ranking", row: "half-named" }, false);
+        assert(pinned.figure > 0, "a figure is pinned because there is one to pin");
+        addToTally(tally, screen, { rung: "ranking", row: "half-named" }, true);
+        addUnnamedRungToTally(tally, replay, pinned.case);
     }
     for (const row of reading.rows) addDeepRungsToTally(tally, replay, screen, row.combatantId);
 }
@@ -340,7 +370,29 @@ export function composeDrillReport(
         for (const row of reading.rows) {
             lines.push(...composeOpenedLines(replay, screen, row.combatantId));
         }
+        for (const pinned of reading.pinned) {
+            lines.push(...composeUnnamedLines(replay, pinned.case));
+        }
     }
+    return lines;
+}
+
+/** One pinned row opened: the end the game did name, and what named neither. */
+function composeUnnamedLines(replay: FightReplay, kase: PinnedCase): string[] {
+    const held = composeHalfNamedReading(
+        replay.statistics,
+        replay.roster,
+        kase,
+        "everyone",
+        replay.reading.readerSide,
+    );
+    if (held === null) return [];
+    const lines = [`    ${kase} — ${composeIntegerText(held.total)}`];
+    for (const one of held.rows) {
+        const named = one.name ?? "(nobody named)";
+        lines.push(`      person  leaf   ${named} ${composeIntegerText(one.figure)}`);
+    }
+    if (held.neither !== null) lines.push("      neither end  leaf");
     return lines;
 }
 

@@ -642,6 +642,68 @@ function setScreenKept(
 }
 
 /**
+ * The pinned row end to end: a press opens the level, the way back closes it, and a change of
+ * screen closes it too. The last is the one that differs from a person's row — the four screens
+ * pin five different figures, so the row of that name on the next screen is not this one.
+ * **ADR 0038.**
+ */
+Deno.test("a reader opens a pinned row, and it does not follow them to the next screen", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    const getRegion = (className: string) => {
+        return getElementsWithin(host).find((one) => one.className === className);
+    };
+    const pinnedName = () => {
+        const block = getRegion("pinned-region");
+        if (block === undefined) return undefined;
+        return getElementsWithin(block).find((one) => one.className === "row-name");
+    };
+    const name = pinnedName();
+    assert(name !== undefined, "this fight pins a figure nobody was named for");
+    assertEquals(name.textContent, PANEL_WORDS.withoutActor, "and says which end it left out");
+    assertEquals(name.attributes.get("data-unnamed"), "actor", "marked by that end");
+
+    pressElement(host, "pointerdown", name);
+    assertEquals(
+        getRegion("crumb-here")?.textContent,
+        PANEL_WORDS.withoutActor,
+        "pressing it opens the level, under the row's own name",
+    );
+    assertEquals(pinnedName(), undefined, "and the pinned row itself is off the screen");
+    const named = getElementsWithin(host).filter((one) => one.className === "row-name");
+    assert(named.length > 0, "the level names whoever the game did state at the other end");
+    assertEquals(
+        named.filter((one) => one.attributes.get("data-row") !== undefined),
+        [],
+        "and none of them opens any further",
+    );
+
+    pressElement(host, "pointerdown", getRegion("crumb-back") ?? host);
+    assertEquals(getRegion("crumb"), undefined, "the way back closes it");
+    assert(pinnedName() !== undefined, "and puts the pinned row back under the ranking");
+
+    const reopened = pinnedName();
+    assert(reopened !== undefined, "it opens a second time");
+    pressElement(host, "pointerdown", reopened);
+    assert(getRegion("crumb") !== undefined, "as it did the first");
+    const taken = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-screen") === "damageTakenApplied"
+    );
+    assert(taken !== undefined, "there is another screen to reach for");
+    pressElement(host, "pointerdown", taken);
+    assertEquals(
+        getRegion("crumb"),
+        undefined,
+        "a change of screen closes it: the row of that name there states another figure",
+    );
+});
+
+/**
  * The other shape of the third level, and the way out of it. The two are entered by different
  * marks and left by the same control, so a way back that knew only about the pair walked a reader
  * to the ranking while the crumb beside it named the person they had opened.

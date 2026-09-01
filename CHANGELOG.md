@@ -31,6 +31,17 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [Niewydane]
+
+- **Nowość** — Wiersze „Nieznany sprawca" i „Nieznany cel" znów mówią, z czego są. Po najechaniu
+  stoi tam, czego gra nie podała, i — co ważniejsze — czy tę liczbę masz doliczyć do listy nad nią,
+  czy jest w niej już policzona. Przy wybranej drużynie dochodzi trzecie zdanie: z której strony ta
+  liczba jest.
+
+- **Nowość** — W te wiersze można teraz wejść. Pod „Nieznanym sprawcą" stoi lista tych, którym ubyło
+  albo przybyło życia, a pod „Nieznanym celem" — lista tych, którzy uderzyli. To ten koniec ciosu,
+  który gra podała: drugiego dodatek dalej nie zgaduje i nie poda żadnego imienia.
+
 ## [0.11.0] — 2026-08-31
 
 Dodatek jest napisany **od zera**, drugi raz po `0.6.0`. Z wersji `0.10.1` nie zostało nic poza

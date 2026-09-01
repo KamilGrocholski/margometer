@@ -168,6 +168,7 @@ Deno.test("every row of every ranking carries the mark that opens it", () => {
             drill: null,
             pair: null,
             part: null,
+            halfNamed: null,
             place: null,
             isCollapsed: false,
         });
@@ -176,10 +177,15 @@ Deno.test("every row of every ranking carries the mark that opens it", () => {
         const opening = drawn.filter((one) => one.attributes.get("data-row") !== undefined);
         assert(drawn.length > 0, `${screen}: the ranking drew rows`);
         assertEquals(opening.length, reading.rows.length, `${screen}: every combatant row opens`);
-        // And the mark and the cursor agree: a row marked `leaf` that carried `data-row` would
+        // A pinned row is marked by an end rather than by a combatant, and it is the only row on
+        // this screen that is: nobody stands behind it to be named by an id (**ADR 0038**).
+        const pinned = drawn.filter((one) => one.attributes.get("data-unnamed") !== undefined);
+        assertEquals(pinned.length, reading.pinned.length, `${screen}: every pinned row opens`);
+        // And the mark and the cursor agree: a row marked `leaf` that carried either mark would
         // open under a cursor saying it does not, which is the panel saying two things at once.
         for (const row of drawn) {
-            const opens = row.attributes.get("data-row") !== undefined;
+            const opens = row.attributes.get("data-row") !== undefined ||
+                row.attributes.get("data-unnamed") !== undefined;
             assertEquals(
                 row.className.includes("drillable"),
                 opens,

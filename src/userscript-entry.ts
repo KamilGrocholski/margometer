@@ -59,11 +59,14 @@ import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
 import {
     composeDrillReading,
+    composeHalfNamedReading,
     composePairReading,
     composePanelReading,
     composePartReading,
     type DrillReading,
     getOutcomeForSeat,
+    getPinnedCase,
+    type HalfNamedReading,
     type PairReading,
     type PanelOutcome,
     type PartReading,
@@ -376,6 +379,7 @@ function setFightChosen(screen: ScreenState, openedAt: number | null): void {
     screen.openFightId = openedAt;
     screen.isOnShelf = false;
     screen.openRowId = null;
+    screen.openUnnamedEnd = null;
     screen.openPairId = null;
     screen.openPart = null;
     assert(screen.openRowId === null, "and nothing of the last one stands over the new one");
@@ -411,13 +415,7 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         return true;
     }
     if (press.kind === "back") {
-        // One rung at a time, and the part before the pair: the two are both a press away from
-        // the opened row, so a way back that skipped the part left the reader on the ranking
-        // while the crumb beside it named the person they had opened.
-        if (screen.isOnShelf) screen.isOnShelf = false;
-        else if (screen.openPart !== null) screen.openPart = null;
-        else if (screen.openPairId !== null) screen.openPairId = null;
-        else screen.openRowId = null;
+        handlePressBack(screen);
         return true;
     }
     if (press.kind === "fight") {
@@ -426,6 +424,14 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
     }
     if (press.kind === "part") {
         screen.openPart = press.part;
+        return true;
+    }
+    if (press.kind === "unnamed") {
+        assert(
+            screen.openRowId === null,
+            "a pinned row is pressed from the ranking it stands under",
+        );
+        screen.openUnnamedEnd = press.end;
         return true;
     }
     if (press.kind === "row") {
@@ -438,19 +444,51 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         else screen.openPairId = opened;
         return true;
     }
-    if (press.kind === "side") {
-        const chosen = getSideFromName(press.side);
-        if (chosen === null) return false;
-        screen.side = chosen;
+    if (press.kind === "side") return handlePressSide(screen, press.side);
+    return handlePressScreen(screen, press.screen);
+}
+
+/**
+ * One rung at a time, and the part before the pair: the two are both a press away from the opened
+ * row, so a way back that skipped the part left the reader on the ranking while the crumb beside
+ * it named the person they had opened.
+ */
+function handlePressBack(screen: ScreenState): void {
+    assert(screen.current.length > 0, "a way back is taken from a panel that is on a screen");
+    if (screen.isOnShelf) {
         screen.isOnShelf = false;
-        // A side decides who is on the list, so a row opened before it was narrowed may not be
-        // on the list any more — and a cut standing over a list nobody is on says nothing.
-        screen.openRowId = null;
-        screen.openPairId = null;
-        screen.openPart = null;
-        return true;
+        return;
     }
-    const reached = getScreenFromName(press.screen);
+    if (screen.openPart !== null) {
+        screen.openPart = null;
+        return;
+    }
+    if (screen.openPairId !== null) {
+        screen.openPairId = null;
+        return;
+    }
+    // The two cannot both be open — a pinned row is drawn under the ranking, so a reader inside
+    // somebody's figure has none to press — and closing both says so once.
+    screen.openRowId = null;
+    screen.openUnnamedEnd = null;
+}
+
+function handlePressSide(screen: ScreenState, said: string): boolean {
+    const chosen = getSideFromName(said);
+    if (chosen === null) return false;
+    screen.side = chosen;
+    screen.isOnShelf = false;
+    // A side decides who is on the list, so a row opened before it was narrowed may not be on
+    // the list any more — and a cut standing over a list nobody is on says nothing.
+    screen.openRowId = null;
+    screen.openUnnamedEnd = null;
+    screen.openPairId = null;
+    screen.openPart = null;
+    return true;
+}
+
+function handlePressScreen(screen: ScreenState, said: string): boolean {
+    const reached = getScreenFromName(said);
     if (reached === null) return false;
     screen.current = reached;
     screen.isOnShelf = false;
@@ -461,6 +499,10 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
     // screen it landed on does not draw.
     screen.openPairId = null;
     screen.openPart = null;
+    // And so does a pinned row, for the sharper form of the same reason: the four screens pin
+    // five different figures, so `Nieznany sprawca` on one screen is not the row of that name on
+    // the next, and carrying the mark across would answer a question nobody asked.
+    screen.openUnnamedEnd = null;
     // The opened row stays. A reader who went into somebody is reading **that somebody**, and the
     // strips are how they ask the next question about them: the combatant exists on every screen,
     // which is what makes this different from narrowing to a side they may not be on.
@@ -558,7 +600,7 @@ function showFight(
         { messagesLost: fight.messagesLost, hasJoinedInProgress: fight.hasJoinedInProgress },
     );
     assert(reading.rows.length >= 0, "a reading states its rows, however few");
-    const { drill, pair, part } = composeOpenedReadings(figures, screen);
+    const { drill, pair, part, halfNamed } = composeOpenedReadings(figures, screen);
     panel.show({
         reading,
         current: screen.current,
@@ -586,6 +628,7 @@ function showFight(
         drill,
         pair,
         part,
+        halfNamed,
         place: getPlaceWords(kept === null ? place : kept.place),
         isCollapsed: screen.isCollapsed,
     });
@@ -596,6 +639,7 @@ interface OpenedReadings {
     drill: DrillReading | null;
     pair: PairReading | null;
     part: PartReading | null;
+    halfNamed: HalfNamedReading | null;
 }
 
 function composeOpenedReadings(figures: FightFigures, screen: ScreenState): OpenedReadings {
@@ -605,12 +649,13 @@ function composeOpenedReadings(figures: FightFigures, screen: ScreenState): Open
         screen.openPairId === null || screen.openRowId !== null,
         "a pair is opened from inside somebody, never on its own",
     );
+    const halfNamed = composeOpenedHalfNamed(figures, screen);
     const drill = screen.openRowId === null
         ? null
         : composeDrillReading(statistics, roster, screen.current, screen.openRowId);
     // A row nobody in the fight is on opens nothing, and nothing under it stands either: the
     // rungs below a row that could not be read are rungs of no figure.
-    if (drill === null) return { drill: null, pair: null, part: null };
+    if (drill === null) return { drill: null, pair: null, part: null, halfNamed };
     assert(drill.total >= 0, "an opened figure is not below nothing");
     const pair = screen.openPairId === null ? null : composePairReading(
         statistics,
@@ -626,7 +671,23 @@ function composeOpenedReadings(figures: FightFigures, screen: ScreenState): Open
         drill.combatantId,
         screen.openPart,
     );
-    return { drill, pair, part };
+    assert(halfNamed === null, "a pinned row and an opened row are never both standing open");
+    return { drill, pair, part, halfNamed };
+}
+
+/**
+ * What stands under a pinned row the reader opened. Null where the mark names no figure on this
+ * screen, which is the answer a mark left over from another one deserves.
+ */
+function composeOpenedHalfNamed(
+    figures: FightFigures,
+    screen: ScreenState,
+): HalfNamedReading | null {
+    const { roster, statistics, fight } = figures;
+    if (screen.openUnnamedEnd === null) return null;
+    const kase = getPinnedCase(screen.current, screen.openUnnamedEnd);
+    if (kase === null) return null;
+    return composeHalfNamedReading(statistics, roster, kase, screen.side, fight.readerSide);
 }
 
 /**
@@ -972,6 +1033,7 @@ function setLiveFightOpened(screen: ScreenState): void {
     assert(screen.current.length > 0, "a fight opens onto a screen the panel is on");
     if (screen.openFightId !== null) return;
     screen.openRowId = null;
+    screen.openUnnamedEnd = null;
     screen.openPairId = null;
     screen.openPart = null;
     assert(screen.openRowId === null, "a fight that opens is read from its ranking");

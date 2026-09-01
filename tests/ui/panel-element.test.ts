@@ -14,12 +14,14 @@ import { BUILD_VERSION } from "@/src/build-version.ts";
 import { composePanelHost, type PanelPress } from "@/src/ui/panel-element.ts";
 import {
     composeDrillReading,
+    composeHalfNamedReading,
     composePairReading,
     composePanelReading,
     composePartReading,
     NOTHING_MISSED,
     type PanelMetric,
     type PanelReading,
+    type PinnedRow,
 } from "@/src/ui/panel-reading.ts";
 import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
 import {
@@ -28,6 +30,7 @@ import {
     composeSideTabs,
     getScreenFromName,
     getWordsForScreen,
+    type PanelSideChoice,
     SCREEN_ORDER,
 } from "@/src/ui/panel-screen.ts";
 import {
@@ -40,8 +43,11 @@ import {
     getWordsForHealthSource,
     getWordsForNothing,
     getWordsForOutcome,
+    getWordsForPinnedScope,
+    getWordsForPinnedStanding,
     getWordsForStorage,
     getWordsForUnannounced,
+    getWordsForUnnamedEnd,
     PANEL_WORDS,
     WARNING_MARK,
 } from "@/src/ui/panel-words.ts";
@@ -99,6 +105,63 @@ function openFirstRow() {
     return { reading, drill, opened: first };
 }
 
+/** The fight the pinned tests are read from, on the screen each of them asks about. */
+function readPinnedFight(metric: PanelMetric, choice: PanelSideChoice = "everyone") {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const readerSide = [...roster.byId.values()][0]?.side ?? null;
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        metric,
+        choice,
+        readerSide,
+        NOTHING_MISSED,
+    );
+    return { reading, statistics, roster, readerSide };
+}
+
+/** A whole view around one reading, so a test says only what it is changing about the panel. */
+function composeShownView(reading: PanelReading, metric: PanelMetric = "damageDealtApplied") {
+    return {
+        reading,
+        current: metric,
+        side: "everyone" as PanelSideChoice,
+        hasReaderSide: false,
+        shelf: [],
+        isOnShelf: false,
+        storage: "local" as const,
+        shelfWarnings: [],
+        drill: null,
+        pair: null,
+        part: null,
+        halfNamed: null,
+        place: null,
+        isCollapsed: false,
+    };
+}
+
+/** A pinned row on one screen and one choice of side, with the card a pointer opens on it. */
+function readPinned(
+    metric: PanelMetric,
+    choice: PanelSideChoice,
+): { pinned: PinnedRow; card: ReturnType<typeof readTip> } {
+    const { reading } = readPinnedFight(metric, choice);
+    const pinned = reading.pinned[0];
+    assert(pinned !== undefined, `${metric} ${choice}: this fight pins a figure`);
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({ ...composeShownView(reading, metric), side: choice });
+    const host = panel.element as FakeElement;
+    const part = getElementsWithin(host).find(
+        (one) => one.attributes.get("data-tip") === `pinned:${pinned.end}`,
+    );
+    assert(part !== undefined, `${metric} ${choice}: the pinned row is drawn`);
+    pointAtElement(host, "pointermove", part, 300);
+    return { pinned, card: readTip(host) };
+}
+
 function draw(reading: PanelReading): FakeElement {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
@@ -114,6 +177,7 @@ function draw(reading: PanelReading): FakeElement {
         drill: null,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -184,6 +248,7 @@ Deno.test("the side strip is drawn where the client said which side is the reade
         drill: null,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -224,6 +289,7 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
         drill: null,
         pair: null,
         part: null,
+        halfNamed: null,
         place: "Mapa (1, 2)",
         isCollapsed: false,
     });
@@ -265,9 +331,11 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
 Deno.test("a fight draws a row for everybody in it, named", () => {
     const reading = readFight();
     const host = draw(reading);
-    // A pinned row is a row of the same shape, so the two are counted by the class that separates
-    // them rather than by the name each carries.
-    const rows = getElementsWithin(host).filter((one) => one.className === "row drillable");
+    // A pinned row is a row of the same shape and opens like one, so neither the class nor the
+    // cursor separates the two: what does is the mark, and a person's names them by id.
+    const rows = getElementsWithin(host).filter((one) =>
+        one.className === "row drillable" && one.attributes.get("data-row") !== undefined
+    );
     assertEquals(rows.length, reading.rows.length, "one row for each of them");
     for (const row of rows) {
         const name = row.children.find((one) => one.className === "row-name");
@@ -315,6 +383,144 @@ Deno.test("what nobody can be charged with is a row apart from the ranking", () 
         getElementsWithin(list).filter((one) => one.className === "pinned-region"),
         [],
         "which the pinned row stands outside, so it never scrolls away",
+    );
+});
+
+/**
+ * The two questions a pinned row raises, answered where a reader asks them. The second is the one
+ * that was a trap: `Otrzymane` states a figure the rows above it already hold, and nothing on
+ * screen said so. **ADR 0038.**
+ */
+Deno.test("a pinned row says what the game left out, and where its figure stands", () => {
+    const held = readPinned("damageDealtApplied", "everyone");
+    assertEquals(held.pinned.end, "actor", "this fight leaves the striker out");
+    assertEquals(
+        held.card.notes,
+        [
+            getWordsForUnnamedEnd("actor", "damage"),
+            getWordsForPinnedStanding(held.pinned.case),
+            CARD_WORDS.gesture,
+        ],
+        "under everybody it says two things, and that pressing leads somewhere",
+    );
+    assert(held.card.lines.includes(PANEL_WORDS.share), "over the share it takes of the screen");
+
+    const narrowed = readPinned("damageDealtApplied", "reader");
+    assertEquals(
+        narrowed.card.notes[2],
+        getWordsForPinnedScope(narrowed.pinned.case),
+        "and a chosen side adds what that side is to the figure",
+    );
+    assertEquals(narrowed.card.notes.length, 4, "which is the third sentence and the last");
+});
+
+/**
+ * The sentence a screen showing a cut owes, and the one it must not repeat: the figure there is
+ * already inside the rows above it, and the wording says so rather than saying it stands apart.
+ */
+Deno.test("a pinned row already counted in the list above it says so", () => {
+    const held = readPinned("damageTakenApplied", "everyone");
+    assertEquals(held.pinned.standing, "cut", "on this screen the rows hold the figure");
+    const said = getWordsForPinnedStanding(held.pinned.case);
+    assert(held.card.notes.includes(said), "and the card says it is counted there");
+    const apart = readPinned("damageDealtApplied", "everyone");
+    assert(
+        !held.card.notes.includes(getWordsForPinnedStanding(apart.pinned.case)),
+        "never the sentence for a figure standing apart",
+    );
+});
+
+/**
+ * A pinned row opens like any other, and is marked unlike any other: nobody stands behind it to
+ * be named by an id, so the mark names the end it leaves out.
+ */
+Deno.test("a pinned row is pressed by the end it leaves out, from any part of it", () => {
+    const reading = readFight();
+    const pressed: PanelPress[] = [];
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
+    panel.show({ ...composeShownView(reading), side: "everyone" as const });
+    const host = panel.element as FakeElement;
+    const block = getElementsWithin(host).find((one) => one.className === "pinned-region");
+    assert(block !== undefined, "the pinned row stands in a block of its own");
+    const row = block.children[0];
+    assert(row !== undefined, "and there is a row inside it");
+    assert(row.className.includes("drillable"), "which wears the cursor of a row that opens");
+    for (const part of [row, ...row.children]) {
+        assertEquals(part.attributes.get("data-unnamed"), "actor", "every cell carries the mark");
+    }
+    const name = row.children.find((one) => one.className === "row-name");
+    assert(name !== undefined, "the row names what it stands for");
+    pressElement(host, "pointerdown", name);
+    assertEquals(pressed, [{ kind: "unnamed", end: "actor" }], "and a press asks for that end");
+});
+
+/**
+ * What the level says, which is the end the game **did** name — and the heading turns on the row
+ * rather than on the screen, so a figure with no striker is headed by whom it reached.
+ */
+Deno.test("a pinned row opens onto the end the game did name, under its own heading", () => {
+    const { reading, statistics, roster } = readPinnedFight("damageDealtApplied");
+    const pinned = reading.pinned[0];
+    assert(pinned !== undefined, "this fight pins a figure");
+    const halfNamed = composeHalfNamedReading(statistics, roster, pinned.case, "everyone", null);
+    assert(halfNamed !== null, "which opens onto a level");
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({ ...composeShownView(reading), halfNamed });
+    const host = panel.element as FakeElement;
+    const sections = getElementsWithin(host)
+        .filter((one) => one.className === "section-heading")
+        .map((one) => one.children[0]?.textContent);
+    assertEquals(
+        sections,
+        [PANEL_WORDS.dealtTo],
+        "one section, and it names whom the health went from — the end the game stated",
+    );
+    const named = getTextsByClass(host, "row-name");
+    assertEquals(
+        named,
+        halfNamed.rows.map((one) => one.name ?? PANEL_WORDS.unknown),
+        "and lists them, in the order the reading ranked them",
+    );
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "row drillable"),
+        [],
+        "nothing on this level opens: a pair between somebody and nobody is not a pair",
+    );
+    const crumb = getTextsByClass(host, "crumb-here");
+    assertEquals(crumb, [PANEL_WORDS.withoutActor], "and the way back says which row is open");
+});
+
+/**
+ * The same sentence one level down, and only that one: the other two are about a ranking and a
+ * side, and a row inside somebody's own figure stands under neither.
+ */
+Deno.test("an end left out inside an opened figure says what was left out, and no more", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        ...composeShownView(reading),
+        drill: {
+            ...drill,
+            byOpponent: {
+                ...drill.byOpponent,
+                unnamed: { figure: 120, fill: 0.1, shareText: "<1%" },
+            },
+        },
+    });
+    const host = panel.element as FakeElement;
+    const part = getElementsWithin(host).find(
+        (one) => one.attributes.get("data-tip") === "to:nobody",
+    );
+    assert(part !== undefined, "the row for the end nobody was named at is drawn");
+    pointAtElement(host, "pointermove", part, 300);
+    const card = readTip(host);
+    assertEquals(
+        card.notes,
+        [getWordsForUnnamedEnd("target", "damage")],
+        "one sentence, and it is the one about what the game did not say",
     );
 });
 
@@ -449,6 +655,7 @@ Deno.test("a press on a tab reaches the panel, and a press on anything else does
         drill: null,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -482,6 +689,7 @@ Deno.test("a press on a side asks for that side, and on the shelf for the shelf"
         drill: null,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -515,6 +723,7 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         drill: null,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -533,6 +742,7 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         drill: null,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -591,6 +801,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         drill: null,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -637,6 +848,7 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
         drill,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -683,7 +895,9 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
 Deno.test("a ranking row's bar is its profession's, and colourless without one", () => {
     const reading = readFight();
     const host = draw(reading);
-    const rows = getElementsWithin(host).filter((one) => one.className === "row drillable");
+    const rows = getElementsWithin(host).filter((one) =>
+        one.className === "row drillable" && one.attributes.get("data-row") !== undefined
+    );
     assertEquals(rows.length, reading.rows.length, "a row for each combatant");
     for (const [at, drawn] of rows.entries()) {
         const row = reading.rows[at];
@@ -733,6 +947,7 @@ Deno.test("a kind's row carries a bar of its own, measured against its own cut",
         drill,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -784,6 +999,7 @@ Deno.test("a part of a figure no kind was stated for is drawn last, under the ki
         },
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -811,6 +1027,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         drill: null,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -833,6 +1050,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         drill,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -864,6 +1082,7 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
         drill: null,
         pair: null,
         part: null,
+        halfNamed: null,
         isCollapsed: false,
     };
     panel.show({ ...view, place: "Mapa (12, 34)" });
@@ -904,6 +1123,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
         drill: null,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     };
@@ -964,6 +1184,7 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
         drill: null,
         pair: null,
         part: null,
+        halfNamed: null,
         isCollapsed: false,
         place: "Mapa (12, 34)",
     });
@@ -1192,6 +1413,7 @@ Deno.test("a person inside an opened row opens the card the ranking opens", () =
         drill,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -1276,6 +1498,7 @@ Deno.test("a person under an opened skill opens a card promising no gesture", ()
         drill,
         pair: null,
         part: skill,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -1313,6 +1536,7 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
         drill,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -1363,6 +1587,7 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
         drill: null,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -1452,6 +1677,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
         drill: null,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -1539,6 +1765,7 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
             drill,
             pair: null,
             part: null,
+            halfNamed: null,
             place: null,
             isCollapsed: false,
         });
@@ -1579,6 +1806,7 @@ Deno.test("a row opened on a screen its own figure is nothing on says so, about 
         drill: { ...drill, total: 0, byOpponent: { rows: [], unnamed: null } },
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -1608,6 +1836,7 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
             drill: open,
             pair: null,
             part: null,
+            halfNamed: null,
             place: null,
             isCollapsed: false,
         });
@@ -1674,6 +1903,7 @@ Deno.test("a cut that repeats the figure above it is drawn all the same", () => 
             drill: open,
             pair: null,
             part: null,
+            halfNamed: null,
             place: null,
             isCollapsed: false,
         });
@@ -1735,6 +1965,7 @@ Deno.test("a lone row of a section names what the heading over it never does", (
             drill: open,
             pair: null,
             part: null,
+            halfNamed: null,
             place: null,
             isCollapsed: false,
         });
@@ -1780,6 +2011,7 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
         },
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -1831,6 +2063,7 @@ Deno.test("a skill that opens asks for itself by name, wherever the press lands 
         drill: { ...drill, total: 1000, bySkill: { rows, plain: null } },
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -1889,6 +2122,7 @@ Deno.test("every row in a list draws the same cells before its name", () => {
         shelfWarnings: [],
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     };
@@ -1946,6 +2180,7 @@ Deno.test("a healing section draws the key the game named, not a row saying it d
         drill,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -2006,6 +2241,7 @@ Deno.test("an opened healing pair draws its announcements and its keys as one se
         drill,
         pair,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -2078,6 +2314,7 @@ Deno.test("a row that opens says so, and a row that does not says nothing of the
         drill,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });
@@ -2147,6 +2384,7 @@ function composeNotesForOpenedRow(
         drill,
         pair: null,
         part: null,
+        halfNamed: null,
         place: null,
         isCollapsed: false,
     });

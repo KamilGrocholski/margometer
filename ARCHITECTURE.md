@@ -425,27 +425,29 @@ commit that opens or closes one.
    four of a combatant's figures with the screen's own in bold, the part of each the protocol named
    one end of, how they fought at either end and what qualifies the lot, and says so where the row
    under it states a cut of the figure — while hovering a row with nobody behind it opens the name
-   its own cell had to cut, the bar says which build drew it and the host carries the same number
-   for a screenshot to be read by, the panel folds to that bar and comes back folded, a press on `⭳`
-   hands the reader the fight in one file — the calls in the shape intake reads and the figures they
-   came to beside them, the panel carries the stylesheet `DESIGN.md` specifies and the strip that
-   always states the screen's own total, and `deno task build` writes the file they install,
-   `deno task preview` serves it over a recording and reloads it on a change under `src/`,
-   `deno task preview:site` writes the same page down for somebody with no clone,
-   `deno task screenshots` photographs it, and `deno task intake` redacts a recording and admits it
-   to `captures/`. The header says how the fight went, the strip under the list totals the two sides
-   and what belongs to neither, a doubt is said as a sentence under it and again on every card, a
-   row whose own figure a doubt reaches wears a mark with that row's own sentence on its card, and
-   the panel is moved by its bar and comes back where it was left. Which rows of all that open and
-   which are the last is `docs/drill-levels.md`'s to say, measured rather than claimed here. The
-   card that says what a combatant's figures are made of is written, and so are both of its runs, on
-   every screen and each under the heading naming its end: the criticals against the blows struck,
-   the hardest blow, what fired beside one and what it destroyed on the other side, and what a
-   defence stopped, cut by the defence (**ADR 0032**). Two proc keys reach no row — `-tenacity` and
-   `+superspell-dispel`, whose end article view,372 does not settle — and they are decoded and
-   charged to nobody until material does, though the player's own client names them and five others
-   on the card (**ADR 0024**). Both READMEs are written and show the set `deno task screenshots`
-   takes, so the release plumbing is whole and unrun — which is what the gap below it is about.
+   its own cell had to cut, and one the protocol left an end of says which end and where its figure
+   stands, and opens onto the end the game did name, the bar says which build drew it and the host
+   carries the same number for a screenshot to be read by, the panel folds to that bar and comes
+   back folded, a press on `⭳` hands the reader the fight in one file — the calls in the shape
+   intake reads and the figures they came to beside them, the panel carries the stylesheet
+   `DESIGN.md` specifies and the strip that always states the screen's own total, and
+   `deno task build` writes the file they install, `deno task preview` serves it over a recording
+   and reloads it on a change under `src/`, `deno task preview:site` writes the same page down for
+   somebody with no clone, `deno task screenshots` photographs it, and `deno task intake` redacts a
+   recording and admits it to `captures/`. The header says how the fight went, the strip under the
+   list totals the two sides and what belongs to neither, a doubt is said as a sentence under it and
+   again on every card, a row whose own figure a doubt reaches wears a mark with that row's own
+   sentence on its card, and the panel is moved by its bar and comes back where it was left. Which
+   rows of all that open and which are the last is `docs/drill-levels.md`'s to say, measured rather
+   than claimed here. The card that says what a combatant's figures are made of is written, and so
+   are both of its runs, on every screen and each under the heading naming its end: the criticals
+   against the blows struck, the hardest blow, what fired beside one and what it destroyed on the
+   other side, and what a defence stopped, cut by the defence (**ADR 0032**). Two proc keys reach no
+   row — `-tenacity` and `+superspell-dispel`, whose end article view,372 does not settle — and they
+   are decoded and charged to nobody until material does, though the player's own client names them
+   and five others on the card (**ADR 0024**). Both READMEs are written and show the set
+   `deno task screenshots` takes, so the release plumbing is whole and unrun — which is what the gap
+   below it is about.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
