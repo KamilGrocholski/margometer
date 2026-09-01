@@ -9,7 +9,7 @@
  * a loud unknown rather than by reading half a message as if it were understood.
  */
 
-import { assert, assertExists, assertStrictEquals, assertStringIncludes } from "@std/assert";
+import { assert } from "@std/assert";
 import { MargoMeterError } from "@/src/core/margometer-error.ts";
 import { composeIntegerText, getIntegerFromText, isIntegerText } from "@/libs/number-text.ts";
 import { composeHealthPercentText, getHealthPercentFromText } from "@/src/core/protocol-number.ts";
@@ -79,11 +79,7 @@ function parseMessageParameter(segment: string): MessageParameter {
     if (separator === -1) return { key: segment, value: null };
     const key = segment.slice(0, separator);
     const value = segment.slice(separator + 1);
-    assertStrictEquals(
-        key.length + value.length + 1,
-        segment.length,
-        "a segment splits into two parts",
-    );
+    assert(key.length + value.length + 1 === segment.length, "a segment splits into two parts");
     return { key, value };
 }
 
@@ -94,8 +90,8 @@ export function parseProtocolMessage(message: string): ProtocolMessage {
     }
     assert(segments.length <= MAXIMUM_SEGMENTS, "a message stays inside its stated bound");
     const [actorSegment, targetSegment] = segments;
-    assertExists(actorSegment, "a message split in two has a first segment");
-    assertExists(targetSegment, "a message split in two has a second segment");
+    assert(actorSegment !== undefined, "a message split in two has a first segment");
+    assert(targetSegment !== undefined, "a message split in two has a second segment");
     const parameters = segments.slice(SIDE_SEGMENTS).map(parseMessageParameter);
     assert(
         parameters.length === segments.length - SIDE_SEGMENTS,
@@ -114,7 +110,7 @@ function composeMessageSide(side: MessageSide | null): string {
     assert(idText.length > 0, "an id is written as at least one character");
     if (side.healthPercent === null) return idText;
     const percentText = composeHealthPercentText(side.healthPercent);
-    assertStringIncludes(percentText, ".", "a percentage is written with its places");
+    assert(percentText.includes("."), "a percentage is written with its places");
     return `${idText}${VALUE_SEPARATOR}${percentText}`;
 }
 

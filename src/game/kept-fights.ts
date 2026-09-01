@@ -9,7 +9,7 @@
  * than assuming a quota, and everything read back is validated.
  */
 
-import { assert, assertStrictEquals } from "@std/assert";
+import { assert } from "@std/assert";
 import type { BrowserStore } from "@/src/game/browser-store.ts";
 import type { FightPlace } from "@/src/game/engine-place.ts";
 import { MAXIMUM_CALLS } from "@/src/game/fight-capture.ts";
@@ -62,7 +62,7 @@ function getKeptPayloadsFromValue(value: unknown): unknown[] | null {
         if (!isRecord(stated)) return null;
         payloads.push(stated);
     }
-    assertStrictEquals(payloads.length, value.length, "a fight kept is a fight read back whole");
+    assert(payloads.length === value.length, "a fight kept is a fight read back whole");
     assert(payloads.length <= MAXIMUM_CALLS, "and stays inside the bound a recording states");
     return payloads;
 }
@@ -139,7 +139,7 @@ function composeShelfWithoutOldestUnpinned(fights: readonly KeptFight[]): KeptFi
         if (fight.isPinned) continue;
         const held = [...fights];
         held.splice(at, 1);
-        assertStrictEquals(held.length + 1, fights.length, "dropping the oldest drops exactly one");
+        assert(held.length + 1 === fights.length, "dropping the oldest drops exactly one");
         return held;
     }
     return null;
@@ -196,10 +196,6 @@ export function writeKeptFights(
         if (shorter === null) return { isOk: false, error: "refused" };
         held = shorter;
     }
-    assertStrictEquals(
-        held.length,
-        0,
-        "a shelf offered once per fight it holds has nothing left to drop",
-    );
+    assert(held.length === 0, "a shelf offered once per fight it holds has nothing left to drop");
     return { isOk: false, error: "refused" };
 }

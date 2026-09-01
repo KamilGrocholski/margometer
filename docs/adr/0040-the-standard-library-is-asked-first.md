@@ -69,6 +69,13 @@ For assertions the same question has a measured answer, and **A9** states it: wh
 function reports what `assert` cannot — the value, the diff, the narrowed type — that function is
 used; where it discards the message naming the invariant, `assert` is. The table above is the list.
 
+**Where a failure is read decides which assertion stands there.** In `tools/` and `tests/` it is
+read by whoever ran it, so the specific function earns its place. Inside the bundle it does not:
+**ADR 0002** turns a broken invariant into a missing section at **E5**'s boundary, the player reads
+none of the message, and the maintainer who wants the value can read it in a test over the same
+material. So `src/` and the `libs/` modules it reaches keep the plain `assert` — **A10** — and this
+is a rule about the reader rather than about the byte, though the byte is what made it visible.
+
 **`===` takes `assertStrictEquals` and `!==` takes `assertNotStrictEquals`, never the deep pair.**
 `assertEquals` compares deeply, and a copy is deeply equal to what it was copied from:
 `assert(copied !== value, "a snapshot holds a copy")` in `src/game/engine-warrior.ts` becomes an
@@ -85,12 +92,11 @@ matches `===` on every value a program here holds, and carries an `asserts` clau
   carries, and the browser floor is measured over `dist/margometer.user.js` rather than over the
   sources — **ADR 0001**, `docs/browser-support.md`. A package that stays in `tools/` or `tests/`
   touches neither, which is where all six of this round's adoptions sit.
-- **The bundle pays for it, and the figure is the price of the decision.** `dist/margometer.user.js`
-  measured 305,259 bytes at `a68a4e9` and 324,695 at the end of this round — 19,436 more, 6.4%. Part
-  is the longer names in a thousand assertion messages and part is the library modules the shipped
-  code now reaches: `exists`, `strict_equals`, `string_includes`, `array_includes` and what they
-  import. There is no size guard in this repository and this is not proposing one; the number is
-  here so the next round knows what it bought.
+- **The bundle is what drew the line, and the figure is why.** `dist/margometer.user.js` measured
+  305,259 bytes at `a68a4e9`. Converting everywhere took it to 324,695; converting only what runs in
+  a terminal leaves it at 306,518. **The conversion inside the bundle cost 18,177 bytes, 6%**,
+  against 1,259 for the assertions this round rewrote to say something. There is no size guard here
+  and this does not propose one — the number is the evidence for **A10**, not a budget.
 - **`assertExists` removes work **C12** used to force.** It narrows to `NonNullable<T>`, so a
   reading proved present no longer needs `?.` behind it, and `src/` and `tools/` keep their ban on
   `!` without paying for it.

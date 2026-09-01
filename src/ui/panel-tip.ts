@@ -6,7 +6,7 @@
  * and the sheet multiplies.
  */
 
-import { assert, assertStrictEquals } from "@std/assert";
+import { assert } from "@std/assert";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { CLASS } from "@/src/ui/panel-look.ts";
 
@@ -98,7 +98,7 @@ export function composeTipRegister(): TipRegister {
         },
         reset(): void {
             held.clear();
-            assertStrictEquals(held.size, 0, "a redraw starts with nothing said about any row");
+            assert(held.size === 0, "a redraw starts with nothing said about any row");
         },
     };
 }
@@ -195,7 +195,7 @@ function composeTipGroupElement(document: PanelDocument, group: TipGroup): Panel
     const element = document.createElement("div");
     element.className = CLASS.tipGroup;
     for (const line of group.lines) element.append(composeTipLineElement(document, line));
-    assertStrictEquals(element.className, CLASS.tipGroup, "and stands under a rule of its own");
+    assert(element.className === CLASS.tipGroup, "and stands under a rule of its own");
     return element;
 }
 
@@ -228,11 +228,7 @@ export function composeTipElement(
 export function setTipHidden(tip: PanelElement, isHidden: boolean): void {
     assert(tip.className.length > 0, "the detail wears a class before it is hidden or shown");
     tip.className = isHidden ? `${CLASS.tip} ${CLASS.tipHidden}` : CLASS.tip;
-    assertStrictEquals(
-        tip.className.includes(CLASS.tipHidden),
-        isHidden,
-        "and wears what it was told to",
-    );
+    assert(tip.className.includes(CLASS.tipHidden) === isHidden, "and wears what it was told to");
 }
 
 /**
@@ -297,7 +293,7 @@ export function composeTipHandle(
         if (openKey === null) return;
         openKey = null;
         setTipHidden(standing, true);
-        assertStrictEquals(openKey, null, "and the detail is open for nobody once it is hidden");
+        assert(openKey === null, "and the detail is open for nobody once it is hidden");
     };
     return {
         element: standing,

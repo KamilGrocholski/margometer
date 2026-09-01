@@ -7,7 +7,7 @@
  * userscript's contact with its browser stated in one file and testable without one.
  */
 
-import { assert, assertExists, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
+import { assert } from "@std/assert";
 import {
     type Combatant,
     type CombatantRoster,
@@ -388,11 +388,7 @@ function setFightChosen(screen: ScreenState, openedAt: number | null): void {
     screen.openUnnamedEnd = null;
     screen.openPairId = null;
     screen.openPart = null;
-    assertStrictEquals(
-        screen.openRowId,
-        null,
-        "and nothing of the last one stands over the new one",
-    );
+    assert(screen.openRowId === null, "and nothing of the last one stands over the new one");
 }
 
 function setShelfFromPress(shelf: ShelfKeeper, press: PanelPress): boolean {
@@ -532,7 +528,7 @@ function composeKeptFigures(kept: KeptFight): FightFigures {
     const session = composeBattleSession();
     for (const payload of kept.payloads) addPayloadToSession(session, payload);
     const figures = composeFightFigures(session);
-    assertExists(figures, "and every payload kept was one the session reads");
+    assert(figures !== null, "and every payload kept was one the session reads");
     return figures;
 }
 
@@ -697,12 +693,8 @@ function composeOpenedReadings(figures: FightFigures, screen: ScreenState): Open
         drill.combatantId,
         screen.openPart,
     );
-    assertStrictEquals(
-        halfNamed,
-        null,
-        "a pinned row and an opened row are never both standing open",
-    );
-    assertStrictEquals(halfNamedDrill, null, "nor is the level under one");
+    assert(halfNamed === null, "a pinned row and an opened row are never both standing open");
+    assert(halfNamedDrill === null, "nor is the level under one");
     return { drill, pair, part, halfNamed, halfNamedDrill };
 }
 
@@ -734,8 +726,8 @@ function composeOpenedHalfNamedDrill(
 
 /** A person or a key, and never both: the way back closes the key first, so one of them is null. */
 function getHalfNamedOpened(screen: ScreenState): HalfNamedOpened | null {
-    assertExists(screen.openUnnamedEnd, "a row of a pinned level is opened under a pinned row");
-    assertStrictEquals(screen.openRowId, null, "and never inside somebody's own figure");
+    assert(screen.openUnnamedEnd !== null, "a row of a pinned level is opened under a pinned row");
+    assert(screen.openRowId === null, "and never inside somebody's own figure");
     if (screen.openPart !== null) {
         if (screen.openPart.kind !== "element") return null;
         return { kind: "element", element: screen.openPart.element };
@@ -947,7 +939,7 @@ export function startFromWindow(page: UserscriptWindow): GameAttachment {
         },
         mount: {
             show: (panel) => {
-                assertNotStrictEquals(panel, shown, "a panel never replaces itself");
+                assert(panel !== shown, "a panel never replaces itself");
                 shown?.replaceWith(panel);
                 if (shown === null) page.document.body.append(panel);
                 shown = panel;
@@ -985,7 +977,7 @@ function keepFight(
     if (!fight.isOver) return;
     assert(live.openedAt >= 0, "a fight is kept under the moment it opened");
     assert(live.capture.calls.length > 0, "and from the calls a recording of it would carry");
-    assertNotStrictEquals(gameBuild, "", "a build the page did not say is absent, never empty");
+    assert(gameBuild !== "", "a build the page did not say is absent, never empty");
     shelf.keep({
         openedAt: live.openedAt,
         payloads: live.capture.calls.map((call) => call.payload),
@@ -1107,8 +1099,8 @@ function setLiveFightOpened(screen: ScreenState): void {
     screen.openUnnamedEnd = null;
     screen.openPairId = null;
     screen.openPart = null;
-    assertStrictEquals(screen.openRowId, null, "a fight that opens is read from its ranking");
-    assertStrictEquals(screen.openPairId, null, "with no pair standing over it");
+    assert(screen.openRowId === null, "a fight that opens is read from its ranking");
+    assert(screen.openPairId === null, "with no pair standing over it");
 }
 
 /**
@@ -1166,7 +1158,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     assert(FOLD_KEY.startsWith("MargoMeter-"), "the fold included");
     const placement = composePanelPlacement(environment, store);
     const live = composeLiveFight();
-    assertStrictEquals(getFightFromSession(session), null, "a session starts holding no fight");
+    assert(getFightFromSession(session) === null, "a session starts holding no fight");
     // The panel goes up when the wrap goes on, and not before: a copy that stood down never gets
     // one, and a page with no game on it is left as it was found.
     let isMounted = false;

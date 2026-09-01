@@ -6,7 +6,7 @@
  * on an unknown event, keys and ends included, so a panel can say which total may be short.
  */
 
-import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
+import { assert } from "@std/assert";
 import type {
     AnnouncedSkill,
     AttackEvent,
@@ -342,7 +342,7 @@ function readSkillName(key: string, value: string, parsed: ProtocolMessage): str
     if (key === SKILL_NAME_KEY) return value;
     if (key !== CUSTOM_SKILL_NAME_KEY) return null;
     if (!namesOneCombatant(parsed)) return null;
-    assertStrictEquals(key, CUSTOM_SKILL_NAME_KEY, "only the custom key reaches the rule above");
+    assert(key === CUSTOM_SKILL_NAME_KEY, "only the custom key reaches the rule above");
     return value;
 }
 
@@ -422,7 +422,7 @@ function addValuelessKey(reading: AttackReading, key: string): void {
         reading.declared.push({ effect: key, amount: null, text: null });
         return;
     }
-    assertStrictEquals(getProcEnd(key), null, "a proc never reaches the unread branch");
+    assert(getProcEnd(key) === null, "a proc never reaches the unread branch");
     reading.unreadKeys.push(key);
 }
 
@@ -439,7 +439,7 @@ function addSkillKey(
         reading.skillKeys += 1;
         return true;
     }
-    assertNotStrictEquals(key, SKILL_NAME_KEY, "a name is read once, above");
+    assert(key !== SKILL_NAME_KEY, "a name is read once, above");
     if (key !== SKILL_ID_KEY) return false;
     reading.skillId = getIntegerFromText(value);
     reading.skillKeys += 1;
@@ -448,7 +448,7 @@ function addSkillKey(
 
 /** An id with no name is a skill nothing can put on screen, and the protocol has never sent one. */
 function closeSkillReading(reading: AttackReading): void {
-    assertStrictEquals(reading.skill, null, "a reading's announcement is closed once");
+    assert(reading.skill === null, "a reading's announcement is closed once");
     assert(reading.skillKeys >= 0, "a key is counted once");
     if (reading.skillName !== null) {
         reading.skill = { skillName: reading.skillName, skillId: reading.skillId };
@@ -555,7 +555,7 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
         reading.namedDamage.length + reading.namedHealing.length + reading.unaccounted.length +
         reading.outcomes.length + reading.declared.length + reading.skillKeys +
         reading.unreadKeys.length;
-    assertStrictEquals(read, parameters.length, "a parameter is read or named unread, once");
+    assert(read === parameters.length, "every parameter is read or named unread, and none twice");
     assert(reading.raw.length <= parameters.length, "a reading holds no more than it was handed");
     return reading;
 }
@@ -575,11 +575,7 @@ function getNamedCombatantIds(parsed: ProtocolMessage): number[] {
         if (!found.includes(parsed.target.combatantId)) found.push(parsed.target.combatantId);
     }
     assert(found.length <= MESSAGE_ENDS, "a message names at most two ends");
-    assertStrictEquals(
-        new Set(found).size,
-        found.length,
-        "an end that is named twice is named once here",
-    );
+    assert(new Set(found).size === found.length, "an end that is named twice is named once here");
     return found;
 }
 
@@ -676,7 +672,7 @@ function getAnnouncedForMessage(
     if (parsed.actor === null) return null;
     if (parsed.actor.combatantId !== standing.actorId) return null;
     assert(standing.skillName.length > 0, "a standing announcement names something");
-    assertStrictEquals(parsed.actor.combatantId, standing.actorId, "one actor holds both halves");
+    assert(parsed.actor.combatantId === standing.actorId, "one actor holds both halves");
     return standing;
 }
 

@@ -96,12 +96,18 @@ this language does not have would be**; each states what binds instead.
 - **A8.** An assertion is not an error class, and `AssertionError` is in neither branded hierarchy.
   `assert` is for what must never happen; a failure you know can occur is data or a branded error.
   Assertions carry no `code`, because nobody can act on a broken invariant.
-- **A9. The assertion that reports more is the one used.** Where a `@std/assert` function says what
-  `assert` cannot — the value, the diff, the narrowed type — it is what stands there; where it
-  discards the message naming the invariant, `assert` is. Which does which is measured, and **ADR
-  0040** carries the table. `===` takes the **strict** pair and never the deep one: deep equality
-  turns an identity check into an assertion that fires on every copy, or worse, into one that passes
-  where it should fail.
+- **A9. Where a failure is read, the assertion that reports more is the one used.** In `tools/` and
+  `tests/` a failure is read by whoever ran it, so a `@std/assert` function that says what `assert`
+  cannot — the value, the diff, the narrowed type — is what stands there; where it discards the
+  message naming the invariant, `assert` is. Which does which is measured, and **ADR 0040** carries
+  the table. `===` takes the **strict** pair and never the deep one: deep equality turns an identity
+  check into an assertion that fires on every copy, or worse, into one that passes where it should
+  fail.
+- **A10. What the bundle carries takes the plain `assert`** — `src/`, and the `libs/` modules it
+  reaches. A broken invariant there becomes a missing section at **E5**'s boundary and the person in
+  front of it reads none of the message, so the value in it is bought for nobody while the bundle
+  carries a module per name. Where a figure needs the value to be read, it is read where a value can
+  be read: in a test. **ADR 0040.**
 
 ## Errors
 
@@ -404,7 +410,7 @@ the same thing a second way.
 | `deno test`                                   | every guard below                                |
 | `tests/repository/documents.test.ts`          | the rule documents and this register             |
 | `tests/repository/decisions.test.ts`          | the decision records                             |
-| `tests/repository/sources.test.ts`            | S1, S2, C5, C8, C15 in part, C16, S4, S5         |
+| `tests/repository/sources.test.ts`            | S1, S2, A10, C5, C8, C15 in part, C16, S4, S5    |
 | `tests/repository/errors.test.ts`             | E1, E2, E11, each with a sample                  |
 | `tests/repository/names.test.ts`              | N1, N11, each with a sample                      |
 | `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts   |

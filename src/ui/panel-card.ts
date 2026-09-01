@@ -4,7 +4,7 @@
  */
 
 import { getRankedOrder } from "@/src/ui/ranked-order.ts";
-import { assert, assertArrayIncludes } from "@std/assert";
+import { assert } from "@std/assert";
 import {
     composeRowWarnings,
     type CutPart,
@@ -107,7 +107,7 @@ function composeCardSubLine(label: string, figure: number): TipLine[] {
 }
 
 function composeCardFigureLines(detail: RowDetail, metric: PanelMetric): TipLine[] {
-    assertArrayIncludes(SCREEN_ORDER, [metric], "the figure drawn in bold is one of the four");
+    assert(SCREEN_ORDER.includes(metric), "the figure drawn in bold is one of the four");
     const lines: TipLine[] = [];
     for (const one of composeCardFigures(detail)) {
         lines.push({
@@ -349,7 +349,7 @@ function composeCardNoteLines(subject: CardSubject): TipLine[] {
 
 export function composeCardReading(subject: CardSubject): TipReading {
     assert(subject.name.length > 0, "a card names somebody, or says it cannot");
-    assertArrayIncludes(SCREEN_ORDER, [subject.metric], "and stands on a screen the panel draws");
+    assert(SCREEN_ORDER.includes(subject.metric), "and stands on a screen the panel draws");
     const groups: TipGroup[] = [
         { lines: composeCardFigureLines(subject.detail, subject.metric) },
     ];

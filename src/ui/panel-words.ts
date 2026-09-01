@@ -6,7 +6,7 @@
  * letter, a token. Wording a mechanic nobody named would be a claim about the game. **ADR 0011.**
  */
 
-import { assert, assertExists } from "@std/assert";
+import { assert } from "@std/assert";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import type {
     PanelMetric,
@@ -828,7 +828,7 @@ function composeSharesInPoints(amounts: readonly number[], whole: number): Share
 
 function getShareGroupHead(group: readonly ShareInPoints[]): ShareInPoints {
     const first = group[0];
-    assertExists(first, "a group that was formed has a member");
+    assert(first !== undefined, "a group that was formed has a member");
     assert(first.remainder > 0, "and a fraction somebody could be paid for");
     return first;
 }

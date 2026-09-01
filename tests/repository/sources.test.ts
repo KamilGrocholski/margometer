@@ -416,14 +416,43 @@ Deno.test("the counter sees every assertion the library ships, and no group of o
     );
 });
 
+/** The roots the bundle carries. `project/` runs beside the tools that read it and is not one. */
+const BUNDLED_ROOTS = ["libs/", "src/"];
+/** Every name in the list but the plain one, which is the only one A10 admits where it ships. */
+const REPORTING_ASSERTIONS = ASSERTION_CALLS.filter((name) => name !== "assert");
+
+/** `countCallsOutsideStrings` reads one line: a quote it never closes swallows the file. */
+function getNamesSpelled(path: string, names: readonly string[]): Set<string> {
+    const found = new Set<string>();
+    for (const line of Deno.readTextFileSync(path).split("\n")) {
+        for (const name of names) {
+            if (countCallsOutsideStrings(line, [name]) > 0) found.add(name);
+        }
+    }
+    return found;
+}
+
+Deno.test("what the bundle carries asserts with the plain one and no other", () => {
+    assert(REPORTING_ASSERTIONS.length > 0, "there are names to look for");
+    const spelled: string[] = [];
+    for (const path of getSourcePaths()) {
+        if (!BUNDLED_ROOTS.some((root) => path.startsWith(root))) continue;
+        for (const name of getNamesSpelled(path, REPORTING_ASSERTIONS)) {
+            spelled.push(`${path}: ${name}`);
+        }
+    }
+    assertEquals(spelled.sort(), [], "A10: a reporting assertion in what a reader installs");
+    // Proved the other way as well: a reader that has stopped finding its subject would call an
+    // empty list a clean tree, and this one has to find the names where they are written.
+    const guards = getNamesSpelled("tests/repository/sources.test.ts", REPORTING_ASSERTIONS);
+    assert(guards.has("assertEquals"), "and it still finds one where one stands");
+});
+
 /** C9 over the list itself: a name nothing spells is a name that could only inflate S5. */
 Deno.test("every assertion the counter knows is one this tree writes", () => {
     const spelled = new Set<string>();
     for (const path of getSourcePaths()) {
-        const text = Deno.readTextFileSync(path);
-        for (const name of ASSERTION_CALLS) {
-            if (countCallsOutsideStrings(text, [name]) > 0) spelled.add(name);
-        }
+        for (const name of getNamesSpelled(path, ASSERTION_CALLS)) spelled.add(name);
     }
     assert(spelled.size > 0, "there are assertions to find");
     const unspelled = ASSERTION_CALLS.filter((name) => !spelled.has(name));

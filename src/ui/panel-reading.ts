@@ -9,12 +9,7 @@
  */
 
 import { getRankedOrder } from "@/src/ui/ranked-order.ts";
-import {
-    assert,
-    assertArrayIncludes,
-    assertNotStrictEquals,
-    assertStrictEquals,
-} from "@std/assert";
+import { assert } from "@std/assert";
 import { type CombatantRoster, getCombatantIdByName } from "@/src/core/combatant-roster.ts";
 import {
     type CombatantFigures,
@@ -261,11 +256,7 @@ export function getMetricForPinned(kase: PinnedCase): PanelMetric {
  * and opening the screen's other end instead would be a level about something else.
  */
 export function getPinnedCase(metric: PanelMetric, end: PanelUnnamedEnd): PinnedCase | null {
-    assertArrayIncludes(
-        SCREEN_ORDER,
-        [metric],
-        "an end is asked about on a screen the strips draw",
-    );
+    assert(SCREEN_ORDER.includes(metric), "an end is asked about on a screen the strips draw");
     assert(end.length > 0, "and about an end asked for by name");
     const found = PINNED_CASES.filter((kase) => {
         const shape = PINNED_SHAPES[kase];
@@ -278,13 +269,9 @@ export function getPinnedCase(metric: PanelMetric, end: PanelUnnamedEnd): Pinned
 
 /** What one screen can pin, in the order it draws them. One screen pins two; the rest pin one. */
 function getPinnedCasesForScreen(metric: PanelMetric): PinnedCase[] {
-    assertArrayIncludes(SCREEN_ORDER, [metric], "a screen pins on a screen the strips draw");
+    assert(SCREEN_ORDER.includes(metric), "a screen pins on a screen the strips draw");
     const named = Object.keys(PINNED_SHAPES).length;
-    assertStrictEquals(
-        PINNED_CASES.length,
-        named,
-        "and every case the table holds is one the list names",
-    );
+    assert(PINNED_CASES.length === named, "and every case the table holds is one the list names");
     return PINNED_CASES.filter((kase) => PINNED_SHAPES[kase].metric === metric);
 }
 
@@ -418,11 +405,7 @@ function composeWarnings(
     assert(statistics.castsUnplaced >= 0, "and neither is a count of casts nobody could place");
     assert(doubts.messagesLost >= 0, "and neither is a count of messages that never arrived");
     const said: string[] = [];
-    assertArrayIncludes(
-        SCREEN_ORDER,
-        [metric],
-        "a screen is qualified by what could shorten its own",
-    );
+    assert(SCREEN_ORDER.includes(metric), "a screen is qualified by what could shorten its own");
     if (doubts.hasJoinedInProgress) said.push(composeJoinedInProgressWarning());
     if (doubts.messagesLost > 0) said.push(composeLostMessageWarning(doubts.messagesLost));
     if (statistics.unreadMessages > 0) said.push(composeUnreadWarning(statistics.unreadMessages));
@@ -460,7 +443,7 @@ export function composeRowWarnings(detail: RowDetail, metric: PanelMetric): stri
  * stops on one.
  */
 export function getRowHasDoubt(detail: RowDetail, metric: PanelMetric): boolean {
-    assertArrayIncludes(SCREEN_ORDER, [metric], "a row is qualified on a screen the strips draw");
+    assert(SCREEN_ORDER.includes(metric), "a row is qualified on a screen the strips draw");
     if (detail.unreadMessages > 0) return true;
     if (getNounForScreen(metric) !== "healing") return false;
     return detail.castsUnplaced > 0;
@@ -630,11 +613,7 @@ function getListedTotal(
     metric: PanelMetric,
     choice: PanelSideChoice,
 ): number {
-    assertArrayIncludes(
-        SIDE_CHOICES,
-        [choice],
-        "a list is totalled for a choice a reader could make",
-    );
+    assert(SIDE_CHOICES.includes(choice), "a list is totalled for a choice a reader could make");
     if (choice === "everyone") return getFigure(statistics.totals, metric);
     let total = 0;
     assert(rows.length <= MAXIMUM_ROWS, "a list stays inside the fight's stated bound");
@@ -649,7 +628,7 @@ function getListedTotal(
  * answer the same, or a figure would be charged to a side no row was filtered by.
  */
 function getPartListed(choice: PanelSideChoice, readerSide: number | null): PanelSidePart | null {
-    assertArrayIncludes(SIDE_CHOICES, [choice], "a list is shown for a choice a reader could make");
+    assert(SIDE_CHOICES.includes(choice), "a list is shown for a choice a reader could make");
     assert(readerSide === null || Number.isFinite(readerSide), "from a seat, or from none at all");
     if (choice === "everyone") return null;
     if (readerSide === null) return null;
@@ -685,11 +664,7 @@ function composeHalfNamedParts(
     readerSide: number | null,
 ): HalfNamedPart[] {
     assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its stated bound");
-    assertNotStrictEquals(
-        part,
-        "nobody",
-        "a figure is charged to a side, never to the refusal beside them",
-    );
+    assert(part !== "nobody", "a figure is charged to a side, never to the refusal beside them");
     const shape = PINNED_SHAPES[kase];
     const listed = new Set(rows.map((one) => one.combatantId));
     const found: HalfNamedPart[] = [];
@@ -747,11 +722,7 @@ function getNeitherEndForPinned(
     part: PanelSidePart | null,
 ): number {
     assert(statistics.byNeitherEnd >= 0, "what names neither end is never below nothing");
-    assertNotStrictEquals(
-        part,
-        "nobody",
-        "and a list is narrowed to a side, never to the refusal beside them",
-    );
+    assert(part !== "nobody", "and a list is narrowed to a side, never to the refusal beside them");
     const shape = PINNED_SHAPES[kase];
     if (part !== null) return 0;
     if (shape.standing === "cut") return 0;
@@ -794,11 +765,7 @@ function composePinnedFigures(
     choice: PanelSideChoice,
     readerSide: number | null,
 ): Array<Omit<PinnedRow, "fill" | "shareText">> {
-    assertArrayIncludes(
-        SIDE_CHOICES,
-        [choice],
-        "a figure is pinned for a choice a reader could make",
-    );
+    assert(SIDE_CHOICES.includes(choice), "a figure is pinned for a choice a reader could make");
     assert(statistics.dealtByNobody >= 0, "and one that is never below nothing");
     const part = getPartListed(choice, readerSide);
     const found = getPinnedCasesForScreen(metric).map((kase) => {
@@ -838,7 +805,7 @@ function composeHalfNamedListing(
     choice: PanelSideChoice,
     readerSide: number | null,
 ): HalfNamedListing {
-    assertArrayIncludes(SIDE_CHOICES, [choice], "a level opens for a choice a reader could make");
+    assert(SIDE_CHOICES.includes(choice), "a level opens for a choice a reader could make");
     const metric = getMetricForPinned(kase);
     const listed = composeUnsharedRows(statistics, roster, metric).filter((row) =>
         getIsRowListed(row.side, choice, readerSide)
@@ -1233,7 +1200,7 @@ function assertWholeIsTheSide(
     if (part === null) return;
     if (sides === null) return;
     const stated = part === "ours" ? sides.ours : sides.theirs;
-    assertStrictEquals(whole, stated, "a one-side list divides by that side's own figure");
+    assert(whole === stated, "a one-side list divides by that side's own figure");
 }
 
 /** Null without a seat: two sides nothing can tell apart are not two figures. */
@@ -1264,7 +1231,7 @@ function getPartOfSide(side: number | null, readerSide: number | null): PanelSid
  */
 function getPartCharged(part: PanelSidePart, metric: PanelMetric): PanelSidePart {
     assert(metric.length > 0, "a figure is charged on a screen asked for by name");
-    assertArrayIncludes(SCREEN_ORDER, [metric], "and one the strips draw");
+    assert(SCREEN_ORDER.includes(metric), "and one the strips draw");
     if (part === "nobody") return part;
     if (metric === "healthGiven") return part;
     if (metric === "healthRestored") return part;
@@ -1282,7 +1249,7 @@ function getHalfNamed(figures: CombatantFigures, metric: PanelMetric): number {
 /** What names neither end, which belongs to no side at all and is only ever damage. */
 function getWithNeitherEnd(statistics: FightStatistics, metric: PanelMetric): number {
     assert(statistics.byNeitherEnd >= 0, "what names neither end is never below nothing");
-    assertArrayIncludes(SCREEN_ORDER, [metric], "and is asked about on a screen the strips draw");
+    assert(SCREEN_ORDER.includes(metric), "and is asked about on a screen the strips draw");
     if (metric === "damageDealtApplied") return statistics.byNeitherEnd;
     if (metric === "damageTakenApplied") return statistics.byNeitherEnd;
     return 0;
@@ -1697,7 +1664,7 @@ function composeSkillRowsStated(
     metric: PanelMetric,
     combatantId: number,
 ): UnsharedPart[] {
-    assertArrayIncludes(SCREEN_ORDER, [metric], "a cut is composed for a screen the strips draw");
+    assert(SCREEN_ORDER.includes(metric), "a cut is composed for a screen the strips draw");
     if (metric === "healthRestored") {
         return [
             ...composeSkillRowsReceived(statistics, combatantId, (one) => one.restoredByOpponent),
@@ -1783,11 +1750,7 @@ function composeSkillCut(
     // condition sends a movement to a skill's row or to the key cut, never to both and never to
     // neither. A remainder here is that condition having come apart, not a figure to close against.
     if (getNounForScreen(metric) === "healing") {
-        assertStrictEquals(
-            plain,
-            0,
-            "health that moved is on a skill's row or under the key that moved it",
-        );
+        assert(plain === 0, "health that moved is on a skill's row or under the key that moved it");
     }
     const isCounted = metric === "damageDealtApplied";
     const hasPlain = plain > 0 || (isCounted && figures.blowsWithoutSkill > 0);
@@ -1854,7 +1817,7 @@ function composePartCut(
     combatantId: number,
     part: NamedPart,
 ): FigureCut | null {
-    assertArrayIncludes(SCREEN_ORDER, [metric], "a part is opened on a screen the strips draw");
+    assert(SCREEN_ORDER.includes(metric), "a part is opened on a screen the strips draw");
     if (part.kind === "skill") {
         return composePartCutForSkill(statistics, figures, metric, combatantId, part.name);
     }
@@ -2076,7 +2039,7 @@ function getPairGivingEnd(
     combatantId: number,
     otherId: number,
 ): { figures: CombatantFigures | undefined; subject: string } {
-    assertArrayIncludes(SCREEN_ORDER, [metric], "a pair is read for a screen the strips draw");
+    assert(SCREEN_ORDER.includes(metric), "a pair is read for a screen the strips draw");
     if (getDirectionForScreen(metric) === "received") {
         return { figures: statistics.byCombatantId.get(otherId), subject: `${combatantId}` };
     }
