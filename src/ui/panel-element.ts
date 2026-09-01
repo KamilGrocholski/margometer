@@ -82,6 +82,7 @@ import {
     composeTipHandle,
     composeTipRegister,
     type TipCompose,
+    type TipGroup,
     type TipHandle,
     type TipLine,
     type TipReading,
@@ -198,6 +199,14 @@ const ROWS_WAITING = 11;
 const MAXIMUM_KINDS = 64;
 /** And the bound on a combatant's own skills, measured in `src/ui/panel-reading.ts`. */
 const MAXIMUM_SKILLS = 256;
+/**
+ * How many kinds a pinned row's card states before what is left of them is summed into one line.
+ * Measured over `captures/` with `deno task drill` on 2026-09-01: the widest pinned row states
+ * four kinds, and 27 of the 28 state three or fewer. Six is headroom rather than a bound anything
+ * meets — and a reachable one, because `takenWithNoTarget` folds the ten keys a blow carries in
+ * with the seven a bare movement does.
+ */
+const MAXIMUM_TIP_CUT_PARTS = 6;
 const TIP_WIDTH = 250;
 /** A bar is written to one place: a tenth of a 260-pixel row is a quarter of a pixel. */
 const FILL_PLACES = 1;
@@ -228,7 +237,18 @@ interface RowTip {
      * where the figure stands against the list. `src/ui/panel-words.ts` writes them.
      */
     notes?: readonly string[] | undefined;
+    /**
+     * What that figure was made of, where the row stands over a cut somebody kept for it. Drawn
+     * as a run of its own under a heading, the way a card draws one. **ADR 0041.**
+     */
+    cut?: RowTipCut | undefined;
     compose?: TipCompose | undefined;
+}
+
+/** A run of parts a row's card states, already worded and already stated. */
+interface RowTipCut {
+    heading: string;
+    parts: ReadonlyArray<{ label: string; stated: string }>;
 }
 
 /**
@@ -325,21 +345,45 @@ function composePersonCard(
 function composeRowTipReading(reading: RowReading, tip: RowTip, opens: boolean): TipReading {
     assert(reading.name.length > 0, "a row that says nothing else at least names itself");
     assert(tip.figure.length > 0, "and says what the figure beside the name is a figure of");
-    const lines: TipLine[] = [{
+    const stated: TipLine[] = [{
         kind: "stat",
         label: tip.figure,
         stated: composeFigureText(reading.figure),
         isStrong: false,
     }];
     if (tip.share !== null) {
-        lines.push({ kind: "stat", label: tip.share, stated: reading.shareText, isStrong: false });
+        stated.push({ kind: "stat", label: tip.share, stated: reading.shareText, isStrong: false });
     }
+    const said: TipLine[] = [];
     for (const note of tip.notes ?? []) {
         assert(note.length > 0, "a sentence a row carries says something");
-        lines.push({ kind: "note", text: note, isWarning: false });
+        said.push({ kind: "note", text: note, isWarning: false });
     }
-    if (opens) lines.push({ kind: "note", text: CARD_WORDS.gesture, isWarning: false });
-    return { name: reading.name, subtitle: null, groups: [{ lines }] };
+    if (opens) said.push({ kind: "note", text: CARD_WORDS.gesture, isWarning: false });
+    const cut = composeRowTipCutLines(tip.cut);
+    // One group where there is nothing to divide. A rule drawn between two lines and the two
+    // sentences under them is a card cut in half for the sake of it, and every row but a pinned
+    // one is exactly that card.
+    if (cut.length === 0) {
+        return { name: reading.name, subtitle: null, groups: [{ lines: [...stated, ...said] }] };
+    }
+    const groups: TipGroup[] = [{ lines: stated }, { lines: cut }];
+    if (said.length > 0) groups.push({ lines: said });
+    return { name: reading.name, subtitle: null, groups };
+}
+
+/** What the figure was made of, as the run of a card it is drawn as. Empty where none was kept. */
+function composeRowTipCutLines(cut: RowTipCut | undefined): TipLine[] {
+    if (cut === undefined) return [];
+    if (cut.parts.length === 0) return [];
+    assert(cut.heading.length > 0, "a run of parts on a card stands under a heading");
+    const lines: TipLine[] = [{ kind: "heading", text: cut.heading }];
+    for (const part of cut.parts) {
+        assert(part.label.length > 0, "a part of a figure says what part it is");
+        assert(part.stated.length > 0, "and states how much of it there is");
+        lines.push({ kind: "sub", label: part.label, stated: part.stated });
+    }
+    return lines;
 }
 
 function composeRowElement(
@@ -1463,6 +1507,34 @@ function composePinnedNotes(row: PinnedRow, metric: PanelMetric, isSideChosen: b
     return notes;
 }
 
+/**
+ * What a pinned figure was dealt with, stated on the card before anybody presses the row: the same
+ * rows the level under it draws, in the same order, worded by the same table. **ADR 0041.**
+ *
+ * What will not fit is summed rather than dropped, so the run always comes to the figure over it.
+ */
+function composePinnedCutParts(row: PinnedRow, metric: PanelMetric): RowTipCut {
+    assert(SCREEN_ORDER.includes(metric), "a cut is stated on a screen the strips draw");
+    assert(row.kinds.rows.length <= MAXIMUM_KINDS, "and stays inside the bound a cut is kept to");
+    // Every key is written where the figure is, so a pinned figure's kinds come to the whole of
+    // it and this run needs no row for a shortfall (`src/core/fight-statistics.ts`, **ADR 0039**).
+    assert(row.kinds.unnamed === null, "a pinned figure states a kind for every point of itself");
+    const parts: Array<{ label: string; stated: string }> = [];
+    let rest = 0;
+    for (const [at, one] of row.kinds.rows.entries()) {
+        if (at < MAXIMUM_TIP_CUT_PARTS) {
+            parts.push({
+                label: getWordsForNamedPart({ kind: "element", element: one.element }, metric),
+                stated: `${composeFigureText(one.figure)} (${one.shareText})`,
+            });
+            continue;
+        }
+        rest += one.figure;
+    }
+    if (rest > 0) parts.push({ label: PANEL_WORDS.restOfKinds, stated: composeFigureText(rest) });
+    return { heading: getWordsForKindCut(metric), parts };
+}
+
 function composePinnedElement(
     document: PanelDocument,
     row: PinnedRow,
@@ -1476,6 +1548,7 @@ function composePinnedElement(
         figure: stated.figure,
         share: PANEL_WORDS.share,
         notes: composePinnedNotes(row, stated.metric, stated.isSideChosen),
+        cut: composePinnedCutParts(row, stated.metric),
     };
     const reading = composeUnnamedReading(row, getWordsForUnnamedRow(row.end));
     const mark = { attribute: UNNAMED_ATTRIBUTE, stated: row.end };

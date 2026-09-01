@@ -129,3 +129,5 @@ edited to agree with the new rule.
   was dealt with, from a cut kept for it. **Accepted**
 - [0040](0040-the-standard-library-is-asked-first.md) — The standard library is asked before a
   function is written. **Accepted**
+- [0041](0041-a-pinned-row-states-its-kinds-before-it-is-pressed.md) — A pinned row states its kinds
+  on the card, before anybody presses it. **Accepted**

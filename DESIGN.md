@@ -367,6 +367,12 @@ whether the figure is already counted in the list above it, and — only where a
 what the shown team is to it. Inside an opened figure and under an opened part it says the first
 alone: the other two are about a ranking and a side, and neither level has one. **ADR 0038.**
 
+**And under the ranking it also states what that figure was dealt with**, in a run of its own
+between the figure and the sentences: the same rows the level under the row draws, ranked the same
+way and worded by the same table, so the card is that level seen early rather than a second reading
+of it. What will not fit on the card is summed into one line rather than dropped, because a run
+short of the figure over it is a run that misstates it. **ADR 0041.**
+
 **Both runs stand, on every screen, each under the heading naming its end.** The run about striking
 states the criticals as a share of the blows struck, the hardest blow, what else fired, and what
 those blows destroyed on the other side — under a heading of its own, because points of armour and

@@ -841,6 +841,49 @@ Deno.test("a pinned row says what its figure was dealt with, key by key", () => 
 });
 
 /**
+ * The row and the level under it are one walk, which is what lets the card over the row state that
+ * level's own rows rather than a second count of them. Read over every recording and both screens
+ * that pin a figure: a cut folded from a different set of people would show here and nowhere
+ * else, because on screen the two stand a press apart. **ADR 0041.**
+ */
+Deno.test("a pinned row carries the cut the level under it draws, on every recording", () => {
+    let read = 0;
+    for (const path of getRecordingPaths()) {
+        const { roster, statistics } = readFight(path);
+        for (const metric of ["damageDealtApplied", "damageTakenApplied"] as const) {
+            const reading = composePanelReading(
+                statistics,
+                roster,
+                metric,
+                "everyone",
+                null,
+                NOTHING_MISSED,
+            );
+            for (const row of reading.pinned) {
+                const held = composeHalfNamedReading(
+                    statistics,
+                    roster,
+                    row.case,
+                    "everyone",
+                    null,
+                );
+                assertExists(held, `${path} ${row.case}: the pinned row opens`);
+                assertEquals(
+                    row.kinds.rows.map((one) => [one.element, one.figure, one.shareText]),
+                    held.kinds.rows.map((one) => [one.element, one.figure, one.shareText]),
+                    `${path} ${row.case}: the row states the level's own rows`,
+                );
+                assertEquals(row.kinds.unnamed, null, `${path} ${row.case}: and nothing besides`);
+                const kinds = row.kinds.rows.reduce((sum, one) => sum + one.figure, 0);
+                assertEquals(kinds, row.figure, `${path} ${row.case}: coming to the figure itself`);
+                read += 1;
+            }
+        }
+    }
+    assert(read > 0, "the corpus pins figures for this to be read off at all");
+});
+
+/**
  * A key carrying both — somebody's row and the part that named neither end. No recording holds it,
  * because `byNeitherEnd` is zero over the corpus, and it is the one shape where the level under a
  * key would silently come to less than the key above it.

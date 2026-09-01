@@ -282,6 +282,12 @@ export interface PinnedRow {
     figure: number;
     fill: number;
     shareText: string;
+    /**
+     * What the figure was dealt with, as the card over the row states it before anybody presses
+     * it. The same cut the level under the row draws, from the same walk, so the two cannot
+     * disagree. **ADR 0041.**
+     */
+    kinds: ElementCut;
 }
 
 /** One person under a pinned row: the end the game named, and what it carries of that figure. */
@@ -768,18 +774,25 @@ function composePinnedFigures(
     assert(SIDE_CHOICES.includes(choice), "a figure is pinned for a choice a reader could make");
     assert(statistics.dealtByNobody >= 0, "and one that is never below nothing");
     const part = getPartListed(choice, readerSide);
-    const found = getPinnedCasesForScreen(metric).map((kase) => {
+    const found: Array<Omit<PinnedRow, "fill" | "shareText">> = [];
+    for (const kase of getPinnedCasesForScreen(metric)) {
         const parts = composeHalfNamedParts(statistics, roster, kase, rows, part, readerSide);
+        const figure = getPinnedFigure(statistics, kase, parts, part);
+        // A figure of nothing is not pinned, and its cut is a cut of nothing: the fold below
+        // states a figure there is some of, so it is asked only where the row will be drawn.
+        if (figure <= 0) continue;
         const shape = PINNED_SHAPES[kase];
-        return {
+        const neither = getNeitherEndForPinned(statistics, kase, part);
+        found.push({
             case: kase,
             end: shape.end,
             standing: shape.standing,
-            figure: getPinnedFigure(statistics, kase, parts, part),
-        };
-    });
+            figure,
+            kinds: composeHalfNamedKinds(statistics, kase, parts, neither, figure),
+        });
+    }
     assert(found.length <= 2, "a screen pins the two ends the protocol can leave out, at most");
-    return found.filter((one) => one.figure > 0);
+    return found;
 }
 
 /**

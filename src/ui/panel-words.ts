@@ -50,6 +50,7 @@ export const PANEL_WORDS = {
     healthSource: "OD CZEGO",
     skills: "CZYM",
     withoutKind: "Bez podanego typu",
+    restOfKinds: "pozostałe",
     undrawn: "nie dało się narysować",
     combatants: "Postacie",
     share: "Udział w walce",

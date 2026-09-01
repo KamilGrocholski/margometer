@@ -51,6 +51,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   naciśnij typ obrażeń, żeby zobaczyć, komu. To ta sama liczba oglądana z dwóch stron, więc jedna
   lista zawsze zgadza się z drugą.
 
+- **Nowość** — Typy obrażeń widać już po samym najechaniu, bez wchodzenia w wiersz. Karta nad
+  „Nieznanym sprawcą" i „Nieznanym celem" wypisuje je z liczbami i udziałami — te same wiersze i w
+  tej samej kolejności co lista w środku, więc naciśnięcie tylko potwierdza to, co już widać. Gdy
+  typów jest więcej, niż się mieści, ostatni wiersz zbiera resztę, żeby lista zawsze sumowała się do
+  liczby nad nią.
+
 ## [0.11.0] — 2026-08-31
 
 Dodatek jest napisany **od zera**, drugi raz po `0.6.0`. Z wersji `0.10.1` nie zostało nic poza

@@ -79,6 +79,8 @@ const HEALER = 469657;
  * boss both strikes and wounds each member (`src/core/fight-statistics.ts`, ADR 0022).
  */
 const BOTH_KINDS_OF_PAIR = "captures/2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json";
+/** The widest spread of keys behind a half-named figure in the corpus: four of them. */
+const FOUR_KINDS = "captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json";
 
 function readFight(): PanelReading {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
@@ -113,9 +115,13 @@ function openFirstRow() {
 }
 
 /** The fight the pinned tests are read from, on the screen each of them asks about. */
-function readPinnedFight(metric: PanelMetric, choice: PanelSideChoice = "everyone") {
-    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
-    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+function readPinnedFight(
+    metric: PanelMetric,
+    choice: PanelSideChoice = "everyone",
+    path: string = HILDUR,
+) {
+    const roster = composeCombatantRoster(getRecordedCombatants(path));
+    const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     const readerSide = [...roster.byId.values()][0]?.side ?? null;
     const reading = composePanelReading(
@@ -154,8 +160,18 @@ function composeShownView(reading: PanelReading, metric: PanelMetric = "damageDe
 function readPinned(
     metric: PanelMetric,
     choice: PanelSideChoice,
+    path: string = HILDUR,
 ): { pinned: PinnedRow; card: ReturnType<typeof readTip> } {
-    const { reading } = readPinnedFight(metric, choice);
+    const { reading } = readPinnedFight(metric, choice, path);
+    return readPinnedCard(reading, metric, choice);
+}
+
+/** The same, off a reading built by hand: no recording pins a figure on either healing screen. */
+function readPinnedCard(
+    reading: PanelReading,
+    metric: PanelMetric,
+    choice: PanelSideChoice,
+): { pinned: PinnedRow; card: ReturnType<typeof readTip> } {
     const pinned = reading.pinned[0];
     assertExists(pinned, `${metric} ${choice}: this fight pins a figure`);
     const document = composeFakeDocument();
@@ -443,6 +459,109 @@ Deno.test("a pinned row already counted in the list above it says so", () => {
         !held.card.notes.includes(getWordsForPinnedStanding(apart.pinned.case)),
         "never the sentence for a figure standing apart",
     );
+});
+
+/**
+ * ⚠️ **The question a reader opens this row to answer, answered before they open it.** ADR 0039
+ * kept the cut and put it a press away; the card states the same rows, worded by the same table
+ * and ranked the same way, so the run under the heading and the level under the row are one
+ * answer read in two places. **ADR 0041.**
+ */
+Deno.test("a pinned row says what its figure was dealt with, before anybody presses it", () => {
+    const held = readPinned("damageDealtApplied", "everyone", FOUR_KINDS);
+    assertEquals(held.card.headings, [PANEL_WORDS.damageKind], "the card heads the run it draws");
+    assertEquals(held.card.groups, 3, "the figure, what it was made of, and the sentences");
+    const kinds = held.pinned.kinds.rows;
+    assert(kinds.length > 1, "this fight states more than one key for what it names nobody for");
+    const said = held.card.stated.filter((one) => one.isSub);
+    assertEquals(
+        said.map((one) => one.label),
+        kinds.map((one) => getWordsForDamageKind(one.element)),
+        "one line per kind, in the order the level under the row draws them",
+    );
+    assertEquals(
+        said.map((one) => one.value),
+        kinds.map((one) => `${composeFigureText(one.figure)} (${one.shareText})`),
+        "each stating the figure and the share that level states for it",
+    );
+    const total = kinds.reduce((sum, one) => sum + one.figure, 0);
+    assertEquals(total, held.pinned.figure, "and the run comes to the figure over it");
+});
+
+/**
+ * The other noun's heading, on a figure built for it: no recording pins either healing screen, so
+ * the word `OD CZEGO` reaches a card nowhere in the material. A key restoring health is not a kind
+ * of damage, and one heading over both would be two quantities under one word.
+ */
+Deno.test("a pinned row on a healing screen heads its run with the key, not the kind", () => {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const [healed] = [...roster.byId.keys()];
+    assertExists(healed, "the fight holds somebody to heal");
+    const statistics = composeFightStatistics([{
+        kind: "health-change",
+        combatantId: healed,
+        amount: 400,
+        healthPercent: null,
+        source: "bandage",
+        declared: [],
+        announced: null,
+    }], new Map());
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const held = readPinnedCard(reading, "healthGiven", "everyone");
+    assertEquals(held.card.headings, [PANEL_WORDS.healthSource], "the key is what put it back");
+    assertEquals(
+        held.card.stated.filter((one) => one.isSub).map((one) => one.label),
+        [getWordsForHealthSource("bandage")],
+        "and it is worded out of the table that screen's rows are worded from",
+    );
+});
+
+/**
+ * The card is a preview and the level is the whole of it, so what will not fit on the card is
+ * summed rather than dropped: a run short of the figure over it is a run that lies about it. No
+ * recording reaches this — the widest pinned row over `captures/` states four keys on 2026-09-01 —
+ * so the seven are built here. **ADR 0041.**
+ */
+Deno.test("a pinned row with more kinds than the card holds sums the rest into one line", () => {
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const [struck] = [...roster.byId.keys()];
+    assertExists(struck, "the fight holds somebody to strike");
+    const keys = ["poison", "fire", "light", "injure", "wound", "anguish", "heal"];
+    const statistics = composeFightStatistics(
+        keys.map((source, at) => ({
+            kind: "health-change" as const,
+            combatantId: struck,
+            amount: -(keys.length - at) * 100,
+            healthPercent: null,
+            source,
+            declared: [],
+            announced: null,
+        })),
+        new Map(),
+    );
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "damageTakenApplied",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const held = readPinnedCard(reading, "damageTakenApplied", "everyone");
+    assertEquals(held.pinned.kinds.rows.length, keys.length, "the level holds every key of it");
+    const said = held.card.stated.filter((one) => one.isSub);
+    assertEquals(said.length, 7, "and the card holds six of them, and one line for the rest");
+    assertEquals(said[6]?.label, PANEL_WORDS.restOfKinds, "which says it is the rest of them");
+    assertEquals(said[6]?.value, composeFigureText(100), "at what those keys came to");
+    const kinds = held.pinned.kinds.rows.reduce((sum, one) => sum + one.figure, 0);
+    assertEquals(kinds, held.pinned.figure, "and the level under it is still the whole figure");
 });
 
 /**
@@ -1230,6 +1349,8 @@ function readTip(host: FakeElement): {
     name: string[];
     subtitle: string[];
     notes: string[];
+    headings: string[];
+    groups: number;
     lines: string[];
     stated: TipLineRead[];
 } {
@@ -1241,6 +1362,8 @@ function readTip(host: FakeElement): {
         name,
         subtitle: getTextsByClass(tip, CLASS.tipSubtitle),
         notes: getTextsByClass(tip, CLASS.tipNote),
+        headings: getTextsByClass(tip, CLASS.tipHeading),
+        groups: getElementsWithin(tip).filter((one) => one.className === CLASS.tipGroup).length,
         lines: [
             ...name,
             ...getTextsByClass(tip, CLASS.tipLabel),
@@ -1591,6 +1714,7 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
         ],
         "a kind is a share of the figure standing open above it",
     );
+    assertEquals(readTip(host).groups, 1, "and a row with no cut kept for it says it in one run");
 });
 
 Deno.test("a shelf row opens the place its own cell had to cut", () => {
