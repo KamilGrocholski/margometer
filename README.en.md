@@ -44,7 +44,8 @@ A ten-against-one fight, on the damage-taken screen.
   The same on every screen.
 - A finished fight goes on a shelf you can go back to, and the panel says where it was fought.
 - Totals only, no rate. What the log credits to nobody gets a row and a figure of its own — it is
-  never folded into somebody's score.
+  never folded into somebody's score. That row says what the game left out, and opens as well: whom
+  it reached, and what it was dealt with.
 - Reads only: no network, no automation, no effect on how a fight plays out.
 
 ## Install

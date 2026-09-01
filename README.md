@@ -45,7 +45,8 @@ Walka dziesięciu na jednego, na zakładce obrażeń otrzymanych.
   samo na każdej zakładce.
 - Skończone walki trafiają na półkę i można do nich wrócić. Panel mówi, gdzie się toczyły.
 - Tylko sumy, bez przeliczników. To, czego log nikomu nie przypisuje, dostaje własny wiersz i własną
-  liczbę — nigdy nie doklejamy tego do czyjegoś wyniku.
+  liczbę — nigdy nie doklejamy tego do czyjegoś wyniku. Ten wiersz mówi, czego gra nie podała, i też
+  się rozwija: widać w nim, kogo to dosięgło i czym poszło.
 - Tylko odczyt: żadnej sieci, żadnej automatyzacji, żadnego wpływu na przebieg walki.
 
 ## Instalacja
