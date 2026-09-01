@@ -135,3 +135,5 @@ edited to agree with the new rule.
   transplanted, not copied. **Accepted**
 - [0043](0043-a-failure-at-a-handover-has-nobody-to-catch-it.md) — A failure at a handover has
   nobody to catch it. **Accepted**
+- [0044](0044-a-value-never-wears-a-type-nobody-checked.md) — A value never wears a type nobody
+  checked. **Accepted**

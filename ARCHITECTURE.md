@@ -190,6 +190,7 @@ tests/
     documents.test.ts      The rule documents and the guard register.
     decisions.test.ts      The decision records: numbering, index, lifecycle.
     sources.test.ts        S1, S2, S13, C5, C15, C16, S4 and S5 over every TypeScript file.
+    type-assertions.test.ts  C13, and the register of crossings that narrow no other way.
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
     names.test.ts          File names, exported functions and exported types.
     protocol-keys.test.ts  The register help claims, re-counted against the frozen table.
@@ -539,3 +540,9 @@ commit that opens or closes one.
     works a line at a time, so a `void` inside a template literal this repository serves to a
     browser would be read as code; there is none today, and the sample that proves the reader is
     what would catch its arrival.
+
+12. **The assertion guard does not read the old cast syntax.** **C13** binds `<Type>value` exactly
+    as it binds `value as Type`, and `tests/repository/type-assertions.test.ts` looks only for the
+    second. There is not one of the first in the tree, measured 2026-09-01, and telling it from a
+    generic argument needs the type information a reader over text does not have. It closes if the
+    spelling ever arrives, which is the day it would be worth the machinery.

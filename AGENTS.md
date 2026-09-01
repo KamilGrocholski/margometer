@@ -283,7 +283,15 @@ TypeScript idiom, with the naming rules stated here.
 - **C11.** Never create a file that only re-exports; update the import to the real module.
 - **C12.** `!` is never used in `src/` or `tools/`. Ask first whether the type can be made precise —
   an assert over a type that could have been exact is covering for a loose type. Tests keep `!`.
-- **C13.** Never cast off `JSON.parse`. Parsed text wearing a type is external data nobody checked.
+- **C13. A value never wears a type nobody checked.** A type assertion overrides the compiler rather
+  than asking it, so a value is narrowed by a guard instead: `isRecord` and the readings in
+  `libs/unknown-reading.ts`, a `value is X` predicate, an `instanceof`, or a `require…` under
+  **N2**, which throws. `as const` and `satisfies` assert nothing — they check a literal against a
+  type rather than overriding one. The case that keeps escaping is `JSON.parse`: parsed text wearing
+  a type is external data nobody checked. Three crossings here have no narrowing to offer, and the
+  register `tests/repository/type-assertions.test.ts` reads both ways names each — one place rather
+  than the same reason in three files. A fourth is `[ASK]`. Tests keep the cast, as `!` under
+  **C12**. **ADR 0044.**
 - **C14. Self-documenting code first.** A name, a type and an assertion say what a sentence would
   and cannot go stale, so they are the first answer to "this needs explaining". Plain description
   belongs in the **file's docblock** — what the file is for and what is in it — and nowhere else.
@@ -448,6 +456,7 @@ the same thing a second way.
 | `tests/repository/sources.test.ts`            | S1, S2, S4, S5, S13, A10, C5, C8, C15 part, C16  |
 | `tests/repository/errors.test.ts`             | E1, E2, E11, E12, E13, each with a sample        |
 | `tests/repository/names.test.ts`              | N1, N11, N14, N15, N16, each with a sample       |
+| `tests/repository/type-assertions.test.ts`    | C13, with a register read both ways              |
 | `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts   |
 | `tests/repository/readmes.test.ts`            | the two READMEs, and both against the shot set   |
 | `tests/repository/cited-paths.test.ts`        | every rooted path a document cites               |
