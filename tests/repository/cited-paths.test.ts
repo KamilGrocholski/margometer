@@ -11,6 +11,7 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
+import { existsSync } from "@std/fs";
 
 /** A citation starts at one of these, which is what makes it a path rather than a name. */
 const ROOTED_AT = [
@@ -100,14 +101,6 @@ function getEveryCitation(): Citation[] {
 
 const CITED = getEveryCitation();
 
-function existsAsFile(path: string): boolean {
-    try {
-        return Deno.statSync(path).isFile;
-    } catch {
-        return false;
-    }
-}
-
 /**
  * The reader proved on a sample it must flag and one it must not: the first catches a reader that
  * has stopped finding its subject, and only the second catches one that finds too much.
@@ -131,7 +124,7 @@ Deno.test("a citation into v1's history is not read as a path at all", () => {
 Deno.test("every path a document cites exists, or is one this file says does not", () => {
     const dangling: string[] = [];
     for (const citation of CITED) {
-        if (existsAsFile(citation.path)) continue;
+        if (existsSync(citation.path, { isFile: true })) continue;
         if (CITED_WHILE_ABSENT[citation.path] === citation.document) continue;
         dangling.push(`${citation.document} → ${citation.path}`);
     }
@@ -144,7 +137,10 @@ Deno.test("every path a document cites exists, or is one this file says does not
  */
 Deno.test("every path this file excuses is still absent, and still cited where it says", () => {
     for (const [path, document] of Object.entries(CITED_WHILE_ABSENT)) {
-        assert(!existsAsFile(path), `${path} exists now and no longer needs excusing`);
+        assert(
+            !existsSync(path, { isFile: true }),
+            `${path} exists now and no longer needs excusing`,
+        );
         const cited = CITED.some((one) => one.path === path && one.document === document);
         assert(cited, `${document} no longer cites ${path}`);
     }

@@ -11,6 +11,7 @@
  */
 
 import { assert } from "@std/assert";
+import { parseArgs } from "@std/cli";
 import { getEndOfRun } from "@/libs/text-walk.ts";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { getNumberFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
@@ -518,40 +519,28 @@ ${written}
 `;
 }
 
-/** Takes the flag and its value out of the arguments, leaving the phrases behind. */
-function removeFlagValue(argv: string[], flag: string, fallback: number): number {
-    const at = argv.indexOf(flag);
-    if (at === -1) return fallback;
-    const text = argv[at + 1];
-    const value = text === undefined ? null : getIntegerFromText(text);
-    if (value === null || value <= 0) {
-        throw new HelpArticleError(`${flag} takes a positive whole number`);
-    }
-    argv.splice(at, 2);
-    assert(value > 0, "a flag that was read states a positive number");
-    assert(!argv.includes(flag), "and is taken out of what is left to read");
-    return value;
-}
-
-function removeFlagText(argv: string[], flag: string, fallback: string): string {
-    const at = argv.indexOf(flag);
-    if (at === -1) return fallback;
-    const value = argv[at + 1];
-    if (value === undefined) throw new HelpArticleError(`${flag} takes a value`);
-    argv.splice(at, 2);
-    assert(!value.startsWith("--"), "a flag takes a value rather than the flag standing after it");
-    assert(!argv.includes(flag), "and is taken out of what is left to read");
-    return value;
+/** A flag's value, refused where it is not a count: the reader is a person at a terminal. */
+function requireFlagCount(stated: unknown, flag: string): number {
+    const count = getNumberFromUnknown(stated);
+    if (count === null) throw new HelpArticleError(`${flag} takes a positive whole number`);
+    if (!Number.isSafeInteger(count)) throw new HelpArticleError(`${flag} takes a whole number`);
+    if (count <= 0) throw new HelpArticleError(`${flag} takes a positive whole number`);
+    assert(count > 0, "a flag that was read states a positive number");
+    return count;
 }
 
 if (import.meta.main) {
-    const argv = [...Deno.args];
-    const article = requireArticleId(removeFlagText(argv, "--article", MECHANICS_ARTICLE));
-    const context = removeFlagValue(argv, "--context", 420);
-    // Six rather than three: a phrase that is part of a longer word matches it too, and with a
-    // low limit the real hit falls off the end and reads as its absence.
-    const count = removeFlagValue(argv, "--count", 6);
-    const [command, ...phrases] = argv;
+    const parsed = parseArgs(Deno.args, {
+        string: ["article"],
+        // Six rather than three: a phrase that is part of a longer word matches it too, and with
+        // a low limit the real hit falls off the end and reads as its absence.
+        default: { article: MECHANICS_ARTICLE, context: 420, count: 6 },
+    });
+    const article = requireArticleId(parsed.article);
+    const context = requireFlagCount(parsed.context, "--context");
+    const count = requireFlagCount(parsed.count, "--count");
+    const stated = parsed._.filter((one): one is string => typeof one === "string");
+    const [command, ...phrases] = stated;
 
     if (command === "status") {
         writeHelpStatusReport(article);

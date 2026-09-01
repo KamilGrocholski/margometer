@@ -11,6 +11,7 @@
  */
 
 import { assert } from "@std/assert";
+import { parseArgs } from "@std/cli";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import {
     composeDrillReading,
@@ -493,21 +494,15 @@ interface DrillArguments {
 }
 
 function getArguments(stated: readonly string[]): DrillArguments {
-    const held: DrillArguments = { isCases: false, screen: null, paths: [] };
-    let wantsScreen = false;
     assert(stated.length <= MAXIMUM_ARGUMENTS, "a run is given no more arguments than are read");
-    for (const one of stated) {
-        if (wantsScreen) {
-            held.screen = one;
-            wantsScreen = false;
-            continue;
-        }
-        if (one === "--cases") held.isCases = true;
-        else if (one === "--screen") wantsScreen = true;
-        else held.paths.push(one);
-    }
-    if (wantsScreen) throw new DrillReportError("--screen was given no screen to walk");
-    return held;
+    const parsed = parseArgs([...stated], { boolean: ["cases"], string: ["screen"] });
+    if (parsed.screen === "") throw new DrillReportError("--screen was given no screen to walk");
+    const paths = parsed._.filter((one): one is string => typeof one === "string");
+    assert(
+        paths.length === parsed._.length,
+        "a recording is named by a path and never by a number",
+    );
+    return { isCases: parsed.cases, screen: parsed.screen ?? null, paths };
 }
 
 if (import.meta.main) {

@@ -6,6 +6,7 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
+import { basename } from "@std/path";
 import { getCodeOutsideStrings } from "@/tests/source-line.ts";
 import { getSourcePaths } from "@/tests/source-paths.ts";
 
@@ -63,7 +64,7 @@ Deno.test("every file name is kebab-case and names its contents", () => {
     assert(!isKebabCase("fightDecoder.ts"), "the reader rejects camelCase");
     const wrong: string[] = [];
     for (const path of getSourcePaths()) {
-        const name = path.slice(path.lastIndexOf("/") + 1);
+        const name = basename(path);
         const stem = name.slice(0, name.indexOf("."));
         if (!isKebabCase(name)) wrong.push(`${path} is not kebab-case`);
         if (FORBIDDEN_NAMES.includes(stem)) wrong.push(`${path} names a category, not contents`);

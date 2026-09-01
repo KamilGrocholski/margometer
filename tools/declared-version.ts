@@ -4,35 +4,29 @@
  */
 
 import { assert } from "@std/assert";
+import { parse as parseJsonc } from "@std/jsonc";
 import { DeclaredVersionError } from "@/tools/margometer-tool-error.ts";
+import { getStatedTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import { CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 
-const VERSION_KEY = '"version":';
-const QUOTE = '"';
 /** Sorts below the release of that number, so a copy built here is offered the release. */
 const DEVELOPMENT_SUFFIX = "-dev";
 /** How a run says the tree it stands on is the one that ships — **ADR 0037**. */
 export const RELEASE_FLAG = "--release";
 
-/**
- * Walked rather than parsed: `deno.json` carries comments, so `JSON.parse` refuses it and a JSON
- * reader that allows them is a dependency nothing else wants. The first `"version":` is the
- * tree's own — a later one belongs to something nested inside it.
- */
+/** `deno.json` carries comments, so `JSON.parse` refuses it and `@std/jsonc` does not. */
 export function getDeclaredVersion(configuration: string): string {
     assert(configuration.length > 0, "a configuration that was read says something");
-    for (const line of configuration.split("\n")) {
-        const stated = line.trim();
-        if (!stated.startsWith(VERSION_KEY)) continue;
-        const opening = stated.indexOf(QUOTE, VERSION_KEY.length);
-        if (opening === -1) break;
-        const closing = stated.indexOf(QUOTE, opening + 1);
-        if (closing === -1) break;
-        const declared = stated.slice(opening + 1, closing);
-        assert(declared.length > 0, "a version that is declared is spelled out");
-        return declared;
+    const read: unknown = parseJsonc(configuration);
+    if (!isRecord(read)) {
+        throw new DeclaredVersionError(`${CONFIGURATION_FILE} is not a configuration`);
     }
-    throw new DeclaredVersionError(`${CONFIGURATION_FILE} declares no version to build at`);
+    const declared = getStatedTextFromUnknown(read.version);
+    if (declared === null) {
+        throw new DeclaredVersionError(`${CONFIGURATION_FILE} declares no version to build at`);
+    }
+    assert(declared.length > 0, "a version that is declared is spelled out");
+    return declared;
 }
 
 /** The declaration, unmarked. Only a run told it stands on the release tree states this. */

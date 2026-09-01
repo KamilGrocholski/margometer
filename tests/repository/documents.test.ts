@@ -7,6 +7,7 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
+import { existsSync } from "@std/fs";
 import { isCommentLine } from "@/tests/source-line.ts";
 import { getSourcePaths } from "@/tests/source-paths.ts";
 import { CONFIGURATION_FILE } from "@/project/repository-layout.ts";
@@ -245,7 +246,7 @@ Deno.test("the guard register names what exists, and nothing else", () => {
     for (const entry of registered) {
         if (entry.startsWith("deno ")) {
             if (!gateTask.includes(entry)) missing.push(`${entry} is not in the gate`);
-        } else if (!existsAsFile(entry)) missing.push(`${entry} does not exist`);
+        } else if (!existsSync(entry, { isFile: true })) missing.push(`${entry} does not exist`);
     }
     assert(registered.length > 4, "the register is not empty");
     assertEquals(missing, [], "the register claims a guard that is not there");
@@ -292,14 +293,6 @@ Deno.test("every guard in the tree is in the register", () => {
     assert(registered.length > 0, "there is a register to check against");
     assertEquals(unregistered.sort(), [], "a guard runs that the register never claims");
 });
-
-function existsAsFile(path: string): boolean {
-    try {
-        return Deno.statSync(path).isFile;
-    } catch {
-        return false;
-    }
-}
 
 /** Rules whose text ends in the marker for an observation no machine can compute. */
 function getRulesHeldByReading(text: string): Set<string> {

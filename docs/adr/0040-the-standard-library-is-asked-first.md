@@ -29,7 +29,7 @@ duplicates, all of them in `tools/` and `tests/`.
 
 The assertion half was the opposite: around two and a half thousand call sites, all of them
 `assert`. Whether a more specific function is better is not a matter of taste, and reading
-`@std/assert` 1.0.7 — the version `deno.lock` pins — settles it. Two spellings run through that
+`@std/assert` 1.0.19 — the version `deno.lock` pins — settles it. Two spellings run through that
 module, and they behave in opposite directions when a message is passed:
 
 | Function                | Our message  | Also reports    | Narrows           |
@@ -51,13 +51,12 @@ module, and they behave in opposite directions when a message is passed:
 The first group builds `Expected actual: … ${msg}` and throws that. The second is `msg ?? \`Expect
 ${actual} > ${expected}\``, so the moment a message names the invariant — which **A4** requires —
 the values it was going to report are gone. The comparison family is therefore a straight loss here:
-it trades the invariant's name for nothing.
+it trades the invariant's name for nothing, and what it offers instead is two numbers with no
+sentence saying which rule they broke.
 
-`greater.ts:29`, `greater_or_equal.ts:34`, `less.ts:34`, `less_or_equal.ts:34`, `false.ts:24`,
-`exists.ts:26-29`, `equals.ts:39-49`, `strict_equals.ts:41`, `not_equals.ts:32-35`,
-`instance_of.ts:38`, `string_includes.ts:27-28`, `array_includes.ts:53`, read 2026-09-01. In that
-version `less.ts:34` prints `Expect ${actual} <= ${expected}` for a strictly-less check, which is
-the library's own text and wrong — a third reason not to trade a named invariant for it.
+Read 2026-09-01 at `greater.ts:29`, `greater_or_equal.ts:34`, `less.ts:28`, `less_or_equal.ts:34`,
+`false.ts:23`, `exists.ts:26`, `equals.ts:54`, `strict_equals.ts:41`, `not_equals.ts:39`,
+`instance_of.ts:34`, `string_includes.ts:27` and `array_includes.ts:71`.
 
 ## Decision
 

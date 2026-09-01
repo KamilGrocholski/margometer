@@ -8,6 +8,7 @@
  */
 
 import { assert } from "@std/assert";
+import { parseArgs } from "@std/cli";
 import { getVersionForRun } from "@/tools/declared-version.ts";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
@@ -450,8 +451,7 @@ export async function writePanelShots(browser: string, version: string): Promise
 }
 
 if (import.meta.main) {
-    const browserAt = Deno.args.indexOf("--browser");
-    const argued = browserAt === -1 ? null : (Deno.args[browserAt + 1] ?? null);
+    const argued = parseArgs(Deno.args, { string: ["browser"] }).browser ?? null;
     const browser = await getBrowserFound(
         getBrowserAsked(argued, Deno.env.get(BROWSER_VARIABLE) ?? null),
     );

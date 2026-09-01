@@ -10,6 +10,8 @@
 
 import { getValueWithin } from "@/libs/number-range.ts";
 import { assert } from "@std/assert";
+import { debounce } from "@std/async";
+import { parseArgs } from "@std/cli";
 
 /** A preview is watched by the pages one person has open; this is far past that — **S11**. */
 const MAXIMUM_LISTENERS = 64;
@@ -286,13 +288,13 @@ function setRebuilt(state: PreviewState): void {
 /** Drains the watcher until it is closed, which is what `stop` below does to end this. */
 async function readFileEvents(watcher: Deno.FsWatcher, state: PreviewState): Promise<void> {
     assert(WATCHED_PATHS.length > 0, "there is something to watch");
-    let timer: number | null = null;
+    const rebuild = debounce(() => setRebuilt(state), REBUILD_AFTER_QUIET_MS);
     for await (const event of watcher) {
         if (event.kind === "access") continue;
-        if (timer !== null) clearTimeout(timer);
-        timer = setTimeout(() => setRebuilt(state), REBUILD_AFTER_QUIET_MS);
+        rebuild();
     }
-    if (timer !== null) clearTimeout(timer);
+    rebuild.clear();
+    assert(rebuild.pending === false, "a watcher that closed leaves no rebuild pending");
 }
 
 function getPortFromServer(server: Deno.HttpServer<Deno.NetAddr>): number {
@@ -363,10 +365,9 @@ export function setPreviewServer(options: PreviewServerOptions = {}): PreviewSer
 }
 
 if (import.meta.main) {
-    const portAt = Deno.args.indexOf("--port");
-    const fightAt = Deno.args.indexOf("--fight");
-    const asked = portAt === -1 ? null : getIntegerFromText(Deno.args[portAt + 1] ?? "");
-    const fight = fightAt === -1 ? null : (Deno.args[fightAt + 1] ?? null);
+    const parsed = parseArgs(Deno.args, { string: ["port", "fight"] });
+    const asked = parsed.port === undefined ? null : getIntegerFromText(parsed.port);
+    const fight = parsed.fight ?? null;
     const preview = setPreviewServer({ port: asked ?? DEFAULT_PORT });
     const opening = fight === null ? preview.url : `${preview.url}${composeFightAddress(fight)}`;
     console.log(`preview  ${opening}`);
