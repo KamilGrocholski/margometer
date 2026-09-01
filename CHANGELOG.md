@@ -31,6 +31,13 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [0.12.1] — 2026-09-01
+
+- **Poprawka** — Przyciski „My" i „Oni" nad listą znów przełączają. Gdy po jednej ze stron walki
+  stała tylko jedna postać — grupa przeciw jednemu bossowi albo ty sam przeciw kilku — naciśnięcie
+  ich nie robiło nic, a panel zostawał na tym, co narysował wcześniej, i do końca walki nie
+  dopisywał już kolejnych ciosów. Wracał do siebie dopiero przy następnej walce.
+
 ## [0.12.0] — 2026-09-01
 
 - **Nowość** — Wiersze „Nieznany sprawca" i „Nieznany cel" znów mówią, z czego są. Po najechaniu
