@@ -486,16 +486,23 @@ commit that opens or closes one.
    one so a second cannot arrive unnoticed. The figures stood here too until 2026-08-30, in a second
    reckoning that counted the first two kinds as disagreements where the test does not — two numbers
    for one measurement, which **V5** is the rule against.
-7. **The release path has run once, and one step of it has never run at all.** `v0.11.0` went out on
-   2026-08-31: `CHANGELOG.md`'s section became the body of the release (`tools/changelog.ts`),
-   `.github/workflows/check.yml` was the run **G7** waited for, and `.github/workflows/release.yml`
-   held the tag against the declaration, rebuilt at the tag's version and published both files. What
-   that release shipped wrong is what **ADR 0037** was written for: its five pictures state
-   `0.11.0-dev`, a version nobody can install. The step holding the shot set to the tag was added
-   after it and **has never run at a tag** — it is held by the reading in
-   `tests/tools/panel-screenshots.test.ts` and by nothing else, and `v0.12.0` is the first release
-   to exercise it. `docs/releasing.md` is the sequence; the table at the end of it says which of its
-   steps a machine holds and which a person does.
+7. **The release path is whole, and what is left of this gap is held by a person.** `v0.12.0` went
+   out on 2026-09-01 and every step in the table at the end of `docs/releasing.md` has now run at a
+   tag, including the last one that had not: the shot set is held to the tagged version, and the set
+   it passed on states `0.12.0` unmarked where `v0.11.0`'s five pictures stated `0.11.0-dev`, a
+   version nobody could install. That is what **ADR 0037** was written for and it is closed.
+
+   Two things running it found, both fixed in the run itself. `docs/releasing.md` prescribed the
+   bump and the shoot as separate commits, which **G5** cannot have — the guard added in `05d238e`
+   holds the sidecar to the declaration, so neither half is green alone. And the push of `main`
+   fails **silently** when the local branch has not been advanced first: `git push origin main` from
+   `develop` pushes the release before this one, matches the remote and answers
+   `Everything
+   up-to-date`. That one cost a takt. The sequence spells both now.
+
+   What is left is what no machine holds: the audits before the number moves, opening every picture,
+   and the install afterwards. The table at the end of `docs/releasing.md` is where that split is
+   stated, and this entry stays only to say the list is now short.
 8. **A restatement in different words is unheld, and it is the worse kind.**
    `tests/repository/sources.test.ts` holds two bands of C15's second half now: a block standing
    twice **verbatim**, and a block standing in two **files** whatever its length — the second added

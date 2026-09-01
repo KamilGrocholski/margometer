@@ -84,6 +84,30 @@ The branches, the order and the one wait: **G7**. The tag is last, and the reaso
 that rule and in `.github/workflows/release.yml`'s own comment — branch protection refuses `main`
 while a run is going and that refusal is cheap, where a tag pushed early is not.
 
+```bash
+git push origin develop
+# Wait here. The run this waits for is `check` on that push, and it has to be green.
+git fetch . develop:main
+git push origin main
+git tag "v${version}" && git push origin "v${version}"
+```
+
+⚠️ **`main` is advanced before it is pushed, and forgetting it fails silently.** A release is cut
+from `develop`, so the local `main` is still standing on the release before this one.
+`git push
+origin main` pushes **that**, matches what the remote already has, and answers
+`Everything
+up-to-date` — which reads exactly like the push having worked. It is the one step here
+whose omission looks like success, and it cost a takt on `v0.12.0`.
+
+`git fetch . develop:main` is the advance without a checkout, and it is the spelling to use because
+it **refuses anything but a fast-forward** — which is what **G6** asks of `main` and what nothing
+else on this page checks. Measured on git 2.39.5, 2026-09-01: a rewind prints
+`! [rejected] … (non-fast-forward)`, leaves the ref where it was and exits `1`, so a `&&` chain
+stops there. `git branch -f main develop` moves the same ref, takes that rewind without a word and
+exits `0`. The one thing to know about `git fetch` here is that it refuses to write a branch that is
+**checked out** — which is loud, and never the case on a release, where the tree is on `develop`.
+
 Permission for each push is asked for, every time — **G1**.
 
 ## 5. After the tag
