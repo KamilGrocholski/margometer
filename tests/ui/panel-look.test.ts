@@ -439,6 +439,54 @@ Deno.test("a row drops its ink onto its middle and stays the height the list cou
     assertEquals(spare % 2, 0, `a row centres its cells onto half a pixel: ${spare}px to share`);
 });
 
+/** What a cell has to state to hold a run of text on one line and give way to its neighbour. */
+const SHORTENING = ["min-width", "overflow", "text-overflow", "white-space"] as const;
+
+/** Which of the four a rule leaves unsaid, so a failure names the declaration that is missing. */
+function getShorteningMissing(sheet: string, selector: string): string[] {
+    const body = getRuleBody(sheet, selector);
+    const missing: string[] = [];
+    for (const property of SHORTENING) {
+        if (getDeclaration(body, property) === null) {
+            missing.push(`${selector} states no ${property}`);
+        }
+    }
+    return missing;
+}
+
+/**
+ * A figure is one word and its cell never gives way; the words beside it are what shortens. The
+ * separator inside a figure is `src/ui/panel-words.ts`'s to keep unbreakable — this holds the
+ * cells around it, which is the other half of the same rule.
+ */
+Deno.test("a cell carrying a figure refuses to fold, and its neighbour shortens", () => {
+    // A reader is proved by a sample it must flag and one it must not.
+    assertEquals(
+        getShorteningMissing(
+            "}.a{min-width:0;overflow:hidden;text-overflow:ellipsis;" +
+                "white-space:nowrap;}",
+            ".a",
+        ),
+        [],
+        "a cell stating all four is a cell that shortens",
+    );
+    assertEquals(
+        getShorteningMissing("}.a{overflow:hidden;white-space:nowrap;}", ".a").length,
+        2,
+        "and one short of them is named for what it left out",
+    );
+
+    const sheet = composeStyleSheet();
+    for (const selector of [`.${CLASS.figure}`, `.${CLASS.rowValue}`]) {
+        const body = getRuleBody(sheet, selector);
+        assertEquals(getDeclaration(body, "white-space"), "nowrap", `${selector} folds`);
+        assertEquals(getDeclaration(body, "flex"), "none", `${selector} gives way`);
+    }
+    const beside = [CLASS.sectionWords, CLASS.sidesLabel, CLASS.rowName, CLASS.tipLabel];
+    const short = beside.flatMap((className) => getShorteningMissing(sheet, `.${className}`));
+    assertEquals(short, [], "the words beside a figure are the cell that shortens");
+});
+
 Deno.test("the reader adds up a rule rather than matching one", () => {
     // A reader is proved by a sample it must flag and one it must not.
     assertEquals(getPixels("7px"), 7, "a length reads as itself");

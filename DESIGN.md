@@ -298,6 +298,16 @@ stuck to the top of the list while its own section scrolls: a figure read under 
 the one thing a drill must never allow. Its quiet is a composited colour rather than an `opacity`,
 because an opacity would let a bar ghost through it.
 
+**A heading says what its level is cut by, and never which row was opened.** The crumb over it has
+just said whose figure this is and which part of it stands open, so a heading repeating that name
+spends the width twice and grows as long as whatever the game called the skill. Five headings, all
+of them constants, and none of them longer than `TYP OBRAŻEŃ`.
+
+⚠️ **A figure never folds.** It is one word — the gap between its thousands is a space that offers
+no place to break — and the cell it stands in never gives way; the words beside it are what
+shortens, cut with an ellipsis. A figure that broke across two lines in a row 18 pixels tall was
+read as a number half its size, which is worse than a figure not drawn at all.
+
 **Summary bar.** The fight's own strip. This is where a gap that names nobody is said, because no
 row can carry it. It is a reading's summary, **not** a banner — the distinction is that it always
 shows, rather than appearing when something goes wrong.

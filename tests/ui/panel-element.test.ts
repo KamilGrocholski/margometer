@@ -346,7 +346,7 @@ Deno.test("a fight draws a row for everybody in it, named", () => {
         assert(name !== undefined, "each row says who it is about");
         assert(name.textContent.length > 0, "and says it in words");
     }
-    const figures = getTextsByClass(host, "row-value");
+    const figures = getTextsByClass(host, `${CLASS.rowValue} ${CLASS.figure}`);
     const first = reading.rows[0];
     assert(first !== undefined, "there is a first row");
     assertEquals(figures[0], composeFigureText(first.figure), "with the figure the reading holds");
@@ -561,7 +561,9 @@ Deno.test("the fight is totalled in two figures, and a doubt is said under them"
 
     // Colour never carries a meaning alone: each figure stands beside its own label, in its own
     // fixed place, and the ink is what the segment of the track paints itself with.
-    const ours = getElementsWithin(host).find((one) => one.className === "sides-ours");
+    const ours = getElementsWithin(host).find((one) =>
+        one.className === `${CLASS.sidesOurs} ${CLASS.figure}`
+    );
     assert(ours !== undefined, "the reader's own side is named as theirs");
     assertEquals(ours.attributes.get("style"), undefined, "and no colour is written onto it");
 });
@@ -996,7 +998,7 @@ Deno.test("a part of a figure no kind was stated for is drawn last, under the ki
     const host = panel.element as FakeElement;
     const named = getTextsByClass(host, "row-name");
     assertEquals(named[named.length - 1], PANEL_WORDS.withoutKind, "drawn last, under the kinds");
-    const figures = getTextsByClass(host, "row-value");
+    const figures = getTextsByClass(host, `${CLASS.rowValue} ${CLASS.figure}`);
     assertEquals(figures[figures.length - 1], "140", "at what fell outside every kind");
 });
 
@@ -1365,7 +1367,7 @@ Deno.test("crossing from one part of a row to another is not leaving it", () => 
     const parts = getElementsWithin(host).filter((one) => one.attributes.has("data-tip"));
     const [name, other] = [
         parts.find((one) => one.className === "row-name"),
-        parts.find((one) => one.className === CLASS.rowValue),
+        parts.find((one) => one.className === `${CLASS.rowValue} ${CLASS.figure}`),
     ];
     assert(name !== undefined, "a row draws a name");
     assert(other !== undefined, "and a figure beside it, each its own element under the pointer");
@@ -1995,6 +1997,110 @@ Deno.test("a lone row of a section names what the heading over it never does", (
     assertEquals(headings(keyed), [PANEL_WORDS.skills], "and so is a lone key row");
 });
 
+/** Every heading a level may draw, and there is no sixth: none of them is a name out of a fight. */
+const CUT_HEADINGS: string[] = [
+    PANEL_WORDS.dealtTo,
+    PANEL_WORDS.takenFrom,
+    PANEL_WORDS.skills,
+    PANEL_WORDS.damageKind,
+    PANEL_WORDS.healthSource,
+];
+
+/** What each heading is made of: the words it wears, and the classes of its two cells. */
+function getHeadingCells(host: FakeElement): Array<[string, string[]]> {
+    return getElementsWithin(host)
+        .filter((one) => one.className === CLASS.section)
+        .map((one) => [
+            one.children[0]?.textContent ?? "",
+            one.children.map((cell) => cell.className),
+        ]);
+}
+
+/**
+ * ⚠️ **A heading is two cells and a constant, at every level.** Both were class-less spans until
+ * 2026-09-01, so nothing held the figure beside a heading to one line and nothing stopped a
+ * heading growing a name out of the recording — which is how `111111` came to be read as `111`
+ * over `111`. `DESIGN.md` owns the rule; this holds the DOM to it, `tests/ui/panel-look.test.ts`
+ * the sheet.
+ */
+Deno.test("a heading is its words and a figure, and says only what its level is cut by", () => {
+    const { reading, drill } = openFirstRow();
+    const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+    const healer = 469657;
+    const healing = composePanelReading(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    const opened = composeDrillReading(statistics, roster, "healthGiven", healer);
+    assert(opened !== null, "the healer's row opens");
+    const announced = opened.bySkill.rows.find((one) => one.opensPart);
+    assert(announced !== undefined, "onto a skill that reached somebody else");
+    const part = composePartReading(statistics, roster, "healthGiven", healer, announced.part);
+    assert(part !== null, "which opens onto the people it reached");
+    const pair = composePairReading(statistics, roster, "healthGiven", healer, healer);
+    assert(pair !== null, "and the person inside it opens onto the pair");
+
+    const levels = [
+        { reading, current: "damageDealtApplied" as const, drill, pair: null, part: null },
+        { reading: healing, current: "healthGiven" as const, drill: opened, pair, part: null },
+        { reading: healing, current: "healthGiven" as const, drill: opened, pair: null, part },
+    ];
+    let counted = 0;
+    for (const level of levels) {
+        const document = composeFakeDocument();
+        const panel = composePanelHost(document, () => {}, () => {});
+        panel.show({
+            ...level,
+            side: "everyone" as const,
+            hasReaderSide: false,
+            shelf: [],
+            isOnShelf: false,
+            storage: "local" as const,
+            shelfWarnings: [],
+            halfNamed: null,
+            halfNamedDrill: null,
+            place: null,
+            isCollapsed: false,
+        });
+        const cells = getHeadingCells(panel.element as FakeElement);
+        assert(cells.length > 0, "a level that cuts a figure draws a heading over each cut");
+        counted += cells.length;
+        assertEquals(
+            cells.filter(([words]) => !CUT_HEADINGS.includes(words)).map(([words]) => words),
+            [],
+            "every heading is one of the five, and never a name the recording carries",
+        );
+        assertEquals(
+            cells.filter(([, classes]) =>
+                classes.join(" ") !== `${CLASS.sectionWords} ${CLASS.figure}`
+            ).map(([words]) => words),
+            [],
+            "each of them the words that shorten and the figure that does not",
+        );
+    }
+    assert(counted >= levels.length, "and every level drawn was measured, not skipped");
+});
+
+/** The figures under the list are cells like any other, and the class is what says so. */
+Deno.test("both totals and what belongs to neither side are drawn as figures", () => {
+    const host = draw({ ...readFight(), sides: { ours: 300, theirs: 600, nobody: 100 } });
+    const figures = getElementsWithin(host).filter((one) =>
+        one.className.split(" ").includes(CLASS.figure)
+    );
+    const under = figures.filter((one) => !one.className.includes(CLASS.rowValue));
+    assertEquals(
+        under.map((one) => one.textContent),
+        [composeFigureText(300), composeFigureText(600), composeFigureText(100)],
+        "the two sides and the spare, each wearing the class that holds it to one line",
+    );
+});
+
 Deno.test("a blow nothing announced closes the skills, and says how many there were", () => {
     const { reading, drill } = openFirstRow();
     const document = composeFakeDocument();
@@ -2260,8 +2366,8 @@ Deno.test("an opened healing pair draws its announcements and its keys as one se
     assertEquals(headings.length, 1, "one section, holding the whole of what passed between them");
     assertEquals(
         headings[0]?.children[0]?.textContent,
-        `${PANEL_WORDS.skillsAgainst} — ${pair.otherName}`,
-        "saying what it cuts and whom it is about",
+        PANEL_WORDS.skills,
+        "saying what it cuts, and leaving whom to the crumb over it",
     );
     assertEquals(
         headings[0]?.children[1]?.textContent,

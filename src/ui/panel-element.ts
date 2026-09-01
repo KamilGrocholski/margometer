@@ -367,7 +367,7 @@ function composeRowElement(
     }
     const name = composeElement(document, "span", CLASS.rowName);
     name.textContent = reading.name;
-    const value = composeElement(document, "span", CLASS.rowValue);
+    const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
     value.textContent = composeFigureText(reading.figure);
     const share = composeElement(document, "span", CLASS.rowShare);
     const uses = reading.uses ?? null;
@@ -630,9 +630,9 @@ function composeSectionElement(
     assert(heading.length > 0, "a cut that is drawn says what it is cut by");
     assert(total >= 0, "and states the figure it stands over");
     const section = composeElement(document, "div", CLASS.section);
-    const words = composeElement(document, "span", "");
+    const words = composeElement(document, "span", CLASS.sectionWords);
     words.textContent = heading;
-    const figure = composeElement(document, "span", "");
+    const figure = composeElement(document, "span", CLASS.figure);
     figure.textContent = composeFigureText(total);
     section.append(words);
     section.append(figure);
@@ -1034,11 +1034,11 @@ function composeSidesElement(document: PanelDocument, view: PanelView): PanelEle
     assert(sides.ours >= 0, "a side's own figure is never below nothing");
     assert(sides.theirs >= 0, "and neither is the other's");
     const line = composeElement(document, "div", CLASS.sidesLine);
-    const ours = composeElement(document, "span", CLASS.sidesOurs);
+    const ours = composeElement(document, "span", `${CLASS.sidesOurs} ${CLASS.figure}`);
     ours.textContent = composeFigureText(sides.ours);
     const label = composeElement(document, "span", CLASS.sidesLabel);
     label.textContent = composeSidesLabel(view);
-    const theirs = composeElement(document, "span", CLASS.sidesTheirs);
+    const theirs = composeElement(document, "span", `${CLASS.sidesTheirs} ${CLASS.figure}`);
     theirs.textContent = composeFigureText(sides.theirs);
     line.append(ours);
     line.append(label);
@@ -1080,7 +1080,7 @@ function composeSidesSpare(document: PanelDocument, figure: number): PanelElemen
     );
     const label = composeElement(document, "span", CLASS.sidesLabel);
     label.textContent = PANEL_WORDS.withoutSide;
-    const stated = composeElement(document, "span", "");
+    const stated = composeElement(document, "span", CLASS.figure);
     stated.textContent = composeFigureText(figure);
     spare.append(label);
     spare.append(stated);
@@ -1332,9 +1332,8 @@ function composePartElement(
     const list = composeListElement(document, Math.max(rows + 1, view.reading.visibleRows));
     const figure = getWordsForScreen(view.current);
     assert(part.total >= 0, "a part opened states a figure that is not below nothing");
-    const named = getWordsForNamedPart(part.part, view.current);
-    assert(named.length > 0, "and the name it was drawn under");
-    const heading = `${getWordsForOpponentCut(view.current)} — ${named}`;
+    const heading = getWordsForOpponentCut(view.current);
+    assert(heading.length > 0, "and says what the people under it are cut by");
     list.append(composeSectionElement(document, heading, part.total));
     const share = PANEL_WORDS.shareOfFigure;
     // Nothing on this rung opens, so no card here promises a gesture (`docs/drill-levels.md`).
@@ -1401,12 +1400,7 @@ function composePairParts(
 ): void {
     assert(pair.parts.length <= MAXIMUM_SKILLS, "a cut stays inside the bound it is kept to");
     if (pair.parts.length === 0) return;
-    const named = pair.otherName ?? PANEL_WORDS.unknown;
-    list.append(composeSectionElement(
-        document,
-        `${PANEL_WORDS.skillsAgainst} — ${named}`,
-        pair.total,
-    ));
+    list.append(composeSectionElement(document, PANEL_WORDS.skills, pair.total));
     for (const [at, row] of pair.parts.entries()) {
         const tip = { ...stated, key: getKeyForNamedPart("pair", row.part) };
         const reading = {

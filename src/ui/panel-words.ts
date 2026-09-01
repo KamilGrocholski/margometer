@@ -48,8 +48,7 @@ export const PANEL_WORDS = {
     takenFrom: "OD KOGO",
     damageKind: "TYP OBRAŻEŃ",
     healthSource: "OD CZEGO",
-    skills: "CZYM (UMIEJĘTNOŚCI)",
-    skillsAgainst: "CZYM",
+    skills: "CZYM",
     withoutKind: "Bez podanego typu",
     undrawn: "nie dało się narysować",
     combatants: "Postacie",
@@ -675,7 +674,7 @@ export function composeUsesText(uses: number): string {
 /** The sign is taken off first and put back last, so a lone minus never joins its digits. */
 const MINUS_SIGN = "-";
 const THOUSAND_DIGITS = 3;
-const THOUSAND_SEPARATOR = " ";
+const THOUSAND_SEPARATOR = "\u00a0";
 /** A safe integer is sixteen digits, so five groups is past every figure the protocol states. */
 const MAXIMUM_THOUSAND_GROUPS = 5;
 
@@ -772,7 +771,7 @@ export function composeSideCountsText(sizes: readonly number[], unplaced: number
     return `${counted} +${composeFigureText(unplaced)}`;
 }
 
-/** Thousands spaced, which is how the game itself writes a figure this size. */
+/** Thousands spaced as the game spaces them, on a space that never breaks — `DESIGN.md`. */
 export function composeFigureText(value: number): string {
     assert(Number.isFinite(value), "a figure a reader is shown is a number");
     const rounded = Math.round(value);

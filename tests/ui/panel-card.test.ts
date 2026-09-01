@@ -107,15 +107,15 @@ Deno.test("a card states all four figures, and the one on screen is the one in b
     assertEquals(
         readGroup(figures),
         [
-            "Zadane 354 258",
-            `  ${CARD_WORDS.raw} 410 002`,
-            `  ${PANEL_WORDS.withoutTarget} 2 104`,
-            "**Otrzymane** 141 710",
-            `  ${CARD_WORDS.raw} 160 998`,
-            `  ${PANEL_WORDS.withoutActor} 10 672`,
+            "Zadane 354\u00a0258",
+            `  ${CARD_WORDS.raw} 410\u00a0002`,
+            `  ${PANEL_WORDS.withoutTarget} 2\u00a0104`,
+            "**Otrzymane** 141\u00a0710",
+            `  ${CARD_WORDS.raw} 160\u00a0998`,
+            `  ${PANEL_WORDS.withoutActor} 10\u00a0672`,
             "Leczenie dane 0",
-            "Leczenie otrzymane 16 273",
-            `  ${PANEL_WORDS.withoutActor} 1 500`,
+            "Leczenie otrzymane 16\u00a0273",
+            `  ${PANEL_WORDS.withoutActor} 1\u00a0500`,
         ],
         "each with the part of it the protocol named only this row's end of, under it",
     );
@@ -157,7 +157,7 @@ Deno.test("a figure before reduction says it is the blows', and owes the sentenc
     }).groups.flatMap(readGroup);
     assertEquals(
         lines.filter((line) => line.startsWith(`  ${CARD_WORDS.raw}`)),
-        [`  ${CARD_WORDS.raw} 410 002`, `  ${CARD_WORDS.raw} 160 998`],
+        [`  ${CARD_WORDS.raw} 410\u00a0002`, `  ${CARD_WORDS.raw} 160\u00a0998`],
         "both ends state theirs, each under the figure it is drawn beside",
     );
     assert(
@@ -208,7 +208,7 @@ Deno.test("the card says what they did when they struck, and what held when they
             `[${CARD_WORDS.striking}]`,
             `${CARD_WORDS.blowsCritical} 9 (23%)`,
             `  ${CARD_WORDS.blowsCriticalOffhand} 2`,
-            `${CARD_WORDS.blowLargestDealt} 19 209`,
+            `${CARD_WORDS.blowLargestDealt} 19\u00a0209`,
             "przebicie 4",
             `[${CARD_WORDS.destroyed}]`,
             "  pancerz 940 pkt",
@@ -221,12 +221,12 @@ Deno.test("the card says what they did when they struck, and what held when they
         readGroup(struck),
         [
             `[${CARD_WORDS.struck}]`,
-            `${CARD_WORDS.prevented} 10 413`,
-            "  wchłonięcie 8 000",
-            "  blok 2 413",
+            `${CARD_WORDS.prevented} 10\u00a0413`,
+            "  wchłonięcie 8\u00a0000",
+            "  blok 2\u00a0413",
             "unik 3",
             "-legbon_cleanse 1",
-            `${CARD_WORDS.blowLargestTaken} 8 062`,
+            `${CARD_WORDS.blowLargestTaken} 8\u00a0062`,
         ],
         "what stopped part of a blow, what fired on their side of one, and the hardest through",
     );
@@ -443,10 +443,10 @@ Deno.test("both runs stand on every screen, and the screen moves only the bold f
     assertEquals(
         bold,
         [
-            ["**Zadane** 354 258"],
-            ["**Otrzymane** 141 710"],
+            ["**Zadane** 354\u00a0258"],
+            ["**Otrzymane** 141\u00a0710"],
             ["**Leczenie dane** 0"],
-            ["**Leczenie otrzymane** 16 273"],
+            ["**Leczenie otrzymane** 16\u00a0273"],
         ],
         "and each screen puts its own figure in bold, one of them and never two",
     );

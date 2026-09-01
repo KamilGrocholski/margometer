@@ -153,11 +153,36 @@ Deno.test("a share is spelled in whole points, and a figure too small to round s
 Deno.test("a figure is spaced the way the game spaces one, from three digits up", () => {
     assertEquals(composeFigureText(0), "0", "zero is one digit and stays one");
     assertEquals(composeFigureText(999), "999", "three digits are a group already");
-    assertEquals(composeFigureText(1000), "1 000", "and the fourth is what opens a gap");
-    assertEquals(composeFigureText(141710), "141 710", "the figure the panel was photographed on");
-    assertEquals(composeFigureText(1234567), "1 234 567", "two gaps, at every third digit");
-    assertEquals(composeFigureText(-1000), "-1 000", "a sign never joins the digits behind it");
-    assertEquals(composeFigureText(1000.4), "1 000", "a figure is drawn as a whole number");
+    assertEquals(composeFigureText(1000), "1\u00a0000", "and the fourth is what opens a gap");
+    assertEquals(
+        composeFigureText(141710),
+        "141\u00a0710",
+        "the figure the panel was photographed on",
+    );
+    assertEquals(
+        composeFigureText(1234567),
+        "1\u00a0234\u00a0567",
+        "two gaps, at every third digit",
+    );
+    assertEquals(
+        composeFigureText(-1000),
+        "-1\u00a0000",
+        "a sign never joins the digits behind it",
+    );
+    assertEquals(composeFigureText(1000.4), "1\u00a0000", "a figure is drawn as a whole number");
+});
+
+/**
+ * The gap is a space that does not break, which is the whole of why a figure stays on one line.
+ * Both ways round: a figure that groups carries no plain space, and one that does not group carries
+ * no gap at all — a separator that stopped grouping would pass the first half on its own.
+ */
+Deno.test("a figure never offers a place to break, and never spaces what it should not", () => {
+    assert(!composeFigureText(1000).includes(" "), "a figure that groups carries no plain space");
+    assert(composeFigureText(1000).includes("\u00a0"), "and groups on the one that does not break");
+    assert(!composeFigureText(999).includes(" "), "three digits are one group and stay one word");
+    assert(!composeFigureText(999).includes("\u00a0"), "with no gap opened inside them");
+    assert(!composeFigureText(0).includes("\u00a0"), "and zero is a digit, not a group of them");
 });
 
 /** What the reader adds up, as the reader adds it up: the points, without the sign. */

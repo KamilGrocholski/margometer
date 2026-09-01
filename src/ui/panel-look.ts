@@ -70,6 +70,7 @@ export const CLASS = {
     list: "list",
     listWaiting: "list-waiting",
     section: "section-heading",
+    sectionWords: "section-words",
     row: "row",
     rowDrillable: "drillable",
     rowLeaf: "leaf",
@@ -85,6 +86,8 @@ export const CLASS = {
     rowWarning: "row-warning",
     bar: "bar",
     barCap: "bar-cap",
+    /** Worn by every cell that carries a figure, wherever in the panel it stands. */
+    figure: "figure",
     pinned: "pinned-region",
     empty: "empty",
     undrawn: "undrawn",
@@ -476,6 +479,11 @@ function composeListRules(): string {
         `overscroll-behavior:contain;scrollbar-width:none;}` +
         // The background and the layer are not decoration: a row's bar is positioned and comes
         // later in the tree, so without both the bars paint over the sticky heading.
+        // A figure is one word and its cell never gives way; the words beside it are what
+        // shortens. `DESIGN.md` owns the rule, and every region that draws a figure wears this.
+        `.${CLASS.figure}{flex:none;white-space:nowrap;}` +
+        `.${CLASS.sectionWords}{min-width:0;overflow:hidden;text-overflow:ellipsis;` +
+        `white-space:nowrap;}` +
         `.${CLASS.section}{position:sticky;` +
         `top:calc(0px - var(${VARIABLE_PREFIX}region-down));z-index:1;` +
         `background:var(${VARIABLE_PREFIX}surface);display:flex;justify-content:space-between;` +
@@ -495,7 +503,8 @@ function composeListRules(): string {
         `border-top:1px solid var(${VARIABLE_PREFIX}border);overflow:hidden;}` +
         `.${CLASS.sidesLine}{display:flex;justify-content:space-between;align-items:baseline;` +
         `font-variant-numeric:tabular-nums;font-weight:600;}` +
-        `.${CLASS.sidesLabel}{color:var(${VARIABLE_PREFIX}quiet);font-weight:400;opacity:0.8;}` +
+        `.${CLASS.sidesLabel}{color:var(${VARIABLE_PREFIX}quiet);font-weight:400;opacity:0.8;` +
+        `min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.sidesSpare}{margin-top:var(${VARIABLE_PREFIX}small);font-size:10px;}` +
         `.${CLASS.sidesSpare} .${CLASS.sidesLabel}{color:inherit;}` +
         `.${CLASS.sidesTrack}{display:flex;height:4px;` +
@@ -539,7 +548,8 @@ function composeRowRules(): string {
         `.${CLASS.rowTime}{color:var(${VARIABLE_PREFIX}quiet);` +
         `font-variant-numeric:tabular-nums;flex:none;` +
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
-        `.${CLASS.rowName}{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}` +
+        `.${CLASS.rowName}{min-width:0;overflow:hidden;text-overflow:ellipsis;` +
+        `white-space:nowrap;flex:1;}` +
         // Before the name and never in place of it: the name is the cell that shortens, and a
         // mark taking width from it every row would be the cost ADR 0023 refused. This one is
         // drawn on the rows a doubt reaches, which is none of the rows in `captures/`.
@@ -555,7 +565,7 @@ function composeRowRules(): string {
         `margin-right:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.rowPin}:hover{color:var(${VARIABLE_PREFIX}text);}` +
         `.${CLASS.rowPin}.${CLASS.rowPinSet}{color:var(${VARIABLE_PREFIX}text);}` +
-        `.${CLASS.rowValue}{font-variant-numeric:tabular-nums;` +
+        `.${CLASS.rowValue}{font-variant-numeric:tabular-nums;flex:none;white-space:nowrap;` +
         `padding-left:var(${VARIABLE_PREFIX}wide);font-weight:600;}` +
         `.${CLASS.rowShare}{color:var(${VARIABLE_PREFIX}quiet);` +
         `padding-left:var(${VARIABLE_PREFIX}small);font-weight:400;}` +

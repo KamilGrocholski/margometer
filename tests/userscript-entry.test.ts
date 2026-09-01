@@ -126,11 +126,12 @@ Deno.test("a recording played through the add-on ends on the panel a reader woul
     assert(list !== undefined, "the panel drew its list");
     const rows = getElementsWithin(list).filter((one) => one.className.split(" ")[0] === "row");
     assertEquals(rows.length, 11, "the fight's eleven combatants, each with a row");
-    // The panel spaces its thousands, so what a reader adds up is read back without the spaces.
+    // The panel spaces its thousands on a gap that does not break, so what a reader adds up is
+    // read back with that gap taken out.
     const figures = rows.map((row) =>
         Number(
-            (row.children.find((one) => one.className === "row-value")?.textContent ?? "")
-                .split(" ").join(""),
+            (row.children.find((one) => one.className === "row-value figure")?.textContent ?? "")
+                .split("\u00a0").join(""),
         )
     );
     assert(figures[0] !== undefined && figures[0] > 0, "the largest figure is drawn first");
@@ -1109,7 +1110,7 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
     for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
     const host = shown[0] as FakeElement;
     const drawnFigures = (): string[] => {
-        return getTextsByClass(host, "row-value");
+        return getTextsByClass(host, "row-value figure");
     };
     const live = drawnFigures();
     assert(live.length > 0, "the panel is drawing the fight that just ended");
