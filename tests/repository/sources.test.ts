@@ -14,7 +14,22 @@ import {
 } from "@/tests/source-line.ts";
 import { getSourcePaths } from "@/tests/source-paths.ts";
 
-const ASSERTION_CALLS = ["assert", "assertEquals", "assertThrows"];
+/**
+ * `assertExists(` holds no `assert(` inside it, so a counter that knows one name reads the other
+ * as nothing and S5 measures the spelling instead of the assertion. A9 chooses among these.
+ */
+const ASSERTION_CALLS = [
+    "assert",
+    "assertEquals",
+    "assertThrows",
+    "assertExists",
+    "assertStrictEquals",
+    "assertNotEquals",
+    "assertNotStrictEquals",
+    "assertInstanceOf",
+    "assertStringIncludes",
+    "assertArrayIncludes",
+];
 const MAXIMUM_FUNCTION_LINES = 70;
 const MAXIMUM_COMMENT_SHARE = 25;
 const MAXIMUM_DIRECTORY_SHARE = 22;
@@ -358,6 +373,34 @@ Deno.test("the guards carry their own density, reported and not enforced", () =>
     }
     assert(functions > 0, "there are guards to read");
     assert(assertions > functions, "a guard that asserts less than once per function is suspect");
+});
+
+/**
+ * The blind spot a wider list opens: a name the counter does not know reads as no assertion, and
+ * a name it knows too loosely reads as one where a group of ours holds several.
+ */
+Deno.test("the counter sees every assertion the library ships, and no group of our own", () => {
+    assert(ASSERTION_CALLS.includes("assert"), "the plain one is still counted");
+    assertEquals(
+        countCallsOutsideStrings('    assertExists(row, "a row was drawn");', ASSERTION_CALLS),
+        1,
+        "an assertion named for what it checks counts once",
+    );
+    assertEquals(
+        countCallsOutsideStrings("    assertNotStrictEquals(one, other);", ASSERTION_CALLS),
+        1,
+        "and the longest name is not read as the shorter one inside it",
+    );
+    assertEquals(
+        countCallsOutsideStrings("    assertPinnedTotalsTheFight(one, two, three);", []),
+        0,
+        "a group of ours is not an assertion whatever the counter is asked for",
+    );
+    assertEquals(
+        countCallsOutsideStrings("    assertWholeIsTheSide(whole, sides, part);", ASSERTION_CALLS),
+        0,
+        "and holding several assertions still counts as none of them",
+    );
 });
 
 Deno.test("the readers know a declaration from a callback", () => {
