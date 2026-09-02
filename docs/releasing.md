@@ -77,8 +77,8 @@ is caught rather than at the tag.
       so a file written straight to disk is invisible to it — **W2**, and **W1** for when the gate
       runs at all.
 - [ ] Every commit in the release leaves it green on its own — **G5**.
-- [ ] `deno task e2e` — the built file in a real Chrome. It is not in the gate and CI runs it
-      separately, so a release is where a hand runs it deliberately — **W9**, **ADR 0046**.
+- [ ] `deno task e2e` — the built file in a real Chrome. It is not in the gate and CI runs it in a
+      job of its own, so a release is where a hand runs it deliberately — **W9**, **ADR 0047**.
 
 ## 4. Push, in three takts
 

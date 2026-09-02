@@ -36,6 +36,9 @@ TODO.md            The maintainer's list, by hand. Never written to by a tool.
 deno.json          Tasks, formatter, linter, strictness, the `@/` alias.
 deno.lock          What the gate is actually run against. A package the lock does not name is
                    ambient type information CI will not have.
+package.json       npm's half of the toolchain: the one dependency the browser suite brings.
+package-lock.json  What `npm ci` installs, so a run drives the version this tree named.
+playwright.config.ts  Where the browser suite looks, which engine it drives, what it leaves.
 .gitignore         What never enters git, including the cache.
 .github/
   workflows/
@@ -201,17 +204,29 @@ tests/
     constructs.test.ts     The construct register, against the files it says own each reading.
     game-vocabulary.test.ts  The two pages standing a game up, held to one spelling of it.
     libraries.test.ts      `libs/` reaching no layer, and naming nothing of this project.
+  e2e/                     The built file in a real Chrome, on Playwright. Outside the gate.
+    AGENTS.md              What is true here and nowhere else: the runner, and the pointer.
+    tsconfig.json          What `@/` means to a loader that is not Deno's.
+    build-once.ts          The build shelled out to once a run, and the two files it wrote.
+    panel-page.ts          The page it drives: a game, the bundle, a fight replayed into it.
+    panel-fixture.ts       One test's world, and the console nobody is allowed to reach.
+    panel-probe.ts         What a test reaches into the page for, and the pointer's gestures.
+    panel-crawler.ts       The crawl itself, as one expression a page is handed.
+    panel-boot.spec.ts     The file a reader installs, run by a browser, and a page with no game.
+    panel-drag.spec.ts     Where a drag starts, where it does not, and how far it goes.
+    panel-tabs.spec.ts     Every tab: the nouns, the directions, the audiences, the stores.
+    panel-drill.spec.ts    The rows that open a level, and the two ways back out.
+    panel-tip.spec.ts      The card the pointer leaves behind, and what closes it.
+    panel-scroll.spec.ts   The one region that scrolls, and what scrolling it must not do.
+    panel-fold.spec.ts     The panel folded away and brought back, and what is remembered.
+    panel-shelf.spec.ts    The fights kept, the one being read, a pin, and the three stores.
+    panel-save.spec.ts     The file the browser really takes, and what is inside it.
+    panel-reload.spec.ts   What a reader finds waiting, and what they do not.
+    panel-states.spec.ts   Before a fight, during one, at its end, and when the next begins.
+    panel-crawl.spec.ts    Every control on every screen, opened, walked and closed behind.
   recorded-fight.ts        The recordings, read through the constant that spells their fields.
   fake-document.ts         A document small enough to read, for a panel handed one.
   userscript-entry.test.ts  Every layer at once, driven the way a browser drives them.
-  e2e/                     The built file in a real Chrome. Outside the gate — ADR 0046.
-    browser-page.ts        The page it drives: a probe, a game, the bundle, a fight replayed.
-    browser-host.ts        That page on a real origin, and the Chrome this machine has.
-    panel-boot.test.ts     The file a reader installs, run by a browser.
-    panel-place.test.ts    A drag by a real pointer, and what a real reload finds waiting.
-    panel-crawler.ts       The crawl itself, as one expression a page is handed.
-    panel-crawl.test.ts    Every control on every screen, opened, walked and closed behind.
-    panel-controls.test.ts The strip along the bar, and the bar itself, driven by a real pointer.
   source-line.ts           A line of TypeScript with its string literals taken out.
   style-sheet.ts           The panel's stylesheet read back, for the guards that read it.
   source-paths.ts          Every TypeScript file under the directories that hold one.

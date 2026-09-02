@@ -1,8 +1,8 @@
 /**
  * The two pages that stand a game up, held to one spelling of the client's own names — **N13**.
  *
- * `tools/preview-page.ts` and `tests/e2e/browser-page.ts` each carry a stub of `Engine`, because
- * each needs different things around it (`tests/e2e/browser-page.ts` says which). Neither name is
+ * `tools/preview-page.ts` and `tests/e2e/panel-page.ts` each carry a stub of `Engine`, because
+ * each needs different things around it (`tests/e2e/panel-page.ts` says which). Neither name is
  * this repository's to choose, and a disagreement between them is never loud: the panel simply
  * draws nothing, or a snapshot comes out empty, on one page and not the other.
  */
@@ -11,7 +11,7 @@ import { assert, assertEquals } from "@std/assert";
 import { getEndOfRun } from "@/libs/text-walk.ts";
 
 const PREVIEW_PAGE = "tools/preview-page.ts";
-const BROWSER_PAGE = "tests/e2e/browser-page.ts";
+const BROWSER_PAGE = "tests/e2e/panel-page.ts";
 const STUB_OPENS = "window.Engine = {";
 const STUB_CLOSES = "\n};";
 

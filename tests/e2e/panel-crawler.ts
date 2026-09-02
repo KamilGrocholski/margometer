@@ -1,15 +1,10 @@
 /**
  * The crawl: every control the panel draws, pressed, on every screen, at every level.
  *
- * It runs **inside the page** in one `evaluate`. A press costs 0.61 ms — the panel redrawing
- * itself — and a round trip out to the driver costs milliseconds, so a crawl driven from outside
- * would be hours where this is a minute. Measured on Chrome 152, 2026-09-01.
- *
- * Two levels are walked and the third is counted rather than walked, because on that same
- * measurement it holds nothing to walk: 84 controls on the first level of one screen, 3038 on the
- * second, **zero** on the third. `docs/drill-levels.md` says the third level is the last, and the
- * crawl now holds that claim in a browser rather than taking it. The loops are written out rather
- * than recursive (**S1**).
+ * It runs **inside the page** in one `evaluate`. A press costs well under a millisecond — the
+ * panel redrawing itself — and a round trip out to the driver costs milliseconds, so a crawl
+ * driven from outside would be hours where this is a minute. The loops are written out rather
+ * than recursive (**S1**) and bounded (**S2**). **ADR 0047.**
  */
 
 /** Everything the crawl counted, and everything it caught. */
@@ -29,24 +24,25 @@ export interface CrawlReport {
 /** What opens another level. The order is `getPressFromTarget`'s (`src/ui/panel-element.ts`). */
 const DESCENDING = ["[data-row]", "[data-unnamed]", "[data-skill]", "[data-source]", "[data-kind]"];
 /**
- * More presses than any fight can offer. One screen of the largest recording is 6244, and there
- * are twelve — so this leaves an order of magnitude, and exceeding it is a finding rather than a
- * longer crawl (**S2**).
+ * More presses than any fight can offer. One screen of the largest recording is a few thousand,
+ * and there are twelve — so this leaves an order of magnitude, and exceeding it is a finding
+ * rather than a longer crawl (**S2**).
  */
 const MAXIMUM_PRESSES = 2000000;
+/** More faults than a reader would read. Past this the crawl has found its answer already. */
+const FAULTS_KEPT = 40;
 
 /** Reaching in, pressing, and the two readings every check is made of. */
 function composeCrawlHelpers(): string {
     return `var host = document.getElementById("MargoMeter-Panel");
 if (host === null || host.shadowRoot === null) throw new ReferenceError("no panel to crawl");
 var root = host.shadowRoot;
-var probe = window.margometerE2e;
 var faults = [];
 var presses = 0;
 var seen = { screens: 0, opened: 0, second: 0, deeper: 0, leaves: 0, closed: 0, kinds: {} };
 var all = function (selector) { return [].slice.call(root.querySelectorAll(selector)); };
 var shape = function () { return root.innerHTML; };
-var fault = function (said) { if (faults.length < 40) faults.push(said); };
+var fault = function (said) { if (faults.length < ${FAULTS_KEPT}) faults.push(said); };
 var press = function (node) {
   presses += 1;
   if (presses > ${MAXIMUM_PRESSES}) throw new RangeError("the crawl ran past its stated bound");
@@ -57,16 +53,14 @@ var press = function (node) {
 }
 
 /**
- * What must hold wherever the crawl stands. The text check is the one that catches a figure
- * nobody composed: a row drawing `undefined` is drawn, styled and wrong, and no assertion inside
- * the panel looks at the string a person actually reads.
+ * What must hold wherever the crawl stands. The text check is the one that catches a figure nobody
+ * composed: a row drawing `undefined` is drawn, styled and wrong, and no assertion inside the
+ * panel looks at the string a person actually reads.
  */
 function composeCrawlCheck(): string {
     return `var check = function (where) {
   if (root.children.length === 0) fault(where + ": the panel drew nothing at all");
   if (all(".undrawn").length > 0) fault(where + ": a region gave way");
-  if (probe.failures.length > 0) fault(where + ": threw " + probe.failures[0]);
-  if (probe.said.length > 0) fault(where + ": said " + probe.said[0]);
   var said = root.textContent;
   if (said.indexOf("undefined") !== -1) fault(where + ": a row reads undefined");
   if (said.indexOf("NaN") !== -1) fault(where + ": a row reads NaN");
@@ -147,8 +141,8 @@ for (var s = 0; s < screenCount; s += 1) {
 
 /**
  * The crawl, as one expression a page can be handed. `isDeep` is what a caller trades: the second
- * level is 36 controls per row of the first, so a sweep over every recording asks for the first
- * alone and a crawl of one recording asks for both.
+ * level holds tens of controls per row of the first, so a sweep over every recording asks for the
+ * first alone and a crawl of one recording asks for both.
  */
 export function composeCrawlScript(isDeep: boolean): string {
     return `(function crawlThePanel() {

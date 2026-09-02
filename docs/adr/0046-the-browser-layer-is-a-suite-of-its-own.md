@@ -1,6 +1,6 @@
 # 0046. The browser layer is a suite of its own, and it brings a driver
 
-- **Status:** Accepted
+- **Status:** Superseded by 0047
 - **Date:** 2026-09-01
 
 ## Context

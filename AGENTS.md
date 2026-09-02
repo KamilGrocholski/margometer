@@ -366,10 +366,11 @@ TypeScript idiom, with the naming rules stated here.
 - **W8.** Never update a golden expectation merely to make a behaviour change pass. _(`by-reading`
   whether an expectation moved for a reason)_
 - **W9. A change under `src/` is not done until `deno task e2e` is green as well.** The gate asks
-  for no browser and stays runnable on a machine with none; that suite asks for an installed Chrome,
-  and what it holds nothing else can — the built file running, a press retargeted by a real shadow
-  root, the sheet as an engine resolves it, real input, real storage, and a fight reaching the end
-  of a page with the console shut. **ADR 0046.**
+  for no browser and stays runnable on a machine with none; that suite asks for the Chrome this
+  machine has, and what it holds nothing else does — the built file running, a drag by a real
+  pointer, a card a pointer opens and a redraw takes away, the one region that scrolls, a file the
+  browser really takes, storage that survives a real reload, and a crawl of every control the panel
+  draws. **ADR 0047.**
 
 ## Git and releases
 

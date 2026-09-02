@@ -140,4 +140,6 @@ edited to agree with the new rule.
 - [0045](0045-a-recording-of-a-fight-already-here-is-refused.md) — A recording of a fight already
   here is refused at the door. **Accepted**
 - [0046](0046-the-browser-layer-is-a-suite-of-its-own.md) — The browser layer is a suite of its own,
-  and it brings a driver. **Accepted**
+  and it brings a driver. **Superseded by 0047**
+- [0047](0047-the-browser-layer-comes-back-on-playwright.md) — The browser layer comes back, on
+  Playwright, and asks the machine for its Chrome. **Accepted**

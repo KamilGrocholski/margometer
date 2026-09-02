@@ -32,8 +32,30 @@ jobs:
 
             - run: deno task check
 
-            # The browser layer, which the gate deliberately does not carry — ADR 0046. No install
-            # step and no download: this image ships Google Chrome, and `tools/installed-browser.ts`
-            # finds it on the path. A runner that stopped shipping one fails here rather than
-            # quietly running nothing.
+    browser:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: denoland/setup-deno@v2
+              with:
+                  deno-version: 2.9.6
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+
+            - run: npm ci
+
+            # The browser layer, which the gate deliberately does not carry — ADR 0047. No install
+            # step and no download: this image ships Google Chrome, and Playwright is pointed at it
+            # by `channel`. A runner that stopped shipping one fails here rather than quietly
+            # running nothing.
             - run: deno task e2e
+
+            - uses: actions/upload-artifact@v4
+              if: failure()
+              with:
+                  name: playwright-report
+                  path: dist/e2e/report
+                  retention-days: 7

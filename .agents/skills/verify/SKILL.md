@@ -8,12 +8,12 @@ description: Run the built userscript against a captured fight in a real browser
 The add-on's surface is a browser page. `deno task check` is not that surface: it typechecks, runs
 the suite and builds the bundle, and every one of those can be green while the panel is broken.
 
-**`deno task e2e` is part of that surface and is not part of the gate** (ADR 0046). It drives the
-built file in a real Chrome and asserts what a fake document cannot — the bundle running, a press
-retargeted by a real shadow root, the sheet as an engine resolves it, real input, real storage, and
-a fight reaching the end with the console shut. Run it before calling a change to `src/` done
-(**W9**). What it does not cover is everything below: whether a state is _reachable_, and whether
-what was drawn is what a person wanted to see.
+**`deno task e2e` is part of that surface and is not part of the gate** (ADR 0047). It drives the
+built file in the Chrome this machine has and asserts what a fake document cannot — the bundle
+running, a drag by a real pointer, the card a pointer opens, the one region that scrolls, the file
+the browser really takes, storage across a real reload, and every control on every screen pressed.
+Run it before calling a change to `src/` done (**W9**). What it does not cover is everything below:
+whether a state is _reachable_, and whether what was drawn is what a person wanted to see.
 
 ## The server
 
