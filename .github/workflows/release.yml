@@ -62,6 +62,14 @@ jobs:
                       exit 1
                   fi
 
+            # The gate typechecks the browser suite, which imports an npm package —
+            # `.github/workflows/check.yml` says what that costs, ADR 0047 why it is paid.
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+
+            - run: npm ci
+
             - run: deno task check
 
             # The gate builds at the declaration marked `-dev`, which is what a tree nobody

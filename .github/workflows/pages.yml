@@ -59,6 +59,14 @@ jobs:
               with:
                   deno-version: 2.9.6
 
+            # The gate typechecks the browser suite, which imports an npm package —
+            # `.github/workflows/check.yml` says what that costs, ADR 0047 why it is paid.
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+
+            - run: npm ci
+
             - run: deno task check
             # `--release` and not the bare task: this runs on `main`, which is the latest
             # release, and both READMEs tell a reader the page is drawn by the file from that

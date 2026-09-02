@@ -30,6 +30,18 @@ jobs:
               with:
                   deno-version: 2.9.6
 
+            # ⚠️ The gate typechecks the browser suite, and that suite imports an npm package, so
+            # `deno check` resolves it through the `node_modules` npm installs — ADR 0047, and
+            # `deno.json` says `"nodeModulesDir": "manual"` for the same reason. Without this step
+            # the gate is red on a fresh checkout with `Could not resolve "@playwright/test"`,
+            # which is how it was found. No browser is installed here: this is the package, not
+            # the engine, and `deno task check` still runs on a machine with no Chrome.
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: 24
+
+            - run: npm ci
+
             - run: deno task check
 
     browser:
