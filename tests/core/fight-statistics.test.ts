@@ -687,3 +687,98 @@ Deno.test("every recording places what a blow carried, and places none of it twi
         }
     }
 });
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: an announcement and the two blows
+ * it went out as. The published help says every attack of one skill is one turn (article 372
+ * §2.1, read 2026-09-02), and the second blow arrives announced as nothing.
+ */
+const TWO_HIT_ANNOUNCEMENT = "441390=100.00;-10000249=99.60;tspell=Podwójne trafienie;skillId=239";
+const TWO_HIT_FIRST = "441390=100.00;-10000249=99.57;+dmgd=926;+dmgf=138;+dmgc=799;+resdmg=2;" +
+    "-absorb=44;-absorbm=294;-dmgd=81;-dmgc=8";
+const TWO_HIT_SECOND = "441390=100.00;-10000249=99.40;+pierce;+dmgd=809;+dmgf=105;+dmgc=799;" +
+    "+resdmg=2;-absorb=283;-absorbm=814;-dmgd=526;-dmgf=7;-dmgc=21";
+/**
+ * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: two default attacks by one
+ * combatant, one after the other. The queue hands a fast combatant consecutive turns, so these
+ * are two of them and not one struck twice.
+ */
+const BARE_BLOW = "482845=100.00;-161518=70.07;+dmgd=466;+acdmg=5;-dmgd=223";
+const BARE_BLOW_AGAIN = "482845=100.00;-161518=21.34;+crit;+dmgd=612;+acdmg=5;-dmgd=363";
+/** The same recording: the other default action, which strikes nothing (§2.3). */
+const STEP = "-255967=100.00;0;step";
+/**
+ * `2026-08-25-luvia-grupa-vs-draugr-none-none.json`: a turn that went on making a skill ready,
+ * and the same key stated beside its own combatant's blow, where it rides that blow's turn.
+ */
+const PREPARE_ALONE = "-10124094=21.17;0;prepare=Osobisty rozrachunek(100%)";
+const PREPARE_BLOW = "-10124094=23.21;22914=43.63;+dmg=3275;+acdmg=96;-absorb=136;-dmg=2365";
+const PREPARE_BESIDE = "-10124094=23.21;0;prepare=Osobisty rozrachunek(0%)";
+
+function getTurnsTaken(messages: readonly string[], combatantId: number): number {
+    const statistics = composeFightStatistics(decodeFightMessages(messages, null), new Map());
+    return statistics.byCombatantId.get(combatantId)?.turnsTaken ?? 0;
+}
+
+Deno.test("a skill and every attack it goes out as are one turn", () => {
+    const whole = [TWO_HIT_ANNOUNCEMENT, TWO_HIT_FIRST, TWO_HIT_SECOND];
+    assertEquals(getTurnsTaken(whole, 441390), 1, "the announcement, and both of its blows");
+    assertEquals(getTurnsTaken([TWO_HIT_ANNOUNCEMENT], 441390), 1, "the announcement alone");
+    assertEquals(getTurnsTaken(whole, -10000249), 0, "and the end it landed on took none of it");
+});
+
+Deno.test("two default attacks by one combatant are two turns, not one struck twice", () => {
+    assertEquals(getTurnsTaken([BARE_BLOW], 482845), 1, "one attack is one turn");
+    assertEquals(getTurnsTaken([BARE_BLOW, BARE_BLOW_AGAIN], 482845), 2, "and two are two");
+});
+
+Deno.test("a step is a turn of its own, and a preparation is one where it stands alone", () => {
+    assertEquals(getTurnsTaken([STEP], -255967), 1, "the other default action");
+    assertEquals(getTurnsTaken([PREPARE_ALONE], -10124094), 1, "a turn spent making one ready");
+    assertEquals(
+        getTurnsTaken([PREPARE_BLOW, PREPARE_BESIDE], -10124094),
+        1,
+        "and one stated beside their own blow rides that blow's turn",
+    );
+});
+
+/**
+ * Zero is a boundary (**W5**), and here it is two of them: a combatant who only stood at the far
+ * end of a blow took no turn, and a fight nobody acted in counts none.
+ */
+Deno.test("a combatant nothing was read of took no turn, and nor did an empty fight", () => {
+    assertEquals(getTurnsTaken([ABSORBED], -10000249), 0, "the end a blow landed on");
+    assertEquals(getTurnsTaken([POISON, HEAL], -255967), 0, "health moving is nobody's turn");
+    const statistics = composeFightStatistics([], new Map());
+    assertEquals(statistics.byCombatantId.size, 0, "and a fight with no events has no rows");
+});
+
+/**
+ * A turn the protocol named no actor for reaches no row: there is nobody to charge it to. No
+ * recording produces the case, which is why the message is written here — **W4**.
+ */
+Deno.test("a turn the protocol named nobody for is charged to no row", () => {
+    const events = decodeFightMessages(["0;0;tspell=Coś;skillId=1"], null);
+    const statistics = composeFightStatistics(events, new Map());
+    assertEquals(statistics.byCombatantId.size, 0, "an unnamed actor opens no row");
+});
+
+/**
+ * Counting the two declarations adds turns to rows and creates none, measured 2026-09-02. It is
+ * what says `tools/fight-figures.ts` prints the fights it printed before.
+ */
+Deno.test("every recording charges a turn to somebody who was already in the fight", () => {
+    let turns = 0;
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        // One decode per payload, which is what the session does: an announcement is glued
+        // inside the payload it arrived in and never across two of them.
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        for (const [id, figures] of statistics.byCombatantId) {
+            assert(figures.turnsTaken >= 0, `${path} ${id} took no less than no turn`);
+            turns += figures.turnsTaken;
+        }
+    }
+    assertEquals(turns, 5154, "the turns the recordings hold, 2026-09-02");
+});

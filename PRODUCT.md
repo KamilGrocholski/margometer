@@ -94,7 +94,7 @@ MargoMeter does not, and will not within this horizon:
 - carry accounts, groups, a server or shared state;
 - collect, transmit or retain a player's nickname;
 - present the game's own sentences as this project's work;
-- count turns, or state any figure derived from a turn count;
+- divide any figure by a turn count, or state a rate per turn;
 - guess a name the protocol did not carry.
 
 ## Language

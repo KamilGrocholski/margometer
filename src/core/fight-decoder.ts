@@ -162,6 +162,18 @@ const SKILL_NAME_KEY = "tspell";
 const CUSTOM_SKILL_NAME_KEY = "tcustom";
 const SKILL_ID_KEY = "skillId";
 /**
+ * A combatant moving, which the published help calls one of the two default actions a turn can
+ * go on — article 372 §2.3, read 2026-09-02. Exported so the files that spell it spell it once;
+ * the key is the game's and `docs/protocol-keys.md` owns what it means (**N13**).
+ */
+export const STEP_KEY = "step";
+/**
+ * A skill being made ready, which is the other way a turn passes with nothing struck. The help
+ * documents no such mechanic (`docs/protocol-keys.md`), so what it costs is measured rather than
+ * cited: `docs/turns-taken.md`. Spelled once, for **N13**'s reason.
+ */
+export const PREPARE_KEY = "prepare";
+/**
  * Keys stating something no total here counts: an input, an outcome in a unit this meter does
  * not keep, or one outside the fight. Every member is an entry in `docs/protocol-keys.md`, and
  * the test a key must pass to be here is not "we understand it" — it is whether whatever the
@@ -204,16 +216,10 @@ const DECLARATION_KEYS = [
     "lowheal_per-enemies",
     "mana",
     "poison_lowdmg_per-enemies",
-    "prepare",
+    PREPARE_KEY,
     "shout",
     "txt",
 ];
-/**
- * A combatant moving, which is the one declaration a reading of what somebody did on their turn
- * counts (`tools/action-count.ts`). Exported so the two files that spell it spell it once — the
- * key is the game's and `docs/protocol-keys.md` owns what it means (**N13**).
- */
-export const STEP_KEY = "step";
 /**
  * The same, stating the key and nothing else — and read **only** while they carry none. The
  * client composes `+legbon_holytouch` with a hole for a figure, so it is a declaration whose

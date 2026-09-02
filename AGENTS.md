@@ -35,8 +35,8 @@ Read the documents relevant to the change:
 - [`docs/releasing.md`](docs/releasing.md) — the steps a release runs, each citing what owns it.
 - [`docs/protocol-keys.md`](docs/protocol-keys.md) — what each protocol key means, and how we know.
 - [`docs/drill-levels.md`](docs/drill-levels.md) — which rows of the panel open, and which do not.
-- [`docs/actions-taken.md`](docs/actions-taken.md) — what an action count comes to, and what it does
-  not claim.
+- [`docs/turns-taken.md`](docs/turns-taken.md) — what a turn count comes to, and what it does not
+  claim.
 
 **Target is not proof.** `PRODUCT.md` and the target sections of `ARCHITECTURE.md` are design
 constraints, not evidence that a feature exists. Do not describe target behaviour as implemented
@@ -471,7 +471,7 @@ the same thing a second way.
 | `tests/repository/constructs.test.ts`         | the construct register, both ways                |
 | `tests/repository/game-vocabulary.test.ts`    | N13 for the two pages standing a game up         |
 | `tests/repository/libraries.test.ts`          | `libs/` and `project/` reaching into no layer    |
-| `tests/tools/action-count.test.ts`            | `docs/actions-taken.md` against every recording  |
+| `tests/tools/turn-count.test.ts`              | `docs/turns-taken.md` against every recording    |
 | `tests/tools/browser-support.test.ts`         | `docs/browser-support.md` against the stylesheet |
 | `tests/tools/captured-fight-register.test.ts` | `docs/captured-fights.md` against `captures/`    |
 | `tests/tools/drill-report.test.ts`            | `docs/drill-levels.md` against every level drawn |

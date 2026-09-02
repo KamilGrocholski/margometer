@@ -143,5 +143,5 @@ edited to agree with the new rule.
   and it brings a driver. **Superseded by 0047**
 - [0047](0047-the-browser-layer-comes-back-on-playwright.md) — The browser layer comes back, on
   Playwright, and asks the machine for its Chrome. **Accepted**
-- [0048](0048-an-action-is-counted-and-a-turn-is-not-read.md) — An action is counted, and a turn is
-  not read. **Accepted**
+- [0048](0048-a-turn-is-counted-and-nothing-divides-by-it.md) — A turn is counted, and nothing
+  divides by it. **Accepted**

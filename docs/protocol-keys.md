@@ -1913,16 +1913,20 @@ searched, since `allies` says whom the effect reaches rather than what it is
 `captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json`, each alone with its announcement.
 
 ⚠️ **A turn is not found in any key of these, or of any other** — measured over every recording on
-2026-08-19, against every key the client branches on (`frozen/protocol-keys.ts`). Nothing here
-counts turns, and the panel no longer divides by them.
+2026-08-19, against every key the client branches on (`frozen/protocol-keys.ts`). It is not in a
+message at all: the game numbers turns in the payload's envelope, which this register does not
+cover, and `docs/turns-taken.md` is where that reading lives. What a key can say is that its
+combatant spent a turn, which two of them below do.
 
 ### `step` — decoded
 
 Carries **no value at all** and names one combatant in the actor slot with no target. Every
 occurrence is a message holding nothing else, which is what a turn boundary would look like — but
 the protocol does not say that, and this entry does not either. Some recordings carry none at all.
-What reads the key is `tools/action-count.ts`, which counts it as an action its combatant took and
-never as a boundary between two turns (**ADR 0048**).
+
+The help does say what it **is**: a step forward is one of the two default actions a turn can be
+spent on, beside the attack (article 372 §2.3, read 2026-09-02). So `src/core/fight-statistics.ts`
+counts it as a turn its combatant took, and never as a boundary between two of them (**ADR 0048**).
 
 _Shape:_ 171 occurrences; alone in its message; no value
 
@@ -1936,6 +1940,11 @@ Every occurrence is valueless and alone, always with an actor and never a target
 
 A skill being prepared rather than used, stated as `name(percent%)`. The name is the client's
 display text, so no example of one appears here.
+
+Counted as a turn its combatant took, but **only where it stands alone**: where the same combatant
+acted in the message before it, the preparation rides that turn rather than being one. The help
+documents no such mechanic, so unlike `step` this is measured and not cited — `docs/turns-taken.md`
+carries both shapes and what each costs (**ADR 0048**).
 
 _Shape:_ 302 occurrences; alone in its message; text
 

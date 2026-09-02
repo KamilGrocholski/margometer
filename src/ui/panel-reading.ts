@@ -96,6 +96,8 @@ export interface RowDetail {
     blowsWithoutSkill: number;
     /** What their announcements came to, which is a count of announcements and not of blows. */
     skillUses: number;
+    /** The turns they took, which no figure on the card is divided by (**ADR 0048**). */
+    turnsTaken: number;
     damageDealtToNobody: number;
     damageTakenFromNobody: number;
     healthRestoredByNobody: number;
@@ -533,6 +535,7 @@ function composeRowDetail(figures: CombatantFigures, level: number | null): RowD
         blowsStruck: figures.blowsStruck,
         blowsWithoutSkill: figures.blowsWithoutSkill,
         skillUses: getSkillUses(figures),
+        turnsTaken: figures.turnsTaken,
         damageDealtToNobody: figures.damageDealtToNobody,
         damageTakenFromNobody: figures.damageTakenFromNobody,
         healthRestoredByNobody: figures.healthRestoredByNobody,

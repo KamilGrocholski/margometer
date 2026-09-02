@@ -23,9 +23,12 @@ tag, type
 **Protocol**: The grammar of payloads, messages and keys — our only data source. _Avoid_: API,
 format, log
 
-**Turn**: One action by one combatant. **Nothing here counts them**: totals only, no rate, no
-divisor. The game numbers one ordinal in a fast fight, so a count of turns is not a figure this
-meter can honestly state. _Avoid_: Round, tick, action
+**Turn**: One action by one combatant, which is the game's own definition and not ours — the
+published help numbers them from 1 upward and gives one to a single character at a time. What is
+counted and shown is a turn **taken**; the game's numbering also counts one granted to somebody who
+spent nothing on it, and `docs/turns-taken.md` measures the difference. **Nothing divides by it**:
+no rate, no per-turn share, and no fight-wide total, because a fight the reader walked into is short
+by an amount nothing states. _Avoid_: Round, tick, action
 
 ## The people
 

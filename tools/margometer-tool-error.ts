@@ -16,7 +16,7 @@ export type MargoMeterToolErrorCode =
     | "DeclaredVersion"
     | "Changelog"
     | "DrillReport"
-    | "ActionCount";
+    | "TurnCount";
 
 export abstract class MargoMeterToolError extends Error {
     readonly code: MargoMeterToolErrorCode;
@@ -126,8 +126,8 @@ export class DrillReportError extends MargoMeterToolError {
 }
 
 /** The action count refused: an argument that is not a path to a recording. */
-export class ActionCountError extends MargoMeterToolError {
+export class TurnCountError extends MargoMeterToolError {
     constructor(reason: string) {
-        super("ActionCount", reason);
+        super("TurnCount", reason);
     }
 }

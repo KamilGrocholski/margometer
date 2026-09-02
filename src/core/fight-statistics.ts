@@ -12,6 +12,7 @@ import type {
     AttackEvent,
     BattleEvent,
     DamageFigure,
+    DeclarationEvent,
     HealthChangeEvent,
 } from "@/src/core/battle-event.ts";
 import type { TeamHeal } from "@/src/core/combatant-health.ts";
@@ -19,7 +20,9 @@ import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import {
     CRITICAL_PROC_KEYS,
     getProcEnd,
+    PREPARE_KEY,
     SELF_SOURCED_HEALING_KEYS,
+    STEP_KEY,
     WOUND_ANNOUNCEMENT_KEY,
     WOUND_TICK_KEY,
 } from "@/src/core/fight-decoder.ts";
@@ -124,6 +127,12 @@ export interface CombatantFigures {
      */
     blowsStruck: number;
     blowsWithoutSkill: number;
+    /**
+     * The turns they took. A turn is one numbered action and the server takes it where nobody
+     * does, so none passes unspoken (published help, article 372 §2.1 and §2.2, read 2026-09-02).
+     * Graded against the game's own numbering: `docs/turns-taken.md`. **ADR 0048.**
+     */
+    turnsTaken: number;
     /**
      * Blows that landed critically, and it counts **blows** rather than the keys they carried: a
      * blow may state `+crit` and `+of_crit` both, and 20 of the 955 critical blows over
@@ -234,6 +243,7 @@ export function composeCombatantFigures(): CombatantFigures {
         skills: new Map(),
         blowsStruck: 0,
         blowsWithoutSkill: 0,
+        turnsTaken: 0,
         blowsCritical: 0,
         damageDealtBlowLargest: 0,
         damageTakenBlowLargest: 0,
@@ -373,6 +383,72 @@ function addSkillUse(build: StatisticsBuild, event: BattleEvent): void {
     assert(held.uses > 0, "an announcement that was counted was counted at least once");
 }
 
+/** Whether a declaration states this key, which is the whole of what it says happened. */
+function hasDeclaredEffect(event: DeclarationEvent, effect: string): boolean {
+    assert(effect.length > 0, "a declaration is looked up under a key");
+    for (const declared of event.declared) {
+        if (declared.effect === effect) return true;
+    }
+    return false;
+}
+
+/**
+ * Whose turn this event opens, or null where it opens none. Four things do, two of them the
+ * game's own default actions; the two that look like a turn and are not are measured exceptions.
+ * `docs/turns-taken.md` names all six and states what each costs.
+ */
+function getTurnOpener(event: BattleEvent, standing: TurnStanding): number | null {
+    if (event.kind === "skill-used") return event.actorId;
+    if (event.kind === "attack") {
+        if (event.announced !== null) return null;
+        if (standing.strikingId === event.actorId) return null;
+        return event.actorId;
+    }
+    if (event.kind !== "declaration") return null;
+    if (hasDeclaredEffect(event, STEP_KEY)) return event.combatantId;
+    if (!hasDeclaredEffect(event, PREPARE_KEY)) return null;
+    if (standing.actingId === event.combatantId) return null;
+    return event.combatantId;
+}
+
+/**
+ * The same standing, one event on. A blow keeps the announcement going only while it is that
+ * announcement's own — its first blow, or an extra attack of it; anything else ends it, and an
+ * event that is nobody's action ends both halves.
+ */
+function composeTurnStanding(event: BattleEvent, standing: TurnStanding): TurnStanding {
+    assert(
+        standing.strikingId === null || standing.strikingId === standing.actingId,
+        "whoever is still mid-blow is whoever acted last",
+    );
+    if (event.kind === "attack") {
+        const isExtra = event.announced === null && standing.strikingId === event.actorId;
+        const isStriking = event.announced !== null || isExtra;
+        return { strikingId: isStriking ? event.actorId : null, actingId: event.actorId };
+    }
+    if (event.kind === "skill-used") {
+        return { strikingId: null, actingId: event.actorId };
+    }
+    if (event.kind === "declaration") {
+        return { strikingId: null, actingId: standing.actingId };
+    }
+    return { strikingId: null, actingId: null };
+}
+
+/**
+ * One turn onto the row that took it. A turn the protocol named no actor for reaches no row: the
+ * same answer `blowsStruck` gives, because there is nobody to charge it to.
+ */
+function addTurnTaken(build: StatisticsBuild, event: BattleEvent): void {
+    const openerId = getTurnOpener(event, build.turnStanding);
+    build.turnStanding = composeTurnStanding(event, build.turnStanding);
+    if (openerId === null) return;
+    assert(Number.isSafeInteger(openerId), "a turn is charged to an id that was read");
+    const figures = getFiguresForCombatant(build.byCombatantId, openerId);
+    figures.turnsTaken += 1;
+    assert(figures.turnsTaken > 0, "a turn that was counted was counted at least once");
+}
+
 function getTotalFromFigures(figures: readonly DamageFigure[]): number {
     let total = 0;
     for (const figure of figures) {
@@ -406,6 +482,16 @@ interface WoundStanding {
     amount: number;
 }
 
+/**
+ * What is still running when the next event is read. The extra attacks of one skill are all one
+ * turn (published help, article 372 §2.1 and the `add_attacks` effect, read 2026-09-02), and a
+ * preparation stated beside its own combatant's action rides it: `docs/turns-taken.md`.
+ */
+interface TurnStanding {
+    strikingId: number | null;
+    actingId: number | null;
+}
+
 interface StatisticsBuild {
     byCombatantId: Map<number, CombatantFigures>;
     woundByVictimId: Map<number, WoundStanding>;
@@ -416,6 +502,7 @@ interface StatisticsBuild {
     byNeitherEnd: number;
     byNeitherEndByElement: Map<string, number>;
     unreadMessages: number;
+    turnStanding: TurnStanding;
     outcome: FightOutcome | null;
 }
 
@@ -1049,6 +1136,7 @@ export function composeFightStatistics(
         byNeitherEndByElement: new Map(),
         unreadMessages: 0,
         castsUnplaced: 0,
+        turnStanding: { strikingId: null, actingId: null },
         outcome: null,
     };
     assert(build.byCombatantId.size === 0, "a fight is counted up from nobody");
@@ -1069,6 +1157,7 @@ export function composeFightStatistics(
         addNamedHealingEvent(build, event);
         addFightOutcome(build, event);
         addSkillUse(build, event);
+        addTurnTaken(build, event);
     }
     assert(build.byCombatantId.size <= MAXIMUM_COMBATANTS, "a fight stays inside its bound");
     assert(build.unreadMessages <= events.length, "a message is counted unread once");

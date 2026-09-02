@@ -128,6 +128,16 @@ function composeCardFigureLines(detail: RowDetail, metric: PanelMetric): TipLine
 function composeCardCounterLines(detail: RowDetail): TipLine[] {
     assert(detail.blowsWithoutSkill <= detail.blowsStruck, "a blow behind no announcement is one");
     const lines: TipLine[] = [];
+    // First, because a turn is what the counts below happened inside of: the blows and the
+    // announcements are what one was spent on (`docs/turns-taken.md`).
+    if (detail.turnsTaken > 0) {
+        lines.push({
+            kind: "stat",
+            label: CARD_WORDS.turns,
+            stated: composeFigureText(detail.turnsTaken),
+            isStrong: false,
+        });
+    }
     if (detail.blowsStruck > 0) {
         lines.push({
             kind: "stat",
@@ -200,8 +210,8 @@ function composeCardCriticalText(detail: RowDetail): string | null {
 
 /**
  * How they struck: how much of it landed critically, the hardest one, what else fired, and what
- * their blows took off the other side. The share is of **blows** rather than of anything the game
- * counts in time — nothing here counts a turn (`PRODUCT.md`).
+ * their blows took off the other side. The share is of **blows** and never of the turns the line
+ * above states: nothing on this card is divided by a turn (`PRODUCT.md`, **ADR 0048**).
  */
 function composeCardStrikingLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
     const lines: TipLine[] = [];

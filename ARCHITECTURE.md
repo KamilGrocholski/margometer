@@ -98,7 +98,7 @@ tools/             Never ships. Each arrives with the question it answers.
   decoding-status.ts   What the decoder could not read, counted over whatever it is handed.
   fight-figures.ts     What a fight adds up to, per combatant, as a table at a terminal.
   drill-report.ts      Which rows of the panel open, measured level by level over a fight.
-  action-count.ts      What a fight's actions come to, graded against the game's `current`.
+  turn-count.ts        What a fight's turns come to, graded against the game's own numbering.
   preview-page.ts      The harness page, whole, as one string. It speaks neither language.
   preview-state.ts     What the harness carries between two pages, in the address and nowhere else.
   preview-server.ts    That page served, rebuilt on a change under `src/`, and reloaded.
@@ -121,7 +121,7 @@ docs/
   protocol-keys.md   What has been looked into, key by key: verdict, evidence, state.
   releasing.md       The steps a release runs, and which of them a machine holds.
   drill-levels.md    Which kind of row opens onto another level, and which is the last.
-  actions-taken.md   What an action count comes to, and what it does not claim.
+  turns-taken.md     What a turn count comes to, and what it does not claim.
   captured-fights.md What each recording holds, and how much protocol it carries.
   browser-support.md What the shipped file asks of a browser.
   adr/               Decisions costly or surprising to reverse.
@@ -165,7 +165,7 @@ tests/
     decoding-status.test.ts   A sample it must flag, and the corpus it must not.
     fight-figures.test.ts     The table read back, and the reading block that prints at zero.
     drill-report.test.ts      The register against every level drawn, both ways round.
-    action-count.test.ts      The register against every recording graded, both ways round.
+    turn-count.test.ts        The register against every recording graded, both ways round.
     preview-page.test.ts      The page, read back: the order of its scripts, and its escaping.
     preview-state.test.ts     Both halves of the address, run rather than searched for words.
     preview-server.test.ts    Every route, against a bundle handed in rather than built.
