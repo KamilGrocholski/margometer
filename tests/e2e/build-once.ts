@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { expect, type FullConfig } from "@playwright/test";
 
+/** `tools/build-userscript.ts` owns both names; a loader that cannot resolve `jsr:` respells. */
 export const USERSCRIPT_NAME = "margometer.user.js";
 export const METADATA_NAME = "margometer.meta.js";
 const BUILT_DIRECTORY = "dist";
@@ -30,9 +31,8 @@ export function readBuiltUserscript(rootDirectory: string): string {
 }
 
 /**
- * The version the **banner** states, which is not where the bundle's own constant comes from:
- * `composeUserscriptBanner` writes one and `setVersionInBundle` the other, so a test comparing
- * the two compares two code paths rather than a value against itself.
+ * The version the **banner** states, and not the constant the bundle carries: two code paths —
+ * `composeUserscriptBanner` writes one and `setVersionInBundle` the other.
  */
 export function readBuiltVersion(rootDirectory: string): string {
     const banner = readFileSync(join(rootDirectory, BUILT_DIRECTORY, METADATA_NAME), "utf8");

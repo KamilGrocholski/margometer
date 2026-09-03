@@ -6,10 +6,8 @@
  */
 
 import { expect, test } from "@/tests/e2e/panel-fixture.ts";
+import { DESCENDING } from "@/tests/e2e/panel-crawler.ts";
 import { readPanelShape } from "@/tests/e2e/panel-probe.ts";
-
-/** What opens another level. The order is `getPressFromTarget`'s (`src/ui/panel-element.ts`). */
-const DESCENDING = ["[data-row]", "[data-unnamed]", "[data-skill]", "[data-source]", "[data-kind]"];
 
 test("a ranking row opens onto its own level, and says where the reader is", async ({ panel }) => {
     await expect(panel.at(".crumb-here"), "nothing is open to begin with").toHaveCount(0);

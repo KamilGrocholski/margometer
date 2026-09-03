@@ -12,7 +12,15 @@ import { expect, type PanelHandle, test } from "@/tests/e2e/panel-fixture.ts";
 import { GAME_BUILD, PAGE_WORLD } from "@/tests/e2e/panel-page.ts";
 
 /** The envelope's own field names, as `src/game/fight-capture.ts` writes them. */
-const ENVELOPE = ["formatVersion", "addOnVersion", "capturedAt", "world", "gameBuild", "calls"];
+const ENVELOPE = [
+    "formatVersion",
+    "addOnVersion",
+    "capturedAt",
+    "world",
+    "gameBuild",
+    "calls",
+    "report",
+];
 
 /** The file the browser took, read back off disk. */
 async function readHandedOver(panel: PanelHandle) {
@@ -45,6 +53,8 @@ test("the file is the envelope an intake reads, and carries the whole fight", as
     const carried = handed.read.calls;
     expect(Array.isArray(carried), "it carries the calls the game delivered").toBe(true);
     expect((carried as unknown[]).length, "and there are some of them").toBeGreaterThan(0);
+    // The field's presence is `ENVELOPE`'s to hold, and this says it carries something: without
+    // both, a build that stopped writing the report at all still passes here.
     expect(handed.read.report, "with the figures the panel drew beside them").not.toBeNull();
 
     const kept = await panel.saved();

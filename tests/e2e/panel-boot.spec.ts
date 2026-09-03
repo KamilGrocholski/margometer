@@ -15,7 +15,7 @@ const FAILURE_LINE = "MargoMeter/Panel";
 const PAST_THE_SEARCH = 70_000;
 
 test("the file a reader installs runs, and puts a panel on the page", async ({ panel }) => {
-    await expect(panel.host).toHaveCount(1);
+    await expect(panel.host, "the bundle ran and put its host in the page").toHaveCount(1);
     await expect(panel.host).toHaveAttribute("data-margometer-version", panel.version);
     const hasRoot = await panel.page.evaluate((selector) => {
         return document.querySelector(selector)?.shadowRoot !== null;
@@ -30,7 +30,7 @@ test("the banner stands over the bundle a browser runs", async ({ built, panel }
         true,
     );
     expect(built.script, "at the version the bundle carries").toContain(panel.version);
-    await expect(panel.host).toHaveCount(1);
+    await expect(panel.host, "and the file under that banner runs").toHaveCount(1);
 });
 
 test("the wrap hands the game its own answer back", async ({ panel }) => {
@@ -45,7 +45,7 @@ test.describe("a page that offers no game", () => {
 
     test("draws no panel, and says so once the search is over", async ({ panel, honesty }) => {
         honesty.allow("no game on this page");
-        await expect(panel.host).toHaveCount(0);
+        await expect(panel.host, "a page with no game gets no panel").toHaveCount(0);
         const said: string[] = [];
         panel.page.on("console", (line) => said.push(line.text()));
         // The search is a minute of polling. The clock is moved rather than waited out — the
@@ -59,7 +59,7 @@ test.describe("a page that offers no game", () => {
             message: "the reader is told, in the branded line",
         }).toContain("no game on this page");
         expect(said.filter((line) => line.includes(FAILURE_LINE)).length, "once").toBe(1);
-        await expect(panel.host).toHaveCount(0);
+        await expect(panel.host, "and giving up draws nothing after all").toHaveCount(0);
     });
 });
 
@@ -67,7 +67,7 @@ test.describe("a game that arrives after the first look", () => {
     test.use({ engine: "late", fedThrough: "none" });
 
     test("still gets a panel, on a later poll", async ({ panel }) => {
-        await expect(panel.host).toHaveCount(1);
+        await expect(panel.host, "a later poll found the game and drew").toHaveCount(1);
         const fed = await panel.feed(20);
         expect(fed, "and the fight reaches it through the wrap").toBe(20);
         await expect(panel.at("[data-row]")).not.toHaveCount(0);
@@ -80,7 +80,7 @@ test.describe("the same file loaded twice", () => {
 
     test("leaves one panel, and the second copy stands down", async ({ panel, honesty }) => {
         honesty.allow("another reader holds the game");
-        await expect(panel.host).toHaveCount(1);
+        await expect(panel.host, "one panel, whatever the page loaded").toHaveCount(1);
         await panel.expectHonest("a page carrying the file twice");
     });
 });

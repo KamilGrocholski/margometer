@@ -1,10 +1,8 @@
 /**
  * What a test reaches into the page for, and the gestures the browser's own pointer makes.
  *
- * A drag goes through the mouse the browser owns and never a dispatched event:
- * `setPointerCapture` throws for a pointerId no real pointer owns, the guarded handler swallows
- * the gesture, and a synthetic drag then reports a panel that cannot be moved as one nobody
- * moved. **ADR 0047.**
+ * A drag goes through the mouse the browser owns and never a dispatched event, for the reason
+ * `tests/e2e/AGENTS.md` states.
  */
 
 import { expect, type Page } from "@playwright/test";

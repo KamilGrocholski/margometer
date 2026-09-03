@@ -22,11 +22,17 @@ export interface CrawlReport {
 }
 
 /** What opens another level. The order is `getPressFromTarget`'s (`src/ui/panel-element.ts`). */
-const DESCENDING = ["[data-row]", "[data-unnamed]", "[data-skill]", "[data-source]", "[data-kind]"];
+export const DESCENDING = [
+    "[data-row]",
+    "[data-unnamed]",
+    "[data-skill]",
+    "[data-source]",
+    "[data-kind]",
+];
 /**
- * More presses than any fight can offer. One screen of the largest recording is a few thousand,
- * and there are twelve — so this leaves an order of magnitude, and exceeding it is a finding
- * rather than a longer crawl (**S2**).
+ * More presses than any fight can offer. **ADR 0046** measured 6244 on one screen of the deepest
+ * recording, and there are twelve screens — so this stands more than an order of magnitude over
+ * the whole of that, and exceeding it is a finding rather than a longer crawl (**S2**).
  */
 const MAXIMUM_PRESSES = 2000000;
 /** More faults than a reader would read. Past this the crawl has found its answer already. */
