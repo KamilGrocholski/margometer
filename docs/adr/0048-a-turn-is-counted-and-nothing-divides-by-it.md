@@ -96,8 +96,9 @@ grading was rebuilt first on purpose, so that a change to the counting could be 
 Also: two exceptions are carried in the reading rather than in a comment somewhere. They are
 measured, they are named in `docs/turns-taken.md`, and a mutation of either lights the register.
 
-Obliged later: the corpus is thin where it matters most. Ten of twenty-eight recordings are numbered
-once, and every one of them is a fast fight or an `auto` fight — exactly the shape the maintainer
+Obliged later: the corpus is thin where it matters most. Nine of twenty-eight recordings state the
+numbering once or not at all — five carry no queue in any payload and four carry exactly one — and
+every one of them is a fast fight or an `auto` fight, which is exactly the shape the maintainer
 plays. A recording of a long fight taken with the queue arriving would be the first material that
 could contradict this.
 
