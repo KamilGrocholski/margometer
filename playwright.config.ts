@@ -1,25 +1,16 @@
 /**
- * The browser suite's settings: where it looks, which engine it drives, and what it leaves behind.
- *
- * It is deliberately not part of `deno task check` — the gate asks for no browser and stays
- * runnable on a machine with none. **ADR 0047.**
+ * The browser suite's settings: where it looks, which engine it drives, what it leaves behind, and
+ * why it stands outside `deno task check` rather than in it — **W9**, and **ADR 0047**.
  */
 
 import { defineConfig, devices } from "@playwright/test";
 
-/** What names a browser for a run that argues none, spelled as `tools/installed-browser.ts` does. */
+/** Spelled as `tools/panel-screenshots.ts` does, and held level by that tool's own guard. */
 const BROWSER_VARIABLE = "MARGOMETER_BROWSER";
-/**
- * Wide enough that nothing the panel draws is clipped by the frame, and tall enough that a drag
- * to the bottom edge has somewhere to go.
- */
+/** Wide enough to clip nothing the panel draws, tall enough for a drag to the bottom edge. */
 const WINDOW_WIDTH = 1280;
 const WINDOW_HEIGHT = 900;
-/**
- * A test that has not answered in half a minute is stuck: every press the panel takes is
- * sub-millisecond and every wait here is on a redraw. The crawl is the one exception and asks
- * for its own, where it stands.
- */
+/** A test unanswered in half a minute is stuck: every wait here is on a redraw. */
 const TEST_MILLISECONDS = 30_000;
 
 const asked = process.env[BROWSER_VARIABLE];
@@ -38,9 +29,7 @@ export default defineConfig({
     reporter: [["list"], ["html", { outputFolder: "./dist/e2e/report", open: "never" }]],
     use: {
         ...devices["Desktop Chrome"],
-        // The Chrome this machine has, never one Playwright downloaded: `docs/browser-support.md`
-        // takes its measurements on the engine the game's readers run, and a bundled Chromium is
-        // a different build. A machine with none fails loudly here rather than running nothing.
+        // The Chrome this machine has, never one Playwright downloaded — **ADR 0047**.
         channel: asked === undefined ? "chrome" : undefined,
         ...(asked === undefined ? {} : { launchOptions: { executablePath: asked } }),
         viewport: { width: WINDOW_WIDTH, height: WINDOW_HEIGHT },

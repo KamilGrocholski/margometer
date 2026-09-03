@@ -3,13 +3,16 @@
     "tasks": {
         // The gate. One command, so there is no version of "I ran the tests but not the build".
         // `build` writes `dist/`, which git does not carry: what ships is checked as a file.
-        // It asks for no browser: `tests/e2e/` is Playwright's, named `.spec.ts` so `deno test`
-        // does not look for it, and `e2e` below is where it runs.
+        // Why no browser is asked for here: W9, and ADR 0047. `tests/e2e/` is Playwright's, named
+        // `.spec.ts` so `deno test` does not look for it, and `e2e` below is where it runs.
         //
-        // ⚠️ `deno check` is named twice, and the second is not redundant. With no argument it
-        // checks what the graph reaches, and nothing imports a `.spec.ts` — so a spec calling a
-        // constant nobody declared typechecked clean and failed in the browser instead. Measured
-        // 2026-09-02, on six errors in one file.
+        // ⚠️ `deno check` is named twice, and today the second call is covered by the first.
+        // Measured 2026-09-03 on Deno 2.9.6: with no argument it checks every file under the tree
+        // minus this file's `exclude` — 159 of them, `playwright.config.ts` and every `.spec.ts`
+        // included — and a spec calling a constant nobody declared reddens it. It stays because
+        // that is a behaviour of the no-argument form and not a promise it makes: a spec is
+        // imported by nothing, so naming the directory is what keeps it checked whatever a later
+        // Deno decides the bare command means.
         "check": "deno fmt --check && deno lint && deno check && deno check tests/e2e && deno test -A && deno task build",
         // The same tree in a real browser: the built file, driven in the Chrome this machine has.
         // Kept out of the gate on purpose — ADR 0047 — and run by CI and before a release.
