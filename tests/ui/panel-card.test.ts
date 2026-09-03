@@ -27,6 +27,7 @@ const HILDUR: RowDetail = {
     blowsWithoutSkill: 7,
     skillUses: 30,
     turnsTaken: 37,
+    turnsLost: 4,
     damageDealtToNobody: 2104,
     damageTakenFromNobody: 10672,
     healthRestoredByNobody: 1500,
@@ -66,6 +67,7 @@ const NOBODY: RowDetail = {
     blowsWithoutSkill: 0,
     skillUses: 0,
     turnsTaken: 0,
+    turnsLost: 0,
     damageDealtToNobody: 0,
     damageTakenFromNobody: 0,
     healthRestoredByNobody: 0,
@@ -126,11 +128,12 @@ Deno.test("a card states all four figures, and the one on screen is the one in b
         readGroup(counters),
         [
             `${CARD_WORDS.turns} 37`,
+            `  ${CARD_WORDS.turnsLost} 4`,
             `${CARD_WORDS.blows} 40`,
             `  ${CARD_WORDS.blowsWithoutSkill} 7`,
             `${CARD_WORDS.skillUses} 30`,
         ],
-        "the turns, the blows, the ones nothing stood in front of, and the announcements",
+        "the turns, the ones lost, the blows, the ones behind no skill, and the announcements",
     );
     assertExists(notes, "and what to be careful of");
     assertEquals(
@@ -613,4 +616,10 @@ Deno.test("the card says how many turns a combatant took, and only where they to
         .flatMap((group) => group.lines)
         .filter((line) => line.kind === "stat" && line.label === CARD_WORDS.turns);
     assertEquals(one.length, 1, "one turn is a line");
+    // And the turns nobody lost say nothing at all, rather than saying they were none: the
+    // sub-line stands under a combatant who took turns, so its zero has to be checked there.
+    const unlost = composeCardReading({ ...subject, detail: { ...NOBODY, turnsTaken: 1 } }).groups
+        .flatMap((group) => group.lines)
+        .filter((line) => line.kind === "sub" && line.label === CARD_WORDS.turnsLost);
+    assertEquals(unlost, [], "a combatant who lost no turn has no line saying so");
 });

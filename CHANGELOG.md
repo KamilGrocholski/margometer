@@ -33,11 +33,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
-- **Nowość** — Karta postaci mówi, ile tur ta postać wykonała. Tura to jedna akcja: zwykły atak,
-  krok do przodu, użycie umiejętności albo jej przygotowanie — a wszystkie ciosy jednej umiejętności
-  liczą się jako jedna tura, tak jak liczy je gra. Tura, w której postać nic nie zrobiła, bo była
-  ogłuszona, nie jest turą wykonaną i nie jest tu liczona. Liczba stoi na własnej linii i panel
-  niczego przez nią nie dzieli.
+- **Nowość** — Karta postaci mówi, ile tur ta postać wykonała, a pod spodem ile straciła. Tura to
+  jedna akcja: zwykły atak, krok do przodu, użycie umiejętności albo jej przygotowanie — a wszystkie
+  ciosy jednej umiejętności liczą się jako jedna tura, tak jak liczy je gra. Tura, w której postać
+  nic nie zrobiła, bo była ogłuszona, stoi osobno jako „utracone" i gra sama ogłasza je w logu
+  walki. Obie liczby stoją na własnych liniach i panel niczego przez nie nie dzieli.
 
 ## [0.12.1] — 2026-09-01
 

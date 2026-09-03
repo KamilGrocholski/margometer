@@ -21,9 +21,14 @@ import type {
     HealthChangeEvent,
     PreventedDamage,
     SkillUsedEvent,
+    TurnLostEvent,
     UnaccountedHealthEvent,
 } from "@/src/core/battle-event.ts";
-import { type CombatantRoster, getCombatantIdByName } from "@/src/core/combatant-roster.ts";
+import {
+    type CombatantRoster,
+    getCombatantIdByName,
+    MAXIMUM_COMBATANTS,
+} from "@/src/core/combatant-roster.ts";
 import {
     parseProtocolMessage,
     type ProtocolMessage,
@@ -174,6 +179,20 @@ export const STEP_KEY = "step";
  */
 export const PREPARE_KEY = "prepare";
 /**
+ * Free text the client shows in its log, and the one key nothing is kept from
+ * (`docs/protocol-keys.md`). One thing is **read** from it and never stored: whether the sentence
+ * announces a turn its holder spent on nothing. **ADR 0049.**
+ */
+const TEXT_KEY = "txt";
+/**
+ * What the game puts between the combatant it is talking about and what it has to say. Not a name
+ * this repository chose, and the words after it are prose nobody here reads — a turn lost is told
+ * apart from the game's other lines by shape alone.
+ */
+const TURN_LOST_SEPARATOR = " - ";
+/** How the game ends a sentence about something other than a turn. */
+const SENTENCE_STOP = ".";
+/**
  * Keys stating something no total here counts: an input, an outcome in a unit this meter does
  * not keep, or one outside the fight. Every member is an entry in `docs/protocol-keys.md`, and
  * the test a key must pass to be here is not "we understand it" — it is whether whatever the
@@ -218,7 +237,7 @@ const DECLARATION_KEYS = [
     "poison_lowdmg_per-enemies",
     PREPARE_KEY,
     "shout",
-    "txt",
+    TEXT_KEY,
 ];
 /**
  * The same, stating the key and nothing else — and read **only** while they carry none. The
@@ -786,7 +805,9 @@ function decodeOneMessage(
     }
     for (const outcome of reading.outcomes) events.push(outcome);
     if (!declaredElsewhere && reading.declared.length > 0) {
-        events.push(composeDeclarationEvent(parsed, reading.declared));
+        const lost = composeTurnLostEvent(reading.declared, roster);
+        if (lost === null) events.push(composeDeclarationEvent(parsed, reading.declared));
+        else events.push(lost);
     }
     const isUnread = reading.unreadKeys.length > 0;
     if (isUnread || events.length === 0) {
@@ -801,6 +822,46 @@ function decodeOneMessage(
     assert(events.length > 0, "a message decodes to something, even where nothing was read");
     assert(events.length <= parsed.parameters.length + 1, "a message stays inside its bound");
     return { events, announced: composeAnnouncedSkill(parsed, reading.skill) };
+}
+
+/**
+ * Whose turn the sentence says was spent on nothing, or null where it says something else. Read by
+ * shape and never by its words: the text opens with a combatant's own name and the separator the
+ * game puts after it, and the game's other lines about a combatant end in a full stop. Measured
+ * over `captures/` on 2026-09-03 — 319 of 319, with nothing else matching. **ADR 0049.**
+ */
+function readTurnLostName(text: string, roster: CombatantRoster): string | null {
+    if (text.endsWith(SENTENCE_STOP)) return null;
+    assert(roster.idByName.size <= MAXIMUM_COMBATANTS, "a roster stays inside its stated bound");
+    let longest: string | null = null;
+    // The longest name wins, so a nickname that opens another does not take its line.
+    for (const [name] of roster.idByName) {
+        if (!text.startsWith(name + TURN_LOST_SEPARATOR)) continue;
+        if (longest === null) longest = name;
+        else if (name.length > longest.length) longest = name;
+    }
+    return longest;
+}
+
+/**
+ * The same, as the event a reading holds. Null where the message says something else, so the
+ * declaration branch keeps it and nothing about the sentence is invented.
+ */
+function composeTurnLostEvent(
+    declared: readonly DeclaredEffect[],
+    roster: CombatantRoster | null,
+): TurnLostEvent | null {
+    if (roster === null) return null;
+    if (declared.length !== 1) return null;
+    const stated = declared[0];
+    if (stated === undefined) return null;
+    if (stated.effect !== TEXT_KEY) return null;
+    if (stated.text === null) return null;
+    const name = readTurnLostName(stated.text, roster);
+    if (name === null) return null;
+    assert(name.length > 0, "a turn lost is lost by somebody the roster names");
+    assert(stated.text.length > name.length, "and the sentence says more than that name");
+    return { kind: "turn-lost", combatantId: getCombatantIdByName(roster, name) };
 }
 
 /** A message that states something and reports nothing that happened to anybody. */

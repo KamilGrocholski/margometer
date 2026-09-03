@@ -25,10 +25,10 @@ format, log
 
 **Turn**: One action by one combatant, which is the game's own definition and not ours — the
 published help numbers them from 1 upward and gives one to a single character at a time. What is
-counted and shown is a turn **taken**; the game's numbering also counts one granted to somebody who
-spent nothing on it, and `docs/turns-taken.md` measures the difference. **Nothing divides by it**:
-no rate, no per-turn share, and no fight-wide total, because a fight the reader walked into is short
-by an amount nothing states. _Avoid_: Round, tick, action
+counted and shown are both halves of what was seen: a turn **taken**, and a turn granted and spent
+on nothing, which the game announces itself. Their sum is still not the turns somebody was given.
+**Nothing divides by it**: no rate, no per-turn share, and no fight-wide total, because a fight the
+reader walked into is short by an amount nothing states. _Avoid_: Round, tick, action
 
 ## The people
 

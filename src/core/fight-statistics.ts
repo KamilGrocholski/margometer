@@ -134,6 +134,12 @@ export interface CombatantFigures {
      */
     turnsTaken: number;
     /**
+     * The turns they were granted and spent on nothing, which the game announces itself. The two
+     * counts are what was seen and never what was scheduled: their sum is not the turns this
+     * combatant was given. **ADR 0049.**
+     */
+    turnsLost: number;
+    /**
      * Blows that landed critically, and it counts **blows** rather than the keys they carried: a
      * blow may state `+crit` and `+of_crit` both, and 20 of the 955 critical blows over
      * `captures/` on 2026-08-30 do — so a count of keys would read 975 and overstate the rate a
@@ -244,6 +250,7 @@ export function composeCombatantFigures(): CombatantFigures {
         blowsStruck: 0,
         blowsWithoutSkill: 0,
         turnsTaken: 0,
+        turnsLost: 0,
         blowsCritical: 0,
         damageDealtBlowLargest: 0,
         damageTakenBlowLargest: 0,
@@ -447,6 +454,19 @@ function addTurnTaken(build: StatisticsBuild, event: BattleEvent): void {
     const figures = getFiguresForCombatant(build.byCombatantId, openerId);
     figures.turnsTaken += 1;
     assert(figures.turnsTaken > 0, "a turn that was counted was counted at least once");
+}
+
+/**
+ * One turn nobody spent, onto the row that was given it. A turn the roster could not place reaches
+ * no row, the same answer every half-named figure gets: `tools/turn-count.ts` counts that part.
+ */
+function addTurnLost(build: StatisticsBuild, event: BattleEvent): void {
+    if (event.kind !== "turn-lost") return;
+    if (event.combatantId === null) return;
+    assert(Number.isSafeInteger(event.combatantId), "a turn is lost by an id that was read");
+    const figures = getFiguresForCombatant(build.byCombatantId, event.combatantId);
+    figures.turnsLost += 1;
+    assert(figures.turnsLost > 0, "a turn that was lost was lost at least once");
 }
 
 function getTotalFromFigures(figures: readonly DamageFigure[]): number {
@@ -1158,6 +1178,7 @@ export function composeFightStatistics(
         addFightOutcome(build, event);
         addSkillUse(build, event);
         addTurnTaken(build, event);
+        addTurnLost(build, event);
     }
     assert(build.byCombatantId.size <= MAXIMUM_COMBATANTS, "a fight stays inside its bound");
     assert(build.unreadMessages <= events.length, "a message is counted unread once");

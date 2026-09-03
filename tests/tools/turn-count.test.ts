@@ -41,6 +41,7 @@ interface RegisterRow {
     granted: string;
     taken: string;
     short: string;
+    lost: string;
 }
 
 function getCellsFromLine(line: string): string[] {
@@ -81,46 +82,48 @@ function getRegisterRows(text: string): RegisterRow[] {
         if (!inside) continue;
         if (!line.startsWith("| ")) continue;
         const cells = getCellsFromLine(line).map(getBareCell);
-        const [name, verdict, granted, taken, short] = cells;
+        const [name, verdict, granted, taken, short, lost] = cells;
         if (name === undefined) continue;
         if (verdict === undefined) continue;
         if (granted === undefined) continue;
         if (taken === undefined) continue;
         if (short === undefined) continue;
+        if (lost === undefined) continue;
         if (!TURN_VERDICTS.includes(verdict as never)) continue;
-        found.push({ name, verdict, granted, taken, short });
+        found.push({ name, verdict, granted, taken, short, lost });
     }
     return found;
 }
 
 function composeRegisterKey(one: RegisterRow): string {
-    return `${one.name} | ${one.verdict} | ${one.granted} | ${one.taken} | ${one.short}`;
+    return `${one.name} | ${one.verdict} | ${one.granted} | ${one.taken} | ${one.short} | ` +
+        `${one.lost}`;
 }
 
 /** The same line off the tree rather than off the document, so the two can be compared as sets. */
 function composeMeasuredKey(grade: TurnGrade): string {
     const stretch = grade.stretch;
     const cells = stretch === null
-        ? [NO_STRETCH, NO_STRETCH, NO_STRETCH]
-        : [`${stretch.granted}`, `${stretch.taken}`, `${stretch.short}`];
+        ? [NO_STRETCH, NO_STRETCH, NO_STRETCH, NO_STRETCH]
+        : [`${stretch.granted}`, `${stretch.taken}`, `${stretch.short}`, `${stretch.lost}`];
     return `${grade.name} | ${grade.verdict} | ${cells.join(" | ")}`;
 }
 
 Deno.test("the register reader finds the register, and nothing else in the file", () => {
     const sample =
-        "## The register\n\n| recording | the game agrees | granted | taken | short |\n" +
-        "| - | - | - | - | - |\n" +
-        "| 2026-08-04-tempest-lowca-vs-odyncze | `in a lump` | — | — | — |\n";
+        "## The register\n\n| recording | the game agrees | granted | taken | short | lost |\n" +
+        "| - | - | - | - | - | - |\n" +
+        "| 2026-08-04-tempest-lowca-vs-odyncze | `in a lump` | — | — | — | — |\n";
     assertEquals(
         getRegisterRows(sample).map(composeRegisterKey),
-        ["2026-08-04-tempest-lowca-vs-odyncze | in a lump | — | — | —"],
+        ["2026-08-04-tempest-lowca-vs-odyncze | in a lump | — | — | — | —"],
         "the reader works",
     );
     // The sample it must not flag: a register row standing before the heading, and a row of the
     // vocabulary tables, whose second cell is a sentence rather than a verdict.
-    const elsewhere = "| 2026-08-04-lowca | `in a lump` | — | — | — |\n## The register\n" +
+    const elsewhere = "| 2026-08-04-lowca | `in a lump` | — | — | — | — |\n## The register\n" +
         "| `always` | the game's numbering agreed at every step it could be asked |\n" +
-        "| recording | the game agrees | granted | taken | short |\n";
+        "| recording | the game agrees | granted | taken | short | lost |\n";
     assertEquals(getRegisterRows(elsewhere), [], "a table outside the register is not one");
 });
 
@@ -215,6 +218,8 @@ Deno.test("no recording counts a turn the game did not grant", () => {
             `${grade.name}: the shortfall is the difference it says it is`,
         );
         assert(stretch.short >= 0, `${grade.name}: more turns counted than the game granted`);
+        assert(stretch.lost >= 0, `${grade.name}: a turn was unlost`);
+        assert(stretch.lost <= stretch.granted, `${grade.name}: more lost than the game granted`);
         assert(stretch.taken > 0, `${grade.name}: a numbered stretch was acted in`);
     }
     assert(stretches > 0, "the corpus states a stretch to measure over");

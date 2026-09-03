@@ -145,3 +145,5 @@ edited to agree with the new rule.
   Playwright, and asks the machine for its Chrome. **Accepted**
 - [0048](0048-a-turn-is-counted-and-nothing-divides-by-it.md) — A turn is counted, and nothing
   divides by it. **Accepted**
+- [0049](0049-a-turn-nobody-spent-is-read-by-shape.md) — A turn nobody spent is read by shape, not
+  by words. **Accepted**

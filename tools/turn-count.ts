@@ -90,6 +90,8 @@ export interface TurnStretch {
     granted: number;
     taken: number;
     short: number;
+    /** The turns the game announced as spent on nothing, inside the same stretch (**ADR 0049**). */
+    lost: number;
 }
 
 /**
@@ -121,6 +123,16 @@ function readNamedCurrent(payload: unknown): number | null {
     if (!isRecord(payload)) return null;
     if (!(CURRENT_KEY in payload)) return null;
     return getNumberFromUnknown(payload[CURRENT_KEY]);
+}
+
+/** Every row's lost turns as the aggregate holds them, summed the way the stretch compares them. */
+function getTurnsLost(statistics: FightStatistics): number {
+    let lost = 0;
+    for (const [, figures] of statistics.byCombatantId) {
+        assert(figures.turnsLost >= 0, "a row lost no less than no turn at all");
+        lost += figures.turnsLost;
+    }
+    return lost;
 }
 
 /** Every row's turns as the aggregate holds them, which is what a panel would draw. */
@@ -208,26 +220,33 @@ function composeStretch(steps: readonly FightReplayStep[]): TurnStretch | null {
     let last: TurnStatement | null = null;
     let takenAtFirst = 0;
     let takenAtLast = 0;
+    let lostAtFirst = 0;
+    let lostAtLast = 0;
     for (const step of steps) {
         const stated = readTurnStatement(step.payload);
         if (stated === null) continue;
         let taken = 0;
         for (const [, turns] of composeTurnsByCombatantId(step.replay.statistics)) taken += turns;
+        const lost = getTurnsLost(step.replay.statistics);
         if (first === null) {
             first = stated;
             takenAtFirst = taken;
+            lostAtFirst = lost;
         }
         last = stated;
         takenAtLast = taken;
+        lostAtLast = lost;
     }
     if (first === null) return null;
     if (last === null) return null;
     if (last.ordinal === first.ordinal) return null;
     const granted = last.ordinal - first.ordinal;
     const taken = takenAtLast - takenAtFirst;
+    const lost = lostAtLast - lostAtFirst;
     assert(granted > 0, "a stretch the game numbered twice runs forwards");
     assert(taken >= 0, "and a count of turns never falls as a fight goes on");
-    return { granted, taken, short: granted - taken };
+    assert(lost >= 0, "and neither does a count of the turns nobody spent");
+    return { granted, taken, short: granted - taken, lost };
 }
 
 /**
@@ -306,13 +325,14 @@ export const NO_STRETCH = "\u2014";
 export function composeGradeRegister(grades: readonly TurnGrade[]): string[] {
     assert(grades.length > 0, "a register states the grades it was handed");
     const heading = `${"the game agrees".padEnd(VERDICT_WIDTH + 4)}${"granted".padStart(9)}` +
-        `${"taken".padStart(9)}${"short".padStart(9)}`;
+        `${"taken".padStart(9)}${"short".padStart(9)}${"lost".padStart(9)}`;
     const lines = [`  ${"recording".padEnd(NAME_WIDTH)}${heading}`];
     for (const grade of grades) {
         const stretch = grade.stretch;
         const cells = stretch === null
-            ? [NO_STRETCH, NO_STRETCH, NO_STRETCH]
-            : [stretch.granted, stretch.taken, stretch.short].map(composeIntegerText);
+            ? [NO_STRETCH, NO_STRETCH, NO_STRETCH, NO_STRETCH]
+            : [stretch.granted, stretch.taken, stretch.short, stretch.lost]
+                .map(composeIntegerText);
         lines.push(
             `  ${grade.name.padEnd(NAME_WIDTH)}${grade.verdict.padEnd(VERDICT_WIDTH + 4)}${
                 cells.map((one) => one.padStart(9)).join("")

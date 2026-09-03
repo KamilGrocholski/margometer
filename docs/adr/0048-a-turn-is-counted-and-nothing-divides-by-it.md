@@ -86,12 +86,14 @@ could contradict this.
 
 ## Alternatives
 
-**Reading the turns a combatant lost, so the figure could be turns granted.** The game states a lost
-turn in a sentence of its own, naming the combatant. Reading it means matching the game's prose
-inside the decoder, which today reads keys and nothing else — and `grooove.pl`'s corpus carries that
-sentence in Polish on one world and in English on another, so a match would quietly count nothing
-wherever the wording differs. It would be the first failure in this add-on that looks exactly like a
-combatant who was never stunned. Refused, and the gap is stated instead.
+**Reading the turns a combatant lost, so the figure could be turns granted.** ⚠️ **Reversed by ADR
+0049**, which reads the announcement's shape rather than its words. What is below was true of the
+one road this ADR could see, and false as a statement about the announcement itself. The game states
+a lost turn in a sentence of its own, naming the combatant. Reading it means matching the game's
+prose inside the decoder, which today reads keys and nothing else — and `grooove.pl`'s corpus
+carries that sentence in Polish on one world and in English on another, so a match would quietly
+count nothing wherever the wording differs. It would be the first failure in this add-on that looks
+exactly like a combatant who was never stunned. Refused, and the gap is stated instead.
 
 **Counting by an enumerated list of action keys**, which is how `grooove.pl` does it. Checked
 against `captures/` on 2026-09-02: every key on that list arrives on a skill announcement this

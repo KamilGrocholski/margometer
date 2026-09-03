@@ -143,6 +143,13 @@ export interface UnaccountedHealthEvent {
     announced: AnnouncedSkill | null;
 }
 
+/** A turn granted and spent on nothing, read off the game's own sentence. **ADR 0049.** */
+export interface TurnLostEvent {
+    kind: "turn-lost";
+    /** The decoder resolves the name and none of that sentence travels with it. */
+    combatantId: number | null;
+}
+
 /** A message left unread, carrying what it was so nothing about it is invented. */
 export interface UnknownMessageEvent {
     kind: "unknown-message";
@@ -162,6 +169,7 @@ export type BattleEvent =
     | HealingToNamedCombatantEvent
     | HealthChangeEvent
     | SkillUsedEvent
+    | TurnLostEvent
     | UnaccountedHealthEvent
     | UnknownMessageEvent;
 
@@ -174,6 +182,7 @@ export const BATTLE_EVENT_KINDS = [
     "healing-to-named-combatant",
     "health-change",
     "skill-used",
+    "turn-lost",
     "unaccounted-health",
     "unknown-message",
 ] as const satisfies readonly BattleEvent["kind"][];

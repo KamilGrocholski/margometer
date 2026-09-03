@@ -8,7 +8,7 @@
 
 import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
-import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { type CombatantRoster, composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import {
@@ -781,4 +781,94 @@ Deno.test("every recording charges a turn to somebody who was already in the fig
         }
     }
     assertEquals(turns, 5154, "the turns the recordings hold, 2026-09-02");
+});
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the game announcing a turn its
+ * holder spent on nothing. The nicknames in `captures/` are the recording's own anonymised ones
+ * (`Gracz 5`), and the other name here is an NPC's.
+ */
+const TURN_LOST = "0;0;txt=Hildur Muza Śmierci - utrata tury (redukcja ogłuszenia 50%)";
+/** The same shape, ending in a full stop, which is how the game writes its other lines. */
+const DEAD_TARGET = "0;0;txt=Gracz 5 - atak w martwego przeciwnika.";
+const LOOT = "0;0;txt=Hildur Muza Śmierci: zdobyto Stalowa kosa";
+
+function composeTwoSided(): CombatantRoster {
+    return composeCombatantRoster([
+        {
+            id: -10000249,
+            name: "Hildur Muza Śmierci",
+            side: 2,
+            level: 100,
+            profession: "m",
+            healthMaximum: null,
+        },
+        {
+            id: 445202,
+            name: "Gracz 5",
+            side: 1,
+            level: 93,
+            profession: "p",
+            healthMaximum: null,
+        },
+    ]);
+}
+
+function getTurnsLost(messages: readonly string[], combatantId: number): number {
+    const roster = composeTwoSided();
+    const events = decodeFightMessages(messages, roster);
+    const statistics = composeFightStatistics(events, new Map());
+    return statistics.byCombatantId.get(combatantId)?.turnsLost ?? 0;
+}
+
+Deno.test("a turn the game says was spent on nothing lands on the row it names", () => {
+    assertEquals(getTurnsLost([TURN_LOST], -10000249), 1, "the combatant the sentence opens with");
+    assertEquals(getTurnsLost([TURN_LOST], 445202), 0, "and nobody else in the fight");
+    assertEquals(getTurnsLost([TURN_LOST, TURN_LOST], -10000249), 2, "twice is two");
+});
+
+/**
+ * The two shapes the reading must refuse, and the second is the one that keeps it honest: the
+ * game writes about a combatant in more than one kind of line, and only one of them is a turn.
+ */
+Deno.test("the game's other lines about a combatant are not turns anybody lost", () => {
+    assertEquals(getTurnsLost([DEAD_TARGET], 445202), 0, "a line ending in a full stop");
+    assertEquals(getTurnsLost([LOOT], -10000249), 0, "and one that names what was taken");
+    assertEquals(getTurnsLost([], -10000249), 0, "and a fight with no lines at all");
+});
+
+/**
+ * What the corpus holds, which is also what `docs/turns-taken.md` measures against the game's own
+ * numbering. Every one of them is placed on a row: no recording states a name the roster cannot.
+ */
+Deno.test("every turn the recordings say was lost is charged to somebody in the fight", () => {
+    let lost = 0;
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        let placed = 0;
+        for (const [, figures] of statistics.byCombatantId) placed += figures.turnsLost;
+        const stated = events.filter((one) => one.kind === "turn-lost").length;
+        assertEquals(placed, stated, `${path}: a turn was lost by nobody the roster holds`);
+        lost += placed;
+    }
+    assertEquals(lost, 319, "the turns the recordings say were lost, 2026-09-03");
+});
+
+/**
+ * The corpus holds a pair of names where one opens the other — `Gracz 1` and `Gracz 10` — and the
+ * separator alone tells them apart, so nothing there exercises the rule that the **longest** name
+ * wins. This does: a nickname carrying the separator inside it, which the game allows. Without
+ * that rule the shorter name takes the line and the turn lands on the wrong row.
+ */
+Deno.test("a name that opens another does not take its line", () => {
+    const roster = composeCombatantRoster([
+        { id: 1, name: "Ala", side: 1, level: 10, profession: "w", healthMaximum: null },
+        { id: 2, name: "Ala - Bela", side: 2, level: 10, profession: "m", healthMaximum: null },
+    ]);
+    const events = decodeFightMessages(["0;0;txt=Ala - Bela - utrata tury"], roster);
+    const statistics = composeFightStatistics(events, new Map());
+    assertEquals(statistics.byCombatantId.get(2)?.turnsLost, 1, "the longer name holds the line");
+    assertEquals(statistics.byCombatantId.get(1)?.turnsLost, undefined, "and the shorter has none");
 });

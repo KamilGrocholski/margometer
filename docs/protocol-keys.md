@@ -1960,6 +1960,12 @@ Free text the client shows in the battle log. **Nothing of it is stored here**, 
 any test: it carries the game's own sentences and player names, which NOTICE.md keeps out of the
 repository entirely.
 
+One thing is **read** from it and still nothing kept: whether the line announces a turn its holder
+spent on nothing. It is told by shape and never by its words — the text opens with a combatant's own
+name and the separator the game puts after it, and the game's other lines about a combatant end in a
+full stop. The decoder resolves the name against the roster and passes on an id (**ADR 0049**);
+`docs/turns-taken.md` carries what that comes to.
+
 _Shape:_ 342 occurrences; alone in its message; text
 
 _Help:_ names nothing of `txt`

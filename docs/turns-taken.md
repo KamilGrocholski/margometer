@@ -87,36 +87,36 @@ apart. `granted`, `taken` and `short` are the wider one, over the stretch betwee
 statement of an ordinal and its last; a recording it never numbered twice has no stretch, and that
 is written as a dash rather than as a zero (**E10**).
 
-| recording                                                         | the game agrees | granted | taken | short |
-| ----------------------------------------------------------------- | --------------- | ------- | ----- | ----- |
-| 2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none            | `in a lump`     | —       | —     | —     |
-| 2026-08-06-tempest-grupa-vs-hildur-1785244275300-none             | `always`        | 298     | 276   | 22    |
-| 2026-08-11-tempest-tancerz-vs-wermont-1786441768914-none          | `in a lump`     | —       | —     | —     |
-| 2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none    | `in a lump`     | —       | —     | —     |
-| 2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 197     | 191   | 6     |
-| 2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 217     | 204   | 13    |
-| 2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none           | `always`        | 281     | 270   | 11    |
-| 2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none           | `always`        | 230     | 227   | 3     |
-| 2026-08-14-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 186     | 179   | 7     |
-| 2026-08-14-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 218     | 203   | 15    |
-| 2026-08-14-tempest-grupa-vs-hildur-1786514810315-none             | `always`        | 242     | 230   | 12    |
-| 2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 59      | 57    | 2     |
-| 2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 216     | 204   | 12    |
-| 2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none           | `always`        | 56      | 54    | 2     |
-| 2026-08-15-tempest-grupa-vs-hildur-2-1786514810315-none           | `always`        | 239     | 226   | 13    |
-| 2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none           | `always`        | 214     | 206   | 8     |
-| 2026-08-15-tempest-grupa-vs-hildur-4-1786514810315-none           | `always`        | 214     | 206   | 8     |
-| 2026-08-17-tempest-grupa-vs-hildur-1786514810315-none             | `always`        | 123     | 115   | 8     |
-| 2026-08-23-tempest-grupa-vs-hildur-1786514810315-none             | `always`        | 186     | 180   | 6     |
-| 2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none        | `in a lump`     | —       | —     | —     |
-| 2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none        | `in a lump`     | —       | —     | —     |
-| 2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1 | `in a lump`     | —       | —     | —     |
-| 2026-08-25-luvia-grupa-vs-draugr-auto-none-none                   | `in a lump`     | —       | —     | —     |
-| 2026-08-25-luvia-grupa-vs-draugr-none-none                        | `always`        | 45      | 45    | 0     |
-| 2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1                | `in a lump`     | —       | —     | —     |
-| 2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1                   | `in a lump`     | —       | —     | —     |
-| 2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0                | `always`        | 305     | 280   | 25    |
-| 2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0                  | `always`        | 26      | 24    | 2     |
+| recording                                                         | the game agrees | granted | taken | short | lost |
+| ----------------------------------------------------------------- | --------------- | ------- | ----- | ----- | ---- |
+| 2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none            | `in a lump`     | —       | —     | —     | —    |
+| 2026-08-06-tempest-grupa-vs-hildur-1785244275300-none             | `always`        | 298     | 276   | 22    | 11   |
+| 2026-08-11-tempest-tancerz-vs-wermont-1786441768914-none          | `in a lump`     | —       | —     | —     | —    |
+| 2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none    | `in a lump`     | —       | —     | —     | —    |
+| 2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 197     | 191   | 6     | 7    |
+| 2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 217     | 204   | 13    | 13   |
+| 2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none           | `always`        | 281     | 270   | 11    | 12   |
+| 2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none           | `always`        | 230     | 227   | 3     | 4    |
+| 2026-08-14-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 186     | 179   | 7     | 8    |
+| 2026-08-14-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 218     | 203   | 15    | 15   |
+| 2026-08-14-tempest-grupa-vs-hildur-1786514810315-none             | `always`        | 242     | 230   | 12    | 12   |
+| 2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 59      | 57    | 2     | 2    |
+| 2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 216     | 204   | 12    | 15   |
+| 2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none           | `always`        | 56      | 54    | 2     | 2    |
+| 2026-08-15-tempest-grupa-vs-hildur-2-1786514810315-none           | `always`        | 239     | 226   | 13    | 13   |
+| 2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none           | `always`        | 214     | 206   | 8     | 9    |
+| 2026-08-15-tempest-grupa-vs-hildur-4-1786514810315-none           | `always`        | 214     | 206   | 8     | 9    |
+| 2026-08-17-tempest-grupa-vs-hildur-1786514810315-none             | `always`        | 123     | 115   | 8     | 8    |
+| 2026-08-23-tempest-grupa-vs-hildur-1786514810315-none             | `always`        | 186     | 180   | 6     | 6    |
+| 2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none        | `in a lump`     | —       | —     | —     | —    |
+| 2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none        | `in a lump`     | —       | —     | —     | —    |
+| 2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1 | `in a lump`     | —       | —     | —     | —    |
+| 2026-08-25-luvia-grupa-vs-draugr-auto-none-none                   | `in a lump`     | —       | —     | —     | —    |
+| 2026-08-25-luvia-grupa-vs-draugr-none-none                        | `always`        | 45      | 45    | 0     | 1    |
+| 2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1                | `in a lump`     | —       | —     | —     | —    |
+| 2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1                   | `in a lump`     | —       | —     | —     | —    |
+| 2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0                | `always`        | 305     | 280   | 25    | 28   |
+| 2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0                  | `always`        | 26      | 24    | 2     | 2    |
 
 ## What the register says
 
@@ -134,30 +134,36 @@ this and the divisor that was withdrawn.
 declarations adds turns to rows that exist and creates none, so the fights `tools/fight-figures.ts`
 prints hold exactly the rows they held before.
 
-## Taken, not granted
+## Taken, and lost
 
-⚠️ **The two columns do not meet, and the gap is the point of carrying them both.** `short` is never
-zero on most of the corpus, it is never negative anywhere, and the sharp verdict cannot see it: a
-step the game numbers one turn apart is a step where nothing goes missing.
+⚠️ **The two counts do not meet, and the gap is the point of carrying them both.** `short` is never
+zero on most of the corpus, never negative anywhere, and the sharp verdict cannot see it: a step the
+game numbers one turn apart is a step where nothing goes missing.
 
 **The difference is a turn the game granted and nobody spent.** A stunned combatant is given their
-turn, does nothing with it, and the game says so in a line of its own naming them — a line this
-register does not quote, because it is the game's own prose (`NOTICE.md`). Measured over `captures/`
-on 2026-09-02: of the 130 steps where the count came up short, **127 are short by exactly the number
-of such lines the same payload carried**.
+turn, does nothing with it, and the game announces it in a line naming them. `lost` counts those
+lines, per combatant, and the card draws the count under the turns that combatant took.
 
-The other three have causes of their own, and neither is the reading miscounting a turn it saw:
+**It is read by shape and never by words**, which is what makes it survive a world that speaks
+another language: the line opens with the combatant's own name and the separator the game puts after
+it, and it does not end in the full stop the game's other lines about a combatant end in. Measured
+over `captures/` on 2026-09-03 with no other condition: **319 matches, all 319 a turn nobody spent,
+nothing missed, nothing else caught.** The three lines about striking a target already dead end in a
+full stop; loot lines put a colon after the name. **ADR 0049** carries the rest, including why the
+stun keys cannot do this job — 118 applications against 319 announcements.
 
-- one is a payload stating an ordinal thirteen further on while carrying two messages — the turns it
-  covers were narrated in the payload before it, so the count is in the fight and not in that step;
-- two are a `prepare` at nought per cent standing after its own combatant's blow, where this reading
-  treats it as riding that blow's turn. Both directions cost something and the sharp test is what
-  picked this one: counting such a preparation unconditionally makes two steps of the corpus
-  overstate instead.
+**The two columns are close and are not held to be equal.** Over the corpus `lost` comes to 177
+where the ordinal says 175 went missing: exact on nine recordings, within three on nine more, and
+one that is not. The gate holds both as numbers rather than forcing them together, because a guard
+that demanded agreement would one day be satisfied by bending one of them.
 
-**So the figure is turns _taken_, and the card says so.** `Tury wykonane` is the game's own wording
-— the published help counts a combatant's turns with the same verb (article 372 §2.1, read
-2026-09-02).
+⚠️ **`2026-08-06-tempest-grupa-vs-hildur` is the one that is not**: the ordinal says 22 and the game
+announces 11, all of them the boss's, on the oldest build in the corpus. Those eleven turns have no
+account here, and the register shows both figures rather than choosing.
+
+**So the figure on the card is turns _taken_, with the turns _lost_ beneath it**, and neither is the
+turns somebody was granted: `Tury wykonane` is the game's own wording for the first — the published
+help counts a combatant's turns with the same verb (article 372 §2.1, read 2026-09-02).
 
 ## Who else counts this
 
@@ -184,9 +190,11 @@ list of keys is the reading `a01bf11` refused, and that check is why it stays re
 - **How many turns a fight ran.** The ordinal span would say, and it is not drawn: five recordings
   join a fight already in progress, so the span is short by an amount nothing states, and a fight
   the game numbered once has no span at all. No figure on the panel is a fight's turn count.
-- **How many turns somebody was granted.** That is `taken` plus the turns they lost, and which
-  combatant lost one is stated only in prose, in the language of the world the fight was fought on.
-  **ADR 0048** says why that is not read.
+- **How many turns somebody was granted.** `taken` plus `lost` is what was seen, not what was
+  scheduled, and the two readings differ by two over the corpus.
+- **Whether a world worded differently is being read.** Where the announcement has another shape the
+  count is zero, and a zero draws no sub-line — so nothing on screen becomes false, and nothing says
+  the reading found nothing either. That is the cost of reading a shape rather than a key.
 - **Whether anything divides by a turn.** Nothing does, and **ADR 0048** is why.
 - **Whether the count is right in a fight nobody recorded.** Every verdict here is a claim about
   `captures/` and about nothing else (**V4**).

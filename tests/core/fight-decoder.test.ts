@@ -404,6 +404,7 @@ interface CorpusTally {
     restored: number;
     unsized: number;
     declared: number;
+    turnsLost: number;
     outcomes: number;
     glued: number;
     unread: number;
@@ -446,6 +447,11 @@ function countEvent(tally: CorpusTally, event: BattleEvent, path: string): void 
         assert(event.declared.length > 0, `${path}: a declaration stating nothing`);
         return;
     }
+    if (event.kind === "turn-lost") {
+        tally.turnsLost += 1;
+        assertExists(event.combatantId, `${path}: a turn lost by nobody the roster holds`);
+        return;
+    }
     if (event.kind === "unaccounted-health") {
         tally.unsized += 1;
         assertExists(event.declaredShare, `${path}: a share stated as nothing`);
@@ -476,6 +482,7 @@ function getCorpusTally(): CorpusTally {
         restored: 0,
         unsized: 0,
         declared: 0,
+        turnsLost: 0,
         outcomes: 0,
         glued: 0,
         unread: 0,

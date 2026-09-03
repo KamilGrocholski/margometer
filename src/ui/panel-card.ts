@@ -137,6 +137,7 @@ function composeCardCounterLines(detail: RowDetail): TipLine[] {
             stated: composeFigureText(detail.turnsTaken),
             isStrong: false,
         });
+        lines.push(...composeCardSubLine(CARD_WORDS.turnsLost, detail.turnsLost));
     }
     if (detail.blowsStruck > 0) {
         lines.push({
