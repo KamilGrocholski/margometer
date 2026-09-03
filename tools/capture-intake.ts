@@ -2,7 +2,7 @@
  * How a recording from the add-on becomes material in this repository: two redactions, then a
  * file in `captures/`.
  *
- *     deno run -A tools/capture-intake.ts <recording.json> --name <slug>
+ *     deno task capture:intake <recording.json> --name <slug>
  *
  * ⚠️ **Neither redaction is complete, and no test can make one so.** Each knows one place — names
  * tied to a combatant id, and `payload.skills` — so a nickname belonging to nobody in the roster
@@ -733,7 +733,7 @@ function writeIntake(source: string, slug: string): void {
 if (import.meta.main) {
     const [source, flag, slug] = Deno.args;
     if (source === undefined || flag !== "--name" || slug === undefined) {
-        console.log("usage: deno run -A tools/capture-intake.ts <recording.json> --name <slug>");
+        console.log("usage: deno task capture:intake <recording.json> --name <slug>");
     } else {
         writeIntake(source, slug);
     }
