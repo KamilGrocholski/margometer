@@ -15,17 +15,20 @@ import {
     assertStringIncludes,
 } from "@std/assert";
 import {
+    composeBoundaries,
     composeCaseReport,
     composeTurnGrades,
     getOutcome,
+    getPlacing,
     getVerdict,
     NO_STRETCH,
     TURN_OUTCOMES,
+    TURN_PLACINGS,
     TURN_VERDICTS,
     type TurnGrade,
 } from "@/tools/turn-count.ts";
 import { CARD_WORDS } from "@/src/ui/panel-words.ts";
-import { composeFightReplay } from "@/tools/fight-replay.ts";
+import { composeFightReplay, composeFightReplaySteps } from "@/tools/fight-replay.ts";
 import { getRecordedFightAt, getRecordedFights } from "@/tools/recorded-fights.ts";
 
 const REGISTER_PATH = "docs/turns-taken.md";
@@ -34,10 +37,14 @@ const REGISTER_PATH = "docs/turns-taken.md";
  * argued with from outside. Its commit body reports 8 / 3 / 1 for a reading it then deleted.
  */
 const BOAR = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
+/** The one recording whose message numbering breaks, which is the one stretch nobody was told. */
+const UNNARRATED = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 
 interface RegisterRow {
     name: string;
     verdict: string;
+    steps: string;
+    agreed: string;
     granted: string;
     taken: string;
     short: string;
@@ -82,48 +89,53 @@ function getRegisterRows(text: string): RegisterRow[] {
         if (!inside) continue;
         if (!line.startsWith("| ")) continue;
         const cells = getCellsFromLine(line).map(getBareCell);
-        const [name, verdict, granted, taken, short, lost] = cells;
+        const [name, verdict, steps, agreed, granted, taken, short, lost] = cells;
         if (name === undefined) continue;
         if (verdict === undefined) continue;
+        if (steps === undefined) continue;
+        if (agreed === undefined) continue;
         if (granted === undefined) continue;
         if (taken === undefined) continue;
         if (short === undefined) continue;
         if (lost === undefined) continue;
         if (!TURN_VERDICTS.includes(verdict as never)) continue;
-        found.push({ name, verdict, granted, taken, short, lost });
+        found.push({ name, verdict, steps, agreed, granted, taken, short, lost });
     }
     return found;
 }
 
 function composeRegisterKey(one: RegisterRow): string {
-    return `${one.name} | ${one.verdict} | ${one.granted} | ${one.taken} | ${one.short} | ` +
-        `${one.lost}`;
+    return `${one.name} | ${one.verdict} | ${one.steps} | ${one.agreed} | ${one.granted} | ` +
+        `${one.taken} | ${one.short} | ${one.lost}`;
 }
 
 /** The same line off the tree rather than off the document, so the two can be compared as sets. */
 function composeMeasuredKey(grade: TurnGrade): string {
     const stretch = grade.stretch;
-    const cells = stretch === null
+    const bounded = grade.bounded === 0
+        ? [NO_STRETCH, NO_STRETCH]
+        : [`${grade.bounded}`, `${grade.exact}`];
+    const wider = stretch === null
         ? [NO_STRETCH, NO_STRETCH, NO_STRETCH, NO_STRETCH]
         : [`${stretch.granted}`, `${stretch.taken}`, `${stretch.short}`, `${stretch.lost}`];
-    return `${grade.name} | ${grade.verdict} | ${cells.join(" | ")}`;
+    return `${grade.name} | ${grade.verdict} | ${[...bounded, ...wider].join(" | ")}`;
 }
 
 Deno.test("the register reader finds the register, and nothing else in the file", () => {
-    const sample =
-        "## The register\n\n| recording | the game agrees | granted | taken | short | lost |\n" +
-        "| - | - | - | - | - | - |\n" +
-        "| 2026-08-04-tempest-lowca-vs-odyncze | `in a lump` | — | — | — | — |\n";
+    const sample = "## The register\n\n| recording | the game agrees | steps | agreed | granted " +
+        "| taken | short | lost |\n| - | - | - | - | - | - | - | - |\n" +
+        "| 2026-08-04-tempest-lowca-vs-odyncze | `in a lump` | — | — | — | — | — | — |\n";
     assertEquals(
         getRegisterRows(sample).map(composeRegisterKey),
-        ["2026-08-04-tempest-lowca-vs-odyncze | in a lump | — | — | — | —"],
+        ["2026-08-04-tempest-lowca-vs-odyncze | in a lump | — | — | — | — | — | —"],
         "the reader works",
     );
     // The sample it must not flag: a register row standing before the heading, and a row of the
     // vocabulary tables, whose second cell is a sentence rather than a verdict.
-    const elsewhere = "| 2026-08-04-lowca | `in a lump` | — | — | — | — |\n## The register\n" +
+    const elsewhere = "| 2026-08-04-lowca | `in a lump` | — | — | — | — | — | — |\n" +
+        "## The register\n" +
         "| `always` | the game's numbering agreed at every step it could be asked |\n" +
-        "| recording | the game agrees | granted | taken | short | lost |\n";
+        "| recording | the game agrees | steps | agreed | granted | taken | short | lost |\n";
     assertEquals(getRegisterRows(elsewhere), [], "a table outside the register is not one");
 });
 
@@ -140,26 +152,69 @@ Deno.test("the register names every recording graded, and no recording that is n
 });
 
 /**
- * The claim the whole round rests on: where the game's own numbering advanced by exactly one, one
- * turn passed, and the count says so. A step graded anything but `exact` is the finding — over,
- * under, or charged to somebody the game did not name.
+ * The sharp claim, and the one that is unbeaten: where the game numbered exactly one turn, that
+ * turn is charged to the combatant the game names. `elsewhere` is the reading naming the wrong
+ * person, which is a worse failure than miscounting and is why it is held at zero on its own.
  */
-Deno.test("every step the game numbered one turn apart is counted as exactly that turn", () => {
+Deno.test("a turn the game numbered on its own goes onto the row the game named", () => {
     const grades = composeTurnGrades(getRecordedFights());
-    let graded = 0;
-    let exact = 0;
+    let placed = 0;
     for (const grade of grades) {
         assertArrayIncludes(TURN_VERDICTS, [grade.verdict], `${grade.verdict} is a verdict`);
         assert(grade.turns >= 0, `${grade.name} holds no less than no turn`);
-        graded += grade.exact + grade.over + grade.under + grade.elsewhere;
-        exact += grade.exact;
-        assertStrictEquals(grade.over, 0, `${grade.name}: a turn was counted that never happened`);
-        assertStrictEquals(grade.under, 0, `${grade.name}: a turn the game numbered was missed`);
+        assert(grade.placed <= grade.bounded, `${grade.name}: a boundary placed is one graded`);
+        placed += grade.placed;
         assertStrictEquals(grade.elsewhere, 0, `${grade.name}: a turn went onto the wrong row`);
     }
-    assert(graded > 0, "the corpus states a numbering to be graded against");
-    assertStrictEquals(exact, graded, "and every step of it agrees, 2026-09-02");
-    assertStrictEquals(TURN_OUTCOMES.length, 4, "the outcomes a graded step can come to");
+    assertStrictEquals(placed, 451, "the boundaries narrow enough to ask it of, 2026-09-03");
+});
+
+/**
+ * And the wide claim, which is most of the evidence and is not unbeaten. The totals are pinned
+ * with the date they were measured on: a change to what opens a turn moves them, and the register
+ * beside this test is where the movement has to be argued for (**W8**).
+ */
+Deno.test("the count agrees with the numbering at all but eighteen boundaries", () => {
+    const grades = composeTurnGrades(getRecordedFights());
+    const total = { bounded: 0, exact: 0, over: 0, under: 0, untold: 0 };
+    for (const grade of grades) {
+        total.bounded += grade.bounded;
+        total.exact += grade.exact;
+        total.over += grade.over;
+        total.under += grade.under;
+        total.untold += grade.untold;
+        assertStrictEquals(
+            grade.exact + grade.over + grade.under,
+            grade.bounded,
+            `${grade.name}: every boundary graded came to one of the three`,
+        );
+    }
+    assertStrictEquals(total.bounded, 998, "the boundaries the game numbered and told, 2026-09-03");
+    assertStrictEquals(total.exact, 980, "and the ones the count agreed with");
+    assertStrictEquals(total.over, 16, "a turn was opened where the game numbered none");
+    assertStrictEquals(total.under, 2, "and a turn the game numbered opened nothing");
+    assertStrictEquals(total.untold, 1, "one stretch the game numbered and never narrated");
+    assertStrictEquals(TURN_OUTCOMES.length, 3, "the outcomes a count can come to");
+    assertStrictEquals(TURN_PLACINGS.length, 2, "and the ones a placing can");
+});
+
+/**
+ * The refusal, on the one boundary that earns it. The game numbers thirteen turns across it, sends
+ * one message for them, and skips 26 of its own message indices — so there is nothing to grade,
+ * and grading it would charge this reading with turns nobody was told about.
+ */
+Deno.test("a stretch the game never narrated is counted apart and graded by nothing", () => {
+    const boundaries = composeBoundaries(composeFightReplaySteps(getRecordedFightAt(UNNARRATED)));
+    const untold = boundaries.filter((one) => !one.isNarrated);
+    assertStrictEquals(untold.length, 1, "one stretch of this recording went untold, 2026-09-03");
+    const only = untold[0];
+    assert(only !== undefined, "and it is there to be read");
+    assertEquals(
+        [only.from, only.to, only.counted],
+        [235, 248, 1],
+        "the ordinals it spans, and the one message the game sent across them",
+    );
+    assert(boundaries.every((one) => one.advance > 0), "a boundary runs forwards");
 });
 
 /**
@@ -183,14 +238,30 @@ Deno.test("a walk states a line for every payload, and the register states none 
     assert(cases[1]?.includes("in a lump"), "the boar recording is numbered once");
 });
 
-Deno.test("an outcome says which of the four a graded step came to", () => {
-    assertStrictEquals(getOutcome(new Map([[7, 1]]), 7), "exact", "one turn, and theirs");
-    assertStrictEquals(getOutcome(new Map(), 7), "under", "no turn where the game says one");
-    assertStrictEquals(getOutcome(new Map([[8, 1]]), 7), "elsewhere", "one turn, somebody else's");
-    assertStrictEquals(getOutcome(new Map([[7, 2]]), 7), "over", "two where one passed");
-    // Zero is a boundary and so is one (**W5**): one turn of theirs beside one of somebody
-    // else's is `over` and not `exact`, and one of theirs alone is `exact` and not `over`.
-    assertStrictEquals(getOutcome(new Map([[7, 1], [8, 1]]), 7), "over", "one each is still two");
+Deno.test("an outcome says which of the three a count came to", () => {
+    assertStrictEquals(getOutcome(1, 1), "exact", "one turn where the game numbered one");
+    assertStrictEquals(getOutcome(0, 1), "under", "none where the game numbered one");
+    assertStrictEquals(getOutcome(2, 1), "over", "two where one passed");
+    // Zero is a boundary and so is one (**W5**), and a wide advance is graded the same way: a
+    // count is held against the game's numbering whatever that numbering came to.
+    assertStrictEquals(getOutcome(13, 13), "exact", "thirteen where the game numbered thirteen");
+    assertStrictEquals(getOutcome(12, 13), "under", "and twelve is one short of it");
+});
+
+Deno.test("a placing is asked only of one turn the game numbered on its own", () => {
+    assertStrictEquals(getPlacing(1, 1, 1), "exact", "the one turn was the named combatant's");
+    assertStrictEquals(getPlacing(1, 0, 1), "elsewhere", "one turn, and somebody else's");
+    assertStrictEquals(getPlacing(0, 0, 1), null, "nothing counted says nothing about whose");
+    assertStrictEquals(
+        getPlacing(2, 1, 1),
+        null,
+        "and two turns say nothing about which was theirs",
+    );
+    // The condition the corpus cannot show, because nothing in it counts one turn across a wider
+    // advance: the queue names who held the **first** of several ordinals, so a single turn found
+    // across three of them is not evidence that it was theirs.
+    assertStrictEquals(getPlacing(1, 1, 3), null, "one turn across three is placed by nothing");
+    assertStrictEquals(getPlacing(1, 0, 2), null, "and so is one across two");
 });
 
 Deno.test("a verdict says what the steps under it came to", () => {

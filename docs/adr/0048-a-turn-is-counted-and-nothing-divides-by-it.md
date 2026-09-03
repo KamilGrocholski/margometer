@@ -53,17 +53,28 @@ had right.
 amount nothing states in the five recordings that join a fight in progress, and absent in a fight
 the game numbers once. A figure that is silently short is what this project exists not to produce.
 
-**The count is graded twice, and the register carries both.** The sharp grade is every step the game
-numbered exactly one turn apart. The wider one is the whole stretch it numbered, where the two
-figures do not meet and the shortfall is stated as a number per recording — because a verdict on the
-sharp grade alone stays green while a whole class of turns goes missing between payloads, and that
-is exactly what this round found by looking.
+**Two questions are asked of the game's numbering, and they are tallied apart.** How **many** turns
+passed between two of its statements is answerable across any advance — a turn taken and a turn
+announced as spent on nothing are both turns it numbered, so both halves of what was seen are
+counted against it. **Whose** the turn was is answerable only across an advance of one, because the
+queue names the holder of the first ordinal and the nine above it are the forecast this ADR refuses
+elsewhere. A wide boundary therefore grades the count and states nothing about the row.
 
-**The count is graded against the game's own numbering before it is drawn.** Where the ordinal
-advances by exactly one, one turn passed and the queue names whose it was; `tools/turn-count.ts`
-grades every such step and `tests/tools/turn-count.test.ts` refuses anything but agreement. Over
-`captures/` on 2026-09-02 that is every graded step of every recording the game numbered, and ten
-recordings the game numbered once, which grade nothing.
+Grading only the narrow ones was this decision's first form, and it was too weak by an order of
+magnitude: it reached 451 turns of the 3552 the game numbered over `captures/`, and the narrow
+boundary is the easy case. Asking the count of every boundary is the same reading held against eight
+times the evidence, and it is what found the disagreements the register now lists.
+
+**A stretch the game did not narrate is graded by nothing.** The payload's `mi` is a running index
+over the fight's own messages; where it breaks, the game numbered messages it never sent here, and a
+count held against those turns would be graded against silence. One boundary of the corpus earns
+that refusal on 2026-09-03, and it is the whole of the one shortfall `docs/turns-taken.md` could not
+previously account for.
+
+**The wider grade stays beside the narrow one.** The stretch the game numbered end to end, where the
+two figures do not meet and the shortfall is stated per recording — because a boundary grade says
+what happened across each step and the stretch says what the fight came to, and a reader arguing
+with the figure wants both.
 
 ## Consequences
 
@@ -73,8 +84,14 @@ gate rather than quietly moving a number.
 
 Hard: `PRODUCT.md` loses a non-goal it has carried since `a01bf11`, and `CONTEXT.md`'s **Turn**
 entry is rewritten. Both said this meter cannot honestly state a turn count. That was true of a
-count with no reference; it is not true of one the game's own numbering agrees with at every step it
-can be asked.
+count with no reference; it is not true of one held against the game's own numbering at every
+boundary the game both numbered and narrated.
+
+Obliged now rather than later: the boundary grade produces a list of disagreements, all of them a
+single turn and nearly all in one direction. Each is a claim that this reading opened a turn the
+game did not number, and the two suppressions above are where such a turn would come from. The list
+is the material a change to either has to be measured against, and it is not answered here — the
+grading was rebuilt first on purpose, so that a change to the counting could be shown to help.
 
 Also: two exceptions are carried in the reading rather than in a comment somewhere. They are
 measured, they are named in `docs/turns-taken.md`, and a mutation of either lights the register.
