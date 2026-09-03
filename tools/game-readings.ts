@@ -4,8 +4,8 @@
  *     deno task game:readings status | refresh
  *
  * A reading in `frozen/` is evidence a guard stands on, and the gate cannot tell that one has gone
- * behind the game: it reaches no network. So this is where staleness is an exit code, and
- * `frozen/AGENTS.md` says when it is run.
+ * behind the game: it reaches no network. So this is where staleness is an exit code — and a world
+ * that did not answer is a different one. `frozen/AGENTS.md` says when it is run.
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
@@ -19,6 +19,7 @@ import {
     readServedBuild,
     writeClientSourceCache,
 } from "@/tools/game-client-source.ts";
+import { GameUnreachableError } from "@/tools/margometer-tool-error.ts";
 import { writeFrozenKeyTable } from "@/tools/protocol-key-table.ts";
 import {
     type CachedHelpArticle,
@@ -37,6 +38,9 @@ import {
 const CHANNEL: GameChannel = "production";
 
 const NOTHING_CACHED = "nothing cached";
+/** What a script reads off a status: a reading behind the game, and a world nobody could ask. */
+export const EXIT_STALE = 1;
+export const EXIT_UNASKED = 2;
 const NAME_COLUMN = 14;
 const SAYS_COLUMN = 66;
 
@@ -50,18 +54,41 @@ export interface FrozenHelpReading {
     count: number;
 }
 
+/**
+ * What a row can say. `unknown` is not a third shade of stale: it is what stands where nobody
+ * could ask the question, and **W10** hangs on the two being told apart.
+ */
+export type ReadingVerdict = "current" | "stale" | "unknown";
+
 export interface ReadingState {
     name: string;
-    isCurrent: boolean;
+    verdict: ReadingVerdict;
     says: string;
 }
 
+/** The loud ones are the ones that end a work round; `current` is the quiet one. */
+const VERDICT_WORDS: Record<ReadingVerdict, string> = {
+    current: "current",
+    stale: "STALE",
+    unknown: "UNKNOWN",
+};
+
 /** One row, in the shape the report prints it. */
 export function composeReadingLine(state: ReadingState): string {
-    const verdict = state.isCurrent ? "current" : "STALE";
+    const said = VERDICT_WORDS[state.verdict];
     assert(state.name.length > 0, "a row names the reading it is about");
     assert(state.says.length > 0, "and says what it was compared against");
-    return `${state.name.padEnd(NAME_COLUMN)} ${state.says.padEnd(SAYS_COLUMN)} ${verdict}`;
+    return `${state.name.padEnd(NAME_COLUMN)} ${state.says.padEnd(SAYS_COLUMN)} ${said}`;
+}
+
+/**
+ * A world nobody could ask. The row says that rather than calling the reading stale: an outage
+ * is not evidence that the game moved on, and **E10** asks the answer to say whether it worked.
+ */
+export function composeUnaskedClientState(said: string): ReadingState {
+    assert(said.length > 0, "a world that could not be asked says what happened");
+    assert(NAME_COLUMN > 0, "and the row it stands in has a column to stand in");
+    return { name: "client", verdict: "unknown", says: `not asked: ${said}` };
 }
 
 /** The bundle in `.cache/` against what the world is serving right now. */
@@ -72,11 +99,11 @@ export function composeClientState(
     assert(served.length > 0, "a world that answered named a build");
     assert(cached === null || cached.build.length > 0, "and a cache admitted knows its own");
     if (cached === null) {
-        return { name: "client", isCurrent: false, says: `served ${served}, ${NOTHING_CACHED}` };
+        return { name: "client", verdict: "stale", says: `served ${served}, ${NOTHING_CACHED}` };
     }
     return {
         name: "client",
-        isCurrent: cached.build === served,
+        verdict: cached.build === served ? "current" : "stale",
         says: `served ${served}  cached ${cached.build}`,
     };
 }
@@ -95,13 +122,13 @@ export function composeFrozenKeyState(
     if (cached === null) {
         return {
             name: "frozen keys",
-            isCurrent: false,
+            verdict: "stale",
             says: `frozen ${frozen.build}, ${NOTHING_CACHED}`,
         };
     }
     return {
         name: "frozen keys",
-        isCurrent: frozen.build === cached.build,
+        verdict: frozen.build === cached.build ? "current" : "stale",
         says: `cached ${cached.build}  frozen ${frozen.build}  ${count} keys`,
     };
 }
@@ -113,13 +140,13 @@ export function composeHelpDumpState(cached: CachedHelpArticle | null, now: numb
     if (cached === null) {
         return {
             name: "help dump",
-            isCurrent: false,
+            verdict: "stale",
             says: `view,${MECHANICS_ARTICLE} ${NOTHING_CACHED}`,
         };
     }
     return {
         name: "help dump",
-        isCurrent: !isDumpStale(cached.fetchedAt, now),
+        verdict: isDumpStale(cached.fetchedAt, now) ? "stale" : "current",
         says: composeAgeText(cached.fetchedAt, now),
     };
 }
@@ -138,13 +165,13 @@ export function composeFrozenHelpState(
     if (cached === null) {
         return {
             name: "frozen help",
-            isCurrent: false,
+            verdict: "stale",
             says: `frozen ${frozen.fetchedAt}, ${NOTHING_CACHED}`,
         };
     }
     return {
         name: "frozen help",
-        isCurrent: frozen.fetchedAt === cached.fetchedAt,
+        verdict: frozen.fetchedAt === cached.fetchedAt ? "current" : "stale",
         says: `dump ${cached.fetchedAt}  ${count} phrases`,
     };
 }
@@ -166,16 +193,28 @@ export function getLoadedReadings(): { keys: FrozenKeyReading; help: FrozenHelpR
     return { keys, help };
 }
 
+/**
+ * The world asked, and the one row that needs the network to answer. The catch is narrow — the
+ * only failure stepped over is the world not answering, and anything else is this tool's own bug.
+ */
+async function readClientState(cached: CachedClientSource | null): Promise<ReadingState> {
+    try {
+        return composeClientState(await readServedBuild(CHANNEL), cached);
+    } catch (failure) {
+        if (!(failure instanceof GameUnreachableError)) throw failure;
+        return composeUnaskedClientState(failure.message);
+    }
+}
+
 /** Every reading, in the order a refresh does them: each one dates the one after it. */
 export async function readReadingStates(
     now: number,
     frozen: { keys: FrozenKeyReading; help: FrozenHelpReading },
 ): Promise<ReadingState[]> {
-    const served = await readServedBuild(CHANNEL);
     const client = getCachedClientSource(CHANNEL);
     const dump = getCachedHelpArticle(MECHANICS_ARTICLE);
     const states = [
-        composeClientState(served, client),
+        await readClientState(client),
         composeFrozenKeyState(frozen.keys, client),
         composeHelpDumpState(dump, now),
         composeFrozenHelpState(frozen.help, dump),
@@ -185,13 +224,16 @@ export async function readReadingStates(
     return states;
 }
 
-/** How many are stale, so the caller can make that visible to a script and not only to a reader. */
-function writeReadingsReport(states: readonly ReadingState[]): number {
+/** How many rows are loud, by kind, so a script reads the difference and not only a reader. */
+function writeReadingsReport(
+    states: readonly ReadingState[],
+): { stale: number; unasked: number } {
     for (const state of states) console.log(composeReadingLine(state));
-    const stale = states.filter((one) => !one.isCurrent).length;
+    const stale = states.filter((one) => one.verdict === "stale").length;
+    const unasked = states.filter((one) => one.verdict === "unknown").length;
     assert(stale >= 0, "a count of stale readings is not negative");
-    assert(stale <= states.length, "and no more of them than there are readings");
-    return stale;
+    assert(stale + unasked <= states.length, "and no more loud rows than there are readings");
+    return { stale, unasked };
 }
 
 /**
@@ -222,8 +264,9 @@ async function writeRefreshedReadings(): Promise<
 }
 
 /**
- * The report, and the exit a script reads. Non-zero is the point: a reading that has gone behind
- * the game is invisible to the gate, so it is visible to whatever runs this before a work round.
+ * The report, and the exit a script reads. Three answers rather than two: a reading that went
+ * behind the game is invisible to the gate, so it is visible here — and a world that did not
+ * answer is its own exit, because an outage is not evidence that anything moved.
  */
 async function writeReadingsStatus(
     frozen: { keys: FrozenKeyReading; help: FrozenHelpReading },
@@ -231,7 +274,9 @@ async function writeReadingsStatus(
     const states = await readReadingStates(Date.now(), frozen);
     assertStrictEquals(states.length, 4, "the report covers every reading");
     assert(states.every((one) => one.says.length > 0), "and each row says what it compared");
-    if (writeReadingsReport(states) > 0) Deno.exit(1);
+    const loud = writeReadingsReport(states);
+    if (loud.stale > 0) Deno.exit(EXIT_STALE);
+    if (loud.unasked > 0) Deno.exit(EXIT_UNASKED);
 }
 
 if (import.meta.main) {

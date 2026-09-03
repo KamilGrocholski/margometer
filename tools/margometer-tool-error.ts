@@ -9,8 +9,8 @@ export type MargoMeterToolErrorCode =
     | "CaptureIntake"
     | "RecordingRead"
     | "PanelShot"
-    | "InstalledBrowser"
     | "GameSource"
+    | "GameUnreachable"
     | "ProtocolKeyTable"
     | "HelpArticle"
     | "DeclaredVersion"
@@ -72,20 +72,21 @@ export class PanelShotError extends MargoMeterToolError {
     }
 }
 
-/**
- * No browser on this machine to drive. Its own class and not the photographer's: a picture and a
- * test both ask this question, and **E2** asks for a class per failure rather than per caller.
- */
-export class InstalledBrowserError extends MargoMeterToolError {
-    constructor(reason: string) {
-        super("InstalledBrowser", reason);
-    }
-}
-
 /** The client refused: a page naming no build, a bundle unserved, or a manifest with no date. */
 export class GameSourceError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super("GameSource", reason, options);
+    }
+}
+
+/**
+ * A world that did not answer: nothing came back, or what came back was a status rather than a
+ * page. Its own class and not `GameSource`'s, because a caller has to tell "the game moved on"
+ * from "nobody could ask" — a reading is judged against the first and not against the second.
+ */
+export class GameUnreachableError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super("GameUnreachable", reason, options);
     }
 }
 

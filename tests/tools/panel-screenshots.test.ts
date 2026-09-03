@@ -1,5 +1,6 @@
 /**
- * The photographed set, and the sidecar that says where it came from.
+ * The photographed set, the sidecar that says where it came from, and the browser it was taken
+ * with.
  *
  * The directory is not there until somebody shoots one, so the reader is proved on samples first
  * — a set it must flag and a set it must not — and only then let near the tree. A guard over a
@@ -10,6 +11,7 @@ import {
     assert,
     assertArrayIncludes,
     assertEquals,
+    assertRejects,
     assertStringIncludes,
     assertThrows,
 } from "@std/assert";
@@ -21,16 +23,25 @@ import { CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 import { getDeclaredVersion, isVersionOfTree } from "@/tools/declared-version.ts";
 import { PanelShotError } from "@/tools/margometer-tool-error.ts";
 import {
+    BROWSER_VARIABLE,
     composeFrameFromReport,
     composePanelShots,
     composeShotAddress,
     composeShotScript,
     FRAME_PARAMETER,
+    getBrowserAsked,
     getReportFromDom,
     MEASURING_WIDTH,
+    readInstalledBrowser,
     SHOT_DIRECTORY,
     SIDECAR_NAME,
 } from "@/tools/panel-screenshots.ts";
+
+/** A name nothing on any machine answers to, for the refusal that has to be reachable. */
+const ABSENT = "margometer-no-such-browser";
+/** Where the browser suite spells the same variable, which no Node loader can import from here. */
+const BROWSER_CONFIGURATION = "playwright.config.ts";
+const VARIABLE_DECLARATION = "BROWSER_VARIABLE = ";
 
 /** A length off the panel's own stylesheet, which states them all in whole pixels. */
 function getSheetLength(stated: string): number {
@@ -207,4 +218,68 @@ Deno.test("a page that wrote nothing down is a refusal, not a frame of some othe
         undefined,
         "a dumped page with no report in it",
     );
+});
+
+/**
+ * Which environment variable a file names, read off its declaration rather than off its prose:
+ * a mention in a comment is not a spelling anything reads.
+ */
+function getBrowserVariableInText(text: string, path: string): string {
+    const declared = text.indexOf(VARIABLE_DECLARATION);
+    assert(declared !== -1, `${path} declares the variable a run names a browser with`);
+    const opened = text.indexOf('"', declared);
+    assert(opened !== -1, `and ${path} states it as text`);
+    const closed = text.indexOf('"', opened + 1);
+    assert(closed > opened, `and ${path} closes it`);
+    return text.slice(opened + 1, closed);
+}
+
+Deno.test("what was argued is looked for first, and Chrome is looked for either way", () => {
+    const asked = getBrowserAsked("firefox", "chromium");
+    assertEquals(asked[0], "firefox", "what was asked for is looked for first");
+    assertEquals(asked[1], "chromium", "then what the environment names");
+    assertEquals(asked.includes("google-chrome"), true, "and Chrome is in the list either way");
+
+    const bare = getBrowserAsked(null, null);
+    assertEquals(bare[0], "google-chrome", "a run arguing nothing looks for Chrome first");
+});
+
+Deno.test("the first candidate that answers is the one taken", async () => {
+    // Deno stands in for a browser here: what is being held is that the reader asks the machine
+    // rather than trusting the list, and any binary that answers `--version` proves that.
+    const found = await readInstalledBrowser([ABSENT, Deno.execPath()]);
+    assertEquals(found, Deno.execPath(), "the absent name is stepped over, not returned");
+});
+
+Deno.test("a machine with none is refused under a name a reader can place", async () => {
+    const failure = await assertRejects(
+        () => readInstalledBrowser([ABSENT]),
+        PanelShotError,
+        undefined,
+        "a name nothing on this machine answers to",
+    );
+    assertEquals(failure.name, "MargoMeterTool/PanelShot", "the brand is in the name");
+    assertStringIncludes(failure.message, ABSENT, "and the refusal says what was tried");
+});
+
+/**
+ * The photographer and the browser suite name one variable, and neither can import the other's
+ * spelling: `playwright.config.ts` is read by a Node loader, and this tool is Deno's. A rename in
+ * one of them is silent — the suite simply drives the Chrome it would have driven anyway.
+ */
+Deno.test("both runs that drive a browser name the same variable", () => {
+    const declares = 'const BROWSER_VARIABLE = "SOMETHING";';
+    assertEquals(getBrowserVariableInText(declares, "a sample"), "SOMETHING", "the reader works");
+    const mentioned = '// BROWSER_VARIABLE is named here too.\nconst BROWSER_VARIABLE = "REAL";';
+    assertEquals(
+        getBrowserVariableInText(mentioned, "a sample"),
+        "REAL",
+        "and it steps over a prose mention standing above the declaration",
+    );
+
+    const configured = getBrowserVariableInText(
+        Deno.readTextFileSync(BROWSER_CONFIGURATION),
+        BROWSER_CONFIGURATION,
+    );
+    assertEquals(configured, BROWSER_VARIABLE, "the suite names the variable this tool reads");
 });

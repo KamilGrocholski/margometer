@@ -536,8 +536,8 @@ ${written}
 /**
  * The phrases to count. An explicit list wins — that is how a phrase is counted **before** a claim
  * is written for it — and with none the register is asked, so a re-freeze needs no list retyped.
- * The 92 phrases frozen on 2026-09-03 were exactly the 92 the register cites, and retyping them
- * was the whole reason the counts went a week without one.
+ * ⚠️ A list retyped by hand is how a freeze comes to count something other than what the register
+ * cites; `tests/repository/protocol-keys.test.ts` holds the two sets equal for that reason.
  */
 function requireFrozenPhrases(stated: readonly string[]): string[] {
     if (stated.length > 0) return [...stated];

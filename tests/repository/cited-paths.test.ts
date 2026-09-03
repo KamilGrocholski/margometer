@@ -46,6 +46,9 @@ const CITED_WHILE_ABSENT: Record<string, string> = {
     "src/core/unknown-reading.ts": "docs/adr/0020-a-shared-address-for-what-knows-nothing.md",
     // ADR 0017's Context: the tool the decision replaced, named in the past tense.
     "tools/build-preview.ts": "docs/adr/0017-the-panel-is-served-and-published.md",
+    // ADR 0046's Decision: the module its suite launched a browser through. ADR 0047 replaced
+    // that suite, and the module folded back into the one tool left asking the question.
+    "tools/installed-browser.ts": "docs/adr/0046-the-browser-layer-is-a-suite-of-its-own.md",
     // ADR 0022's measurements, taken on two recordings under the names they were filed as before
     // ADR 0030 renamed every one of them after the two versions it states. An ADR is a dated
     // snapshot and is never edited to agree with the tree it now sits in

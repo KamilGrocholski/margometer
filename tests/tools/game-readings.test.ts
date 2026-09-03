@@ -18,6 +18,9 @@ import {
     composeFrozenKeyState,
     composeHelpDumpState,
     composeReadingLine,
+    composeUnaskedClientState,
+    EXIT_STALE,
+    EXIT_UNASKED,
     getLoadedReadings,
 } from "@/tools/game-readings.ts";
 
@@ -55,42 +58,50 @@ function composeCachedDump(fetchedAt: string): CachedHelpArticle {
 }
 
 Deno.test("a row says which reading it is about and what the verdict was", () => {
-    const current = composeReadingLine({ name: "client", isCurrent: true, says: "served x" });
+    const current = composeReadingLine({ name: "client", verdict: "current", says: "served x" });
     assertStringIncludes(current, "client", "the row names its reading");
     assert(current.endsWith("current"), "and ends in the verdict");
-    const stale = composeReadingLine({ name: "client", isCurrent: false, says: "served x" });
+    const stale = composeReadingLine({ name: "client", verdict: "stale", says: "served x" });
     assert(stale.endsWith("STALE"), "the other verdict is the loud one");
     assert(!stale.includes("current"), "and never carries both");
+    const unasked = composeReadingLine({ name: "client", verdict: "unknown", says: "served x" });
+    assert(unasked.endsWith("UNKNOWN"), "and a world nobody asked is neither of the two");
 });
 
 Deno.test("the cached bundle is current only where it is the one being served", () => {
-    assertEquals(composeClientState("abc", composeCachedClient("abc")).isCurrent, true, "the same");
-    assertEquals(composeClientState("abc", composeCachedClient("xyz")).isCurrent, false, "a build");
+    const same = composeClientState("abc", composeCachedClient("abc"));
+    assertEquals(same.verdict, "current", "the build it was cached at");
+    const other = composeClientState("abc", composeCachedClient("xyz"));
+    assertEquals(other.verdict, "stale", "and a world serving another one");
     const absent = composeClientState("abc", null);
-    assertEquals(absent.isCurrent, false, "and a cache nobody filled is not current either");
+    assertEquals(absent.verdict, "stale", "and a cache nobody filled is not current either");
     assertStringIncludes(absent.says, "nothing cached", "which the row says rather than implies");
 });
 
 Deno.test("the frozen key table is dated by the bundle it was lifted from", () => {
     const cached = composeCachedClient(FROZEN_PROTOCOL_KEYS.gameBuild);
     const current = composeFrozenKeyState(FROZEN_KEYS, cached);
-    assertEquals(current.isCurrent, true, "the build it was frozen from");
+    assertEquals(current.verdict, "current", "the build it was frozen from");
     const behind = composeFrozenKeyState(FROZEN_KEYS, composeCachedClient(OTHER_BUILD));
-    assertEquals(behind.isCurrent, false, "a bundle fetched since, and never re-frozen");
+    assertEquals(behind.verdict, "stale", "a bundle fetched since, and never re-frozen");
     assertStringIncludes(behind.says, FROZEN_PROTOCOL_KEYS.gameBuild, "the row states both builds");
     assertStringIncludes(behind.says, OTHER_BUILD, "so a reader can see which way it drifted");
 });
 
 Deno.test("the help dump goes stale on a floor, and the day before it does not", () => {
     const dump = composeCachedDump(READ_AT);
-    assertEquals(composeHelpDumpState(dump, READ_AT_MILLISECONDS).isCurrent, true, "fetched now");
-    const six = READ_AT_MILLISECONDS + 6 * MILLISECONDS_PER_DAY;
-    assertEquals(composeHelpDumpState(dump, six).isCurrent, true, "the day before the floor");
-    const seven = READ_AT_MILLISECONDS + 7 * MILLISECONDS_PER_DAY;
-    assertEquals(composeHelpDumpState(dump, seven).isCurrent, false, "and the floor itself");
     assertEquals(
-        composeHelpDumpState(null, seven).isCurrent,
-        false,
+        composeHelpDumpState(dump, READ_AT_MILLISECONDS).verdict,
+        "current",
+        "fetched now",
+    );
+    const six = READ_AT_MILLISECONDS + 6 * MILLISECONDS_PER_DAY;
+    assertEquals(composeHelpDumpState(dump, six).verdict, "current", "the day before the floor");
+    const seven = READ_AT_MILLISECONDS + 7 * MILLISECONDS_PER_DAY;
+    assertEquals(composeHelpDumpState(dump, seven).verdict, "stale", "and the floor itself");
+    assertEquals(
+        composeHelpDumpState(null, seven).verdict,
+        "stale",
         "nothing cached is not current",
     );
 });
@@ -98,15 +109,15 @@ Deno.test("the help dump goes stale on a floor, and the day before it does not",
 Deno.test("the frozen counts are dated by the dump they name, not by their own age", () => {
     const named = composeCachedDump(FROZEN_HELP_PHRASES.fetchedAt);
     const current = composeFrozenHelpState(FROZEN_HELP, named);
-    assertEquals(current.isCurrent, true, "the dump they were counted over");
+    assertEquals(current.verdict, "current", "the dump they were counted over");
     // A dump fetched since is exactly the case the routine exists for: the counts still describe
     // the old one, and nothing about them looks wrong until the two dates are put side by side.
     const refetched = composeFrozenHelpState(FROZEN_HELP, composeCachedDump(READ_AT));
-    assertEquals(refetched.isCurrent, false, "a dump fetched since, and never re-counted");
+    assertEquals(refetched.verdict, "stale", "a dump fetched since, and never re-counted");
     assertStringIncludes(refetched.says, READ_AT, "the row states the dump on disk");
     assertEquals(
-        composeFrozenHelpState(FROZEN_HELP, null).isCurrent,
-        false,
+        composeFrozenHelpState(FROZEN_HELP, null).verdict,
+        "stale",
         "no dump, not current",
     );
 });
@@ -126,5 +137,20 @@ Deno.test("a refresh states what it wrote, and the loaded modules are what a sta
     );
     const written: FrozenKeyReading = { build: OTHER_BUILD, count: 1 };
     const state = composeFrozenKeyState(written, composeCachedClient(OTHER_BUILD));
-    assert(state.isCurrent, "a table just written from the cached bundle reads as current");
+    assertEquals(state.verdict, "current", "a table written from the cached bundle reads current");
+});
+
+Deno.test("a world that did not answer is said as that, and never as a stale reading", () => {
+    // The row a person reads has to name the world's silence, because the fix for it is not the
+    // fix for a reading that went behind: one waits, the other runs a refresh.
+    const unasked = composeUnaskedClientState("https://tempest.margonem.pl did not answer");
+    assertEquals(unasked.verdict, "unknown", "nobody could ask, so nothing is claimed");
+    assertEquals(unasked.name, "client", "and it stands in the row that needed the network");
+    assertStringIncludes(unasked.says, "did not answer", "saying what happened");
+    assert(!composeReadingLine(unasked).includes("STALE"), "and never wearing the other verdict");
+
+    // That the two exits differ is the compiler's — they are literal types, and asserting it here
+    // is a comparison it refuses to compile. What is left to hold is that neither is a quiet zero.
+    assert(EXIT_STALE > 0, "a reading that went behind never ends a work round quietly");
+    assert(EXIT_UNASKED > 0, "and neither does a world that could not be asked");
 });

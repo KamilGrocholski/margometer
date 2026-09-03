@@ -15,7 +15,7 @@ import {
     getGameBuildFromScriptName,
     getGameBundleNameFromScriptName,
 } from "@/src/core/game-build.ts";
-import { GameSourceError } from "@/tools/margometer-tool-error.ts";
+import { GameSourceError, GameUnreachableError } from "@/tools/margometer-tool-error.ts";
 
 export type GameChannel = "production" | "development";
 
@@ -171,13 +171,29 @@ export function getCachedBundle(channel: GameChannel): string {
     return bundle;
 }
 
+/**
+ * A request, and the answer to it. The `fetch` is wrapped because the network is one of the two
+ * boundaries **E5** gives a tool: a world that is down throws the runtime's own `TypeError`, and
+ * a caller that cannot tell that from a page it read would report a reading as stale on the
+ * strength of somebody else's outage.
+ */
+async function readAnsweredResponse(url: string): Promise<Response> {
+    assert(url.startsWith("https://"), "a world is asked over the protocol it serves");
+    let response: Response;
+    try {
+        response = await fetch(url);
+    } catch (failure) {
+        throw new GameUnreachableError(`${url} did not answer`, { cause: failure });
+    }
+    if (!response.ok) {
+        throw new GameUnreachableError(`${url} answered ${response.status}`);
+    }
+    return response;
+}
+
 async function getPageOfWorld(channel: GameChannel): Promise<string> {
     const host = CHANNEL_HOSTS[channel];
-    const response = await fetch(host);
-    if (!response.ok) {
-        throw new GameSourceError(`${host} answered ${response.status}`);
-    }
-    const html = await response.text();
+    const html = await (await readAnsweredResponse(host)).text();
     assert(html.length > 0, "a world that answered said something");
     assert(host.length > 0, "and was asked for by name");
     return html;
@@ -192,10 +208,7 @@ export async function writeClientSourceCache(channel: GameChannel): Promise<Cach
     const build = getBuildFromPage(page);
     const bundleUrl = getBundleUrlFromPage(page, host);
 
-    const response = await fetch(bundleUrl);
-    if (!response.ok) {
-        throw new GameSourceError(`${bundleUrl} answered ${response.status}`);
-    }
+    const response = await readAnsweredResponse(bundleUrl);
     const directory = getCacheDirectory(channel);
     Deno.mkdirSync(directory, { recursive: true });
     const bundlePath = `${directory}${BUNDLE_NAME}`;

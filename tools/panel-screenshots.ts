@@ -18,13 +18,16 @@ import { composeUserscriptFiles } from "@/tools/build-userscript.ts";
 import { PanelShotError } from "@/tools/margometer-tool-error.ts";
 import { setPreviewServer } from "@/tools/preview-server.ts";
 import { getPreviewRecordedFight, getRecordedFights } from "@/tools/recorded-fights.ts";
-import {
-    BROWSER_VARIABLE,
-    getBrowserAsked,
-    readInstalledBrowser,
-} from "@/tools/installed-browser.ts";
 
 export const SHOT_DIRECTORY = "screenshots";
+/**
+ * What names a browser for a run that argues none. `playwright.config.ts` spells it a second
+ * time because a Node loader cannot import this module, and
+ * `tests/tools/panel-screenshots.test.ts` holds the two spellings level.
+ */
+export const BROWSER_VARIABLE = "MARGOMETER_BROWSER";
+/** Chrome first: `docs/browser-support.md` says a measurement is taken on it. */
+const BROWSER_CANDIDATES = ["google-chrome", "google-chrome-stable", "chromium"];
 /** What the set was taken from, beside the set. The guard reads it, and so does a reader. */
 export const SIDECAR_NAME = "taken-at.json";
 /**
@@ -283,6 +286,32 @@ export function composeFrameFromReport(report: Record<string, unknown>): [number
     assert(width > PANEL_INSET, "a frame holds the panel and the air beside it");
     assert(height > PANEL_INSET, "on both sides of it");
     return [width, height];
+}
+
+/** Where to look: what was argued, then what the environment names, then what is on the path. */
+export function getBrowserAsked(argued: string | null, named: string | null): string[] {
+    const candidates: string[] = [];
+    if (argued !== null) candidates.push(argued);
+    if (named !== null) candidates.push(named);
+    for (const candidate of BROWSER_CANDIDATES) candidates.push(candidate);
+    assert(candidates.length >= BROWSER_CANDIDATES.length, "there is somewhere to look");
+    assert(candidates.every((one) => one.length > 0), "and each place looked in is named");
+    return candidates;
+}
+
+/** The first candidate this machine answers `--version` for. A value from outside — **N16**. */
+export async function readInstalledBrowser(candidates: readonly string[]): Promise<string> {
+    assert(candidates.length > 0, "somewhere to look was named");
+    for (const candidate of candidates) {
+        try {
+            const asked = await new Deno.Command(candidate, { args: ["--version"] }).output();
+            if (asked.success) return candidate;
+        } catch {
+            // Not on the path under that name, which is the question this was asking.
+            continue;
+        }
+    }
+    throw new PanelShotError(`no browser to photograph with: tried ${candidates.join(", ")}`);
 }
 
 async function readBrowserOutput(browser: string, args: readonly string[]): Promise<string> {

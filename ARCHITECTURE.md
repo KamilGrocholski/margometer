@@ -102,8 +102,8 @@ tools/             Never ships. Each arrives with the question it answers.
   preview-state.ts     What the harness carries between two pages, in the address and nowhere else.
   preview-server.ts    That page served, rebuilt on a change under `src/`, and reloaded.
   preview-site.ts      That page written down, one per recording, for somebody with no clone.
-  panel-screenshots.ts The panel photographed, at a frame measured off the panel itself.
-  installed-browser.ts Which browser on this machine a run drives, and the refusal with none.
+  panel-screenshots.ts The panel photographed, at a frame measured off the panel itself, in
+                       whichever browser this machine turns out to have.
   game-client-source.ts  The client fetched and dated, and the cache nothing published leaves.
   protocol-key-table.ts  Every key that client branches on, lifted out of its own switch.
   help-article.ts      The published help cached, searched raw, and counted into a reading.
@@ -169,8 +169,8 @@ tests/
     preview-state.test.ts     Both halves of the address, run rather than searched for words.
     preview-server.test.ts    Every route, against a bundle handed in rather than built.
     preview-site.test.ts      A page per recording, addressed relatively and asking nothing.
-    panel-screenshots.test.ts The set against its sidecar, and the frame a report sizes.
-    installed-browser.test.ts Where a run looks for a browser, and the refusal with none.
+    panel-screenshots.test.ts The set against its sidecar, the frame a report sizes, and both
+                              runs that drive a browser naming one variable.
     game-client-source.test.ts  Both names a world serves, and git asked about the cache.
     protocol-key-table.test.ts  The switch in either spelling, and the material against it.
     help-article.test.ts      A page turned into text, and a dump that says how old it is.
@@ -585,10 +585,11 @@ commit that opens or closes one.
 
 13. **W10 is held by a command a person runs, not by the gate.** `deno task game:readings status`
     compares what `frozen/` carries against the game and exits non-zero where one has gone behind,
-    which is a real observation and not a `by-reading` one — but it asks two of the game's hosts,
-    and the gate deliberately reaches no network, so nothing red goes up between the moment a
-    reading falls behind and the moment somebody runs the routine. Measured 2026-09-03, that window
-    had been open since 2026-09-01: the bundle for build `ne0iTNdg` was fetched that day,
+    which is a real observation and not a `by-reading` one — but it asks a host of the game's, and
+    the gate deliberately reaches no network, so nothing red goes up between the moment a reading
+    falls behind and the moment somebody runs the routine. A world that does not answer is exit `2`
+    and never exit `1`, so the window is the only thing left open here. Measured 2026-09-03, that
+    window had been open since 2026-09-01: the bundle for build `ne0iTNdg` was fetched that day,
     `frozen/protocol-keys.ts` went on naming `53XkBRxF`, and every gate in between was green. It
     closes the day CI runs the routine on a schedule, which is a decision about how often this
     repository may be red for somebody else's outage.
