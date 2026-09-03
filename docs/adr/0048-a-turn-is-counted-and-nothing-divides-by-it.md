@@ -95,11 +95,14 @@ carries that sentence in Polish on one world and in English on another, so a mat
 count nothing wherever the wording differs. It would be the first failure in this add-on that looks
 exactly like a combatant who was never stunned. Refused, and the gap is stated instead.
 
-**Counting by an enumerated list of action keys**, which is how `grooove.pl` does it. Checked
-against `captures/` on 2026-09-02: every key on that list arrives on a skill announcement this
-reading already counts, and the only one standing alone is a passive effect declared in a fight's
-opening payload — which such a list would count as a turn. The event kinds say the same thing
-without the list going stale, and `a01bf11` refused the list once already.
+**Counting by an enumerated list of action keys.** Checked against `captures/` on 2026-09-02: every
+key on that list arrives on a skill announcement this reading already counts, and the only one
+standing alone is a passive effect declared in a fight's opening payload — which such a list would
+count as a turn. The event kinds say the same thing without the list going stale, and `a01bf11`
+refused the list once already. ⚠️ The list was taken from `grooove.pl` and this entry said it was
+how that reader counts. It is not: a later read of its engine found the list to be the minor half of
+a rule that charges once per blow, so its figure is not this one. `docs/turns-taken.md` carries what
+that reader does, and the alternative stands refused on the `captures/` check alone.
 
 **Leave it at an action count and refuse the word.** `4f16e5c`'s decision, and it was right while
 the only reference was `current`. The help settles the word, so refusing it now would mean the panel

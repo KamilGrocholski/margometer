@@ -177,13 +177,24 @@ turns)` and reads only its values, never its keys. Development build `1781609507
 read 2026-09-02. The turn-loss sentence is in neither the client nor its dictionary, so the server
 composes it.
 
-**`grooove.pl` counts turns per combatant and counts the same figure this does.** Its fight viewer
-keeps `X.Xtury` and increments it on an enumerated list of action keys; the key carrying that
-sentence is displayed and never counted, so its figure is turns taken as well. Read 2026-09-02.
-Every key on that list was checked against `captures/` the same day: each one arrives on a skill
-announcement this reading already counts as one turn, and the only one standing alone is a
-declaration in the opening payload of a fight, which is a passive effect rather than an action. A
-list of keys is the reading `a01bf11` refused, and that check is why it stays refused.
+**`grooove.pl` counts blows, not turns.** Its fight viewer keeps one `X.Xtury` per combatant and
+increments it in three kinds of place: a block firing after any log entry that carried a dealt
+damage key, which is once per blow and once for a blow that missed too; a skill announcement whose
+name is one of fifteen written into the file, which are the announcements drawing no blow; and a
+scatter of effect keys. An announcement by a combatant the fight states as an NPC counts on top of
+its blows. `battle_engine.js?v=7` at site version `12-05-2021-1`, read 2026-09-03; the site
+documents none of it, its `Panel Walk` help answering four questions and none of them this one.
+
+So a two-hit skill charges two, which is the first of the two shapes above that look like a turn and
+are not, and the figure stated is turns taken plus every extra strike. Battle `84840475` states 18
+and 16 where its log carries 13 announcements for each combatant and one further blow standing
+behind none — a difference of 4 and 3, which is exactly the extra strikes of its multi-hit skills.
+The turn-loss sentence is displayed and never counted, so nothing there states a turn nobody spent.
+
+The effect keys were checked against `captures/` on 2026-09-02: each arrives on a skill announcement
+this reading already counts as one turn, and the only one standing alone is a declaration in the
+opening payload of a fight, which is a passive effect rather than an action. A list of keys is the
+reading `a01bf11` refused, and it is not what `grooove.pl` does either.
 
 ## What this cannot answer
 
