@@ -19,7 +19,7 @@ import {
     getHelpClaims,
     MAXIMUM_PHRASES,
     REGISTER_PATH,
-} from "@/tools/protocol-key-register.ts";
+} from "@/tools/help-claim-register.ts";
 
 /**
  * A tail that says **whom** an effect reaches rather than what it is. `-allies` occurs in the

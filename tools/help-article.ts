@@ -17,7 +17,7 @@ import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { getNumberFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { HelpArticleError } from "@/tools/margometer-tool-error.ts";
-import { getCitedHelpPhrases, REGISTER_PATH } from "@/tools/protocol-key-register.ts";
+import { getCitedHelpPhrases, REGISTER_PATH } from "@/tools/help-claim-register.ts";
 
 const HELP_HOST = "https://pomoc.margonem.pl";
 

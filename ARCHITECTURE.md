@@ -107,8 +107,8 @@ tools/             Never ships. Each arrives with the question it answers.
   game-client-source.ts  The client fetched and dated, and the cache nothing published leaves.
   protocol-key-table.ts  Every key that client branches on, lifted out of its own switch.
   help-article.ts      The published help cached, searched raw, and counted into a reading.
+  help-claim-register.ts  What `docs/protocol-keys.md` claims of the help, read out of it.
   game-readings.ts     Whether each dated reading is still the game's, and the refresh.
-  protocol-key-register.ts  What `docs/protocol-keys.md` claims of the help, read out of it.
   declared-version.ts  The one place a version is written down, and what a dev build says.
   changelog.ts         What a release says about the version this tree declares.
   margometer-tool-error.ts  The abstract brand a terminal failure wears, and the build's own.
