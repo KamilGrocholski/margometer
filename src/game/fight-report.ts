@@ -127,6 +127,8 @@ function composeReportRow(figures: CombatantFigures): ReportRow {
         skills: composeReportSkills(figures.skills),
         blowsStruck: figures.blowsStruck,
         blowsWithoutSkill: figures.blowsWithoutSkill,
+        turnsTaken: figures.turnsTaken,
+        turnsLost: figures.turnsLost,
         blowsCritical: figures.blowsCritical,
         damageDealtBlowLargest: figures.damageDealtBlowLargest,
         damageTakenBlowLargest: figures.damageTakenBlowLargest,

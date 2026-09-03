@@ -2012,3 +2012,33 @@ Deno.test("a drawn fight reads the same from every seat, and from none", () => {
         assertEquals(reading.outcome, "drawn", `seat ${side}: a draw is nobody's win`);
     }
 });
+
+/**
+ * The card is handed the turn count and not another counter beside it. Nothing else in the tree
+ * catches this: the card's own test is handed a `RowDetail` written by hand, so a reading that
+ * copied `blowsStruck` under the turn's name drew a wrong number everywhere and stayed green —
+ * **W4**, and this is the test that answer asks for.
+ */
+Deno.test("a row's card states the turns the figures hold, and not a count beside them", () => {
+    const { roster, statistics } = readFight(HILDUR);
+    const reading = composePanelReading(
+        statistics,
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    let differed = 0;
+    for (const row of reading.rows) {
+        const figures = statistics.byCombatantId.get(row.combatantId);
+        if (figures === undefined) continue;
+        assertEquals(
+            row.detail.turnsTaken,
+            figures.turnsTaken,
+            `${row.combatantId}: the card states the turns the aggregate counted`,
+        );
+        if (figures.turnsTaken !== figures.blowsStruck) differed += 1;
+    }
+    assert(differed > 0, "and the fight tells the two counts apart, so the check is a check");
+});

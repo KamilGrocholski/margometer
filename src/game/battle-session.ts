@@ -31,11 +31,13 @@ const MESSAGES_KEY = "m";
  * messages at all. Measured over `captures/`, 2026-08-28: present in exactly the 1048 payloads
  * `m` is, absent from the same 60, and the same length as `m` in every one of them.
  *
- * It is read as positive evidence and nothing else, so a rename that takes it costs a witness and
- * can never invent an alarm — while a rename that takes `m` is caught here rather than reaching a
- * reader as a fight of zeroes.
+ * Here only its **length** is read, as positive evidence and nothing else, so a rename that takes
+ * it costs a witness and can never invent an alarm — while a rename that takes `m` is caught here
+ * rather than reaching a reader as a fight of zeroes. Its **values** are a running index over the
+ * fight, and `tools/turn-count.ts` reads those: a break in them is the game numbering messages it
+ * did not send here. Exported so the two readings spell the key once (**N13**).
  */
-const MESSAGE_COUNT_KEY = "mi";
+export const MESSAGE_INDEX_KEY = "mi";
 /**
  * Which side is the reader's own, which the protocol never says and the client does. Stated on
  * the payload that opens a fight in all 28 recordings and on none of the others, 2026-08-29 — so
@@ -104,7 +106,7 @@ function readMessagesFromPayload(payload: Record<string, unknown>): string[] {
 }
 
 function readMessageCountFromPayload(payload: Record<string, unknown>): number {
-    const stated = payload[MESSAGE_COUNT_KEY];
+    const stated = payload[MESSAGE_INDEX_KEY];
     if (!Array.isArray(stated)) return 0;
     assert(stated.length <= MAXIMUM_EVENTS, "a payload states no more messages than a fight holds");
     return stated.length;

@@ -8,7 +8,7 @@
 
 import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
-import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { type CombatantRoster, composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import {
@@ -686,4 +686,189 @@ Deno.test("every recording places what a blow carried, and places none of it twi
             );
         }
     }
+});
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: an announcement and the two blows
+ * it went out as. The published help says every attack of one skill is one turn (article 372
+ * §2.1, read 2026-09-02), and the second blow arrives announced as nothing.
+ */
+const TWO_HIT_ANNOUNCEMENT = "441390=100.00;-10000249=99.60;tspell=Podwójne trafienie;skillId=239";
+const TWO_HIT_FIRST = "441390=100.00;-10000249=99.57;+dmgd=926;+dmgf=138;+dmgc=799;+resdmg=2;" +
+    "-absorb=44;-absorbm=294;-dmgd=81;-dmgc=8";
+const TWO_HIT_SECOND = "441390=100.00;-10000249=99.40;+pierce;+dmgd=809;+dmgf=105;+dmgc=799;" +
+    "+resdmg=2;-absorb=283;-absorbm=814;-dmgd=526;-dmgf=7;-dmgc=21";
+/**
+ * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`: two default attacks by one
+ * combatant, one after the other. The queue hands a fast combatant consecutive turns, so these
+ * are two of them and not one struck twice.
+ */
+const BARE_BLOW = "482845=100.00;-161518=70.07;+dmgd=466;+acdmg=5;-dmgd=223";
+const BARE_BLOW_AGAIN = "482845=100.00;-161518=21.34;+crit;+dmgd=612;+acdmg=5;-dmgd=363";
+/** The same recording: the other default action, which strikes nothing (§2.3). */
+const STEP = "-255967=100.00;0;step";
+/**
+ * `2026-08-25-luvia-grupa-vs-draugr-none-none.json`: a turn that went on making a skill ready,
+ * and the same key stated beside its own combatant's blow, where it rides that blow's turn.
+ */
+const PREPARE_ALONE = "-10124094=21.17;0;prepare=Osobisty rozrachunek(100%)";
+const PREPARE_BLOW = "-10124094=23.21;22914=43.63;+dmg=3275;+acdmg=96;-absorb=136;-dmg=2365";
+const PREPARE_BESIDE = "-10124094=23.21;0;prepare=Osobisty rozrachunek(0%)";
+
+function getTurnsTaken(messages: readonly string[], combatantId: number): number {
+    const statistics = composeFightStatistics(decodeFightMessages(messages, null), new Map());
+    return statistics.byCombatantId.get(combatantId)?.turnsTaken ?? 0;
+}
+
+Deno.test("a skill and every attack it goes out as are one turn", () => {
+    const whole = [TWO_HIT_ANNOUNCEMENT, TWO_HIT_FIRST, TWO_HIT_SECOND];
+    assertEquals(getTurnsTaken(whole, 441390), 1, "the announcement, and both of its blows");
+    assertEquals(getTurnsTaken([TWO_HIT_ANNOUNCEMENT], 441390), 1, "the announcement alone");
+    assertEquals(getTurnsTaken(whole, -10000249), 0, "and the end it landed on took none of it");
+});
+
+Deno.test("two default attacks by one combatant are two turns, not one struck twice", () => {
+    assertEquals(getTurnsTaken([BARE_BLOW], 482845), 1, "one attack is one turn");
+    assertEquals(getTurnsTaken([BARE_BLOW, BARE_BLOW_AGAIN], 482845), 2, "and two are two");
+});
+
+Deno.test("a step is a turn of its own, and a preparation is one where it stands alone", () => {
+    assertEquals(getTurnsTaken([STEP], -255967), 1, "the other default action");
+    assertEquals(getTurnsTaken([PREPARE_ALONE], -10124094), 1, "a turn spent making one ready");
+    assertEquals(
+        getTurnsTaken([PREPARE_BLOW, PREPARE_BESIDE], -10124094),
+        1,
+        "and one stated beside their own blow rides that blow's turn",
+    );
+});
+
+/**
+ * Zero is a boundary (**W5**), and here it is two of them: a combatant who only stood at the far
+ * end of a blow took no turn, and a fight nobody acted in counts none.
+ */
+Deno.test("a combatant nothing was read of took no turn, and nor did an empty fight", () => {
+    assertEquals(getTurnsTaken([ABSORBED], -10000249), 0, "the end a blow landed on");
+    assertEquals(getTurnsTaken([POISON, HEAL], -255967), 0, "health moving is nobody's turn");
+    const statistics = composeFightStatistics([], new Map());
+    assertEquals(statistics.byCombatantId.size, 0, "and a fight with no events has no rows");
+});
+
+/**
+ * A turn the protocol named no actor for reaches no row: there is nobody to charge it to. No
+ * recording produces the case, which is why the message is written here — **W4**.
+ */
+Deno.test("a turn the protocol named nobody for is charged to no row", () => {
+    const events = decodeFightMessages(["0;0;tspell=Coś;skillId=1"], null);
+    const statistics = composeFightStatistics(events, new Map());
+    assertEquals(statistics.byCombatantId.size, 0, "an unnamed actor opens no row");
+});
+
+/**
+ * Counting the two declarations adds turns to rows and creates none, measured 2026-09-02. It is
+ * what says `tools/fight-figures.ts` prints the fights it printed before.
+ */
+Deno.test("every recording charges a turn to somebody who was already in the fight", () => {
+    let turns = 0;
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        // One decode per payload, which is what the session does: an announcement is glued
+        // inside the payload it arrived in and never across two of them.
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        for (const [id, figures] of statistics.byCombatantId) {
+            assert(figures.turnsTaken >= 0, `${path} ${id} took no less than no turn`);
+            turns += figures.turnsTaken;
+        }
+    }
+    assertEquals(turns, 5154, "the turns the recordings hold, 2026-09-02");
+});
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the game announcing a turn its
+ * holder spent on nothing. The nicknames in `captures/` are the recording's own anonymised ones
+ * (`Gracz 5`), and the other name here is an NPC's.
+ */
+const TURN_LOST = "0;0;txt=Hildur Muza Śmierci - utrata tury (redukcja ogłuszenia 50%)";
+/** The same shape, ending in a full stop, which is how the game writes its other lines. */
+const DEAD_TARGET = "0;0;txt=Gracz 5 - atak w martwego przeciwnika.";
+const LOOT = "0;0;txt=Hildur Muza Śmierci: zdobyto Stalowa kosa";
+
+function composeTwoSided(): CombatantRoster {
+    return composeCombatantRoster([
+        {
+            id: -10000249,
+            name: "Hildur Muza Śmierci",
+            side: 2,
+            level: 100,
+            profession: "m",
+            healthMaximum: null,
+        },
+        {
+            id: 445202,
+            name: "Gracz 5",
+            side: 1,
+            level: 93,
+            profession: "p",
+            healthMaximum: null,
+        },
+    ]);
+}
+
+function getTurnsLost(messages: readonly string[], combatantId: number): number {
+    const roster = composeTwoSided();
+    const events = decodeFightMessages(messages, roster);
+    const statistics = composeFightStatistics(events, new Map());
+    return statistics.byCombatantId.get(combatantId)?.turnsLost ?? 0;
+}
+
+Deno.test("a turn the game says was spent on nothing lands on the row it names", () => {
+    assertEquals(getTurnsLost([TURN_LOST], -10000249), 1, "the combatant the sentence opens with");
+    assertEquals(getTurnsLost([TURN_LOST], 445202), 0, "and nobody else in the fight");
+    assertEquals(getTurnsLost([TURN_LOST, TURN_LOST], -10000249), 2, "twice is two");
+});
+
+/**
+ * The two shapes the reading must refuse, and the second is the one that keeps it honest: the
+ * game writes about a combatant in more than one kind of line, and only one of them is a turn.
+ */
+Deno.test("the game's other lines about a combatant are not turns anybody lost", () => {
+    assertEquals(getTurnsLost([DEAD_TARGET], 445202), 0, "a line ending in a full stop");
+    assertEquals(getTurnsLost([LOOT], -10000249), 0, "and one that names what was taken");
+    assertEquals(getTurnsLost([], -10000249), 0, "and a fight with no lines at all");
+});
+
+/**
+ * What the corpus holds, which is also what `docs/turns-taken.md` measures against the game's own
+ * numbering. Every one of them is placed on a row: no recording states a name the roster cannot.
+ */
+Deno.test("every turn the recordings say was lost is charged to somebody in the fight", () => {
+    let lost = 0;
+    for (const path of getRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
+        let placed = 0;
+        for (const [, figures] of statistics.byCombatantId) placed += figures.turnsLost;
+        const stated = events.filter((one) => one.kind === "turn-lost").length;
+        assertEquals(placed, stated, `${path}: a turn was lost by nobody the roster holds`);
+        lost += placed;
+    }
+    assertEquals(lost, 319, "the turns the recordings say were lost, 2026-09-03");
+});
+
+/**
+ * The corpus holds a pair of names where one opens the other — `Gracz 1` and `Gracz 10` — and the
+ * separator alone tells them apart, so nothing there exercises the rule that the **longest** name
+ * wins. This does: a nickname carrying the separator inside it, which the game allows. Without
+ * that rule the shorter name takes the line and the turn lands on the wrong row.
+ */
+Deno.test("a name that opens another does not take its line", () => {
+    const roster = composeCombatantRoster([
+        { id: 1, name: "Ala", side: 1, level: 10, profession: "w", healthMaximum: null },
+        { id: 2, name: "Ala - Bela", side: 2, level: 10, profession: "m", healthMaximum: null },
+    ]);
+    const events = decodeFightMessages(["0;0;txt=Ala - Bela - utrata tury"], roster);
+    const statistics = composeFightStatistics(events, new Map());
+    assertEquals(statistics.byCombatantId.get(2)?.turnsLost, 1, "the longer name holds the line");
+    assertEquals(statistics.byCombatantId.get(1)?.turnsLost, undefined, "and the shorter has none");
 });

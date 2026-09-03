@@ -15,7 +15,9 @@ export type MargoMeterToolErrorCode =
     | "HelpArticle"
     | "DeclaredVersion"
     | "Changelog"
-    | "DrillReport";
+    | "DrillReport"
+    | "TurnCount"
+    | "TurnReading";
 
 export abstract class MargoMeterToolError extends Error {
     readonly code: MargoMeterToolErrorCode;
@@ -122,5 +124,19 @@ export class ChangelogError extends MargoMeterToolError {
 export class DrillReportError extends MargoMeterToolError {
     constructor(reason: string) {
         super("DrillReport", reason);
+    }
+}
+
+/** The action count refused: an argument that is not a path to a recording. */
+export class TurnCountError extends MargoMeterToolError {
+    constructor(reason: string) {
+        super("TurnCount", reason);
+    }
+}
+
+/** The message reading refused, for the same reason and against a different register. */
+export class TurnReadingError extends MargoMeterToolError {
+    constructor(reason: string) {
+        super("TurnReading", reason);
     }
 }

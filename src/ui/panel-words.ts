@@ -257,6 +257,8 @@ export const CARD_WORDS = {
     blows: "Ciosy",
     blowsWithoutSkill: "bez umiejętności",
     skillUses: "Użycia umiejętności",
+    turns: "Tury wykonane",
+    turnsLost: "utracone",
     prevented: "Zatrzymane",
     blowsCritical: "Krytyki",
     /** A subset of the line above, which is what a sub-line under it means. */

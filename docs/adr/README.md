@@ -143,3 +143,7 @@ edited to agree with the new rule.
   and it brings a driver. **Superseded by 0047**
 - [0047](0047-the-browser-layer-comes-back-on-playwright.md) — The browser layer comes back, on
   Playwright, and asks the machine for its Chrome. **Accepted**
+- [0048](0048-a-turn-is-counted-and-nothing-divides-by-it.md) — A turn is counted, and nothing
+  divides by it. **Accepted**
+- [0049](0049-a-turn-nobody-spent-is-read-by-shape.md) — A turn nobody spent is read by shape, not
+  by words. **Accepted**

@@ -40,6 +40,13 @@
         // The same material the other way round: what the figures come to, per combatant, as the
         // panel would draw them.
         "fight:figures": "deno run -A tools/fight-figures.ts",
+        // How many turns a fight's combatants took, against the game's own numbering of them.
+        // `docs/turns-taken.md` carries the verdicts; `--cases` states the counts behind them.
+        "fight:turns": "deno run -A tools/turn-count.ts",
+        // The same count one step earlier: how a message becomes a turn, and which message a
+        // disagreement stands on. `docs/reading-a-turn.md` carries the disputed openers and, with
+        // `--keys`, what opened every turn and what each protocol key adds.
+        "fight:openers": "deno run -A tools/turn-reading.ts",
         // How a recording the add-on wrote becomes material: two redactions, then a file.
         "capture:intake": "deno run -A tools/capture-intake.ts",
         // The client fetched and dated, so a claim about it can name the build it was read on.
