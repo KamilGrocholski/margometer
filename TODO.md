@@ -17,21 +17,20 @@
 
 
 ## In Progress
-- [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development)
+- [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development, now I only know 1-93lvl)
+- [ ] Consider adding `turn` to stats - maybe I will find a solution to read turns after the latest fail
 
 ## Up Next
-- [ ] What is going on with a pair damageTaken from abilities
+- [ ] Add "ucieczka" as a new fight outcome
 
 ## Done
-- [x] Rewrite v2 after v0.10.1, on a special branch
-- [x] Preview page on github pages still refreshes its state after any capture change
+- [x] !!!IMPORTANT!!! Fix workflow each time before doing ANY work round: fetch game source files; refresh frozen dir content
+- [x] Add E2E tests - maybe trying out deno was not a good option
 
 ## Later
-- [ ] Start writing code against tests before v1.0.0 - tests first, at this point I SHOULD know what I want exactly
-- [ ] Consider adding raw dmg, absorbed, interrupts, and other views - use select as a ui selector component, instead of buttons ("Obrazenia" -> "Zadane", etc.)
+- [ ] Start writing specs, and code against tests before v1.0.0 - tests first, at this point I SHOULD exactly know what I want
+- [ ] Consider adding raw dmg, absorbed, interrupts, and other views - use select as a ui select component, instead of buttons ("Obrazenia" -> "Zadane", etc.)
 - [ ] Add views for: abilities ranking - uses, dmg, heal, etc; legbon ranking - procs;
-- [ ] Consider adding `turn` to stats - maybe I will find a solution to read turns after the latest fail
-- [ ] Add "ucieczka" as a new fight outcome
 - [ ] Add a thread about my add-ons and sites (MargoMeter, MargoStat) on Margonem's forum (I need 1 rep)
 - [ ] Get a recording carrying `frost` - the fourth of the `poison`/`fire`/`light` branch, unread and loud for want of material
 - [ ] Get a recording unwinding a pool past 40 000 from percentages with no snapshot - the entry-health floor's share term survives mutation for want of one
@@ -41,6 +40,9 @@
 
 ---
 ## History
+
+### Done v0.12.1
+- [x] HOTFIX: MargoMeter/Panel AssertionError: a reading sizes no more rows than it holds
 
 ### Done v0.10.0
 - [x] Make this repo smaller - it has too much code, comments, docs, and tools
