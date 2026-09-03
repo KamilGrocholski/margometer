@@ -38,7 +38,8 @@
         // `docs/turns-taken.md` carries the verdicts; `--cases` states the counts behind them.
         "turns": "deno run -A tools/turn-count.ts",
         // The same count one step earlier: how a message becomes a turn, and which message a
-        // disagreement stands on. `docs/reading-a-turn.md` carries the disputed openers.
+        // disagreement stands on. `docs/reading-a-turn.md` carries the disputed openers and, with
+        // `--keys`, what each protocol key stands behind.
         "turns:reading": "deno run -A tools/turn-reading.ts",
         // Which rows of the panel open onto another level, measured rather than remembered.
         // `docs/drill-levels.md` carries the verdicts; `--cases` states the counts behind them.

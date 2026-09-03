@@ -293,6 +293,78 @@ export function composeDisputeRegister(fights: readonly RecordedFight[]): Disput
     return disputed;
 }
 
+/**
+ * What one key stands behind, over every message the corpus carries. `messages` counts the
+ * messages the key arrived on, which is not what `docs/protocol-keys.md` counts: that register
+ * counts occurrences of the key, and a message may carry one twice.
+ */
+export interface KeyTally {
+    key: string;
+    messages: number;
+    opened: number;
+    lost: number;
+}
+
+/**
+ * Most first, and a plain comparison to break a tie — `ARCHITECTURE.md` refuses a collated order,
+ * and a key is an identifier the game chose rather than a word anybody reads.
+ */
+function getTallyOrder(one: KeyTally, other: KeyTally): number {
+    assert(one.key.length > 0, "a tally is kept under a key");
+    assert(other.key.length > 0, "and compared against another kept under one");
+    if (one.opened !== other.opened) return other.opened - one.opened;
+    if (one.key < other.key) return -1;
+    if (one.key > other.key) return 1;
+    return 0;
+}
+
+/** Every key a turn was ever read off, and how often it was and was not. */
+export function composeKeyTally(fights: readonly RecordedFight[]): KeyTally[] {
+    assert(fights.length > 0, "a tally is measured over something");
+    const messages = new Map<string, number>();
+    const opened = new Map<string, number>();
+    const lost = new Map<string, number>();
+    for (const fight of fights) {
+        for (const reading of composeMessageReadings(fight)) {
+            for (const key of new Set(reading.keys)) {
+                messages.set(key, (messages.get(key) ?? 0) + 1);
+                if (reading.openerId !== null) opened.set(key, (opened.get(key) ?? 0) + 1);
+                if (reading.lostId !== null) lost.set(key, (lost.get(key) ?? 0) + 1);
+            }
+        }
+    }
+    const tally: KeyTally[] = [];
+    for (const [key, carried] of messages) {
+        const stood = opened.get(key) ?? 0;
+        const spent = lost.get(key) ?? 0;
+        if (stood === 0 && spent === 0) continue;
+        tally.push({ key, messages: carried, opened: stood, lost: spent });
+    }
+    tally.sort(getTallyOrder);
+    assert(tally.every((one) => one.opened <= one.messages), "a key opens no more than it arrives");
+    return tally;
+}
+
+const KEY_WIDTH = 32;
+
+/** The key register the document carries. */
+export function composeKeyReport(tally: readonly KeyTally[]): string[] {
+    assert(tally.length > 0, "a report states the tally it was handed");
+    const lines = [
+        `  ${"key".padEnd(KEY_WIDTH)}${"messages".padStart(10)}${"opened".padStart(9)}` +
+        `${"lost".padStart(7)}`,
+    ];
+    for (const one of tally) {
+        lines.push(
+            `  ${one.key.padEnd(KEY_WIDTH)}${composeIntegerText(one.messages).padStart(10)}` +
+                `${composeIntegerText(one.opened).padStart(9)}` +
+                `${composeIntegerText(one.lost).padStart(7)}`,
+        );
+    }
+    assert(lines.length > 1, "a report states a line for every key it was handed");
+    return lines;
+}
+
 const NAME_WIDTH = 68;
 
 /** The register the document carries, which names no message and points at every one of them. */
@@ -345,25 +417,28 @@ export function composeReadingReport(fight: RecordedFight): string[] {
 }
 
 interface ReadingArguments {
+    isKeys: boolean;
     paths: string[];
 }
 
 function getArguments(stated: readonly string[]): ReadingArguments {
     assert(stated.length <= MAXIMUM_ARGUMENTS, "a run is given no more arguments than are read");
-    const parsed = parseArgs([...stated], {});
+    const parsed = parseArgs([...stated], { boolean: ["keys"] });
     const paths = parsed._.filter((one): one is string => typeof one === "string");
     if (paths.length !== parsed._.length) {
         throw new TurnReadingError("a recording is named by a path and never by a number");
     }
     assertEquals(paths.length, parsed._.length, "every argument that is not a flag is a path");
-    return { paths };
+    return { isKeys: parsed.keys, paths };
 }
 
 if (import.meta.main) {
     const asked = getArguments(Deno.args);
     const recorded = composeRecordedMaterial(asked.paths);
     console.log(`material ${recorded.material}`);
-    if (asked.paths.length > 0) {
+    if (asked.isKeys) {
+        for (const line of composeKeyReport(composeKeyTally(recorded.fights))) console.log(line);
+    } else if (asked.paths.length > 0) {
         for (const fight of recorded.fights) {
             for (const line of composeReadingReport(fight)) console.log(line);
         }

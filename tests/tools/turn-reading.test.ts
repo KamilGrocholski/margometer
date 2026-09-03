@@ -11,9 +11,11 @@ import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import {
     composeDisputedReadings,
     composeDisputeRegister,
+    composeKeyTally,
     composeMessageReadings,
     composeReadingReport,
     type DisputedReading,
+    type KeyTally,
 } from "@/tools/turn-reading.ts";
 import { composeFightReplay } from "@/tools/fight-replay.ts";
 import { getRecordedFightAt, getRecordedFights } from "@/tools/recorded-fights.ts";
@@ -178,6 +180,56 @@ Deno.test("a contested opener the game's numbering agrees with is no dispute", (
     }
     assert(contested > disputed, "a stretch counted right leaves its contested openers standing");
     assertStrictEquals(disputed, 18, "the openers the numbering disputes, 2026-09-03");
+});
+
+/** The key table's own rows, read by the heading it sits under and by nothing else. */
+function getKeyRows(text: string): string[] {
+    const found: string[] = [];
+    let inside = false;
+    for (const line of text.split("\n")) {
+        if (line.startsWith("## The keys a turn was read off")) inside = true;
+        else if (inside && line.startsWith("## ")) break;
+        if (!inside) continue;
+        if (!line.startsWith("| `")) continue;
+        const cells = getCellsFromLine(line).map(getBareCell);
+        const [key, messages, opened, lost] = cells;
+        if (key === undefined) continue;
+        if (messages === undefined) continue;
+        if (opened === undefined) continue;
+        if (lost === undefined) continue;
+        found.push(`${key} | ${messages} | ${opened} | ${lost}`);
+    }
+    return found;
+}
+
+function composeTallyKey(one: KeyTally): string {
+    return `${one.key} | ${one.messages} | ${one.opened} | ${one.lost}`;
+}
+
+Deno.test("the key table names every key a turn was read off, and no key that was not", () => {
+    const measured = new Set(composeKeyTally(getRecordedFights()).map(composeTallyKey));
+    const written = new Set(getKeyRows(Deno.readTextFileSync(REGISTER_PATH)));
+    assert(written.size > 0, "the key table carries rows");
+    const unwritten = [...measured].filter((one) => !written.has(one)).sort();
+    assertEquals(unwritten, [], `${REGISTER_PATH}: a key stands behind a turn and is not written`);
+    const untallied = [...written].filter((one) => !measured.has(one)).sort();
+    assertEquals(untallied, [], `${REGISTER_PATH}: the table names a key nothing produces`);
+});
+
+/**
+ * The one claim the table makes that a reader could act on: a turn nobody spent is read off one
+ * key and no other, and that key opens no turn of its own. Both halves, because a key that both
+ * opened and lost turns would make the two columns mean the same thing.
+ */
+Deno.test("a turn nobody spent is read off one key, and that key opens none", () => {
+    const tally = composeKeyTally(getRecordedFights());
+    const losing = tally.filter((one) => one.lost > 0);
+    assertStrictEquals(losing.length, 1, "one key states a turn nobody spent");
+    const only = losing[0];
+    assert(only !== undefined, "and it is there to be read");
+    assertStrictEquals(only.key, "txt", "the key the game writes its sentence on");
+    assertStrictEquals(only.opened, 0, "and it opens no turn of its own");
+    assert(tally.every((one) => one.opened <= one.messages), "a key opens no more than it arrives");
 });
 
 Deno.test("a walk states a line for every message the recording carried", () => {
