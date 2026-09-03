@@ -183,7 +183,7 @@ async function getPageOfWorld(channel: GameChannel): Promise<string> {
     return html;
 }
 
-async function writeClientSourceCache(channel: GameChannel): Promise<CachedClientSource> {
+export async function writeClientSourceCache(channel: GameChannel): Promise<CachedClientSource> {
     const host = CHANNEL_HOSTS[channel];
     // One request for the page, read twice: the id the cache is dated by and the name the bundle
     // is served under come from the same markup, so they cannot be a build and a file that do not
@@ -219,11 +219,19 @@ async function writeClientSourceCache(channel: GameChannel): Promise<CachedClien
     return cached;
 }
 
+/** The build a world is serving right now. Named `read` because it crosses to the network. */
+export async function readServedBuild(channel: GameChannel): Promise<string> {
+    const build = getBuildFromPage(await getPageOfWorld(channel));
+    assert(build.length > 0, "a build that was served says something");
+    assert(!build.includes("/"), "and is an id rather than a path");
+    return build;
+}
+
 async function writeClientStatusReport(): Promise<void> {
     const channels: GameChannel[] = ["production", "development"];
     for (const channel of channels) {
         const cached = getCachedClientSource(channel);
-        const served = getBuildFromPage(await getPageOfWorld(channel));
+        const served = await readServedBuild(channel);
         const state = cached === null
             ? "nothing cached"
             : cached.build === served

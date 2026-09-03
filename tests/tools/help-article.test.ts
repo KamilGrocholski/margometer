@@ -16,6 +16,7 @@ import {
     getOccurrenceCount,
     getPhraseCounts,
     getTextFromHtml,
+    isDumpStale,
     MECHANICS_ARTICLE,
     requireArticleId,
     requireCachedHelpArticle,
@@ -76,6 +77,13 @@ Deno.test("a dump says how old it is, and says it loudly once it is worth re-fet
     const day = composeAgeText(READ_AT, READ_AT_MILLISECONDS + 6 * MILLISECONDS_PER_DAY);
     assert(!day.includes("re-fetch"), "the day before it is not");
     assert(composeAgeText("not a date", READ_AT_MILLISECONDS).includes("stale"), "nor is a guess");
+
+    // The words and the verdict a script reads come from one comparison, so the boundary is
+    // asserted on both sides of it rather than only where the sentence changes.
+    assert(!isDumpStale(READ_AT, READ_AT_MILLISECONDS), "a dump fetched now is not stale");
+    assert(!isDumpStale(READ_AT, READ_AT_MILLISECONDS + 6 * MILLISECONDS_PER_DAY), "nor at six");
+    assert(isDumpStale(READ_AT, READ_AT_MILLISECONDS + 7 * MILLISECONDS_PER_DAY), "at seven it is");
+    assert(isDumpStale("not a date", READ_AT_MILLISECONDS), "and a date nobody reads counts stale");
 });
 
 Deno.test("an article this cannot date is an article it will not answer from", () => {

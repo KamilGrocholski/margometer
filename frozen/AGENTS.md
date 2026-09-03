@@ -19,6 +19,14 @@ that they are evidence, and that no hand edits them.
 - **The tool that writes a reading is the only thing that writes it**, and it writes here rather
   than into `tests/`: a guard reads this directory, and so does a tool.
 
+## How a reading is refreshed
+
+`deno task readings refresh` fetches the client bundle and the published help, then writes both
+files from what it has just fetched — in that order, because each reading is dated by the fetch
+above it. `deno task readings status` asks the same question and changes nothing. Neither takes a
+list of what to count: the phrases come from the claims `docs/protocol-keys.md` makes, which is what
+a count is for. **AGENTS.md W10** says when the routine is run.
+
 ## Why they exist
 
 A verdict in `docs/protocol-keys.md` that the help does or does not document a key is checked

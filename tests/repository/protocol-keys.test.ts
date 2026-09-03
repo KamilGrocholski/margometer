@@ -11,13 +11,16 @@ import { assert, assertEquals } from "@std/assert";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import { SELF_SOURCED_HEALING_KEYS } from "@/src/core/fight-decoder.ts";
+import {
+    BACKTICK,
+    getBacktickedPhrases,
+    getCitedHelpPhrases,
+    getHelpClaim,
+    getHelpClaims,
+    MAXIMUM_PHRASES,
+    REGISTER_PATH,
+} from "@/tools/protocol-key-register.ts";
 
-const REGISTER_PATH = "docs/protocol-keys.md";
-/** The register writes it italic; the section defining the vocabulary writes it bold. */
-const HELP_MARKERS = ["_Help:_", "*Help:*"];
-const SILENCE_CLAIM = "names nothing of";
-const OCCURRENCE_CLAIM = "names";
-const BACKTICK = "`";
 /**
  * A tail that says **whom** an effect reaches rather than what it is. `-allies` occurs in the
  * article on every documented sibling, so a rule asking for it would make a true silence
@@ -28,57 +31,6 @@ const SCOPE_SUFFIXES = ["allies"];
 const SEPARATORS = "_-";
 /** What ends a paragraph: nothing, or the fence closing the section that states the vocabulary. */
 const CLAIM_TERMINATORS = ["", "\`\`\`"];
-/** Past the phrase count of any claim in the register, so each walk carries a stated bound. */
-const MAXIMUM_PHRASES = 64;
-
-interface HelpClaim {
-    line: number;
-    isSilent: boolean;
-    phrases: string[];
-}
-
-/** Every backticked phrase on the line, in the order it states them. */
-function getBacktickedPhrases(text: string): string[] {
-    const found: string[] = [];
-    let from = 0;
-    for (let look = 0; look < MAXIMUM_PHRASES; look += 1) {
-        const open = text.indexOf(BACKTICK, from);
-        if (open === -1) break;
-        const close = text.indexOf(BACKTICK, open + 1);
-        if (close === -1) break;
-        found.push(text.slice(open + 1, close));
-        from = close + 1;
-    }
-    assert(found.length <= MAXIMUM_PHRASES, "a claim names no more phrases than the bound");
-    assert(found.every((one) => !one.includes(BACKTICK)), "a phrase carries no delimiter of ours");
-    return found;
-}
-
-/** The claim a line makes, or null where the line makes none. */
-function getHelpClaim(line: string, at: number): HelpClaim | null {
-    const trimmed = line.trim();
-    const marker = HELP_MARKERS.find((one) => trimmed.startsWith(one));
-    if (marker === undefined) return null;
-    const body = trimmed.slice(marker.length).trim();
-    const isSilent = body.startsWith(SILENCE_CLAIM);
-    if (!isSilent && !body.startsWith(OCCURRENCE_CLAIM)) return null;
-    const phrases = getBacktickedPhrases(body);
-    assert(at >= 1, "a line number is one-based");
-    assert(phrases.length > 0, "a claim names at least one phrase");
-    return { line: at, isSilent, phrases };
-}
-
-function getHelpClaims(text: string): HelpClaim[] {
-    const found: HelpClaim[] = [];
-    for (const [offset, line] of text.split("\n").entries()) {
-        const claim = getHelpClaim(line, offset + 1);
-        if (claim !== null) found.push(claim);
-    }
-    assert(found.every((one) => one.line > 0), "every claim knows which line it is on");
-    assert(found.length <= text.length, "no more claims than characters");
-    return found;
-}
-
 /**
  * What a claim of silence has to have tried: the key without its sign, and the tail after its
  * first separator — the help publishes `legbon_facade` as `facade`. Where that tail is a scope
@@ -114,6 +66,19 @@ Deno.test("the reader knows a help claim from every other line", () => {
 
     assertEquals(getHelpClaim("_Shape:_ 26 occurrences; on a blow", 1), null, "another line");
     assertEquals(getHelpClaim("the help names `heal` somewhere in prose", 1), null, "and prose");
+});
+
+Deno.test("the frozen table counts exactly what the register cites, and nothing besides", () => {
+    // `deno task help freeze` with no phrases takes its list from the register, so the two sides
+    // are the same walk over the same document. What this catches is the freeze that was not
+    // re-run: a claim added since carries no count, and a count outlives the claim that earned it.
+    const cited = getCitedHelpPhrases(REGISTER);
+    assert(cited.length > 0, "the register cites something");
+    assertEquals(
+        cited,
+        Object.keys(COUNTS).sort(),
+        "the table and the register name a different set",
+    );
 });
 
 Deno.test("every phrase the register cites is one the frozen table counted", () => {

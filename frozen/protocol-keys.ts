@@ -4,7 +4,7 @@
 // nothing the game composes from them comes with them.
 
 export const FROZEN_PROTOCOL_KEYS = {
-    gameBuild: "53XkBRxF",
+    gameBuild: "ne0iTNdg",
     /** Keys the client recognises by shape rather than by name — see the tool. */
     computedFamily: { "marker": "dmg", "markerAt": 1, "markerLength": 3, "dealtSign": "+" },
     keys: [

@@ -107,6 +107,8 @@ tools/             Never ships. Each arrives with the question it answers.
   game-client-source.ts  The client fetched and dated, and the cache nothing published leaves.
   protocol-key-table.ts  Every key that client branches on, lifted out of its own switch.
   help-article.ts      The published help cached, searched raw, and counted into a reading.
+  game-readings.ts     Whether each dated reading is still the game's, and the refresh.
+  protocol-key-register.ts  What `docs/protocol-keys.md` claims of the help, read out of it.
   declared-version.ts  The one place a version is written down, and what a dev build says.
   changelog.ts         What a release says about the version this tree declares.
   margometer-tool-error.ts  The abstract brand a terminal failure wears, and the build's own.
@@ -172,6 +174,7 @@ tests/
     game-client-source.test.ts  Both names a world serves, and git asked about the cache.
     protocol-key-table.test.ts  The switch in either spelling, and the material against it.
     help-article.test.ts      A page turned into text, and a dump that says how old it is.
+    game-readings.test.ts     Each verdict over a manifest handed in, needing no cache at all.
     changelog.test.ts         A section against its neighbours, and the release that has none.
     declared-version.test.ts  The declaration read both ways, and the mark a dev build wears.
   ui/
@@ -579,3 +582,13 @@ commit that opens or closes one.
     second. There is not one of the first in the tree, measured 2026-09-01, and telling it from a
     generic argument needs the type information a reader over text does not have. It closes if the
     spelling ever arrives, which is the day it would be worth the machinery.
+
+13. **W10 is held by a command a person runs, not by the gate.** `deno task readings status`
+    compares what `frozen/` carries against the game and exits non-zero where one has gone behind,
+    which is a real observation and not a `by-reading` one — but it asks two of the game's hosts,
+    and the gate deliberately reaches no network, so nothing red goes up between the moment a
+    reading falls behind and the moment somebody runs the routine. Measured 2026-09-03, that window
+    had been open since 2026-09-01: the bundle for build `ne0iTNdg` was fetched that day,
+    `frozen/protocol-keys.ts` went on naming `53XkBRxF`, and every gate in between was green. It
+    closes the day CI runs the routine on a schedule, which is a decision about how often this
+    repository may be red for somebody else's outage.

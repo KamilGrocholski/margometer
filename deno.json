@@ -41,6 +41,10 @@
         "intake": "deno run -A tools/capture-intake.ts",
         // The client fetched and dated, so a claim about it can name the build it was read on.
         "client": "deno run -A tools/game-client-source.ts",
+        // Every reading of the game this repository stands on, asked whether it is still the
+        // game's — and made current again. What a work round starts with, because the gate
+        // reaches no network and so cannot tell that one went behind: `frozen/AGENTS.md`.
+        "readings": "deno run -A tools/game-readings.ts",
         // Every key the client branches on, lifted out of that bundle and frozen beside it.
         "keys": "deno run -A tools/protocol-key-table.ts",
         // The published help, cached and searched, and the counts a register claim is held to.

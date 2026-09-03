@@ -377,22 +377,44 @@ ${written}
 `;
 }
 
-if (import.meta.main) {
+/** The build the table would be lifted from, refusing rather than reading an empty cache. */
+function requireCachedBuild(): string {
     const cached = getCachedClientSource("production");
     if (cached === null) {
         throw new ProtocolKeyTableError(
             "nothing cached for production — run `deno task client fetch production`",
         );
     }
+    assert(cached.build.length > 0, "a cache that was admitted knows its own build");
+    assertStrictEquals(cached.channel, "production", "and is the channel the table stands on");
+    return cached.build;
+}
+
+/** The table written to `frozen/`, dated by the build its bundle was served as. */
+export function writeFrozenKeyTable(): { build: string; count: number } {
+    const build = requireCachedBuild();
     const bundle = getCachedBundle("production");
     const keys = getProtocolKeys(bundle);
-    const family = getComputedKeyFamily(bundle);
-    const count = composeIntegerText(keys.length);
+    Deno.writeTextFileSync(
+        FROZEN_PATH,
+        composeFrozenKeyModule(build, keys, getComputedKeyFamily(bundle)),
+    );
+    assert(keys.length > 0, "a table that was written down counts something");
+    assert(build.length > 0, "and says which build it was counted over");
+    return { build, count: keys.length };
+}
+
+if (import.meta.main) {
     if (Deno.args.includes("freeze")) {
-        Deno.writeTextFileSync(FROZEN_PATH, composeFrozenKeyModule(cached.build, keys, family));
-        console.log(`froze ${count} keys from build ${cached.build} → ${FROZEN_PATH}`);
+        const { build, count } = writeFrozenKeyTable();
+        console.log(`froze ${composeIntegerText(count)} keys from build ${build} → ${FROZEN_PATH}`);
     } else {
-        console.log(`${count} keys plus the ${family.marker} family in build ${cached.build}`);
+        const bundle = getCachedBundle("production");
+        const count = composeIntegerText(getProtocolKeys(bundle).length);
+        const family = getComputedKeyFamily(bundle);
+        console.log(
+            `${count} keys plus the ${family.marker} family in build ${requireCachedBuild()}`,
+        );
         console.log(`run with \`freeze\` to write ${FROZEN_PATH}`);
     }
 }

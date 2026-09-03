@@ -1,7 +1,7 @@
 /**
  * The game's published help, cached and searched.
  *
- *     deno task help status | fetch | search <phrase> … | freeze <phrase> …
+ *     deno task help status | fetch | search <phrase> … | freeze [phrase …]
  *
  * It is the only source that says what an effect *does* — the bundle says which keys exist — and
  * it prints the engine name in parentheses beside the human one, which is what makes an article
@@ -17,6 +17,7 @@ import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { getNumberFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { HelpArticleError } from "@/tools/margometer-tool-error.ts";
+import { getCitedHelpPhrases, REGISTER_PATH } from "@/tools/protocol-key-register.ts";
 
 const HELP_HOST = "https://pomoc.margonem.pl";
 
@@ -273,6 +274,19 @@ function getMillisecondsFromIsoText(text: string): number | null {
     return milliseconds;
 }
 
+/**
+ * Whether the dump is past the floor `STALE_AFTER_DAYS` states. An unreadable date counts as
+ * stale: a claim dated by an instant nobody can read is a claim with no date.
+ */
+export function isDumpStale(fetchedAt: string, now: number): boolean {
+    const milliseconds = getMillisecondsFromIsoText(fetchedAt);
+    if (milliseconds === null) return true;
+    const days = Math.floor((now - milliseconds) / MILLISECONDS_PER_DAY);
+    assert(Number.isFinite(days), "an age is a number of days");
+    assert(STALE_AFTER_DAYS > 0, "and is compared against a floor of at least a day");
+    return days >= STALE_AFTER_DAYS;
+}
+
 /** How old the dump is, in words, and loudly once it is worth re-fetching. */
 export function composeAgeText(fetchedAt: string, now: number): string {
     const milliseconds = getMillisecondsFromIsoText(fetchedAt);
@@ -285,7 +299,7 @@ export function composeAgeText(fetchedAt: string, now: number): string {
     assert(when.endsWith("UTC"), "and is stated against a zone a reader can check");
     if (days <= 0) return `read ${when}, today`;
     if (days === 1) return `read ${when}, yesterday`;
-    const warning = days >= STALE_AFTER_DAYS ? " ⚠ re-fetch before deciding" : "";
+    const warning = isDumpStale(fetchedAt, now) ? " ⚠ re-fetch before deciding" : "";
     return `read ${when}, ${composeIntegerText(days)} days ago${warning}`;
 }
 
@@ -337,7 +351,7 @@ export function requireCachedHelpArticle(value: unknown, article: string): Cache
 }
 
 /** What is cached for this article, or null. Absence is an answer; an unreadable file is not. */
-function getCachedHelpArticle(article: string): CachedHelpArticle | null {
+export function getCachedHelpArticle(article: string): CachedHelpArticle | null {
     const manifest = getHelpManifestPath(article);
     let text = "";
     try {
@@ -370,7 +384,7 @@ function getCachedArticleText(article: string): { cached: CachedHelpArticle; tex
     return { cached, text };
 }
 
-async function writeHelpArticleCache(article: string): Promise<CachedHelpArticle> {
+export async function writeHelpArticleCache(article: string): Promise<CachedHelpArticle> {
     const url = getArticleUrl(article);
     const response = await fetch(url);
     if (!response.ok) {
@@ -519,6 +533,36 @@ ${written}
 `;
 }
 
+/**
+ * The phrases to count. An explicit list wins — that is how a phrase is counted **before** a claim
+ * is written for it — and with none the register is asked, so a re-freeze needs no list retyped.
+ * The 92 phrases frozen on 2026-09-03 were exactly the 92 the register cites, and retyping them
+ * was the whole reason the counts went a week without one.
+ */
+function requireFrozenPhrases(stated: readonly string[]): string[] {
+    if (stated.length > 0) return [...stated];
+    const cited = getCitedHelpPhrases(Deno.readTextFileSync(REGISTER_PATH));
+    if (cited.length === 0) {
+        throw new HelpArticleError(`${REGISTER_PATH} cites no phrase, and freeze counts nothing`);
+    }
+    assert(cited.length > 0, "a list that was derived names something to count");
+    assert(cited.every((one) => one.length > 0), "and every phrase in it says something");
+    return cited;
+}
+
+/** The counts written to `frozen/`, dated by the dump they were taken over. */
+export function writeFrozenHelpCounts(
+    article: string,
+    phrases: readonly string[],
+): { fetchedAt: string; counts: [string, number][] } {
+    const { cached, text } = getCachedArticleText(article);
+    const counts = getPhraseCounts(text, requireFrozenPhrases(phrases));
+    Deno.writeTextFileSync(FROZEN_PATH, composeFrozenHelpModule(article, cached.fetchedAt, counts));
+    assert(counts.length > 0, "a table that was written down counts something");
+    assert(cached.fetchedAt.length > 0, "and says which dump it was counted over");
+    return { fetchedAt: cached.fetchedAt, counts };
+}
+
 /** A flag's value, refused where it is not a count: the reader is a person at a terminal. */
 function requireFlagCount(stated: unknown, flag: string): number {
     const count = getNumberFromUnknown(stated);
@@ -554,14 +598,8 @@ if (import.meta.main) {
         // and silence has to be visible to a script and not only to whoever is reading along.
         if (writeHelpSearchReport(article, phrases, context, count) > 0) Deno.exit(1);
     } else if (command === "freeze") {
-        if (phrases.length === 0) throw new HelpArticleError("freeze takes at least one phrase");
-        const { cached, text } = getCachedArticleText(article);
-        const counts = getPhraseCounts(text, phrases);
-        Deno.writeTextFileSync(
-            FROZEN_PATH,
-            composeFrozenHelpModule(article, cached.fetchedAt, counts),
-        );
-        const age = composeAgeText(cached.fetchedAt, Date.now());
+        const { fetchedAt, counts } = writeFrozenHelpCounts(article, phrases);
+        const age = composeAgeText(fetchedAt, Date.now());
         console.log(
             `froze ${
                 composeIntegerText(counts.length)
@@ -574,7 +612,7 @@ if (import.meta.main) {
     } else {
         console.log(
             "usage: deno task help [--article N] [--context N] [--count N]" +
-                " status | fetch | search <phrase> … | freeze <phrase> …",
+                " status | fetch | search <phrase> … | freeze [phrase …]",
         );
     }
 }

@@ -371,6 +371,11 @@ TypeScript idiom, with the naming rules stated here.
   pointer, a card a pointer opens and a redraw takes away, the one region that scrolls, a file the
   browser really takes, storage that survives a real reload, and a crawl of every control the panel
   draws. **ADR 0047.**
+- **W10. A work round starts with the readings current.** What `frozen/` holds is evidence a guard
+  stands on, and the gate cannot tell that one has gone behind the game: it reaches no network, and
+  a gate that asked a world whether it may go green would be red whenever one is down. The
+  observation is `deno task readings status` leaving a non-zero exit — a bundle fetched and never
+  re-frozen, a dump past the floor it states. How a reading is refreshed is `frozen/AGENTS.md`'s.
 
 ## Git and releases
 
