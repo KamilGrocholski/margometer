@@ -11,9 +11,9 @@ that stops being true fails the gate.
 measured rather than written down (**V5**):
 
 ```bash
-deno task drill --cases                    # the table, with the counts behind each verdict
-deno task drill captures/<file>.json       # one recording, level by level
-deno task drill --screen healthGiven       # one screen of it
+deno task panel:drill --cases               # the table, with the counts behind each verdict
+deno task panel:drill captures/<file>.json  # one recording, level by level
+deno task panel:drill --screen healthGiven  # one screen of it
 ```
 
 ## The five views, at three levels

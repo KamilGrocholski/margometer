@@ -1,7 +1,7 @@
 /**
  * What a recording adds up to, per combatant — the table the panel draws, at a terminal.
  *
- *     deno task figures [recording.json …]
+ *     deno task fight:figures [recording.json …]
  *
  * It takes what `tools/decoding-status.ts` takes and for the argument written there: the two
  * questions are asked of one file in one sitting, and neither should need intake first. The

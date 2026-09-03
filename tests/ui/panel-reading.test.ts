@@ -1253,7 +1253,7 @@ Deno.test("a skill under damage dealt states damage, or a swing that landed none
 
 /**
  * The other side of the same rule, and the material carries no fight where a skill's every swing
- * was stopped — so the sample is the two messages that shape one. `deno task drill` over
+ * was stopped — so the sample is the two messages that shape one. `deno task panel:drill` over
  * `captures/` on 2026-08-30: 53 of the 81 skills announced deal something, and none of the other
  * 28 ever swung.
  */

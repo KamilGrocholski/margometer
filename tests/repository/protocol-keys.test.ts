@@ -69,8 +69,8 @@ Deno.test("the reader knows a help claim from every other line", () => {
 });
 
 Deno.test("the frozen table counts exactly what the register cites, and nothing besides", () => {
-    // `deno task help freeze` with no phrases takes its list from the register, so the two sides
-    // are the same walk over the same document. What this catches is the freeze that was not
+    // `deno task game:help freeze` with no phrases takes its list from the register, so the two
+    // sides are the same walk over the same document. What this catches is the freeze that was not
     // re-run: a claim added since carries no count, and a count outlives the claim that earned it.
     const cited = getCitedHelpPhrases(REGISTER);
     assert(cited.length > 0, "the register cites something");

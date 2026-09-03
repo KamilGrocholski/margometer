@@ -1,9 +1,9 @@
 /**
  * Which rows of the panel open onto another level, measured over the recordings.
  *
- *     deno task drill --cases                 the verdicts, with the counts behind them
- *     deno task drill [recording.json …]      one recording, level by level
- *     deno task drill --screen healthGiven    one screen of it
+ *     deno task panel:drill --cases                 the verdicts, with the counts behind them
+ *     deno task panel:drill [recording.json …]      one recording, level by level
+ *     deno task panel:drill --screen healthGiven    one screen of it
  *
  * It composes the levels the panel composes, so a verdict here is the panel's own answer and not
  * a second reading of the rule. `docs/drill-levels.md` carries the verdicts; the counts stay here,

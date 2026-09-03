@@ -202,10 +202,10 @@ const MAXIMUM_KINDS = 64;
 const MAXIMUM_SKILLS = 256;
 /**
  * How many kinds a pinned row's card states before what is left of them is summed into one line.
- * Measured over `captures/` with `deno task drill` on 2026-09-01: the widest pinned row states
- * four kinds, and 27 of the 28 state three or fewer. Six is headroom rather than a bound anything
- * meets — and a reachable one, because `takenWithNoTarget` folds the ten keys a blow carries in
- * with the seven a bare movement does.
+ * Measured over `captures/` with `deno task panel:drill` on 2026-09-01: the widest pinned row
+ * states four kinds, and 27 of the 28 state three or fewer. Six is headroom rather than a bound
+ * anything meets — and a reachable one, because `takenWithNoTarget` folds the ten keys a blow
+ * carries in with the seven a bare movement does.
  */
 const MAXIMUM_TIP_CUT_PARTS = 6;
 const TIP_WIDTH = 250;

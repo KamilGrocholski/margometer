@@ -1,7 +1,7 @@
 /**
  * Whether the dated readings of the game are current, and the routine that makes them so.
  *
- *     deno task readings status | refresh
+ *     deno task game:readings status | refresh
  *
  * A reading in `frozen/` is evidence a guard stands on, and the gate cannot tell that one has gone
  * behind the game: it reaches no network. So this is where staleness is an exit code, and
@@ -241,6 +241,6 @@ if (import.meta.main) {
     } else if (command === "status") {
         await writeReadingsStatus(getLoadedReadings());
     } else {
-        console.log("usage: deno task readings status | refresh");
+        console.log("usage: deno task game:readings status | refresh");
     }
 }

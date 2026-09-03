@@ -5,7 +5,7 @@ key: some are already settled, and some were investigated and deliberately left 
 
 Each entry carries a **verdict** and its **evidence** — a measurement over the captured fights, a
 citation from the game client with the build it was read on, or the game's published help with the
-date it was read (`deno task help`). A verdict without evidence is a guess someone will later
+date it was read (`deno task game:help`). A verdict without evidence is a guess someone will later
 mistake for a fact.
 
 The help is the only source that says what an effect _does_, so it is the only one that can settle a
@@ -59,7 +59,7 @@ telling us:
 **The line states an occurrence; the prose states what it means.** `names` claims only that the
 article carries the phrase — whether it _documents_ the key is a paragraph a person has to read, and
 three entries here occur in the article without being documented by it. Every phrase is re-counted
-against `frozen/help-phrases.ts`, which `deno task help freeze` writes from the cached dump, by
+against `frozen/help-phrases.ts`, which `deno task game:help freeze` writes from the cached dump, by
 `tests/repository/protocol-keys.test.ts`. Counts only: the help's own sentences never enter this
 repository, and a count is our measurement of the article rather than a piece of it (NOTICE.md).
 

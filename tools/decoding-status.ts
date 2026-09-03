@@ -1,7 +1,7 @@
 /**
  * How much of the protocol the decoder reads, counted rather than remembered.
  *
- *     deno task decoding [recording.json …]
+ *     deno task fight:decoding [recording.json …]
  *
  * The corpus by default, any recording you name instead — and the second is what makes the first
  * reachable: a fresh recording has to pass intake before it is material, and what this answers is

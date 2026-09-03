@@ -18,9 +18,9 @@ Which branch holds what: **G6**. The order the three pushes go in, and where the
 ## 1. Before the number moves
 
 - [ ] On `develop`, working tree clean, `deno task check` green, `deno task e2e` green.
-- [ ] `deno task decoding` — nothing newly unread over `captures/`. A release that decodes less than
-      the last one is a finding, not a release.
-- [ ] `deno task drill` — `docs/drill-levels.md` still says what is measured.
+- [ ] `deno task fight:decoding` — nothing newly unread over `captures/`. A release that decodes
+      less than the last one is a finding, not a release.
+- [ ] `deno task panel:drill` — `docs/drill-levels.md` still says what is measured.
 - [ ] Read the accepted decisions **against the tree of the last tag**, never against `develop`:
       `git show "$(git describe --tags --abbrev=0 main):docs/adr/README.md"`. The tag is asked for
       rather than spelled, because a number written here is right for one release and wrong for
@@ -39,7 +39,7 @@ the panel at the number it ships as. All three, **uncommitted**, and then one co
 
 ```bash
 # `CHANGELOG.md` and `deno.json` are edited first, and left in the working tree.
-deno task screenshots --release
+deno task panel:shots --release
 ```
 
 How a section is written and what the move is: the header comment of `CHANGELOG.md`. Why the section

@@ -55,9 +55,9 @@ it.
 ## The screenshots
 
 ```bash
-deno task screenshots
-deno task screenshots --browser /usr/bin/google-chrome   # or MARGOMETER_BROWSER
-deno task screenshots --release                          # a release, and only a release
+deno task panel:shots
+deno task panel:shots --browser /usr/bin/google-chrome   # or MARGOMETER_BROWSER
+deno task panel:shots --release                          # a release, and only a release
 ```
 
 `--release` puts the number `deno.json` declares on the panel instead of the `-dev` mark a build

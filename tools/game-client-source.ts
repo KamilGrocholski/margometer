@@ -1,7 +1,7 @@
 /**
  * The game client's own JavaScript, fetched and dated.
  *
- *     deno task client status | fetch [production|development]
+ *     deno task game:client status | fetch [production|development]
  *
  * Two rules shape it: production decides and development is only for reading, and what is
  * fetched never leaves `.cache/` — the client is somebody else's work, read locally to
@@ -162,7 +162,7 @@ export function getCachedBundle(channel: GameChannel): string {
     const cached = getCachedClientSource(channel);
     if (cached === null) {
         throw new GameSourceError(
-            `nothing cached for ${channel} — run \`deno task client fetch ${channel}\``,
+            `nothing cached for ${channel} — run \`deno task game:client fetch ${channel}\``,
         );
     }
     const bundle = Deno.readTextFileSync(cached.bundlePath);
@@ -255,6 +255,6 @@ if (import.meta.main) {
         );
         console.log(`cached ${cached.channel} build ${cached.build} → ${cached.bundlePath}`);
     } else {
-        console.log("usage: deno task client status | fetch [production|development]");
+        console.log("usage: deno task game:client status | fetch [production|development]");
     }
 }
