@@ -64,6 +64,10 @@ export interface MessageReading {
     openerId: number | null;
     /** Which key the opener stood on, where the opener was a declaration. */
     openerKey: string | null;
+    /** The kind of event the opener came from, which is what the rule actually answered. */
+    openerKind: string | null;
+    /** The keys without which this message would have opened no turn, or opened another's. */
+    adding: readonly string[];
     /** Whose turn it stated as spent on nothing. */
     lostId: number | null;
     /**
@@ -153,7 +157,7 @@ function composeReadingOfMessage(
     standing: TurnStanding,
     previousActorId: number | null,
 ): {
-    message: Omit<MessageReading, "payload" | "at" | "boundary">;
+    message: Omit<MessageReading, "payload" | "at" | "boundary" | "adding">;
     standing: TurnStanding;
     actorId: number | null;
 } {
@@ -161,6 +165,7 @@ function composeReadingOfMessage(
     let carried = standing;
     let openerId: number | null = null;
     let openerKey: string | null = null;
+    let openerKind: string | null = null;
     let lostId: number | null = null;
     for (const event of events) {
         const opened = getTurnOpener(event, carried);
@@ -168,6 +173,7 @@ function composeReadingOfMessage(
         if (opened !== null) {
             openerId = opened;
             openerKey = getOpenerKey(event);
+            openerKind = event.kind;
         }
         if (event.kind !== "turn-lost") continue;
         if (event.combatantId !== null) lostId = event.combatantId;
@@ -184,12 +190,52 @@ function composeReadingOfMessage(
             kinds: events.map((event) => event.kind),
             openerId,
             openerKey,
+            openerKind,
             lostId,
             isContested: openerId !== null && openerId === previousActorId,
         },
         standing: carried,
         actorId,
     };
+}
+
+/**
+ * The keys this message would not have opened its turn without. Asked by removing one key from
+ * the message and reading it again against the standing it actually met: where the turn is then
+ * gone, or somebody else's, that key added it.
+ *
+ * ⚠️ **A blow answers with nothing, and that is the finding rather than a gap.** Its figures arrive
+ * in pairs — raw beside applied — so removing either leaves the other and the message is a blow
+ * still. What opens a turn there is that the message carries a figure at all, which is not a
+ * property of any one key. `composeOpenerTally` is where that count lives instead.
+ */
+function composeKeysAddingTurn(
+    message: string,
+    previous: readonly string[],
+    roster: Parameters<typeof decodeFightMessages>[1],
+    standing: TurnStanding,
+    openerId: number,
+): string[] {
+    assert(message.length > 0, "a message that opened a turn is not empty");
+    const fields = message.split(FIELD_SEPARATOR);
+    const carried = fields.slice(2);
+    const adding: string[] = [];
+    const before = previous.length === 0 ? 0 : decodeFightMessages(previous, roster).length;
+    for (const key of new Set(carried.map((field) => field.split(VALUE_SEPARATOR)[0] ?? field))) {
+        const kept = carried.filter((field) => (field.split(VALUE_SEPARATOR)[0] ?? field) !== key);
+        const without = [...fields.slice(0, 2), ...kept].join(FIELD_SEPARATOR);
+        const decoded = decodeFightMessages([...previous, without], roster).slice(before);
+        let opened: number | null = null;
+        let walk = standing;
+        for (const event of decoded) {
+            const one = getTurnOpener(event, walk);
+            walk = composeTurnStanding(event, walk);
+            if (one !== null) opened = one;
+        }
+        if (opened !== openerId) adding.push(key);
+    }
+    assert(adding.length <= carried.length, "a message adds no more keys than it carried");
+    return adding;
 }
 
 /** The opener's key, where a declaration opened the turn — the one case a key decides. */
@@ -228,10 +274,16 @@ export function composeMessageReadings(fight: RecordedFight): MessageReading[] {
         for (let at = 0; at < messages.length; at += 1) {
             const message = messages[at] ?? "";
             const events = composeEventsOfMessage(messages, at, held.roster);
+            const before = standing;
             const reading = composeReadingOfMessage(message, events, standing, previousActorId);
             standing = reading.standing;
             previousActorId = reading.actorId;
-            pending.push({ payload, at, ...reading.message, boundary: null });
+            const openerId = reading.message.openerId;
+            const previous = at === 0 ? [] : [messages[at - 1] ?? ""];
+            const adding = openerId === null
+                ? []
+                : composeKeysAddingTurn(message, previous, held.roster, before, openerId);
+            pending.push({ payload, at, ...reading.message, adding, boundary: null });
         }
         const arriving = readTurnStatement(call);
         if (arriving === null) continue;
@@ -302,7 +354,15 @@ export interface KeyTally {
     key: string;
     messages: number;
     opened: number;
+    /** Turns that would not have opened without it, which is the causal half of `opened`. */
+    adds: number;
     lost: number;
+}
+
+/** What opened a turn, by the answer the rule actually gave rather than by the key beside it. */
+export interface OpenerTally {
+    opener: string;
+    turns: number;
 }
 
 /**
@@ -323,6 +383,7 @@ export function composeKeyTally(fights: readonly RecordedFight[]): KeyTally[] {
     assert(fights.length > 0, "a tally is measured over something");
     const messages = new Map<string, number>();
     const opened = new Map<string, number>();
+    const adds = new Map<string, number>();
     const lost = new Map<string, number>();
     for (const fight of fights) {
         for (const reading of composeMessageReadings(fight)) {
@@ -331,6 +392,7 @@ export function composeKeyTally(fights: readonly RecordedFight[]): KeyTally[] {
                 if (reading.openerId !== null) opened.set(key, (opened.get(key) ?? 0) + 1);
                 if (reading.lostId !== null) lost.set(key, (lost.get(key) ?? 0) + 1);
             }
+            for (const key of reading.adding) adds.set(key, (adds.get(key) ?? 0) + 1);
         }
     }
     const tally: KeyTally[] = [];
@@ -338,11 +400,56 @@ export function composeKeyTally(fights: readonly RecordedFight[]): KeyTally[] {
         const stood = opened.get(key) ?? 0;
         const spent = lost.get(key) ?? 0;
         if (stood === 0 && spent === 0) continue;
-        tally.push({ key, messages: carried, opened: stood, lost: spent });
+        tally.push({
+            key,
+            messages: carried,
+            opened: stood,
+            adds: adds.get(key) ?? 0,
+            lost: spent,
+        });
     }
     tally.sort(getTallyOrder);
     assert(tally.every((one) => one.opened <= one.messages), "a key opens no more than it arrives");
     return tally;
+}
+
+/**
+ * What opened each turn, by the kind of event the rule answered on — and by the declaration's own
+ * key, because a `step` and a `prepare` are one kind and two different things. This one
+ * **partitions**: every turn is opened by exactly one event, so the column sums to the corpus's
+ * turns. `docs/turns-taken.md` is where what each of them means is stated.
+ */
+export function composeOpenerTally(fights: readonly RecordedFight[]): OpenerTally[] {
+    assert(fights.length > 0, "a tally is measured over something");
+    const turns = new Map<string, number>();
+    for (const fight of fights) {
+        for (const reading of composeMessageReadings(fight)) {
+            if (reading.openerId === null) continue;
+            const kind = reading.openerKind ?? "";
+            assert(kind.length > 0, "a turn that opened was opened by an event of some kind");
+            const opener = reading.openerKey === null ? kind : `${kind}/${reading.openerKey}`;
+            turns.set(opener, (turns.get(opener) ?? 0) + 1);
+        }
+    }
+    const tally = [...turns].map(([opener, count]) => ({ opener, turns: count }));
+    tally.sort((one, other) => other.turns - one.turns);
+    assert(tally.length > 0, "the corpus opened a turn on something");
+    return tally;
+}
+
+const OPENER_WIDTH = 32;
+
+/** The partition the document carries above the key table. */
+export function composeOpenerReport(tally: readonly OpenerTally[]): string[] {
+    assert(tally.length > 0, "a report states the tally it was handed");
+    const lines = [`  ${"opened by".padEnd(OPENER_WIDTH)}${"turns".padStart(9)}`];
+    for (const one of tally) {
+        lines.push(
+            `  ${one.opener.padEnd(OPENER_WIDTH)}${composeIntegerText(one.turns).padStart(9)}`,
+        );
+    }
+    assert(lines.length > 1, "a report states a line for every opener it was handed");
+    return lines;
 }
 
 const KEY_WIDTH = 32;
@@ -352,12 +459,13 @@ export function composeKeyReport(tally: readonly KeyTally[]): string[] {
     assert(tally.length > 0, "a report states the tally it was handed");
     const lines = [
         `  ${"key".padEnd(KEY_WIDTH)}${"messages".padStart(10)}${"opened".padStart(9)}` +
-        `${"lost".padStart(7)}`,
+        `${"adds".padStart(7)}${"lost".padStart(7)}`,
     ];
     for (const one of tally) {
         lines.push(
             `  ${one.key.padEnd(KEY_WIDTH)}${composeIntegerText(one.messages).padStart(10)}` +
                 `${composeIntegerText(one.opened).padStart(9)}` +
+                `${composeIntegerText(one.adds).padStart(7)}` +
                 `${composeIntegerText(one.lost).padStart(7)}`,
         );
     }
@@ -437,6 +545,10 @@ if (import.meta.main) {
     const recorded = composeRecordedMaterial(asked.paths);
     console.log(`material ${recorded.material}`);
     if (asked.isKeys) {
+        for (const line of composeOpenerReport(composeOpenerTally(recorded.fights))) {
+            console.log(line);
+        }
+        console.log("");
         for (const line of composeKeyReport(composeKeyTally(recorded.fights))) console.log(line);
     } else if (asked.paths.length > 0) {
         for (const fight of recorded.fights) {

@@ -13,9 +13,11 @@ import {
     composeDisputeRegister,
     composeKeyTally,
     composeMessageReadings,
+    composeOpenerTally,
     composeReadingReport,
     type DisputedReading,
     type KeyTally,
+    type OpenerTally,
 } from "@/tools/turn-reading.ts";
 import { composeFightReplay } from "@/tools/fight-replay.ts";
 import { getRecordedFightAt, getRecordedFights } from "@/tools/recorded-fights.ts";
@@ -182,38 +184,85 @@ Deno.test("a contested opener the game's numbering agrees with is no dispute", (
     assertStrictEquals(disputed, 18, "the openers the numbering disputes, 2026-09-03");
 });
 
-/** The key table's own rows, read by the heading it sits under and by nothing else. */
-function getKeyRows(text: string): string[] {
+/**
+ * A table's own rows under one heading, and no other's. The width is what tells two tables apart:
+ * the key table's section also carries a two-column legend naming its own columns in backticks,
+ * and a reader taking every backticked row would compare a column name against a protocol key.
+ */
+function getRowsUnder(text: string, heading: string, width: number): string[] {
+    assert(width > 0, "a table is read at a width it states");
     const found: string[] = [];
     let inside = false;
     for (const line of text.split("\n")) {
-        if (line.startsWith("## The keys a turn was read off")) inside = true;
+        if (line.startsWith(heading)) inside = true;
         else if (inside && line.startsWith("## ")) break;
         if (!inside) continue;
         if (!line.startsWith("| `")) continue;
         const cells = getCellsFromLine(line).map(getBareCell);
-        const [key, messages, opened, lost] = cells;
-        if (key === undefined) continue;
-        if (messages === undefined) continue;
-        if (opened === undefined) continue;
-        if (lost === undefined) continue;
-        found.push(`${key} | ${messages} | ${opened} | ${lost}`);
+        if (cells.length !== width) continue;
+        found.push(cells.join(" | "));
     }
     return found;
 }
 
 function composeTallyKey(one: KeyTally): string {
-    return `${one.key} | ${one.messages} | ${one.opened} | ${one.lost}`;
+    return `${one.key} | ${one.messages} | ${one.opened} | ${one.adds} | ${one.lost}`;
+}
+
+function composeOpenerKey(one: OpenerTally): string {
+    return `${one.opener} | ${one.turns}`;
 }
 
 Deno.test("the key table names every key a turn was read off, and no key that was not", () => {
     const measured = new Set(composeKeyTally(getRecordedFights()).map(composeTallyKey));
-    const written = new Set(getKeyRows(Deno.readTextFileSync(REGISTER_PATH)));
+    const written = new Set(
+        getRowsUnder(Deno.readTextFileSync(REGISTER_PATH), "## The keys a turn was read off", 5),
+    );
     assert(written.size > 0, "the key table carries rows");
     const unwritten = [...measured].filter((one) => !written.has(one)).sort();
     assertEquals(unwritten, [], `${REGISTER_PATH}: a key stands behind a turn and is not written`);
     const untallied = [...written].filter((one) => !measured.has(one)).sort();
     assertEquals(untallied, [], `${REGISTER_PATH}: the table names a key nothing produces`);
+});
+
+Deno.test("the reader takes a table at its width, and the legend beside it at none", () => {
+    const sample = "## The keys a turn was read off\n\n| column | counts |\n| - | - |\n" +
+        "| `adds` | how many would not have opened one without this key |\n\n" +
+        "| key | messages | opened | adds | lost |\n| - | - | - | - | - |\n" +
+        "| `step` | 171 | 171 | 171 | 0 |\n";
+    assertEquals(
+        getRowsUnder(sample, "## The keys a turn was read off", 5),
+        ["step | 171 | 171 | 171 | 0"],
+        "the five-column table is read and the two-column legend is not",
+    );
+});
+
+/**
+ * The partition, and the arithmetic that says it is one. Every turn is opened by exactly one
+ * event, so the openers sum to the corpus's turns; and every key that adds a turn adds one the
+ * openers already counted, so the two columns close on each other with the blows left over.
+ */
+Deno.test("what opened the turns partitions them, and the keys all but the blows", () => {
+    const openers = composeOpenerTally(getRecordedFights());
+    const written = new Set(
+        getRowsUnder(Deno.readTextFileSync(REGISTER_PATH), "## What each turn was opened by", 2),
+    );
+    assertEquals(
+        new Set(openers.map(composeOpenerKey)),
+        written,
+        `${REGISTER_PATH}: the openers written and the openers measured are not the same set`,
+    );
+    let turns = 0;
+    let blows = 0;
+    for (const one of openers) {
+        turns += one.turns;
+        if (one.opener === "attack") blows += one.turns;
+    }
+    assertStrictEquals(turns, 5154, "every turn the corpus opened, 2026-09-03");
+    let adds = 0;
+    for (const one of composeKeyTally(getRecordedFights())) adds += one.adds;
+    assertStrictEquals(adds + blows, turns, "a turn is added by a key or opened by a blow");
+    assert(blows > 0, "the corpus carries a turn no key accounts for");
 });
 
 /**

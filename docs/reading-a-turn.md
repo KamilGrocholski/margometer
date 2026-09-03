@@ -90,121 +90,135 @@ claim; where it is short, the opener is contested and is not the shortfall.
 | 2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0      | 28      | 36      | -10003924 | 65   | 83  | 19      | `prepare` |
 | 2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0      | 41      | 7       | -10003924 | 119  | 123 | 5       | `prepare` |
 
+## What each turn was opened by
+
+Every turn, by the answer the rule gave rather than by the key beside it. This one **partitions** —
+one turn is opened by exactly one event, so the column is the corpus's turns and nothing is counted
+twice. What each opener means is `docs/turns-taken.md`'s; the names here are the rule's own, the
+event kind and, for a declaration, the key that decided it.
+
+| opened by             | turns |
+| --------------------- | ----- |
+| `skill-used`          | 3349  |
+| `attack`              | 1434  |
+| `declaration/prepare` | 200   |
+| `declaration/step`    | 171   |
+
 ## The keys a turn was read off
 
-Every key that arrived on a message which opened a turn or stated one spent on nothing. `messages`
-counts the messages the key arrived on, `opened` how many of those opened a turn, and `lost` how
-many stated one nobody spent.
+Every key that arrived on a message which opened a turn or stated one spent on nothing.
 
-⚠️ **A key in this table is not a key that opens a turn.** It is a key that was on the message when
-one opened, and most of them decide nothing: a key riding every blow shows the count of the blows it
-rode. What actually opens a turn is four things and `docs/turns-taken.md` names them; what a key
-means is `docs/protocol-keys.md`'s. What this table adds is the arithmetic neither of them carries —
-how much of the count each key is standing next to.
+| column     | counts                                                          |
+| ---------- | --------------------------------------------------------------- |
+| `messages` | the messages the key arrived on                                 |
+| `opened`   | how many of those opened a turn, whatever it was that opened it |
+| `adds`     | how many would not have opened one without this key             |
+| `lost`     | how many stated a turn nobody spent                             |
 
-Three readings it does support, because a ratio of one column to the other is a claim:
+**`adds` is the causal column, and it is measured rather than reasoned.** The key is taken out of
+the message, the message is read again against the standing it actually met, and where the turn is
+then gone or somebody else's, the key added it. Four keys in the corpus ever answer to that, and
+their sum plus the turns opened by a blow is the whole of the count above.
 
-- **A key whose `opened` equals its `messages` never arrives except where a turn opens.** The
-  announcement is the clearest, and it is the largest column in the corpus.
-- **A key whose `opened` is a fraction of its `messages` rides turns and other things alike.** The
-  damage family is that shape: a blow opens a turn only where it stands behind no announcement.
-- **`lost` belongs to exactly one key, and that key opens nothing.** The sentence a turn nobody
-  spent is read off is a message of its own, naming no combatant in either slot.
+⚠️ **`opened` is not `adds`, and the gap between them is the point of carrying both.** A key with a
+large `opened` and no `adds` was on the message and decided nothing: a key riding every blow shows
+the count of the blows it rode. Only `adds` is a claim about cause.
 
-**The `opened` column does not partition the turns.** One message carries several keys and every one
-of them is credited with the turn it opened, so the column sums to far more than the fight's turns.
-`docs/turns-taken.md` is where a count of turns is a count of turns.
+⚠️ **A blow adds no key at all, and that is a finding rather than a gap.** Its figures arrive in
+pairs — raw beside applied — so taking either away leaves the other and the message is a blow still.
+What opens a turn there is that the message carries a figure at all, which is a property of no
+single key. Those turns are the `attack` row of the table above and appear in no `adds` cell.
 
 **`messages` is not `docs/protocol-keys.md`'s occurrence count**, and the two disagree wherever a
 message carries the same key more than once — an attack naming several combatants states its
 reduction against each of them. That register counts the occurrences; this one counts the messages.
 
-| key                           | messages | opened | lost |
-| ----------------------------- | -------- | ------ | ---- |
-| `tspell`                      | 3342     | 3342   | 0    |
-| `skillId`                     | 3003     | 3003   | 0    |
-| `+dmgd`                       | 1485     | 770    | 0    |
-| `-dmgd`                       | 1485     | 770    | 0    |
-| `+dmgc`                       | 1361     | 469    | 0    |
-| `active_absorbdest_per`       | 465      | 465    | 0    |
-| `+resdmg`                     | 1176     | 458    | 0    |
-| `-dmga`                       | 1229     | 453    | 0    |
-| `-dmgc`                       | 1313     | 451    | 0    |
-| `+dmg`                        | 1726     | 445    | 0    |
-| `-dmg`                        | 1726     | 445    | 0    |
-| `+taken_dmg`                  | 1206     | 438    | 0    |
-| `combo-max`                   | 434      | 434    | 0    |
-| `+acdmg`                      | 928      | 404    | 0    |
-| `+crit`                       | 903      | 333    | 0    |
-| `active_decblock_per`         | 305      | 305    | 0    |
-| `+oth_dmg`                    | 466      | 293    | 0    |
-| `+dmgl`                       | 675      | 231    | 0    |
-| `-poison_lowdmg_per`          | 485      | 228    | 0    |
-| `+pierce`                     | 388      | 205    | 0    |
-| `prepare`                     | 302      | 200    | 0    |
-| `+dmgf`                       | 492      | 194    | 0    |
-| `-dmgl`                       | 608      | 194    | 0    |
-| `-absorb`                     | 624      | 180    | 0    |
-| `step`                        | 171      | 171    | 0    |
-| `active_block_per`            | 154      | 154    | 0    |
-| `shout`                       | 154      | 154    | 0    |
-| `mana`                        | 128      | 128    | 0    |
-| `heal_target`                 | 117      | 117    | 0    |
-| `healall_per`                 | 115      | 115    | 0    |
-| `active_decblock_per-enemies` | 107      | 107    | 0    |
-| `alllowdmg`                   | 107      | 107    | 0    |
-| `-dmgf`                       | 325      | 104    | 0    |
-| `allslow_per`                 | 104      | 104    | 0    |
-| `-blok`                       | 175      | 94     | 0    |
-| `aura-sa_per`                 | 75       | 75     | 0    |
-| `+abdest_per`                 | 257      | 71     | 0    |
-| `+abmdest_per`                | 257      | 71     | 0    |
-| `energy`                      | 70       | 70     | 0    |
-| `+dmgo`                       | 348      | 62     | 0    |
-| `-dmgo`                       | 333      | 62     | 0    |
-| `+spell-taken_dmg-all`        | 59       | 59     | 0    |
-| `-absorbm`                    | 301      | 53     | 0    |
-| `aura-adddmg2_per-meele`      | 47       | 47     | 0    |
-| `+injure`                     | 76       | 41     | 0    |
-| `aura-ac_per`                 | 41       | 41     | 0    |
-| `aura-resall`                 | 41       | 41     | 0    |
-| `+fastarrow`                  | 54       | 28     | 0    |
-| `+acdmg_destroyed`            | 43       | 20     | 0    |
-| `-evade`                      | 39       | 19     | 0    |
-| `+engback`                    | 347      | 18     | 0    |
-| `+crush_physical`             | 23       | 15     | 0    |
-| `+legbon_holytouch`           | 58       | 15     | 0    |
-| `+legbon_anguish`             | 18       | 12     | 0    |
-| `+legbon_verycrit`            | 30       | 11     | 0    |
-| `+of_crit`                    | 72       | 10     | 0    |
-| `+stun2-c`                    | 9        | 8      | 0    |
-| `+thirdatt`                   | 24       | 8      | 0    |
-| `-legbon_facade`              | 15       | 8      | 0    |
-| `-thirdatt`                   | 24       | 8      | 0    |
-| `-legbon_cleanse`             | 25       | 7      | 0    |
-| `-legbon_critred`             | 11       | 7      | 0    |
-| `tcustom`                     | 7        | 7      | 0    |
-| `+critsa`                     | 38       | 5      | 0    |
-| `en-regen-cast`               | 5        | 5      | 0    |
-| `+stun2`                      | 4        | 4      | 0    |
-| `-pierceb`                    | 6        | 4      | 0    |
-| `lowheal_per-enemies`         | 4        | 4      | 0    |
-| `+legbon_curse`               | 12       | 3      | 0    |
-| `+legbon_puncture`            | 7        | 3      | 0    |
-| `legbon_lastheal`             | 12       | 3      | 0    |
-| `-contra`                     | 3        | 2      | 0    |
-| `removedot-allies`            | 2        | 2      | 0    |
-| `+absorb`                     | 2        | 1      | 0    |
-| `+critpoison_per`             | 10       | 1      | 0    |
-| `+rage`                       | 2        | 1      | 0    |
-| `-legbon_glare`               | 3        | 1      | 0    |
-| `-tenacity`                   | 20       | 1      | 0    |
-| `bandage`                     | 1        | 1      | 0    |
-| `critmval-allies`             | 1        | 1      | 0    |
-| `critval-allies`              | 1        | 1      | 0    |
-| `removeslow-allies`           | 1        | 1      | 0    |
-| `removestun-allies`           | 1        | 1      | 0    |
-| `txt`                         | 342      | 0      | 319  |
+| key                           | messages | opened | adds | lost |
+| ----------------------------- | -------- | ------ | ---- | ---- |
+| `tspell`                      | 3342     | 3342   | 3342 | 0    |
+| `skillId`                     | 3003     | 3003   | 0    | 0    |
+| `+dmgd`                       | 1485     | 770    | 0    | 0    |
+| `-dmgd`                       | 1485     | 770    | 0    | 0    |
+| `+dmgc`                       | 1361     | 469    | 0    | 0    |
+| `active_absorbdest_per`       | 465      | 465    | 0    | 0    |
+| `+resdmg`                     | 1176     | 458    | 0    | 0    |
+| `-dmga`                       | 1229     | 453    | 0    | 0    |
+| `-dmgc`                       | 1313     | 451    | 0    | 0    |
+| `+dmg`                        | 1726     | 445    | 0    | 0    |
+| `-dmg`                        | 1726     | 445    | 0    | 0    |
+| `+taken_dmg`                  | 1206     | 438    | 0    | 0    |
+| `combo-max`                   | 434      | 434    | 0    | 0    |
+| `+acdmg`                      | 928      | 404    | 0    | 0    |
+| `+crit`                       | 903      | 333    | 0    | 0    |
+| `active_decblock_per`         | 305      | 305    | 0    | 0    |
+| `+oth_dmg`                    | 466      | 293    | 0    | 0    |
+| `+dmgl`                       | 675      | 231    | 0    | 0    |
+| `-poison_lowdmg_per`          | 485      | 228    | 0    | 0    |
+| `+pierce`                     | 388      | 205    | 0    | 0    |
+| `prepare`                     | 302      | 200    | 200  | 0    |
+| `+dmgf`                       | 492      | 194    | 0    | 0    |
+| `-dmgl`                       | 608      | 194    | 0    | 0    |
+| `-absorb`                     | 624      | 180    | 0    | 0    |
+| `step`                        | 171      | 171    | 171  | 0    |
+| `active_block_per`            | 154      | 154    | 0    | 0    |
+| `shout`                       | 154      | 154    | 0    | 0    |
+| `mana`                        | 128      | 128    | 0    | 0    |
+| `heal_target`                 | 117      | 117    | 0    | 0    |
+| `healall_per`                 | 115      | 115    | 0    | 0    |
+| `active_decblock_per-enemies` | 107      | 107    | 0    | 0    |
+| `alllowdmg`                   | 107      | 107    | 0    | 0    |
+| `-dmgf`                       | 325      | 104    | 0    | 0    |
+| `allslow_per`                 | 104      | 104    | 0    | 0    |
+| `-blok`                       | 175      | 94     | 0    | 0    |
+| `aura-sa_per`                 | 75       | 75     | 0    | 0    |
+| `+abdest_per`                 | 257      | 71     | 0    | 0    |
+| `+abmdest_per`                | 257      | 71     | 0    | 0    |
+| `energy`                      | 70       | 70     | 0    | 0    |
+| `+dmgo`                       | 348      | 62     | 0    | 0    |
+| `-dmgo`                       | 333      | 62     | 0    | 0    |
+| `+spell-taken_dmg-all`        | 59       | 59     | 0    | 0    |
+| `-absorbm`                    | 301      | 53     | 0    | 0    |
+| `aura-adddmg2_per-meele`      | 47       | 47     | 0    | 0    |
+| `+injure`                     | 76       | 41     | 0    | 0    |
+| `aura-ac_per`                 | 41       | 41     | 0    | 0    |
+| `aura-resall`                 | 41       | 41     | 0    | 0    |
+| `+fastarrow`                  | 54       | 28     | 0    | 0    |
+| `+acdmg_destroyed`            | 43       | 20     | 0    | 0    |
+| `-evade`                      | 39       | 19     | 0    | 0    |
+| `+engback`                    | 347      | 18     | 0    | 0    |
+| `+crush_physical`             | 23       | 15     | 0    | 0    |
+| `+legbon_holytouch`           | 58       | 15     | 0    | 0    |
+| `+legbon_anguish`             | 18       | 12     | 0    | 0    |
+| `+legbon_verycrit`            | 30       | 11     | 0    | 0    |
+| `+of_crit`                    | 72       | 10     | 0    | 0    |
+| `+stun2-c`                    | 9        | 8      | 0    | 0    |
+| `+thirdatt`                   | 24       | 8      | 0    | 0    |
+| `-legbon_facade`              | 15       | 8      | 0    | 0    |
+| `-thirdatt`                   | 24       | 8      | 0    | 0    |
+| `-legbon_cleanse`             | 25       | 7      | 0    | 0    |
+| `-legbon_critred`             | 11       | 7      | 0    | 0    |
+| `tcustom`                     | 7        | 7      | 7    | 0    |
+| `+critsa`                     | 38       | 5      | 0    | 0    |
+| `en-regen-cast`               | 5        | 5      | 0    | 0    |
+| `+stun2`                      | 4        | 4      | 0    | 0    |
+| `-pierceb`                    | 6        | 4      | 0    | 0    |
+| `lowheal_per-enemies`         | 4        | 4      | 0    | 0    |
+| `+legbon_curse`               | 12       | 3      | 0    | 0    |
+| `+legbon_puncture`            | 7        | 3      | 0    | 0    |
+| `legbon_lastheal`             | 12       | 3      | 0    | 0    |
+| `-contra`                     | 3        | 2      | 0    | 0    |
+| `removedot-allies`            | 2        | 2      | 0    | 0    |
+| `+absorb`                     | 2        | 1      | 0    | 0    |
+| `+critpoison_per`             | 10       | 1      | 0    | 0    |
+| `+rage`                       | 2        | 1      | 0    | 0    |
+| `-legbon_glare`               | 3        | 1      | 0    | 0    |
+| `-tenacity`                   | 20       | 1      | 0    | 0    |
+| `bandage`                     | 1        | 1      | 0    | 0    |
+| `critmval-allies`             | 1        | 1      | 0    | 0    |
+| `critval-allies`              | 1        | 1      | 0    | 0    |
+| `removeslow-allies`           | 1        | 1      | 0    | 0    |
+| `removestun-allies`           | 1        | 1      | 0    | 0    |
+| `txt`                         | 342      | 0      | 0    | 319  |
 
 ## What this cannot answer
 
