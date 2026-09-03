@@ -16,7 +16,8 @@ export type MargoMeterToolErrorCode =
     | "DeclaredVersion"
     | "Changelog"
     | "DrillReport"
-    | "TurnCount";
+    | "TurnCount"
+    | "TurnReading";
 
 export abstract class MargoMeterToolError extends Error {
     readonly code: MargoMeterToolErrorCode;
@@ -129,5 +130,12 @@ export class DrillReportError extends MargoMeterToolError {
 export class TurnCountError extends MargoMeterToolError {
     constructor(reason: string) {
         super("TurnCount", reason);
+    }
+}
+
+/** The message reading refused, for the same reason and against a different register. */
+export class TurnReadingError extends MargoMeterToolError {
+    constructor(reason: string) {
+        super("TurnReading", reason);
     }
 }

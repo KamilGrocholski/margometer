@@ -72,7 +72,7 @@ export const TURN_VERDICTS = ["always", "sometimes", "never", "in a lump"] as co
 export type TurnVerdict = (typeof TURN_VERDICTS)[number];
 
 /** What the game stated about the turn in progress when a payload arrived. */
-interface TurnStatement {
+export interface TurnStatement {
     ordinal: number;
     combatantId: number;
 }
@@ -138,7 +138,7 @@ export interface TurnStretch {
  * it is. Null where the payload carries no queue — five recordings carry none at all, and the
  * first payload of a fight is one of them everywhere else.
  */
-function readTurnStatement(payload: unknown): TurnStatement | null {
+export function readTurnStatement(payload: unknown): TurnStatement | null {
     if (!isRecord(payload)) return null;
     const queue = payload[TURN_QUEUE_KEY];
     if (!isRecord(queue)) return null;

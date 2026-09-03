@@ -99,6 +99,7 @@ tools/             Never ships. Each arrives with the question it answers.
   fight-figures.ts     What a fight adds up to, per combatant, as a table at a terminal.
   drill-report.ts      Which rows of the panel open, measured level by level over a fight.
   turn-count.ts        What a fight's turns come to, graded against the game's own numbering.
+  turn-reading.ts      How a message becomes a turn, and which message a dispute stands on.
   preview-page.ts      The harness page, whole, as one string. It speaks neither language.
   preview-state.ts     What the harness carries between two pages, in the address and nowhere else.
   preview-server.ts    That page served, rebuilt on a change under `src/`, and reloaded.
@@ -122,6 +123,7 @@ docs/
   releasing.md       The steps a release runs, and which of them a machine holds.
   drill-levels.md    Which kind of row opens onto another level, and which is the last.
   turns-taken.md     What a turn count comes to, and what it does not claim.
+  reading-a-turn.md  How a message becomes a turn, and every opener the game disputes.
   captured-fights.md What each recording holds, and how much protocol it carries.
   browser-support.md What the shipped file asks of a browser.
   adr/               Decisions costly or surprising to reverse.
@@ -166,6 +168,7 @@ tests/
     fight-figures.test.ts     The table read back, and the reading block that prints at zero.
     drill-report.test.ts      The register against every level drawn, both ways round.
     turn-count.test.ts        The register against every recording graded, both ways round.
+    turn-reading.test.ts      The disputed openers, and this reading against the panel's.
     preview-page.test.ts      The page, read back: the order of its scripts, and its escaping.
     preview-state.test.ts     Both halves of the address, run rather than searched for words.
     preview-server.test.ts    Every route, against a bundle handed in rather than built.

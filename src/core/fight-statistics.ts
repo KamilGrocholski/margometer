@@ -404,7 +404,7 @@ function hasDeclaredEffect(event: DeclarationEvent, effect: string): boolean {
  * game's own default actions; the two that look like a turn and are not are measured exceptions.
  * `docs/turns-taken.md` names all six and states what each costs.
  */
-function getTurnOpener(event: BattleEvent, standing: TurnStanding): number | null {
+export function getTurnOpener(event: BattleEvent, standing: TurnStanding): number | null {
     if (event.kind === "skill-used") return event.actorId;
     if (event.kind === "attack") {
         if (event.announced !== null) return null;
@@ -423,7 +423,7 @@ function getTurnOpener(event: BattleEvent, standing: TurnStanding): number | nul
  * announcement's own — its first blow, or an extra attack of it; anything else ends it, and an
  * event that is nobody's action ends both halves.
  */
-function composeTurnStanding(event: BattleEvent, standing: TurnStanding): TurnStanding {
+export function composeTurnStanding(event: BattleEvent, standing: TurnStanding): TurnStanding {
     assert(
         standing.strikingId === null || standing.strikingId === standing.actingId,
         "whoever is still mid-blow is whoever acted last",
@@ -507,10 +507,13 @@ interface WoundStanding {
  * turn (published help, article 372 §2.1 and the `add_attacks` effect, read 2026-09-02), and a
  * preparation stated beside its own combatant's action rides it: `docs/turns-taken.md`.
  */
-interface TurnStanding {
+export interface TurnStanding {
     strikingId: number | null;
     actingId: number | null;
 }
+
+/** Where a fight starts: nobody mid-blow and nobody having acted. */
+export const NO_TURN_STANDING: TurnStanding = { strikingId: null, actingId: null };
 
 interface StatisticsBuild {
     byCombatantId: Map<number, CombatantFigures>;
@@ -1156,7 +1159,7 @@ export function composeFightStatistics(
         byNeitherEndByElement: new Map(),
         unreadMessages: 0,
         castsUnplaced: 0,
-        turnStanding: { strikingId: null, actingId: null },
+        turnStanding: NO_TURN_STANDING,
         outcome: null,
     };
     assert(build.byCombatantId.size === 0, "a fight is counted up from nobody");
