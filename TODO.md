@@ -18,12 +18,15 @@
 
 ## In Progress
 - [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development, now I only know 1-93lvl)
-- [ ] Consider adding `turn` to stats - maybe I will find a solution to read turns after the latest fail
+- [ ] Test turns
+- [ ] Add buffs and debuffs tracking
 
 ## Up Next
 - [ ] Add "ucieczka" as a new fight outcome
+- [ ] Do a manual audit
 
 ## Done
+- [x] Consider adding `turn` to stats - maybe I will find a solution to read turns after the latest fail
 - [x] !!!IMPORTANT!!! Fix workflow each time before doing ANY work round: fetch game source files; refresh frozen dir content
 - [x] Add E2E tests - maybe trying out deno was not a good option
 
