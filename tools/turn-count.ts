@@ -32,13 +32,13 @@ import type { RecordedFight } from "@/tools/recorded-fights.ts";
  * read 2026-09-02), spelled here because this is the one file that reads it (**N13**). It is an
  * envelope key and not a message key, which is why `docs/protocol-keys.md` has no entry for it.
  */
-const TURN_QUEUE_KEY = "turns_warriors";
+export const TURN_QUEUE_KEY = "turns_warriors";
 /**
  * Whom the game says holds the turn the queue's least ordinal numbers. Read only as a witness:
  * over `captures/` on 2026-09-02 it is the queue's own entry at that ordinal in every payload
  * carrying both, so a disagreement is this reader breaking rather than the game moving.
  */
-const CURRENT_KEY = "current";
+export const CURRENT_KEY = "current";
 
 /** A run names a handful of recordings; this is far past that. */
 const MAXIMUM_ARGUMENTS = 256;

@@ -21,7 +21,8 @@
         // what `deno.json` declares and marks it `-dev` — ADR 0035.
         "build": "deno run -A tools/build-userscript.ts",
         // The panel in a browser, changing while you edit it: the add-on over a recording,
-        // rebuilt and reloaded on a change under `src/`.
+        // rebuilt and reloaded on a change under `src/`. `--from <path>` shows a fight opened at
+        // a path beside the recordings, which is how a fabricated one is looked at.
         "preview": "deno run -A tools/preview-server.ts",
         // The same panel, written down for somebody who has installed nothing: one page per
         // recording under `dist/preview`, which `.github/workflows/pages.yml` publishes. That
@@ -47,6 +48,10 @@
         // disagreement stands on. `docs/reading-a-turn.md` carries the disputed openers and, with
         // `--keys`, what opened every turn and what each protocol key adds.
         "fight:openers": "deno run -A tools/turn-reading.ts",
+        // A fight nobody fought, written where git does not look. The corpus is 22 recordings of
+        // `10 vs 1` and no player against a player at all, so this is the only ten-a-side the
+        // panel can be looked at on. Never material, and `tools/fabricated-fight.ts` says why.
+        "fight:fabricate": "deno run -A tools/fabricated-fight.ts",
         // How a recording the add-on wrote becomes material: two redactions, then a file.
         "capture:intake": "deno run -A tools/capture-intake.ts",
         // The client fetched and dated, so a claim about it can name the build it was read on.
@@ -76,6 +81,9 @@
             // Written by tooling, including their headers. Regenerating is how they change.
             "frozen/protocol-keys.ts",
             "frozen/help-phrases.ts",
+            // Fights nobody fought. Formatting one is harmless; the gate going red over a file
+            // git does not carry is not.
+            "fabricated/",
             // The maintainer's list. `.claude/settings.json` denies the three tools that edit a
             // file, and a formatter is not one of them — it rewrote this file once, which is
             // exactly the trap AGENTS.md warns about: the wall is narrower than the rule.
@@ -119,5 +127,5 @@
         "allowUnreachableCode": false,
         "allowUnusedLabels": false
     },
-    "exclude": ["captures/", "dist/", ".cache/", "node_modules/"]
+    "exclude": ["captures/", "dist/", ".cache/", "fabricated/", "node_modules/"]
 }

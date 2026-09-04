@@ -94,6 +94,7 @@ src/
 tools/             Never ships. Each arrives with the question it answers.
   build-userscript.ts  The file a reader installs, the version written in, and two checks.
   capture-intake.ts    How a recording becomes material: two redactions, then a file.
+  fabricated-fight.ts  A fight nobody fought — ten players against ten, written outside git.
   recorded-fights.ts   The recordings as a tool reads them: a name, and the calls made.
   fight-replay.ts      A recording put back through the layers that read it live.
   decoding-status.ts   What the decoder could not read, counted over whatever it is handed.
@@ -170,6 +171,7 @@ tests/
     decoding-status.test.ts   A sample it must flag, and the corpus it must not.
     fight-figures.test.ts     The table read back, and the reading block that prints at zero.
     drill-report.test.ts      The register against every level drawn, both ways round.
+    fabricated-fight.test.ts  A fight nobody fought, against the register of every key read.
     turn-count.test.ts        The register against every recording graded, both ways round.
     turn-reading.test.ts      The disputed openers, and this reading against the panel's.
     preview-page.test.ts      The page, read back: the order of its scripts, and its escaping.
@@ -215,6 +217,7 @@ tests/
     constructs.test.ts     The construct register, against the files it says own each reading.
     game-vocabulary.test.ts  The two pages standing a game up, held to one spelling of it.
     libraries.test.ts      `libs/` reaching no layer, and naming nothing of this project.
+    fabricated-fights.test.ts  The wall between the evidence and what was made up.
   e2e/                     The built file in a real Chrome, on Playwright. Outside the gate.
     AGENTS.md              What is true here and nowhere else: the runner, and the pointer.
     tsconfig.json          What `@/` means to a loader that is not Deno's.

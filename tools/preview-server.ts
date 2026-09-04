@@ -18,7 +18,7 @@ const MAXIMUM_LISTENERS = 64;
 import { getDevelopmentVersion } from "@/tools/declared-version.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { composeUserscriptFiles, USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
-import { UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
+import { PreviewBuildError, UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
 import {
     composePreviewPage,
     type PreviewFightLink,
@@ -26,6 +26,7 @@ import {
 } from "@/tools/preview-page.ts";
 import {
     getPreviewRecordedFight,
+    getRecordedFightAt,
     getRecordedFights,
     type RecordedFight,
 } from "@/tools/recorded-fights.ts";
@@ -101,6 +102,12 @@ export interface PreviewServerOptions {
     readBundle?: (() => Promise<string>) | undefined;
     /** What the page runs after its own driver. Null turns reloading off. */
     appendedScript?: string | null | undefined;
+    /**
+     * Fights opened at a path and shown beside the recordings — `--from`. What `captures/` means
+     * is untouched by it: a file named here is whatever the reader points at, and a name that
+     * collides with a recording's is refused rather than drawn over it.
+     */
+    fromPaths?: readonly string[] | undefined;
 }
 
 export interface PreviewServer {
@@ -319,13 +326,28 @@ function handleRequest(state: PreviewState, request: Request): Promise<Response>
     return new Response("not here", { status: 404 });
 }
 
+/** The recordings, and whatever `--from` named after them. */
+function composeServedFights(fromPaths: readonly string[]): RecordedFight[] {
+    const fights = getRecordedFights();
+    for (const path of fromPaths) {
+        const opened = getRecordedFightAt(path);
+        if (fights.some((fight) => fight.name === opened.name)) {
+            throw new PreviewBuildError(`${opened.name} is a name the recordings already carry`);
+        }
+        assert(opened.calls.length > 0, "a fight opened at a path has something to play");
+        fights.push(opened);
+    }
+    assert(fights.length > 0, "a server draws at least one fight");
+    return fights;
+}
+
 /**
  * Serves the panel and reloads it, and hands back the way to stop both. Named `set…` for the
  * reason `setEngineAttachment` is: it puts something in place and returns the undo.
  */
 export function setPreviewServer(options: PreviewServerOptions = {}): PreviewServer {
     const state: PreviewState = {
-        fights: getRecordedFights(),
+        fights: composeServedFights(options.fromPaths ?? []),
         listeners: new Set<ReloadListener>(),
         script: null,
         readBundle: options.readBundle ?? readBuiltUserscript,
@@ -375,10 +397,10 @@ export function setPreviewServer(options: PreviewServerOptions = {}): PreviewSer
 }
 
 if (import.meta.main) {
-    const parsed = parseArgs(Deno.args, { string: ["port", "fight"] });
+    const parsed = parseArgs(Deno.args, { string: ["port", "fight", "from"], collect: ["from"] });
     const asked = parsed.port === undefined ? null : getIntegerFromText(parsed.port);
     const fight = parsed.fight ?? null;
-    const preview = setPreviewServer({ port: asked ?? DEFAULT_PORT });
+    const preview = setPreviewServer({ port: asked ?? DEFAULT_PORT, fromPaths: parsed.from });
     const opening = fight === null ? preview.url : `${preview.url}${composeFightAddress(fight)}`;
     console.log(`preview  ${opening}`);
     console.log(`watching ${WATCHED_PATHS.join(", ")} — a change there rebuilds and reloads`);

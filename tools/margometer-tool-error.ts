@@ -7,6 +7,7 @@ export type MargoMeterToolErrorCode =
     | "UserscriptBuild"
     | "PreviewBuild"
     | "CaptureIntake"
+    | "FabricatedFight"
     | "RecordingRead"
     | "PanelShot"
     | "GameSource"
@@ -138,5 +139,17 @@ export class TurnCountError extends MargoMeterToolError {
 export class TurnReadingError extends MargoMeterToolError {
     constructor(reason: string) {
         super("TurnReading", reason);
+    }
+}
+
+/**
+ * A fabricated fight refused: a shape the panel could not hold, an output path outside the
+ * directory git ignores, or a file the tool could not write. The second is the failure that
+ * matters — a fight nobody fought landing in `captures/` would be evidence of nothing,
+ * indistinguishable from evidence of something.
+ */
+export class FabricatedFightError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super("FabricatedFight", reason, options);
     }
 }

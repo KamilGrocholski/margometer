@@ -479,7 +479,9 @@ the same thing a second way.
 | `tests/repository/cited-paths.test.ts`        | every rooted path a document cites               |
 | `tests/repository/constructs.test.ts`         | the construct register, both ways                |
 | `tests/repository/game-vocabulary.test.ts`    | N13 for the two pages standing a game up         |
+| `tests/repository/fabricated-fights.test.ts`  | the wall between evidence and what was made up   |
 | `tests/repository/libraries.test.ts`          | `libs/` and `project/` reaching into no layer    |
+| `tests/tools/fabricated-fight.test.ts`        | the fabricated fight against the key register    |
 | `tests/tools/turn-count.test.ts`              | `docs/turns-taken.md` against every recording    |
 | `tests/tools/turn-reading.test.ts`            | `docs/reading-a-turn.md`, and it on the panel    |
 | `tests/tools/browser-support.test.ts`         | `docs/browser-support.md` against the stylesheet |
