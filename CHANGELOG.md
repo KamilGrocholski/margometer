@@ -33,6 +33,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Poprawka** — Lista zostaje tam, gdzie ją przewinąłeś. Wcześniej każda tura walki przesuwała ją z
+  powrotem na początek, a po wyjściu z rozwiniętego wiersza znów oglądałeś jego górę. Teraz panel
+  wraca w to samo miejsce — także po zwinięciu go do belki i rozwinięciu z powrotem — a wiersz
+  otwierany pierwszy raz zaczyna się od góry.
 - **Nowość** — Karta postaci mówi, ile tur ta postać wykonała, a pod spodem ile straciła. Tura to
   jedna akcja: zwykły atak, krok do przodu, użycie umiejętności albo jej przygotowanie — a wszystkie
   ciosy jednej umiejętności liczą się jako jedna tura, tak jak liczy je gra. Tura, w której postać

@@ -111,6 +111,37 @@ export function composeScreenState(isCollapsed: boolean): ScreenState {
     return state;
 }
 
+/**
+ * The name a reader's place is kept under, which is every field that decides which list is drawn.
+ * The shelf answers alone: it covers the screens rather than being one of them.
+ *
+ * The fight is the moment it opened, so a new fight is a place nobody has been rather than the
+ * last one's ranking with somebody else's position on it. **ADR 0050.**
+ */
+export function composeListName(screen: ScreenState, fightId: number | null): string {
+    assert(screen.current.length > 0, "a place is named for a panel that is on a screen");
+    if (screen.isOnShelf) return "shelf";
+    const part = screen.openPart === null ? "" : composeNameForPart(screen.openPart);
+    const name = [
+        screen.current,
+        screen.side,
+        `${fightId}`,
+        `${screen.openRowId}`,
+        `${screen.openUnnamedEnd}`,
+        `${screen.openPairId}`,
+        part,
+    ].join("|");
+    assert(name.length > 0, "and a place a reader stands in has a name");
+    return name;
+}
+
+/** The three shapes a part comes in, each spelling its own field, so no two share a name. */
+function composeNameForPart(part: NamedPart): string {
+    if (part.kind === "skill") return `skill:${part.name}`;
+    if (part.kind === "source") return `source:${part.source}`;
+    return `kind:${part.element}`;
+}
+
 export function getScreenFromName(name: string): PanelMetric | null {
     for (const screen of SCREEN_ORDER) {
         if (screen === name) return screen;

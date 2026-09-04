@@ -27,6 +27,12 @@ const REGISTER_PATH = "docs/drill-levels.md";
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 
 /**
+ * The place these views stand in. Every test here reads what was drawn rather than where the
+ * region was left, so one name says they are all the same place; the scroll tests name their own.
+ */
+const SHOWN_LIST = "shown";
+
+/**
  * One row of the register, as the document writes it. The heading is not a row and neither is the
  * rule under a `|---|` divider, so a cell that is not one of the vocabularies is skipped rather
  * than read as a case nobody produced.
@@ -161,6 +167,7 @@ Deno.test("every row of every ranking carries the mark that opens it", () => {
         const document = composeFakeDocument();
         const panel = composePanelHost(document, () => {}, () => {});
         panel.show({
+            listName: SHOWN_LIST,
             reading,
             current: screen,
             side: "everyone" as const,

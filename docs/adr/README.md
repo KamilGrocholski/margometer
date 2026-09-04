@@ -147,3 +147,5 @@ edited to agree with the new rule.
   divides by it. **Accepted**
 - [0049](0049-a-turn-nobody-spent-is-read-by-shape.md) — A turn nobody spent is read by shape, not
   by words. **Accepted**
+- [0050](0050-the-list-keeps-the-place-a-reader-was-at.md) — The list keeps the place a reader was
+  at. **Accepted**

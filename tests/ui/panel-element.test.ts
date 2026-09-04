@@ -18,7 +18,7 @@ import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
-import { composePanelHost, type PanelPress } from "@/src/ui/panel-element.ts";
+import { composePanelHost, type PanelPress, type PanelView } from "@/src/ui/panel-element.ts";
 import {
     composeDrillReading,
     composeHalfNamedReading,
@@ -69,6 +69,14 @@ import {
 } from "@/tests/fake-document.ts";
 import { getRecordedCombatants, getRecordedPayloads } from "@/tests/recorded-fight.ts";
 import { getDeclaration, getRuleBody } from "@/tests/style-sheet.ts";
+
+/**
+ * The place these views stand in. Every test here reads what was drawn rather than where the
+ * region was left, so one name says they are all the same place; the scroll tests name their own.
+ */
+const SHOWN_LIST = "shown";
+/** Somewhere down a list, for a test that cares that the number came back rather than which. */
+const SOMEWHERE_DOWN = 240;
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /** Whose row on _leczenie dane_ opens onto a skill that reached somebody else. */
@@ -138,6 +146,7 @@ function readPinnedFight(
 /** A whole view around one reading, so a test says only what it is changing about the panel. */
 function composeShownView(reading: PanelReading, metric: PanelMetric = "damageDealtApplied") {
     return {
+        listName: SHOWN_LIST,
         reading,
         current: metric,
         side: "everyone" as PanelSideChoice,
@@ -190,6 +199,7 @@ function draw(reading: PanelReading): FakeElement {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading: reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
@@ -262,6 +272,7 @@ Deno.test("the side strip is drawn where the client said which side is the reade
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading: readFight(),
         current: "damageDealtApplied",
         side: "reader",
@@ -304,6 +315,7 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading: readFight(),
         current: "damageDealtApplied",
         side: "everyone",
@@ -790,6 +802,7 @@ Deno.test("a press on a tab reaches the panel, and a press on anything else does
     const pressed: PanelPress[] = [];
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading: readFight(),
         current: "damageDealtApplied",
         side: "everyone" as const,
@@ -825,6 +838,7 @@ Deno.test("a press on a side asks for that side, and on the shelf for the shelf"
     const pressed: PanelPress[] = [];
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading: readFight(),
         current: "damageDealtApplied",
         side: "everyone" as const,
@@ -908,6 +922,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
     };
     const panel = composePanelHost(document, () => {}, (failure) => failures.push(failure));
     panel.show({
+        listName: SHOWN_LIST,
         reading: broken,
         current: "damageDealtApplied",
         side: "everyone" as const,
@@ -956,6 +971,7 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
@@ -1060,6 +1076,7 @@ Deno.test("a kind's row carries a bar of its own, measured against its own cut",
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
@@ -1110,6 +1127,7 @@ Deno.test("a part of a figure no kind was stated for is drawn last, under the ki
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
@@ -1146,6 +1164,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
     const document = composeFakeDocument();
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
@@ -1170,6 +1189,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
     assertEquals(pressed, [{ kind: "row", stated: `${reading.rows[0]?.combatantId}` }], "that row");
 
     panel.show({
+        listName: SHOWN_LIST,
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
@@ -1203,6 +1223,7 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     const view = {
+        listName: SHOWN_LIST,
         reading: readFight(),
         current: "damageDealtApplied" as const,
         side: "everyone" as const,
@@ -1245,6 +1266,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
     const host = panel.element as FakeElement;
     const view = {
+        listName: SHOWN_LIST,
         reading: readFight(),
         current: "damageDealtApplied" as const,
         side: "everyone" as const,
@@ -1307,6 +1329,7 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
         "the host states it where anything outside the root can read it",
     );
     panel.show({
+        listName: SHOWN_LIST,
         reading: readFight(),
         current: "damageDealtApplied",
         side: "everyone" as const,
@@ -1545,6 +1568,7 @@ Deno.test("a person inside an opened row opens the card the ranking opens", () =
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
@@ -1635,6 +1659,7 @@ Deno.test("a person under an opened skill opens a card promising no gesture", ()
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading,
         current: "healthGiven",
         side: "everyone" as const,
@@ -1678,6 +1703,7 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
@@ -1721,6 +1747,7 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading: readFight(),
         current: "damageDealtApplied",
         side: "everyone",
@@ -1822,6 +1849,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
     });
     const host = panel.element as FakeElement;
     panel.show({
+        listName: SHOWN_LIST,
         reading: readFight(),
         current: "damageDealtApplied",
         side: "everyone" as const,
@@ -1911,6 +1939,7 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
         const document = composeFakeDocument();
         const panel = composePanelHost(document, () => {}, () => {});
         panel.show({
+            listName: SHOWN_LIST,
             reading,
             current: screen,
             side: "everyone" as const,
@@ -1951,6 +1980,7 @@ Deno.test("a row opened on a screen its own figure is nothing on says so, about 
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading,
         current: "healthGiven",
         side: "everyone" as const,
@@ -1984,6 +2014,7 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
         const document = composeFakeDocument();
         const panel = composePanelHost(document, () => {}, () => {});
         panel.show({
+            listName: SHOWN_LIST,
             reading,
             current: "damageDealtApplied",
             side: "everyone" as const,
@@ -2052,6 +2083,7 @@ Deno.test("a cut that repeats the figure above it is drawn all the same", () => 
         const document = composeFakeDocument();
         const panel = composePanelHost(document, () => {}, () => {});
         panel.show({
+            listName: SHOWN_LIST,
             reading,
             current: "damageTakenApplied",
             side: "everyone" as const,
@@ -2115,6 +2147,7 @@ Deno.test("a lone row of a section names what the heading over it never does", (
         const document = composeFakeDocument();
         const panel = composePanelHost(document, () => {}, () => {});
         panel.show({
+            listName: SHOWN_LIST,
             reading,
             current: "damageDealtApplied",
             side: "everyone" as const,
@@ -2211,6 +2244,7 @@ Deno.test("a heading is its words and a figure, and says only what its level is 
         const document = composeFakeDocument();
         const panel = composePanelHost(document, () => {}, () => {});
         panel.show({
+            listName: SHOWN_LIST,
             ...level,
             side: "everyone" as const,
             hasReaderSide: false,
@@ -2261,6 +2295,7 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
@@ -2323,6 +2358,7 @@ Deno.test("a skill that opens asks for itself by name, wherever the press lands 
         },
     ];
     panel.show({
+        listName: SHOWN_LIST,
         reading,
         current: "healthGiven",
         side: "everyone" as const,
@@ -2384,6 +2420,7 @@ Deno.test("every row in a list draws the same cells before its name", () => {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     const shown = {
+        listName: SHOWN_LIST,
         reading,
         current: "damageDealtApplied" as const,
         side: "everyone" as const,
@@ -2442,6 +2479,7 @@ Deno.test("a healing section draws the key the game named, not a row saying it d
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading,
         current: "healthGiven" as const,
         side: "everyone" as const,
@@ -2504,6 +2542,7 @@ Deno.test("an opened healing pair draws its announcements and its keys as one se
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading,
         current: "healthGiven" as const,
         side: "everyone" as const,
@@ -2637,6 +2676,7 @@ function composeNotesForOpenedRow(
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
+        listName: SHOWN_LIST,
         reading,
         current: metric,
         side: "everyone" as const,
@@ -2685,4 +2725,80 @@ Deno.test("a part that opens says so under the same words a person does", () => 
         [],
         "the key promises nothing where the statistics keep no cut of it",
     );
+});
+
+/** The one region that scrolls, as it stands in the panel right now. */
+function readList(host: FakeElement): FakeElement {
+    const list = getElementsWithin(host).find((one) => one.className.includes(CLASS.list));
+    assertExists(list, "the panel draws the one region that scrolls");
+    return list;
+}
+
+/** A panel with a fight on it, and the reading its views are drawn from. */
+function composeScrolledPanel(): { panel: ReturnType<typeof composePanelHost>; view: PanelView } {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    return { panel, view: { ...composeShownView(readFight()), listName: "ranking" } };
+}
+
+Deno.test("a redraw of the same place puts the region back where the reader left it", () => {
+    const { panel, view } = composeScrolledPanel();
+    panel.show(view);
+    const host = panel.element as FakeElement;
+    readList(host).scrollTop = SOMEWHERE_DOWN;
+
+    panel.show(view);
+
+    const after = readList(host);
+    assertStrictEquals(after.scrollTop, SOMEWHERE_DOWN, "the payload left the reader where he was");
+    assert(after.replacedBy === null, "and it is the region that was just drawn");
+});
+
+Deno.test("a place nobody has been starts at the top, and the one left keeps its position", () => {
+    const { panel, view } = composeScrolledPanel();
+    panel.show(view);
+    const host = panel.element as FakeElement;
+    readList(host).scrollTop = SOMEWHERE_DOWN;
+
+    panel.show({ ...view, listName: "opened" });
+    assertStrictEquals(readList(host).scrollTop, 0, "a level opened is read from its top");
+
+    panel.show(view);
+    assertStrictEquals(
+        readList(host).scrollTop,
+        SOMEWHERE_DOWN,
+        "and the way back is where it was",
+    );
+});
+
+Deno.test("a fold keeps the place, and unfolding gives the reader it back", () => {
+    const { panel, view } = composeScrolledPanel();
+    panel.show(view);
+    const host = panel.element as FakeElement;
+    readList(host).scrollTop = SOMEWHERE_DOWN;
+
+    panel.show({ ...view, isCollapsed: true });
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className.includes(CLASS.list)),
+        [],
+        "a panel folded away draws no list at all",
+    );
+
+    panel.show(view);
+    assertStrictEquals(readList(host).scrollTop, SOMEWHERE_DOWN, "and unfolding is where it was");
+});
+
+Deno.test("the bar a panel waits behind carries nobody's position", () => {
+    const { panel, view } = composeScrolledPanel();
+    panel.show(view);
+    const host = panel.element as FakeElement;
+    readList(host).scrollTop = SOMEWHERE_DOWN;
+
+    panel.showWaiting(false);
+    const waiting = readList(host);
+    assert(waiting.className.includes(CLASS.listWaiting), "the panel is back to waiting for one");
+    assertStrictEquals(waiting.scrollTop, 0, "and the bar it waits behind stands at its own top");
+
+    panel.show(view);
+    assertStrictEquals(readList(host).scrollTop, SOMEWHERE_DOWN, "the fight is where it was left");
 });

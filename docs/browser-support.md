@@ -164,6 +164,7 @@ Selectors: `host` · `hover`
 | `attachShadow`          | `src/ui/panel-element.ts`   | 53            | 63      | 10     |
 | `setPointerCapture`     | `src/ui/panel-element.ts`   | 55            | 59      | 13     |
 | `getBoundingClientRect` | `src/ui/panel-element.ts`   | 2             | 3       | 4      |
+| `scrollTop`             | `src/ui/panel-scroll.ts`    | 1             | 1       | 1      |
 | `Blob`                  | `src/userscript-entry.ts`   | 5             | 4       | 6      |
 | `createObjectURL`       | `src/userscript-entry.ts`   | 19            | 19      | 6      |
 | `localStorage`          | `src/game/browser-store.ts` | 4             | 3.5     | 4      |

@@ -87,6 +87,7 @@ src/
     panel-look.ts        The panel's tokens, the classes its rules select, and the stylesheet.
     panel-reading.ts     One screen's worth of a fight, and one row's worth of a screen.
     panel-screen.ts      Which screen the panel is on, and the strips that say so.
+    panel-scroll.ts      Where a reader left the one region that scrolls, kept by list.
     panel-tip.ts         The window a row opens on hover, and the register it is looked up in.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
     ranked-order.ts      The order a ranking is drawn in, and what decides a tie inside it.
@@ -191,6 +192,7 @@ tests/
     panel-look.test.ts        Contrast by arithmetic, and a sheet that spends tokens only.
     panel-reading.test.ts     A screen of a real fight, through every layer under it.
     panel-screen.test.ts      The screens there are, against what a reading composes for.
+    panel-scroll.test.ts      A place kept by name, and the region a position is read off.
     panel-tip.test.ts         What the window draws, how tall it says it is, and what it drops.
     panel-words.test.ts       What the words must never say, and how Polish counts.
     ranked-order.test.ts      The order two rows are drawn in, and the tie nothing breaks.

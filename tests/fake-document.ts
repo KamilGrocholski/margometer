@@ -82,6 +82,9 @@ export function composeFakeDocument(): PanelDocument & { created: FakeElement[] 
                 tag,
                 className: "",
                 textContent: "",
+                // A number, the way a browser answers with one. Nothing here lays anything out,
+                // so what a test reads back is exactly what the panel wrote.
+                scrollTop: 0,
                 children: [],
                 attributes: new Map(),
                 shadow: null,

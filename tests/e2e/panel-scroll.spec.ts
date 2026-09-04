@@ -19,6 +19,9 @@ const ROWS_TRIED = 6;
 const WHEEL_DOWN = 400;
 /** A page taller than the window, so there is something behind the panel that could scroll. */
 const PAGE_HEIGHT = 4000;
+/** The screen a panel opens on, and the one beside it on the strip that says which way round. */
+const HOME_SCREEN = "damageDealtApplied";
+const OTHER_SCREEN = "damageTakenApplied";
 
 test.use({ recording: OVERFLOWING, fedThrough: FED_THROUGH });
 
@@ -44,18 +47,20 @@ async function readScrollers(panel: PanelHandle) {
 }
 
 /**
- * A level with more under it than the region shows. Which ranking row has one moves with the
- * fight, so it is looked for rather than named — a row picked by number would quietly stop
- * overflowing on the next intake and the scroll tests would then measure nothing.
+ * A level with more under it than the region shows, and which ranking row opened it. Which row
+ * has one moves with the fight, so it is looked for rather than named — a row picked by number
+ * would quietly stop overflowing on the next intake and the scroll tests would then measure
+ * nothing.
  */
-async function setOverflowingLevelOpened(panel: PanelHandle): Promise<void> {
+async function setOverflowingLevelOpened(panel: PanelHandle): Promise<number> {
     for (let at = 0; at < ROWS_TRIED; at += 1) {
         await panel.at(".list .row.drillable").nth(at).click();
         const seen = await readScrollers(panel);
-        if (seen.height > seen.shown) return;
+        if (seen.height > seen.shown) return at;
         await panel.at("[data-back]").click();
     }
     expect(false, `no row in the first ${ROWS_TRIED} opens onto a level that overflows`).toBe(true);
+    return -1;
 }
 
 test("the list is the one region that scrolls, and it hides its bar", async ({ panel }) => {
@@ -119,7 +124,7 @@ test("a heading stays over the rows it names while they go past", async ({ panel
         .toBeLessThanOrEqual(1);
 });
 
-test("a payload arriving puts the region back at the top", async ({ panel }) => {
+test("a payload arriving leaves the region where the reader left it", async ({ panel }) => {
     await setOverflowingLevelOpened(panel);
     const over = await readCentreOf(panel.page, ".list");
     await panel.page.mouse.move(over.x, over.y);
@@ -127,9 +132,71 @@ test("a payload arriving puts the region back at the top", async ({ panel }) => 
     await expect.poll(async () => (await readScrollers(panel)).top, {
         message: "the reader has scrolled down",
     }).toBeGreaterThan(0);
+    const left = (await readScrollers(panel)).top;
 
     expect(await panel.remaining(), "the fight has more to deliver").toBeGreaterThan(0);
     await panel.feed(1);
 
-    expect((await readScrollers(panel)).top, "and the redraw starts the region again").toBe(0);
+    expect((await readScrollers(panel)).top, "and the redraw is where they were").toBe(left);
+    await panel.expectHonest("a payload landed under a region a reader had scrolled");
+});
+
+/**
+ * A tab is the other way a reader leaves a level and comes back to it, and it takes a different
+ * road through the panel than the crumb: the strips are redrawn, the screen changes and the level
+ * is composed again out of the other figure. What is on the strip is `panel-tabs.spec.ts`'s.
+ */
+test("a screen away and back is where the reader left it", async ({ panel }) => {
+    // Two: the noun above and the direction below both stand on the screen a panel opens on,
+    // and both are marked. Which tab is which is `panel-tabs.spec.ts`'s subject, not this one's.
+    await expect(panel.at(`[data-screen="${HOME_SCREEN}"].selected`), "the panel opens here")
+        .toHaveCount(2);
+    await setOverflowingLevelOpened(panel);
+    const over = await readCentreOf(panel.page, ".list");
+    await panel.page.mouse.move(over.x, over.y);
+    await panel.page.mouse.wheel(0, WHEEL_DOWN);
+    await expect.poll(async () => (await readScrollers(panel)).top, {
+        message: "the reader has scrolled down",
+    }).toBeGreaterThan(0);
+    const left = (await readScrollers(panel)).top;
+
+    // ⚠️ **The way back is the direction tab and never the noun above it.** A noun keeps the
+    // direction being read, so from the screen crossed to it leads back to that same screen.
+    // Once the panel is there, one tab and only one answers to the screen left behind.
+    await panel.at(`[data-screen="${OTHER_SCREEN}"]`).click();
+    expect((await readScrollers(panel)).top, "the same row on the next screen is its own place")
+        .toBe(0);
+
+    const back = panel.at(`[data-screen="${HOME_SCREEN}"]`);
+    await expect(back, "and the way back is one tab, on the strip that says which way round")
+        .toHaveCount(1);
+    await back.click();
+    expect((await readScrollers(panel)).top, "and the screen came back where it was").toBe(left);
+    await panel.expectHonest("a reader crossed to the next screen and back");
+});
+
+/**
+ * The way back and in again, rather than a level opened from inside this one: a press lands
+ * wherever Playwright scrolls the row it is pressing into view, so a gesture inside a region that
+ * has been scrolled measures the auto-scroll as much as the panel. The crumb stands outside the
+ * list and moves nothing, and the ranking it goes back to overflows on no recording here.
+ */
+test("a level a reader comes back to is where they left it", async ({ panel }) => {
+    const at = await setOverflowingLevelOpened(panel);
+    expect((await readScrollers(panel)).top, "a level just opened starts at its top").toBe(0);
+    const over = await readCentreOf(panel.page, ".list");
+    await panel.page.mouse.move(over.x, over.y);
+    await panel.page.mouse.wheel(0, WHEEL_DOWN);
+    await expect.poll(async () => (await readScrollers(panel)).top, {
+        message: "the reader has scrolled down",
+    }).toBeGreaterThan(0);
+    const left = (await readScrollers(panel)).top;
+
+    await panel.at("[data-back]").click();
+    expect((await readScrollers(panel)).top, "the ranking under it was never scrolled").toBe(0);
+
+    await panel.at(".list .row.drillable").nth(at).click();
+    expect((await readScrollers(panel)).top, "and the level opened again is where it was")
+        .toBe(left);
+    await panel.expectHonest("a reader went back into a level they had scrolled");
 });

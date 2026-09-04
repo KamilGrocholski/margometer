@@ -12,6 +12,7 @@ import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { composePanelReading, NOTHING_MISSED } from "@/src/ui/panel-reading.ts";
 import {
     composeDirectionTabs,
+    composeListName,
     composeNounTabs,
     composeScreenState,
     composeSideTabs,
@@ -123,4 +124,70 @@ Deno.test("the side strip offers every choice there is, one of them marked", () 
         3,
         "worded apart",
     );
+});
+
+/** A fight of its own, so a name never comes back as the live one's by accident. */
+const FIGHT = 1786514810315;
+
+Deno.test("a place a reader stands in is named, and every field of it counts", () => {
+    const screen = composeScreenState(false);
+    const first = composeListName(screen, FIGHT);
+    assertEquals(composeListName(screen, FIGHT), first, "the same place twice is the same name");
+    const moved: string[] = [];
+    for (
+        const change of [
+            () => screen.current = "healthRestored",
+            () => screen.side = "reader",
+            () => screen.openRowId = 469657,
+            () => screen.openPairId = 469658,
+            () => screen.openPart = { kind: "skill", name: "Cios" },
+        ]
+    ) {
+        change();
+        const name = composeListName(screen, FIGHT);
+        assert(!moved.includes(name), `${name}: a field moved alone is a place of its own`);
+        moved.push(name);
+    }
+    assert(!moved.includes(first), "and none of them is the place they started from");
+    assertEquals(moved.length, 5, "five fields, five places");
+});
+
+Deno.test("a part names its own kind, so two of them never share a place", () => {
+    const screen = composeScreenState(false);
+    screen.openPart = { kind: "skill", name: "Cios" };
+    const skill = composeListName(screen, FIGHT);
+    screen.openPart = { kind: "source", source: "Cios" };
+    const source = composeListName(screen, FIGHT);
+    screen.openPart = { kind: "element", element: "Cios" };
+    assert(skill !== source, "a skill and a key of the same word are two places");
+    assert(composeListName(screen, FIGHT) !== source, "and so are a key and a kind");
+});
+
+Deno.test("the ends the protocol leaves out are places of their own", () => {
+    const screen = composeScreenState(false);
+    const ranking = composeListName(screen, FIGHT);
+    screen.openUnnamedEnd = "actor";
+    const actor = composeListName(screen, FIGHT);
+    screen.openUnnamedEnd = "target";
+    assert(actor !== ranking, "an end opened is not the ranking it was opened from");
+    assert(composeListName(screen, FIGHT) !== actor, "and one end is not the other");
+});
+
+Deno.test("the shelf is a place of its own, whatever screen stands under it", () => {
+    const screen = composeScreenState(false);
+    screen.isOnShelf = true;
+    const shelf = composeListName(screen, FIGHT);
+    screen.current = "healthGiven";
+    screen.side = "opposing";
+    screen.openRowId = 469657;
+    assertEquals(composeListName(screen, FIGHT), shelf, "the shelf covers the screens it is over");
+    screen.isOnShelf = false;
+    assert(composeListName(screen, FIGHT) !== shelf, "and the screen under it is somewhere else");
+});
+
+Deno.test("a fight is part of the place, so a new one is nobody's position", () => {
+    const screen = composeScreenState(false);
+    const first = composeListName(screen, FIGHT);
+    assert(composeListName(screen, FIGHT + 1) !== first, "another fight is another place");
+    assertEquals(composeListName(screen, FIGHT), first, "and the fight itself is where it was");
 });

@@ -47,6 +47,7 @@ import {
     STORAGE_CHOICES,
 } from "@/src/ui/panel-screen.ts";
 import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
+import { composeKeptScrollMemo, getTopOfList, setTopOfList } from "@/src/ui/panel-scroll.ts";
 import {
     CARD_WORDS,
     composeFigureText,
@@ -113,6 +114,12 @@ export interface PanelEvent {
 export interface PanelElement {
     className: string;
     textContent: string;
+    /**
+     * Where a region that scrolls is standing, which only the list ever is. Read off the element
+     * about to be replaced and written onto the one taking its place — `src/ui/panel-scroll.ts`
+     * owns both halves, and `docs/browser-support.md` carries the row for it.
+     */
+    scrollTop: number;
     append(child: PanelElement): void;
     replaceWith(other: PanelElement): void;
     setAttribute(name: string, value: string): void;
@@ -196,6 +203,8 @@ const MAXIMUM_ROWS = 20;
 const PIN_MARK = "★";
 const UNPINNED_MARK = "☆";
 const ROWS_WAITING = 11;
+/** The place a panel with no fight stands in. Nothing to scroll, and nobody's position. */
+const WAITING_LIST_NAME = "waiting";
 /** What the statistics keep a cut inside. `captures/` states ten kinds in all, 2026-08-28. */
 const MAXIMUM_KINDS = 64;
 /** And the bound on a combatant's own skills, measured in `src/ui/panel-reading.ts`. */
@@ -1161,6 +1170,12 @@ function composeRegion(
 
 export interface PanelView {
     reading: PanelReading;
+    /**
+     * Which list this is — the place a reader stands in, named by `composeListName` in
+     * `src/ui/panel-screen.ts`, which owns that fact. It decides nothing that is drawn: it says
+     * whose position the region is put back to. **ADR 0050.**
+     */
+    listName: string;
     current: PanelMetric;
     side: PanelSideChoice;
     hasReaderSide: boolean;
@@ -1749,14 +1764,7 @@ export function composePanelHost(
         return composeRegionInPlace(document, standing, region, compose, handleFailure);
     };
     const register = composeTipRegister();
-    const setFoldDrawn = (isCollapsed: boolean): void => {
-        regions.title = redraw(
-            regions.title,
-            "header",
-            () => composeTitleElement(document, isCollapsed),
-        );
-        frame.className = isCollapsed ? `${CLASS.frame} ${CLASS.folded}` : CLASS.frame;
-    };
+    const drawing = composeListDrawing(regions, redraw);
     // Null until a drag writes one, and null for good on a panel never made movable.
     let getPosition: () => PanelPosition | null = () => null;
     const tip: TipHandle = composeTipHandle(
@@ -1780,21 +1788,25 @@ export function composePanelHost(
     return {
         element: host,
         show(view: PanelView): void {
+            drawing.keep();
             register.reset();
-            setFoldDrawn(view.isCollapsed);
+            setFoldDrawn(document, regions, frame, redraw, view.isCollapsed);
             if (view.isCollapsed) setPanelFolded(document, regions, redraw);
-            else setPanelBody(document, regions, view, register, translate, redraw);
+            else setPanelBody(document, regions, view, register, translate, redraw, drawing);
+            drawing.settle();
             tip.refresh();
             assert(regions.list !== regions.sides, "the regions are that many elements");
             assert(regions.title !== regions.header, "and none of them stands in for another");
         },
         showWaiting(isCollapsed: boolean): void {
+            drawing.keep();
             register.reset();
-            setFoldDrawn(isCollapsed);
+            setFoldDrawn(document, regions, frame, redraw, isCollapsed);
             setPanelFolded(document, regions, redraw);
             if (!isCollapsed) {
-                regions.list = redraw(regions.list, "list", () => composeWaitingElement(document));
+                drawing.draw(WAITING_LIST_NAME, () => composeWaitingElement(document));
             }
+            drawing.settle();
             tip.refresh();
             assert(regions.sides.className === CLASS.slot, "with nothing standing under it");
             assert(regions.nouns.className === CLASS.slot, "and no strip of tabs over it");
@@ -1807,6 +1819,60 @@ type PanelRedraw = (
     region: PanelRegion,
     compose: () => PanelElement,
 ) => PanelElement;
+
+/**
+ * The one region that scrolls, drawn for a named place so the reader's position follows it. The
+ * three steps run in this order around a draw, and the order is the whole of what makes it work.
+ */
+interface ListDrawing {
+    keep(): void;
+    draw(name: string, compose: () => PanelElement): void;
+    settle(): void;
+}
+
+function composeListDrawing(regions: PanelRegions, redraw: PanelRedraw): ListDrawing {
+    const keptScrolls = composeKeptScrollMemo();
+    // Which list is standing in the region, so a position read off it is kept under the place it
+    // belongs to rather than under the place taking its turn.
+    let shownName = WAITING_LIST_NAME;
+    const draw = (name: string, compose: () => PanelElement): void => {
+        assert(name.length > 0, "a list drawn into the region is a list with a name");
+        regions.list = redraw(regions.list, "list", compose);
+        shownName = name;
+    };
+    return {
+        // ⚠️ **Before any region is redrawn.** A region taken away grows the list under it, and a
+        // browser answers a taller box by clamping the position on it — the reader's own place,
+        // gone before anything read it. Measured on Chrome 152.0.7977.64, 2026-09-04: going back
+        // from a level takes the crumb away, and 54 pixels became 34 as the crumb went.
+        keep: () => {
+            const top = getTopOfList(regions.list);
+            if (top !== null) keptScrolls.setTop(shownName, top);
+        },
+        draw,
+        // And after every region is standing, for the same reason read the other way round. A
+        // fold empties the region like any other and takes no name away, so what a reader unfolds
+        // onto is the list they were reading, at the position they left it at.
+        settle: () => setTopOfList(regions.list, keptScrolls.getTop(shownName)),
+    };
+}
+
+/** The bar, which says what it will do, and the frame it folds. Drawn on every draw there is. */
+function setFoldDrawn(
+    document: PanelDocument,
+    regions: PanelRegions,
+    frame: PanelElement,
+    redraw: PanelRedraw,
+    isCollapsed: boolean,
+): void {
+    assert(CLASS.folded.length > 0, "a panel folded away is a panel wearing a class for it");
+    regions.title = redraw(
+        regions.title,
+        "header",
+        () => composeTitleElement(document, isCollapsed),
+    );
+    frame.className = isCollapsed ? `${CLASS.frame} ${CLASS.folded}` : CLASS.frame;
+}
 
 function setPanelFolded(
     document: PanelDocument,
@@ -1838,6 +1904,7 @@ function setPanelBody(
     register: TipRegister,
     translate: TranslateLabel | null,
     redraw: PanelRedraw,
+    drawing: ListDrawing,
 ): void {
     assert(SCREEN_ORDER.includes(view.current), "a body is drawn for a screen the strips draw");
     const isFight = !view.isOnShelf;
@@ -1862,11 +1929,7 @@ function setPanelBody(
         "tabs",
         () => isFight ? composeSlotElement(document) : composeStorageStripElement(document, view),
     );
-    regions.list = redraw(
-        regions.list,
-        "list",
-        () => composeViewList(document, view, register, translate),
-    );
+    drawing.draw(view.listName, () => composeViewList(document, view, register, translate));
     setPinnedRegions(document, regions, view, register, redraw);
     const hasSides = view.reading.sides !== null && !view.isOnShelf;
     regions.sides = redraw(

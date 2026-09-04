@@ -76,6 +76,7 @@ import {
     type ShelfRow,
 } from "@/src/ui/panel-reading.ts";
 import {
+    composeListName,
     composeScreenState,
     getScreenFromName,
     getSideFromName,
@@ -613,7 +614,12 @@ function showFight(
         figures,
         screen,
     );
+    // The row the panel is actually drawing, which is the kept one wherever there is no live
+    // fight for the shelf to mark instead. The live fight has no row of its own to name, so the
+    // place a reader stands in is named by the moment that fight opened.
+    const chosenFight = screen.openFightId ?? kept?.openedAt ?? null;
     panel.show({
+        listName: composeListName(screen, chosenFight ?? openedAt),
         reading,
         current: screen.current,
         side: screen.side,
@@ -628,9 +634,7 @@ function showFight(
                 openedAt,
                 outcome: getOutcomeForFigures(live),
             },
-            // The row the panel is actually drawing, which is the kept one wherever there is no
-            // live fight for the shelf to mark instead.
-            screen.openFightId ?? kept?.openedAt ?? null,
+            chosenFight,
             readClock,
             (one) => shelf.readFigures(one),
         ),

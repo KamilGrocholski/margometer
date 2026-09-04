@@ -332,7 +332,9 @@ break the promise: eleven bars under everybody, ten under a side, and never fewe
 opened, because pressing a row must not shorten the window under the hand. It scrolls without
 drawing a scrollbar, so it gives up no width to one, and neither does either region that draws a bar
 outside it: a row is inset equally on both sides and a bar means the same length in all three. **ADR
-0031.**
+0031.** And it keeps the place a reader scrolled to: a payload arriving, a fold, or a level opened
+and left behind all give the list back where they found it, and a level opened for the first time
+starts at its top. **ADR 0050.**
 
 **Tooltip.** `surfaceRaised`, fixed width, opens on hover and follows the cursor's vertical
 position. It states its own type and its own ink, because `all: initial` on the host reaches it and
