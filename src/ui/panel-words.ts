@@ -8,6 +8,7 @@
 
 import { assert } from "@std/assert/assert";
 import { composeIntegerText } from "@/libs/number-text.ts";
+import type { StatusKey } from "@/src/core/combatant-status.ts";
 import type {
     PanelMetric,
     PanelOutcome,
@@ -15,6 +16,12 @@ import type {
     PinnedCase,
 } from "@/src/ui/panel-reading.ts";
 import type { PanelNoun, PanelSideChoice, PanelStorageChoice } from "@/src/ui/panel-screen.ts";
+
+/**
+ * The legendary bonus that saves its holder once, spelled here because this is the file that reads
+ * it — the healing table below words it and `src/ui/panel-standing.ts` asks for it by this name.
+ */
+export const LAST_RESORT_KEY = "legbon_lastheal";
 
 export interface CountedNoun {
     one: string;
@@ -516,7 +523,7 @@ export const HEALTH_SOURCE_WORDS: Record<string, string> = {
     heal: "przywracanie życia",
     heal_target: "uleczenie wskazanego",
     legbon_holytouch_heal: "dotyk anioła",
-    legbon_lastheal: "ostatni ratunek",
+    [LAST_RESORT_KEY]: "ostatni ratunek",
     healall_per: "uleczenie sojuszników",
     npc_heal: "regeneracja potwora",
     bandage: "bandażowanie",
@@ -577,25 +584,133 @@ const TEN = 10;
 const HUNDRED = 100;
 
 export const AURA_WORDS = {
-    title: "Aury",
     /** Said in place of a name the roster could not place, never a name of our own. */
     casterUnknown: "Nieznany rzucający",
 } as const;
 
-/** The skill, and how many of it are running where that is more than one. */
-export function composeAuraGroupText(skillName: string, casts: number): string {
-    assert(skillName.length > 0, "a group is named after the skill the game named");
-    assert(casts > 0, "and stands for at least one cast");
-    if (casts === 1) return skillName;
-    return `${skillName} ×${composeIntegerText(casts)}`;
+/**
+ * ⚠️ **A status takes none of `HEALTH_LOSS_WORDS`, however close a key looks.** That table gives
+ * „głęboka rana" to the loss key `wound`, while the mask carries `wound` and `deep_wound` as two
+ * different bits — reusing the entry would put two readings under one word and break nothing
+ * while doing it (**N13**). These are this table's own.
+ */
+const STATUS_WORDS: Record<StatusKey, string> = {
+    deep_wound: "Głęboka rana",
+    wound: "Rana",
+    critical_deep_wound: "Krytyczna głęboka rana",
+    poisoned: "Zatrucie",
+    fire: "Podpalenie",
+    swow_down: "Spowolnienie",
+    speed_up: "Przyspieszenie",
+    frostbite: "Odmrożenie",
+    shock: "Wstrząs",
+};
+
+/**
+ * A bit the client words for nobody is drawn as the bit it is. Guessing what it means would be a
+ * name of this repository's making, and the disagreement between what the game sends and what its
+ * own client reads is the finding — `docs/statuses-standing.md`.
+ */
+export function getWordsForStatus(key: StatusKey | null, bit: number): string {
+    assert(Number.isSafeInteger(bit), "a status stood at a whole-numbered bit");
+    assert(bit >= 0, "and not below the first one");
+    if (key === null) return `Bit ${composeIntegerText(bit)}`;
+    const words = STATUS_WORDS[key];
+    assert(words !== undefined, "and every bit the client words is worded here");
+    return words;
+}
+
+/** What the window beside the panel says about itself and about what it cannot show. */
+export const STANDING_WORDS = {
+    title: "Pomocnik",
+    /**
+     * The window stands whether or not anything does, so it needs a word for nothing — and the
+     * word says the fight is quiet, never that the panel failed to read it (**ADR 0054**).
+     */
+    nothing: "Nic nie stoi",
+    watchlist: "Obserwuję",
+    charge: "Ładuje",
+    lastResort: "Ostatni Ratunek",
+    status: "Stany",
+    spent: "przebity",
+    /** How long a bit has stood. Never how long it has left — the payload states no remainder. */
+    forTurns(turns: number): string {
+        assert(Number.isSafeInteger(turns), "a status has stood a whole number of turns");
+        assert(turns >= 0, "and no fewer than none of them");
+        return `od ${composeCountedNoun(turns, COUNTED_NOUNS.turns)}`;
+    },
+    /**
+     * A subject this panel names itself. A skill's own name is the game's and is passed through.
+     */
+    forSubject(key: string): string {
+        assert(key.length > 0, "a subject is worded by name");
+        if (key === "charge") return STANDING_WORDS.charge;
+        if (key === "last-resort") return STANDING_WORDS.lastResort;
+        if (key === "status") return STANDING_WORDS.status;
+        return key;
+    },
+} as const;
+
+/** The game's own figure for a charge, said as the game states it and turned into no turns. */
+export function composeChargePercentText(percent: number): string {
+    assert(Number.isSafeInteger(percent), "a charge is stated in whole percent");
+    assert(percent >= 0, "and not below nothing");
+    return `${composeIntegerText(percent)}%`;
+}
+
+/** What is watched, and how many of it stand where that is more than one. */
+export function composeStandingGroupText(title: string, rows: number): string {
+    assert(title.length > 0, "a group is named after what it is a group of");
+    assert(rows > 0, "and stands for at least one row");
+    if (rows === 1) return title;
+    return `${title} ×${composeIntegerText(rows)}`;
 }
 
 /** What has passed, of what the table states. Never a countdown — **ADR 0053**. */
-export function composeAuraTurnsText(turnsElapsed: number, turnsStated: number): string {
+export function composeElapsedTurnsText(turnsElapsed: number, turnsStated: number): string {
     assert(Number.isSafeInteger(turnsElapsed), "a cast has run a whole number of turns");
     assert(turnsStated > 0, "and runs for a stated number of them");
     const said = composeCountedNoun(turnsStated, COUNTED_NOUNS.turns);
     return `${composeIntegerText(turnsElapsed)} z ${said}`;
+}
+
+/** Whatever the row's own figure is, said the way that kind of figure is said. */
+export function composeStandingFigureText(
+    figure:
+        | { kind: "elapsed"; turnsElapsed: number; turnsStated: number }
+        | { kind: "percent"; percent: number }
+        | { kind: "words"; words: string },
+): string {
+    if (figure.kind === "elapsed") {
+        return composeElapsedTurnsText(figure.turnsElapsed, figure.turnsStated);
+    }
+    if (figure.kind === "percent") return composeChargePercentText(figure.percent);
+    assert(figure.words.length > 0, "a row saying something in words says something");
+    return figure.words;
+}
+
+/**
+ * How much of a watched subject stands. A dash for none rather than a nought: zero is a figure
+ * here — this many are standing — and the list is answering how many, not how much.
+ */
+export function composeStandingCountText(standing: number): string {
+    assert(Number.isSafeInteger(standing), "a count of what stands is a whole number");
+    assert(standing >= 0, "and is not below nothing");
+    if (standing === 0) return "—";
+    return composeIntegerText(standing);
+}
+
+/** A control says what a press would do, never what the window already is. */
+export function getWordsForWatch(isWatched: boolean): string {
+    assert(typeof isWatched === "boolean", "a subject is watched or is not");
+    if (isWatched) return "Przestań obserwować";
+    return "Obserwuj";
+}
+
+export function getWordsForWatchlist(isOnWatchlist: boolean): string {
+    assert(typeof isOnWatchlist === "boolean", "the window is on the list or on what stands");
+    if (isOnWatchlist) return "Wróć do tego, co stoi";
+    return "Wybierz, co obserwować";
 }
 
 /**
@@ -766,7 +881,7 @@ export function composeUnplacedHealRowWarning(count: number): string {
 }
 
 export const REGION_WORDS = {
-    auras: "listy aur",
+    helper: "pomocnika",
     header: "nagłówka",
     tabs: "zakładek",
     crumb: "ścieżki",

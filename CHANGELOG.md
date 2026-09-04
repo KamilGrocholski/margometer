@@ -38,14 +38,28 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   ciosy jednej umiejętności liczą się jako jedna tura, tak jak liczy je gra. Tura, w której postać
   nic nie zrobiła, bo była ogłuszona, stoi osobno jako „utracone" i gra sama ogłasza je w logu
   walki. Obie liczby stoją na własnych liniach i panel niczego przez nie nie dzieli.
-- **Nowość** — Obok panelu stoi drugie, mniejsze okno: „Aury". Widać w nim wszystko, co jedna
-  umiejętność nałożyła na całą stronę — twoją albo przeciwnika, na przykład Piętno bestii. Rzeczy,
-  które siedzą tylko na jednej postaci, tam nie trafiają. Przy każdym rzucie stoi, kto go puścił, i
-  ile tur minęło z tych, które gra podaje: „3 z 8 tur". Dwa rzuty tej samej umiejętności to dwa
-  osobne wiersze pod jednym nagłówkiem, bo trwają osobno. Okno przeciąga się i chowa niezależnie od
-  panelu, a pojawia się samo, kiedy coś jest aktywne, i znika, gdy wygaśnie ostatnia rzecz. Panel
-  nigdy nie napisze „zostało 5 tur": gra nie mówi, kiedy aura schodzi, więc stoi tam to, co minęło,
-  i to, ile ma trwać — odjąć możesz sam.
+- **Nowość** — Obok panelu stoi drugie, mniejsze okno: „Pomocnik". Widać w nim, co w tej chwili stoi
+  w walce. Umiejętności rzucone na całą stronę — twoją albo przeciwnika, na przykład Piętno bestii —
+  z tym, kto je puścił i ile tur minęło z tych, które gra podaje: „3 z 8 tur". Pasek pod wierszem
+  pokazuje to samo bez liczenia: część pełna to tury, które minęły, część kreskowana to tyle, ile
+  gra zapowiada. Dwa rzuty tej samej umiejętności to dwa osobne wiersze pod jednym nagłówkiem, bo
+  trwają osobno. Pomocnik nigdy nie napisze „zostało 5 tur": gra nie mówi, kiedy taka rzecz schodzi,
+  więc stoi tam to, co minęło, i to, ile ma trwać — odjąć możesz sam.
+- **Nowość** — Pomocnik pokazuje też, jaką umiejętność szykuje przeciwnik i jak daleko jest z
+  ładowaniem — na przykład „Lodowe Pandemonium 75%". Procent jest ten, który podaje sama gra. Wiersz
+  znika, gdy naładowana umiejętność pójdzie w ruch.
+- **Nowość** — W Pomocniku widać, komu Ostatni Ratunek już się odpalił, i komu odpalił się Dotyk
+  Anioła. Nie ma tam i nie będzie informacji, kto ten bonus jeszcze ma — gra tego nie mówi.
+- **Nowość** — Kontrolka na pasku Pomocnika otwiera listę tego, czego pilnuje, i zamyka ją z
+  powrotem. Każdą pozycję można wyłączyć, a przy każdej stoi, ile jej teraz stoi — także przy
+  wyłączonych, żeby dało się odróżnić spokojną walkę od schowanej. Stany nałożone na pojedyncze
+  postacie — spowolnienie, przyspieszenie, zatrucie, rana i reszta — są na liście od początku
+  wyłączone, bo w walce dziesięć na dziesięć zajmują więcej miejsca niż wszystko inne razem. Wybór
+  zostaje na następną walkę.
+- **Zmiana** — Pomocnik jest widoczny cały czas, tak samo jak główne okno, i ma własny przycisk
+  minimalizacji. Wcześniej pojawiał się i znikał sam, zależnie od tego, czy coś akurat trwało.
+  Zminimalizowany zostaje samym paskiem, a kiedy nic nie stoi, pisze o tym jedną linią. Zwinięcie
+  zostaje zapamiętane osobno od zwinięcia panelu.
 
 ## [0.12.1] — 2026-09-01
 

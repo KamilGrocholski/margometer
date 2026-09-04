@@ -46,16 +46,30 @@ import {
     type ScreenTab,
     STORAGE_CHOICES,
 } from "@/src/ui/panel-screen.ts";
-import { CLASS, composeStyleSheet, getColourForProfession, PLACE } from "@/src/ui/panel-look.ts";
-import type { AuraReading, AuraRow } from "@/src/ui/panel-aura.ts";
+import {
+    CLASS,
+    composeBarColour,
+    composeStyleSheet,
+    getColourForProfession,
+    PLACE,
+    SIGNAL,
+} from "@/src/ui/panel-look.ts";
+import type {
+    StandingFigure,
+    StandingGroup,
+    StandingReading,
+    StandingRow,
+    StandingSubject,
+} from "@/src/ui/panel-standing.ts";
 import {
     AURA_WORDS,
     CARD_WORDS,
-    composeAuraGroupText,
-    composeAuraTurnsText,
     composeFigureText,
     composeShelfSizeText,
     composeSideCountsText,
+    composeStandingCountText,
+    composeStandingFigureText,
+    composeStandingGroupText,
     composeUndrawnText,
     composeUsesText,
     getWordsForDamageKind,
@@ -70,19 +84,22 @@ import {
     getWordsForStorage,
     getWordsForUnannounced,
     getWordsForUnnamedEnd,
+    getWordsForWatch,
+    getWordsForWatchlist,
     NEITHER_END_WORDS,
     PANEL_WORDS,
     type PanelRegion,
+    STANDING_WORDS,
     type TranslateLabel,
     WARNING_MARK,
 } from "@/src/ui/panel-words.ts";
 import {
-    AURAS_GRIP_ATTRIBUTE,
-    AURAS_TOP_VARIABLE,
-    composeAuraDefaultPosition,
     composeDefaultPosition,
+    composeHelperDefaultPosition,
     composeTipLeft,
     GRIP_ATTRIBUTE,
+    HELPER_GRIP_ATTRIBUTE,
+    HELPER_TOP_VARIABLE,
     type PanelPlacement,
     type PanelPosition,
     setGripMark,
@@ -170,6 +187,10 @@ const PIN_ATTRIBUTE = "data-pin";
 /** Which end a pinned row leaves out, which is the whole of what opening it asks for. */
 const UNNAMED_ATTRIBUTE = "data-unnamed";
 const STORAGE_ATTRIBUTE = "data-storage";
+/** The helper window's own three, so a press on it can never be read as one on the panel. */
+const HELPER_FOLD_ATTRIBUTE = "data-helper-fold";
+const HELPER_LIST_ATTRIBUTE = "data-helper-list";
+const WATCH_ATTRIBUTE = "data-watch";
 const LIVE_FIGHT = "live";
 const TIP_ATTRIBUTE = "data-tip";
 const TITLE_ATTRIBUTE = "title";
@@ -1187,10 +1208,16 @@ export interface PanelView {
     place: string | null;
     isCollapsed: boolean;
     /**
-     * Null, or absent, where nothing a skill put on a side is running — the strip is a window of
-     * its own, so a view saying nothing about it draws none rather than drawing an empty one.
+     * What stands in the fight, for the window beside the panel. Null, or absent, is a view that
+     * has read no fight yet — the window still stands and says so, because a reader who cannot
+     * see it has no way to tell a quiet fight from a panel that stopped reading (**ADR 0054**).
      */
-    auras?: AuraReading | null;
+    standing?: StandingReading | null;
+    /**
+     * Both as `src/ui/panel-screen.ts` holds them; absent is a view asked about neither.
+     */
+    isHelperCollapsed?: boolean;
+    isHelperOnWatchlist?: boolean;
 }
 
 export type PanelPress =
@@ -1204,6 +1231,9 @@ export type PanelPress =
     | { kind: "storage"; name: string }
     | { kind: "back" }
     | { kind: "fold" }
+    | { kind: "helper-fold" }
+    | { kind: "helper-list" }
+    | { kind: "watch"; subject: string }
     | { kind: "save" }
     | { kind: "shelf" };
 
@@ -1608,6 +1638,10 @@ function getPressFromTarget(
     if (target.getAttribute(SAVE_ATTRIBUTE) !== null) return { kind: "save" };
     if (target.getAttribute(SHELF_ATTRIBUTE) !== null) return { kind: "shelf" };
     if (target.getAttribute(FOLD_ATTRIBUTE) !== null) return { kind: "fold" };
+    const watched = target.getAttribute(WATCH_ATTRIBUTE);
+    if (watched !== null) return { kind: "watch", subject: watched };
+    if (target.getAttribute(HELPER_FOLD_ATTRIBUTE) !== null) return { kind: "helper-fold" };
+    if (target.getAttribute(HELPER_LIST_ATTRIBUTE) !== null) return { kind: "helper-list" };
     if (target.getAttribute(BACK_ATTRIBUTE) !== null) return { kind: "back" };
     return null;
 }
@@ -1659,7 +1693,7 @@ export interface PanelHandle {
      * With no draw at all before the first payload, an add-on waiting for a fight and one that
      * died on the way to the page are the same picture.
      */
-    showWaiting(isCollapsed: boolean): void;
+    showWaiting(isCollapsed: boolean, helper?: HelperState): void;
 }
 
 function composeRegionInPlace(
@@ -1749,87 +1783,283 @@ function composePanelFrame(document: PanelDocument, regions: PanelRegions): Pane
 }
 
 /**
- * What stands inside the strip's window, replaced in place on every payload. The bar is not in
+ * What stands inside the helper window, replaced in place on every payload. The bar is not in
  * here: it is the window's own, like the panel's, so a redraw never takes the handle out from
  * under a hand that is dragging by it.
  */
-function composeAurasElement(document: PanelDocument, reading: AuraReading): PanelElement {
-    const drawn = composeElement(document, "div", CLASS.aurasBody);
+function composeHelperElement(document: PanelDocument, reading: StandingReading): PanelElement {
+    const drawn = composeElement(document, "div", CLASS.helperBody);
     for (const group of reading.groups) {
-        const heading = composeElement(document, "div", CLASS.aurasSkill);
-        heading.textContent = composeAuraGroupText(group.skillName, group.rows.length);
-        drawn.append(heading);
-        for (const row of group.rows) drawn.append(composeAuraRowElement(document, row));
+        drawn.append(composeHelperGroupElement(document, group));
+        for (const row of group.rows) drawn.append(composeStandingRowElement(document, row));
     }
     assert(reading.rows > 0, "a body that is drawn has something standing in it");
-    assert(drawn.className === CLASS.aurasBody, "and is the window's body and not the window");
+    assert(drawn.className === CLASS.helperBody, "and is the window's body and not the window");
     return drawn;
 }
 
-/** The caster, in the hue of their side, and how far through the cast is. */
-function composeAuraRowElement(document: PanelDocument, row: AuraRow): PanelElement {
-    const drawn = composeElement(document, "div", CLASS.aurasRow);
-    const side = row.isReaderSide === null
-        ? ""
-        : ` ${row.isReaderSide ? CLASS.aurasOurs : CLASS.aurasTheirs}`;
-    const name = composeElement(document, "span", `${CLASS.aurasName}${side}`);
-    name.textContent = row.casterName ?? AURA_WORDS.casterUnknown;
-    const turns = composeElement(document, "span", CLASS.aurasTurns);
-    turns.textContent = composeAuraTurnsText(row.turnsElapsed, row.turnsStated);
+function composeHelperGroupElement(document: PanelDocument, group: StandingGroup): PanelElement {
+    assert(group.rows.length > 0, "a heading that is drawn stands over something");
+    assert(group.subject.length > 0, "and over a subject a reader can turn off");
+    const heading = composeElement(document, "div", CLASS.helperGroup);
+    heading.textContent = composeStandingGroupText(group.title, group.rows.length);
+    assert(heading.textContent.length > 0, "a group is headed by what it is a group of");
+    return heading;
+}
+
+/** A side's own hue, or the neutral where the client never said which side is the reader's. */
+function getStandingHue(isReaderSide: boolean | null): string {
+    assert(SIGNAL.unknown.length > 0, "the neutral is a colour before a row is drawn in it");
+    if (isReaderSide === null) return SIGNAL.unknown;
+    assert(SIGNAL.theirs.length > 0, "and each side is told apart by a colour of its own");
+    return isReaderSide ? SIGNAL.ours : SIGNAL.theirs;
+}
+
+/** How much of the row the figure fills, as a share of one. A charge states its own. */
+function getStandingShare(figure: StandingFigure): number {
+    if (figure.kind === "percent") {
+        assert(figure.percent >= 0, "a charge is stated at no less than nothing");
+        return Math.min(figure.percent / AS_PERCENT, 1);
+    }
+    if (figure.kind === "elapsed") {
+        assert(figure.turnsStated > 0, "a cast runs for a stated number of turns");
+        return Math.min(figure.turnsElapsed / figure.turnsStated, 1);
+    }
+    return 0;
+}
+
+function setStandingFillStyle(fill: PanelElement, share: number, hue: string): void {
+    assert(share >= 0, "a bar fills no less than none of its row");
+    assert(share <= 1, "and no more than the whole of it");
+    const width = composeDecimalText(share * AS_PERCENT, FILL_PLACES);
+    fill.setAttribute(STYLE_ATTRIBUTE, `width:${width}%;background:${composeBarColour(hue)}`);
+}
+
+/**
+ * The part the published table states and nothing witnessed, hatched rather than tinted: colour
+ * is spent on the side already, so the difference has to be carried by something that is not one
+ * — and hatching still reads where the sides are unknown and both rows wear the same hue.
+ */
+function setStandingRestStyle(rest: PanelElement, share: number, hue: string): void {
+    assert(share <= 1, "what the table states begins where what was counted ends");
+    assert(hue.startsWith("#"), "and is hatched in the side's own colour");
+    const left = composeDecimalText(share * AS_PERCENT, FILL_PLACES);
+    const width = composeDecimalText((1 - share) * AS_PERCENT, FILL_PLACES);
+    const stripe = `repeating-linear-gradient(135deg,${hue} 0 2px,transparent 2px 5px)`;
+    rest.setAttribute(
+        STYLE_ATTRIBUTE,
+        `left:${left}%;width:${width}%;background:${stripe};opacity:0.22`,
+    );
+}
+
+/**
+ * The bar behind a row, in two parts: what was counted, solid, and what the published table
+ * merely states, hatched. A charge states its own figure, so it is solid to its whole length and
+ * has nothing hatched behind it — `DESIGN.md` owns why one texture means one thing here.
+ */
+function setStandingRowBar(
+    document: PanelDocument,
+    drawn: PanelElement,
+    row: StandingRow,
+): void {
+    const hue = getStandingHue(row.isReaderSide);
+    assert(hue.length > 0, "a bar is drawn in a colour that was chosen");
+    if (row.figure.kind === "words") return;
+    const share = getStandingShare(row.figure);
+    const fill = composeElement(document, "div", CLASS.helperFill);
+    setStandingFillStyle(fill, share, hue);
+    drawn.append(fill);
+    if (row.figure.kind === "elapsed") {
+        const rest = composeElement(document, "div", CLASS.helperRest);
+        setStandingRestStyle(rest, share, hue);
+        drawn.append(rest);
+    }
+    const cap = composeElement(document, "div", CLASS.helperCap);
+    cap.setAttribute(STYLE_ATTRIBUTE, `background:${hue};`);
+    drawn.append(cap);
+}
+
+/** Who it is on, in the hue of their side, and how far through the game says it is. */
+function composeStandingRowElement(document: PanelDocument, row: StandingRow): PanelElement {
+    const drawn = composeElement(document, "div", CLASS.helperRow);
+    setStandingRowBar(document, drawn, row);
+    // ⚠️ **The hue goes on the bar and the cap, never on the name.** A name in the side's own
+    // colour standing over a bar tinted from the same hue is the pairing `DESIGN.md` measured at
+    // 2.26 against a floor of 4.5; the plain ink over the worst bar in the palette clears 5.09.
+    const name = composeElement(document, "span", CLASS.helperName);
+    name.textContent = row.name ?? AURA_WORDS.casterUnknown;
+    const figure = composeElement(document, "span", CLASS.helperFigure);
+    figure.textContent = composeStandingFigureText(row.figure);
     drawn.append(name);
-    drawn.append(turns);
-    assert(name.textContent.length > 0, "a cast is drawn under whoever the game named");
-    assert(turns.textContent.length > 0, "and says how far through it is");
+    drawn.append(figure);
+    assert(name.textContent.length > 0, "a row is drawn under whoever the game named");
+    assert(figure.textContent.length > 0, "and says what the game said about it");
+    return drawn;
+}
+
+/** One line, the quietest thing the panel draws: the fight is quiet, not the reading broken. */
+function composeHelperNothingElement(document: PanelDocument): PanelElement {
+    const drawn = composeElement(document, "div", CLASS.helperBody);
+    const said = composeElement(document, "div", CLASS.helperNone);
+    said.textContent = STANDING_WORDS.nothing;
+    drawn.append(said);
+    assert(said.textContent.length > 0, "a window that stands empty says so in words");
     return drawn;
 }
 
 /**
- * The strip's window, and what stands inside it. Two elements because the outer one is what a
+ * The watchlist, in the same frame rather than in a window of its own: a second window for the
+ * settings of the second window would be a third window on somebody else's page.
+ */
+function composeHelperWatchlistElement(
+    document: PanelDocument,
+    subjects: readonly StandingSubject[],
+): PanelElement {
+    const drawn = composeElement(document, "div", CLASS.helperBody);
+    const heading = composeElement(document, "div", CLASS.helperGroup);
+    heading.textContent = STANDING_WORDS.watchlist;
+    drawn.append(heading);
+    for (const subject of subjects) {
+        drawn.append(composeWatchRowElement(document, subject));
+    }
+    if (subjects.length === 0) {
+        const said = composeElement(document, "div", CLASS.helperNone);
+        said.textContent = STANDING_WORDS.nothing;
+        drawn.append(said);
+    }
+    assert(drawn.className === CLASS.helperBody, "the list stands in the window's own body");
+    return drawn;
+}
+
+function composeWatchRowElement(
+    document: PanelDocument,
+    subject: StandingSubject,
+): PanelElement {
+    assert(subject.key.length > 0, "a row of the list asks for a subject by name");
+    assert(subject.standing >= 0, "and says how much of it stands, which is never below nothing");
+    const drawn = composeElement(document, "div", CLASS.helperWatch);
+    drawn.setAttribute(WATCH_ATTRIBUTE, subject.key);
+    drawn.setAttribute(TITLE_ATTRIBUTE, getWordsForWatch(subject.isWatched));
+    const box = composeElement(
+        document,
+        "span",
+        subject.isWatched ? `${CLASS.helperBox} ${CLASS.helperBoxSet}` : CLASS.helperBox,
+    );
+    box.setAttribute(WATCH_ATTRIBUTE, subject.key);
+    const name = composeElement(document, "span", CLASS.helperName);
+    name.textContent = subject.title;
+    name.setAttribute(WATCH_ATTRIBUTE, subject.key);
+    const count = composeElement(document, "span", CLASS.helperCount);
+    count.textContent = composeStandingCountText(subject.standing);
+    count.setAttribute(WATCH_ATTRIBUTE, subject.key);
+    drawn.append(box);
+    drawn.append(name);
+    drawn.append(count);
+    assert(name.textContent.length > 0, "a watched subject is named on the list");
+    assert(count.textContent.length > 0, "and says how much of it stands, zero included");
+    return drawn;
+}
+
+/**
+ * The helper window, and what stands inside it. Two elements because the outer one is what a
  * drag moves and must outlive every redraw, while the inner one is replaced like any region.
  */
-interface AurasWindow {
+interface HelperWindow {
     frame: PanelElement;
     /** Made once and never redrawn, the way the panel's own bar outlives every payload. */
     bar: PanelElement;
     body: PanelElement;
 }
 
-function composeAurasWindow(document: PanelDocument): AurasWindow {
-    const frame = composeElement(document, "div", `${CLASS.auras} ${CLASS.aurasHidden}`);
-    const bar = composeElement(document, "div", CLASS.aurasTitle);
+function composeHelperWindow(document: PanelDocument): HelperWindow {
+    const frame = composeElement(document, "div", CLASS.helper);
+    const bar = composeElement(document, "div", CLASS.helperTitle);
     // The same mark the panel's own bar wears, because it is the same gesture.
-    bar.textContent = `${GRIP_MARK}${AURA_WORDS.title}`;
+    bar.textContent = `${GRIP_MARK}${STANDING_WORDS.title}`;
     bar.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.drag);
-    setGripMark(bar, AURAS_GRIP_ATTRIBUTE);
+    setGripMark(bar, HELPER_GRIP_ATTRIBUTE);
     const body = composeElement(document, "div", CLASS.slot);
     frame.append(bar);
     frame.append(body);
     assert(bar.textContent.length > 0, "the window carries a bar a hand can take hold of");
-    assert(frame.className.length > 0, "and a body that gives way on every payload");
+    assert(frame.className === CLASS.helper, "and stands whatever the fight is doing");
     return { frame, bar, body };
 }
 
 /**
- * The strip stands while something is running and is hidden when nothing is: it is a window of
- * its own, so an empty one would be a box on the game saying nothing. Hidden rather than taken
- * away, because the drag moves the frame and its listeners outlive every redraw.
+ * The bar's two controls, made afresh for the state they are in: a control says what a press
+ * would do and never what the window already is, so both marks and both sentences change with it.
+ * The fold is outermost, as it is on the panel's own bar and in every window a reader has met.
  */
-function setAurasDrawn(
+function setHelperControls(
     document: PanelDocument,
-    auras: AurasWindow,
-    reading: AuraReading | null,
+    bar: PanelElement,
+    state: { isCollapsed: boolean; isOnWatchlist: boolean },
+): void {
+    bar.textContent = `${GRIP_MARK}${STANDING_WORDS.title}`;
+    bar.append(composeBarControl(document, {
+        className: CLASS.control,
+        mark: SHELF_MARK,
+        attribute: HELPER_LIST_ATTRIBUTE,
+        words: getWordsForWatchlist(state.isOnWatchlist),
+    }));
+    bar.append(composeBarControl(document, {
+        className: CLASS.control,
+        mark: state.isCollapsed ? UNFOLD_MARK : FOLD_MARK,
+        attribute: HELPER_FOLD_ATTRIBUTE,
+        words: state.isCollapsed ? PANEL_WORDS.expand : PANEL_WORDS.collapse,
+    }));
+    assert(bar.className === CLASS.helperTitle, "the controls go on the window's own bar");
+}
+
+/**
+ * What the window needs to know about itself, which a waiting panel has as much as a drawn one.
+ */
+export interface HelperState {
+    standing: StandingReading | null;
+    isCollapsed: boolean;
+    isOnWatchlist: boolean;
+}
+
+/** A panel that has read no fight yet still stands the window, folded the way it was left. */
+const WAITING_HELPER: HelperState = { standing: null, isCollapsed: false, isOnWatchlist: false };
+
+function composeHelperState(view: PanelView): HelperState {
+    assert(view.current.length > 0, "a view the window is read off is on a screen");
+    return {
+        standing: view.standing ?? null,
+        isCollapsed: view.isHelperCollapsed ?? false,
+        isOnWatchlist: view.isHelperOnWatchlist ?? false,
+    };
+}
+
+/**
+ * ⚠️ **The window stands whether or not anything does.** The strip it grew out of was hidden when
+ * nothing was running, on the grounds that an empty window is a box on the game saying nothing;
+ * a window a reader can fold is a window they can put away themselves, and one that vanishes on
+ * its own cannot be told from one that broke. So the frame never hides, the fold takes the body,
+ * and an empty body says so in a line. **ADR 0054**, superseding **ADR 0053** on this alone.
+ */
+function setHelperDrawn(
+    document: PanelDocument,
+    helper: HelperWindow,
+    state: HelperState,
     redraw: PanelRedraw,
 ): void {
-    assert(auras.frame.className.length > 0, "the strip is a region before it is hidden or drawn");
-    const isDrawn = reading !== null && reading.rows > 0;
-    auras.frame.className = isDrawn ? CLASS.auras : `${CLASS.auras} ${CLASS.aurasHidden}`;
-    auras.body = redraw(auras.body, "auras", () => {
-        if (reading === null || reading.rows === 0) {
-            return composeElement(document, "div", CLASS.slot);
+    assert(helper.frame.className.length > 0, "the window is a region before it is drawn");
+    const { isCollapsed, isOnWatchlist } = state;
+    setHelperControls(document, helper.bar, { isCollapsed, isOnWatchlist });
+    helper.frame.className = CLASS.helper;
+    helper.body = redraw(helper.body, "helper", () => {
+        if (isCollapsed) return composeElement(document, "div", CLASS.helperFolded);
+        const reading = state.standing;
+        if (isOnWatchlist) {
+            return composeHelperWatchlistElement(document, reading?.subjects ?? []);
         }
-        return composeAurasElement(document, reading);
+        if (reading === null || reading.rows === 0) return composeHelperNothingElement(document);
+        return composeHelperElement(document, reading);
     });
-    assert(auras.body.className.length > 0, "and what stands in it is a region either way");
+    assert(helper.body.className.length > 0, "and what stands in it is a region either way");
 }
 
 /** The bar redrawn for the fold it is in, and the frame told to give way or stand. */
@@ -1860,7 +2090,7 @@ function setRootChildren(root: PanelRoot, children: readonly PanelElement[]): vo
 interface PanelWindows {
     host: PanelElement;
     getBar: () => PanelElement;
-    auras: AurasWindow;
+    helper: HelperWindow;
 }
 
 /**
@@ -1870,10 +2100,10 @@ interface PanelWindows {
 function setWindowDrags(
     root: PanelRoot,
     windows: PanelWindows,
-    placements: { panel: PanelPlacement | null; auras: PanelPlacement | null },
+    placements: { panel: PanelPlacement | null; helper: PanelPlacement | null },
     handleFailure: (failure: unknown) => void,
 ): () => PanelPosition | null {
-    assert(windows.auras.bar.className.length > 0, "the strip is taken by a bar of its own");
+    assert(windows.helper.bar.className.length > 0, "the window is taken by a bar of its own");
     let getPosition: () => PanelPosition | null = () => null;
     if (placements.panel !== null) {
         getPosition = setPanelDrag(
@@ -1889,17 +2119,17 @@ function setWindowDrags(
             handleFailure,
         );
     }
-    if (placements.auras !== null) {
+    if (placements.helper !== null) {
         setPanelDrag(
             root,
             {
-                gripAttribute: AURAS_GRIP_ATTRIBUTE,
-                moved: windows.auras.frame,
-                getHandle: () => windows.auras.bar,
-                composeDefault: composeAuraDefaultPosition,
-                topVariable: AURAS_TOP_VARIABLE,
+                gripAttribute: HELPER_GRIP_ATTRIBUTE,
+                moved: windows.helper.frame,
+                getHandle: () => windows.helper.bar,
+                composeDefault: composeHelperDefaultPosition,
+                topVariable: HELPER_TOP_VARIABLE,
             },
-            placements.auras,
+            placements.helper,
             handleFailure,
         );
     }
@@ -1913,7 +2143,7 @@ export function composePanelHost(
     handleFailure: (failure: unknown) => void,
     placement: PanelPlacement | null = null,
     // The strip's own: it is a window of its own and remembers its own corner.
-    aurasPlacement: PanelPlacement | null = null,
+    helperPlacement: PanelPlacement | null = null,
     // Null is the panel drawing its own words, which is what every test and every browser
     // without the game sees. Who asks the client, and how often, is the entry's — ADR 0024.
     translate: TranslateLabel | null = null,
@@ -1936,14 +2166,14 @@ export function composePanelHost(
         (standing, compose) => redraw(standing, "list", compose),
         () => composeTipLeft(getPosition(), placement?.getViewport() ?? null, TIP_WIDTH),
     );
-    const auras = composeAurasWindow(document);
-    setRootChildren(root, [auras.frame, regions.title, frame, tip.element]);
+    const helper = composeHelperWindow(document);
+    setRootChildren(root, [helper.frame, regions.title, frame, tip.element]);
     const showTip = (key: string | null, clientY: number): void => tip.show(key, clientY);
     setPanelRootListeners(root, handlePress, showTip, handleFailure);
     // After the listeners that read a press, and on the same root: a drag is four more of them.
-    getPosition = setWindowDrags(root, { host, getBar: () => regions.title, auras }, {
+    getPosition = setWindowDrags(root, { host, getBar: () => regions.title, helper }, {
         panel: placement,
-        auras: aurasPlacement,
+        helper: helperPlacement,
     }, handleFailure);
     assert(host.className === "", "the host wears no class of the game's making");
     return {
@@ -1953,16 +2183,16 @@ export function composePanelHost(
             setFoldDrawn(view.isCollapsed);
             if (view.isCollapsed) setPanelFolded(document, regions, redraw);
             else setPanelBody(document, regions, view, register, translate, redraw);
-            setAurasDrawn(document, auras, view.auras ?? null, redraw);
+            setHelperDrawn(document, helper, composeHelperState(view), redraw);
             tip.refresh();
             assert(regions.list !== regions.sides, "the regions are that many elements");
             assert(regions.title !== regions.header, "and none of them stands in for another");
         },
-        showWaiting(isCollapsed: boolean): void {
+        showWaiting(isCollapsed: boolean, helperState: HelperState = WAITING_HELPER): void {
             register.reset();
             setFoldDrawn(isCollapsed);
             setPanelFolded(document, regions, redraw);
-            setAurasDrawn(document, auras, null, redraw);
+            setHelperDrawn(document, helper, helperState, redraw);
             if (!isCollapsed) {
                 regions.list = redraw(regions.list, "list", () => composeWaitingElement(document));
             }

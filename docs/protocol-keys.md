@@ -1941,6 +1941,12 @@ Every occurrence is valueless and alone, always with an actor and never a target
 A skill being prepared rather than used, stated as `name(percent%)`. The name is the client's
 display text, so no example of one appears here.
 
+**Both halves are read.** `src/core/charge-standing.ts` takes the name and the percent, and the
+helper window draws them as the game states them — never turned into turns, because how many turns a
+step of the percent costs is this repository's inference and not the game's word. Measured over
+`captures/` on 2026-09-04: 70 series over 23 recordings, and **every one of them belongs to an
+NPC**. **ADR 0054.**
+
 Counted as a turn its combatant took, but **only where it stands alone**: where the same combatant
 acted in the message before it, the preparation rides that turn rather than being one. The help
 documents no such mechanic, so unlike `step` this is measured and not cited — `docs/turns-taken.md`

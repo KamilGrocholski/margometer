@@ -115,16 +115,22 @@ export const CLASS = {
     /** A sentence rather than a column, so the placement counts it as wrapping. */
     tipNote: "tip-note",
     tipWarning: "tip-warning",
-    auras: "MargoMeter-auras",
-    aurasHidden: "auras-hidden",
-    aurasTitle: "auras-title",
-    aurasBody: "auras-body",
-    aurasSkill: "auras-skill",
-    aurasRow: "auras-row",
-    aurasName: "auras-name",
-    aurasTurns: "auras-turns",
-    aurasOurs: "auras-ours",
-    aurasTheirs: "auras-theirs",
+    helper: "MargoMeter-helper",
+    helperFolded: "helper-folded",
+    helperTitle: "helper-title",
+    helperBody: "helper-body",
+    helperGroup: "helper-group",
+    helperRow: "helper-row",
+    helperName: "helper-name",
+    helperFigure: "helper-figure",
+    helperFill: "helper-fill",
+    helperRest: "helper-rest",
+    helperCap: "helper-cap",
+    helperNone: "helper-none",
+    helperWatch: "helper-watch",
+    helperBox: "helper-box",
+    helperBoxSet: "watched",
+    helperCount: "helper-count",
 } as const;
 
 export const SPACE = {
@@ -147,9 +153,12 @@ export const TIP = {
     width: "250px",
 } as const;
 
-/** Narrower than the panel: the strip carries a skill, a name and two numbers, and nothing else. */
-export const AURAS = {
-    width: "170px",
+/**
+ * Narrower than the panel, and wider than the strip it grew out of: a row now carries a name, a
+ * figure and a bar behind both, and the watchlist carries a box before the name.
+ */
+export const HELPER = {
+    width: "200px",
 } as const;
 
 export const SHAPE = {
@@ -674,17 +683,19 @@ function composeTipTop(): string {
  * It states its own type and its own ink for the reason `composeTipRules` gives: it hangs off the
  * root, so `:host{all:initial}` reaches it and `.panel`'s rules never do.
  */
-function composeAuraRules(): string {
-    assert(AURAS.width.endsWith("px"), "the strip is as wide as it was told, and does not reflow");
+function composeHelperRules(): string {
+    assert(HELPER.width.endsWith("px"), "the strip is as wide as it was told, and does not reflow");
     assert(LINE_HEIGHT.endsWith("px"), "and a line of it costs whole pixels, as every line does");
     // Beside the panel's own corner, so an unmoved strip stands next to an unmoved panel.
-    const left = `calc(100vw - ${PLACE.inset} - ${PLACE.width} - ${SPACE.small} - ${AURAS.width})`;
-    const top = `var(${VARIABLE_PREFIX}auras-top,${PLACE.inset})`;
-    return `.${CLASS.auras}{position:fixed;left:${left};top:${top};` +
+    const left = `calc(100vw - ${PLACE.inset} - ${PLACE.width} - ${SPACE.small} - ${HELPER.width})`;
+    const top = `var(${VARIABLE_PREFIX}helper-top,${PLACE.inset})`;
+    return `.${CLASS.helper}{position:fixed;left:${left};top:${top};` +
         `display:flex;flex-direction:column;` +
         `max-height:calc(100vh - ${top} - ${PLACE.inset});}` +
-        `.${CLASS.aurasHidden}{display:none;}` +
-        `.${CLASS.aurasTitle}{flex:none;display:flex;align-items:center;` +
+        // Folded takes the body and leaves the bar: the window itself stands whatever the fight
+        // is doing, so what a fold hides is what a fold put away — **ADR 0054**.
+        `.${CLASS.helperFolded}{display:none;}` +
+        `.${CLASS.helperTitle}{flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}small);` +
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
         `font:${FONT_SIZE}/${LINE_HEIGHT_TITLE} ${FONT_STACK};letter-spacing:0.06em;` +
@@ -692,34 +703,67 @@ function composeAuraRules(): string {
         `white-space:nowrap;background:var(${VARIABLE_PREFIX}raised);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
         `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
-        `box-sizing:border-box;width:${AURAS.width};cursor:move;` +
+        `box-sizing:border-box;width:${HELPER.width};cursor:move;` +
         // The same reason the panel's own bar states these: a drag by the bar would otherwise
         // select the text under the cursor (`docs/browser-support.md`).
         `-webkit-user-select:none;user-select:none;touch-action:none;}` +
-        `.${CLASS.aurasBody}{font:${FONT_SIZE}/${LINE_HEIGHT} ${FONT_STACK};` +
-        `width:${AURAS.width};` +
+        `.${CLASS.helperBody}{font:${FONT_SIZE}/${LINE_HEIGHT} ${FONT_STACK};` +
+        `width:${HELPER.width};` +
         `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}surface);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);` +
         `box-sizing:border-box;display:flex;flex-direction:column;min-height:0;` +
         `overflow-y:auto;overflow-x:hidden;` +
         `padding:var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across);}` +
-        `.${CLASS.aurasSkill}{color:var(${VARIABLE_PREFIX}quiet);` +
+        composeHelperBodyRules();
+}
+
+/** The rows, the bars behind them, and the watchlist that stands in the same body. */
+function composeHelperBodyRules(): string {
+    return `.${CLASS.helperGroup}{color:var(${VARIABLE_PREFIX}quiet);` +
         `margin-top:var(${VARIABLE_PREFIX}half);` +
         `min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
-        `.${CLASS.aurasRow}{display:flex;justify-content:space-between;` +
-        `gap:var(${VARIABLE_PREFIX}small);` +
+        `.${CLASS.helperRow}{position:relative;display:flex;justify-content:space-between;` +
+        `gap:var(${VARIABLE_PREFIX}small);overflow:hidden;` +
+        `padding:0 var(${VARIABLE_PREFIX}region-across);` +
+        `margin-bottom:var(${VARIABLE_PREFIX}half);` +
+        `border-radius:var(${VARIABLE_PREFIX}radius-small);` +
+        `background:var(${VARIABLE_PREFIX}track);` +
         `height:var(${VARIABLE_PREFIX}row-height);align-items:center;}` +
-        `.${CLASS.aurasName}{min-width:0;overflow:hidden;text-overflow:ellipsis;` +
-        `white-space:nowrap;}` +
-        `.${CLASS.aurasTurns}{white-space:nowrap;flex:none;}` +
-        `.${CLASS.aurasOurs}{color:var(${VARIABLE_PREFIX}ours);}` +
-        `.${CLASS.aurasTheirs}{color:var(${VARIABLE_PREFIX}theirs);}`;
+        `.${CLASS.helperName}{position:relative;min-width:0;overflow:hidden;` +
+        `text-overflow:ellipsis;white-space:nowrap;}` +
+        `.${CLASS.helperFigure}{position:relative;white-space:nowrap;flex:none;` +
+        `font-weight:600;font-variant-numeric:tabular-nums;}` +
+        // What was counted, solid, and what the published table merely states, hatched. One
+        // texture means one thing in this window: stated and unwitnessed — `DESIGN.md`.
+        `.${CLASS.helperFill}{position:absolute;left:0;top:0;bottom:0;}` +
+        `.${CLASS.helperRest}{position:absolute;top:0;bottom:0;}` +
+        `.${CLASS.helperCap}{position:absolute;left:0;top:0;bottom:0;width:3px;` +
+        `border-radius:var(${VARIABLE_PREFIX}radius-small) 0 0 ` +
+        `var(${VARIABLE_PREFIX}radius-small);}` +
+        // The window stands whether or not anything does, so it needs a line for nothing. It is
+        // the quietest thing the panel draws, on purpose.
+        `.${CLASS.helperNone}{color:var(${VARIABLE_PREFIX}quiet);` +
+        `padding:var(${VARIABLE_PREFIX}half) var(${VARIABLE_PREFIX}half);}` +
+        `.${CLASS.helperWatch}{display:flex;align-items:center;` +
+        `gap:var(${VARIABLE_PREFIX}region-across);` +
+        `height:var(${VARIABLE_PREFIX}row-height);cursor:pointer;` +
+        `padding:0 var(${VARIABLE_PREFIX}half);}` +
+        `.${CLASS.helperWatch}:hover{color:var(${VARIABLE_PREFIX}text);}` +
+        // A box of the row's own making rather than a tick: ✓ is not one width on every platform,
+        // and a list that resized under the hand that pressed it is what a box fixes.
+        `.${CLASS.helperBox}{flex:none;width:11px;height:11px;` +
+        `border-radius:2px;border:1px solid var(${VARIABLE_PREFIX}border);` +
+        `box-sizing:border-box;}` +
+        `.${CLASS.helperBoxSet}{background:var(${VARIABLE_PREFIX}ours);` +
+        `border-color:var(${VARIABLE_PREFIX}ours);}` +
+        `.${CLASS.helperCount}{margin-left:auto;flex:none;` +
+        `font-variant-numeric:tabular-nums;color:var(${VARIABLE_PREFIX}quiet);}`;
 }
 
 export function composeStyleSheet(): string {
     const sheet = `${composeFrameRules()}${composeRegionRules()}${composeListRules()}` +
-        `${composeRowRules()}${composeTipRules()}${composeAuraRules()}`;
+        `${composeRowRules()}${composeTipRules()}${composeHelperRules()}`;
     assert(sheet.startsWith(":host{all:initial;"), "the sheet shuts the game out before anything");
     assert(!sheet.includes("}}"), "and closes each rule once");
     return sheet;

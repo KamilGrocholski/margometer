@@ -65,6 +65,7 @@ src/
     combatant-roster.ts  Who is in the fight, and which names resolve to one of them.
     combatant-status.ts  What a bit of the payload's own status mask means, the tenth included.
     aura-standing.ts     What one skill put on a whole side, and how long the game says it runs.
+    charge-standing.ts   A skill somebody is making ready, and how far through the game says it is.
     fight-decoder.ts     What a key means, and what a key with no meaning leaves unread.
     game-build.ts        The build id the client states in its bundle's own filename.
     fight-statistics.ts  The figures a panel draws, with what nobody can be charged apart.
@@ -83,7 +84,7 @@ src/
     fight-report.ts      The figures of one fight, written into the recording beside them.
     engine-warrior.ts    The client's own field names, and the only file that spells them.
   ui/
-    panel-aura.ts        What is running on a side, as the strip beside the panel reads it.
+    panel-standing.ts    What stands in the fight, as the window beside the panel reads it.
     panel-card.ts        What a person's row says on demand, out of the figures it holds.
     panel-drag.ts        Where the panel sits, and how a reader moves it.
     panel-element.ts     The panel drawn into a document it is handed, region by region.
@@ -200,7 +201,7 @@ tests/
     declared-version.test.ts  The declaration read both ways, and the mark a dev build wears.
   ui/
     blow-vocabulary.test.ts   Every key a blow carried, against the words the panel has for it.
-    panel-aura.test.ts        The strip's rows, over a fight two people cast into at once.
+    panel-standing.test.ts    The window's rows, over a fight two people cast into at once.
     panel-card.test.ts        Every figure a card states, and the parts it draws under them.
     panel-drag.test.ts        A panel kept on the screen, and put back where it was left.
     panel-element.test.ts     What the panel puts on a page, read back out of it.

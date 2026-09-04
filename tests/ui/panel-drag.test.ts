@@ -5,18 +5,18 @@
 
 import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/assert";
 import {
-    composeAuraDefaultPosition,
     composeClampedPosition,
     composeDefaultPosition,
+    composeHelperDefaultPosition,
     composePositionStyle,
     composeStoredTextFromPosition,
     composeTipLeft,
     getPositionFromStoredText,
 } from "@/src/ui/panel-drag.ts";
-import { AURAS, SPACE } from "@/src/ui/panel-look.ts";
+import { HELPER, SPACE } from "@/src/ui/panel-look.ts";
 
 /** Read off the sheet's own tokens, so the sum below is the sheet's arithmetic and not a copy. */
-const AURA_WIDTH = Number(AURAS.width.slice(0, -2));
+const AURA_WIDTH = Number(HELPER.width.slice(0, -2));
 const GAP = Number(SPACE.small.slice(0, -2));
 
 const WINDOW = { width: 1280, height: 900 };
@@ -73,7 +73,7 @@ Deno.test("a panel nobody has moved opens in the middle of the window", () => {
  */
 Deno.test("a strip nobody has moved opens beside the panel, clear of it", () => {
     const panel = composeDefaultPosition(WINDOW);
-    const strip = composeAuraDefaultPosition(WINDOW);
+    const strip = composeHelperDefaultPosition(WINDOW);
     assertExists(panel, "the panel opens somewhere");
     assertExists(strip, "and so does the strip");
     assertEquals(strip.top, panel.top, "level with the panel, so the two read as one thing");
@@ -84,7 +84,7 @@ Deno.test("a strip nobody has moved opens beside the panel, clear of it", () => 
         "clear of it by its own width and the gap the sheet states, so neither covers the other",
     );
     assertEquals(
-        composeAuraDefaultPosition(null),
+        composeHelperDefaultPosition(null),
         null,
         "and nowhere where the page states no size",
     );

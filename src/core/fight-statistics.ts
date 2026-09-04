@@ -23,6 +23,11 @@ import {
     type StatusRun,
 } from "@/src/core/combatant-status.ts";
 import type { AuraStanding } from "@/src/core/aura-standing.ts";
+import {
+    type ChargeStanding,
+    isChargeFull,
+    readChargeFromText,
+} from "@/src/core/charge-standing.ts";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import {
     CRITICAL_PROC_KEYS,
@@ -227,6 +232,8 @@ export interface FightStatistics {
     statusRuns: readonly StatusRun[];
     /** What a skill put on more than one combatant and is still running — **ADR 0053**. */
     auraStandings: readonly AuraStanding[];
+    /** What the game says somebody is making ready, furthest along first — **ADR 0054**. */
+    chargeStandings: readonly ChargeStanding[];
     /** Messages the decoder could not read, which is what makes a total suspect. */
     unreadMessages: number;
     /** Casts stated about a side that nobody could size onto its members, whole or in part. */
@@ -545,6 +552,7 @@ interface StatisticsBuild {
     byCombatantId: Map<number, CombatantFigures>;
     statusRuns: StatusRun[];
     auraCasts: Map<string, AuraCast>;
+    chargeByCombatantId: Map<number, ChargeStanding>;
     woundByVictimId: Map<number, WoundStanding>;
     castsUnplaced: number;
     dealtByNobody: number;
@@ -1257,6 +1265,7 @@ function composeStatisticsBuild(): StatisticsBuild {
         byCombatantId: new Map(),
         statusRuns: [],
         auraCasts: new Map(),
+        chargeByCombatantId: new Map(),
         woundByVictimId: new Map(),
         dealtByNobody: 0,
         takenByNobody: 0,
@@ -1300,6 +1309,55 @@ function addAuraCast(
         turnsAtCast: getTurnsSpentSoFar(build, event.actorId),
     });
     assert(build.auraCasts.size <= MAXIMUM_AURA_CASTS, "a fight stays inside its stated bound");
+}
+
+/**
+ * What the game says somebody is making ready, and when that stops being true.
+ *
+ * ⚠️ **A full charge is spent by its own combatant's next blow, and a partial one is not.**
+ * Measured over `captures/` on 2026-09-04: a charge at 100% is followed by a blow of its own
+ * before that combatant's next `prepare` in 78 of 84 cases, and the other six are fights that end
+ * there; below 100% the same is true of only 43 of 218, because the game strikes while it charges.
+ * So a blow clears a full charge and leaves a partial one standing. **ADR 0054.**
+ */
+function addChargeStanding(build: StatisticsBuild, event: BattleEvent): void {
+    if (event.kind === "declaration") {
+        if (event.combatantId === null) return;
+        for (const declared of event.declared) {
+            if (declared.effect !== PREPARE_KEY) continue;
+            if (declared.text === null) continue;
+            const read = readChargeFromText(declared.text);
+            if (read === null) continue;
+            assert(read.skillName.length > 0, "a charge is filed under the skill the game named");
+            build.chargeByCombatantId.set(event.combatantId, {
+                combatantId: event.combatantId,
+                skillName: read.skillName,
+                percent: read.percent,
+            });
+        }
+        assert(
+            build.chargeByCombatantId.size <= MAXIMUM_COMBATANTS,
+            "a fight holds no more charges than combatants",
+        );
+        return;
+    }
+    if (event.kind !== "attack" && event.kind !== "skill-used") return;
+    if (event.actorId === null) return;
+    const held = build.chargeByCombatantId.get(event.actorId);
+    if (held === undefined) return;
+    if (!isChargeFull(held)) return;
+    build.chargeByCombatantId.delete(event.actorId);
+}
+
+/** Furthest along first: the one about to land is the one worth reading. */
+function composeChargeStandings(build: StatisticsBuild): ChargeStanding[] {
+    const standing = [...build.chargeByCombatantId.values()];
+    // The combatant's own id breaks a tie, never the skill's name: an alphabet is nobody's here.
+    standing.sort((one, other) =>
+        other.percent - one.percent || one.combatantId - other.combatantId
+    );
+    assert(standing.length <= MAXIMUM_COMBATANTS, "a fight stays inside its stated bound");
+    return standing;
 }
 
 /**
@@ -1389,6 +1447,7 @@ export function composeFightStatistics(
         addFightOutcome(build, event);
         addSkillUse(build, event);
         addAuraCast(build, event, statedTurnsBySkillId);
+        addChargeStanding(build, event);
         addTurnTaken(build, event);
         addTurnLost(build, event);
     }
@@ -1416,6 +1475,7 @@ export function composeFightStatistics(
         byNeitherEndByElement: build.byNeitherEndByElement,
         statusRuns: build.statusRuns,
         auraStandings: composeAuraStandings(build, statedTurnsBySkillId),
+        chargeStandings: composeChargeStandings(build),
         unreadMessages: build.unreadMessages,
         castsUnplaced: build.castsUnplaced,
         outcome: build.outcome,

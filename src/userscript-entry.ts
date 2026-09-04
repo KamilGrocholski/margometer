@@ -16,7 +16,9 @@ import {
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
 import { composeAuraTurnsBySkillId } from "@/src/core/aura-standing.ts";
-import { composeAuraReading } from "@/src/ui/panel-aura.ts";
+import { composeStandingReading, getIsWatched } from "@/src/ui/panel-standing.ts";
+import { isRecord } from "@/libs/unknown-reading.ts";
+import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
 import { FROZEN_AURA_TURNS } from "@/frozen/aura-turns.ts";
 
 /** Composed once: the table is a constant, and a fight redraws every few seconds. */
@@ -62,7 +64,12 @@ import {
 import type { ReportSubject } from "@/src/game/fight-report.ts";
 import { readDictionaryFromPage } from "@/src/game/game-dictionary.ts";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
-import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
+import {
+    composePanelHost,
+    type HelperState,
+    type PanelHandle,
+    type PanelPress,
+} from "@/src/ui/panel-element.ts";
 import {
     composeDrillReading,
     composeHalfNamedDrillReading,
@@ -115,8 +122,17 @@ const FOLD_KEY = "MargoMeter-folded";
 /** Anything else reads as unfolded, which is the state a reader who stored nothing is in. */
 const FOLDED = "1";
 const PLACE_KEY = "MargoMeter-place";
-/** The strip's own corner, beside the panel's: two windows, two places a reader may put them. */
-const AURAS_PLACE_KEY = "MargoMeter-auras-place";
+/**
+ * The helper window's own corner, beside the panel's: two windows, two places a reader may put
+ * them. ⚠️ The stored name is the strip's own and stays that way: renaming it would move every
+ * reader's window back to the default corner to buy nothing they can see.
+ */
+const HELPER_PLACE_KEY = "MargoMeter-auras-place";
+/** Its fold, beside the panel's own and never inside it, for the reason `FOLD_KEY` gives. */
+const HELPER_FOLD_KEY = "MargoMeter-helper-folded";
+/** What the reader answered about each watched subject. A store that will not keep it is an
+ * answer too: the list goes back to its defaults and nothing else changes. */
+const WATCHING_KEY = "MargoMeter-helper-watching";
 /**
  * Where the reader asked for the shelf to be kept, and it is kept beside the panel's own state
  * rather than in the store it names: a choice held where it points would be unreadable the moment
@@ -414,6 +430,40 @@ function setShelfFromPress(shelf: ShelfKeeper, press: PanelPress): boolean {
     return true;
 }
 
+/**
+ * The watchlist, out of the store and back into it. What comes back is text somebody else's
+ * browser kept, so every member is checked rather than trusted: a stored value that is not a
+ * boolean is dropped and the subject falls back to its own default (**C13**).
+ */
+function readWatchingFromStore(store: BrowserStore | null): Record<string, boolean> {
+    if (store === null) return {};
+    const stored = store.read(WATCHING_KEY);
+    if (stored === null) return {};
+    if (stored.length === 0) return {};
+    const watching: Record<string, boolean> = {};
+    // A store that reads back broken is an answer, not a failure: the list goes to its defaults.
+    const reading = getJsonReading(stored);
+    if (!reading.isOk) return {};
+    if (!isRecord(reading.value)) return {};
+    const stated = reading.value;
+    for (const [key, value] of Object.entries(stated)) {
+        if (typeof value !== "boolean") continue;
+        if (key.length === 0) continue;
+        watching[key] = value;
+    }
+    assert(Object.keys(watching).length <= Object.keys(stated).length, "nothing was added reading");
+    return watching;
+}
+
+function composeWatchingText(screen: ScreenState): string {
+    assert(screen.current.length > 0, "a choice is written by a panel that is on a screen");
+    const writing = composeJsonWriting(screen.watching);
+    // A record of booleans has JSON text whatever is in it, so this branch is the compiler's.
+    if (!writing.isOk) return "";
+    assert(writing.text.length > 0, "what is written says something, an empty answer included");
+    return writing.text;
+}
+
 function handlePress(screen: ScreenState, press: PanelPress): boolean {
     assert(press.kind.length > 0, "a press says what it asks for");
     assert(screen.current.length > 0, "and lands on a panel that is on a screen");
@@ -426,6 +476,23 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
     }
     if (press.kind === "shelf") {
         screen.isOnShelf = !screen.isOnShelf;
+        return true;
+    }
+    if (press.kind === "helper-fold") {
+        screen.isHelperCollapsed = !screen.isHelperCollapsed;
+        return true;
+    }
+    if (press.kind === "helper-list") {
+        screen.isHelperOnWatchlist = !screen.isHelperOnWatchlist;
+        // A list nobody can see is a list nobody can leave: opening it unfolds the window.
+        if (screen.isHelperOnWatchlist) screen.isHelperCollapsed = false;
+        return true;
+    }
+    if (press.kind === "watch") {
+        screen.watching = {
+            ...screen.watching,
+            [press.subject]: !getIsWatched(screen.watching, press.subject),
+        };
         return true;
     }
     if (press.kind === "back") {
@@ -657,7 +724,9 @@ function showFight(
         halfNamedDrill,
         place: getPlaceWords(kept === null ? place : kept.place),
         isCollapsed: screen.isCollapsed,
-        auras: composeAuraReading(statistics, roster, fight.readerSide),
+        standing: composeStandingReading(statistics, roster, fight.readerSide, screen.watching),
+        isHelperCollapsed: screen.isHelperCollapsed,
+        isHelperOnWatchlist: screen.isHelperOnWatchlist,
     });
     return true;
 }
@@ -1176,15 +1245,58 @@ function composeGameReports(environment: UserscriptEnvironment) {
     };
 }
 
+/**
+ * What the reader left the panel and the window in, out of the store. A store that keeps nothing
+ * is an answer and not a failure: everything goes back to the state a reader who stored nothing
+ * would be in.
+ */
+function composeStoredScreenState(store: BrowserStore | null): ScreenState {
+    assert(FOLD_KEY.startsWith("MargoMeter-"), "every key a state is read from is named as ours");
+    assert(HELPER_FOLD_KEY.startsWith("MargoMeter-"), "the window's own fold included");
+    return composeScreenState(store !== null && store.read(FOLD_KEY) === FOLDED, {
+        isCollapsed: store !== null && store.read(HELPER_FOLD_KEY) === FOLDED,
+        watching: readWatchingFromStore(store),
+    });
+}
+
+/**
+ * The window while the panel waits for a fight: it stands, folded as the reader left it, and says
+ * nothing is standing rather than going away — **ADR 0054**.
+ */
+function composeWaitingHelper(screen: ScreenState): HelperState {
+    assert(screen.current.length > 0, "a waiting panel is still on a screen");
+    return {
+        standing: null,
+        isCollapsed: screen.isHelperCollapsed,
+        isOnWatchlist: screen.isHelperOnWatchlist,
+    };
+}
+
+/** Every choice the reader's own press changes, written where they asked it to be kept. */
+function writeChoiceForPress(
+    store: BrowserStore | null,
+    screen: ScreenState,
+    press: PanelPress,
+): void {
+    assert(press.kind.length > 0, "a press that changes a choice says what it asked for");
+    if (store === null) return;
+    assert(WATCHING_KEY.startsWith("MargoMeter-"), "and is written under a key of ours");
+    if (press.kind === "fold") store.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
+    if (press.kind === "helper-fold") {
+        store.write(HELPER_FOLD_KEY, screen.isHelperCollapsed ? FOLDED : "");
+    }
+    if (press.kind === "watch") store.write(WATCHING_KEY, composeWatchingText(screen));
+}
+
 export function startMargoMeter(environment: UserscriptEnvironment): GameAttachment {
     const session = composeBattleSession();
     const store = environment.store;
-    const screen = composeScreenState(store !== null && store.read(FOLD_KEY) === FOLDED);
+    const screen = composeStoredScreenState(store);
     const shelf = composeShelfKeeper(environment);
     assert(SHELF_KEY.startsWith("MargoMeter-"), "every key this add-on writes is named as ours");
     assert(FOLD_KEY.startsWith("MargoMeter-"), "the fold included");
     const placement = composePanelPlacement(environment, store);
-    const aurasPlacement = composePanelPlacement(environment, store, AURAS_PLACE_KEY);
+    const helperPlacement = composePanelPlacement(environment, store, HELPER_PLACE_KEY);
     const live = composeLiveFight();
     assert(getFightFromSession(session) === null, "a session starts holding no fight");
     // The panel goes up when the wrap goes on, and not before: a copy that stood down never gets
@@ -1207,7 +1319,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
             environment.readClock,
             live.openedAt,
         );
-        if (!isDrawn) panel.showWaiting(screen.isCollapsed);
+        if (!isDrawn) panel.showWaiting(screen.isCollapsed, composeWaitingHelper(screen));
     };
     const showAndMount = (): void => {
         draw();
@@ -1219,12 +1331,12 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
             if (press.kind === "save") saveRecording(environment, live, session);
             const isShelfPress = setShelfFromPress(shelf, press);
             if (!isShelfPress && !handlePress(screen, press)) return;
-            if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
+            writeChoiceForPress(store, screen, press);
             draw();
         },
         (failure) => environment.report(FAILURE_LINE, failure),
         placement,
-        aurasPlacement,
+        helperPlacement,
         // Once per mount: the dictionary is built with the page and not with the fight, and a page
         // without one never grows one. Null is the panel drawing its own words (ADR 0024).
         readDictionaryFromPage(environment.page),

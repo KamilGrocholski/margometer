@@ -10,7 +10,7 @@ import { getValueWithin } from "@/libs/number-range.ts";
 import { getNumberFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import type { PanelElement, PanelEvent, PanelRoot } from "@/src/ui/panel-element.ts";
 import { setGuardedListener } from "@/src/ui/panel-listener.ts";
-import { AURAS, PLACE, SPACE } from "@/src/ui/panel-look.ts";
+import { HELPER, PLACE, SPACE } from "@/src/ui/panel-look.ts";
 
 export interface PanelPosition {
     left: number;
@@ -36,11 +36,11 @@ interface PanelGrab {
 const MINIMUM_VISIBLE = 64;
 export const TOP_VARIABLE = "--MargoMeter-panel-top";
 /** The strip's own, so its ceiling reads its own top edge and never the panel's. */
-export const AURAS_TOP_VARIABLE = "--MargoMeter-auras-top";
+export const HELPER_TOP_VARIABLE = "--MargoMeter-helper-top";
 const STYLE_ATTRIBUTE = "style";
 export const GRIP_ATTRIBUTE = "data-grip";
 /** The strip's own handle, so a press on one window never moves the other. */
-export const AURAS_GRIP_ATTRIBUTE = "data-auras-grip";
+export const HELPER_GRIP_ATTRIBUTE = "data-helper-grip";
 
 /** Whole pixels are the panel's concern, so the rounding stays here and not in the range. */
 function getPositionWithin(value: number, limit: number): number {
@@ -155,9 +155,9 @@ export function composePositionStyle(
  * themselves put the strip exactly under the panel, where the panel paints over it and a reader
  * sees nothing at all — which is what the first build did, caught in a screenshot on 2026-09-04.
  */
-export function composeAuraDefaultPosition(
+export function composeHelperDefaultPosition(
     viewport: PanelViewport | null,
-    stated: string = AURAS.width,
+    stated: string = HELPER.width,
 ): PanelPosition | null {
     const beside = composeDefaultPosition(viewport, PLACE.width);
     if (beside === null) return null;
@@ -204,7 +204,7 @@ export function setGripMark(bar: PanelElement, gripAttribute: string = GRIP_ATTR
 
 /**
  * What one drag moves. Two things are dragged here and they differ in four ways only, so the drag
- * itself is written once: the panel by its title bar, and the strip of auras by its own heading.
+ * itself is written once: the panel by its title bar, and the helper window by its own bar.
  */
 export interface PanelDragSubject {
     /** The attribute a press must carry to start this drag, and no other drag's. */

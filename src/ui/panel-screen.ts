@@ -86,9 +86,25 @@ export interface ScreenState {
     /** A fight chosen is read from what was kept of it, never from figures somebody stored. */
     openFightId: number | null;
     isCollapsed: boolean;
+    /** The helper window's own fold, kept apart from the panel's: two windows, two answers. */
+    isHelperCollapsed: boolean;
+    /** Whether its body is showing the watchlist instead of what stands. */
+    isHelperOnWatchlist: boolean;
+    /**
+     * What the reader has answered about each watched subject, by key. Absent is the subject's
+     * own default, so a store that reads back empty is a reader who has answered nothing rather
+     * than one watching nothing.
+     */
+    watching: Record<string, boolean>;
 }
 
-export function composeScreenState(isCollapsed: boolean): ScreenState {
+export function composeScreenState(
+    isCollapsed: boolean,
+    helper: { isCollapsed: boolean; watching: Record<string, boolean> } = {
+        isCollapsed: false,
+        watching: {},
+    },
+): ScreenState {
     const state: ScreenState = {
         current: "damageDealtApplied",
         side: "everyone",
@@ -99,6 +115,9 @@ export function composeScreenState(isCollapsed: boolean): ScreenState {
         openPart: null,
         openFightId: null,
         isCollapsed,
+        isHelperCollapsed: helper.isCollapsed,
+        isHelperOnWatchlist: false,
+        watching: helper.watching,
     };
     assert(SCREEN_ORDER.includes(state.current), "a panel opens on a screen it can draw");
     assert(state.openRowId === null, "and with every row closed");
@@ -108,6 +127,10 @@ export function composeScreenState(isCollapsed: boolean): ScreenState {
     assert(state.openFightId === null, "and the fight being read is the one going on");
     assert(state.side === "everyone", "and listing everybody, before a reader has narrowed it");
     assert(state.isCollapsed === isCollapsed, "and folded exactly as the reader last left it");
+    assert(
+        !state.isHelperOnWatchlist,
+        "the window beside it opens on what stands, not on its list",
+    );
     return state;
 }
 

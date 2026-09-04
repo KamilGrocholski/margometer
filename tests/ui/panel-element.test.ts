@@ -19,7 +19,7 @@ import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import { composePanelHost, type PanelPress } from "@/src/ui/panel-element.ts";
-import type { AuraReading } from "@/src/ui/panel-aura.ts";
+import type { StandingReading } from "@/src/ui/panel-standing.ts";
 import {
     composeDrillReading,
     composeHalfNamedReading,
@@ -1270,8 +1270,12 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
     panel.show(view);
     // A block body, not an expression: the recursion guard reads a one-line named arrow as
     // opening no brace, and so reads every line after it as this function's body — gap 13.
+    // Scoped to the panel's own bar: the window beside it carries two controls of its own, and
+    // a walk over the whole host would count both bars as one.
     const controls = () => {
-        return getElementsWithin(host).filter((one) => one.className.startsWith(CLASS.control));
+        const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
+        assertExists(bar, "the panel carries a bar of its own");
+        return bar.children.filter((one) => one.className.startsWith(CLASS.control));
     };
     assertEquals(
         controls().map((one) => [...one.attributes.keys()].find((key) => key.startsWith("data-"))),
@@ -2692,68 +2696,121 @@ Deno.test("a part that opens says so under the same words a person does", () => 
     );
 });
 
-/** One skill, cast by two people, as the strip beside the panel would draw it. */
-const TWO_CASTS: AuraReading = {
+/** One skill, cast by two people, as the window beside the panel would draw it. */
+const TWO_CASTS: StandingReading = {
     rows: 2,
+    subjects: [{ key: "Piętno bestii", title: "Piętno bestii", isWatched: true, standing: 2 }],
     groups: [{
-        skillName: "Piętno bestii",
+        subject: "Piętno bestii",
+        title: "Piętno bestii",
         rows: [
-            { casterName: "Gracz 3", isReaderSide: true, turnsElapsed: 3, turnsStated: 8 },
-            { casterName: "Gracz 7", isReaderSide: false, turnsElapsed: 7, turnsStated: 8 },
+            {
+                name: "Gracz 3",
+                isReaderSide: true,
+                figure: { kind: "elapsed", turnsElapsed: 3, turnsStated: 8 },
+            },
+            {
+                name: "Gracz 7",
+                isReaderSide: false,
+                figure: { kind: "elapsed", turnsElapsed: 7, turnsStated: 8 },
+            },
         ],
     }],
 };
 
-Deno.test("the strip stands beside the panel, one row per cast, and says how far through", () => {
+Deno.test("the window stands beside the panel, one row per cast, and says how far through", () => {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({ ...composeShownView(readFight()), auras: TWO_CASTS });
+    panel.show({ ...composeShownView(readFight()), standing: TWO_CASTS });
     const host = panel.element as FakeElement;
     assertEquals(
-        getTextsByClass(host, CLASS.aurasSkill),
+        getTextsByClass(host, CLASS.helperGroup),
         ["Piętno bestii ×2"],
         "one heading for the skill, saying how many of it are running",
     );
     assertArrayIncludes(
-        getElementsWithin(host).filter((one) => one.className === CLASS.aurasTurns)
+        getElementsWithin(host).filter((one) => one.className === CLASS.helperFigure)
             .map((one) => one.textContent),
         ["3 z 8 tur", "7 z 8 tur"],
         "and a row each, saying what has passed of what the table states",
     );
-    const strip = getElementsWithin(host).find((one) => one.className === CLASS.auras);
-    assertExists(strip, "the strip is drawn");
-    assert(!strip.className.includes(CLASS.aurasHidden), "and stands rather than hides");
+    const window_ = getElementsWithin(host).find((one) => one.className === CLASS.helper);
+    assertExists(window_, "the window is drawn");
     // ⚠️ **A window, not a card.** The bar is the window's own child beside the body, the way the
     // panel's is, so a redraw never takes the handle out from under a hand dragging by it.
     assertEquals(
-        strip.children.map((one) => one.className),
-        [CLASS.aurasTitle, CLASS.aurasBody],
+        window_.children.map((one) => one.className),
+        [CLASS.helperTitle, CLASS.helperBody],
         "a bar of its own standing over a body of its own",
     );
 });
 
-Deno.test("a hand takes the strip by its own heading, and never by the panel's bar", () => {
+Deno.test("a hand takes the window by its own bar, and never by the panel's", () => {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({ ...composeShownView(readFight()), auras: TWO_CASTS });
+    panel.show({ ...composeShownView(readFight()), standing: TWO_CASTS });
     const title = getElementsWithin(panel.element as FakeElement).find((one) =>
-        one.className === CLASS.aurasTitle
+        one.className === CLASS.helperTitle
     );
-    assertExists(title, "the strip carries a heading");
-    assertEquals(title.attributes.get("data-auras-grip"), "", "which is its own handle");
+    assertExists(title, "the window carries a bar");
+    assertEquals(title.attributes.get("data-helper-grip"), "", "which is its own handle");
     assertEquals(title.attributes.get("data-grip"), undefined, "and never the panel's");
 });
 
-/** Zero is a boundary: nothing running is a window that is not there, not an empty one. */
-Deno.test("the strip is hidden where nothing a skill put on a side is running", () => {
+/**
+ * Zero is a boundary, and the answer to it is the one **ADR 0054** changed: the window stands and
+ * says nothing is standing, because a window that goes away on its own cannot be told from one
+ * that broke.
+ */
+Deno.test("the window stands and says so where nothing is standing", () => {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show(composeShownView(readFight()));
     const host = panel.element as FakeElement;
-    const strip = getElementsWithin(host).find((one) =>
-        one.className.startsWith(`${CLASS.auras} `)
+    const window_ = getElementsWithin(host).find((one) => one.className === CLASS.helper);
+    assertExists(window_, "the window is there whatever the fight is doing");
+    assertEquals(getTextsByClass(host, CLASS.helperGroup), [], "with no heading drawn under it");
+    assertEquals(
+        getTextsByClass(host, CLASS.helperNone),
+        ["Nic nie stoi"],
+        "and one quiet line where the rows would be",
     );
-    assertExists(strip, "the window is still there for a drag to have moved");
-    assert(strip.className.includes(CLASS.aurasHidden), "and is hidden rather than empty");
-    assertEquals(getTextsByClass(host, CLASS.aurasSkill), [], "with no heading drawn under it");
+});
+
+/** One is the boundary beside it: a fold is the reader's own answer and takes the body only. */
+Deno.test("a fold takes the window's body and leaves its bar to press again", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        ...composeShownView(readFight()),
+        standing: TWO_CASTS,
+        isHelperCollapsed: true,
+    });
+    const host = panel.element as FakeElement;
+    const window_ = getElementsWithin(host).find((one) => one.className === CLASS.helper);
+    assertExists(window_, "the window is still there");
+    assertEquals(getTextsByClass(host, CLASS.helperGroup), [], "with nothing standing under it");
+    const bar = getElementsWithin(host).find((one) => one.className === CLASS.helperTitle);
+    assertExists(bar, "and a bar a reader can press to bring it back");
+    assertArrayIncludes(
+        bar.children.map((one) => one.attributes.get("data-helper-fold")),
+        [""],
+        "which carries the control that would unfold it",
+    );
+});
+
+Deno.test("the watchlist stands in the same frame, and says what stands under each subject", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        ...composeShownView(readFight()),
+        standing: TWO_CASTS,
+        isHelperOnWatchlist: true,
+    });
+    const host = panel.element as FakeElement;
+    assertEquals(getTextsByClass(host, CLASS.helperGroup), ["Obserwuję"], "the list is headed");
+    const rows = getElementsWithin(host).filter((one) => one.className === CLASS.helperWatch);
+    assertEquals(rows.length, 1, "one row per subject the fight has offered");
+    assertEquals(rows[0]?.attributes.get("data-watch"), "Piętno bestii", "asking by its own name");
+    assertEquals(getTextsByClass(host, CLASS.helperCount), ["2"], "and saying how much stands");
 });

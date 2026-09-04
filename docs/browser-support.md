@@ -129,9 +129,9 @@ years, so no version is quoted: the claim is only that it is below the floor, an
 above.
 
 Properties: `align-items` · `align-self` · `all` · `background` · `border` · `border-bottom` ·
-`border-radius` · `border-top` · `bottom` · `box-shadow` · `box-sizing` · `color` · `cursor` ·
-`display` · `flex` · `flex-direction` · `flex-wrap` · `font` · `font-size` · `font-style` ·
-`font-variant-numeric` · `font-weight` · `gap` · `height` · `justify-content` · `left` ·
+`border-color` · `border-radius` · `border-top` · `bottom` · `box-shadow` · `box-sizing` · `color` ·
+`cursor` · `display` · `flex` · `flex-direction` · `flex-wrap` · `font` · `font-size` · `font-style`
+· `font-variant-numeric` · `font-weight` · `gap` · `height` · `justify-content` · `left` ·
 `letter-spacing` · `margin` · `margin-bottom` · `margin-left` · `margin-right` · `margin-top` ·
 `max-height` · `min-height` · `min-width` · `opacity` · `overflow` · `overflow-x` · `overflow-y` ·
 `padding` · `padding-bottom` · `padding-left` · `padding-right` · `padding-top` · `pointer-events` ·

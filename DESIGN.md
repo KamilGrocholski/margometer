@@ -399,10 +399,12 @@ It says a figure may be short and never says by how much.
 **Undrawn marker.** Replaces one section in place, at that section's size, in `textQuiet`. It is the
 least interesting thing on screen on purpose.
 
-## The strip of auras
+## The helper window
 
-A **second window**, not a second panel and not a card: `MargoMeter-auras`, narrower than the panel,
-standing beside it and dragged onto a corner of its own.
+A **second window**, not a second panel and not a card: `MargoMeter-helper`, narrower than the
+panel, standing beside it and dragged onto a corner of its own. It draws what stands in the fight
+now — what one skill put on a side, what the other side is making ready, whose Ostatni Ratunek has
+been spent, and what the payload's own mask leaves standing.
 
 **It is built the way the panel is.** A bar of `surfaceRaised` carrying the top two corners and the
 grip, a body of `surface` carrying the bottom two, one border around each — and **no shadow**. The
@@ -413,8 +415,27 @@ the panel is separated from the game.
 **It opens beside the panel and level with it**, never centred on the window: two things each
 centring themselves land on top of each other, and the panel paints over the strip.
 
-**It is there while something is running and gone when nothing is.** No control, no empty state — an
-empty window would be a box on the game saying nothing. **ADR 0053.**
+**It stands whatever the fight is doing, and folds by its own control.** The frame never hides; the
+fold takes the body and leaves the bar, so the gesture that put the window away is the gesture that
+brings it back, and a window that vanished on its own could not be told from one that broke. An
+empty body says `Nic nie stoi` in one quiet line. **ADR 0054**, superseding **ADR 0053** on this.
+
+**A row carries a bar, and the bar carries the doubt.** What was counted is solid; what the
+published skill table merely states is hatched behind it, so the length a reader subtracts is
+visibly the half nothing witnessed. One texture means one thing in this window — _stated, not
+measured_ — and the forecast row of a turn queue would wear the same one. A charge is solid to its
+whole length, because the game states that figure itself.
+
+**The hue goes on the bar and the cap, never on the name.** A name in the side's own colour standing
+over a bar tinted from that same hue is the worst pairing in the palette at 2.26 against a floor of
+4.5; the plain ink over that same bar clears 5.09. The row says whose it is the way a ranking row
+does, and for the same reason.
+
+**What the reader watches is a list in the same frame**, reached by a control on the bar and left by
+the same one — the way the shelf covers the panel's own screens. A second window for the settings of
+the second window would be a third window on somebody else's page. Every subject stays on the list
+whether it is watched or not, and each states how much of it stands: a subject drawing nothing and a
+subject turned off are two different silences, and a reader has to be able to tell them apart.
 
 **Where the two overlap, the panel wins.** The bar and the frame are positioned for that reason
 alone: a positioned element paints over a static one whatever the order in the tree.

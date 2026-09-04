@@ -155,3 +155,5 @@ edited to agree with the new rule.
   and the panel says nothing. **Accepted**
 - [0053](0053-an-aura-stands-in-a-window-of-its-own.md) — An aura stands in a window of its own, and
   states what has passed. **Accepted**
+- [0054](0054-the-window-stands-and-folds-and-reads-what-is-being-made-ready.md) — The window
+  stands, folds, and reads what the other side is making ready. **Accepted**
