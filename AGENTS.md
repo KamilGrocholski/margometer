@@ -39,6 +39,10 @@ Read the documents relevant to the change:
   claim.
 - [`docs/reading-a-turn.md`](docs/reading-a-turn.md) — how a message becomes a turn, and which
   message a disagreement stands on.
+- [`docs/statuses-standing.md`](docs/statuses-standing.md) — what the payload's own mask leaves
+  standing, how long it has stood, and who the protocol never names.
+- [`docs/auras-standing.md`](docs/auras-standing.md) — what one skill put on a whole side, who cast
+  it, and why nothing in the material can check how long it has left.
 
 **Target is not proof.** `PRODUCT.md` and the target sections of `ARCHITECTURE.md` are design
 constraints, not evidence that a feature exists. Do not describe target behaviour as implemented
@@ -475,6 +479,7 @@ the same thing a second way.
 | `tests/repository/names.test.ts`              | N1, N11, N14, N15, N16, each with a sample       |
 | `tests/repository/type-assertions.test.ts`    | C13, with a register read both ways              |
 | `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts   |
+| `tests/repository/skill-durations.test.ts`    | the frozen skill table, against `captures/`      |
 | `tests/repository/readmes.test.ts`            | the two READMEs, and both against the shot set   |
 | `tests/repository/cited-paths.test.ts`        | every rooted path a document cites               |
 | `tests/repository/constructs.test.ts`         | the construct register, both ways                |
@@ -482,6 +487,8 @@ the same thing a second way.
 | `tests/repository/libraries.test.ts`          | `libs/` and `project/` reaching into no layer    |
 | `tests/tools/turn-count.test.ts`              | `docs/turns-taken.md` against every recording    |
 | `tests/tools/turn-reading.test.ts`            | `docs/reading-a-turn.md`, and it on the panel    |
+| `tests/tools/status-standing.test.ts`         | `docs/statuses-standing.md`, both ways           |
+| `tests/tools/aura-standing.test.ts`           | `docs/auras-standing.md`, both ways              |
 | `tests/tools/browser-support.test.ts`         | `docs/browser-support.md` against the stylesheet |
 | `tests/tools/captured-fight-register.test.ts` | `docs/captured-fights.md` against `captures/`    |
 | `tests/tools/drill-report.test.ts`            | `docs/drill-levels.md` against every level drawn |

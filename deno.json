@@ -47,6 +47,12 @@
         // disagreement stands on. `docs/reading-a-turn.md` carries the disputed openers and, with
         // `--keys`, what opened every turn and what each protocol key adds.
         "fight:openers": "deno run -A tools/turn-reading.ts",
+        // What a skill put on a whole side, how often it was cast and how many ran at once —
+        // against the turns the published table states. `docs/auras-standing.md` carries them.
+        "fight:auras": "deno run -A tools/aura-standing.ts",
+        // What the payload's own status mask leaves standing, and for how long — against what the
+        // published skill table says it should. `docs/statuses-standing.md` carries the verdicts.
+        "fight:statuses": "deno run -A tools/status-standing.ts",
         // How a recording the add-on wrote becomes material: two redactions, then a file.
         "capture:intake": "deno run -A tools/capture-intake.ts",
         // The client fetched and dated, so a claim about it can name the build it was read on.
@@ -57,6 +63,10 @@
         "game:readings": "deno run -A tools/game-readings.ts",
         // Every key the client branches on, lifted out of that bundle and frozen beside it.
         "game:keys": "deno run -A tools/protocol-key-table.ts",
+        // Every skill the game publishes, and the turns each effect is stated to run for — the
+        // only source that states a duration at all. `docs/statuses-standing.md` grades what the
+        // recordings show against it.
+        "game:skills": "deno run -A tools/skill-table.ts",
         // The published help, cached and searched, and the counts a register claim is held to.
         "game:help": "deno run -A tools/help-article.ts",
         // What a release says about itself: the version this tree declares, and the section

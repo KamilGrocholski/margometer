@@ -80,6 +80,19 @@ but damage aimed at a name and healing ride the announcement itself. _Avoid_: Ab
 **Dot**: Damage over time, ticking outside a direct attack. _Avoid_: Damage over time, tick damage,
 bleed
 
+**Status**: An effect the payload states as **standing on a combatant**, as a bit of its own mask.
+Read per payload, never totalled. A status has a length — the turns it has stood for — and never a
+remainder: the protocol states none (**ADR 0050**). _Avoid_: Buff, debuff, aura, condition, effect
+
+**Aura**: An effect **one skill put on more than one combatant**, running for a number of turns the
+published skill table states. Read from the announcement that cast it, and joined to that table by
+the skill's id — never by the effect's key, which the wire spells differently (**ADR 0053**).
+_Avoid_: Buff, party buff, area effect, blessing
+
+**Episode**: One unbroken spell of a status, from where it was seen to start to where it stopped.
+Not one application: a status reapplied before it wears off never clears the bit. _Avoid_: Instance,
+stack, duration
+
 **Declaration**: A figure the protocol states that **no total here counts** — an input, an outcome
 in a unit this meter does not keep, or an outcome outside the fight. Read, never totalled. The test:
 whatever this figure did, is it reported elsewhere, or in a unit no total keeps, or outside the

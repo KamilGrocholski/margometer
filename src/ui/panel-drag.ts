@@ -10,7 +10,7 @@ import { getValueWithin } from "@/libs/number-range.ts";
 import { getNumberFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import type { PanelElement, PanelEvent, PanelRoot } from "@/src/ui/panel-element.ts";
 import { setGuardedListener } from "@/src/ui/panel-listener.ts";
-import { PLACE, SPACE } from "@/src/ui/panel-look.ts";
+import { AURAS, PLACE, SPACE } from "@/src/ui/panel-look.ts";
 
 export interface PanelPosition {
     left: number;
@@ -34,9 +34,13 @@ interface PanelGrab {
  * A title bar's worth stays on screen each way.
  */
 const MINIMUM_VISIBLE = 64;
-const TOP_VARIABLE = "--MargoMeter-panel-top";
+export const TOP_VARIABLE = "--MargoMeter-panel-top";
+/** The strip's own, so its ceiling reads its own top edge and never the panel's. */
+export const AURAS_TOP_VARIABLE = "--MargoMeter-auras-top";
 const STYLE_ATTRIBUTE = "style";
-const GRIP_ATTRIBUTE = "data-grip";
+export const GRIP_ATTRIBUTE = "data-grip";
+/** The strip's own handle, so a press on one window never moves the other. */
+export const AURAS_GRIP_ATTRIBUTE = "data-auras-grip";
 
 /** Whole pixels are the panel's concern, so the rounding stays here and not in the range. */
 function getPositionWithin(value: number, limit: number): number {
@@ -69,11 +73,14 @@ export function composeClampedPosition(
  * Null where the page states no size, because a position derived from a guess snatches the panel
  * out from under the hand — the sheet's own corner then stands, which is a place and not a guess.
  */
-export function composeDefaultPosition(viewport: PanelViewport | null): PanelPosition | null {
+export function composeDefaultPosition(
+    viewport: PanelViewport | null,
+    stated: string = PLACE.width,
+): PanelPosition | null {
     if (viewport === null) return null;
-    const width = getIntegerFromText(PLACE.width.slice(0, -2));
+    const width = getIntegerFromText(stated.slice(0, -2));
     const share = getIntegerFromText(SPACE.heightShareMaximum.slice(0, -2));
-    assert(width !== null, "the panel is as wide as the sheet says, in whole pixels");
+    assert(width !== null, "what is centred is as wide as the sheet says, in whole pixels");
     assert(share !== null, "and as tall as the share of the window the sheet allows it");
     const height = viewport.height * share / 100;
     assert(height >= 0, "a window a panel is centred in has a height");
@@ -131,13 +138,34 @@ export function composeStoredTextFromPosition(position: PanelPosition): string {
  * is the window's height less where its top edge is, and CSS cannot read a `top` back out of an
  * inline style.
  */
-export function composePositionStyle(position: PanelPosition): string {
+export function composePositionStyle(
+    position: PanelPosition,
+    topVariable: string = TOP_VARIABLE,
+): string {
     const left = composeIntegerText(position.left);
     const top = composeIntegerText(position.top);
-    const style = `left:${left}px;top:${top}px;${TOP_VARIABLE}:${top}px;right:auto`;
-    assert(style.includes(TOP_VARIABLE), "the ceiling is told where the panel's top edge is");
+    const style = `left:${left}px;top:${top}px;${topVariable}:${top}px;right:auto`;
+    assert(style.includes(topVariable), "the ceiling is told where the top edge is");
     assert(style.endsWith("right:auto"), "and the corner the sheet anchored to is released");
     return style;
+}
+
+/**
+ * ⚠️ **Beside the panel's own opening corner, never in the middle.** Both windows centring
+ * themselves put the strip exactly under the panel, where the panel paints over it and a reader
+ * sees nothing at all — which is what the first build did, caught in a screenshot on 2026-09-04.
+ */
+export function composeAuraDefaultPosition(
+    viewport: PanelViewport | null,
+    stated: string = AURAS.width,
+): PanelPosition | null {
+    const beside = composeDefaultPosition(viewport, PLACE.width);
+    if (beside === null) return null;
+    const width = getIntegerFromText(stated.slice(0, -2));
+    const gap = getIntegerFromText(SPACE.small.slice(0, -2));
+    assert(width !== null, "the strip is as wide as the sheet says, in whole pixels");
+    assert(gap !== null, "and stands a stated gap from the panel it opens beside");
+    return composeClampedPosition({ left: beside.left - width - gap, top: beside.top }, viewport);
 }
 
 export function composeTipLeft(
@@ -168,10 +196,31 @@ export interface PanelPlacement {
     handleMoved(position: PanelPosition): void;
 }
 
-export function setGripMark(bar: PanelElement): void {
-    assert(GRIP_ATTRIBUTE.startsWith("data-"), "what starts a drag is marked by an attribute");
-    bar.setAttribute(GRIP_ATTRIBUTE, "");
+export function setGripMark(bar: PanelElement, gripAttribute: string = GRIP_ATTRIBUTE): void {
+    assert(gripAttribute.startsWith("data-"), "what starts a drag is marked by an attribute");
+    bar.setAttribute(gripAttribute, "");
     assert(bar.className.length > 0, "and the bar is a region before it is a handle");
+}
+
+/**
+ * What one drag moves. Two things are dragged here and they differ in four ways only, so the drag
+ * itself is written once: the panel by its title bar, and the strip of auras by its own heading.
+ */
+export interface PanelDragSubject {
+    /** The attribute a press must carry to start this drag, and no other drag's. */
+    gripAttribute: string;
+    /** What carries the position style. */
+    moved: PanelElement;
+    /**
+     * The handle as it stands now, rather than the one standing when the drag was wired: it is a
+     * region like any other and is replaced on every payload, so a captured pointer would be
+     * asked of a node that has left the tree.
+     */
+    getHandle: () => PanelElement;
+    /** Where it opens when the reader has never moved it. Nothing here measures the document. */
+    composeDefault: (viewport: PanelViewport | null) => PanelPosition | null;
+    /** The custom property the style writes its top into, so a ceiling can read it back. */
+    topVariable: string;
 }
 
 function getPointerFromEvent(event: PanelEvent): PanelPosition | null {
@@ -199,12 +248,13 @@ function composePanelDragGrab(
     event: PanelEvent,
     position: PanelPosition | null,
     placement: PanelPlacement,
+    subject: PanelDragSubject,
 ): PanelGrab | null {
     assert(typeof placement.getViewport === "function", "a grab is clamped against something");
-    if (event.target?.getAttribute(GRIP_ATTRIBUTE) === null) return null;
+    if (event.target?.getAttribute(subject.gripAttribute) === null) return null;
     const pointer = getPointerFromEvent(event);
     if (pointer === null) return null;
-    const from = position ?? composeDefaultPosition(placement.getViewport());
+    const from = position ?? subject.composeDefault(placement.getViewport());
     if (from === null) return null;
     // Without this the browser starts its own text or image drag from the bar.
     event.preventDefault?.();
@@ -219,28 +269,25 @@ function composePanelDragGrab(
 
 export function setPanelDrag(
     root: PanelRoot,
-    host: PanelElement,
-    /**
-     * The bar as it stands now, rather than the one standing when the drag was wired: the bar is
-     * a region like any other and is replaced on every payload, so a captured pointer would be
-     * asked of a node that has left the tree.
-     */
-    getBar: () => PanelElement,
+    subject: PanelDragSubject,
     placement: PanelPlacement,
     handleFailure: (failure: unknown) => void,
 ): () => PanelPosition | null {
     assert(typeof placement.getViewport === "function", "a drag is clamped against something");
-    assert(typeof getBar === "function", "and starts from the bar as it stands now");
+    assert(typeof subject.getHandle === "function", "and starts from the handle as it stands now");
     // The reader's place, or the middle of the window: a position from the first frame is what
     // lets the detail window and the card answer the side the panel is on (**ADR 0019**), where a
     // panel left on the sheet's corner has no `left` for either of them to read.
-    let position = placement.position ?? composeDefaultPosition(placement.getViewport());
+    let position = placement.position ?? subject.composeDefault(placement.getViewport());
     let grab: PanelGrab | null = null;
     const setHostPosition = (next: PanelPosition): void => {
-        assert(Number.isSafeInteger(next.left), "a panel is put at a whole pixel across");
+        assert(Number.isSafeInteger(next.left), "what is moved is put at a whole pixel across");
         assert(Number.isSafeInteger(next.top), "and at a whole one down");
         position = next;
-        host.setAttribute(STYLE_ATTRIBUTE, composePositionStyle(next));
+        subject.moved.setAttribute(
+            STYLE_ATTRIBUTE,
+            composePositionStyle(next, subject.topVariable),
+        );
     };
     if (position !== null) {
         setHostPosition(composeClampedPosition(position, placement.getViewport()));
@@ -255,10 +302,10 @@ export function setPanelDrag(
         });
     };
     setGuarded("pointerdown", (event) => {
-        const started = composePanelDragGrab(event, position, placement);
+        const started = composePanelDragGrab(event, position, placement, subject);
         if (started === null) return;
         grab = started;
-        setPointerHeld(getBar(), true, event.pointerId, handleFailure);
+        setPointerHeld(subject.getHandle(), true, event.pointerId, handleFailure);
     });
     setGuarded("pointermove", (event) => {
         const held = grab;
@@ -271,7 +318,7 @@ export function setPanelDrag(
         assert(typeof placement.handleMoved === "function", "where a drag ends is reported once");
         if (grab === null) return;
         grab = null;
-        setPointerHeld(getBar(), false, event.pointerId, handleFailure);
+        setPointerHeld(subject.getHandle(), false, event.pointerId, handleFailure);
         if (position !== null) placement.handleMoved(position);
     };
     setGuarded("pointerup", handleDragEnd);

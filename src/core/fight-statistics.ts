@@ -18,6 +18,13 @@ import type {
 import type { TeamHeal } from "@/src/core/combatant-health.ts";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import {
+    type CombatantStatusEpisode,
+    getStatusKeyForBit,
+    type StatusRun,
+} from "@/src/core/combatant-status.ts";
+import type { AuraStanding } from "@/src/core/aura-standing.ts";
+import { composeIntegerText } from "@/libs/number-text.ts";
+import {
     CRITICAL_PROC_KEYS,
     getProcEnd,
     PREPARE_KEY,
@@ -212,6 +219,14 @@ export interface FightStatistics {
     byNeitherEnd: number;
     /** What that figure was made of. Nobody's row holds it, so nobody's row can be cut for it. */
     byNeitherEndByElement: ReadonlyMap<string, number>;
+    /**
+     * Every status the fight held, the ones that stopped included, each with the turns it ran for.
+     * A register grading a stated duration needs the ones that stopped as much as the ones that
+     * have not.
+     */
+    statusRuns: readonly StatusRun[];
+    /** What a skill put on more than one combatant and is still running — **ADR 0053**. */
+    auraStandings: readonly AuraStanding[];
     /** Messages the decoder could not read, which is what makes a total suspect. */
     unreadMessages: number;
     /** Casts stated about a side that nobody could size onto its members, whole or in part. */
@@ -515,8 +530,21 @@ export interface TurnStanding {
 /** Where a fight starts: nobody mid-blow and nobody having acted. */
 export const NO_TURN_STANDING: TurnStanding = { strikingId: null, actingId: null };
 
+/** One cast still being counted: what it was, whose it was, and the turn it stood on. */
+interface AuraCast {
+    skillId: number;
+    skillName: string;
+    casterId: number;
+    turnsAtCast: number;
+}
+
+/** Thirteen skills reach a side, and a fight holds no more casters than combatants. */
+const MAXIMUM_AURA_CASTS = 256;
+
 interface StatisticsBuild {
     byCombatantId: Map<number, CombatantFigures>;
+    statusRuns: StatusRun[];
+    auraCasts: Map<string, AuraCast>;
     woundByVictimId: Map<number, WoundStanding>;
     castsUnplaced: number;
     dealtByNobody: number;
@@ -1141,16 +1169,94 @@ function getHalfNamedBalance(build: StatisticsBuild): number {
 }
 
 /**
- * The figures, and what a share stated about a side came to once it was sized. The sizing is
- * `combatant-health.ts`'s, because it needs three figures the protocol never states; the
- * totalling is this file's, for the reason the `totals` field above gives.
+ * The turns a combatant has spent by now — taken and lost both, because a turn nobody spent still
+ * passed for whoever is carrying a status. Zero where they have none: a measurement, not a read
+ * that failed, so **E10** has nothing to say about it.
  */
-export function composeFightStatistics(
-    events: readonly BattleEvent[],
-    heals: ReadonlyMap<BattleEvent, TeamHeal>,
-): FightStatistics {
-    const build: StatisticsBuild = {
+function getTurnsSpentSoFar(build: StatisticsBuild, combatantId: number): number {
+    const figures = build.byCombatantId.get(combatantId);
+    if (figures === undefined) return 0;
+    assert(figures.turnsTaken >= 0, "a turn count is never below nothing");
+    assert(figures.turnsLost >= 0, "and neither is the count beside it");
+    return figures.turnsTaken + figures.turnsLost;
+}
+
+/** Where each episode starts and stops, and what the bearer's turn count was at each end. */
+interface StatusFold {
+    byStart: Map<number, CombatantStatusEpisode[]>;
+    byStop: Map<number, CombatantStatusEpisode[]>;
+    turnsAtStart: Map<CombatantStatusEpisode, number>;
+    turnsAtStop: Map<CombatantStatusEpisode, number>;
+}
+
+function addEpisodeAtIndex(
+    byIndex: Map<number, CombatantStatusEpisode[]>,
+    index: number,
+    episode: CombatantStatusEpisode,
+): void {
+    assert(index >= 0, "an episode is filed at an index inside the fight");
+    const held = byIndex.get(index);
+    if (held === undefined) byIndex.set(index, [episode]);
+    else held.push(episode);
+}
+
+function composeStatusFold(episodes: readonly CombatantStatusEpisode[]): StatusFold {
+    const fold: StatusFold = {
+        byStart: new Map(),
+        byStop: new Map(),
+        turnsAtStart: new Map(),
+        turnsAtStop: new Map(),
+    };
+    for (const episode of episodes) {
+        addEpisodeAtIndex(fold.byStart, episode.fromEventIndex, episode);
+        if (episode.toEventIndex !== null) {
+            addEpisodeAtIndex(fold.byStop, episode.toEventIndex, episode);
+        }
+    }
+    assert(fold.byStart.size <= episodes.length, "no more starts than there were episodes");
+    assert(fold.byStop.size <= episodes.length, "and no more stops than that either");
+    return fold;
+}
+
+/**
+ * The bearer's turn count stamped where an episode begins and where it ends. It has to happen
+ * inside the walk: the count at an index is gone the moment the walk is past it.
+ */
+function addStatusMarksAt(build: StatisticsBuild, fold: StatusFold, index: number): void {
+    assert(index >= 0, "a mark is taken at an index inside the fight");
+    for (const episode of fold.byStart.get(index) ?? []) {
+        fold.turnsAtStart.set(episode, getTurnsSpentSoFar(build, episode.combatantId));
+    }
+    for (const episode of fold.byStop.get(index) ?? []) {
+        fold.turnsAtStop.set(episode, getTurnsSpentSoFar(build, episode.combatantId));
+    }
+    assert(fold.turnsAtStart.size >= 0, "a stamp that was taken was kept");
+}
+
+/**
+ * How long one episode ran, in the bearer's own turns. A closed one is the difference between the
+ * two stamps; an open one runs to wherever the fight has got to.
+ */
+function getTurnsForEpisode(
+    build: StatisticsBuild,
+    fold: StatusFold,
+    episode: CombatantStatusEpisode,
+): number {
+    const started = fold.turnsAtStart.get(episode) ?? 0;
+    const stopped = episode.toEventIndex === null
+        ? getTurnsSpentSoFar(build, episode.combatantId)
+        : fold.turnsAtStop.get(episode) ?? started;
+    assert(stopped >= started, "an episode never stops before its own start");
+    assert(started >= 0, "and starts at a turn count that is not below nothing");
+    return stopped - started;
+}
+
+/** Every counter a fight is built up from, all of them starting at nothing. */
+function composeStatisticsBuild(): StatisticsBuild {
+    return {
         byCombatantId: new Map(),
+        statusRuns: [],
+        auraCasts: new Map(),
         woundByVictimId: new Map(),
         dealtByNobody: 0,
         takenByNobody: 0,
@@ -1162,8 +1268,110 @@ export function composeFightStatistics(
         turnStanding: NO_TURN_STANDING,
         outcome: null,
     };
+}
+
+/** One caster's one skill. A second cast by the same caster refreshes rather than stacks. */
+function composeAuraCastKey(skillId: number, casterId: number): string {
+    assert(Number.isSafeInteger(skillId), "a cast is filed under the skill the game named");
+    assert(Number.isSafeInteger(casterId), "and under the caster the announcement named");
+    return `${composeIntegerText(skillId)}:${composeIntegerText(casterId)}`;
+}
+
+/**
+ * An announcement of a skill the published table says reaches a side. The turn count is stamped
+ * before the turn this announcement opens is counted, so the turn it was cast on is its first.
+ */
+function addAuraCast(
+    build: StatisticsBuild,
+    event: BattleEvent,
+    statedTurnsBySkillId: ReadonlyMap<number, number>,
+): void {
+    if (event.kind !== "skill-used") return;
+    if (event.actorId === null) return;
+    if (event.skillId === null) return;
+    const stated = statedTurnsBySkillId.get(event.skillId);
+    if (stated === undefined) return;
+    assert(stated > 0, "a skill that reaches a side runs for a stated number of turns");
+    assert(event.skillName.length > 0, "and the announcement carrying it names it");
+    build.auraCasts.set(composeAuraCastKey(event.skillId, event.actorId), {
+        skillId: event.skillId,
+        skillName: event.skillName,
+        casterId: event.actorId,
+        turnsAtCast: getTurnsSpentSoFar(build, event.actorId),
+    });
+    assert(build.auraCasts.size <= MAXIMUM_AURA_CASTS, "a fight stays inside its stated bound");
+}
+
+/**
+ * Every cast still running, soonest to end first: the one about to go is the one worth reading.
+ * A cast whose turns have all passed is gone rather than drawn at nothing, because the protocol
+ * never says it ended and a row reading `8 z 8` for the rest of the fight would be a lie.
+ */
+function composeAuraStandings(
+    build: StatisticsBuild,
+    statedTurnsBySkillId: ReadonlyMap<number, number>,
+): AuraStanding[] {
+    const standing: AuraStanding[] = [];
+    for (const cast of build.auraCasts.values()) {
+        const stated = statedTurnsBySkillId.get(cast.skillId);
+        if (stated === undefined) continue;
+        const turnsElapsed = getTurnsSpentSoFar(build, cast.casterId) - cast.turnsAtCast;
+        assert(turnsElapsed >= 0, "an aura never runs back a turn");
+        if (turnsElapsed > stated) continue;
+        standing.push({
+            skillId: cast.skillId,
+            skillName: cast.skillName,
+            casterId: cast.casterId,
+            turnsElapsed,
+            turnsStated: stated,
+        });
+    }
+    // The skill's own id breaks a tie, not its name: a collated order is `ARCHITECTURE.md`'s to
+    // give somebody, and an id is the game's own and needs no alphabet.
+    standing.sort((one, other) =>
+        (one.turnsStated - one.turnsElapsed) - (other.turnsStated - other.turnsElapsed) ||
+        one.skillId - other.skillId || one.casterId - other.casterId
+    );
+    assert(standing.length <= MAXIMUM_AURA_CASTS, "a fight stays inside its stated bound");
+    return standing;
+}
+
+/** Every episode of the fight, closed or standing, each with the turns it ran for. */
+function addStatusRuns(
+    build: StatisticsBuild,
+    fold: StatusFold,
+    episodes: readonly CombatantStatusEpisode[],
+): void {
+    for (const episode of episodes) {
+        build.statusRuns.push({
+            combatantId: episode.combatantId,
+            bit: episode.bit,
+            key: getStatusKeyForBit(episode.bit),
+            turns: getTurnsForEpisode(build, fold, episode),
+            wasStandingAtFirstSight: episode.wasStandingAtFirstSight,
+            isStanding: episode.toEventIndex === null,
+        });
+    }
+    assert(build.statusRuns.length === episodes.length, "every episode was run through once");
+    assert(build.statusRuns.every((run) => run.turns >= 0), "and none of them ran back a turn");
+}
+
+/**
+ * The figures, and what a share stated about a side came to once it was sized. The sizing is
+ * `combatant-health.ts`'s, because it needs three figures the protocol never states; the
+ * totalling is this file's, for the reason the `totals` field above gives.
+ */
+export function composeFightStatistics(
+    events: readonly BattleEvent[],
+    heals: ReadonlyMap<BattleEvent, TeamHeal>,
+    statusEpisodes: readonly CombatantStatusEpisode[] = [],
+    statedTurnsBySkillId: ReadonlyMap<number, number> = new Map(),
+): FightStatistics {
+    const build = composeStatisticsBuild();
+    const fold = composeStatusFold(statusEpisodes);
     assert(build.byCombatantId.size === 0, "a fight is counted up from nobody");
-    for (const event of events) {
+    for (const [index, event] of events.entries()) {
+        addStatusMarksAt(build, fold, index);
         if (event.kind === "unknown-message") {
             build.unreadMessages += 1;
             addUnreadMessage(build, event.combatantIds);
@@ -1180,9 +1388,14 @@ export function composeFightStatistics(
         addNamedHealingEvent(build, event);
         addFightOutcome(build, event);
         addSkillUse(build, event);
+        addAuraCast(build, event, statedTurnsBySkillId);
         addTurnTaken(build, event);
         addTurnLost(build, event);
     }
+    // The last index a mark can be taken at is past the last event: a mask folded after the final
+    // message opens an episode there, and stamping only inside the walk would never reach it.
+    addStatusMarksAt(build, fold, events.length);
+    addStatusRuns(build, fold, statusEpisodes);
     assert(build.byCombatantId.size <= MAXIMUM_COMBATANTS, "a fight stays inside its bound");
     assert(build.unreadMessages <= events.length, "a message is counted unread once");
     assert(getAppliedBalance(build) === 0, "every point applied is counted once at each end");
@@ -1201,6 +1414,8 @@ export function composeFightStatistics(
         givenByNobody: build.givenByNobody,
         byNeitherEnd: build.byNeitherEnd,
         byNeitherEndByElement: build.byNeitherEndByElement,
+        statusRuns: build.statusRuns,
+        auraStandings: composeAuraStandings(build, statedTurnsBySkillId),
         unreadMessages: build.unreadMessages,
         castsUnplaced: build.castsUnplaced,
         outcome: build.outcome,

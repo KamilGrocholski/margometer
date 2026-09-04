@@ -115,6 +115,16 @@ export const CLASS = {
     /** A sentence rather than a column, so the placement counts it as wrapping. */
     tipNote: "tip-note",
     tipWarning: "tip-warning",
+    auras: "MargoMeter-auras",
+    aurasHidden: "auras-hidden",
+    aurasTitle: "auras-title",
+    aurasBody: "auras-body",
+    aurasSkill: "auras-skill",
+    aurasRow: "auras-row",
+    aurasName: "auras-name",
+    aurasTurns: "auras-turns",
+    aurasOurs: "auras-ours",
+    aurasTheirs: "auras-theirs",
 } as const;
 
 export const SPACE = {
@@ -135,6 +145,11 @@ export const PLACE = {
 
 export const TIP = {
     width: "250px",
+} as const;
+
+/** Narrower than the panel: the strip carries a skill, a name and two numbers, and nothing else. */
+export const AURAS = {
+    width: "170px",
 } as const;
 
 export const SHAPE = {
@@ -386,7 +401,10 @@ function composeFrameRules(): string {
         `position:fixed;top:var(${VARIABLE_PREFIX}panel-top);right:${PLACE.inset};` +
         `z-index:${PLACE.layer};display:flex;flex-direction:column;` +
         `max-height:${ceiling};}` +
-        `.${CLASS.title}{flex:none;display:flex;align-items:center;` +
+        // ⚠️ **Positioned so the strip beside the panel paints under it, never over.** The strip
+        // is `position:fixed` and a positioned element paints above a static one whatever the
+        // order, which left a fold button unclickable under it in Chrome, 2026-09-04.
+        `.${CLASS.title}{position:relative;flex:none;display:flex;align-items:center;` +
         `gap:var(${VARIABLE_PREFIX}small);` +
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
         `font:${FONT_SIZE}/${LINE_HEIGHT_TITLE} ${FONT_STACK};letter-spacing:0.06em;` +
@@ -411,7 +429,7 @@ function composeFrameRules(): string {
         `.${CLASS.controlFights}{margin-left:auto;}` +
         // A flex item whose overflow is visible refuses to shrink below its own content, so
         // without `min-height:0` the ceiling on the host stops here and never reaches the list.
-        `.${CLASS.frame}{display:flex;flex-direction:column;min-height:0;}` +
+        `.${CLASS.frame}{position:relative;display:flex;flex-direction:column;min-height:0;}` +
         // Two classes in the selector, so the outcome does not depend on where the rule is
         // written: a bare `.folded` ties with the region's own rule and loses on source order.
         `.${CLASS.frame}.${CLASS.folded}{display:none;}` +
@@ -648,9 +666,60 @@ function composeTipTop(): string {
         `calc(100vh - ${composeTipHeight()} - ${PLACE.inset}))`;
 }
 
+/**
+ * **A window built the way the panel is**, and deliberately not the way the card is: a bar of
+ * `raised` carrying the top two corners, a body of `surface` carrying the bottom two, one border
+ * around each and **no shadow** — `DESIGN.md` gives the single shadow to the card alone.
+ *
+ * It states its own type and its own ink for the reason `composeTipRules` gives: it hangs off the
+ * root, so `:host{all:initial}` reaches it and `.panel`'s rules never do.
+ */
+function composeAuraRules(): string {
+    assert(AURAS.width.endsWith("px"), "the strip is as wide as it was told, and does not reflow");
+    assert(LINE_HEIGHT.endsWith("px"), "and a line of it costs whole pixels, as every line does");
+    // Beside the panel's own corner, so an unmoved strip stands next to an unmoved panel.
+    const left = `calc(100vw - ${PLACE.inset} - ${PLACE.width} - ${SPACE.small} - ${AURAS.width})`;
+    const top = `var(${VARIABLE_PREFIX}auras-top,${PLACE.inset})`;
+    return `.${CLASS.auras}{position:fixed;left:${left};top:${top};` +
+        `display:flex;flex-direction:column;` +
+        `max-height:calc(100vh - ${top} - ${PLACE.inset});}` +
+        `.${CLASS.aurasHidden}{display:none;}` +
+        `.${CLASS.aurasTitle}{flex:none;display:flex;align-items:center;` +
+        `gap:var(${VARIABLE_PREFIX}small);` +
+        `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
+        `font:${FONT_SIZE}/${LINE_HEIGHT_TITLE} ${FONT_STACK};letter-spacing:0.06em;` +
+        `color:var(${VARIABLE_PREFIX}quiet);` +
+        `white-space:nowrap;background:var(${VARIABLE_PREFIX}raised);` +
+        `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
+        `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
+        `box-sizing:border-box;width:${AURAS.width};cursor:move;` +
+        // The same reason the panel's own bar states these: a drag by the bar would otherwise
+        // select the text under the cursor (`docs/browser-support.md`).
+        `-webkit-user-select:none;user-select:none;touch-action:none;}` +
+        `.${CLASS.aurasBody}{font:${FONT_SIZE}/${LINE_HEIGHT} ${FONT_STACK};` +
+        `width:${AURAS.width};` +
+        `color:var(${VARIABLE_PREFIX}text);background:var(${VARIABLE_PREFIX}surface);` +
+        `border:1px solid var(${VARIABLE_PREFIX}border);` +
+        `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);` +
+        `box-sizing:border-box;display:flex;flex-direction:column;min-height:0;` +
+        `overflow-y:auto;overflow-x:hidden;` +
+        `padding:var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across);}` +
+        `.${CLASS.aurasSkill}{color:var(${VARIABLE_PREFIX}quiet);` +
+        `margin-top:var(${VARIABLE_PREFIX}half);` +
+        `min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
+        `.${CLASS.aurasRow}{display:flex;justify-content:space-between;` +
+        `gap:var(${VARIABLE_PREFIX}small);` +
+        `height:var(${VARIABLE_PREFIX}row-height);align-items:center;}` +
+        `.${CLASS.aurasName}{min-width:0;overflow:hidden;text-overflow:ellipsis;` +
+        `white-space:nowrap;}` +
+        `.${CLASS.aurasTurns}{white-space:nowrap;flex:none;}` +
+        `.${CLASS.aurasOurs}{color:var(${VARIABLE_PREFIX}ours);}` +
+        `.${CLASS.aurasTheirs}{color:var(${VARIABLE_PREFIX}theirs);}`;
+}
+
 export function composeStyleSheet(): string {
     const sheet = `${composeFrameRules()}${composeRegionRules()}${composeListRules()}` +
-        `${composeRowRules()}${composeTipRules()}`;
+        `${composeRowRules()}${composeTipRules()}${composeAuraRules()}`;
     assert(sheet.startsWith(":host{all:initial;"), "the sheet shuts the game out before anything");
     assert(!sheet.includes("}}"), "and closes each rule once");
     return sheet;

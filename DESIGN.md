@@ -399,6 +399,26 @@ It says a figure may be short and never says by how much.
 **Undrawn marker.** Replaces one section in place, at that section's size, in `textQuiet`. It is the
 least interesting thing on screen on purpose.
 
+## The strip of auras
+
+A **second window**, not a second panel and not a card: `MargoMeter-auras`, narrower than the panel,
+standing beside it and dragged onto a corner of its own.
+
+**It is built the way the panel is.** A bar of `surfaceRaised` carrying the top two corners and the
+grip, a body of `surface` carrying the bottom two, one border around each — and **no shadow**. The
+shadow belongs to the tooltip and to nothing else, because the tooltip is the one thing that floats
+over something of ours; a window standing beside the panel is separated by its border, the same way
+the panel is separated from the game.
+
+**It opens beside the panel and level with it**, never centred on the window: two things each
+centring themselves land on top of each other, and the panel paints over the strip.
+
+**It is there while something is running and gone when nothing is.** No control, no empty state — an
+empty window would be a box on the game saying nothing. **ADR 0053.**
+
+**Where the two overlap, the panel wins.** The bar and the frame are positioned for that reason
+alone: a positioned element paints over a static one whatever the order in the tree.
+
 ## Motion and interaction
 
 - Nothing animates. No transition, no fade, no pulse, no reveal.

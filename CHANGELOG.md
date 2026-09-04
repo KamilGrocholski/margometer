@@ -38,6 +38,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   ciosy jednej umiejętności liczą się jako jedna tura, tak jak liczy je gra. Tura, w której postać
   nic nie zrobiła, bo była ogłuszona, stoi osobno jako „utracone" i gra sama ogłasza je w logu
   walki. Obie liczby stoją na własnych liniach i panel niczego przez nie nie dzieli.
+- **Nowość** — Obok panelu stoi drugie, mniejsze okno: „Aury". Widać w nim wszystko, co jedna
+  umiejętność nałożyła na całą stronę — twoją albo przeciwnika, na przykład Piętno bestii. Rzeczy,
+  które siedzą tylko na jednej postaci, tam nie trafiają. Przy każdym rzucie stoi, kto go puścił, i
+  ile tur minęło z tych, które gra podaje: „3 z 8 tur". Dwa rzuty tej samej umiejętności to dwa
+  osobne wiersze pod jednym nagłówkiem, bo trwają osobno. Okno przeciąga się i chowa niezależnie od
+  panelu, a pojawia się samo, kiedy coś jest aktywne, i znika, gdy wygaśnie ostatnia rzecz. Panel
+  nigdy nie napisze „zostało 5 tur": gra nie mówi, kiedy aura schodzi, więc stoi tam to, co minęło,
+  i to, ile ma trwać — odjąć możesz sam.
 
 ## [0.12.1] — 2026-09-01
 

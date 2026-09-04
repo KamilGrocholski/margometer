@@ -15,6 +15,12 @@ import {
 } from "@/src/core/combatant-roster.ts";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
+import { composeAuraTurnsBySkillId } from "@/src/core/aura-standing.ts";
+import { composeAuraReading } from "@/src/ui/panel-aura.ts";
+import { FROZEN_AURA_TURNS } from "@/frozen/aura-turns.ts";
+
+/** Composed once: the table is a constant, and a fight redraws every few seconds. */
+const AURA_TURNS_BY_SKILL_ID = composeAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills);
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { getNumberFromUnknown, getTextFromUnknown } from "@/libs/unknown-reading.ts";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
@@ -109,6 +115,8 @@ const FOLD_KEY = "MargoMeter-folded";
 /** Anything else reads as unfolded, which is the state a reader who stored nothing is in. */
 const FOLDED = "1";
 const PLACE_KEY = "MargoMeter-place";
+/** The strip's own corner, beside the panel's: two windows, two places a reader may put them. */
+const AURAS_PLACE_KEY = "MargoMeter-auras-place";
 /**
  * Where the reader asked for the shelf to be kept, and it is kept beside the panel's own state
  * rather than in the store it names: a choice held where it points would be unreadable the moment
@@ -541,7 +549,12 @@ function composeFightFigures(session: BattleSession): FightFigures | null {
     if (fight === null) return null;
     assert(fight.payloads > 0, "a fight that is read was built from something");
     const roster = composeCombatantRoster([...fight.roster.byId.values()]);
-    const statistics = composeFightStatistics(fight.events, composeTeamHeals(fight.events, roster));
+    const statistics = composeFightStatistics(
+        fight.events,
+        composeTeamHeals(fight.events, roster),
+        fight.statusEpisodes,
+        AURA_TURNS_BY_SKILL_ID,
+    );
     assert(statistics.unreadMessages >= 0, "a reading states what it could not read, even as none");
     return { fight, roster, statistics };
 }
@@ -644,6 +657,7 @@ function showFight(
         halfNamedDrill,
         place: getPlaceWords(kept === null ? place : kept.place),
         isCollapsed: screen.isCollapsed,
+        auras: composeAuraReading(statistics, roster, fight.readerSide),
     });
     return true;
 }
@@ -1076,21 +1090,22 @@ function composeLiveFight(): LiveFight {
     };
 }
 
-/** Where the reader put the panel, and where a drag is allowed to put it. */
+/** Where the reader put one of the two windows, and where a drag is allowed to put it. */
 function composePanelPlacement(
     environment: UserscriptEnvironment,
     store: BrowserStore | null,
+    key: string = PLACE_KEY,
 ): PanelPlacement {
-    assert(PLACE_KEY.startsWith("MargoMeter-"), "the place the reader dragged it to is ours");
+    assert(key.startsWith("MargoMeter-"), "the place the reader dragged it to is ours");
     assert(typeof environment.readViewport === "function", "and is clamped against something");
     return {
-        position: store === null ? null : getPositionFromStoredText(store.read(PLACE_KEY) ?? ""),
+        position: store === null ? null : getPositionFromStoredText(store.read(key) ?? ""),
         getViewport: () => environment.readViewport(),
         // Once per drag rather than once per frame. A refusal to write is an answer here as
         // wherever this panel writes: the reader's choice stands, and only the next visit is the
         // poorer for it.
         handleMoved: (position: PanelPosition) => {
-            store?.write(PLACE_KEY, composeStoredTextFromPosition(position));
+            store?.write(key, composeStoredTextFromPosition(position));
         },
     };
 }
@@ -1169,6 +1184,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     assert(SHELF_KEY.startsWith("MargoMeter-"), "every key this add-on writes is named as ours");
     assert(FOLD_KEY.startsWith("MargoMeter-"), "the fold included");
     const placement = composePanelPlacement(environment, store);
+    const aurasPlacement = composePanelPlacement(environment, store, AURAS_PLACE_KEY);
     const live = composeLiveFight();
     assert(getFightFromSession(session) === null, "a session starts holding no fight");
     // The panel goes up when the wrap goes on, and not before: a copy that stood down never gets
@@ -1208,6 +1224,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
         },
         (failure) => environment.report(FAILURE_LINE, failure),
         placement,
+        aurasPlacement,
         // Once per mount: the dictionary is built with the page and not with the fight, and a page
         // without one never grows one. Null is the panel drawing its own words (ADR 0024).
         readDictionaryFromPage(environment.page),

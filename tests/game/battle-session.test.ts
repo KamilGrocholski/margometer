@@ -193,3 +193,55 @@ Deno.test("no recording is a fight joined in progress, and each says so", () => 
         );
     }
 });
+
+/** One warrior, stated as the payloads state them: keyed by id, with the mask beside the pool. */
+function composeStatusPayload(mask: number, messages: readonly string[]): Record<string, unknown> {
+    return { w: { "482845": { id: 482845, buffs: mask } }, m: [...messages] };
+}
+
+const OPENING = { init: 1, myteam: 1, w: { "482845": { id: 482845, name: "Gracz 1", team: 1 } } };
+
+Deno.test("a bit going on opens one episode, and going off closes that one", () => {
+    const session = composeBattleSession();
+    for (const payload of [OPENING, composeStatusPayload(8, []), composeStatusPayload(8, [])]) {
+        addPayloadToSession(session, payload);
+    }
+    assertEquals(session.statusEpisodes.length, 1, "a bit stated twice is one episode, not two");
+    assertEquals(session.statusEpisodes[0]?.bit, 3, "and it is the bit the mask set");
+    assertEquals(
+        session.statusEpisodes[0]?.toEventIndex,
+        null,
+        "still standing while it is stated",
+    );
+
+    addPayloadToSession(session, composeStatusPayload(0, []));
+    assertEquals(session.statusEpisodes.length, 1, "the mask going quiet opens nothing new");
+    assertEquals(session.statusEpisodes[0]?.toEventIndex, 0, "it closes the one that was open");
+
+    addPayloadToSession(session, composeStatusPayload(8, []));
+    assertEquals(session.statusEpisodes.length, 2, "and the bit set again is a second episode");
+});
+
+/**
+ * ⚠️ **A first sighting is not the moment the game set the bit.** Read from a fight already going,
+ * the length is short by an amount nothing states, and the episode has to say so.
+ */
+Deno.test("a status standing when a combatant is first seen says the count is short", () => {
+    const joined = composeBattleSession();
+    addPayloadToSession(joined, composeStatusPayload(8, []));
+    assertEquals(joined.statusEpisodes[0]?.wasStandingAtFirstSight, true, "nobody saw it start");
+
+    const watched = composeBattleSession();
+    addPayloadToSession(watched, OPENING);
+    addPayloadToSession(watched, composeStatusPayload(0, []));
+    addPayloadToSession(watched, composeStatusPayload(8, []));
+    assertEquals(watched.statusEpisodes[0]?.wasStandingAtFirstSight, false, "this one was watched");
+});
+
+Deno.test("a fight opening again leaves no episode of the fight before it", () => {
+    const session = composeBattleSession();
+    addPayloadToSession(session, composeStatusPayload(8, []));
+    assert(session.statusEpisodes.length > 0, "there is something to lose");
+    addPayloadToSession(session, OPENING);
+    assertEquals(session.statusEpisodes, [], "a fight opens carrying nothing standing");
+});

@@ -12,6 +12,7 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
+import { FROZEN_SKILL_DURATIONS } from "@/frozen/skill-durations.ts";
 import {
     type CachedClientSource,
     type GameChannel,
@@ -21,6 +22,12 @@ import {
 } from "@/tools/game-client-source.ts";
 import { GameUnreachableError } from "@/tools/margometer-tool-error.ts";
 import { writeFrozenKeyTable } from "@/tools/protocol-key-table.ts";
+import {
+    type CachedSkillTable,
+    getCachedSkillTable,
+    writeFrozenSkillTable,
+    writeSkillTableCache,
+} from "@/tools/skill-table.ts";
 import {
     type CachedHelpArticle,
     composeAgeText,
@@ -53,6 +60,21 @@ export interface FrozenHelpReading {
     fetchedAt: string;
     count: number;
 }
+
+export interface FrozenSkillReading {
+    fetchedAt: string;
+    count: number;
+}
+
+/** Every frozen reading this tool reports on, which is what a refresh writes and a status reads. */
+export interface LoadedReadings {
+    keys: FrozenKeyReading;
+    help: FrozenHelpReading;
+    skills: FrozenSkillReading;
+}
+
+/** How many rows a report carries, so a reading added without a row is caught rather than lost. */
+const READING_COUNT = 5;
 
 /**
  * What a row can say. `unknown` is not a third shade of stale: it is what stands where nobody
@@ -177,20 +199,52 @@ export function composeFrozenHelpState(
 }
 
 /**
+ * The frozen skill table against the page it was read from, which is the same question
+ * `composeFrozenKeyState` asks of the bundle: a table dated by a page nobody has fetched would be
+ * a claim about a page that is not on this machine. What the world serves is not asked — the page
+ * carries no build id, so `refresh` fetching it is what keeps the two together.
+ */
+export function composeFrozenSkillState(
+    frozen: FrozenSkillReading,
+    cached: CachedSkillTable | null,
+): ReadingState {
+    const count = composeIntegerText(frozen.count);
+    assert(frozen.fetchedAt.length > 0, "a frozen table is dated by the page it was read from");
+    assert(frozen.count > 0, "and counts something");
+    if (cached === null) {
+        return {
+            name: "frozen skills",
+            verdict: "stale",
+            says: `frozen ${frozen.fetchedAt}, ${NOTHING_CACHED}`,
+        };
+    }
+    return {
+        name: "frozen skills",
+        verdict: frozen.fetchedAt === cached.fetchedAt ? "current" : "stale",
+        says: `page ${cached.fetchedAt}  ${count} skills`,
+    };
+}
+
+/**
  * What the frozen modules held when this process started. ⚠️ **A refresh rewrites those files and
  * these bindings do not move with them**, so the routine reports what it has just written instead
  * of asking again: a status composed from here after a refresh calls a current table STALE, which
  * is how this was found on 2026-09-03.
  */
-export function getLoadedReadings(): { keys: FrozenKeyReading; help: FrozenHelpReading } {
+export function getLoadedReadings(): LoadedReadings {
     const keys = { build: FROZEN_PROTOCOL_KEYS.gameBuild, count: FROZEN_PROTOCOL_KEYS.keys.length };
     const help = {
         fetchedAt: FROZEN_HELP_PHRASES.fetchedAt,
         count: Object.keys(FROZEN_HELP_PHRASES.counts).length,
     };
+    const skills = {
+        fetchedAt: FROZEN_SKILL_DURATIONS.fetchedAt,
+        count: FROZEN_SKILL_DURATIONS.skills.length,
+    };
     assert(keys.build.length > 0, "a module that was loaded is dated by a build");
-    assert(help.fetchedAt.length > 0, "and the other by the dump it was counted over");
-    return { keys, help };
+    assert(help.fetchedAt.length > 0, "and the next by the dump it was counted over");
+    assert(skills.fetchedAt.length > 0, "and the last by the page it was read from");
+    return { keys, help, skills };
 }
 
 /**
@@ -209,7 +263,7 @@ async function readClientState(cached: CachedClientSource | null): Promise<Readi
 /** Every reading, in the order a refresh does them: each one dates the one after it. */
 export async function readReadingStates(
     now: number,
-    frozen: { keys: FrozenKeyReading; help: FrozenHelpReading },
+    frozen: LoadedReadings,
 ): Promise<ReadingState[]> {
     const client = getCachedClientSource(CHANNEL);
     const dump = getCachedHelpArticle(MECHANICS_ARTICLE);
@@ -218,8 +272,9 @@ export async function readReadingStates(
         composeFrozenKeyState(frozen.keys, client),
         composeHelpDumpState(dump, now),
         composeFrozenHelpState(frozen.help, dump),
+        composeFrozenSkillState(frozen.skills, getCachedSkillTable()),
     ];
-    assertStrictEquals(states.length, 4, "every reading was reported on");
+    assertStrictEquals(states.length, READING_COUNT, "every reading was reported on");
     assert(states.every((one) => one.name.length > 0), "and each names itself");
     return states;
 }
@@ -237,12 +292,10 @@ function writeReadingsReport(
 }
 
 /**
- * The four in the order that makes each meaningful: a table is frozen from the bundle fetched a
- * line above it, and counts from the dump fetched a line above them.
+ * In the order that makes each meaningful: a table is frozen from the bundle fetched a line above
+ * it, counts from the dump fetched a line above them, and the skills from the page above those.
  */
-async function writeRefreshedReadings(): Promise<
-    { keys: FrozenKeyReading; help: FrozenHelpReading }
-> {
+async function writeRefreshedReadings(): Promise<LoadedReadings> {
     const client = await writeClientSourceCache(CHANNEL);
     console.log(`client        build ${client.build} → ${client.bundlePath}`);
     const keys = writeFrozenKeyTable();
@@ -255,11 +308,20 @@ async function writeRefreshedReadings(): Promise<
     console.log(
         `frozen help   ${composeIntegerText(help.counts.length)} phrases over ${help.fetchedAt}\n`,
     );
+    const page = await writeSkillTableCache();
+    console.log(
+        `skills page   ${composeIntegerText(page.pageLength)} characters → ${page.pagePath}`,
+    );
+    const skills = writeFrozenSkillTable();
+    console.log(
+        `frozen skills ${composeIntegerText(skills.count)} skills over ${skills.fetchedAt}\n`,
+    );
     assertStrictEquals(client.channel, CHANNEL, "the routine refreshed the channel it decides on");
     assert(help.counts.length > 0, "and froze counts over the dump it had just fetched");
     return {
         keys: { build: keys.build, count: keys.count },
         help: { fetchedAt: help.fetchedAt, count: help.counts.length },
+        skills,
     };
 }
 
@@ -268,11 +330,9 @@ async function writeRefreshedReadings(): Promise<
  * behind the game is invisible to the gate, so it is visible here — and a world that did not
  * answer is its own exit, because an outage is not evidence that anything moved.
  */
-async function writeReadingsStatus(
-    frozen: { keys: FrozenKeyReading; help: FrozenHelpReading },
-): Promise<void> {
+async function writeReadingsStatus(frozen: LoadedReadings): Promise<void> {
     const states = await readReadingStates(Date.now(), frozen);
-    assertStrictEquals(states.length, 4, "the report covers every reading");
+    assertStrictEquals(states.length, READING_COUNT, "the report covers every reading");
     assert(states.every((one) => one.says.length > 0), "and each row says what it compared");
     const loud = writeReadingsReport(states);
     if (loud.stale > 0) Deno.exit(EXIT_STALE);

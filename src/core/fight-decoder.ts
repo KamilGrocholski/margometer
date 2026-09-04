@@ -165,7 +165,11 @@ const SKILL_NAME_KEY = "tspell";
  * only where the message names one combatant, so nothing has to guess whose use it was.
  */
 const CUSTOM_SKILL_NAME_KEY = "tcustom";
-const SKILL_ID_KEY = "skillId";
+/**
+ * Exported so the frozen skill table is held to naming every skill the recordings announce, and
+ * so the two readings spell the game's own key once — **N13**.
+ */
+export const SKILL_ID_KEY = "skillId";
 /**
  * A combatant moving, which the published help calls one of the two default actions a turn can
  * go on — article 372 §2.3, read 2026-09-02. Exported so the files that spell it spell it once;

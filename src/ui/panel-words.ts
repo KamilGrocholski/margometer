@@ -535,6 +535,7 @@ export const COUNTED_NOUNS = {
     heals: { one: "uleczenie", few: "uleczenia", many: "uleczeń" },
     fights: { one: "walka", few: "walki", many: "walk" },
     combatants: { one: "postać", few: "postacie", many: "postaci" },
+    turns: { one: "tura", few: "tury", many: "tur" },
 } as const;
 
 /**
@@ -574,6 +575,28 @@ const FEW_FLOOR = 2;
 const FEW_CEILING = 4;
 const TEN = 10;
 const HUNDRED = 100;
+
+export const AURA_WORDS = {
+    title: "Aury",
+    /** Said in place of a name the roster could not place, never a name of our own. */
+    casterUnknown: "Nieznany rzucający",
+} as const;
+
+/** The skill, and how many of it are running where that is more than one. */
+export function composeAuraGroupText(skillName: string, casts: number): string {
+    assert(skillName.length > 0, "a group is named after the skill the game named");
+    assert(casts > 0, "and stands for at least one cast");
+    if (casts === 1) return skillName;
+    return `${skillName} ×${composeIntegerText(casts)}`;
+}
+
+/** What has passed, of what the table states. Never a countdown — **ADR 0053**. */
+export function composeAuraTurnsText(turnsElapsed: number, turnsStated: number): string {
+    assert(Number.isSafeInteger(turnsElapsed), "a cast has run a whole number of turns");
+    assert(turnsStated > 0, "and runs for a stated number of them");
+    const said = composeCountedNoun(turnsStated, COUNTED_NOUNS.turns);
+    return `${composeIntegerText(turnsElapsed)} z ${said}`;
+}
 
 /**
  * One, a few, or many: Polish picks by the last digit, except in the teens, where it picks many
@@ -743,6 +766,7 @@ export function composeUnplacedHealRowWarning(count: number): string {
 }
 
 export const REGION_WORDS = {
+    auras: "listy aur",
     header: "nagłówka",
     tabs: "zakładek",
     crumb: "ścieżki",

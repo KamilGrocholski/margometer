@@ -147,3 +147,11 @@ edited to agree with the new rule.
   divides by it. **Accepted**
 - [0049](0049-a-turn-nobody-spent-is-read-by-shape.md) — A turn nobody spent is read by shape, not
   by words. **Accepted**
+- [0050](0050-a-status-is-read-off-the-mask-and-its-length-is-what-has-passed.md) — A status is read
+  off the mask, and its length is what has passed. **Accepted**
+- [0051](0051-the-skill-table-is-a-frozen-reading.md) — The skill table is a frozen reading, and the
+  descriptions stay out. **Accepted**
+- [0052](0052-the-protocol-names-nobody-for-a-status.md) — The protocol names nobody for a status,
+  and the panel says nothing. **Accepted**
+- [0053](0053-an-aura-stands-in-a-window-of-its-own.md) — An aura stands in a window of its own, and
+  states what has passed. **Accepted**

@@ -19,6 +19,7 @@ import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import { composePanelHost, type PanelPress } from "@/src/ui/panel-element.ts";
+import type { AuraReading } from "@/src/ui/panel-aura.ts";
 import {
     composeDrillReading,
     composeHalfNamedReading,
@@ -214,7 +215,11 @@ Deno.test("the panel goes into a shadow root, under a name of ours", () => {
     assertEquals(host.attributes.get("id"), "MargoMeter-Panel", "the host is named as ours");
     assertExists(host.shadow, "and everything else is behind a root of its own");
     assertEquals(host.children.length, 0, "nothing is put beside the root");
-    assertEquals(host.shadow.length, 4, "the look, the bar, the panel, and the detail last");
+    assertEquals(
+        host.shadow.length,
+        5,
+        "the look, the strip under it, the bar, the panel, the detail",
+    );
 });
 
 Deno.test("every name a reader meets before the panel's contents is ours", () => {
@@ -931,7 +936,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         [composeUndrawnText("list")],
         "and the region that failed says so in its own place, naming itself",
     );
-    assertEquals(host.shadow?.length, 4, "while the panel keeps its shape");
+    assertEquals(host.shadow?.length, 5, "while the panel keeps its shape");
     const bar = getElementsWithin(host).find((one) => one.className === "MargoMeter-titlebar");
     assert(
         bar?.textContent.endsWith(PANEL_WORDS.title),
@@ -2685,4 +2690,70 @@ Deno.test("a part that opens says so under the same words a person does", () => 
         [],
         "the key promises nothing where the statistics keep no cut of it",
     );
+});
+
+/** One skill, cast by two people, as the strip beside the panel would draw it. */
+const TWO_CASTS: AuraReading = {
+    rows: 2,
+    groups: [{
+        skillName: "Piętno bestii",
+        rows: [
+            { casterName: "Gracz 3", isReaderSide: true, turnsElapsed: 3, turnsStated: 8 },
+            { casterName: "Gracz 7", isReaderSide: false, turnsElapsed: 7, turnsStated: 8 },
+        ],
+    }],
+};
+
+Deno.test("the strip stands beside the panel, one row per cast, and says how far through", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({ ...composeShownView(readFight()), auras: TWO_CASTS });
+    const host = panel.element as FakeElement;
+    assertEquals(
+        getTextsByClass(host, CLASS.aurasSkill),
+        ["Piętno bestii ×2"],
+        "one heading for the skill, saying how many of it are running",
+    );
+    assertArrayIncludes(
+        getElementsWithin(host).filter((one) => one.className === CLASS.aurasTurns)
+            .map((one) => one.textContent),
+        ["3 z 8 tur", "7 z 8 tur"],
+        "and a row each, saying what has passed of what the table states",
+    );
+    const strip = getElementsWithin(host).find((one) => one.className === CLASS.auras);
+    assertExists(strip, "the strip is drawn");
+    assert(!strip.className.includes(CLASS.aurasHidden), "and stands rather than hides");
+    // ⚠️ **A window, not a card.** The bar is the window's own child beside the body, the way the
+    // panel's is, so a redraw never takes the handle out from under a hand dragging by it.
+    assertEquals(
+        strip.children.map((one) => one.className),
+        [CLASS.aurasTitle, CLASS.aurasBody],
+        "a bar of its own standing over a body of its own",
+    );
+});
+
+Deno.test("a hand takes the strip by its own heading, and never by the panel's bar", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({ ...composeShownView(readFight()), auras: TWO_CASTS });
+    const title = getElementsWithin(panel.element as FakeElement).find((one) =>
+        one.className === CLASS.aurasTitle
+    );
+    assertExists(title, "the strip carries a heading");
+    assertEquals(title.attributes.get("data-auras-grip"), "", "which is its own handle");
+    assertEquals(title.attributes.get("data-grip"), undefined, "and never the panel's");
+});
+
+/** Zero is a boundary: nothing running is a window that is not there, not an empty one. */
+Deno.test("the strip is hidden where nothing a skill put on a side is running", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show(composeShownView(readFight()));
+    const host = panel.element as FakeElement;
+    const strip = getElementsWithin(host).find((one) =>
+        one.className.startsWith(`${CLASS.auras} `)
+    );
+    assertExists(strip, "the window is still there for a drag to have moved");
+    assert(strip.className.includes(CLASS.aurasHidden), "and is hidden rather than empty");
+    assertEquals(getTextsByClass(host, CLASS.aurasSkill), [], "with no heading drawn under it");
 });

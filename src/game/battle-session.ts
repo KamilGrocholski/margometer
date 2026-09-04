@@ -13,6 +13,7 @@ import {
     type Combatant,
     type CombatantRoster,
     composeCombatantRoster,
+    MAXIMUM_COMBATANTS,
 } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
@@ -21,7 +22,12 @@ import {
     getStatedTextFromUnknown,
     isRecord,
 } from "@/libs/unknown-reading.ts";
-import { readCombatantsFromPayload } from "@/src/game/engine-warrior.ts";
+import { readCombatantsFromPayload, readStatusesFromPayload } from "@/src/game/engine-warrior.ts";
+import {
+    type CombatantStatusEpisode,
+    decodeStatusesFromMask,
+    MAXIMUM_STATUS_BIT,
+} from "@/src/core/combatant-status.ts";
 
 const FIGHT_OPENS_KEY = "init";
 const FIGHT_ENDS_KEY = "endBattle";
@@ -47,10 +53,13 @@ export const MESSAGE_INDEX_KEY = "mi";
 export const READER_SIDE_KEY = "myteam";
 /** The longest fight in `captures/` decodes to 811 events, 2026-08-28. */
 const MAXIMUM_EVENTS = 65536;
+/** Every recording together turns 457 statuses on, 2026-09-03. One fight stays far inside this. */
+const MAXIMUM_STATUS_EPISODES = 4096;
 
 export interface FightReading {
     roster: CombatantRoster;
     events: readonly BattleEvent[];
+    statusEpisodes: readonly CombatantStatusEpisode[];
     messagesByPayload: readonly (readonly string[])[];
     /** Messages a payload said it carried and this reader did not read. Zero is the answer. */
     messagesLost: number;
@@ -65,6 +74,9 @@ export interface FightReading {
 export interface BattleSession {
     combatants: Combatant[];
     events: BattleEvent[];
+    statusEpisodes: CombatantStatusEpisode[];
+    /** The last mask each combatant was stated with, so only a change opens or closes anything. */
+    statusMaskByCombatantId: Map<number, number>;
     messagesByPayload: string[][];
     messagesLost: number;
     hasJoinedInProgress: boolean;
@@ -78,6 +90,8 @@ export function composeBattleSession(): BattleSession {
     const session: BattleSession = {
         combatants: [],
         events: [],
+        statusEpisodes: [],
+        statusMaskByCombatantId: new Map(),
         messagesByPayload: [],
         messagesLost: 0,
         hasJoinedInProgress: false,
@@ -115,6 +129,8 @@ function readMessageCountFromPayload(payload: Record<string, unknown>): number {
 function resetSession(session: BattleSession): void {
     session.combatants = [];
     session.events = [];
+    session.statusEpisodes = [];
+    session.statusMaskByCombatantId = new Map();
     session.messagesByPayload = [];
     session.messagesLost = 0;
     session.hasJoinedInProgress = false;
@@ -138,6 +154,71 @@ function readReaderSideFromPayload(payload: Record<string, unknown>): number | n
         : getNumberFromUnknown(stated);
     assert(side === null || Number.isFinite(side), "a side that was read is a number");
     return side;
+}
+
+/** The episode still open for this combatant at this bit, or null where none is. */
+function getOpenStatusEpisode(
+    session: BattleSession,
+    combatantId: number,
+    bit: number,
+): CombatantStatusEpisode | null {
+    assert(Number.isFinite(combatantId), "an episode is looked for by a combatant the game named");
+    assert(bit >= 0, "and at a bit of the mask that combatant was stated with");
+    for (let index = session.statusEpisodes.length - 1; index >= 0; index -= 1) {
+        const episode = session.statusEpisodes[index];
+        if (episode === undefined) continue;
+        if (episode.toEventIndex !== null) continue;
+        if (episode.combatantId !== combatantId) continue;
+        if (episode.bit === bit) return episode;
+    }
+    return null;
+}
+
+/**
+ * One combatant's mask, against the last one they were stated with. A combatant nobody has seen a
+ * mask for opens every bit already set, marked as standing before this reader looked: a first
+ * sighting is not the moment the game set it, and **E10** asks the answer to say which it was.
+ */
+function addStatusMaskToSession(
+    session: BattleSession,
+    combatantId: number,
+    mask: number,
+): void {
+    const seen = session.statusMaskByCombatantId.get(combatantId);
+    const previous = seen ?? 0;
+    if (seen !== undefined && seen === mask) return;
+    session.statusMaskByCombatantId.set(combatantId, mask);
+    const standing = new Set(decodeStatusesFromMask(mask).map((one) => one.bit));
+    for (const bit of decodeStatusesFromMask(previous)) {
+        if (standing.has(bit.bit)) continue;
+        const open = getOpenStatusEpisode(session, combatantId, bit.bit);
+        if (open !== null) open.toEventIndex = session.events.length;
+    }
+    for (const bit of standing) {
+        if (getOpenStatusEpisode(session, combatantId, bit) !== null) continue;
+        session.statusEpisodes.push({
+            combatantId,
+            bit,
+            fromEventIndex: session.events.length,
+            toEventIndex: null,
+            wasStandingAtFirstSight: seen === undefined,
+        });
+    }
+    assert(
+        session.statusEpisodes.length <= MAXIMUM_STATUS_EPISODES,
+        "a fight stays inside its bound",
+    );
+    assert(standing.size <= MAXIMUM_STATUS_BIT + 1, "and a mask sets no more bits than it has");
+}
+
+/** Every mask this payload stated, folded after its own messages: the mask is what they left. */
+function addStatusesToSession(session: BattleSession, payload: Record<string, unknown>): void {
+    const readings = readStatusesFromPayload(payload);
+    assert(readings.length <= MAXIMUM_COMBATANTS, "a payload states no more masks than combatants");
+    for (const reading of readings) {
+        addStatusMaskToSession(session, reading.combatantId, reading.mask);
+    }
+    assert(session.statusEpisodes.length <= MAXIMUM_STATUS_EPISODES, "and stays inside its bound");
 }
 
 export function isFightStart(payload: unknown): boolean {
@@ -164,6 +245,7 @@ export function addPayloadToSession(session: BattleSession, payload: unknown): v
     if (stated > messages.length) session.messagesLost += stated - messages.length;
     assert(session.messagesLost >= 0, "what a payload stated and nobody read is never negative");
     for (const event of decodeFightMessages(messages, roster)) session.events.push(event);
+    addStatusesToSession(session, payload);
     if (FIGHT_ENDS_KEY in payload) session.isOver = true;
     assert(session.events.length <= MAXIMUM_EVENTS, "a fight stays inside its stated bound");
     assert(session.messagesByPayload.length <= MAXIMUM_EVENTS, "and so does what it kept");
@@ -179,6 +261,7 @@ export function getFightFromSession(session: BattleSession): FightReading | null
     return {
         roster: composeCombatantRoster(session.combatants),
         events: session.events,
+        statusEpisodes: session.statusEpisodes,
         messagesByPayload: session.messagesByPayload,
         messagesLost: session.messagesLost,
         hasJoinedInProgress: session.hasJoinedInProgress,

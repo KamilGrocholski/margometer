@@ -46,9 +46,13 @@ import {
     type ScreenTab,
     STORAGE_CHOICES,
 } from "@/src/ui/panel-screen.ts";
-import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
+import { CLASS, composeStyleSheet, getColourForProfession, PLACE } from "@/src/ui/panel-look.ts";
+import type { AuraReading, AuraRow } from "@/src/ui/panel-aura.ts";
 import {
+    AURA_WORDS,
     CARD_WORDS,
+    composeAuraGroupText,
+    composeAuraTurnsText,
     composeFigureText,
     composeShelfSizeText,
     composeSideCountsText,
@@ -73,11 +77,17 @@ import {
     WARNING_MARK,
 } from "@/src/ui/panel-words.ts";
 import {
+    AURAS_GRIP_ATTRIBUTE,
+    AURAS_TOP_VARIABLE,
+    composeAuraDefaultPosition,
+    composeDefaultPosition,
     composeTipLeft,
+    GRIP_ATTRIBUTE,
     type PanelPlacement,
     type PanelPosition,
     setGripMark,
     setPanelDrag,
+    TOP_VARIABLE,
 } from "@/src/ui/panel-drag.ts";
 import {
     composeTipHandle,
@@ -1176,6 +1186,11 @@ export interface PanelView {
     halfNamedDrill: HalfNamedDrillReading | null;
     place: string | null;
     isCollapsed: boolean;
+    /**
+     * Null, or absent, where nothing a skill put on a side is running — the strip is a window of
+     * its own, so a view saying nothing about it draws none rather than drawing an empty one.
+     */
+    auras?: AuraReading | null;
 }
 
 export type PanelPress =
@@ -1733,11 +1748,172 @@ function composePanelFrame(document: PanelDocument, regions: PanelRegions): Pane
     return frame;
 }
 
+/**
+ * What stands inside the strip's window, replaced in place on every payload. The bar is not in
+ * here: it is the window's own, like the panel's, so a redraw never takes the handle out from
+ * under a hand that is dragging by it.
+ */
+function composeAurasElement(document: PanelDocument, reading: AuraReading): PanelElement {
+    const drawn = composeElement(document, "div", CLASS.aurasBody);
+    for (const group of reading.groups) {
+        const heading = composeElement(document, "div", CLASS.aurasSkill);
+        heading.textContent = composeAuraGroupText(group.skillName, group.rows.length);
+        drawn.append(heading);
+        for (const row of group.rows) drawn.append(composeAuraRowElement(document, row));
+    }
+    assert(reading.rows > 0, "a body that is drawn has something standing in it");
+    assert(drawn.className === CLASS.aurasBody, "and is the window's body and not the window");
+    return drawn;
+}
+
+/** The caster, in the hue of their side, and how far through the cast is. */
+function composeAuraRowElement(document: PanelDocument, row: AuraRow): PanelElement {
+    const drawn = composeElement(document, "div", CLASS.aurasRow);
+    const side = row.isReaderSide === null
+        ? ""
+        : ` ${row.isReaderSide ? CLASS.aurasOurs : CLASS.aurasTheirs}`;
+    const name = composeElement(document, "span", `${CLASS.aurasName}${side}`);
+    name.textContent = row.casterName ?? AURA_WORDS.casterUnknown;
+    const turns = composeElement(document, "span", CLASS.aurasTurns);
+    turns.textContent = composeAuraTurnsText(row.turnsElapsed, row.turnsStated);
+    drawn.append(name);
+    drawn.append(turns);
+    assert(name.textContent.length > 0, "a cast is drawn under whoever the game named");
+    assert(turns.textContent.length > 0, "and says how far through it is");
+    return drawn;
+}
+
+/**
+ * The strip's window, and what stands inside it. Two elements because the outer one is what a
+ * drag moves and must outlive every redraw, while the inner one is replaced like any region.
+ */
+interface AurasWindow {
+    frame: PanelElement;
+    /** Made once and never redrawn, the way the panel's own bar outlives every payload. */
+    bar: PanelElement;
+    body: PanelElement;
+}
+
+function composeAurasWindow(document: PanelDocument): AurasWindow {
+    const frame = composeElement(document, "div", `${CLASS.auras} ${CLASS.aurasHidden}`);
+    const bar = composeElement(document, "div", CLASS.aurasTitle);
+    // The same mark the panel's own bar wears, because it is the same gesture.
+    bar.textContent = `${GRIP_MARK}${AURA_WORDS.title}`;
+    bar.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.drag);
+    setGripMark(bar, AURAS_GRIP_ATTRIBUTE);
+    const body = composeElement(document, "div", CLASS.slot);
+    frame.append(bar);
+    frame.append(body);
+    assert(bar.textContent.length > 0, "the window carries a bar a hand can take hold of");
+    assert(frame.className.length > 0, "and a body that gives way on every payload");
+    return { frame, bar, body };
+}
+
+/**
+ * The strip stands while something is running and is hidden when nothing is: it is a window of
+ * its own, so an empty one would be a box on the game saying nothing. Hidden rather than taken
+ * away, because the drag moves the frame and its listeners outlive every redraw.
+ */
+function setAurasDrawn(
+    document: PanelDocument,
+    auras: AurasWindow,
+    reading: AuraReading | null,
+    redraw: PanelRedraw,
+): void {
+    assert(auras.frame.className.length > 0, "the strip is a region before it is hidden or drawn");
+    const isDrawn = reading !== null && reading.rows > 0;
+    auras.frame.className = isDrawn ? CLASS.auras : `${CLASS.auras} ${CLASS.aurasHidden}`;
+    auras.body = redraw(auras.body, "auras", () => {
+        if (reading === null || reading.rows === 0) {
+            return composeElement(document, "div", CLASS.slot);
+        }
+        return composeAurasElement(document, reading);
+    });
+    assert(auras.body.className.length > 0, "and what stands in it is a region either way");
+}
+
+/** The bar redrawn for the fold it is in, and the frame told to give way or stand. */
+function setFoldMarks(
+    document: PanelDocument,
+    title: PanelElement,
+    frame: PanelElement,
+    fold: { isCollapsed: boolean; redraw: PanelRedraw },
+): PanelElement {
+    assert(frame.className.length > 0, "the frame is a region before it is folded away");
+    frame.className = fold.isCollapsed ? `${CLASS.frame} ${CLASS.folded}` : CLASS.frame;
+    assert(frame.className.startsWith(CLASS.frame), "and stays the frame either way");
+    return fold.redraw(title, "header", () => composeTitleElement(document, fold.isCollapsed));
+}
+
+/**
+ * ⚠️ **The strip first, so the panel paints over it.** They are two windows and a reader may drag
+ * them together; where they overlap the panel has to win, or the strip swallows the presses on the
+ * bar underneath it — which is how a fold button became unclickable in Chrome, 2026-09-04.
+ */
+function setRootChildren(root: PanelRoot, children: readonly PanelElement[]): void {
+    assert(children.length > 0, "a root is given something to hold");
+    for (const child of children) root.append(child);
+    assert(children.every((child) => child.className.length > 0), "and each of them is named");
+}
+
+/** The two windows a hand can move, each by its own handle and onto its own stored corner. */
+interface PanelWindows {
+    host: PanelElement;
+    getBar: () => PanelElement;
+    auras: AurasWindow;
+}
+
+/**
+ * Both drags, wired on the one root. Two subjects and not two mechanisms: what differs is the
+ * attribute a press must carry, what carries the position style, and which corner is remembered.
+ */
+function setWindowDrags(
+    root: PanelRoot,
+    windows: PanelWindows,
+    placements: { panel: PanelPlacement | null; auras: PanelPlacement | null },
+    handleFailure: (failure: unknown) => void,
+): () => PanelPosition | null {
+    assert(windows.auras.bar.className.length > 0, "the strip is taken by a bar of its own");
+    let getPosition: () => PanelPosition | null = () => null;
+    if (placements.panel !== null) {
+        getPosition = setPanelDrag(
+            root,
+            {
+                gripAttribute: GRIP_ATTRIBUTE,
+                moved: windows.host,
+                getHandle: windows.getBar,
+                composeDefault: (viewport) => composeDefaultPosition(viewport, PLACE.width),
+                topVariable: TOP_VARIABLE,
+            },
+            placements.panel,
+            handleFailure,
+        );
+    }
+    if (placements.auras !== null) {
+        setPanelDrag(
+            root,
+            {
+                gripAttribute: AURAS_GRIP_ATTRIBUTE,
+                moved: windows.auras.frame,
+                getHandle: () => windows.auras.bar,
+                composeDefault: composeAuraDefaultPosition,
+                topVariable: AURAS_TOP_VARIABLE,
+            },
+            placements.auras,
+            handleFailure,
+        );
+    }
+    assert(typeof getPosition === "function", "and where the panel is stays askable");
+    return getPosition;
+}
+
 export function composePanelHost(
     document: PanelDocument,
     handlePress: (press: PanelPress) => void,
     handleFailure: (failure: unknown) => void,
     placement: PanelPlacement | null = null,
+    // The strip's own: it is a window of its own and remembers its own corner.
+    aurasPlacement: PanelPlacement | null = null,
     // Null is the panel drawing its own words, which is what every test and every browser
     // without the game sees. Who asks the client, and how often, is the entry's — ADR 0024.
     translate: TranslateLabel | null = null,
@@ -1750,12 +1926,7 @@ export function composePanelHost(
     };
     const register = composeTipRegister();
     const setFoldDrawn = (isCollapsed: boolean): void => {
-        regions.title = redraw(
-            regions.title,
-            "header",
-            () => composeTitleElement(document, isCollapsed),
-        );
-        frame.className = isCollapsed ? `${CLASS.frame} ${CLASS.folded}` : CLASS.frame;
+        regions.title = setFoldMarks(document, regions.title, frame, { isCollapsed, redraw });
     };
     // Null until a drag writes one, and null for good on a panel never made movable.
     let getPosition: () => PanelPosition | null = () => null;
@@ -1765,17 +1936,15 @@ export function composePanelHost(
         (standing, compose) => redraw(standing, "list", compose),
         () => composeTipLeft(getPosition(), placement?.getViewport() ?? null, TIP_WIDTH),
     );
-    root.append(regions.title);
-    root.append(frame);
-    root.append(tip.element);
+    const auras = composeAurasWindow(document);
+    setRootChildren(root, [auras.frame, regions.title, frame, tip.element]);
     const showTip = (key: string | null, clientY: number): void => tip.show(key, clientY);
     setPanelRootListeners(root, handlePress, showTip, handleFailure);
-    // After the listeners that read a press, and on the same root: a drag is four more of them,
-    // and the bar is the only thing on the panel that starts one.
-    if (placement !== null) {
-        assert(typeof placement.getViewport === "function", "a panel is moved inside something");
-        getPosition = setPanelDrag(root, host, () => regions.title, placement, handleFailure);
-    }
+    // After the listeners that read a press, and on the same root: a drag is four more of them.
+    getPosition = setWindowDrags(root, { host, getBar: () => regions.title, auras }, {
+        panel: placement,
+        auras: aurasPlacement,
+    }, handleFailure);
     assert(host.className === "", "the host wears no class of the game's making");
     return {
         element: host,
@@ -1784,6 +1953,7 @@ export function composePanelHost(
             setFoldDrawn(view.isCollapsed);
             if (view.isCollapsed) setPanelFolded(document, regions, redraw);
             else setPanelBody(document, regions, view, register, translate, redraw);
+            setAurasDrawn(document, auras, view.auras ?? null, redraw);
             tip.refresh();
             assert(regions.list !== regions.sides, "the regions are that many elements");
             assert(regions.title !== regions.header, "and none of them stands in for another");
@@ -1792,6 +1962,7 @@ export function composePanelHost(
             register.reset();
             setFoldDrawn(isCollapsed);
             setPanelFolded(document, regions, redraw);
+            setAurasDrawn(document, auras, null, redraw);
             if (!isCollapsed) {
                 regions.list = redraw(regions.list, "list", () => composeWaitingElement(document));
             }

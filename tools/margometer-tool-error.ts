@@ -17,7 +17,8 @@ export type MargoMeterToolErrorCode =
     | "Changelog"
     | "DrillReport"
     | "TurnCount"
-    | "TurnReading";
+    | "TurnReading"
+    | "SkillTable";
 
 export abstract class MargoMeterToolError extends Error {
     readonly code: MargoMeterToolErrorCode;
@@ -138,5 +139,12 @@ export class TurnCountError extends MargoMeterToolError {
 export class TurnReadingError extends MargoMeterToolError {
     constructor(reason: string) {
         super("TurnReading", reason);
+    }
+}
+
+/** The skill table refused: a host that would not answer, or a page that is no longer a table. */
+export class SkillTableError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super("SkillTable", reason, options);
     }
 }

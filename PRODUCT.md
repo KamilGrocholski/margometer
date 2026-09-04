@@ -47,7 +47,7 @@ like a correct one. Everything below follows from refusing that.
 - **Core** — implements a pillar. The ranking, the decoder, the unknown-and-suspect marking, the
   summary bar.
 - **Supporting** — makes a core workflow safer, clearer or easier. The drill levels, kept fights,
-  the storage choice, the location line.
+  the storage choice, the location line, the strip of auras beside the panel.
 - **Experimental** — requires a hypothesis, a measure and a review date. Nothing is here today.
 - **Deprecated** — carries an explicit removal path.
 

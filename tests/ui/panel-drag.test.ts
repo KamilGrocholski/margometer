@@ -3,8 +3,9 @@
  * and it is where they left it when they come back.
  */
 
-import { assertEquals, assertStringIncludes } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/assert";
 import {
+    composeAuraDefaultPosition,
     composeClampedPosition,
     composeDefaultPosition,
     composePositionStyle,
@@ -12,6 +13,11 @@ import {
     composeTipLeft,
     getPositionFromStoredText,
 } from "@/src/ui/panel-drag.ts";
+import { AURAS, SPACE } from "@/src/ui/panel-look.ts";
+
+/** Read off the sheet's own tokens, so the sum below is the sheet's arithmetic and not a copy. */
+const AURA_WIDTH = Number(AURAS.width.slice(0, -2));
+const GAP = Number(SPACE.small.slice(0, -2));
 
 const WINDOW = { width: 1280, height: 900 };
 
@@ -58,6 +64,30 @@ Deno.test("a panel nobody has moved opens in the middle of the window", () => {
     );
     // Not a guess: a drag from a guessed origin snatches the panel out from under the hand.
     assertEquals(composeDefaultPosition(null), null, "and nothing where the page states no size");
+});
+
+/**
+ * ⚠️ **The strip opens beside the panel, never under it.** Centring both put the strip exactly
+ * where the panel stands, and the panel paints over it — so a reader saw nothing at all. Caught in
+ * a screenshot on 2026-09-04, because every unit test still passed.
+ */
+Deno.test("a strip nobody has moved opens beside the panel, clear of it", () => {
+    const panel = composeDefaultPosition(WINDOW);
+    const strip = composeAuraDefaultPosition(WINDOW);
+    assertExists(panel, "the panel opens somewhere");
+    assertExists(strip, "and so does the strip");
+    assertEquals(strip.top, panel.top, "level with the panel, so the two read as one thing");
+    assert(strip.left < panel.left, "and to the left of it");
+    assertEquals(
+        panel.left - strip.left,
+        AURA_WIDTH + GAP,
+        "clear of it by its own width and the gap the sheet states, so neither covers the other",
+    );
+    assertEquals(
+        composeAuraDefaultPosition(null),
+        null,
+        "and nowhere where the page states no size",
+    );
 });
 
 Deno.test("a position survives a reload, and nothing else is read as one", () => {

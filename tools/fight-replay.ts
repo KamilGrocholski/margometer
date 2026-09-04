@@ -13,6 +13,11 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
+import { composeAuraTurnsBySkillId } from "@/src/core/aura-standing.ts";
+import { FROZEN_AURA_TURNS } from "@/frozen/aura-turns.ts";
+
+/** Composed once, for the reason `src/userscript-entry.ts` gives beside its own. */
+const AURA_TURNS_BY_SKILL_ID = composeAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills);
 import {
     addPayloadToSession,
     type BattleSession,
@@ -72,11 +77,14 @@ function composeReplayOfSession(name: string, session: BattleSession): FightRepl
     const reading: FightReading = {
         ...held,
         events: [...held.events],
+        statusEpisodes: held.statusEpisodes.map((episode) => ({ ...episode })),
         messagesByPayload: held.messagesByPayload.map((messages) => [...messages]),
     };
     const statistics = composeFightStatistics(
         reading.events,
         composeTeamHeals(reading.events, reading.roster),
+        reading.statusEpisodes,
+        AURA_TURNS_BY_SKILL_ID,
     );
     assert(reading.payloads > 0, "a fight that was read was built from something");
     assert(statistics.unreadMessages >= 0, "and states what it could not read, even as none");

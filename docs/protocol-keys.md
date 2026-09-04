@@ -2214,3 +2214,43 @@ _Evidence:_ they appeared in the first key list because it was gathered by grepp
 module, which holds three switches. Bounding each switch by brace balance removed them, and they are
 absent from the production battle switch entirely. Recorded so nobody spends a second afternoon on
 them.
+
+## Keys of the warrior record, which are not message keys
+
+Everything above is a key of a **message**. These four sit on `payload.w.<id>` instead — the
+client's own warrior record, which is also where the roster is read from
+(`src/game/engine-warrior.ts`). They reach no message and so no entry above; a reader looking for
+them there would conclude the game does not send them.
+
+### `buffs` — decoded
+
+The statuses standing on that combatant, as a **bitmask**. The client reads nine of its bits and
+tips each (`updateWarriorBuffs` and `buffNames`, development build `1781609507010`). No duration, no
+caster, no remainder. What each bit means and what the tenth one is doing there:
+[`docs/statuses-standing.md`](statuses-standing.md), **ADR 0050**.
+
+_Shape:_ 4954 statements over `captures/`, 2026-09-03, present in every recording; a whole number,
+never an object. 57 warrior records carry none, which is a different answer from a mask of zero.
+
+### `cooldowns` — read, not drawn
+
+The reader's own skills that are still recovering, as `[skillId, turnsRemaining]` pairs. **The one
+place the game states a remainder**, and it states it for skills rather than for statuses.
+
+_Shape:_ 420 statements over `captures/`, 2026-09-03, on **exactly one warrior per recording** — the
+reader's own. It names seven distinct skills across the corpus and all seven stand in
+`frozen/skill-durations.ts`; taken per recording, all **29** of the (recording, skill) pairs are
+also named by a `tspell`+`skillId` announcement inside that same recording.
+
+### `super_cast` — read, not drawn
+
+A skill being channelled over several turns, as `{name, turn, total_turns}`. The only stated
+`turn`/`total_turns` pair anywhere in the material.
+
+_Shape:_ 285 statements over `captures/`, 2026-09-03, on boss warriors — never on a player's.
+
+### `focus` — not looked into
+
+A combatant id, or `0`. Probably the provocation target, and nothing here has measured that.
+
+_Shape:_ 4954 statements over `captures/`, 2026-09-03; a whole number, `0` in 4489 of them.

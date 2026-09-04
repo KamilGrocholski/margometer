@@ -872,3 +872,49 @@ Deno.test("a name that opens another does not take its line", () => {
     assertEquals(statistics.byCombatantId.get(2)?.turnsLost, 1, "the longer name holds the line");
     assertEquals(statistics.byCombatantId.get(1)?.turnsLost, undefined, "and the shorter has none");
 });
+
+/**
+ * ⚠️ **The length is arithmetic, so something has to pin the arithmetic.** It is what the aura
+ * register grades a stated duration against, and a reader comparing two outputs of this same sum
+ * passes an off-by-one straight through. The turns below are `getTurnsTaken`'s own for these blows.
+ */
+Deno.test("a status has stood for the turns its bearer took while it was standing", () => {
+    const events = decodeFightMessages([BARE_BLOW, BARE_BLOW_AGAIN], null);
+    const afterFirst = decodeFightMessages([BARE_BLOW], null).length;
+    const standing = (fromEventIndex: number) =>
+        composeFightStatistics(events, new Map(), [{
+            combatantId: 482845,
+            bit: 3,
+            fromEventIndex,
+            toEventIndex: null,
+            wasStandingAtFirstSight: false,
+        }]).statusRuns;
+    assertEquals(getTurnsTaken([BARE_BLOW, BARE_BLOW_AGAIN], 482845), 2, "two blows, two turns");
+    assertEquals(standing(0)[0]?.turns, 2, "standing before either of them, it stood both");
+    assertEquals(
+        standing(afterFirst)[0]?.turns,
+        1,
+        "set after the first, it stood only the second",
+    );
+    // Zero is a boundary: a status the game set after the last message has stood no turn yet, and
+    // that is a measurement rather than a status nobody counted.
+    assertEquals(standing(events.length)[0]?.turns, 0, "and set after the last, it has stood none");
+    assertEquals(standing(events.length).length, 1, "which is a run of none, not an absence");
+});
+
+Deno.test("a status that stopped is a run that says so, and still says how long", () => {
+    const events = decodeFightMessages([BARE_BLOW, BARE_BLOW_AGAIN], null);
+    const statistics = composeFightStatistics(events, new Map(), [{
+        combatantId: 482845,
+        bit: 3,
+        fromEventIndex: 0,
+        toEventIndex: events.length,
+        wasStandingAtFirstSight: false,
+    }]);
+    assertEquals(
+        statistics.statusRuns.map((run) => run.isStanding),
+        [false],
+        "an episode the game closed is a run that is no longer standing",
+    );
+    assertEquals(statistics.statusRuns[0]?.turns, 2, "and it still says how long it ran");
+});

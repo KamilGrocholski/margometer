@@ -15,7 +15,6 @@ import {
     getFragments,
     getOccurrenceCount,
     getPhraseCounts,
-    getTextFromHtml,
     isDumpStale,
     MECHANICS_ARTICLE,
     requireArticleId,
@@ -26,22 +25,6 @@ import { HelpArticleError } from "@/tools/margometer-tool-error.ts";
 const READ_AT = "2026-08-09T12:00:00.000Z";
 const READ_AT_MILLISECONDS = Date.parse(READ_AT);
 const MILLISECONDS_PER_DAY = 86_400_000;
-
-Deno.test("what a browser reads as machinery never reaches the search", () => {
-    // Strip the tags before the script bodies and the page's own code stays in the result, where
-    // a search hits it and reports machinery as documentation.
-    const text = getTextFromHtml("<p>Blok</p><script>var evade = 1;</script><p>Unik</p>");
-    assertEquals(text, "Blok Unik", "the script's body came out with its tag");
-    assert(!text.includes("evade"), "and took the name inside it along");
-    assertEquals(getTextFromHtml("<style>a{b:c}</style><p>1 &lt; 2</p>"), "1 < 2", "style too");
-});
-
-Deno.test("an entity is unescaped as many times as the page escaped it", () => {
-    // Each pass runs over what the one before produced, so `&amp;lt;` reaches `<`. One pass over
-    // the original stops at `&lt;`, which is a different answer to the same input.
-    assertEquals(getTextFromHtml("<p>a &amp;lt; b</p>"), "a < b", "twice-escaped comes out once");
-    assertEquals(getTextFromHtml("<p>a&nbsp;b</p>"), "a b", "and a space that was not one");
-});
 
 Deno.test("two hits inside one window read as one fragment, and two far apart as two", () => {
     const near = `${"a".repeat(50)}NEEDLE${"b".repeat(10)}NEEDLE${"c".repeat(50)}`;

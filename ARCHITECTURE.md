@@ -47,6 +47,7 @@ playwright.config.ts  Where the browser suite looks, which engine it drives, wha
     release.yml    What a tag turns into: the built file, and the notes its section carries.
 
 libs/              Knows nothing of this project. Imports `@std/` and its own siblings.
+  html-text.ts     Somebody else's markup, read as the words a person would have seen in it.
   json-text.ts     JSON both ways, each answering whether it worked rather than with `null`.
   number-range.ts  A number held between two ends, and which end wins where there is no room.
   number-text.ts   Numbers read out of text and written back into it, refusing before reading.
@@ -62,6 +63,8 @@ src/
     battle-event.ts      The data contract: what the decoder produces, and nothing else.
     combatant-health.ts  Health read from a stated share, and how far off it can be.
     combatant-roster.ts  Who is in the fight, and which names resolve to one of them.
+    combatant-status.ts  What a bit of the payload's own status mask means, the tenth included.
+    aura-standing.ts     What one skill put on a whole side, and how long the game says it runs.
     fight-decoder.ts     What a key means, and what a key with no meaning leaves unread.
     game-build.ts        The build id the client states in its bundle's own filename.
     fight-statistics.ts  The figures a panel draws, with what nobody can be charged apart.
@@ -80,6 +83,7 @@ src/
     fight-report.ts      The figures of one fight, written into the recording beside them.
     engine-warrior.ts    The client's own field names, and the only file that spells them.
   ui/
+    panel-aura.ts        What is running on a side, as the strip beside the panel reads it.
     panel-card.ts        What a person's row says on demand, out of the figures it holds.
     panel-drag.ts        Where the panel sits, and how a reader moves it.
     panel-element.ts     The panel drawn into a document it is handed, region by region.
@@ -100,6 +104,8 @@ tools/             Never ships. Each arrives with the question it answers.
   drill-report.ts      Which rows of the panel open, measured level by level over a fight.
   turn-count.ts        What a fight's turns come to, graded against the game's own numbering.
   turn-reading.ts      How a message becomes a turn, and which message a dispute stands on.
+  status-standing.ts   What the payload's mask leaves standing, and how long it has stood.
+  aura-standing.ts     What a skill put on a side, how often, and how many ran at once.
   preview-page.ts      The harness page, whole, as one string. It speaks neither language.
   preview-state.ts     What the harness carries between two pages, in the address and nowhere else.
   preview-server.ts    That page served, rebuilt on a change under `src/`, and reloaded.
@@ -109,6 +115,7 @@ tools/             Never ships. Each arrives with the question it answers.
   game-client-source.ts  The client fetched and dated, and the cache nothing published leaves.
   protocol-key-table.ts  Every key that client branches on, lifted out of its own switch.
   help-article.ts      The published help cached, searched raw, and counted into a reading.
+  skill-table.ts       The published skills cached, and the turns each effect states, frozen.
   help-claim-register.ts  What `docs/protocol-keys.md` claims of the help, read out of it.
   game-readings.ts     Whether each dated reading is still the game's, and the refresh.
   declared-version.ts  The one place a version is written down, and what a dev build says.
@@ -120,12 +127,16 @@ frozen/            Dated readings of the game, written by tooling.
   AGENTS.md        Why no hand edits one, and what provenance each carries.
   protocol-keys.ts GENERATED. Every key the client knows, with its build.
   help-phrases.ts  GENERATED. How often each cited phrase occurs in the help.
+  skill-durations.ts  GENERATED. Every skill's effect keys, and the turns each states.
+  aura-turns.ts    GENERATED. The skills reaching a side, and how long each runs.
 docs/
   protocol-keys.md   What has been looked into, key by key: verdict, evidence, state.
   releasing.md       The steps a release runs, and which of them a machine holds.
   drill-levels.md    Which kind of row opens onto another level, and which is the last.
   turns-taken.md     What a turn count comes to, and what it does not claim.
   reading-a-turn.md  How a message becomes a turn, and every opener the game disputes.
+  statuses-standing.md  What the mask leaves standing, and who the protocol never names.
+  auras-standing.md  What one skill put on a side, and why the end is unwitnessed.
   captured-fights.md What each recording holds, and how much protocol it carries.
   browser-support.md What the shipped file asks of a browser.
   adr/               Decisions costly or surprising to reverse.
@@ -145,6 +156,7 @@ tests/
     battle-event.test.ts      Every variant the union holds, against what arrives.
     combatant-health.test.ts  The arithmetic, against the client's own three figures.
     combatant-roster.test.ts  Two of a name, one of nobody, and every recording.
+    combatant-status.test.ts  Every bit of the payload's own mask, the tenth included.
     fight-decoder.test.ts     The blows, and what is left unread beside them.
     game-build.test.ts        Both names the client serves, and what is not one of them.
     health-witness.test.ts    What was read, against what the protocol says of itself.
@@ -171,6 +183,8 @@ tests/
     drill-report.test.ts      The register against every level drawn, both ways round.
     turn-count.test.ts        The register against every recording graded, both ways round.
     turn-reading.test.ts      The disputed openers, and this reading against the panel's.
+    status-standing.test.ts   The status register, against every recording, both ways.
+    aura-standing.test.ts     The aura register, against every recording, both ways.
     preview-page.test.ts      The page, read back: the order of its scripts, and its escaping.
     preview-state.test.ts     Both halves of the address, run rather than searched for words.
     preview-server.test.ts    Every route, against a bundle handed in rather than built.
@@ -185,6 +199,7 @@ tests/
     declared-version.test.ts  The declaration read both ways, and the mark a dev build wears.
   ui/
     blow-vocabulary.test.ts   Every key a blow carried, against the words the panel has for it.
+    panel-aura.test.ts        The strip's rows, over a fight two people cast into at once.
     panel-card.test.ts        Every figure a card states, and the parts it draws under them.
     panel-drag.test.ts        A panel kept on the screen, and put back where it was left.
     panel-element.test.ts     What the panel puts on a page, read back out of it.
@@ -196,6 +211,7 @@ tests/
     ranked-order.test.ts      The order two rows are drawn in, and the tie nothing breaks.
     share-column.test.ts      Every column of shares the panel draws, against the hundred.
   libs/                    A test sits where its subject sits.
+    html-text.test.ts         Markup out, entities back, and a cell read as its own words.
     json-text.test.ts         Both directions, over the answers `null` used to stand for.
     number-range.test.ts      Every side of two ends, and the range with no room in it.
     number-text.test.ts       Text that looks like a number, against text that is one.
@@ -208,6 +224,7 @@ tests/
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
     names.test.ts          File names, exported functions and exported types.
     protocol-keys.test.ts  The register help claims, re-counted against the frozen table.
+    skill-durations.test.ts  The frozen skill table, and every skill the corpus announces.
     readmes.test.ts        The two READMEs to one skeleton, and both to one set of shots.
     cited-paths.test.ts    Every rooted path a document names, against the tree it names into.
     constructs.test.ts     The construct register, against the files it says own each reading.
