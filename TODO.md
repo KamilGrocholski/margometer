@@ -19,18 +19,17 @@
 ## In Progress
 - [ ] !!!IMPORTANT!!!I need fabricated fights - create a tool for it
 - [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development, now I only know 1-93lvl)
-- [ ] FIX: remember the last scroll position
 - [ ] Create a better design for helper
     - [ ] Ask discord for help
     - [ ] Add buffs and debuffs tracking - the second version of it is waiting outside the develop branch
 - [ ] Test turns
 
 ## Up Next
-- [ ] Change workflow: main | staging(maybe) | develop | feat branch(sometimes); add staging
 - [ ] Add "ucieczka" as a new fight outcome
 - [ ] Do a manual audit
 
 ## Done
+- [x] FIX: remember the last scroll position
 - [x] Consider adding `turn` to stats - maybe I will find a solution to read turns after the latest fail
 - [x] !!!IMPORTANT!!! Fix workflow each time before doing ANY work round: fetch game source files; refresh frozen dir content
 - [x] Add E2E tests - maybe trying out deno was not a good option
