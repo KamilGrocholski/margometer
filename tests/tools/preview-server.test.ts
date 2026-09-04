@@ -5,7 +5,14 @@
  * what a reload stream says, and a real bundle would add a subprocess to every one of them.
  */
 
-import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertStringIncludes,
+    assertThrows,
+} from "@std/assert";
+import { PreviewBuildError } from "@/tools/margometer-tool-error.ts";
 import { setPreviewServer } from "@/tools/preview-server.ts";
 import {
     getPreviewRecordedFight,
@@ -147,4 +154,61 @@ Deno.test("the reload stream opens, and stopping the server takes it with it", a
     assertStringIncludes(opening, "retry:", "saying how soon a browser should come back");
     await reader.cancel();
     await preview.stop();
+});
+
+/**
+ * `--from` is how a fight that is not material reaches the panel — a fabricated one, or a
+ * recording a reader has not put through intake yet. The file is written to a temporary
+ * directory rather than to `fabricated/`, which need not exist on the machine running the gate.
+ */
+Deno.test("a fight opened at a path is drawn beside the recordings", async () => {
+    const directory = Deno.makeTempDirSync();
+    const path = `${directory}/opened-at-a-path.json`;
+    Deno.writeTextFileSync(
+        path,
+        JSON.stringify({
+            calls: [{ index: 0, payload: { init: "1", myteam: 1, w: {} }, messages: [] }],
+        }),
+    );
+    const preview = setPreviewServer({
+        port: 0,
+        shouldWatch: false,
+        readBundle: () => Promise.resolve(BUNDLE),
+        fromPaths: [path],
+    });
+    try {
+        const answer = await fetch(`${preview.url}/?fight=opened-at-a-path`);
+        const page = await answer.text();
+        assertEquals(answer.status, 200, "a fight opened at a path is one the server draws");
+        assertStringIncludes(page, "opened-at-a-path", "and the page says which one it is");
+        assert(
+            getRecordedFightNames().every((name) => name !== "opened-at-a-path"),
+            "while the evidence directory is left holding exactly what it held",
+        );
+    } finally {
+        await preview.stop();
+        Deno.removeSync(directory, { recursive: true });
+    }
+});
+
+Deno.test("a path whose name a recording already carries is refused, not drawn over it", () => {
+    const directory = Deno.makeTempDirSync();
+    const taken = getRecordedFightNames()[0] ?? "";
+    assert(taken.length > 0, "there is a recording whose name can be collided with");
+    const path = `${directory}/${taken}.json`;
+    Deno.writeTextFileSync(
+        path,
+        JSON.stringify({
+            calls: [{ index: 0, payload: { init: "1", myteam: 1, w: {} }, messages: [] }],
+        }),
+    );
+    try {
+        assertThrows(
+            () => setPreviewServer({ port: 0, shouldWatch: false, fromPaths: [path] }),
+            PreviewBuildError,
+            taken,
+        );
+    } finally {
+        Deno.removeSync(directory, { recursive: true });
+    }
 });

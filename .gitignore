@@ -9,3 +9,7 @@ node_modules/
 
 # Session machinery, not project content.
 .claude/scheduled_tasks.lock
+
+# Fights nobody fought, composed by `deno task fight:fabricate` for one machine.
+# `captures/` is evidence; this is invented, and never enters git.
+fabricated/

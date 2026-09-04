@@ -21,7 +21,8 @@
         // what `deno.json` declares and marks it `-dev` — ADR 0035.
         "build": "deno run -A tools/build-userscript.ts",
         // The panel in a browser, changing while you edit it: the add-on over a recording,
-        // rebuilt and reloaded on a change under `src/`.
+        // rebuilt and reloaded on a change under `src/`. `--from <path>` shows a fight opened at
+        // a path beside the recordings, which is how a fabricated one is looked at.
         "preview": "deno run -A tools/preview-server.ts",
         // The same panel, written down for somebody who has installed nothing: one page per
         // recording under `dist/preview`, which `.github/workflows/pages.yml` publishes. That
@@ -55,6 +56,10 @@
         "fight:statuses": "deno run -A tools/status-standing.ts",
         // How a recording the add-on wrote becomes material: two redactions, then a file.
         "capture:intake": "deno run -A tools/capture-intake.ts",
+        // A fight nobody fought, written where git does not look. The corpus is 22 recordings of
+        // `10 vs 1` and no player against a player at all, so this is the only ten-a-side the
+        // panel can be looked at on. Never material, and `tools/fabricated-fight.ts` says why.
+        "fight:fabricate": "deno run -A tools/fabricated-fight.ts",
         // The client fetched and dated, so a claim about it can name the build it was read on.
         "game:client": "deno run -A tools/game-client-source.ts",
         // Every reading of the game this repository stands on, asked whether it is still the
@@ -129,5 +134,5 @@
         "allowUnreachableCode": false,
         "allowUnusedLabels": false
     },
-    "exclude": ["captures/", "design/", "dist/", ".cache/", "node_modules/"]
+    "exclude": ["captures/", "design/", "dist/", ".cache/", "fabricated/", "node_modules/"]
 }

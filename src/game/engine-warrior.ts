@@ -17,6 +17,7 @@ import {
 
 const WARRIORS_KEY = "w";
 const HEALTH_KEY = "hp";
+const HEALTH_MAXIMUM_KEY = "max";
 /**
  * What a payload's own warrior is read by, wherever it is read — **N13**. `npc` is here and
  * nowhere in a `Combatant`: this add-on never needs to know who is a person, and the one reader
@@ -31,8 +32,9 @@ export const WARRIOR_FIELDS = {
     profession: "prof",
     level: "lvl",
     statuses: "buffs",
+    health: HEALTH_KEY,
+    healthMaximum: HEALTH_MAXIMUM_KEY,
 } as const;
-const HEALTH_MAXIMUM_KEY = "max";
 
 /**
  * Where the running fight keeps its combatants, in the order tried. Each value receives every

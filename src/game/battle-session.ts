@@ -29,9 +29,9 @@ import {
     MAXIMUM_STATUS_BIT,
 } from "@/src/core/combatant-status.ts";
 
-const FIGHT_OPENS_KEY = "init";
-const FIGHT_ENDS_KEY = "endBattle";
-const MESSAGES_KEY = "m";
+export const FIGHT_OPENS_KEY = "init";
+export const FIGHT_ENDS_KEY = "endBattle";
+export const MESSAGES_KEY = "m";
 /**
  * The companion list the client itself never reads, and the only witness that a payload stated
  * messages at all. Measured over `captures/`, 2026-08-28: present in exactly the 1048 payloads
