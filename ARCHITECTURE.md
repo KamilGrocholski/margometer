@@ -123,6 +123,7 @@ tools/             Never ships. Each arrives with the question it answers.
   margometer-tool-error.ts  The abstract brand a terminal failure wears, and the build's own.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
 screenshots/       One set of the panel, with the sidecar naming the commit it was shot at.
+design/            Design canvases, and the artboards each is composed from. Ships nothing.
 frozen/            Dated readings of the game, written by tooling.
   AGENTS.md        Why no hand edits one, and what provenance each carries.
   protocol-keys.ts GENERATED. Every key the client knows, with its build.

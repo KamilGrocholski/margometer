@@ -1,0 +1,154 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+body{margin:0;}
+a{color:#a8600b;} a:hover{color:#7d4708;}
+*{box-sizing:border-box;}
+.sheet{width:100%;min-height:100%;background:#f5f3ee;color:#1b1a17;
+  font-family:"IBM Plex Sans",system-ui,sans-serif;padding:34px 38px 38px;
+  display:flex;flex-direction:column;gap:22px;}
+.tag{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:#8a8478;display:flex;gap:10px;align-items:center;}
+.tag .dot{width:5px;height:5px;background:#a8600b;border-radius:50%;}
+.tag .rec{color:#2c6b4c;}
+.tag .no{color:#a8600b;}
+h1{font-size:25px;line-height:1.14;margin:9px 0 0;font-weight:600;letter-spacing:-.012em;}
+.lede{font-size:13.5px;line-height:1.55;color:#4a463e;max-width:62ch;margin:9px 0 0;
+  text-wrap:pretty;}
+.stage{background:#0b0b0e;border:1px solid #d9d5cc;padding:26px;display:flex;gap:26px;
+  align-items:flex-start;justify-content:center;flex-wrap:wrap;}
+.stage.tight{padding:20px;gap:18px;}
+.cap{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:#75705f;margin-bottom:9px;}
+.hold{display:flex;flex-direction:column;align-items:flex-start;}
+.notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 30px;
+  border-top:1px solid #d9d5cc;padding-top:18px;}
+.note h3{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:#8a8478;margin:0 0 5px;font-weight:500;}
+.note h3.warn{color:#a8600b;}
+.note h3.good{color:#2c6b4c;}
+.note p{margin:0;font-size:12.5px;line-height:1.5;color:#33302a;text-wrap:pretty;}
+.m{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11.5px;background:#eae7df;
+  padding:1px 4px;}
+table.reg{border-collapse:collapse;width:100%;font-size:12.5px;}
+table.reg th{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;
+  letter-spacing:.1em;text-transform:uppercase;color:#8a8478;font-weight:500;text-align:left;
+  padding:0 12px 6px 0;border-bottom:1px solid #d9d5cc;}
+table.reg td{padding:6px 12px 6px 0;border-bottom:1px solid #e6e2d9;vertical-align:top;
+  line-height:1.45;}
+table.reg td.n{text-align:right;font-variant-numeric:tabular-nums;padding-right:16px;}
+table.reg .mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11.5px;}
+table.reg .flag{color:#a8600b;}
+table.reg .none{color:#8a8478;}
+
+/* ---- the panel, 1:1, values from src/ui/panel-look.ts ---- */
+.mm-bar{width:260px;display:flex;align-items:center;gap:4px;padding:4px 8px;
+  font:11px/13px system-ui,sans-serif;letter-spacing:.06em;color:#9a9aa6;background:#1f1f26;
+  border:1px solid #2c2c35;border-bottom:none;border-radius:8px 8px 0 0;white-space:nowrap;}
+.mm-ver{opacity:.7;font-size:10px;}
+.mm-ctl{margin-left:auto;display:flex;gap:4px;}
+.mm-body{width:260px;background:#17171c;border:1px solid #2c2c35;border-radius:0 0 8px 8px;
+  font:11px/15px system-ui,sans-serif;color:#e7e7ea;display:flex;flex-direction:column;}
+.mm-head{padding:5px 7px 0;}
+.mm-hl{display:flex;justify-content:space-between;align-items:baseline;}
+.mm-out{color:#9a9aa6;text-transform:uppercase;font-size:10px;}
+.mm-place{color:#9a9aa6;font-size:10px;}
+.mm-tabs{display:flex;flex-wrap:wrap;gap:2px;padding:5px 7px 0;}
+.mm-tabs+.mm-tabs{padding-top:3px;}
+.mm-gap{flex:1;}
+.mm-tab{padding:1px 4px;border-radius:3px;color:#9a9aa6;white-space:nowrap;}
+.mm-tab.on{color:#e7e7ea;background:#1f1f26;}
+.mm-crumb{display:flex;gap:8px;align-items:baseline;padding:5px 7px 0;}
+.mm-back{color:#9a9aa6;}
+.mm-here{font-weight:600;}
+.mm-list{padding:5px 7px 3px;}
+.mm-sec{display:flex;justify-content:space-between;color:#868691;letter-spacing:.08em;
+  font-size:10px;padding:4px 2px 2px;}
+.mm-row{position:relative;display:flex;justify-content:space-between;align-items:center;
+  height:18px;padding:1px 8px 0;margin-bottom:2px;border-radius:3px;background:#24242a;
+  overflow:hidden;}
+.mm-rank{position:relative;flex:none;width:22px;text-align:right;padding-right:4px;
+  color:#9a9aa6;font-variant-numeric:tabular-nums;}
+.mm-name{position:relative;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;}
+.mm-val{position:relative;flex:none;padding-left:8px;font-weight:600;
+  font-variant-numeric:tabular-nums;white-space:nowrap;}
+.mm-share{color:#9a9aa6;padding-left:4px;font-weight:400;}
+.mm-fill{position:absolute;left:0;top:0;bottom:0;opacity:.55;}
+.mm-cap{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+.mm-warn{position:relative;flex:none;color:#c98500;padding-right:4px;}
+.mm-marks{position:relative;flex:none;display:flex;gap:3px;align-items:center;
+  padding-left:6px;}
+.mm-sides{padding:5px 7px;border-top:1px solid #2c2c35;}
+.mm-sl{display:flex;justify-content:space-between;align-items:baseline;
+  font-variant-numeric:tabular-nums;font-weight:600;}
+.mm-slab{color:#9a9aa6;font-weight:400;opacity:.8;}
+.mm-track{display:flex;height:4px;margin-top:4px;border-radius:3px;overflow:hidden;
+  background:#24242a;}
+.mm-track>*{background:currentColor;}
+.ours{color:#6fbf8b;} .theirs{color:#e0736f;} .nobody{color:#8a8a80;}
+.mm-note{color:#9a9aa6;padding:0 7px 5px;}
+
+/* ---- the window beside the panel ---- */
+.aw-bar{display:flex;align-items:center;gap:4px;padding:4px 8px;
+  font:11px/13px system-ui,sans-serif;letter-spacing:.06em;color:#9a9aa6;background:#1f1f26;
+  border:1px solid #2c2c35;border-bottom:none;border-radius:8px 8px 0 0;white-space:nowrap;}
+.aw-body{background:#17171c;border:1px solid #2c2c35;border-radius:0 0 8px 8px;
+  padding:5px 7px;font:11px/15px system-ui,sans-serif;color:#e7e7ea;}
+.aw-sec{display:flex;justify-content:space-between;color:#868691;letter-spacing:.08em;
+  font-size:10px;padding:4px 2px 2px;}
+.aw-skill{color:#9a9aa6;margin-top:2px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;}
+.aw-row{display:flex;justify-content:space-between;gap:4px;height:18px;align-items:center;}
+.aw-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.aw-turns{white-space:nowrap;flex:none;}
+</style>
+</helmet>
+<div class="sheet">
+<div class="tag"><span class="dot"></span>Szybki wgląd · M</div>
+<h1>Co się właśnie zmieniło</h1>
+<p class="lede">Stan, który stoi dwanaście tur, nie jest wiadomością — jest tłem. Wiadomością jest ten, który właśnie stanął albo właśnie zszedł. Sesja i tak porównuje maskę z poprzednią przy każdej paczce, żeby otwierać i zamykać epizody; ta plansza rysuje tę różnicę zamiast ją wyrzucać.</p>
+
+<div class="stage">
+  <div class="hold">
+    <div class="cap">Pasek nad resztą okna</div>
+    <div class="aw-bar" style="width:200px">⠿ Stan · <span class="ours">My</span></div>
+    <div class="aw-body" style="width:200px">
+      <div class="aw-sec"><span>WŁAŚNIE STANĘŁO</span><span>2</span></div>
+      <div class="aw-row"><span class="aw-name ours" style="flex:none;width:96px">Gracz 7</span><span class="aw-name" style="color:#9a9aa6">zatrucie</span></div>
+      <div class="aw-row"><span class="aw-name ours" style="flex:none;width:96px">Gracz 2</span><span class="aw-name" style="color:#9a9aa6">spowolnienie</span></div>
+      <div class="aw-sec"><span>WŁAŚNIE ZESZŁO</span><span>1</span></div>
+      <div class="aw-row"><span class="aw-name ours" style="flex:none;width:96px">Gracz 5</span><span class="aw-name" style="color:#9a9aa6">podpalenie</span></div>
+      <div class="aw-sec"><span>NA POSTACIACH</span><span>5</span></div>
+      <div class="aw-skill">Gracz 7</div><div class="aw-row"><span class="aw-name" style="padding-left:8px;color:#9a9aa6">zatrucie</span><span class="aw-turns">1 tura</span></div><div class="aw-skill">Gracz 2</div><div class="aw-row"><span class="aw-name" style="padding-left:8px;color:#9a9aa6">spowolnienie</span><span class="aw-turns">3 tury</span></div><div class="aw-skill">Gracz 9</div><div class="aw-row"><span class="aw-name" style="padding-left:8px;color:#9a9aa6">rana</span><span class="aw-turns">5 tur</span></div><div class="aw-row"><span class="aw-name" style="padding-left:8px;color:#9a9aa6">zatrucie</span><span class="aw-turns">3 tury</span></div><div class="aw-skill">Gracz 4</div><div class="aw-row"><span class="aw-name" style="padding-left:8px;color:#9a9aa6">zatrucie</span><span class="aw-turns">12 tur</span></div><div class="aw-row"><span class="aw-name" style="padding-left:8px;color:#9a9aa6">spowolnienie</span><span class="aw-turns">4 tury</span></div><div class="aw-skill">Gracz 1</div><div class="aw-row"><span class="aw-name" style="padding-left:8px;color:#9a9aa6">rana</span><span class="aw-turns"><span style="color:#c98500">⚠ </span>17 tur</span></div>
+    </div>
+  </div>
+
+  <div style="flex:1;min-width:250px">
+    <div class="cap">Co tu jest odczytem</div>
+    <div style="color:#e7e7ea;font:12px/1.65 system-ui,sans-serif">
+      <strong>„Stanęło"</strong> — bit, którego w poprzedniej masce nie było, a w tej jest.<br><br>
+      <strong>„Zeszło"</strong> — bit, który był, a nie ma go. To jedyne miejsce w całym panelu, gdzie da się powiedzieć, że coś się skończyło: gra gasi bit i to widać. Aura tego nie ma — jej koniec nikt nigdy nie ogłasza.<br><br>
+      <span style="color:#9a9aa6">Obie sekcje znikają, kiedy nic się nie zmieniło. Nic nie miga, nic się nie przesuwa — pojawiają się i gasną, tak jak całe okno.</span>
+    </div>
+  </div>
+</div>
+
+<div class="notes">
+  <div class="note"><h3 class="good">Odpowiada na „mam szybko zareagować"</h3><p>Dwie linie na górze okna są tym, czego jeszcze nie widziałeś. Reszta okna zostaje tam, gdzie była, i nie trzeba jej czytać od nowa co paczkę.</p></div>
+  <div class="note"><h3 class="good">To już jest policzone</h3><p><span class="m">addStatusMaskToSession</span> porównuje starą maskę z nową przy każdej paczce, żeby otworzyć albo zamknąć epizod. Ta różnica istnieje — dziś tylko nikt jej nie pokazuje.</p></div>
+  <div class="note"><h3 class="warn">Jak długo to stoi</h3><p>Do następnej paczki czy do następnej tury nosiciela? Paczka przychodzi częściej, więc „stanęło" gasłoby, zanim zdążysz przeczytać. Tura nosiciela jest jednostką, w której panel liczy wszystko inne — i to jest odpowiedź do rozstrzygnięcia przed budową.</p></div>
+  <div class="note"><h3 class="warn">Panel nie ocenia, co ważne</h3><p>Nigdzie tu nie ma „groźne" ani „pilne". Kolejność jest pomiarem — co nowe stoi wyżej — a nie sądem o tym, na co warto zareagować. To zostaje przy Tobie, i tak ma zostać.</p></div>
+</div>
+</div>
+</x-dc>
+</body>
+</html>

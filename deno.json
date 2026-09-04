@@ -129,5 +129,5 @@
         "allowUnreachableCode": false,
         "allowUnusedLabels": false
     },
-    "exclude": ["captures/", "dist/", ".cache/", "node_modules/"]
+    "exclude": ["captures/", "design/", "dist/", ".cache/", "node_modules/"]
 }
