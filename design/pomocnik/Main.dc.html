@@ -1,0 +1,225 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+body{margin:0;}
+a{color:#a8600b;} a:hover{color:#7d4708;}
+*{box-sizing:border-box;}
+.sheet{width:100%;min-height:100%;background:#f5f3ee;color:#1b1a17;
+  font-family:"IBM Plex Sans",system-ui,sans-serif;padding:34px 38px 38px;
+  display:flex;flex-direction:column;gap:22px;}
+.tag{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:#8a8478;display:flex;gap:10px;align-items:center;}
+.tag .dot{width:5px;height:5px;background:#a8600b;border-radius:50%;}
+.tag .rec{color:#2c6b4c;}
+.tag .no{color:#a8600b;}
+h1{font-size:25px;line-height:1.14;margin:9px 0 0;font-weight:600;letter-spacing:-.012em;}
+.lede{font-size:13.5px;line-height:1.55;color:#4a463e;max-width:62ch;margin:9px 0 0;
+  text-wrap:pretty;}
+.stage{background:#0b0b0e;border:1px solid #d9d5cc;padding:26px;display:flex;gap:26px;
+  align-items:flex-start;justify-content:center;flex-wrap:wrap;}
+.stage.tight{padding:20px;gap:18px;}
+.cap{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.1em;
+  text-transform:uppercase;color:#75705f;margin-bottom:9px;}
+.hold{display:flex;flex-direction:column;align-items:flex-start;}
+.notes{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px 30px;
+  border-top:1px solid #d9d5cc;padding-top:18px;}
+.note h3{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;letter-spacing:.12em;
+  text-transform:uppercase;color:#8a8478;margin:0 0 5px;font-weight:500;}
+.note h3.warn{color:#a8600b;}
+.note h3.good{color:#2c6b4c;}
+.note p{margin:0;font-size:12.5px;line-height:1.5;color:#33302a;text-wrap:pretty;}
+.m{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11.5px;background:#eae7df;
+  padding:1px 4px;}
+table.reg{border-collapse:collapse;width:100%;font-size:12.5px;}
+table.reg th{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:10px;
+  letter-spacing:.1em;text-transform:uppercase;color:#8a8478;font-weight:500;text-align:left;
+  padding:0 12px 6px 0;border-bottom:1px solid #d9d5cc;}
+table.reg td{padding:6px 12px 6px 0;border-bottom:1px solid #e6e2d9;vertical-align:top;
+  line-height:1.45;}
+table.reg td.n{text-align:right;font-variant-numeric:tabular-nums;padding-right:16px;}
+table.reg .mono{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:11.5px;}
+table.reg .flag{color:#a8600b;}
+table.reg .none{color:#8a8478;}
+
+/* ---- the panel, 1:1, values from src/ui/panel-look.ts ---- */
+.mm-bar{width:260px;display:flex;align-items:center;gap:4px;padding:4px 8px;
+  font:11px/13px system-ui,sans-serif;letter-spacing:.06em;color:#9a9aa6;background:#1f1f26;
+  border:1px solid #2c2c35;border-bottom:none;border-radius:8px 8px 0 0;white-space:nowrap;}
+.mm-ver{opacity:.7;font-size:10px;}
+.mm-ctl{margin-left:auto;display:flex;gap:4px;}
+.mm-body{width:260px;background:#17171c;border:1px solid #2c2c35;border-radius:0 0 8px 8px;
+  font:11px/15px system-ui,sans-serif;color:#e7e7ea;display:flex;flex-direction:column;}
+.mm-head{padding:5px 7px 0;}
+.mm-hl{display:flex;justify-content:space-between;align-items:baseline;}
+.mm-out{color:#9a9aa6;text-transform:uppercase;font-size:10px;}
+.mm-place{color:#9a9aa6;font-size:10px;}
+.mm-tabs{display:flex;flex-wrap:wrap;gap:2px;padding:5px 7px 0;}
+.mm-tabs+.mm-tabs{padding-top:3px;}
+.mm-gap{flex:1;}
+.mm-tab{padding:1px 4px;border-radius:3px;color:#9a9aa6;white-space:nowrap;}
+.mm-tab.on{color:#e7e7ea;background:#1f1f26;}
+.mm-crumb{display:flex;gap:8px;align-items:baseline;padding:5px 7px 0;}
+.mm-back{color:#9a9aa6;}
+.mm-here{font-weight:600;}
+.mm-list{padding:5px 7px 3px;}
+.mm-sec{display:flex;justify-content:space-between;color:#868691;letter-spacing:.08em;
+  font-size:10px;padding:4px 2px 2px;}
+.mm-row{position:relative;display:flex;justify-content:space-between;align-items:center;
+  height:18px;padding:1px 8px 0;margin-bottom:2px;border-radius:3px;background:#24242a;
+  overflow:hidden;}
+.mm-rank{position:relative;flex:none;width:22px;text-align:right;padding-right:4px;
+  color:#9a9aa6;font-variant-numeric:tabular-nums;}
+.mm-name{position:relative;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;}
+.mm-val{position:relative;flex:none;padding-left:8px;font-weight:600;
+  font-variant-numeric:tabular-nums;white-space:nowrap;}
+.mm-share{color:#9a9aa6;padding-left:4px;font-weight:400;}
+.mm-fill{position:absolute;left:0;top:0;bottom:0;opacity:.55;}
+.mm-cap{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+.mm-warn{position:relative;flex:none;color:#c98500;padding-right:4px;}
+.mm-marks{position:relative;flex:none;display:flex;gap:3px;align-items:center;
+  padding-left:6px;}
+.mm-sides{padding:5px 7px;border-top:1px solid #2c2c35;}
+.mm-sl{display:flex;justify-content:space-between;align-items:baseline;
+  font-variant-numeric:tabular-nums;font-weight:600;}
+.mm-slab{color:#9a9aa6;font-weight:400;opacity:.8;}
+.mm-track{display:flex;height:4px;margin-top:4px;border-radius:3px;overflow:hidden;
+  background:#24242a;}
+.mm-track>*{background:currentColor;}
+.ours{color:#6fbf8b;} .theirs{color:#e0736f;} .nobody{color:#8a8a80;}
+.mm-note{color:#9a9aa6;padding:0 7px 5px;}
+
+/* ---- the window beside the panel ---- */
+.aw-bar{display:flex;align-items:center;gap:4px;padding:4px 8px;
+  font:11px/13px system-ui,sans-serif;letter-spacing:.06em;color:#9a9aa6;background:#1f1f26;
+  border:1px solid #2c2c35;border-bottom:none;border-radius:8px 8px 0 0;white-space:nowrap;}
+.aw-body{background:#17171c;border:1px solid #2c2c35;border-radius:0 0 8px 8px;
+  padding:5px 7px;font:11px/15px system-ui,sans-serif;color:#e7e7ea;}
+.aw-sec{display:flex;justify-content:space-between;color:#868691;letter-spacing:.08em;
+  font-size:10px;padding:4px 2px 2px;}
+.aw-skill{color:#9a9aa6;margin-top:2px;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;}
+.aw-row{display:flex;justify-content:space-between;gap:4px;height:18px;align-items:center;}
+.aw-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.aw-turns{white-space:nowrap;flex:none;}
+
+/* ---- the Pomocnik window, values from src/ui/panel-look.ts ---- */
+.pw{display:flex;flex-direction:column;}
+.pw-bar{display:flex;align-items:center;gap:5px;padding:4px 8px;
+  font:11px/13px system-ui,sans-serif;letter-spacing:.06em;color:#9a9aa6;
+  background:#1f1f26;border:1px solid #2c2c35;border-bottom:none;
+  border-radius:8px 8px 0 0;white-space:nowrap;}
+.pw-bar .grip{opacity:.7;}
+.pw-bar .ctl{margin-left:auto;display:flex;gap:5px;}
+.pw-body{background:#17171c;border:1px solid #2c2c35;border-radius:0 0 8px 8px;
+  font:11px/15px system-ui,sans-serif;color:#e7e7ea;padding:5px 7px;}
+.pw-sec{display:flex;justify-content:space-between;align-items:baseline;color:#868691;
+  letter-spacing:.08em;font-size:10px;padding:4px 2px 2px;}
+.pw-sec .n{font-variant-numeric:tabular-nums;}
+.pw-row{position:relative;display:flex;justify-content:space-between;align-items:center;
+  height:18px;padding:1px 7px 0;margin-bottom:2px;border-radius:3px;background:#24242a;
+  overflow:hidden;}
+.pw-name{position:relative;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;
+  white-space:nowrap;}
+.pw-val{position:relative;flex:none;padding-left:8px;font-weight:600;
+  font-variant-numeric:tabular-nums;white-space:nowrap;}
+.pw-val .of{font-weight:400;color:#9a9aa6;}
+.pw-fill{position:absolute;left:0;top:0;bottom:0;}
+.pw-rest{position:absolute;top:0;bottom:0;}
+.pw-cap{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:3px 0 0 3px;}
+.pw-mark{position:relative;flex:none;color:#c98500;padding-right:5px;}
+.pw-note{color:#9a9aa6;padding:1px 2px 3px;}
+.pw-off{color:#6b6b75;}
+
+/* A watched thing nobody is under: the heading stays, the rows do not. */
+.pw-none{color:#6b6b75;padding:1px 2px 3px;}
+
+/* The sheet's own legend, outside the window. */
+.leg{display:flex;flex-direction:column;gap:7px;width:212px;flex:none;}
+.leg .item{display:flex;gap:9px;align-items:flex-start;}
+.leg .swatch{flex:none;width:34px;height:14px;border-radius:3px;background:#24242a;
+  position:relative;overflow:hidden;margin-top:1px;}
+.leg .txt{font:12px/1.45 "IBM Plex Sans",system-ui,sans-serif;color:#33302a;}
+.leg .txt b{font-weight:600;}
+.stage .leg .txt{color:#c9c9d1;}
+.stage .leg .txt .m{background:#24242a;color:#e7e7ea;}
+.stage .leg .txt b{color:#e7e7ea;}
+
+/* Two windows side by side, ours against theirs, on a comparison sheet. */
+.vs{display:flex;gap:22px;align-items:flex-start;flex-wrap:wrap;}
+.vs .col{display:flex;flex-direction:column;align-items:flex-start;}
+</style>
+</helmet>
+<div class="sheet">
+<div class="tag"><span class="dot"></span>Pomocnik w walce<span class='rec'>— rekomendacja</span></div>
+<h1>Co teraz stoi, na kim i od kiedy</h1>
+<p class="lede">Jedno okno obok panelu, w skali 1:1. Panel mówi, co z walki wyszło; Pomocnik mówi, co w niej stoi w tej chwili. To nie jest trzecie okno — to <span class="m">MargoMeter-auras</span>, pasek aur wysyłany od 0.12.1, który urósł o stany, ładowanie przeciwnika i Ostatni Ratunek. Każdy wiersz niesie dwie rzeczy naraz: ile już minęło, i ile tabela gry <em>podaje</em> — pełne jest policzone, kreskowane jest tylko zapowiedziane.</p>
+<div class="stage">
+  <div class="hold">
+  <div class="mm-bar">⠿ MargoMeter <span class="mm-ver">0.12.1</span>
+    <span class="mm-ctl">☰ ↓ —</span></div>
+  <div class="mm-body">
+    <div class="mm-head"><div class="mm-hl"><span>10 na 10</span>
+      <span class="mm-out">TRWA</span></div>
+      <div class="mm-place">Thuzal (12, 84)</div></div>
+    <div class="mm-tabs"><span class="mm-tab on">Obrażenia</span>
+      <span class="mm-tab">Leczenie</span></div>
+    <div class="mm-tabs"><span class="mm-tab on">zadane</span><span class="mm-tab">otrzymane</span>
+      <span class="mm-gap"></span><span class="mm-tab on">Wszyscy</span>
+      <span class="mm-tab">My</span><span class="mm-tab">Oni</span></div>
+    <div class="mm-list">
+      <div class="mm-row">
+        <div class="mm-fill" style="width:100%;background:#d95926"></div>
+        <div class="mm-cap" style="background:#d95926"></div>
+        <span class="mm-rank">1.</span><span class="mm-name">Gracz 3</span>
+        <span class="mm-val">84 210<span class="mm-share">(18%)</span></span></div><div class="mm-row">
+        <div class="mm-fill" style="width:84%;background:#3987e5"></div>
+        <div class="mm-cap" style="background:#3987e5"></div>
+        <span class="mm-rank">2.</span><span class="mm-name">Renegat 4</span>
+        <span class="mm-val">71 004<span class="mm-share">(15%)</span></span></div><div class="mm-row">
+        <div class="mm-fill" style="width:71%;background:#199e70"></div>
+        <div class="mm-cap" style="background:#199e70"></div>
+        <span class="mm-rank">3.</span><span class="mm-name">Gracz 9</span>
+        <span class="mm-val">60 118<span class="mm-share">(13%)</span></span></div><div class="mm-row">
+        <div class="mm-fill" style="width:63%;background:#008300"></div>
+        <div class="mm-cap" style="background:#008300"></div>
+        <span class="mm-rank">4.</span><span class="mm-name">Gracz 5</span>
+        <span class="mm-val">52 663<span class="mm-share">(11%)</span></span></div><div class="mm-row">
+        <div class="mm-fill" style="width:52%;background:#d55181"></div>
+        <div class="mm-cap" style="background:#d55181"></div>
+        <span class="mm-rank">5.</span><span class="mm-name">Renegat 2</span>
+        <span class="mm-val">44 201<span class="mm-share">(9%)</span></span></div>
+    </div>
+    <div class="mm-sides"><div class="mm-sl"><span class="ours">231 004</span>
+      <span class="mm-slab">My / Oni</span><span class="theirs">218 776</span></div>
+      <div class="mm-track"><span class="ours" style="flex:51"></span>
+      <span class="theirs" style="flex:49"></span></div></div>
+  </div>
+</div>
+  <div class="hold"><div class="cap" style="color:#6fbf8b">POMOCNIK — LISTA DOMYŚLNA</div><div class="pw" style="width:200px"><div class="pw-bar"><span class="grip">⠿</span>Pomocnik<span class="ctl">⌄ ×</span></div><div class="pw-body"><div class="pw-sec"><span>PIĘTNO BESTII</span><span class="n">2</span></div><div class="pw-row"><div class="pw-fill" style="width:37.5%;background:rgb(77 121 95)"></div><div class="pw-rest" style="left:37.5%;width:62.5%;background:repeating-linear-gradient(135deg,#6fbf8b38 0 2px,transparent 2px 5px)"></div><div class="pw-cap" style="background:#6fbf8b"></div><span class="pw-name">Gracz 3</span><span class="pw-val">3<span class="of"> z 8</span></span></div><div class="pw-row"><div class="pw-fill" style="width:75%;background:rgb(139 79 80)"></div><div class="pw-rest" style="left:75%;width:25%;background:repeating-linear-gradient(135deg,#e0736f38 0 2px,transparent 2px 5px)"></div><div class="pw-cap" style="background:#e0736f"></div><span class="pw-name">Renegat 4</span><span class="pw-val">6<span class="of"> z 8</span></span></div><div class="pw-sec"><span>SZADŹ</span><span class="n">1</span></div><div class="pw-row"><div class="pw-fill" style="width:12.5%;background:rgb(139 79 80)"></div><div class="pw-rest" style="left:12.5%;width:87.5%;background:repeating-linear-gradient(135deg,#e0736f38 0 2px,transparent 2px 5px)"></div><div class="pw-cap" style="background:#e0736f"></div><span class="pw-name">Renegat 2</span><span class="pw-val">1<span class="of"> z 8</span></span></div><div class="pw-sec"><span>PODWÓJNY DECH</span><span class="n">2</span></div><div class="pw-row"><div class="pw-fill" style="width:50%;background:rgb(77 121 95)"></div><div class="pw-rest" style="left:50%;width:50%;background:repeating-linear-gradient(135deg,#6fbf8b38 0 2px,transparent 2px 5px)"></div><div class="pw-cap" style="background:#6fbf8b"></div><span class="pw-name">Gracz 5</span><span class="pw-val">4<span class="of"> z 8</span></span></div><div class="pw-row"><div class="pw-fill" style="width:87.5%;background:rgb(77 121 95)"></div><div class="pw-rest" style="left:87.5%;width:12.5%;background:repeating-linear-gradient(135deg,#6fbf8b38 0 2px,transparent 2px 5px)"></div><div class="pw-cap" style="background:#6fbf8b"></div><span class="pw-name">Gracz 9</span><span class="pw-val">7<span class="of"> z 8</span></span></div><div class="pw-sec"><span>AURA OCHRONY</span><span class="n">1</span></div><div class="pw-row"><div class="pw-fill" style="width:25%;background:rgb(77 121 95)"></div><div class="pw-rest" style="left:25%;width:75%;background:repeating-linear-gradient(135deg,#6fbf8b38 0 2px,transparent 2px 5px)"></div><div class="pw-cap" style="background:#6fbf8b"></div><span class="pw-name">Gracz 1</span><span class="pw-val">2<span class="of"> z 8</span></span></div><div class="pw-sec"><span>WYZYWAJĄCY OKRZYK</span><span class="n">1</span></div><div class="pw-row"><div class="pw-fill" style="width:100%;background:rgb(139 79 80)"></div><div class="pw-rest" style="left:100%;width:0%;background:repeating-linear-gradient(135deg,#e0736f38 0 2px,transparent 2px 5px)"></div><div class="pw-cap" style="background:#e0736f"></div><span class="pw-name">Renegat 6</span><span class="pw-val">5<span class="of"> z 5</span></span></div><div class="pw-sec"><span>OSŁONA TARCZĄ</span><span class="n">1</span></div><div class="pw-row"><div class="pw-fill" style="width:50%;background:rgb(77 121 95)"></div><div class="pw-rest" style="left:50%;width:50%;background:repeating-linear-gradient(135deg,#6fbf8b38 0 2px,transparent 2px 5px)"></div><div class="pw-cap" style="background:#6fbf8b"></div><span class="pw-name">Gracz 6</span><span class="pw-val">1<span class="of"> z 2</span></span></div><div class="pw-sec"><span>OSTATNI RATUNEK</span><span class="n">2</span></div><div class="pw-row"><div class="pw-cap" style="background:#e0736f"></div><span class="pw-name">Renegat 1</span><span class="pw-val">przebity</span></div><div class="pw-row"><div class="pw-cap" style="background:#6fbf8b"></div><span class="pw-name">Gracz 8</span><span class="pw-val">przebity</span></div></div></div></div>
+  <div class="leg">
+  <div class="item"><div class="swatch">
+    <div class="pw-fill" style="width:45%;background:#4a6a55"></div>
+    <div class="pw-rest" style="left:45%;width:55%;background:repeating-linear-gradient(135deg,#6fbf8b38 0 2px,transparent 2px 5px)"></div>
+    <div class="pw-cap" style="background:#6fbf8b"></div></div>
+    <div class="txt"><b>Pełne — policzone.</b> Tyle tur minęło rzucającemu.</div></div>
+  <div class="item"><div class="swatch">
+    <div class="pw-rest" style="left:0;width:100%;background:repeating-linear-gradient(135deg,#6fbf8b38 0 2px,transparent 2px 5px)"></div></div>
+    <div class="txt"><b>Kreskowane — podane.</b> Tyle mówi tabela gry i nic tego nie potwierdza.</div></div>
+  <div class="item"><div class="swatch"></div>
+    <div class="txt"><b>Bez paska.</b> Coś, co stoi, ale nie ma podanego końca.</div></div>
+</div>
+</div>
+<div class="notes"><div class="note"><h3 class="">Dlaczego grupą jest umiejętność</h3><p>W ustawce czytelnik pyta „czy Piętno stoi i na kim", a nie „co stoi na Graczu 7". Nagłówek jest obserwowaną rzeczą, wiersze pod nim to ci, na których stoi, a liczba przy nagłówku mówi, ile ich jest, zanim oko zejdzie niżej.</p></div><div class="note"><h3 class="good">Odejmowanie robi pasek</h3><p>Konkurencja pisze <span class="m">5</span> i to jest szybsze do przeczytania niż <span class="m">3 z 8</span>. Dlatego liczby nie zostawiamy samej: część niewypełniona <em>jest</em> tym, co zostało, a że jest kreskowana, widać przy okazji, że nikt tego nie potwierdził.</p></div><div class="note"><h3 class="">Zielony i czerwony to strony, nie ocena</h3><p>Ta sama zasada co w panelu: <span class="m">ours</span> i <span class="m">theirs</span> mówią, kto to jest, i nic więcej. Rysowane wyłącznie tam, gdzie klient powiedział, która strona jest czytelnika — inaczej wszystkie wiersze są jednakowe.</p></div><div class="note"><h3 class="warn">Skład jest zmyślony, gęstość nie</h3><p>W <span class="m">captures/</span> nie ma ani jednej walki grupowej między graczami (<span class="m">docs/captured-fights.md</span>), więc te nazwiska są kształtem. Wysokość wiersza, szerokość okna i wszystkie kolory są wzięte wprost z <span class="m">src/ui/panel-look.ts</span>.</p></div></div>
+</div>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,142 @@
+{
+  "artboards": [
+    {
+      "file": "Main.dc.html",
+      "x": 0,
+      "y": 0,
+      "w": 1020,
+      "h": 1000,
+      "title": "A · Pomocnik w walce"
+    },
+    {
+      "file": "Roznice.dc.html",
+      "x": 1120,
+      "y": 0,
+      "w": 940,
+      "h": 1140,
+      "title": "B · Czym się różnimy"
+    },
+    {
+      "file": "Czas.dc.html",
+      "x": 0,
+      "y": 1270,
+      "w": 1020,
+      "h": 900,
+      "title": "C · 3 z 8 zamiast 5"
+    },
+    {
+      "file": "WieleRzutow.dc.html",
+      "x": 1120,
+      "y": 1270,
+      "w": 940,
+      "h": 750,
+      "title": "D · Kilka rzutów naraz"
+    },
+    {
+      "file": "Wiersz.dc.html",
+      "x": 2160,
+      "y": 1270,
+      "w": 1000,
+      "h": 990,
+      "title": "E · Anatomia wiersza"
+    },
+    {
+      "file": "Pojedynek.dc.html",
+      "x": 0,
+      "y": 2390,
+      "w": 900,
+      "h": 690,
+      "title": "F · 1 na 1"
+    },
+    {
+      "file": "Kolos.dc.html",
+      "x": 1000,
+      "y": 2390,
+      "w": 1020,
+      "h": 1010,
+      "title": "G · 1 na 10 — kolos"
+    },
+    {
+      "file": "Ustawka.dc.html",
+      "x": 2120,
+      "y": 2390,
+      "w": 1040,
+      "h": 1130,
+      "title": "H · 10 na 10 — ustawka"
+    },
+    {
+      "file": "Pancerz.dc.html",
+      "x": 0,
+      "y": 3650,
+      "w": 1000,
+      "h": 800,
+      "title": "I · Pancerz i odporności"
+    },
+    {
+      "file": "Stany.dc.html",
+      "x": 1100,
+      "y": 3650,
+      "w": 1000,
+      "h": 870,
+      "title": "J · Stany z maski"
+    },
+    {
+      "file": "Ratunek.dc.html",
+      "x": 2200,
+      "y": 3650,
+      "w": 960,
+      "h": 710,
+      "title": "K · Ostatni Ratunek"
+    },
+    {
+      "file": "Obserwuje.dc.html",
+      "x": 0,
+      "y": 4650,
+      "w": 1000,
+      "h": 980,
+      "title": "L · Co obserwuję"
+    },
+    {
+      "file": "Kolejka.dc.html",
+      "x": 1100,
+      "y": 4650,
+      "w": 1000,
+      "h": 870,
+      "title": "M · Kolejka tur"
+    },
+    {
+      "file": "Odmowy.dc.html",
+      "x": 2200,
+      "y": 4650,
+      "w": 960,
+      "h": 1100,
+      "title": "N · Czego nie narysujemy"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "brief",
+      "x": 0,
+      "y": -280,
+      "w": 760,
+      "text": "POMOCNIK W WALCE\n\nJedno okno obok panelu: co teraz stoi, na kim i od kiedy.\n\nRząd 1 — czym to jest i czym się różni od dodatku, który to już robi.\nRząd 2 — spór o czas: przebyte z podanych zamiast odliczania.\nRząd 3 — trzy kształty walki: pojedynek, kolos, ustawka.\nRząd 4 — co jeszcze niesie paczka, a nikt tego nie czyta.\nRząd 5 — sterowanie, kolejka tur i odmowy.\n\nKażda liczba na arkuszach jest odczytem z captures/, przez measure.mjs.\nSkłady 10 na 10 są kształtem: w korpusie nie ma ani jednej walki grupowej między graczami."
+    },
+    {
+      "id": "rzad-czas",
+      "x": 3260,
+      "y": 1270,
+      "w": 250,
+      "text": "SPÓR O CZAS\n\nTo jest miejsce, w którym Pomocnik różni się od konkurencji najbardziej i najtrudniej się broni.\n\nOni piszą 5. My piszemy 3 z 8 i kreskujemy resztę.\n\nC broni decyzji, D pokazuje, co ona daje przy kilku rzutach naraz, E rozkłada wiersz na części."
+    },
+    {
+      "id": "rzad-ksztalty",
+      "x": 3260,
+      "y": 2390,
+      "w": 250,
+      "text": "TRZY KSZTAŁTY\n\nTo samo okno pod trzema ciśnieniami.\n\nF — prawie puste, i to jest odpowiedź.\nG — jeden przeciwnik, dwie rzeczy o nim, obie zmierzone na nagraniu z Amaimonem.\nH — dwadzieścia postaci w 200 pikselach. Arkusz, dla którego cała funkcja powstaje."
+    }
+  ],
+  "launch": {
+    "view": "canvas"
+  }
+}

@@ -1,0 +1,1433 @@
+{
+    "takenAt": "2026-09-04",
+    "corpus": {
+        "recordings": 28,
+        "payloads": 1108,
+        "withQueue": 1022,
+        "withCurrent": 1022,
+        "armourDestroyed": 43,
+        "lasthealRecordings": [
+            {
+                "file": "2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json",
+                "messages": 1
+            },
+            {
+                "file": "2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+                "messages": 1
+            },
+            {
+                "file": "2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none.json",
+                "messages": 3
+            },
+            {
+                "file": "2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json",
+                "messages": 2
+            },
+            {
+                "file": "2026-08-23-tempest-grupa-vs-hildur-1786514810315-none.json",
+                "messages": 1
+            },
+            {
+                "file": "2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json",
+                "messages": 3
+            },
+            {
+                "file": "2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json",
+                "messages": 1
+            }
+        ],
+        "holytouchRecordings": [
+            {
+                "file": "2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json",
+                "messages": 3
+            },
+            {
+                "file": "2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json",
+                "messages": 12
+            },
+            {
+                "file": "2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+                "messages": 18
+            },
+            {
+                "file": "2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none.json",
+                "messages": 15
+            },
+            {
+                "file": "2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json",
+                "messages": 2
+            },
+            {
+                "file": "2026-08-14-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+                "messages": 16
+            },
+            {
+                "file": "2026-08-14-tempest-grupa-vs-draugr-2-1786514810315-none.json",
+                "messages": 24
+            },
+            {
+                "file": "2026-08-14-tempest-grupa-vs-hildur-1786514810315-none.json",
+                "messages": 13
+            },
+            {
+                "file": "2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+                "messages": 5
+            },
+            {
+                "file": "2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none.json",
+                "messages": 22
+            },
+            {
+                "file": "2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none.json",
+                "messages": 3
+            },
+            {
+                "file": "2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json",
+                "messages": 8
+            }
+        ],
+        "focus": {
+            "total": 465,
+            "inRoster": 465,
+            "sameSide": 0,
+            "otherSide": 465,
+            "self": 0,
+            "changed": 0,
+            "bearerNpc": 465,
+            "bearerPlayer": 0,
+            "recordings": 13,
+            "bearersMost": 1
+        },
+        "comboMaxima": [
+            "[[85,3]]",
+            "[[222,3]]",
+            "[[231,3],[95,3]]"
+        ]
+    },
+    "auras": [
+        {
+            "id": "25",
+            "skill": "Prowokujący okrzyk",
+            "casts": "6",
+            "casters": "4",
+            "atOnce": "1",
+            "stated": "3",
+            "seen": "—"
+        },
+        {
+            "id": "76",
+            "skill": "Aura ochrony",
+            "casts": "17",
+            "casters": "9",
+            "atOnce": "2",
+            "stated": "8",
+            "seen": "—"
+        },
+        {
+            "id": "89",
+            "skill": "Podwójny dech",
+            "casts": "28",
+            "casters": "14",
+            "atOnce": "4",
+            "stated": "8",
+            "seen": "22"
+        },
+        {
+            "id": "123",
+            "skill": "Szadź",
+            "casts": "35",
+            "casters": "15",
+            "atOnce": "3",
+            "stated": "8",
+            "seen": "52"
+        },
+        {
+            "id": "188",
+            "skill": "Wyzywający okrzyk",
+            "casts": "14",
+            "casters": "6",
+            "atOnce": "2",
+            "stated": "5",
+            "seen": "—"
+        },
+        {
+            "id": "206",
+            "skill": "Osłona tarczą",
+            "casts": "19",
+            "casters": "8",
+            "atOnce": "2",
+            "stated": "2",
+            "seen": "—"
+        },
+        {
+            "id": "219",
+            "skill": "Jadowity podmuch",
+            "casts": "1",
+            "casters": "1",
+            "atOnce": "1",
+            "stated": "8",
+            "seen": "—"
+        },
+        {
+            "id": "264",
+            "skill": "Piętno bestii",
+            "casts": "20",
+            "casters": "10",
+            "atOnce": "2",
+            "stated": "8",
+            "seen": "—"
+        }
+    ],
+    "statuses": [
+        {
+            "bit": "0",
+            "status": "deep_wound",
+            "episodes": "4",
+            "closed": "3",
+            "longest": "10",
+            "bySkill": "0",
+            "byKey": "2",
+            "stated": "—"
+        },
+        {
+            "bit": "1",
+            "status": "wound",
+            "episodes": "39",
+            "closed": "36",
+            "longest": "17",
+            "bySkill": "0",
+            "byKey": "16",
+            "stated": "—"
+        },
+        {
+            "bit": "3",
+            "status": "poisoned",
+            "episodes": "48",
+            "closed": "27",
+            "longest": "47",
+            "bySkill": "10",
+            "byKey": "1",
+            "stated": "—"
+        },
+        {
+            "bit": "4",
+            "status": "fire",
+            "episodes": "5",
+            "closed": "2",
+            "longest": "2",
+            "bySkill": "2",
+            "byKey": "0",
+            "stated": "2/3/4/5/8"
+        },
+        {
+            "bit": "5",
+            "status": "swow_down",
+            "episodes": "130",
+            "closed": "66",
+            "longest": "52",
+            "bySkill": "33",
+            "byKey": "3",
+            "stated": "2/8"
+        },
+        {
+            "bit": "6",
+            "status": "speed_up",
+            "episodes": "223",
+            "closed": "114",
+            "longest": "22",
+            "bySkill": "70",
+            "byKey": "11",
+            "stated": "2/8"
+        },
+        {
+            "bit": "8",
+            "status": "shock",
+            "episodes": "7",
+            "closed": "7",
+            "longest": "20",
+            "bySkill": "1",
+            "byKey": "0",
+            "stated": "2/8"
+        },
+        {
+            "bit": "10",
+            "status": "—",
+            "episodes": "1",
+            "closed": "1",
+            "longest": "7",
+            "bySkill": "0",
+            "byKey": "0",
+            "stated": "—"
+        }
+    ],
+    "prepare": [
+        {
+            "file": "2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Symfonia żywiołów",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Tryptyk płonący",
+            "isNpc": true,
+            "occurrences": 3,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Chorus skamieniałej panny",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Osobisty rozrachunek",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Huk powrotu",
+            "isNpc": true,
+            "occurrences": 1,
+            "stops": [
+                0
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Kosa zastępcy",
+            "isNpc": true,
+            "occurrences": 3,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Osobisty rozrachunek",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Huk powrotu",
+            "isNpc": true,
+            "occurrences": 4,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Kosa zastępcy",
+            "isNpc": true,
+            "occurrences": 3,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Symfonia żywiołów",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                33,
+                67
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Tryptyk płonący",
+            "isNpc": true,
+            "occurrences": 3,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Chorus skamieniałej panny",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Symfonia żywiołów",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Tryptyk płonący",
+            "isNpc": true,
+            "occurrences": 2,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Chorus skamieniałej panny",
+            "isNpc": true,
+            "occurrences": 3,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-14-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Osobisty rozrachunek",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-14-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Huk powrotu",
+            "isNpc": true,
+            "occurrences": 1,
+            "stops": [
+                0
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-14-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Kosa zastępcy",
+            "isNpc": true,
+            "occurrences": 3,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-14-tempest-grupa-vs-draugr-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Osobisty rozrachunek",
+            "isNpc": true,
+            "occurrences": 4,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-14-tempest-grupa-vs-draugr-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Huk powrotu",
+            "isNpc": true,
+            "occurrences": 4,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-14-tempest-grupa-vs-draugr-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Kosa zastępcy",
+            "isNpc": true,
+            "occurrences": 1,
+            "stops": [
+                0
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-14-tempest-grupa-vs-hildur-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Symfonia żywiołów",
+            "isNpc": true,
+            "occurrences": 7,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-14-tempest-grupa-vs-hildur-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Tryptyk płonący",
+            "isNpc": true,
+            "occurrences": 4,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-14-tempest-grupa-vs-hildur-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Chorus skamieniałej panny",
+            "isNpc": true,
+            "occurrences": 1,
+            "stops": [
+                0
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Osobisty rozrachunek",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Huk powrotu",
+            "isNpc": true,
+            "occurrences": 4,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Kosa zastępcy",
+            "isNpc": true,
+            "occurrences": 3,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Osobisty rozrachunek",
+            "isNpc": true,
+            "occurrences": 4,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Huk powrotu",
+            "isNpc": true,
+            "occurrences": 4,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Kosa zastępcy",
+            "isNpc": true,
+            "occurrences": 1,
+            "stops": [
+                0
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Symfonia żywiołów",
+            "isNpc": true,
+            "occurrences": 8,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Tryptyk płonący",
+            "isNpc": true,
+            "occurrences": 3,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Chorus skamieniałej panny",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-hildur-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Symfonia żywiołów",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                33,
+                67
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-hildur-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Tryptyk płonący",
+            "isNpc": true,
+            "occurrences": 4,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-hildur-2-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Chorus skamieniałej panny",
+            "isNpc": true,
+            "occurrences": 1,
+            "stops": [
+                0
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Symfonia żywiołów",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Tryptyk płonący",
+            "isNpc": true,
+            "occurrences": 2,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Chorus skamieniałej panny",
+            "isNpc": true,
+            "occurrences": 1,
+            "stops": [
+                0
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-hildur-4-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Symfonia żywiołów",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-hildur-4-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Tryptyk płonący",
+            "isNpc": true,
+            "occurrences": 2,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-15-tempest-grupa-vs-hildur-4-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Chorus skamieniałej panny",
+            "isNpc": true,
+            "occurrences": 1,
+            "stops": [
+                0
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Symfonia żywiołów",
+            "isNpc": true,
+            "occurrences": 7,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Tryptyk płonący",
+            "isNpc": true,
+            "occurrences": 4,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Chorus skamieniałej panny",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-23-tempest-grupa-vs-hildur-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Symfonia żywiołów",
+            "isNpc": true,
+            "occurrences": 7,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-23-tempest-grupa-vs-hildur-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Tryptyk płonący",
+            "isNpc": true,
+            "occurrences": 3,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-23-tempest-grupa-vs-hildur-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Chorus skamieniałej panny",
+            "isNpc": true,
+            "occurrences": 2,
+            "stops": [
+                0,
+                50
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Symfonia żywiołów",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                33,
+                67
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Tryptyk płonący",
+            "isNpc": true,
+            "occurrences": 4,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Chorus skamieniałej panny",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-25-luvia-grupa-vs-draugr-auto-none-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Osobisty rozrachunek",
+            "isNpc": true,
+            "occurrences": 8,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-25-luvia-grupa-vs-draugr-auto-none-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Huk powrotu",
+            "isNpc": true,
+            "occurrences": 8,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-25-luvia-grupa-vs-draugr-auto-none-none.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Kosa zastępcy",
+            "isNpc": true,
+            "occurrences": 3,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-25-luvia-grupa-vs-draugr-none-none.json",
+            "headcount": {
+                "ours": 9,
+                "theirs": 1
+            },
+            "name": "Osobisty rozrachunek",
+            "isNpc": true,
+            "occurrences": 10,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-25-luvia-grupa-vs-draugr-none-none.json",
+            "headcount": {
+                "ours": 9,
+                "theirs": 1
+            },
+            "name": "Huk powrotu",
+            "isNpc": true,
+            "occurrences": 8,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-25-luvia-grupa-vs-draugr-none-none.json",
+            "headcount": {
+                "ours": 9,
+                "theirs": 1
+            },
+            "name": "Kosa zastępcy",
+            "isNpc": true,
+            "occurrences": 6,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Bagienny wrzask",
+            "isNpc": true,
+            "occurrences": 4,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Bonke efana",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                25,
+                50,
+                75,
+                100
+            ],
+            "step": 25,
+            "stopsPerCycle": 5
+        },
+        {
+            "file": "2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Osobisty rozrachunek",
+            "isNpc": true,
+            "occurrences": 8,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Huk powrotu",
+            "isNpc": true,
+            "occurrences": 8,
+            "stops": [
+                0,
+                33,
+                67,
+                100
+            ],
+            "step": 33,
+            "stopsPerCycle": 4
+        },
+        {
+            "file": "2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Kosa zastępcy",
+            "isNpc": true,
+            "occurrences": 1,
+            "stops": [
+                0
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Chapnięcie",
+            "isNpc": true,
+            "occurrences": 4,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Przeszycie do szpiku",
+            "isNpc": true,
+            "occurrences": 6,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Noc Perseidów",
+            "isNpc": true,
+            "occurrences": 3,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Lodowe Pandemonium",
+            "isNpc": true,
+            "occurrences": 2,
+            "stops": [
+                0,
+                25
+            ],
+            "step": 25,
+            "stopsPerCycle": 5
+        },
+        {
+            "file": "2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Chapnięcie",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                100
+            ],
+            "step": 100,
+            "stopsPerCycle": 2
+        },
+        {
+            "file": "2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Przeszycie do szpiku",
+            "isNpc": true,
+            "occurrences": 6,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Noc Perseidów",
+            "isNpc": true,
+            "occurrences": 5,
+            "stops": [
+                0,
+                50,
+                100
+            ],
+            "step": 50,
+            "stopsPerCycle": 3
+        },
+        {
+            "file": "2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json",
+            "headcount": {
+                "ours": 10,
+                "theirs": 1
+            },
+            "name": "Lodowe Pandemonium",
+            "isNpc": true,
+            "occurrences": 10,
+            "stops": [
+                0,
+                25,
+                50,
+                75,
+                100
+            ],
+            "step": 25,
+            "stopsPerCycle": 5
+        }
+    ]
+}
