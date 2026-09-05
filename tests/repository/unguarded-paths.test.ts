@@ -43,6 +43,8 @@ interface SourceFunction {
     throws: boolean;
     /** Only what is called where no `try` stands over it: the walk follows nothing else. */
     reaches: string[];
+    /** The same, for calls whose object nothing here can resolve. */
+    methods: string[];
 }
 
 function isWordCharacter(character: string): boolean {
@@ -107,6 +109,31 @@ export function getOwnLines(body: readonly string[]): boolean[] {
     return own;
 }
 
+/**
+ * The name a caller reaches a closure under, or nothing where it has none. `const held = () => {`,
+ * `read(key: string): string | null {` and `handlePayload: (payload) => {` are the three shapes
+ * this tree writes one in; an arrow handed straight to a call has no name and needs none.
+ */
+export function getClosureName(code: string): string {
+    const trimmed = code.trim();
+    if (trimmed.startsWith("const ")) return getFirstWordOf(trimmed.slice("const ".length));
+    const named = getFirstWordOf(trimmed);
+    if (named.length === 0) return "";
+    const after = trimmed.charAt(named.length);
+    if (after === "(") return named;
+    if (after !== ":") return "";
+    return trimmed.includes("=>") ? named : "";
+}
+
+function getFirstWordOf(code: string): string {
+    let at = 0;
+    for (let index = 0; index < code.length; index += 1) {
+        if (!isWordCharacter(code.charAt(index))) break;
+        at += 1;
+    }
+    return code.slice(0, at);
+}
+
 /** A line opening a body somebody else will enter: an arrow, a method, a nested declaration. */
 export function isClosureOpener(code: string): boolean {
     const trimmed = code.trimEnd();
@@ -143,8 +170,21 @@ export function getGuardedLines(body: readonly string[]): boolean[] {
     return guarded;
 }
 
-/** Every name called on this line, bar a method: nothing here can say what a method resolves to. */
+/** Every plain name called on this line. A method is `getCalledMethods`', and resolves wider. */
 export function getCalledNames(code: string): string[] {
+    return getCallsOn(code, false);
+}
+
+/**
+ * Every method called on this line. **What object it stands on is nobody's to say here**, so the
+ * graph resolves one to every closure of that name in the bundle — `store.read(…)` reaches both
+ * stores, and a guard that over-reaches errs where a safety guard should.
+ */
+export function getCalledMethods(code: string): string[] {
+    return getCallsOn(code, true);
+}
+
+function getCallsOn(code: string, wanted: boolean): string[] {
     const found: string[] = [];
     for (let at = 0; at < code.length; at += 1) {
         if (code.charAt(at) !== "(") continue;
@@ -156,7 +196,11 @@ export function getCalledNames(code: string): string[] {
         const name = code.slice(start, at);
         if (name.length === 0) continue;
         if (NOT_A_CALL.includes(name)) continue;
-        if (start > 0 && code.charAt(start - 1) === ".") continue;
+        // ⚠️ **A spread wears a dot too.** `...composeGameReports(environment)` read as a method
+        // of somebody, so a plain call this graph can resolve was left unresolved instead.
+        const isDotted = start > 0 && code.charAt(start - 1) === ".";
+        const isSpread = start > 1 && code.charAt(start - 2) === ".";
+        if ((isDotted && !isSpread) !== wanted) continue;
         found.push(name);
     }
     return found;
@@ -195,7 +239,23 @@ export function getImportedNames(text: string): Map<string, string> {
     return found;
 }
 
-/** Every function the bundle carries, by `path#name`: what it reaches, and whether it throws. */
+/** Every closure written inside a body, by the name a caller reaches it under. */
+export function getNamedClosures(body: readonly string[]): Map<string, string[]> {
+    const found = new Map<string, string[]>();
+    for (const [at, line] of body.entries()) {
+        if (at === 0) continue;
+        if (isCommentLine(line)) continue;
+        const code = getCodeOutsideStrings(line);
+        if (!isClosureOpener(code)) continue;
+        const name = getClosureName(code);
+        if (name.length === 0) continue;
+        if (found.has(name)) continue;
+        found.set(name, body.slice(at, getCloseOfBlock(body, at) + 1));
+    }
+    return found;
+}
+
+/** Every function and every named closure the bundle carries, by `path#name`. */
 function composeCallGraph(): Map<string, SourceFunction> {
     const graph = new Map<string, SourceFunction>();
     for (const path of getSourcePaths()) {
@@ -205,6 +265,12 @@ function composeCallGraph(): Map<string, SourceFunction> {
         const bodies = getFunctionBodies(text);
         for (const [name, body] of bodies) {
             graph.set(`${path}#${name}`, composeSourceFunction(body, path, bodies, imported));
+            for (const [inner, lines] of getNamedClosures(body)) {
+                graph.set(
+                    `${path}#${name}.${inner}`,
+                    composeSourceFunction(lines, path, bodies, imported),
+                );
+            }
         }
     }
     assert(graph.size > 0, "there are functions in the bundle to walk");
@@ -221,6 +287,7 @@ function composeSourceFunction(
     const guarded = getGuardedLines(body);
     const own = getOwnLines(body);
     const reaches: string[] = [];
+    const methods: string[] = [];
     let throws = false;
     for (const [at, line] of body.entries()) {
         if (isCommentLine(line)) continue;
@@ -236,8 +303,9 @@ function composeSourceFunction(
             const held = imported.get(name);
             if (held !== undefined) reaches.push(`${held}#${name}`);
         }
+        for (const name of getCalledMethods(code)) methods.push(name);
     }
-    return { throws, reaches };
+    return { throws, reaches, methods };
 }
 
 /** Everything the entry reaches with no `try` between, which is what may never throw. */
@@ -296,4 +364,77 @@ Deno.test("nothing the add-on reaches while standing up can stop it", () => {
         if (graph.get(name)?.throws === true) throwing.push(name);
     }
     assertEquals(throwing.sort(), [], "E14: a throw on a frame the browser reaches unguarded");
+});
+
+/**
+ * ⚠️ **What object a method stands on is not this reader's to say**, so a call through one draws
+ * no edge and the walk would step over it in silence. Every one standing on a frame the walk
+ * reaches unguarded is written down instead, and the register is read both ways: a crossing that
+ * is gone stops being excused, and a new one fails until somebody has looked at it.
+ *
+ * Three kinds, and every row below is one of them. **The runtime's own** — `Array.isArray`,
+ * `Number.isFinite`, `String.slice`, `Date.now` — which are not this program's to guard. **The
+ * page's own**, which `isUserscriptWindow` proved was there before anything called it. And
+ * **ours, answering for itself**: both stores turn a refusal into an answer (**E5**), the defect
+ * keeper asserts nothing (**A11**) and reports inside its own `try`, and `composeShelfStore`
+ * reaches `composeStoreForChoice`, which catches the property read as well as the call.
+ */
+const CROSSINGS_WITH_A_REASON = [
+    "add ← src/userscript-entry.ts#readShelfOrNothing",
+    "add ← src/userscript-entry.ts#startMargoMeter",
+    "clearInterval ← src/userscript-entry.ts#startFromUserscriptWindow",
+    "composeShelfStore ← src/userscript-entry.ts#composeShelfKeeper",
+    "error ← src/userscript-entry.ts#startFromUserscriptWindow",
+    "isArray ← libs/unknown-reading.ts#isRecord",
+    "isFinite ← libs/unknown-reading.ts#getNumberFromUnknown",
+    "now ← src/userscript-entry.ts#startFromUserscriptWindow",
+    "read ← src/userscript-entry.ts#composeShelfKeeper",
+    "read ← src/userscript-entry.ts#startMargoMeter",
+    "report ← src/userscript-entry.ts#composeGameReports",
+    "report ← src/userscript-entry.ts#startMargoMeter",
+    "setInterval ← src/userscript-entry.ts#startFromUserscriptWindow",
+    "slice ← src/userscript-entry.ts#composeShelfKeeper",
+];
+
+function getCrossings(graph: ReadonlyMap<string, SourceFunction>): string[] {
+    const found = new Set<string>();
+    for (const name of getUnguardedReach(graph)) {
+        for (const method of graph.get(name)?.methods ?? []) found.add(`${method} ← ${name}`);
+    }
+    return [...found].sort();
+}
+
+/**
+ * The blind spot, named row by row rather than left silent. A row here is a person's judgement and
+ * not a machine's, which is what **V1**'s `by-reading` marker is for elsewhere — what the machine
+ * holds is that the list is neither short nor long.
+ */
+Deno.test("every method the walk steps over is one somebody has looked at", () => {
+    const crossings = getCrossings(composeCallGraph());
+    const excused = [...CROSSINGS_WITH_A_REASON].sort();
+    assertEquals(
+        crossings.filter((one) => !excused.includes(one)),
+        [],
+        "a method on an unguarded frame that nobody has judged",
+    );
+    assertEquals(
+        excused.filter((one) => !crossings.includes(one)),
+        [],
+        "and a row excusing a crossing the walk no longer makes",
+    );
+});
+
+Deno.test("a spread is not a method, and a method is not a plain call", () => {
+    assertEquals(
+        getCalledNames("    ...composeGameReports(one),"),
+        ["composeGameReports"],
+        "a spread",
+    );
+    assertEquals(
+        getCalledMethods("    ...composeGameReports(one),"),
+        [],
+        "which is nobody's method",
+    );
+    assertEquals(getCalledMethods("    store.read(key);"), ["read"], "while a method is one");
+    assertEquals(getCalledNames("    store.read(key);"), [], "and is not read as a plain call");
 });

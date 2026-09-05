@@ -609,17 +609,19 @@ commit that opens or closes one.
     generic argument needs the type information a reader over text does not have. It closes if the
     spelling ever arrives, which is the day it would be worth the machinery.
 
-13. **The path guard walks one entry, and reads calls by name.**
+13. **The path guard walks one entry, and a method is judged rather than resolved.**
     `tests/repository/unguarded-paths.test.ts` walks the call graph from the add-on standing up,
     following only calls no `try` stands over, and holds that nothing it reaches can throw. That is
-    **E14** read as a path rather than as a file, and it closes what this entry used to say was
-    missing. Three things it does not see. **A method is nobody's to resolve** — `store.read(…)`,
-    `panel.show(…)` and every callback held in a variable draw no edge, so what is reached only that
-    way is invisible; each of those is a handover **E12** guards, which is why the blind spot is
-    affordable. **It walks one entry**, because every other way in is a callback and E12 holds those
-    to opening on a `try`. And **a name is a name**: a call resolves to a function of that name in
-    the same file or in one it imports, so a local shadowing an import would draw an edge that is
-    not there.
+    **E14** read as a path rather than as a file. Two things it does not compute, and only one of
+    them is silent. **What object a method stands on is not a reader over text's to say**, so a call
+    through one draws no edge — but every method standing on a frame the walk reaches is listed in
+    that file's own register, with the reason it cannot stop the add-on, read both ways: a crossing
+    that is gone stops being excused and a new one fails until somebody has looked at it. Resolving
+    them by name instead was measured and refused: `store.read` and `figures.read` are one name and
+    two different programs, and following both said standing up reaches the whole session machinery,
+    which it does not. **It walks one entry**, because every other way in is a callback and **E12**
+    holds those to opening on a `try`. And a call resolves by name inside its own file or through
+    what that file imports, so a local shadowing an import would draw an edge that is not there.
 
 14. **Half of E14 is held by reading.** `tests/repository/sources.test.ts` holds **A11** whole —
     what a reader touches spells no assertion and imports none — and

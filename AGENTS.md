@@ -495,7 +495,7 @@ the same thing a second way.
 | `tests/repository/decisions.test.ts`          | the decision records                             |
 | `tests/repository/sources.test.ts`            | S1, S2, S4, S5, S13, A10, A11, C5, C8, C15, C16  |
 | `tests/repository/errors.test.ts`             | E1, E2, E11–E13, E14 part, each with a sample    |
-| `tests/repository/unguarded-paths.test.ts`    | E14's paths, walked from the add-on standing up  |
+| `tests/repository/unguarded-paths.test.ts`    | E14's paths, and the methods they step over      |
 | `tests/repository/names.test.ts`              | N1, N11, N14, N15, N16, each with a sample       |
 | `tests/repository/type-assertions.test.ts`    | C13, with a register read both ways              |
 | `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts   |
