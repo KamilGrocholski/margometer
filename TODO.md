@@ -24,18 +24,12 @@
 - [ ] Test turns
 
 ## Up Next
-- [ ] Change how user level code (UI, what user interacts with) is written - no more asserts, check every type before calculation, use operators like `?.`
 - [ ] Add "ucieczka" as a new fight outcome
 - [ ] Do a manual audit
 
 ## Done
-- [x] Fix error "MargoMeter/Panel AssertionError: and carries no more of them than a list draws", using 
-      capture "margometer-luvia-ne0iTNdg-0.12.1-2026-09-05T07-17-00-939Z.json".
-- [x] !!!IMPORTANT!!!I need fabricated fights - create a tool for it
-- [x] FIX: remember the last scroll position
-- [x] Consider adding `turn` to stats - maybe I will find a solution to read turns after the latest fail
-- [x] !!!IMPORTANT!!! Fix workflow each time before doing ANY work round: fetch game source files; refresh frozen dir content
-- [x] Add E2E tests - maybe trying out deno was not a good option
+- [x] Fix draging, while redrawing - the same problem like clicking had, which has been solved with `press`
+- [x] Prevent crashes in the userspace 
 
 ## Later
 - [ ] Start writing specs, and code against tests before v1.0.0 - tests first, at this point I SHOULD exactly know what I want
@@ -50,6 +44,15 @@
 
 ---
 ## History
+
+### Done v0.13.0
+- [x] Fix error "MargoMeter/Panel AssertionError: and carries no more of them than a list draws", using 
+      capture "margometer-luvia-ne0iTNdg-0.12.1-2026-09-05T07-17-00-939Z.json".
+- [x] !!!IMPORTANT!!!I need fabricated fights - create a tool for it
+- [x] FIX: remember the last scroll position
+- [x] Consider adding `turn` to stats - maybe I will find a solution to read turns after the latest fail
+- [x] !!!IMPORTANT!!! Fix workflow each time before doing ANY work round: fetch game source files; refresh frozen dir content
+- [x] Add E2E tests - maybe trying out deno was not a good option
 
 ### Done v0.12.1
 - [x] HOTFIX: MargoMeter/Panel AssertionError: a reading sizes no more rows than it holds
