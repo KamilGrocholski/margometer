@@ -84,6 +84,7 @@ function composeShownView(reading: PanelReading, metric: PanelMetric, side: Pane
         isOnShelf: false,
         storage: "local",
         shelfWarnings: [],
+        defects: [],
         drill: null,
         pair: null,
         part: null,

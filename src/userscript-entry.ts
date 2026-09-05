@@ -56,6 +56,7 @@ import {
 import type { ReportSubject } from "@/src/game/fight-report.ts";
 import { readDictionaryFromPage } from "@/src/game/game-dictionary.ts";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
+import { composeDefectKeeper, type KeptDefects } from "@/src/ui/panel-defect.ts";
 import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
 import {
     composeDrillReading,
@@ -593,10 +594,11 @@ function showFight(
     screen: ScreenState,
     panel: PanelHandle,
     shelf: ShelfKeeper,
-    place: FightPlace | null,
+    liveFight: LiveFight,
     readClock: (atMilliseconds: number) => { hour: number; minute: number } | null,
-    openedAt: number,
+    defects: readonly string[],
 ): boolean {
+    const { place, openedAt } = liveFight;
     const live = composeFightFigures(session);
     const standing = getStandingFight(live, screen, shelf);
     if (standing === null) return false;
@@ -640,6 +642,7 @@ function showFight(
         ),
         storage: shelf.choice,
         shelfWarnings: composeShelfWarnings(shelf),
+        defects,
         isOnShelf: screen.isOnShelf,
         drill,
         pair,
@@ -1035,6 +1038,7 @@ function saveRecording(
     environment: UserscriptEnvironment,
     live: LiveFight,
     session: BattleSession,
+    defects: KeptDefects,
 ): void {
     const save = environment.save;
     if (save === null) return;
@@ -1042,11 +1046,17 @@ function saveRecording(
     const subject = composeReportSubject(session, live);
     const text = composeCaptureText(live.capture, surroundings, subject);
     if (text === null) {
-        environment.report(FAILURE_LINE, "a recording that would not be written as text");
+        defects.add("file", null, "a recording that would not be written as text");
         return;
     }
     assert(text.length > 0, "a recording written as text says something");
-    save(composeCaptureFileName(surroundings), text);
+    // The browser's own `click()` is in here and throws where a page is being torn down, and it
+    // was reaching the press that called it rather than the reader (**E14**).
+    try {
+        save(composeCaptureFileName(surroundings), text);
+    } catch (failure) {
+        defects.add("file", null, failure);
+    }
 }
 
 /**
@@ -1153,7 +1163,13 @@ function readPayloadIntoLive(
     return isOpening;
 }
 
-/** Every way the attachment can fail, said once each, under the one branded line. */
+/**
+ * Every way the attachment can fail, said once each, under the one branded line. These four are
+ * conditions rather than defects: three of them mean no panel goes up at all, so there is nothing
+ * standing for a defect to be drawn on. Every guard the panel itself holds ends at the keeper
+ * `startMargoMeter` makes, which writes the console line the first time a kind arrives and counts
+ * the rest — the once **E11** asks for. **ADR 0051.**
+ */
 function composeGameReports(environment: UserscriptEnvironment) {
     assert(FAILURE_LINE.startsWith("MargoMeter/"), "a failure of ours says whose it is first");
     return {
@@ -1167,6 +1183,7 @@ function composeGameReports(environment: UserscriptEnvironment) {
 
 export function startMargoMeter(environment: UserscriptEnvironment): GameAttachment {
     const session = composeBattleSession();
+    const defects = composeDefectKeeper((failure) => environment.report(FAILURE_LINE, failure));
     const store = environment.store;
     const screen = composeScreenState(store !== null && store.read(FOLD_KEY) === FOLDED);
     const shelf = composeShelfKeeper(environment);
@@ -1186,16 +1203,10 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     const draw = (): void => {
         assert(screen.current.length > 0, "a draw is of a panel that is on a screen");
         assert(live.openedAt >= 0, "and of a fight that opened at a moment, or has not opened");
-        const isDrawn = showFight(
-            session,
-            screen,
-            panel,
-            shelf,
-            live.place,
-            environment.readClock,
-            live.openedAt,
-        );
-        if (!isDrawn) panel.showWaiting(screen.isCollapsed);
+        const said = defects.getSaid();
+        const { readClock } = environment;
+        const drawn = showFight(session, screen, panel, shelf, live, readClock, said);
+        if (!drawn) panel.showWaiting(screen.isCollapsed, said);
     };
     const showAndMount = (): void => {
         draw();
@@ -1204,13 +1215,13 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     const panel = composePanelHost(
         environment.document,
         (press) => {
-            if (press.kind === "save") saveRecording(environment, live, session);
+            if (press.kind === "save") saveRecording(environment, live, session, defects);
             const isShelfPress = setShelfFromPress(shelf, press);
             if (!isShelfPress && !handlePress(screen, press)) return;
             if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
             draw();
         },
-        (failure) => environment.report(FAILURE_LINE, failure),
+        (mark) => defects.add(mark.kind, mark.region, mark.failure),
         placement,
         // Once per mount: the dictionary is built with the page and not with the fight, and a page
         // without one never grows one. Null is the panel drawing its own words (ADR 0024).

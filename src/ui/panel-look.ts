@@ -28,6 +28,7 @@ export const SIGNAL = {
     ours: "#6fbf8b",
     theirs: "#e0736f",
     suspect: "#c98500",
+    defect: "#c25ce0",
     unknown: "#8a8a80",
 } as const;
 
@@ -93,6 +94,8 @@ export const CLASS = {
     undrawn: "undrawn",
     warnings: "warnings",
     warning: "warning",
+    defects: "defects",
+    defect: "defect",
     sides: "MargoMeter-sides",
     sidesLine: "sides",
     sidesLabel: "sides-label",
@@ -349,6 +352,7 @@ function composeVariables(): string {
         composeVariable("text", TEXT.plain),
         composeVariable("quiet", TEXT.quiet),
         composeVariable("suspect", SIGNAL.suspect),
+        composeVariable("defect", SIGNAL.defect),
         composeVariable("ours", SIGNAL.ours),
         composeVariable("theirs", SIGNAL.theirs),
         composeVariable("nobody", SIGNAL.unknown),
@@ -520,6 +524,10 @@ function composeListRules(): string {
         `.${CLASS.warnings}{border-top:1px solid var(${VARIABLE_PREFIX}border);` +
         `padding-top:var(${VARIABLE_PREFIX}region-down);}` +
         `.${CLASS.warning}{color:var(${VARIABLE_PREFIX}suspect);` +
+        `padding:0 var(${VARIABLE_PREFIX}region-across) var(${VARIABLE_PREFIX}region-down);}` +
+        `.${CLASS.defects}{border-top:1px solid var(${VARIABLE_PREFIX}border);` +
+        `padding-top:var(${VARIABLE_PREFIX}region-down);}` +
+        `.${CLASS.defect}{color:var(${VARIABLE_PREFIX}defect);` +
         `padding:0 var(${VARIABLE_PREFIX}region-across) var(${VARIABLE_PREFIX}region-down);}`;
 }
 

@@ -41,6 +41,11 @@ const MAXIMUM_DIRECTORY_SHARE = 22;
 const MINIMUM_ASSERTION_DENSITY = 2;
 /** The directories that hold the program and the tools that build it, which is what C16 binds. */
 const SHIPPED_ROOTS = ["libs/", "project/", "src/", "tools/"];
+/**
+ * What a reader touches, which A11 holds instead of S5: an assertion there stops the panel in
+ * front of somebody playing a game, so this is where the density is not measured. **ADR 0051.**
+ */
+const READER_FACING = ["src/ui/", "src/userscript-entry.ts", "src/userscript-boot.ts"];
 /** One line said twice is a citation; a block said twice is an essay with two copies. */
 const MINIMUM_REPEATED_LINES = 2;
 /** More blocks than any tree this repository will hold, so the count stays a stated bound. */
@@ -359,11 +364,20 @@ Deno.test("no function runs past seventy lines", () => {
     assertEquals(over, [], "S4: a function longer than a page");
 });
 
+function isReaderFacingPath(path: string): boolean {
+    assert(path.length > 0, "a path being placed is a path");
+    return READER_FACING.some((one) => path.startsWith(one));
+}
+
 Deno.test("assertion density averages two per function where the program is", () => {
+    assert(isReaderFacingPath("src/ui/panel-defect.ts"), "a panel module is what a reader touches");
+    assert(!isReaderFacingPath("src/core/fight-decoder.ts"), "and the decoder under it is not");
+
     let assertions = 0;
     let functions = 0;
     for (const [path, reading] of getReadings()) {
         if (path.startsWith("tests/")) continue;
+        if (isReaderFacingPath(path)) continue;
         assertions += reading.assertions;
         functions += reading.functions;
     }

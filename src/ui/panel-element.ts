@@ -47,6 +47,7 @@ import {
     STORAGE_CHOICES,
 } from "@/src/ui/panel-screen.ts";
 import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
+import type { HandlePanelFailure } from "@/src/ui/panel-defect.ts";
 import { composeKeptScrollMemo, getTopOfList, setTopOfList } from "@/src/ui/panel-scroll.ts";
 import {
     CARD_WORDS,
@@ -55,6 +56,7 @@ import {
     composeSideCountsText,
     composeUndrawnText,
     composeUsesText,
+    DEFECT_MARK,
     getWordsForDamageKind,
     getWordsForHealthSource,
     getWordsForNothing,
@@ -1167,14 +1169,14 @@ function composeRegion(
     document: PanelDocument,
     region: PanelRegion,
     compose: () => PanelElement,
-    handleFailure: (failure: unknown) => void,
+    handleFailure: HandlePanelFailure,
 ): PanelElement {
     assert(typeof compose === "function", "a region is drawn by something");
     assert(typeof handleFailure === "function", "and a failure of one is reported to somebody");
     try {
         return compose();
     } catch (failure) {
-        handleFailure(failure);
+        handleFailure({ kind: "region", region, failure });
         const undrawn = composeElement(document, "div", CLASS.undrawn);
         undrawn.textContent = composeUndrawnText(region);
         return undrawn;
@@ -1195,6 +1197,12 @@ export interface PanelView {
     shelf: readonly ShelfRow[];
     storage: PanelStorageChoice;
     shelfWarnings: readonly string[];
+    /**
+     * What the panel could not do, said once per kind — `src/ui/panel-defect.ts` owns the tally.
+     * Read off the keeper before a draw begins, so a defect this draw records is said at the next
+     * one and nothing a defect does can ask for a redraw.
+     */
+    defects: readonly string[];
     isOnShelf: boolean;
     drill: DrillReading | null;
     pair: PairReading | null;
@@ -1675,7 +1683,7 @@ export interface PanelHandle {
      * With no draw at all before the first payload, an add-on waiting for a fight and one that
      * died on the way to the page are the same picture.
      */
-    showWaiting(isCollapsed: boolean): void;
+    showWaiting(isCollapsed: boolean, defects: readonly string[]): void;
 }
 
 function composeRegionInPlace(
@@ -1683,7 +1691,7 @@ function composeRegionInPlace(
     standing: PanelElement,
     region: PanelRegion,
     compose: () => PanelElement,
-    handleFailure: (failure: unknown) => void,
+    handleFailure: HandlePanelFailure,
 ): PanelElement {
     assert(standing.className.length > 0, "a region gives way to another, never to nothing");
     const next = composeRegion(document, region, compose, handleFailure);
@@ -1704,6 +1712,7 @@ interface PanelRegions {
     pinnedTarget: PanelElement;
     sides: PanelElement;
     warnings: PanelElement;
+    defects: PanelElement;
 }
 
 function composePanelRegions(document: PanelDocument): PanelRegions {
@@ -1719,6 +1728,7 @@ function composePanelRegions(document: PanelDocument): PanelRegions {
         pinnedTarget: composeSlotElement(document),
         sides: composeSlotElement(document),
         warnings: composeSlotElement(document),
+        defects: composeSlotElement(document),
     };
     assert(regions.title.className === CLASS.title, "the bar is the bar before anything is drawn");
     assert(regions.warnings.className === CLASS.slot, "and every other begins as a slot");
@@ -1759,6 +1769,7 @@ function composePanelFrame(document: PanelDocument, regions: PanelRegions): Pane
     }
     panel.append(regions.sides);
     panel.append(regions.warnings);
+    panel.append(regions.defects);
     frame.append(panel);
     assert(panel !== frame, "the panel is a box of its own inside the frame");
     return frame;
@@ -1767,7 +1778,7 @@ function composePanelFrame(document: PanelDocument, regions: PanelRegions): Pane
 export function composePanelHost(
     document: PanelDocument,
     handlePress: (press: PanelPress) => void,
-    handleFailure: (failure: unknown) => void,
+    handleFailure: HandlePanelFailure,
     placement: PanelPlacement | null = null,
     // Null is the panel drawing its own words, which is what every test and every browser
     // without the game sees. Who asks the client, and how often, is the entry's — ADR 0024.
@@ -1778,6 +1789,11 @@ export function composePanelHost(
     const frame = composePanelFrame(document, regions);
     const redraw = (standing: PanelElement, region: PanelRegion, compose: () => PanelElement) => {
         return composeRegionInPlace(document, standing, region, compose, handleFailure);
+    };
+    // A listener and a drag both cost the reader the same thing — the gesture — so the kind is
+    // added here rather than threaded through two modules that have no word for it.
+    const handleGesture = (failure: unknown): void => {
+        handleFailure({ kind: "gesture", region: null, failure });
     };
     const register = composeTipRegister();
     const drawing = composeListDrawing(regions, redraw);
@@ -1793,12 +1809,12 @@ export function composePanelHost(
     root.append(frame);
     root.append(tip.element);
     const showTip = (key: string | null, clientY: number): void => tip.show(key, clientY);
-    setPanelRootListeners(root, handlePress, showTip, handleFailure);
+    setPanelRootListeners(root, handlePress, showTip, handleGesture);
     // After the listeners that read a press, and on the same root: a drag is four more of them,
     // and the bar is the only thing on the panel that starts one.
     if (placement !== null) {
         assert(typeof placement.getViewport === "function", "a panel is moved inside something");
-        getPosition = setPanelDrag(root, host, () => regions.title, placement, handleFailure);
+        getPosition = setPanelDrag(root, host, () => regions.title, placement, handleGesture);
     }
     assert(host.className === "", "the host wears no class of the game's making");
     return {
@@ -1814,20 +1830,40 @@ export function composePanelHost(
             assert(regions.list !== regions.sides, "the regions are that many elements");
             assert(regions.title !== regions.header, "and none of them stands in for another");
         },
-        showWaiting(isCollapsed: boolean): void {
+        showWaiting(isCollapsed: boolean, defects: readonly string[]): void {
             drawing.keep();
             register.reset();
             setFoldDrawn(document, regions, frame, redraw, isCollapsed);
-            setPanelFolded(document, regions, redraw);
-            if (!isCollapsed) {
-                drawing.draw(WAITING_LIST_NAME, () => composeWaitingElement(document));
-            }
+            setPanelWaiting(document, regions, isCollapsed, defects, redraw, drawing);
             drawing.settle();
             tip.refresh();
-            assert(regions.sides.className === CLASS.slot, "with nothing standing under it");
-            assert(regions.nouns.className === CLASS.slot, "and no strip of tabs over it");
         },
     };
+}
+
+/**
+ * A panel with no fight to draw. A defect can arrive before one does — a reading that would not
+ * compose leaves the panel waiting — so what could not be done is drawn here too, and not only
+ * over a fight.
+ */
+function setPanelWaiting(
+    document: PanelDocument,
+    regions: PanelRegions,
+    isCollapsed: boolean,
+    defects: readonly string[],
+    redraw: PanelRedraw,
+    drawing: ListDrawing,
+): void {
+    setPanelFolded(document, regions, redraw);
+    assert(regions.sides.className === CLASS.slot, "with nothing standing under it");
+    assert(regions.nouns.className === CLASS.slot, "and no strip of tabs over it");
+    if (isCollapsed) return;
+    drawing.draw(WAITING_LIST_NAME, () => composeWaitingElement(document));
+    regions.defects = redraw(
+        regions.defects,
+        "defects",
+        () => composeDefectsElement(document, defects),
+    );
 }
 
 type PanelRedraw = (
@@ -1910,6 +1946,7 @@ function setPanelFolded(
     );
     regions.sides = redraw(regions.sides, "sides", () => composeSlotElement(document));
     regions.warnings = redraw(regions.warnings, "warnings", () => composeSlotElement(document));
+    regions.defects = redraw(regions.defects, "defects", () => composeSlotElement(document));
     assert(regions.warnings.className === CLASS.slot, "and every one of them is a slot after it");
 }
 
@@ -1947,12 +1984,13 @@ function setPanelBody(
     );
     drawing.draw(view.listName, () => composeViewList(document, view, register, translate));
     setPinnedRegions(document, regions, view, register, redraw);
-    const hasSides = view.reading.sides !== null && !view.isOnShelf;
-    regions.sides = redraw(
-        regions.sides,
-        "sides",
-        () => hasSides ? composeSidesElement(document, view) : composeSlotElement(document),
-    );
+    // Whether there is a summary to draw is asked **inside** the guard, not before it: a reading
+    // that throws on being asked cost the whole panel where the question stood outside (**E5**).
+    regions.sides = redraw(regions.sides, "sides", () => {
+        const hasSides = view.reading.sides !== null && !view.isOnShelf;
+        if (!hasSides) return composeSlotElement(document);
+        return composeSidesElement(document, view);
+    });
     regions.warnings = redraw(
         regions.warnings,
         "warnings",
@@ -1961,6 +1999,13 @@ function setPanelBody(
                 document,
                 view.isOnShelf ? view.shelfWarnings : view.reading.warnings,
             ),
+    );
+    // Last, and drawn on every screen: what the panel could not do is not about the fight, so it
+    // does not go away when the reader switches to another one — `DESIGN.md`, Defect list.
+    regions.defects = redraw(
+        regions.defects,
+        "defects",
+        () => composeDefectsElement(document, view.defects),
     );
 }
 
@@ -1995,6 +2040,21 @@ function setPinnedRegions(
                     : composePinnedElement(document, row, register, stated),
         );
     }
+}
+
+function composeDefectsElement(
+    document: PanelDocument,
+    defects: readonly string[],
+): PanelElement {
+    if (defects.length === 0) return composeSlotElement(document);
+    const block = composeElement(document, "div", CLASS.defects);
+    for (const said of defects) {
+        if (said.length === 0) continue;
+        const line = composeElement(document, "div", CLASS.defect);
+        line.textContent = `${DEFECT_MARK}${said}`;
+        block.append(line);
+    }
+    return block;
 }
 
 function composeWarningsElement(

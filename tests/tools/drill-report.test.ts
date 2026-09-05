@@ -176,6 +176,7 @@ Deno.test("every row of every ranking carries the mark that opens it", () => {
             isOnShelf: false,
             storage: "local" as const,
             shelfWarnings: [],
+            defects: [],
             drill: null,
             pair: null,
             part: null,

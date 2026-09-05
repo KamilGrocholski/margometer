@@ -24,6 +24,8 @@ export interface CountedNoun {
 
 export const WARNING_MARK = "⚠ ";
 
+export const DEFECT_MARK = "✖ ";
+
 export const PANEL_WORDS = {
     title: "MargoMeter",
     // Neither says "bez": the figure was placed, and it is the person that was never named.
@@ -750,6 +752,7 @@ export const REGION_WORDS = {
     pinned: "wiersza",
     sides: "podsumowania stron",
     warnings: "ostrzeżenia",
+    defects: "spisu usterek",
 } as const;
 
 export type PanelRegion = keyof typeof REGION_WORDS;
@@ -759,6 +762,43 @@ export function composeUndrawnText(region: PanelRegion): string {
     assert(words.length > 0, "a region that could not be drawn is a region with a name");
     assert(PANEL_WORDS.undrawn.length > 0, "and the sentence saying so says something");
     return `Nie udało się narysować ${words}.`;
+}
+
+/** Every kind of defect there is, so a reader over the words can be held to the list — **S11**. */
+export const DEFECT_KINDS = ["region", "reading", "gesture", "figure", "list", "file"] as const;
+
+export type DefectKind = typeof DEFECT_KINDS[number];
+
+/**
+ * What the panel could not do, in the words of somebody who is playing a game rather than reading
+ * this repository. **L3**: not one of them says what our code believed, or names a key of the
+ * game's — a player is told a part of the panel is missing, and the failure itself stays in the
+ * console.
+ */
+const DEFECT_WORDS: Record<DefectKind, string> = {
+    region: "Panel nie narysował jednej ze swoich części",
+    reading: "Panel nie przeliczył tej walki",
+    gesture: "Panel nie wykonał kliknięcia",
+    figure: "Panel nie zapisał jednej z liczb",
+    list: "Panel pokazał tylko część danych",
+    file: "Panel nie przygotował pliku z walką",
+};
+
+/**
+ * A defect names the region it happened in where there was one, and says how many times only
+ * where that is more than once: a tally of one reads as a tally somebody has to work out.
+ */
+export function composeDefectText(
+    kind: DefectKind,
+    region: PanelRegion | null,
+    count: number,
+): string {
+    const said = kind === "region" && region !== null
+        ? `Panel nie narysował ${REGION_WORDS[region]}`
+        : DEFECT_WORDS[kind];
+    const isTallied = Number.isSafeInteger(count) && count > 1;
+    const times = isTallied ? ` (${composeIntegerText(count)}×)` : "";
+    return `${said}${times}.`;
 }
 
 /**

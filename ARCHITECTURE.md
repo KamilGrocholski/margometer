@@ -81,6 +81,7 @@ src/
     engine-warrior.ts    The client's own field names, and the only file that spells them.
   ui/
     panel-card.ts        What a person's row says on demand, out of the figures it holds.
+    panel-defect.ts      What the panel could not do, kept by kind and said once each.
     panel-drag.ts        Where the panel sits, and how a reader moves it.
     panel-element.ts     The panel drawn into a document it is handed, region by region.
     panel-listener.ts    The one handover of a listener to the browser, and its guard.
@@ -190,6 +191,7 @@ tests/
     blow-vocabulary.test.ts   Every key a blow carried, against the words the panel has for it.
     full-cast-bound.test.ts   The widest cast there is, with both unnamed rows beside it.
     panel-card.test.ts        Every figure a card states, and the parts it draws under them.
+    panel-defect.test.ts      One line per kind, a tally rather than a repeat, one console line.
     panel-drag.test.ts        A panel kept on the screen, and put back where it was left.
     panel-element.test.ts     What the panel puts on a page, read back out of it.
     panel-look.test.ts        Contrast by arithmetic, and a sheet that spends tokens only.
