@@ -83,6 +83,7 @@ Deno.test("a full shelf with a fight still running draws, rather than going undr
         shelf: rows,
         isOnShelf: true,
         storage: "local",
+        hasFightToSave: true,
         shelfAnswers: [],
         defects: [],
         drill: null,

@@ -78,7 +78,7 @@ Deno.test("the envelope is the one every admitted recording already carries", ()
         "droppedCalls",
         "and the figures stand above the calls, where a reader opening the file meets them",
     );
-    assertEquals(written.formatVersion, 3, "the envelope that may carry them says which one it is");
+    assertEquals(written.formatVersion, 4, "the envelope that may carry them says which one it is");
     assertEquals(
         written.addOnVersion,
         BUILD_VERSION,
@@ -87,6 +87,39 @@ Deno.test("the envelope is the one every admitted recording already carries", ()
     assertEquals(written.world, "tempest", "the world it was taken on");
     assertEquals(written.gameBuild, "53XkBRxF", "the client's own build");
     assertEquals(written.isTruncated, false, "and a tail nothing was cut off");
+});
+
+Deno.test("a recording nobody measured says null, where one measured says a number", () => {
+    const kept = readCapture(
+        composeCaptureText(
+            {
+                calls: [{
+                    index: 0,
+                    payload: { foo: 1 },
+                    messages: ["one"],
+                    combatantsBefore: null,
+                    combatantsAfter: null,
+                }],
+                droppedCalls: null,
+                isTruncated: null,
+            },
+            SURROUNDINGS,
+            null,
+        ) ?? "",
+    );
+    assertEquals(kept.droppedCalls, null, "what nobody counted is absent, never none dropped");
+    assertEquals(kept.isTruncated, null, "and a tail nobody could ask about is not a whole one");
+    const calls = kept.calls;
+    assert(Array.isArray(calls), "the calls are a list");
+    const first = calls[0];
+    assert(isRecord(first), "and each one a record");
+    assertEquals(first.combatantsBefore, null, "a snapshot nobody read is absent, never empty");
+    assertEquals(first.combatantsAfter, null, "on either side of the call");
+    assertEquals(first.messages, ["one"], "while what was read is written as it was read");
+
+    const live = readCapture(composeCaptureText(composeEmptyCapture(), SURROUNDINGS, null) ?? "");
+    assertEquals(live.droppedCalls, 0, "a recording collected live counted, and none were");
+    assertEquals(live.isTruncated, false, "and says its tail is whole, which is a measurement");
 });
 
 Deno.test("a recording that could not read its surroundings says so rather than inventing", () => {

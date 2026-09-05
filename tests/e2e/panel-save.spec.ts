@@ -66,12 +66,35 @@ test("the file is the envelope an intake reads, and carries the whole fight", as
 test.describe("before any fight has happened", () => {
     test.use({ fedThrough: "none" });
 
-    test("the file still says what it is, and says there is nothing in it", async ({ panel }) => {
+    test("the bar carries no control to hand a fight over with", async ({ panel }) => {
+        await expect(panel.host, "the panel is up").toHaveCount(1);
+        await expect(panel.at("[data-shelf]"), "and the bar has its other controls").toHaveCount(1);
+        // Not disabled and not inert: absent. A control that does nothing is worse than one that
+        // is not there (`DESIGN.md`), and this one handed over an empty envelope (ADR 0053).
+        await expect(panel.at("[data-save]"), "but nothing to save with").toHaveCount(0);
+        await panel.expectHonest("a panel that has read no fight");
+    });
+});
+
+test.describe("a fight the panel read back off its own shelf", () => {
+    test("is what the file carries, and it says what it could not read", async ({ panel }) => {
+        // The fight ends, the reader comes back to a page no fight has started on, and the panel
+        // stands on what it kept — which is when a press used to hand over nothing (ADR 0053).
+        await panel.reloadWithNoFightFed();
+        await expect(panel.at(".list .row").first(), "drawing the fight it kept").toBeVisible();
+
         const handed = await readHandedOver(panel);
         for (const field of ENVELOPE) {
             expect(field in handed.read, `the file states its ${field}`).toBe(true);
         }
-        expect(handed.read.report, "nothing was counted, and it says so").toBeNull();
-        expect(handed.read.calls, "and nothing was delivered to count").toEqual([]);
+        const calls = handed.read.calls;
+        expect(Array.isArray(calls), "it carries the calls the shelf kept").toBe(true);
+        expect((calls as unknown[]).length, "and there are some of them").toBeGreaterThan(0);
+        expect(handed.read.report, "with the figures the panel drew beside them").not.toBeNull();
+        const first = (calls as Record<string, unknown>[])[0];
+        expect(first?.combatantsBefore, "a snapshot the shelf never kept is absent").toBeNull();
+        expect(first?.combatantsAfter, "on either side of the call").toBeNull();
+        expect(handed.read.droppedCalls, "and what nobody counted is not counted as none")
+            .toBeNull();
     });
 });

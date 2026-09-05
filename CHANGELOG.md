@@ -31,6 +31,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — Zapis do pliku bierze tę walkę, którą widzisz. Wcześniej brał tylko tę, którą panel
+  czytał na bieżąco, więc po odświeżeniu strony — kiedy panel pokazuje walkę z zapisanych — pobierał
+  się plik bez niczego w środku. Teraz pobiera się ta walka, na którą patrzysz.
+- **Zmiana** — Przycisk zapisu pokazuje się tylko wtedy, gdy jest co zapisać. Na świeżo otwartej
+  grze, zanim panel zobaczy jakąkolwiek walkę, nie ma go na belce.
+
 ## [0.14.0] — 2026-09-05
 
 - **Nowość** — Panel mówi, czego nie zdołał pokazać. Pod ostrzeżeniami stoi lista brakujących

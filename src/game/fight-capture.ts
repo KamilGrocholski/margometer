@@ -19,10 +19,11 @@ import { composeReportFight, type ReportSubject } from "@/src/game/fight-report.
 import { isFightStart } from "@/src/game/fight-underway.ts";
 
 /**
- * 3 is the envelope in English; 2 was Polish and carried `raport`, 1 Polish without it. The number
- * says which writer wrote a file — `tools/capture-intake.ts` still takes 1 and 2. **ADR 0030.**
+ * 4 states what it could not read as `null`; 3 was the envelope in English, 2 Polish and carrying
+ * `raport`, 1 Polish without it. The number says which writer wrote a file —
+ * `tools/capture-intake.ts` still takes every one of them. **ADR 0030**, **ADR 0053.**
  */
-const CAPTURE_FORMAT_VERSION = 3;
+const CAPTURE_FORMAT_VERSION = 4;
 /**
  * The envelope's own field names, spelled here and read by whatever reads a recording back —
  * **N13**, which is why they are a constant rather than a string literal in each of two files.
@@ -59,8 +60,24 @@ export interface CapturedCall {
     index: number;
     payload: unknown;
     messages: readonly string[];
+    /** Null where nobody read the engine, never `[]`: the two are different claims. **E10**. */
+    combatantsBefore: readonly CapturedCombatant[] | null;
+    combatantsAfter: readonly CapturedCombatant[] | null;
+}
+
+/** One call as the engine handed it over, which is the only place a snapshot is read. */
+export interface EngineCall {
+    payload: unknown;
+    messages: readonly string[];
     combatantsBefore: readonly CapturedCombatant[];
     combatantsAfter: readonly CapturedCombatant[];
+}
+
+/** What a recording states, however it was come by. Null is what nobody measured. **ADR 0053.** */
+export interface CaptureReading {
+    calls: readonly CapturedCall[];
+    droppedCalls: number | null;
+    isTruncated: boolean | null;
 }
 
 export interface FightCapture {
@@ -136,7 +153,7 @@ function composeCopiedValue(value: unknown): unknown {
  */
 export function composeNextCapture(
     capture: FightCapture,
-    call: Omit<CapturedCall, "index">,
+    call: EngineCall,
 ): FightCapture {
     const previous = isFightStart(call.payload) ? composeEmptyCapture() : capture;
     assert(previous.calls.length <= MAXIMUM_CALLS, "a recording stays inside its stated bound");
@@ -176,7 +193,7 @@ export function composeNextCapture(
  * a figure that looks wrong is read beside its material. **ADR 0027.**
  */
 export function composeCaptureText(
-    capture: FightCapture,
+    capture: CaptureReading,
     surroundings: CaptureSurroundings,
     subject: ReportSubject | null,
 ): string | null {
@@ -184,7 +201,10 @@ export function composeCaptureText(
     assert(surroundings.capturedAt.length > 0, "and the moment it was taken at");
     assert(surroundings.gameBuild !== "", "a build it could not read is absent, never empty");
     assert(surroundings.userAgent !== "", "and so is a browser that said nothing of itself");
-    assert(capture.droppedCalls >= 0, "and what was dropped is never fewer than none");
+    assert(
+        capture.droppedCalls === null || capture.droppedCalls >= 0,
+        "and what was dropped is never fewer than none",
+    );
     const writing = composeJsonWriting({
         [CAPTURE_FIELDS.formatVersion]: CAPTURE_FORMAT_VERSION,
         // Not the format's number: this is the add-on's own, and the two move for different

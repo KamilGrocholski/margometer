@@ -518,6 +518,31 @@ export function requireCallsCarried(recording: unknown): void {
     );
 }
 
+/**
+ * A recording with no snapshot on any call. The panel hands one over for a fight it read back off
+ * the shelf: the shelf keeps payloads, and a snapshot is read off the engine while the fight is on
+ * (`src/userscript-entry.ts`). Such a file is a report and answers what a reader asks of one — the
+ * calls and the figures they came to — and it is not evidence.
+ *
+ * ⚠️ **`captures/AGENTS.md` says why, and it is the reason this refuses rather than warns:** the
+ * protocol never states maximum health, the snapshots do, and they are the only check the decoder
+ * has that is not the decoder. Admitted, this file would be the first in the directory that
+ * cannot answer one. **ADR 0053.**
+ */
+export function requireSnapshotsCarried(recording: unknown): void {
+    const calls = getCallsFromRecording(recording);
+    for (const call of calls) {
+        if (Array.isArray(call[CAPTURE_FIELDS.combatantsBefore])) return;
+        if (Array.isArray(call[CAPTURE_FIELDS.combatantsAfter])) return;
+    }
+    assert(calls.length > 0, "a recording with no call at all was refused before this");
+    throw new CaptureIntakeError(
+        `no call states \`${CAPTURE_FIELDS.combatantsBefore}\` or ` +
+            `\`${CAPTURE_FIELDS.combatantsAfter}\` — this is a fight the panel read back off its ` +
+            "own shelf, and the snapshots are what the decoder is checked against",
+    );
+}
+
 /** The payloads a recording carries, read as `tools/recorded-fights.ts` reads an admitted one. */
 function getPayloadsFromRecording(recording: unknown): unknown[] {
     const payloads: unknown[] = [];
@@ -705,6 +730,7 @@ function writeIntake(source: string, slug: string): void {
     // Before the path is composed, so a file carrying nothing is refused for carrying nothing
     // rather than for a world it never got as far as stating.
     requireCallsCarried(recording);
+    requireSnapshotsCarried(recording);
     const target = composeIntakePath(recording, slug);
     // Material is never overwritten: a recording already here is evidence somebody has written a
     // test against.

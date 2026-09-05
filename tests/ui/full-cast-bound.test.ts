@@ -85,6 +85,7 @@ function composeShownScreen(reading: PanelReading, metric: PanelMetric, side: Pa
         shelf: [],
         isOnShelf: false,
         storage: "local",
+        hasFightToSave: true,
         shelfAnswers: [],
         defects: [],
         drill: null,

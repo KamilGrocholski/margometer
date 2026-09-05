@@ -26,6 +26,7 @@ import {
     removeSkillDescriptions,
     requireCallsCarried,
     requireRecordingIsNew,
+    requireSnapshotsCarried,
 } from "@/tools/capture-intake.ts";
 import { getRecordedFights } from "@/tools/recorded-fights.ts";
 import { CaptureIntakeError } from "@/tools/margometer-tool-error.ts";
@@ -357,6 +358,32 @@ Deno.test("a recording carrying no call is refused, because nothing is not evide
     assertThrows(() => requireCallsCarried({ ...nothing, calls: [1, "two"] }), CaptureIntakeError);
     // And the sample it must not flag, without which this only says the reader still finds one.
     requireCallsCarried(composeRecording({ "5": { id: 5, npc: 0, name: "Wiewiorka" } }));
+});
+
+Deno.test("a recording with no snapshot is refused, because it checks the decoder", () => {
+    const carried = composeRecording({ "5": { id: 5, npc: 0, name: "Wiewiorka" } });
+    // The sample it must not flag first: an admitted recording states both, and `[]` is a
+    // snapshot the engine answered with nobody in it, which is a reading and not a gap.
+    requireSnapshotsCarried(carried);
+    assert(isRecord(carried), "the fixture is a recording");
+    const calls = carried.calls;
+    assert(Array.isArray(calls), "carrying its calls as a list");
+    const stated = calls[0];
+    assert(isRecord(stated), "and each of them as a record");
+
+    // What the panel hands over for a fight it read back off its own shelf: the payload and the
+    // messages, and null where the engine was not there to be asked (ADR 0053).
+    const kept = {
+        ...carried,
+        formatVersion: 4,
+        calls: [{ ...stated, combatantsBefore: null, combatantsAfter: null }],
+    };
+    assertThrows(() => requireSnapshotsCarried(kept), CaptureIntakeError, "read back off its own");
+    // One side is enough: a file stating either is a file the health witness can be read from.
+    requireSnapshotsCarried({
+        ...kept,
+        calls: [{ ...stated, combatantsBefore: null }],
+    });
 });
 
 /**

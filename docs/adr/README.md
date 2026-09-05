@@ -153,3 +153,4 @@ edited to agree with the new rule.
   **Accepted**
 - [0052](0052-a-wheel-turn-outlives-the-payload-that-lands-in-it.md) — A wheel turn outlives the
   payload that lands in it. **Accepted**
+- [0053](0053-the-file-is-the-fight-on-screen.md) — The file is the fight on screen. **Accepted**

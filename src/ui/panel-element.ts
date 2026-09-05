@@ -552,7 +552,16 @@ function composeBarControl(
     return control;
 }
 
-function composeTitleElement(document: PanelDocument, isCollapsed: boolean): PanelElement {
+/**
+ * The save is drawn only where there is a fight to hand over. A control that does nothing is worse
+ * than one that is not there (`DESIGN.md`), and this one used to hand over an envelope with no
+ * call in it — a file that looked like a saved fight and was not. **ADR 0053.**
+ */
+function composeTitleElement(
+    document: PanelDocument,
+    isCollapsed: boolean,
+    hasFightToSave: boolean,
+): PanelElement {
     const bar = composeElement(document, "div", CLASS.title);
     // Set before the controls are appended, not after: `textContent` replaces every child, so
     // the other order would wipe them.
@@ -572,12 +581,14 @@ function composeTitleElement(document: PanelDocument, isCollapsed: boolean): Pan
         attribute: SHELF_ATTRIBUTE,
         words: PANEL_WORDS.openFights,
     }));
-    bar.append(composeBarControl(document, {
-        className: CLASS.control,
-        mark: SAVE_MARK,
-        attribute: SAVE_ATTRIBUTE,
-        words: PANEL_WORDS.saveFight,
-    }));
+    if (hasFightToSave) {
+        bar.append(composeBarControl(document, {
+            className: CLASS.control,
+            mark: SAVE_MARK,
+            attribute: SAVE_ATTRIBUTE,
+            words: PANEL_WORDS.saveFight,
+        }));
+    }
     bar.append(composeFoldControl(document, isCollapsed));
     return bar;
 }
@@ -1105,6 +1116,8 @@ function composeRegion(
 /** A panel with no screen to draw, and which of the two reasons it has for standing there. */
 export interface WaitingReading {
     defects: readonly string[];
+    /** A fight may be recorded and still not draw: a reading that would not compose leaves one. */
+    hasFightToSave: boolean;
     /** A fight arrived and could not be turned into a screen. Never "there has been no fight". */
     isFightUnread: boolean;
 }
@@ -1122,6 +1135,8 @@ export interface ShownScreen {
     hasReaderSide: boolean;
     shelf: readonly ShelfRow[];
     storage: PanelStorageChoice;
+    /** Whether the bar draws its save. False leaves no control rather than a dead one. */
+    hasFightToSave: boolean;
     shelfAnswers: readonly string[];
     /**
      * What the panel could not do, said once per kind — `src/ui/panel-defect.ts` owns the tally.
@@ -1711,7 +1726,7 @@ export function composePanelHost(
         show(shown: ShownScreen): void {
             drawing.keep();
             register.reset();
-            setFoldDrawn(document, regions, frame, redraw, shown.isCollapsed);
+            setFoldDrawn(document, regions, frame, redraw, shown.isCollapsed, shown.hasFightToSave);
             if (shown.isCollapsed) setPanelFolded(document, regions, redraw);
             else setPanelBody(document, regions, shown, register, translate, redraw, drawing);
             drawing.settle();
@@ -1721,7 +1736,7 @@ export function composePanelHost(
         showWaiting(isCollapsed: boolean, waiting: WaitingReading): void {
             drawing.keep();
             register.reset();
-            setFoldDrawn(document, regions, frame, redraw, isCollapsed);
+            setFoldDrawn(document, regions, frame, redraw, isCollapsed, waiting.hasFightToSave);
             setPanelWaiting(document, regions, isCollapsed, waiting, redraw, drawing);
             drawing.settle();
             drag?.handleDrawn();
@@ -1824,11 +1839,12 @@ function setFoldDrawn(
     frame: PanelElement,
     redraw: PanelRedraw,
     isCollapsed: boolean,
+    hasFightToSave: boolean,
 ): void {
     regions.title = redraw(
         regions.title,
         "header",
-        () => composeTitleElement(document, isCollapsed),
+        () => composeTitleElement(document, isCollapsed, hasFightToSave),
     );
     frame.className = isCollapsed ? `${CLASS.frame} ${CLASS.folded}` : CLASS.frame;
 }

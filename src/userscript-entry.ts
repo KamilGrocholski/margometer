@@ -35,6 +35,7 @@ import {
     type PageStorage,
 } from "@/src/game/browser-store.ts";
 import {
+    type CaptureReading,
     type CaptureSurroundings,
     composeCaptureFileName,
     composeCaptureText,
@@ -136,7 +137,8 @@ export interface UserscriptEnvironment {
      */
     composeShelfStore(choice: PanelStorageChoice): BrowserStore;
     write: ((name: string, text: string) => void) | null;
-    readSurroundings(): CaptureSurroundings;
+    /** The moment is asked for: a fight off the shelf states when it was fought. **ADR 0053**. */
+    readSurroundings(atMilliseconds: number): CaptureSurroundings;
     now(): number;
     readClock(atMilliseconds: number): { hour: number; minute: number } | null;
     /** One branded line, and the failure itself, so a console shows whose it is first. */
@@ -593,6 +595,15 @@ function getStandingFight(
 }
 
 /**
+ * Whether the bar draws its save, asked without decoding anything: a fight that will not read is
+ * still a fight worth handing over, and that is exactly the one nothing else here can answer for.
+ */
+function getIsFightToSave(live: LiveFight, shelf: ShelfKeeper): boolean {
+    if (live.capture.calls.length > 0) return true;
+    return shelf.fights.length > 0;
+}
+
+/**
  * Composing a screen out of a fight, guarded. Everything under here reaches `core/`, which throws
  * (**E7**), and the nearest catch was the engine wrap's — so a reading that would not compose
  * stopped the panel updating for the rest of the fight rather than costing it one region, and one
@@ -612,25 +623,50 @@ function drawFight(
     defects: KeptDefects,
 ): void {
     const said = defects.getSaid();
+    const hasFightToSave = getIsFightToSave(liveFight, shelf);
     try {
-        if (drawFightOnPanel(underway, screen, panel, shelf, liveFight, readClock, said, defects)) {
+        if (
+            drawFightOnPanel(
+                underway,
+                screen,
+                panel,
+                shelf,
+                liveFight,
+                readClock,
+                { said, hasFightToSave },
+                defects,
+            )
+        ) {
             return;
         }
-        panel.showWaiting(screen.isCollapsed, { defects: said, isFightUnread: false });
+        panel.showWaiting(screen.isCollapsed, {
+            defects: said,
+            hasFightToSave,
+            isFightUnread: false,
+        });
         return;
     } catch (failure) {
         defects.add("reading", null, failure);
     }
-    drawFightUnread(panel, screen.isCollapsed, defects);
+    drawFightUnread(panel, screen.isCollapsed, hasFightToSave, defects);
 }
 
 /**
  * The panel standing on a fight it could not read. A failure here has nowhere left to degrade to,
  * so its mark is the console entry the keeper writes and not a line anybody sees — **ADR 0025**.
  */
-function drawFightUnread(panel: PanelHandle, isCollapsed: boolean, defects: KeptDefects): void {
+function drawFightUnread(
+    panel: PanelHandle,
+    isCollapsed: boolean,
+    hasFightToSave: boolean,
+    defects: KeptDefects,
+): void {
     try {
-        panel.showWaiting(isCollapsed, { defects: defects.getSaid(), isFightUnread: true });
+        panel.showWaiting(isCollapsed, {
+            defects: defects.getSaid(),
+            hasFightToSave,
+            isFightUnread: true,
+        });
     } catch (failure) {
         defects.add("reading", null, failure);
     }
@@ -648,7 +684,7 @@ function drawFightOnPanel(
     shelf: ShelfKeeper,
     liveFight: LiveFight,
     readClock: (atMilliseconds: number) => { hour: number; minute: number } | null,
-    defects: readonly string[],
+    drawn: { said: readonly string[]; hasFightToSave: boolean },
     keeper: KeptDefects,
 ): boolean {
     const { place, openedAt } = liveFight;
@@ -695,8 +731,9 @@ function drawFightOnPanel(
             (one) => shelf.readFigures(one),
         ),
         storage: shelf.choice,
+        hasFightToSave: drawn.hasFightToSave,
         shelfAnswers: composeShelfAnswers(shelf),
-        defects,
+        defects: drawn.said,
         isOnShelf: screen.isOnShelf,
         drill,
         pair,
@@ -1087,10 +1124,10 @@ function startFromUserscriptWindow(page: UserscriptWindow): GameAttachment {
         composeShelfStore: (choice) => composeStoreForChoice(page, choice),
         write: (name, text) =>
             writeTextToFile(page, name, text, (failure) => report(FAILURE_LINE, failure)),
-        readSurroundings: () => ({
+        readSurroundings: (atMilliseconds) => ({
             world: readWorldFromPage(page),
             gameBuild: readGameBuildFromPage(page),
-            capturedAt: new page.Date(page.Date.now()).toISOString(),
+            capturedAt: new page.Date(atMilliseconds).toISOString(),
             userAgent: page.navigator.userAgent ?? null,
         }),
         now: () => page.Date.now(),
@@ -1121,52 +1158,128 @@ function keepFight(
     });
 }
 
-/**
- * What the figures of the live fight are written from, or nothing where none has been read. Null
- * is a true statement the file carries: the add-on was attached and the game said nothing.
- */
-function composeReportSubject(underway: FightUnderway, live: LiveFight): ReportSubject | null {
-    const figures = composeFightFigures(underway);
-    if (figures === null) return null;
+/** What a file's figures are written from, whichever fight the panel is standing on. */
+function composeReportSubject(figures: FightFigures, place: FightPlace | null): ReportSubject {
     return {
         statistics: figures.statistics,
         roster: figures.roster,
-        place: live.place,
+        place,
         payloads: figures.fight.payloads,
         messagesLost: figures.fight.messagesLost,
         isOver: figures.fight.isOver,
     };
 }
 
+/** A recording and everything its envelope states, ready to be written. */
+interface FightHandover {
+    reading: CaptureReading;
+    subject: ReportSubject | null;
+    surroundings: CaptureSurroundings;
+}
+
 /**
- * The fight, handed to the browser as a file — the calls the game made and the figures they came
+ * A fight off the shelf, as a recording. The calls are the payloads it kept and the messages the
+ * decoder took back out of them, so the figures in the file are the figures on screen — the panel
+ * derives both through the one chain (**ADR 0026**).
+ *
+ * ⚠️ **What the shelf never kept is `null`, never an empty list.** A snapshot is read off the
+ * engine while a fight is on and there is no engine to ask afterwards; the dropped-call count is a
+ * measurement nobody took. Zero and none are different claims (**E10**), and this is what
+ * `tools/capture-intake.ts` refuses the file on: `captures/AGENTS.md` says the snapshots are the
+ * one independent check the decoder has. **ADR 0053.**
+ */
+function composeKeptHandover(
+    kept: KeptFight,
+    figures: FightFigures,
+    surroundings: CaptureSurroundings,
+): FightHandover | null {
+    const messages = figures.fight.messagesByPayload;
+    // One entry per payload replayed, so a disagreement is a chain that stopped reading part way
+    // and a file whose messages belong to other calls. Undrawn beats wrong (**E14**).
+    if (messages.length !== kept.payloads.length) return null;
+    const calls = kept.payloads.map((payload, index) => ({
+        index,
+        payload,
+        messages: messages[index] ?? [],
+        combatantsBefore: null,
+        combatantsAfter: null,
+    }));
+    return {
+        reading: { calls, droppedCalls: null, isTruncated: null },
+        subject: composeReportSubject(figures, kept.place),
+        // The world and the browser are the page's, and that is not a guess: a shelf is read out
+        // of one origin's store, and a world is its own host — a fight kept here was fought here.
+        surroundings: { ...surroundings, gameBuild: kept.gameBuild },
+    };
+}
+
+/**
+ * The fight the panel is standing on, as a file: the calls the game made and the figures they came
  * to, unredacted by design, which `game/fight-capture.ts` states along with what deals with that
  * and where.
  *
- * The figures are composed here rather than read off the panel: what a reader hands over is of the
- * fight going on, and the panel may be standing on one off the shelf. A refusal to write leaves a
- * mark rather than an empty file.
+ * **The fight on screen and not the one going on.** A reader who has walked into a fight off the
+ * shelf means that one, and a reader between fights is looking at one that ended — before this
+ * followed the screen, both pressed the control and were handed the live recording, which after a
+ * reload is an envelope with no call in it. **ADR 0053.**
+ */
+function composeHandover(
+    environment: UserscriptEnvironment,
+    underway: FightUnderway,
+    live: LiveFight,
+    screen: ScreenState,
+    shelf: ShelfKeeper,
+): FightHandover | null {
+    const figures = composeFightFigures(underway);
+    const standing = getStandingFight(figures, screen, shelf);
+    if (standing === null) return null;
+    const kept = standing.kept;
+    // A fight that has ended is on the shelf and on the screen at once, and this stays the live
+    // recording through it — the one that carries the snapshots. `getStandingFight` answers a kept
+    // fight only for one the reader walked into, because a live row is pressed by a word rather
+    // than by a moment and no moment matches it. The moment stated is now rather than the fight's
+    // own, because what a live recording says is when it was taken off.
+    if (kept === null) {
+        return {
+            reading: live.capture,
+            subject: composeReportSubject(standing.figures, live.place),
+            surroundings: environment.readSurroundings(environment.now()),
+        };
+    }
+    return composeKeptHandover(
+        kept,
+        standing.figures,
+        environment.readSurroundings(kept.openedAt),
+    );
+}
+
+/**
+ * Hands the fight over, or leaves a mark. Everything under here reaches `core/`, which throws
+ * (**E7**), and the browser's own `click()` throws where a page is being torn down — neither may
+ * reach the press that called it (**E14**).
  */
 function writeRecording(
     environment: UserscriptEnvironment,
-    live: LiveFight,
     underway: FightUnderway,
+    live: LiveFight,
+    screen: ScreenState,
+    shelf: ShelfKeeper,
     defects: KeptDefects,
 ): void {
     const write = environment.write;
     if (write === null) return;
-    const surroundings = environment.readSurroundings();
-    const subject = composeReportSubject(underway, live);
-    const text = composeCaptureText(live.capture, surroundings, subject);
-    if (text === null) {
-        defects.add("file", null, "a recording that would not be written as text");
-        return;
-    }
-
-    // The browser's own `click()` is in here and throws where a page is being torn down, and it
-    // was reaching the press that called it rather than the reader (**E14**).
     try {
-        write(composeCaptureFileName(surroundings), text);
+        const handover = composeHandover(environment, underway, live, screen, shelf);
+        if (handover === null) {
+            defects.add("file", null, "no fight the panel is standing on to hand over");
+            return;
+        }
+        const text = composeCaptureText(handover.reading, handover.surroundings, handover.subject);
+        if (text === null) {
+            defects.add("file", null, "a recording that would not be written as text");
+            return;
+        }
+        write(composeCaptureFileName(handover.surroundings), text);
     } catch (failure) {
         defects.add("file", null, failure);
     }
@@ -1267,7 +1380,7 @@ function readPayloadIntoLive(
     // Once, on the call that ends it: a fight put on the shelf twice is two fights.
     if (fight !== null && fight.isOver && !live.wasOver) {
         live.wasOver = true;
-        keepFight(underway, shelf, live, environment.readSurroundings().gameBuild);
+        keepFight(underway, shelf, live, environment.readSurroundings(environment.now()).gameBuild);
     }
     if (fight !== null && !fight.isOver) live.wasOver = false;
     return isOpening;
@@ -1323,7 +1436,9 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     const panel = composePanelHost(
         environment.document,
         (press) => {
-            if (press.kind === "save") writeRecording(environment, live, underway, defects);
+            if (press.kind === "save") {
+                writeRecording(environment, underway, live, screen, shelf, defects);
+            }
             const isShelfPress = setShelfFromPress(shelf, press);
             if (!isShelfPress && !handlePress(screen, press)) return;
             if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");

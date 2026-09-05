@@ -55,6 +55,12 @@ export interface PanelHandle {
     remaining(): Promise<number>;
     /** Deliver the recording again from its first payload, which opens a second fight. */
     rewind(): Promise<void>;
+    /**
+     * Come back to a page no fight has started on. The shelf is a store and survives; the fight
+     * going on does not, which is the one state a reload alone cannot reach — the page is served
+     * with its payloads already counted out, so reloading it feeds them again.
+     */
+    reloadWithNoFightFed(): Promise<void>;
     place(): Promise<{ left: number; top: number; width: number; height: number }>;
     stored(key: string): Promise<string | null>;
     /** The last file the panel handed over, kept by the probe as the `Blob` was built. */
@@ -97,7 +103,11 @@ async function setPageServed(page: Page, script: string, html: string): Promise<
 }
 
 /** The handle a spec is given, once the page is open on a panel that has drawn something. */
-function composePanelHandle(page: Page, version: string): PanelHandle {
+function composePanelHandle(
+    page: Page,
+    version: string,
+    serveWithNoFightFed: () => Promise<void>,
+): PanelHandle {
     const at = (selector: string) => page.locator(selector);
     const said = () =>
         page.evaluate((selector) => {
@@ -112,6 +122,11 @@ function composePanelHandle(page: Page, version: string): PanelHandle {
         feed: (count) => page.evaluate((step) => globalThis.margometerE2e.feed(step), count),
         remaining: () => page.evaluate(() => globalThis.margometerE2e.remaining()),
         rewind: () => page.evaluate(() => globalThis.margometerE2e.rewind()),
+        reloadWithNoFightFed: async () => {
+            await serveWithNoFightFed();
+            await page.reload();
+            await page.waitForSelector(HOST_SELECTOR);
+        },
         place: () =>
             page.evaluate((selector) => {
                 const host = document.querySelector(selector);
@@ -195,7 +210,10 @@ export const test = base.extend<PanelFixtures & PanelOptions, PanelWorkerFixture
         // A page standing no game up puts no panel in the document, and that is what its own
         // spec is about; every other test starts on a panel that has already drawn.
         if (engine === "before") await page.waitForSelector(HOST_SELECTOR);
-        await use(composePanelHandle(page, built.version));
+        await use(composePanelHandle(page, built.version, async () => {
+            const empty = composePanelPage({ calls, fedThrough: 0, engine, doesLoadTwice });
+            await setPageServed(page, built.script, empty);
+        }));
     },
 });
 

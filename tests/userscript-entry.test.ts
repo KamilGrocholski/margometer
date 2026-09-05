@@ -738,22 +738,76 @@ Deno.test("a reader asks for the fight, and gets the recording the intake tool r
     );
 });
 
-Deno.test("a fight nobody has read is handed over as one, rather than as a fight of zeroes", () => {
+function findSaveControl(host: FakeElement) {
+    return getElementsWithin(host).find((one) => one.attributes.has("data-save"));
+}
+
+Deno.test("a panel with no fight anywhere carries no control to hand one over", () => {
     const battle = composeRecordingBattle();
     const { environment, shown, saved } = composeEnvironment({ Engine: { battle } });
     startMargoMeter(environment);
     const host = shown[0] as FakeElement;
-    const control = getElementsWithin(host).find((one) => one.attributes.has("data-save"));
-    assertExists(control, "the bar carries the control before a payload ever arrives");
-    pressElement(host, "pointerdown", control);
-    assertEquals(saved.length, 1, "and a press hands a file over even then");
+    assertEquals(
+        findSaveControl(host),
+        undefined,
+        "a control that would hand over an envelope with no call in it is not drawn at all",
+    );
 
-    const reading = getJsonReading(saved[0]?.text ?? "");
-    assert(reading.isOk, "which reads back as JSON");
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    const [opening] = getRecordedEngineUpdates(HILDUR);
+    assertExists(opening, "and the recording opens on one");
+    update(opening);
+    const control = findSaveControl(host);
+    assertExists(control, "one call is a fight, and the bar grows the control for it");
+    pressElement(host, "pointerdown", control);
+    assertEquals(saved.length, 1, "which hands that fight over");
+});
+
+/**
+ * The file that started this: `margometer-luvia-ne0iTNdg-0.14.0-2026-09-05T20-48-11-477Z.json`,
+ * 310 bytes of envelope with no call in it, off a panel standing on a fight it had kept.
+ */
+Deno.test("the fight handed over is the one on screen, kept ones included", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const first = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(first.environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+
+    // The reader comes back to a page no fight has started on, so the panel stands on the shelf.
+    const second = composeEnvironment({ Engine: { battle: { updateData: () => 1 } } });
+    for (const [key, value] of first.held) second.held.set(key, value);
+    for (const [key, value] of first.getShelf("local")) second.getShelf("local").set(key, value);
+    startMargoMeter(second.environment);
+    const host = second.shown[0] as FakeElement;
+    const control = findSaveControl(host);
+    assertExists(control, "the bar offers the fight it is drawing");
+    pressElement(host, "pointerdown", control);
+    assertEquals(second.saved.length, 1, "and hands it over");
+
+    const reading = getJsonReading(second.saved[0]?.text ?? "");
+    assert(reading.isOk, "what it handed over reads back as JSON");
     const written = reading.value;
     assert(isRecord(written), "and as a recording");
-    assertEquals(written.report, null, "saying no fight was read, which is an answer");
-    assertEquals(written.calls, [], "beside the calls it has, which are none");
+    const calls = written.calls;
+    assert(Array.isArray(calls), "carrying the calls the shelf kept");
+    // Fewer than the recording made: a shelf keeps a fight thinned by the rule that thins a
+    // recording, and what the file carries is what was kept rather than what the game sent.
+    assert(calls.length > 0, "which is a fight and not an empty envelope");
+    assert(calls.length <= getRecordedEngineUpdates(HILDUR).length, "and no more than were made");
+    const report = written.report;
+    assert(isRecord(report), "with the figures the panel drew beside them");
+    assertEquals(report.payloads, calls.length, "built from every call the file carries");
+    assertEquals(report.isOver, true, "of a fight this one saw the end of");
+
+    const first_ = calls[0];
+    assert(isRecord(first_), "and each call is a record");
+    assertEquals(first_.combatantsBefore, null, "a snapshot the shelf never kept is absent");
+    assertEquals(first_.combatantsAfter, null, "on either side of the call");
+    assert(Array.isArray(first_.messages), "while the messages come back out of the payload");
+    assertEquals(written.droppedCalls, null, "and what nobody counted is not counted as none");
 });
 
 Deno.test("the shelf has a screen of its own, and its control toggles", () => {
@@ -1486,6 +1540,41 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
         false,
         "which is the kept one, not the fight going on",
     );
+});
+
+Deno.test("a fight that has ended is handed over whole, snapshots and all", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown, saved } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+
+    // A fight that has ended is the live one and a kept one at once, and pressing its row is the
+    // way a reader lands back on it. What is handed over stays the live recording, which is the
+    // half of the pair that carries the snapshots.
+    const strip = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assertExists(strip, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", strip);
+    const row = getElementsWithin(host).find((one) => one.className.split(" ")[0] === "row");
+    assertExists(row, "the shelf holds the fight that just ended");
+    pressElement(host, "pointerdown", row);
+
+    const control = findSaveControl(host);
+    assertExists(control, "and the bar offers it");
+    pressElement(host, "pointerdown", control);
+    const reading = getJsonReading(saved[0]?.text ?? "");
+    assert(reading.isOk, "what it handed over reads back as JSON");
+    const written = reading.value;
+    assert(isRecord(written), "and as a recording");
+    const calls = written.calls;
+    assert(Array.isArray(calls), "carrying its calls");
+    const first = calls[0];
+    assert(isRecord(first), "and each of them a record");
+    assert(Array.isArray(first.combatantsBefore), "with the snapshots the shelf never keeps");
+    assert(Array.isArray(first.combatantsAfter), "on either side of the call");
+    assertEquals(written.droppedCalls, 0, "and a dropped count that was really counted");
 });
 
 Deno.test("a fight the reader walked into says so on the panel", () => {
