@@ -249,6 +249,7 @@ tests/
   source-line.ts           A line of TypeScript with its string literals taken out.
   style-sheet.ts           The panel's stylesheet read back, for the guards that read it.
   source-paths.ts          Every TypeScript file under the directories that hold one.
+  source-graph.ts          What a function reaches, and what stands over the call.
 .agents/skills/verify/     How to drive the add-on in a browser and read what it drew.
 .claude/settings.json      Denies the tool calls that would write to the maintainer's list.
 ```

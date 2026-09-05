@@ -19,6 +19,16 @@ import {
     isCommentLine,
 } from "@/tests/source-line.ts";
 import { getSourcePaths } from "@/tests/source-paths.ts";
+import {
+    composeCallGraph,
+    getBlockOpenedAt,
+    getDeclaredName,
+    getFunctionBodies,
+    getParameterNames,
+    getUnguardedReach,
+    isDeclarationOpener,
+    MAXIMUM_DECLARATION_LINES,
+} from "@/tests/source-graph.ts";
 
 /**
  * `assertExists(` holds no `assert(` inside it, so a counter that knows one name reads the other
@@ -52,8 +62,6 @@ const ASSERTION_PACKAGE = "@std/assert";
 const MINIMUM_REPEATED_LINES = 2;
 /** More blocks than any tree this repository will hold, so the count stays a stated bound. */
 const MAXIMUM_COMMENT_BLOCKS = 4096;
-/** A declaration wrapped over more lines than this is a signature nobody can read anyway. */
-const MAXIMUM_DECLARATION_LINES = 12;
 
 interface SourceReading {
     lines: number;
@@ -62,44 +70,6 @@ interface SourceReading {
     assertions: number;
     longestFunctionLines: number;
     longestFunctionAt: number;
-}
-
-/** A declaration, not a callback: `function`, a named arrow, or a test. */
-function isDeclarationOpener(line: string): boolean {
-    const trimmed = line.trimStart();
-    if (trimmed.startsWith("function ") || trimmed.startsWith("export function ")) return true;
-    if (trimmed.startsWith("Deno.test(")) return true;
-    if (!trimmed.startsWith("const ") && !trimmed.startsWith("export const ")) return false;
-    return trimmed.includes(" = (") || trimmed.includes(" = async (");
-}
-
-/**
- * Whether a declaration opens a **block**, reading across as many lines as it takes.
- *
- * ⚠️ **A declaration is not a line, and reading it as one broke this guard twice.** A named arrow
- * wrapped over three lines — `const read = (`, its parameters, `) => {` — carried no arrow on the
- * line that named it, so S4 and S5 never saw it. And a one-line `const read = () => value;`
- * carried one, so it was read as opening a body that never closed: every line after it, the next
- * declaration included, was collected as its own, and a later call to it read as a call to itself.
- * A false positive is worse than a blind spot, and this had one of each.
- *
- * So the answer is the brace, not the arrow. An expression-bodied arrow opens no block, and this
- * counts none: it has no body to measure against S4 and nowhere to put an assertion for S5.
- */
-function getBlockOpenedAt(lines: readonly string[], from: number): number | null {
-    assert(from >= 0, "a declaration starts somewhere inside the file");
-    const first = (lines[from] ?? "").trimStart();
-    // A `const` says nothing about being a function until its arrow, and the arrow may be lines
-    // away — `const total = (a + b) * 2;` opens with the same three tokens as a named arrow does.
-    let needsArrow = first.startsWith("const ") || first.startsWith("export const ");
-    const limit = Math.min(lines.length, from + MAXIMUM_DECLARATION_LINES);
-    for (let at = from; at < limit; at += 1) {
-        const code = getCodeOutsideStrings(lines[at] ?? "").trimEnd();
-        if (code.includes("=>")) needsArrow = false;
-        if (code.endsWith(";")) return null;
-        if (code.endsWith("{")) return needsArrow ? null : at;
-    }
-    return null;
 }
 
 /**
@@ -399,17 +369,53 @@ function isReaderFacingPath(path: string): boolean {
     return READER_FACING.some((one) => path.startsWith(one));
 }
 
+/**
+ * What **E14** forbids to assert, by the file and the name it is declared under: everything the
+ * walk in `tests/source-graph.ts` reaches with no `try` over it. Counting one would penalise
+ * obeying E14 — a bound that became a clamp is one assertion fewer and one function still in the
+ * denominator, which is how the safest code in the tree drags the figure down. **ADR 0051.**
+ */
+function getFunctionsThatMayNotAssert(): Map<string, Set<string>> {
+    const found = new Map<string, Set<string>>();
+    for (const node of getUnguardedReach(composeCallGraph())) {
+        if (node.includes("!catch")) continue;
+        const at = node.indexOf("#");
+        if (at === -1) continue;
+        const held = node.slice(at + 1);
+        const names = found.get(node.slice(0, at)) ?? new Set<string>();
+        names.add(held.includes(".") ? held.slice(held.indexOf(".") + 1) : held);
+        found.set(node.slice(0, at), names);
+    }
+    return found;
+}
+
+/** Counted exactly as `getSourceReading` counts one, so the two subtract cleanly. */
+function countDeclarationsNamed(path: string, names: ReadonlySet<string>): number {
+    const lines = Deno.readTextFileSync(path).split("\n");
+    let counted = 0;
+    for (const [offset, line] of lines.entries()) {
+        if (!isDeclarationOpener(line)) continue;
+        if (getBlockOpenedAt(lines, offset) === null) continue;
+        if (!names.has(getDeclaredName(line))) continue;
+        if (!getIsTakingSomething(lines, offset)) continue;
+        counted += 1;
+    }
+    return counted;
+}
+
 Deno.test("assertion density averages two per function where the program is", () => {
     assert(isReaderFacingPath("src/ui/panel-defect.ts"), "a panel module is what a reader touches");
     assert(!isReaderFacingPath("src/core/fight-decoder.ts"), "and the decoder under it is not");
 
+    const excused = getFunctionsThatMayNotAssert();
     let assertions = 0;
     let functions = 0;
     for (const [path, reading] of getReadings()) {
         if (path.startsWith("tests/")) continue;
         if (isReaderFacingPath(path)) continue;
+        const held = excused.get(path) ?? new Set<string>();
         assertions += reading.assertions;
-        functions += reading.functions;
+        functions += reading.functions - countDeclarationsNamed(path, held);
     }
     assertStrictEquals(MINIMUM_ASSERTION_DENSITY, 2, "S5 states two");
     if (functions === 0) return;
@@ -561,6 +567,29 @@ Deno.test("a declaration is read across the lines it takes, and by the brace tha
 });
 
 /**
+ * The damage the other way, and the one that stood for months: a declaration wrapped over its
+ * parameters carries no brace, so the depth was still nought on the line under it and the body
+ * closed two lines long. Every reader over a body — S1's recursion walk among them — was reading
+ * a signature and nothing else.
+ */
+Deno.test("a declaration wrapped over its parameters keeps the whole of its body", () => {
+    const text = [
+        "function walk(",
+        "    at: number,",
+        "): number {",
+        "    return step(at);",
+        "}",
+    ].join("\n");
+    const body = getFunctionBodies(text).get("walk") ?? [];
+    assertStrictEquals(body.length, 5, "the body is every line of it, not the signature alone");
+    assertEquals(
+        body.some((line) => line.includes("step(")),
+        true,
+        "so what it calls is in it, which is the whole of what a call graph reads",
+    );
+});
+
+/**
  * The damage the false positive did, from the other end: an expression-bodied arrow swallowed the
  * declaration after it, so a call to the swallowed one read as a call to itself.
  */
@@ -577,56 +606,34 @@ Deno.test("an arrow with no block never collects the declaration standing after 
     );
 });
 
-/** Each declared function with the lines of its body, by brace depth. */
-export function getFunctionBodies(text: string): Map<string, string[]> {
-    const bodies = new Map<string, string[]>();
-    const lines = text.split("\n");
-    let name = "";
-    let depth = 0;
-    let body: string[] = [];
-    for (const [offset, line] of lines.entries()) {
-        if (name === "" && isDeclarationOpener(line) && getBlockOpenedAt(lines, offset) !== null) {
-            name = getDeclaredName(line);
-            depth = 0;
-            body = [];
+/**
+ * What a function reaches, by the names it calls. Resolved **inside its own file**, and never to a
+ * name it was handed.
+ *
+ * ⚠️ **Both halves were learned the day the truncation below was fixed.** Reading every name in
+ * the tree drew an edge from `setPanelFolded` to a closure called `redraw` in another function,
+ * because the parameter it calls happens to share that name — and nine functions came back as
+ * reaching themselves, none of which does. A name is resolved where a compiler would resolve it,
+ * or not at all.
+ */
+function composeCallsByName(): Map<string, Set<string>> {
+    const calls = new Map<string, Set<string>>();
+    for (const path of getSourcePaths()) {
+        const bodies = getFunctionBodies(Deno.readTextFileSync(path));
+        for (const [name, lines] of bodies) {
+            const taken = getParameterNames(lines);
+            const reached = new Set<string>();
+            for (const line of lines.slice(1)) {
+                const code = getCodeOutsideStrings(line);
+                for (const other of bodies.keys()) {
+                    if (taken.has(other)) continue;
+                    if (code.includes(`${other}(`)) reached.add(`${path}#${other}`);
+                }
+            }
+            calls.set(`${path}#${name}`, reached);
         }
-        if (name === "") continue;
-        depth += countOutside(line, "{") - countOutside(line, "}");
-        body.push(line);
-        if (depth <= 0 && body.length > 1) {
-            if (name !== "") bodies.set(name, body);
-            name = "";
-        }
     }
-    assert(bodies.size <= lines.length, "no more functions than lines");
-    assert(![...bodies.keys()].includes(""), "an unnamed body is never stored");
-    return bodies;
-}
-
-function countOutside(line: string, character: string): number {
-    const code = getCodeOutsideStrings(line);
-    let count = 0;
-    for (const one of code) {
-        if (one === character) count += 1;
-    }
-    return count;
-}
-
-function getDeclaredName(line: string): string {
-    const code = getCodeOutsideStrings(line).trimStart();
-    for (const opener of ["export function ", "function ", "const ", "export const "]) {
-        if (!code.startsWith(opener)) continue;
-        const rest = code.slice(opener.length);
-        let end = 0;
-        while (end < rest.length && (isNameCharacter(rest.charAt(end)))) end += 1;
-        return rest.slice(0, end);
-    }
-    return "";
-}
-
-function isNameCharacter(character: string): boolean {
-    return (character >= "a" && character <= "z") || (character >= "A" && character <= "Z") ||
-        (character >= "0" && character <= "9") || character === "_";
+    return calls;
 }
 
 Deno.test("no function calls itself, directly or through another", () => {
@@ -642,25 +649,8 @@ Deno.test("no function calls itself, directly or through another", () => {
         "a plain body calls nothing",
     );
 
-    const bodiesByName = new Map<string, string[]>();
-    for (const path of getSourcePaths()) {
-        for (const [name, lines] of getFunctionBodies(Deno.readTextFileSync(path))) {
-            bodiesByName.set(name, lines);
-        }
-    }
-    assert(bodiesByName.size > 10, "the walk found the declarations it should have");
-
-    const calls = new Map<string, Set<string>>();
-    for (const [name, lines] of bodiesByName) {
-        const reached = new Set<string>();
-        for (const line of lines.slice(1)) {
-            const code = getCodeOutsideStrings(line);
-            for (const other of bodiesByName.keys()) {
-                if (code.includes(`${other}(`)) reached.add(other);
-            }
-        }
-        calls.set(name, reached);
-    }
+    const calls = composeCallsByName();
+    assert(calls.size > 10, "the walk found the declarations it should have");
 
     const selfReaching: string[] = [];
     for (const [name, reached] of calls) {
@@ -797,8 +787,8 @@ function hasBareName(code: string, name: string): boolean {
         assert(looked <= code.length + 1, "the walk stays inside its stated bound");
         const before = at === 0 ? "" : code.charAt(at - 1);
         const after = code.charAt(at + name.length);
-        if (!isNameCharacter(before)) {
-            if (!isNameCharacter(after)) return true;
+        if (!isWordCharacter(before)) {
+            if (!isWordCharacter(after)) return true;
         }
         at = code.indexOf(name, at + 1);
     }

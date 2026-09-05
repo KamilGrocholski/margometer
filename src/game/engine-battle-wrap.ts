@@ -1,8 +1,7 @@
 /**
- * The one function here that changes the running game, in a file of its own so it is visible.
- *
- * The engine's own call runs first and its value comes back untouched; a failure of ours never
- * leaves this file. The engine arrives as an argument, so the global read stays in the caller.
+ * The one function here that changes the running game, in a file of its own so it is visible. The
+ * engine's own call runs first and its value comes back untouched; a failure of ours never leaves
+ * this file, and the engine arrives as an argument so the global read stays in the caller.
  */
 
 import { assert } from "@std/assert/assert";
@@ -52,10 +51,7 @@ function hasMargoMeterWrap(value: unknown): boolean {
     return WRAP_MARKER in value;
 }
 
-/**
- * Null where another MargoMeter already holds the engine, which is the whole of standing down,
- * and null where the method is not a function at all.
- */
+/** Null where another MargoMeter holds the engine — standing down — and where it is no method. */
 export function wrapEngineBattle(
     battle: EngineBattle,
     reader: EngineBattleReader,
@@ -67,10 +63,11 @@ export function wrapEngineBattle(
     // the signature is what keeps the call below typed rather than silently untyped.
     const engineUpdate = original as EngineUpdate;
     let failures = 0;
+    // ⚠️ Inside a `catch` inside the wrap: a throw here goes into `updateData` before the game's
+    // own method has run, so the bound stops the counter rather than asserting at it (**E14**).
     const countFailure = (failure: unknown): void => {
+        if (failures >= MAXIMUM_FAILURES) return;
         failures += 1;
-        assert(failures > 0, "a failure that happened is counted");
-        assert(failures <= MAXIMUM_FAILURES, "and the count stays inside its stated bound");
         if (failures === 1) reader.handleFirstFailure(failure);
     };
     const wrapper: WrappedUpdate = function (this: unknown, ...args: unknown[]): unknown {
