@@ -717,7 +717,11 @@ function assertHalfNamedCutTotals(
     }
     for (const kind of held.kinds.rows) {
         const under = open({ kind: "element", element: kind.element });
-        assertEquals(under !== null, kind.opensPart, `${kind.element}: opens where a row holds it`);
+        assertEquals(
+            under !== null,
+            kind.doesOpenPart,
+            `${kind.element}: opens where a row holds it`,
+        );
         if (under === null) continue;
         assertStrictEquals(under.opened, "element", "a key opens onto whoever carries it");
         assertEquals(under.total, kind.figure, "at the key's own figure");
@@ -864,7 +868,7 @@ Deno.test("a pinned row says what its figure was dealt with, key by key", () => 
         "as are the people, which is what makes them two cuts of one",
     );
     assertEquals(
-        held.kinds.rows.every((one) => one.opensPart),
+        held.kinds.rows.every((one) => one.doesOpenPart),
         true,
         "and each opens, because somebody's row carries it",
     );
@@ -1450,7 +1454,7 @@ Deno.test("a pair states what passed between the two, and nothing that did not",
     assertExists(first, "there is a row to open");
     const drill = composeDrillReading(statistics, roster, "damageDealtApplied", first.combatantId);
     assertExists(drill, "and it opens");
-    const other = drill.byOpponent.rows.find((one) => one.opensPair);
+    const other = drill.byOpponent.rows.find((one) => one.doesOpenPair);
     assertExists(other, "onto somebody the level under says something about");
 
     const pair = composePairReading(
@@ -1555,7 +1559,7 @@ Deno.test("every person row inside an opened row opens onto the pair under it", 
                 other.combatantId,
             );
             assertExists(pair, "and every row of its cut names a pair");
-            assert(other.opensPair, "which is what the row above it is marked with");
+            assert(other.doesOpenPair, "which is what the row above it is marked with");
             assertEquals(pair.total, other.figure, "at the figure that was pressed");
             const named = pair.parts.filter((one) => one.part.kind === "skill");
             if (pair.byElement.rows.length > 1 || named.length > 0) says += 1;
@@ -1587,12 +1591,12 @@ Deno.test("a part opened states the figure of the row that opened it, self-casts
             for (const combatantId of statistics.byCombatantId.keys()) {
                 const drill = composeDrillReading(statistics, roster, metric, combatantId);
                 if (drill === null) continue;
-                const rows: { part: NamedPart; figure: number; opensPart: boolean }[] = [
+                const rows: { part: NamedPart; figure: number; doesOpenPart: boolean }[] = [
                     ...drill.bySkill.rows,
                     ...drill.byElement.rows.map((one) => ({
                         part: { kind: "element" as const, element: one.element },
                         figure: one.figure,
-                        opensPart: one.opensPart,
+                        doesOpenPart: one.doesOpenPart,
                     })),
                 ];
                 for (const row of rows) {
@@ -1603,7 +1607,7 @@ Deno.test("a part opened states the figure of the row that opened it, self-casts
                         combatantId,
                         row.part,
                     );
-                    if (!row.opensPart) {
+                    if (!row.doesOpenPart) {
                         assertEquals(held, null, `${path}: a row marked shut opens nothing`);
                         continue;
                     }
@@ -1679,7 +1683,7 @@ Deno.test("a healing section names the keys the game stated, and closes against 
                     if (row.part.kind !== "source") continue;
                     assertEquals(row.uses, null, `${path}: a key counts nothing`);
                     assertEquals(
-                        row.opensPart,
+                        row.doesOpenPart,
                         metric === "healthGiven",
                         `${path}: and opens where the screen keeps a cut of it`,
                     );
@@ -1779,7 +1783,7 @@ Deno.test("a healing pair opens whatever its level holds, one key included", () 
                         other.combatantId,
                     );
                     assertExists(pair, "a row of the cut names a pair");
-                    assert(other.opensPair, `${path}: and the row above it says so`);
+                    assert(other.doesOpenPair, `${path}: and the row above it says so`);
                     opened += 1;
                     assertEquals(pair.total, other.figure, `${path}: at the figure pressed`);
                     if (pair.parts.length > 1) continue;
@@ -1844,7 +1848,7 @@ Deno.test("a skill opens onto whom it reached, a self-cast onto whoever announce
     assertExists(row, "onto the skill they announced");
     assertEquals(row.figure, 500, "at what it put back");
     assertEquals(row.uses, 1, "and how many times it was announced");
-    assert(row.opensPart, "and it opens, because there is a level under it");
+    assert(row.doesOpenPart, "and it opens, because there is a level under it");
 
     const part = { kind: "skill" as const, name: announced.skillName };
     const skill = composePartReading(statistics, roster, "healthGiven", healer, part);
@@ -1852,14 +1856,14 @@ Deno.test("a skill opens onto whom it reached, a self-cast onto whoever announce
     assertEquals(skill.total, 500, "at the figure the row that opened it stated");
     assertEquals(skill.byOpponent.rows.length, 1, "onto the one person it reached");
     assertEquals(skill.byOpponent.rows[0]?.combatantId, healed, "who is that person");
-    assert(!(skill.byOpponent.rows[0]?.opensPair ?? true), "and nothing on this rung opens");
+    assert(!(skill.byOpponent.rows[0]?.doesOpenPair ?? true), "and nothing on this rung opens");
 
     // The same skill cast on nobody but the one who announced it: the level names them, which is
     // what a reader asking what somebody healed themselves with came to find out.
     const alone = composeFightStatistics([composeAnnouncedHeal(announced, healer)], new Map());
     const own = composeDrillReading(alone, roster, "healthGiven", healer);
     assertExists(own, "a self-cast still opens the healer's own row");
-    assert(own.bySkill.rows[0]?.opensPart ?? false, "and the skill on it opens too");
+    assert(own.bySkill.rows[0]?.doesOpenPart ?? false, "and the skill on it opens too");
     const cast = composePartReading(alone, roster, "healthGiven", healer, part);
     assertExists(cast, "which is what asking for that level answers");
     assertEquals(cast.total, 500, "at the whole of what the announcement put back");
@@ -1908,7 +1912,7 @@ Deno.test("a kind opened states the whole of the row, nobody's share included", 
     const kind = drill.byElement.rows.find((one) => one.element === "poison");
     assertExists(kind, "onto the kind both movements were made of");
     assertEquals(kind.figure, 500, "at the two of them together");
-    assert(kind.opensPart, "and it opens, because one of them named who dealt it");
+    assert(kind.doesOpenPart, "and it opens, because one of them named who dealt it");
 
     const part = composePartReading(statistics, roster, "damageTakenApplied", struck, {
         kind: "element",

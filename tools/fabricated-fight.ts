@@ -110,13 +110,13 @@ interface FabricatedTurn {
 }
 
 /**
- * What one act writes. `opensTurn` is stated rather than read back: an act carrying only a
+ * What one act writes. `doesOpenTurn` is stated rather than read back: an act carrying only a
  * declaration is not a turn to `src/core/fight-statistics.ts`, so the script adds a `step` beside
  * it and the game's own numbering agrees with what the panel counts.
  */
 interface FabricatedAct {
     name: string;
-    opensTurn: boolean;
+    doesOpenTurn: boolean;
     compose: (turn: FabricatedTurn) => string[];
 }
 
@@ -974,40 +974,40 @@ function actLoot(turn: FabricatedTurn): string[] {
  * fight shorter than this list reaches its head only — which is what `actsReached` reports.
  */
 const ACTS: FabricatedAct[] = [
-    { name: "a plain blow", opensTurn: true, compose: actPlainBlow },
-    { name: "a critical blow", opensTurn: true, compose: actCriticalBlow },
-    { name: "an off-hand critical", opensTurn: true, compose: actOffhandBlow },
-    { name: "a piercing blow", opensTurn: true, compose: actPiercingBlow },
-    { name: "a blow against absorption", opensTurn: true, compose: actAbsorbedBlow },
-    { name: "a blow breaking armour", opensTurn: true, compose: actArmourBreakingBlow },
-    { name: "a third attack", opensTurn: true, compose: actThirdAttack },
-    { name: "a stunning blow", opensTurn: true, compose: actStunningBlow },
-    { name: "a cursed blow", opensTurn: true, compose: actCursedBlow },
-    { name: "a blow evaded", opensTurn: true, compose: actEvadedBlow },
-    { name: "a wounding blow", opensTurn: true, compose: actWoundingBlow },
-    { name: "a wound ticking", opensTurn: false, compose: actWoundTick },
-    { name: "poison and fire ticking", opensTurn: false, compose: actPoisonTick },
-    { name: "light and anguish ticking", opensTurn: false, compose: actLightTick },
-    { name: "healing oneself", opensTurn: false, compose: actHealSelf },
-    { name: "healing an ally", opensTurn: true, compose: actHealAlly },
-    { name: "a holy touch", opensTurn: false, compose: actHolyTouch },
-    { name: "a bandage", opensTurn: false, compose: actBandage },
-    { name: "healing stated by name", opensTurn: true, compose: actLastHeal },
-    { name: "damage stated by name", opensTurn: true, compose: actNamedDamage },
-    { name: "healing a whole side", opensTurn: true, compose: actSideHeal },
-    { name: "an aura cast", opensTurn: true, compose: actAuraCast },
-    { name: "a shout", opensTurn: true, compose: actShoutCast },
-    { name: "a cast on the allies", opensTurn: true, compose: actAlliesCast },
-    { name: "a cast on the enemies", opensTurn: true, compose: actEnemiesCast },
-    { name: "a stance", opensTurn: false, compose: actStance },
-    { name: "resources declared", opensTurn: false, compose: actResources },
-    { name: "buffs standing", opensTurn: false, compose: actStandingBuffs },
-    { name: "legendary buffs standing", opensTurn: false, compose: actLegendaryBuffs },
-    { name: "a bard's song", opensTurn: true, compose: actBardSong },
-    { name: "a step", opensTurn: true, compose: actStep },
-    { name: "a skill made ready", opensTurn: true, compose: actPrepare },
-    { name: "a turn spent on nothing", opensTurn: true, compose: actTurnLost },
-    { name: "the log saying something else", opensTurn: false, compose: actLoot },
+    { name: "a plain blow", doesOpenTurn: true, compose: actPlainBlow },
+    { name: "a critical blow", doesOpenTurn: true, compose: actCriticalBlow },
+    { name: "an off-hand critical", doesOpenTurn: true, compose: actOffhandBlow },
+    { name: "a piercing blow", doesOpenTurn: true, compose: actPiercingBlow },
+    { name: "a blow against absorption", doesOpenTurn: true, compose: actAbsorbedBlow },
+    { name: "a blow breaking armour", doesOpenTurn: true, compose: actArmourBreakingBlow },
+    { name: "a third attack", doesOpenTurn: true, compose: actThirdAttack },
+    { name: "a stunning blow", doesOpenTurn: true, compose: actStunningBlow },
+    { name: "a cursed blow", doesOpenTurn: true, compose: actCursedBlow },
+    { name: "a blow evaded", doesOpenTurn: true, compose: actEvadedBlow },
+    { name: "a wounding blow", doesOpenTurn: true, compose: actWoundingBlow },
+    { name: "a wound ticking", doesOpenTurn: false, compose: actWoundTick },
+    { name: "poison and fire ticking", doesOpenTurn: false, compose: actPoisonTick },
+    { name: "light and anguish ticking", doesOpenTurn: false, compose: actLightTick },
+    { name: "healing oneself", doesOpenTurn: false, compose: actHealSelf },
+    { name: "healing an ally", doesOpenTurn: true, compose: actHealAlly },
+    { name: "a holy touch", doesOpenTurn: false, compose: actHolyTouch },
+    { name: "a bandage", doesOpenTurn: false, compose: actBandage },
+    { name: "healing stated by name", doesOpenTurn: true, compose: actLastHeal },
+    { name: "damage stated by name", doesOpenTurn: true, compose: actNamedDamage },
+    { name: "healing a whole side", doesOpenTurn: true, compose: actSideHeal },
+    { name: "an aura cast", doesOpenTurn: true, compose: actAuraCast },
+    { name: "a shout", doesOpenTurn: true, compose: actShoutCast },
+    { name: "a cast on the allies", doesOpenTurn: true, compose: actAlliesCast },
+    { name: "a cast on the enemies", doesOpenTurn: true, compose: actEnemiesCast },
+    { name: "a stance", doesOpenTurn: false, compose: actStance },
+    { name: "resources declared", doesOpenTurn: false, compose: actResources },
+    { name: "buffs standing", doesOpenTurn: false, compose: actStandingBuffs },
+    { name: "legendary buffs standing", doesOpenTurn: false, compose: actLegendaryBuffs },
+    { name: "a bard's song", doesOpenTurn: true, compose: actBardSong },
+    { name: "a step", doesOpenTurn: true, compose: actStep },
+    { name: "a skill made ready", doesOpenTurn: true, compose: actPrepare },
+    { name: "a turn spent on nothing", doesOpenTurn: true, compose: actTurnLost },
+    { name: "the log saying something else", doesOpenTurn: false, compose: actLoot },
 ];
 
 function composeHealthRecord(warrior: FabricatedWarrior): Record<string, unknown> {
@@ -1255,7 +1255,7 @@ function addTurnCall(state: FabricationState, turn: FabricatedTurn, act: Fabrica
     // An act whose figures all came out at nothing writes nothing, and the step below is then the
     // whole of the turn. Only an act that opens one of its own is held to leaving a message.
     const messages = act.compose(turn);
-    if (!act.opensTurn) messages.push(...actStep(turn));
+    if (!act.doesOpenTurn) messages.push(...actStep(turn));
     assert(messages.length > 0, "a turn leaves at least one message behind");
     const indexes = addMessageIndexes(state, messages);
     addTurnStatement(state, turn.actor);

@@ -16,6 +16,8 @@ const TYPE_KEYWORDS = ["interface", "type", "class", "enum"];
 const SHORT_UNITS = ["Ms", "Sec", "Secs", "Px", "Pct", "Hz", "Kb", "Mb"];
 const SHORT_UNITS_SHOUTED = ["_MS", "_SEC", "_SECS", "_PX", "_PCT", "_HZ", "_KB", "_MB"];
 const BOOLEAN_PREFIXES = ["is", "was", "will", "has", "does", "should"];
+/** An index signature names its key by type, and a type is nobody's boolean to prefix. */
+const INDEX_KEYS = ["string", "number", "symbol"];
 const NEGATIONS = ["Not", "No"];
 /** Where the game, and nothing else, is reached — ARCHITECTURE.md gives this layer that contact. */
 const CROSSING_PATHS = ["src/game/", "src/userscript-entry.ts"];
@@ -38,6 +40,22 @@ function isLowerLetter(character: string): boolean {
 
 function isUpperLetter(character: string): boolean {
     return character >= "A" && character <= "Z";
+}
+
+/** A character an identifier is spelled from, which is what a name is walked back over. */
+function isNamePart(character: string): boolean {
+    if (isLowerLetter(character)) return true;
+    if (isUpperLetter(character)) return true;
+    if (character >= "0" && character <= "9") return true;
+    return character === "_";
+}
+
+/** N8: the prefix, followed by the start of the next word rather than by more of this one. */
+function hasBooleanPrefix(name: string, prefix: string): boolean {
+    if (!name.startsWith(prefix)) return false;
+    const after = name.charAt(prefix.length);
+    if (isUpperLetter(after)) return true;
+    return after >= "0" && after <= "9";
 }
 
 function isKebabCase(name: string): boolean {
@@ -329,4 +347,65 @@ Deno.test("what crosses to the file system is read, never got", () => {
         }
     }
     assertEquals(wrong, [], "N16: a value from outside this program is read");
+});
+
+/**
+ * N8 over every boolean this tree annotates: a field, a parameter or a variable whose type is
+ * spelled `boolean` and whose name opens with none of the six tenses.
+ *
+ * **It reads what is annotated and nothing else.** A `const held = true` wears no type for a
+ * reader over text to find, and a function's own `: boolean` is a return rather than a name — a
+ * `get`, `set` or `add` that answers yes or no is an action with an answer, which is why
+ * `getIsEverySlotPinned` stands (**ADR 0042**). What N8 binds here is the name of the value.
+ */
+function getBooleansWithoutPrefix(text: string): string[] {
+    const opener = ": boolean";
+    const found: string[] = [];
+    for (const line of text.split("\n")) {
+        if (isCommentLine(line)) continue;
+        const code = getCodeOutsideStrings(line);
+        let index = code.indexOf(opener);
+        let steps = 0;
+        while (index !== -1) {
+            steps += 1;
+            assert(steps <= code.length, "the walk stays inside the line's bound");
+            let start = index;
+            if (code.charAt(start - 1) === "?") start -= 1;
+            let first = start;
+            let walked = 0;
+            while (first > 0) {
+                walked += 1;
+                assert(walked <= code.length, "a name is walked back inside the line's bound");
+                if (!isNamePart(code.charAt(first - 1))) break;
+                first -= 1;
+            }
+            const name = code.slice(first, start);
+            if (name.length > 0) {
+                if (!INDEX_KEYS.includes(name)) {
+                    if (!BOOLEAN_PREFIXES.some((prefix) => hasBooleanPrefix(name, prefix))) {
+                        found.push(name);
+                    }
+                }
+            }
+            index = code.indexOf(opener, index + opener.length);
+        }
+    }
+    assert(found.every((one) => one.length > 0), "a finding names a value");
+    assert(found.length <= text.length, "no more findings than there is text to hold them");
+    return found;
+}
+
+Deno.test("every boolean says which state holds", () => {
+    assertEquals(getBooleansWithoutPrefix("    opens: boolean;"), ["opens"], "the reader works");
+    assertEquals(getBooleansWithoutPrefix("    isOpen?: boolean;"), [], "an optional passes");
+    assertEquals(getBooleansWithoutPrefix("(one: boolean)"), ["one"], "a parameter is read too");
+    assertEquals(getBooleansWithoutPrefix("Record<string, boolean>"), [], "a type argument is not");
+    assertEquals(getBooleansWithoutPrefix("function isBlow(): boolean {"), [], "a return is not");
+    const wrong: string[] = [];
+    for (const path of getSourcePaths()) {
+        for (const name of getBooleansWithoutPrefix(Deno.readTextFileSync(path))) {
+            wrong.push(`${path}: ${name}`);
+        }
+    }
+    assertEquals(wrong, [], "N8: a boolean carries the prefix its tense asks for");
 });

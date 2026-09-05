@@ -638,11 +638,11 @@ Deno.test("a pinned row opens onto the end the game did name, under its own head
         ],
         "and lists both, each in the order the reading ranked it",
     );
-    const opens = getElementsWithin(host)
+    const doesOpen = getElementsWithin(host)
         .filter((one) => one.className === "row drillable")
         .map((one) => one.attributes.get("data-row") ?? one.attributes.get("data-kind"));
     assertEquals(
-        opens,
+        doesOpen,
         [
             ...halfNamed.rows.map((one) => `${one.combatantId}`),
             ...halfNamed.kinds.rows.map((one) => one.element),
@@ -1067,7 +1067,7 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
     const opening = rows.filter((one) => one.attributes.get("data-row") !== undefined);
     assertEquals(
         opening.length,
-        drill.byOpponent.rows.filter((one) => one.opensPair).length,
+        drill.byOpponent.rows.filter((one) => one.doesOpenPair).length,
         "and the ones that open are the people the level under them would say something about",
     );
     const sections = getElementsWithin(host).filter((one) => one.className === "section-heading");
@@ -1728,7 +1728,7 @@ Deno.test("a person under an opened skill opens a card promising no gesture", ()
     );
     const drill = composeDrillReading(statistics, roster, "healthGiven", HEALER);
     assertExists(drill, "the healer's row opens");
-    const announced = drill.bySkill.rows.find((one) => one.opensPart);
+    const announced = drill.bySkill.rows.find((one) => one.doesOpenPart);
     assertExists(announced, "onto a skill that reached somebody else");
     assertStrictEquals(announced.part.kind, "skill", "and one the game announced by name");
     const skill = composePartReading(statistics, roster, "healthGiven", HEALER, announced.part);
@@ -2374,7 +2374,7 @@ Deno.test("a heading is its words and a figure, and says only what its level is 
     );
     const opened = composeDrillReading(statistics, roster, "healthGiven", healer);
     assertExists(opened, "the healer's row opens");
-    const announced = opened.bySkill.rows.find((one) => one.opensPart);
+    const announced = opened.bySkill.rows.find((one) => one.doesOpenPart);
     assertExists(announced, "onto a skill that reached somebody else");
     const part = composePartReading(statistics, roster, "healthGiven", healer, announced.part);
     assertExists(part, "which opens onto the people it reached");
@@ -2495,7 +2495,7 @@ Deno.test("a skill that opens asks for itself by name, wherever the press lands 
             figure: 500,
             fill: 1,
             shareText: "50%",
-            opensPart: true,
+            doesOpenPart: true,
         },
         {
             part: { kind: "skill" as const, name: "Zmrrożenie" },
@@ -2503,7 +2503,7 @@ Deno.test("a skill that opens asks for itself by name, wherever the press lands 
             figure: 500,
             fill: 1,
             shareText: "50%",
-            opensPart: false,
+            doesOpenPart: false,
         },
     ];
     panel.show({
@@ -2748,8 +2748,8 @@ Deno.test("a row that opens says so, and a row that does not says nothing of the
     assertExists(first, "there is a row to open");
     const drill = composeDrillReading(statistics, roster, "damageTakenApplied", first.combatantId);
     assertExists(drill, "and it opens");
-    const opening = drill.byOpponent.rows.find((one) => one.opensPair);
-    const shut = drill.byElement.rows.find((one) => !one.opensPart);
+    const opening = drill.byOpponent.rows.find((one) => one.doesOpenPair);
+    const shut = drill.byElement.rows.find((one) => !one.doesOpenPart);
     assertExists(opening, "onto everybody it passed between, all of whom open");
     assertExists(shut, "and onto a kind of it nobody was named at the other end of");
 

@@ -52,7 +52,7 @@ Deno.test("nothing the add-on reaches while standing up can stop it", () => {
     assert(graph.has(ENTRY), "the entry this walks from is a function that exists");
     const throwing: string[] = [];
     for (const name of getUnguardedReach(graph)) {
-        if (graph.get(name)?.throws === true) throwing.push(name);
+        if (graph.get(name)?.doesThrow === true) throwing.push(name);
     }
     assertEquals(throwing.sort(), [], "E14: a throw on a frame the browser reaches unguarded");
 });

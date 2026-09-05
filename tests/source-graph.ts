@@ -159,7 +159,7 @@ const NOT_A_CALL = [
 ];
 
 interface SourceFunction {
-    throws: boolean;
+    doesThrow: boolean;
     /** Whether it hands back the failure it was given, which makes it a narrowing and no guard. */
     isRethrowing: boolean;
     /** Only what is called where no `try` stands over it: the walk follows nothing else. */
@@ -329,7 +329,7 @@ export function getCalledMethods(code: string): string[] {
     return getCallsOn(code, true);
 }
 
-function getCallsOn(code: string, wanted: boolean): string[] {
+function getCallsOn(code: string, isWanted: boolean): string[] {
     const found: string[] = [];
     for (let at = 0; at < code.length; at += 1) {
         if (code.charAt(at) !== "(") continue;
@@ -345,7 +345,7 @@ function getCallsOn(code: string, wanted: boolean): string[] {
         // of somebody, so a plain call this graph can resolve was left unresolved instead.
         const isDotted = start > 0 && code.charAt(start - 1) === ".";
         const isSpread = start > 1 && code.charAt(start - 2) === ".";
-        if ((isDotted && !isSpread) !== wanted) continue;
+        if ((isDotted && !isSpread) !== isWanted) continue;
         found.push(name);
     }
     return found;
@@ -481,14 +481,14 @@ function composeSourceFunction(
     const reaches: string[] = [];
     const methods: string[] = [];
     const caught = getCaughtName(body[0] ?? "");
-    let throws = false;
+    let doesThrow = false;
     let isRethrowing = false;
     for (const [at, line] of body.entries()) {
         if (isCommentLine(line)) continue;
         const code = getCodeOutsideStrings(line);
         if (own[at] === true) {
-            if (hasWord(code, "throw")) throws = true;
-            if (hasWord(code, "assert")) throws = true;
+            if (hasWord(code, "throw")) doesThrow = true;
+            if (hasWord(code, "assert")) doesThrow = true;
             if (caught.length > 0) {
                 if (code.includes(`throw ${caught}`)) isRethrowing = true;
             }
@@ -515,7 +515,7 @@ function composeSourceFunction(
             methods.push(name);
         }
     }
-    return { throws, isRethrowing, reaches, methods };
+    return { doesThrow, isRethrowing, reaches, methods };
 }
 
 /**

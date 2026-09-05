@@ -62,7 +62,7 @@ interface Comparison {
     percentBefore: number;
     percentAfter: number;
     moved: number;
-    carriesUnsizedShare: boolean;
+    doesCarryUnsizedShare: boolean;
 }
 
 /**
@@ -85,7 +85,7 @@ function addComparison(reading: WitnessReading, one: Comparison): void {
     const found = `${one.path} ${one.combatantId}: stated ${stated}, read ${one.moved}`;
     if (one.percentAfter === 0) reading.died += 1;
     else if (stated < one.moved) reading.vanished.push(found);
-    else if (one.carriesUnsizedShare) reading.appeared += 1;
+    else if (one.doesCarryUnsizedShare) reading.appeared += 1;
     else reading.unexplained.push(found);
 }
 
@@ -94,7 +94,7 @@ function witnessRecording(path: string, reading: WitnessReading): void {
     const roster = composeCombatantRoster(combatants);
     const maximumById = new Map(combatants.map((one) => [one.id, one.healthMaximum]));
     const payloads = getRecordedPayloads(path);
-    const carriesUnsizedShare = payloads.some((payload) =>
+    const doesCarryUnsizedShare = payloads.some((payload) =>
         payload.some((message) => message.includes(UNSIZED_SHARE_KEY))
     );
     const percentById = new Map<number, number>();
@@ -133,7 +133,7 @@ function witnessRecording(path: string, reading: WitnessReading): void {
                     percentBefore,
                     percentAfter,
                     moved,
-                    carriesUnsizedShare,
+                    doesCarryUnsizedShare,
                 });
             }
         }

@@ -362,7 +362,7 @@ function readHealthChange(key: string, value: string): HealthChangeReading | nul
 }
 
 /** Both ends the same, or one end unstated: there was never a second name to get wrong. */
-function namesOneCombatant(parsed: ProtocolMessage): boolean {
+function doesNameOneCombatant(parsed: ProtocolMessage): boolean {
     if (parsed.actor === null) return parsed.target !== null;
     if (parsed.target === null) return true;
     return parsed.actor.combatantId === parsed.target.combatantId;
@@ -372,7 +372,7 @@ function readSkillName(key: string, value: string, parsed: ProtocolMessage): str
     assert(value.length <= MAXIMUM_NAME, "a name read off a message stays inside its bound");
     if (key === SKILL_NAME_KEY) return value;
     if (key !== CUSTOM_SKILL_NAME_KEY) return null;
-    if (!namesOneCombatant(parsed)) return null;
+    if (!doesNameOneCombatant(parsed)) return null;
     assert(key === CUSTOM_SKILL_NAME_KEY, "only the custom key reaches the rule above");
     return value;
 }

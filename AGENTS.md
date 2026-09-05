@@ -497,7 +497,7 @@ the same thing a second way.
 | `tests/repository/errors.test.ts`             | E1, E2, E11–E13, E14 part, each with a sample    |
 | `tests/repository/unguarded-paths.test.ts`    | E14's paths, and the methods they step over      |
 | `tests/source-graph.ts`                       | the reader both of those stand on, S1 included   |
-| `tests/repository/names.test.ts`              | N1, N11, N14, N15, N16, each with a sample       |
+| `tests/repository/names.test.ts`              | N1, N8, N11, N14, N15, N16, each with a sample   |
 | `tests/repository/type-assertions.test.ts`    | C13, with a register read both ways              |
 | `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts   |
 | `tests/repository/readmes.test.ts`            | the two READMEs, and both against the shot set   |

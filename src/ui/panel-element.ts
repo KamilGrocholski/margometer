@@ -334,7 +334,7 @@ interface CardPlace {
 function composePersonCard(
     row: RankingRow | OpponentRow,
     place: CardPlace,
-    opens: boolean,
+    doesOpen: boolean,
 ): TipCompose {
     return () =>
         composeCardReading({
@@ -343,7 +343,7 @@ function composePersonCard(
             detail: row.detail,
             metric: place.metric,
             suspicions: place.suspicions,
-            opens,
+            doesOpen,
             isRowNarrower: place.isRowNarrower,
             translate: place.translate,
         });
@@ -358,7 +358,7 @@ function composePersonCard(
  * (`captures/`, 2026-08-30) were told apart from the 588 that do not by the cursor and by nothing
  * else. Half a section being pressable and silent about it teaches a reader that none of it is.
  */
-function composeRowTipReading(reading: RowReading, tip: RowTip, opens: boolean): TipReading {
+function composeRowTipReading(reading: RowReading, tip: RowTip, doesOpen: boolean): TipReading {
     const stated: TipLine[] = [{
         kind: "stat",
         label: tip.figure,
@@ -372,7 +372,7 @@ function composeRowTipReading(reading: RowReading, tip: RowTip, opens: boolean):
     for (const note of tip.notes ?? []) {
         said.push({ kind: "note", text: note, isSuspect: false });
     }
-    if (opens) said.push({ kind: "note", text: CARD_WORDS.gesture, isSuspect: false });
+    if (doesOpen) said.push({ kind: "note", text: CARD_WORDS.gesture, isSuspect: false });
     const cut = composeRowTipCutLines(tip.cut);
     // One group where there is nothing to divide. A rule drawn between two lines and the two
     // sentences under them is a card cut in half for the sake of it, and every row but a pinned
@@ -404,8 +404,8 @@ function composeRowElement(
 ): PanelElement {
     // The mark it wears is the whole answer: the cursor, the note the card carries and what a
     // press resolves to are one question asked once.
-    const opens = mark !== null;
-    const kind = opens ? CLASS.rowDrillable : CLASS.rowLeaf;
+    const doesOpen = mark !== null;
+    const kind = doesOpen ? CLASS.rowDrillable : CLASS.rowLeaf;
     const element = composeElement(document, "div", `${CLASS.row} ${kind}`);
     const parts = composeBarElements(document, reading);
     const rank = composeElement(document, "span", CLASS.rowRank);
@@ -434,7 +434,7 @@ function composeRowElement(
     // Every span and not the row alone: a listener reads what was pressed off the node under the
     // hand, and a mark on the row only swallows a press that landed on the name or the figure.
     if (mark !== null) setRowMarks(marked, mark.attribute, mark.stated);
-    tip.register.add(tip.key, tip.compose ?? (() => composeRowTipReading(reading, tip, opens)));
+    tip.register.add(tip.key, tip.compose ?? (() => composeRowTipReading(reading, tip, doesOpen)));
     setRowMarks(marked, TIP_ATTRIBUTE, tip.key);
     return element;
 }
@@ -811,10 +811,10 @@ function composeOpponentSection(
             ...{
                 figure: stated.figure,
                 share,
-                compose: composePersonCard(row, stated.place, row.opensPair),
+                compose: composePersonCard(row, stated.place, row.doesOpenPair),
             },
         };
-        const mark = row.opensPair
+        const mark = row.doesOpenPair
             ? { attribute: ROW_ATTRIBUTE, stated: `${row.combatantId}` }
             : null;
         list.append(
@@ -860,8 +860,8 @@ function getWordsForNamedPart(part: NamedPart | { kind: "plain" }, metric: Panel
 }
 
 /** The mark a part row wears, and null where the level under it holds nothing. */
-function getMarkForNamedPart(part: NamedPart, opens: boolean): RowMark | null {
-    if (!opens) return null;
+function getMarkForNamedPart(part: NamedPart, doesOpen: boolean): RowMark | null {
+    if (!doesOpen) return null;
     if (part.kind === "skill") return { attribute: SKILL_ATTRIBUTE, stated: part.name };
     if (part.kind === "source") return { attribute: SOURCE_ATTRIBUTE, stated: part.source };
     return { attribute: KIND_ATTRIBUTE, stated: part.element };
@@ -893,7 +893,7 @@ function composeSkillSection(
             share,
         };
         const reading = composeSkillRowReading(row, stated.metric, at + 1);
-        const mark = getMarkForNamedPart(row.part, row.opensPart);
+        const mark = getMarkForNamedPart(row.part, row.doesOpenPart);
         list.append(composeRowElement(document, reading, mark, tip));
     }
     if (cut.plain === null) return;
@@ -942,7 +942,7 @@ function composeElementSection(
             composeRowElement(
                 document,
                 composeElementReading(row, noun, at + 1),
-                getMarkForNamedPart(part, row.opensPart),
+                getMarkForNamedPart(part, row.doesOpenPart),
                 tip,
             ),
         );
@@ -1198,7 +1198,7 @@ function composeHalfNamedDrillElement(
         composeHalfNamedRows(document, list, view, {
             rows: drill.rows,
             neither: drill.neither,
-            opens: false,
+            doesOpen: false,
             register,
             translate: null,
         });
@@ -1247,7 +1247,7 @@ function composeHalfNamedElement(
     composeHalfNamedRows(document, list, view, {
         rows: halfNamed.rows,
         neither: halfNamed.neither,
-        opens: true,
+        doesOpen: true,
         register,
         translate,
     });
@@ -1273,12 +1273,12 @@ function composeHalfNamedRows(
         rows: readonly HalfNamedRow[];
         neither: UnnamedRow | null;
         /** False on the third level: what stands under a person there is nobody, and nothing. */
-        opens: boolean;
+        doesOpen: boolean;
         register: TipRegister;
         translate: TranslateLabel | null;
     },
 ): void {
-    const { rows, neither, opens, register, translate } = stated;
+    const { rows, neither, doesOpen, register, translate } = stated;
     const figure = getWordsForScreen(view.current);
     const share = PANEL_WORDS.shareOfFigure;
     // The card is the fight's four figures, as it is wherever a person's row stands, and this row
@@ -1295,10 +1295,10 @@ function composeHalfNamedRows(
             key: `named:${row.combatantId}`,
             figure,
             share,
-            compose: composePersonCard(row, place, opens),
+            compose: composePersonCard(row, place, doesOpen),
         };
         const reading = composeCombatantReading(row, at + 1, view.current);
-        const mark = opens ? { attribute: ROW_ATTRIBUTE, stated: `${row.combatantId}` } : null;
+        const mark = doesOpen ? { attribute: ROW_ATTRIBUTE, stated: `${row.combatantId}` } : null;
         list.append(composeRowElement(document, reading, mark, tip));
     }
     if (neither === null) return;

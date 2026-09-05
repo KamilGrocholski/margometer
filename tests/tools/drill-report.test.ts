@@ -197,11 +197,11 @@ Deno.test("every row of every ranking carries the mark that opens it", () => {
         // And the mark and the cursor agree: a row marked `leaf` that carried either mark would
         // open under a cursor saying it does not, which is the panel saying two things at once.
         for (const row of drawn) {
-            const opens = row.attributes.get("data-row") !== undefined ||
+            const doesOpen = row.attributes.get("data-row") !== undefined ||
                 row.attributes.get("data-unnamed") !== undefined;
             assertEquals(
                 row.className.includes("drillable"),
-                opens,
+                doesOpen,
                 `${screen}: a row's cursor says what its mark says`,
             );
         }

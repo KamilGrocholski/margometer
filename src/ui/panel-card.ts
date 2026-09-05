@@ -32,7 +32,7 @@ export interface CardSubject {
     detail: RowDetail;
     metric: PanelMetric;
     suspicions: readonly string[];
-    opens: boolean;
+    doesOpen: boolean;
     /**
      * Whether the row the card stands over states a narrower figure than the card does. True
      * inside an opened row, where the row is a cut and the card is still the whole fight, and
@@ -333,7 +333,7 @@ function composeCardNoteLines(subject: CardSubject): TipLine[] {
     if (subject.isRowNarrower) {
         lines.push({ kind: "note", text: CARD_WORDS.scope, isSuspect: false });
     }
-    if (subject.opens) {
+    if (subject.doesOpen) {
         lines.push({ kind: "note", text: CARD_WORDS.gesture, isSuspect: false });
     }
     return lines;

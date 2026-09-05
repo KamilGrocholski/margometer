@@ -113,11 +113,11 @@ function addToTally(
     tally: DrillTally,
     screen: PanelMetric,
     where: { rung: DrillRung; row: DrillRow },
-    opens: boolean,
+    doesOpen: boolean,
 ): void {
     const key = composeCaseKey(screen, where.rung, where.row);
     const held = tally.get(key) ?? { screen, rung: where.rung, row: where.row, opens: 0, shut: 0 };
-    if (opens) held.opens += 1;
+    if (doesOpen) held.opens += 1;
     else held.shut += 1;
     tally.set(key, held);
     assert(held.opens + held.shut > 0, "a case counted was counted at least once");
@@ -138,8 +138,8 @@ function addDeepRungsToTally(
     const drill = composeDrillReading(statistics, roster, screen, combatantId);
     if (drill === null) return;
     for (const other of drill.byOpponent.rows) {
-        addToTally(tally, screen, { rung: "opened", row: "person" }, other.opensPair);
-        if (!other.opensPair) continue;
+        addToTally(tally, screen, { rung: "opened", row: "person" }, other.doesOpenPair);
+        if (!other.doesOpenPair) continue;
         const pair = composePairReading(statistics, roster, screen, combatantId, other.combatantId);
         if (pair === null) continue;
         for (const part of pair.parts) {
@@ -172,8 +172,8 @@ function addSectionsToTally(
     }
     for (const skill of drill.bySkill.rows) {
         const row = getRowForPart(skill.part);
-        addToTally(tally, screen, { rung: "opened", row }, skill.opensPart);
-        if (skill.opensPart) addPartRungToTally(tally, replay, screen, combatantId, skill.part);
+        addToTally(tally, screen, { rung: "opened", row }, skill.doesOpenPart);
+        if (skill.doesOpenPart) addPartRungToTally(tally, replay, screen, combatantId, skill.part);
     }
     if (drill.bySkill.plain !== null) {
         addToTally(tally, screen, { rung: "opened", row: "closing" }, false);
@@ -181,8 +181,8 @@ function addSectionsToTally(
     for (const kind of drill.byElement.rows) {
         assert(kind.figure >= 0, "a kind drawn in a section holds no less than nothing");
         const part = { kind: "element" as const, element: kind.element };
-        addToTally(tally, screen, { rung: "opened", row: "kind" }, kind.opensPart);
-        if (kind.opensPart) addPartRungToTally(tally, replay, screen, combatantId, part);
+        addToTally(tally, screen, { rung: "opened", row: "kind" }, kind.doesOpenPart);
+        if (kind.doesOpenPart) addPartRungToTally(tally, replay, screen, combatantId, part);
     }
     if (drill.byElement.unnamed !== null) {
         addToTally(tally, screen, { rung: "opened", row: "no kind" }, false);
@@ -231,7 +231,7 @@ function addUnnamedRungToTally(tally: DrillTally, replay: FightReplay, kase: Pin
     }
     for (const one of held.kinds.rows) {
         assert(one.figure > 0, "and a kind under it carries some of it too");
-        addToTally(tally, screen, { rung: "unnamed", row: "kind" }, one.opensPart);
+        addToTally(tally, screen, { rung: "unnamed", row: "kind" }, one.doesOpenPart);
     }
     if (held.kinds.unnamed !== null) {
         addToTally(tally, screen, { rung: "unnamed", row: "no kind" }, false);
@@ -257,11 +257,11 @@ function addUnnamedCutToTally(
             "a person opens onto what their share was dealt with",
         );
         for (const one of under.kinds.rows) {
-            addToTally(tally, screen, { rung: "unnamed cut", row: "kind" }, one.opensPart);
+            addToTally(tally, screen, { rung: "unnamed cut", row: "kind" }, one.doesOpenPart);
         }
     }
     for (const kind of held.kinds.rows) {
-        if (!kind.opensPart) continue;
+        if (!kind.doesOpenPart) continue;
         const under = composeUnnamedCut(replay, kase, { kind: "element", element: kind.element });
         if (under === null) continue;
         assertStrictEquals(under.opened, "element", "and a key onto whoever carries it");
@@ -394,12 +394,12 @@ function composeOpenedLines(
     const lines = [`    ${drill.name ?? "(nobody named)"} — ${composeIntegerText(drill.total)}`];
     for (const other of drill.byOpponent.rows) {
         const named = other.name ?? "(nobody named)";
-        const opens = other.opensPair ? "opens" : "leaf ";
+        const opens = other.doesOpenPair ? "opens" : "leaf ";
         lines.push(`      person  ${opens}  ${named} ${composeIntegerText(other.figure)}`);
     }
     if (drill.byOpponent.unnamed !== null) lines.push("      half-named  leaf");
     for (const skill of drill.bySkill.rows) {
-        const opens = skill.opensPart ? "opens" : "leaf ";
+        const opens = skill.doesOpenPart ? "opens" : "leaf ";
         const named = getTextForNamedPart(skill.part);
         lines.push(
             `      ${getRowForPart(skill.part).padEnd(7)}${opens}  ${named} ${
@@ -409,7 +409,7 @@ function composeOpenedLines(
     }
     if (drill.bySkill.plain !== null) lines.push("      closing  leaf");
     for (const kind of drill.byElement.rows) {
-        const opens = kind.opensPart ? "opens" : "leaf ";
+        const opens = kind.doesOpenPart ? "opens" : "leaf ";
         lines.push(
             `      kind    ${opens}  ${kind.element} ${composeIntegerText(kind.figure)}`,
         );
@@ -468,9 +468,9 @@ function composeUnnamedLines(replay: FightReplay, kase: PinnedCase): string[] {
     }
     if (held.neither !== null) lines.push("      neither end  leaf");
     for (const one of held.kinds.rows) {
-        const verdict = one.opensPart ? "opens" : "leaf ";
+        const verdict = one.doesOpenPart ? "opens" : "leaf ";
         lines.push(`      kind    ${verdict}  ${one.element} ${composeIntegerText(one.figure)}`);
-        if (!one.opensPart) continue;
+        if (!one.doesOpenPart) continue;
         const under = composeUnnamedCut(replay, kase, { kind: "element", element: one.element });
         if (under === null || under.opened !== "element") continue;
         for (const row of under.rows) {

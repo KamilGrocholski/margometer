@@ -1224,7 +1224,7 @@ export function composePanelSides(
 export interface ElementRow {
     /** The client's own token. What a reader is shown for it is the panel's, not the reading's. */
     element: string;
-    opensPart: boolean;
+    doesOpenPart: boolean;
     figure: number;
     fill: number;
     shareText: string;
@@ -1257,7 +1257,7 @@ export function getTextForNamedPart(part: NamedPart | { kind: "plain" }): string
 
 export interface SkillRow {
     part: NamedPart;
-    opensPart: boolean;
+    doesOpenPart: boolean;
     /**
      * How many times it was announced, and null where a count would be a claim the protocol
      * never makes — the section below says under which heading that happens.
@@ -1290,7 +1290,7 @@ export interface SkillCut {
  * the ranking's own row holds, because the card is about the person and not about the cut.
  */
 export interface OpponentRow extends PersonRow {
-    opensPair: boolean;
+    doesOpenPair: boolean;
 }
 
 export interface OpponentCut {
@@ -1410,7 +1410,7 @@ function compareElementRows(one: { element: string; figure: number }, other: {
 function composeElementCut(
     cut: FigureCut,
     total: number,
-    opens: (element: string) => boolean,
+    doesOpen: (element: string) => boolean,
 ): ElementCut {
     const stated: Array<{ element: string; figure: number }> = [];
     let held = 0;
@@ -1431,7 +1431,7 @@ function composeElementCut(
     return {
         rows: stated.map((one, at) => ({
             ...one,
-            opensPart: opens(one.element),
+            doesOpenPart: doesOpen(one.element),
             fill: getFill(one.figure, largest),
             shareText: shares[at] ?? "",
         })),
@@ -1457,7 +1457,7 @@ function composeOpponentCut(
     statistics: FightStatistics,
     roster: CombatantRoster,
     total: number,
-    opens: (otherId: number) => boolean,
+    doesOpen: (otherId: number) => boolean,
 ): OpponentCut {
     const stated: UnsharedRow[] = [];
     let held = 0;
@@ -1485,7 +1485,7 @@ function composeOpponentCut(
             ...row,
             fill: getFill(row.figure, largest),
             shareText: shares[at] ?? "",
-            opensPair: opens(row.combatantId),
+            doesOpenPair: doesOpen(row.combatantId),
             detail: composeRowDetailFor(statistics, roster, row.combatantId),
         })),
         unnamed: unnamed > 0
@@ -1510,7 +1510,7 @@ interface UnsharedPart {
 
 /** The same row once the level under it has been composed and counted. */
 interface UnsharedSkill extends UnsharedPart {
-    opensPart: boolean;
+    doesOpenPart: boolean;
 }
 
 /**
@@ -1594,7 +1594,7 @@ function composeSkillRows(
     // disagreement as an arrow leading nowhere.
     return stated.map((one) => ({
         ...one,
-        opensPart: composePartCut(statistics, figures, metric, combatantId, one.part) !== null,
+        doesOpenPart: composePartCut(statistics, figures, metric, combatantId, one.part) !== null,
     }));
 }
 
