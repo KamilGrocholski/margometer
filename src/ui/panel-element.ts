@@ -75,8 +75,8 @@ import {
 } from "@/src/ui/panel-words.ts";
 import {
     composeTipLeft,
+    type PanelDragHandle,
     type PanelPlacement,
-    type PanelPosition,
     setGripMark,
     setPanelDrag,
 } from "@/src/ui/panel-drag.ts";
@@ -1668,13 +1668,18 @@ export function composePanelHost(
     };
     const register = composeTipRegister();
     const drawing = composeListDrawing(regions, redraw);
-    // Null until a drag writes one, and null for good on a panel never made movable.
-    let getPosition: () => PanelPosition | null = () => null;
+    // Null for good on a panel never made movable, which is every panel a test draws.
+    let drag: PanelDragHandle | null = null;
     const tip: TipHandle = composeTipHandle(
         document,
         register,
         (standing, compose) => redraw(standing, "list", compose),
-        () => composeTipLeft(getPosition(), placement?.getViewport() ?? null, TIP_WIDTH),
+        () =>
+            composeTipLeft(
+                drag?.getPosition() ?? null,
+                placement?.getViewport() ?? null,
+                TIP_WIDTH,
+            ),
     );
     root.append(regions.title);
     root.append(frame);
@@ -1684,7 +1689,7 @@ export function composePanelHost(
     // After the listeners that read a press, and on the same root: a drag is four more of them,
     // and the bar is the only thing on the panel that starts one.
     if (placement !== null) {
-        getPosition = setPanelDrag(root, host, () => regions.title, placement, handleGesture);
+        drag = setPanelDrag(root, host, () => regions.title, placement, handleGesture);
     }
     return {
         element: host,
@@ -1695,6 +1700,7 @@ export function composePanelHost(
             if (view.isCollapsed) setPanelFolded(document, regions, redraw);
             else setPanelBody(document, regions, view, register, translate, redraw, drawing);
             drawing.settle();
+            drag?.handleDrawn();
             tip.refresh();
         },
         showWaiting(isCollapsed: boolean, waiting: WaitingReading): void {
@@ -1703,6 +1709,7 @@ export function composePanelHost(
             setFoldDrawn(document, regions, frame, redraw, isCollapsed);
             setPanelWaiting(document, regions, isCollapsed, waiting, redraw, drawing);
             drawing.settle();
+            drag?.handleDrawn();
             tip.refresh();
         },
     };

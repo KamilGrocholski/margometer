@@ -1999,6 +1999,45 @@ Deno.test("a press on a control is not a drag, whatever the pointer does next", 
     );
 });
 
+/**
+ * The twin of the press that outlives a redraw: a press is one moment and cannot be broken by a
+ * payload landing, a drag is three, and what carries it across them is the pointer held by a bar
+ * every draw replaces.
+ */
+Deno.test("a draw landing mid-drag does not take the panel out of the hand", () => {
+    const document = composeFakeDocument();
+    const moved: Array<{ left: number; top: number }> = [];
+    const panel = composePanelHost(document, () => {}, () => {}, {
+        position: { left: 40, top: 40 },
+        getViewport: () => ({ width: 1280, height: 900 }),
+        handleMoved: (position) => moved.push(position),
+    });
+    const host = panel.element as FakeElement;
+    const readBar = () => getElementsWithin(host).find((one) => one.className === CLASS.title);
+    panel.showWaiting(false, { defects: [], isFightUnread: false });
+    const held = readBar();
+    assertExists(held, "the bar is drawn");
+    dragOnElement(host, "pointerdown", held, { clientX: 100, clientY: 20 });
+    assertEquals(held.pointersHeld, [1], "the bar takes hold of the pointer that pressed it");
+
+    panel.showWaiting(false, { defects: [], isFightUnread: false });
+    const drawn = readBar();
+    assertExists(drawn, "a payload landing draws the bar again");
+    assertStrictEquals(held.replacedBy, drawn, "and the one holding the pointer has left the tree");
+    assertEquals(drawn.pointersHeld, [1], "so the hold is taken again, on the bar standing now");
+
+    dragOnElement(host, "pointermove", drawn, { clientX: 300, clientY: 220 });
+    assertEquals(
+        host.attributes.get("style"),
+        "left:240px;top:240px;--MargoMeter-panel-top:240px;right:auto",
+        "the panel goes on following the hand across the draw",
+    );
+    dragOnElement(host, "pointerup", drawn, { clientX: 300, clientY: 220 });
+    assertEquals(moved, [{ left: 240, top: 240 }], "where it was let go is reported, once");
+    assertEquals(drawn.pointersReleased, [1], "let go of by the bar that was holding it");
+    assertEquals(held.pointersReleased, [], "and never by the one that left the tree");
+});
+
 /** Healing opens onto who, what with, and — on the receiving side alone — under which key. */
 Deno.test("a healing row opens, and says whose the health was and what put it back", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));

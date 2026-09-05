@@ -22,6 +22,8 @@ const WINDOW_WIDTH = 1280;
 const WINDOW_HEIGHT = 900;
 /** The one key a drag writes, named as `src/userscript-entry.ts` names it. */
 const PLACE_KEY = "MargoMeter-place";
+/** Enough of the fight to have drawn a panel, and enough left over to land one mid-drag. */
+const PART_WAY = 20;
 
 test("a drag by the bar moves it, and the browser is told where it went", async ({ panel }) => {
     expect(await panel.stored(PLACE_KEY), "nobody has moved it yet").toBeNull();
@@ -131,4 +133,45 @@ test("a folded panel is still a panel that can be moved", async ({ panel }) => {
     const after = await panel.place();
     expect(after.left - before.left, "and folded it moves the same way").toBe(ACROSS);
     expect(after.top - before.top, "on both axes").toBe(DOWN);
+});
+
+/**
+ * The twin of the press that outlives a redraw: a press is one moment and a payload cannot break
+ * it, a drag is three, and the bar carrying the pointer between them is replaced on every draw.
+ *
+ * Folded on purpose. A hand holding an open panel is always over it, because the panel follows;
+ * a folded one clamps a bar's height short of the bottom of the window, so the last stretch of
+ * the drag is a hand below the panel it is holding — which is the stretch a dropped hold loses.
+ */
+test.describe("a payload landing in the middle of a drag", () => {
+    test.use({ fedThrough: PART_WAY });
+
+    test("keeps the panel in the hand, and sees it let go below itself", async ({ panel }) => {
+        await panel.at("[data-fold]").click();
+        await expect(panel.at(".MargoMeter-body.folded"), "it is folded to its bar").toHaveCount(1);
+        expect(await panel.stored(PLACE_KEY), "nobody has moved it yet").toBeNull();
+        const bar = await readPointsAlongBar(panel.page, [20]);
+        const from = { x: bar[0]?.x ?? 0, y: bar[0]?.y ?? 0 };
+        await panel.page.mouse.move(from.x, from.y);
+        await panel.page.mouse.down();
+        await panel.page.mouse.move(from.x, from.y + DOWN, { steps: 4 });
+
+        expect(await panel.remaining(), "the fight has more to deliver").toBeGreaterThan(0);
+        await panel.feed(1);
+
+        await panel.page.mouse.move(from.x, WINDOW_HEIGHT - 1, { steps: 6 });
+        const at = await panel.place();
+        expect(at.top, "the panel went on down after the payload").toBeGreaterThan(from.y + DOWN);
+        expect(at.top + at.height, "and the hand is below the panel it is holding")
+            .toBeLessThan(WINDOW_HEIGHT - 1);
+
+        await panel.page.mouse.up();
+        expect(await panel.stored(PLACE_KEY), "the release was seen, wherever the hand was")
+            .not.toBeNull();
+        const landed = await panel.place();
+        await panel.page.mouse.move(from.x, WINDOW_HEIGHT / 2, { steps: 4 });
+        expect(await panel.place(), "and nothing is left holding it").toEqual(landed);
+        await expect(panel.at(".defect"), "no gesture cost the reader anything").toHaveCount(0);
+        await panel.expectHonest("a payload landed in the middle of a drag");
+    });
 });

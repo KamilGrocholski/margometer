@@ -25,6 +25,8 @@ interface PanelGrab {
     pointerTop: number;
     panelLeft: number;
     panelTop: number;
+    /** The pointer taken hold of, so the hold and the release are asked of the same one. */
+    pointerId: number | undefined;
 }
 
 /**
@@ -168,6 +170,17 @@ export function composeTipLeft(
     return Math.min(other, Math.max(0, viewport.width - tipWidth));
 }
 
+/** What the panel keeps of a drag once the listeners are on. */
+export interface PanelDragHandle {
+    /**
+     * A getter rather than the value: a drag outlives the call that wired it, and whoever draws
+     * beside the panel needs where it is **now** rather than where it was then.
+     */
+    getPosition(): PanelPosition | null;
+    /** The bar has been drawn again; take hold of the one standing. */
+    handleDrawn(): void;
+}
+
 export interface PanelPlacement {
     position: PanelPosition | null;
     getViewport(): PanelViewport | null;
@@ -215,6 +228,7 @@ function composePanelDragGrab(
         pointerTop: pointer.top,
         panelLeft: from.left,
         panelTop: from.top,
+        pointerId: event.pointerId,
     };
 }
 
@@ -229,7 +243,7 @@ export function setPanelDrag(
     getBar: () => PanelElement,
     placement: PanelPlacement,
     handleFailure: (failure: unknown) => void,
-): () => PanelPosition | null {
+): PanelDragHandle {
     // The reader's place, or the middle of the window: a position from the first frame is what
     // lets the detail window and the card answer the side the panel is on (**ADR 0019**), where a
     // panel left on the sheet's corner has no `left` for either of them to read.
@@ -267,17 +281,33 @@ export function setPanelDrag(
         if (pointer === null) return;
         setHostPosition(composeDraggedPosition(held, pointer, placement.getViewport()));
     });
-    const handleDragEnd = (event: PanelEvent): void => {
-        if (grab === null) return;
+    const handleDragEnd = (): void => {
+        const held = grab;
+        if (held === null) return;
         grab = null;
-        setPointerHeld(getBar(), false, event.pointerId, handleFailure);
+        setPointerHeld(getBar(), false, held.pointerId, handleFailure);
         if (position !== null) placement.handleMoved(position);
     };
     setGuarded("pointerup", handleDragEnd);
     setGuarded("pointercancel", handleDragEnd);
-    // A getter rather than the value: a drag outlives this call, and whoever draws beside the
-    // panel needs where it is **now** rather than where it was when the listeners went on.
-    return () => position;
+    return {
+        getPosition: () => position,
+        handleDrawn: () => setPanelDragHeldAgain(grab, getBar(), handleFailure),
+    };
+}
+
+/**
+ * Every draw replaces the bar, and a browser drops the capture with the node it was on. What is
+ * missed then is the release: the drag would go on armed, and the panel follow the next pointer to
+ * cross it with nobody holding it.
+ */
+function setPanelDragHeldAgain(
+    grab: PanelGrab | null,
+    bar: PanelElement,
+    handleFailure: (failure: unknown) => void,
+): void {
+    if (grab === null) return;
+    setPointerHeld(bar, true, grab.pointerId, handleFailure);
 }
 
 /**

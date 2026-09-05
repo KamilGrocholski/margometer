@@ -17,6 +17,13 @@ export interface FakeElement extends PanelElement {
     replacedBy: FakeElement | null;
     /** The listeners the panel put on its root, by type, so a test can press what a reader does. */
     rootListeners: Map<string, ((event: PanelEvent) => void)[]>;
+    /**
+     * Which pointers were taken hold of on this element and which were let go, in order. A drag
+     * keeps its hold across a redraw by taking it again on the bar standing, and this is where a
+     * test reads that it did.
+     */
+    pointersHeld: number[];
+    pointersReleased: number[];
 }
 
 /** Somewhere down the screen, for a gesture whose test does not care which. */
@@ -90,6 +97,14 @@ export function composeFakeDocument(): PanelDocument & { created: FakeElement[] 
                 shadow: null,
                 replacedBy: null,
                 rootListeners: new Map(),
+                pointersHeld: [],
+                pointersReleased: [],
+                setPointerCapture(pointerId: number): void {
+                    element.pointersHeld.push(pointerId);
+                },
+                releasePointerCapture(pointerId: number): void {
+                    element.pointersReleased.push(pointerId);
+                },
                 replaceWith(other: PanelElement): void {
                     element.replacedBy = other as FakeElement;
                     for (const parent of created) {
