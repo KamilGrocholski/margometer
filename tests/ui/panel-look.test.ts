@@ -160,6 +160,27 @@ Deno.test("a profession the table does not word travels as the game wrote it", (
     assertEquals(getWordsForProfession("z"), "z", "and a seventh the game invents is passed on");
 });
 
+/**
+ * A hue nothing here wrote. The panel used to stop drawing over one; a bar the colour of its own
+ * track states its length and says nothing about whose it is, which is a degradation rather than
+ * a claim — **E14**, ADR 0051. What it must never do is write `undefined` into a rule, because a
+ * browser drops that and the element keeps whatever it inherits, with nothing saying so.
+ */
+Deno.test("a bar asked for in no colour is drawn in its own track, and never in nothing", () => {
+    for (const hue of ["", "#12", "rgb(1 2)", "not a colour at all", "#gggggg"]) {
+        assertEquals(composeBarColour(hue), SURFACE.track, `${hue} is no colour, so it is no bar`);
+        assertEquals(getInkForBar(hue), TEXT.inkLight, "and its ink is the one every bar takes");
+    }
+    for (const written of [composeBarColour("#3987e5"), composeBarColour("")]) {
+        assert(!written.includes("undefined"), "no rule the panel writes carries a word for none");
+    }
+});
+
+Deno.test("a profession nobody has a hue for is drawn as the absence of one", () => {
+    assertEquals(getColourForProfession(""), SIGNAL.unknown, "a letter that says nothing");
+    assertEquals(getColourForProfession("zz"), SIGNAL.unknown, "and one that says too much");
+});
+
 Deno.test("the ink is computed, and at this tint every bar takes the light one", () => {
     const inks = new Set(PALETTE_COLOURS.map((one) => getInkForBar(one)));
     // Measured, not designed: at a tint of 0.55 over this track no bar is light enough for the

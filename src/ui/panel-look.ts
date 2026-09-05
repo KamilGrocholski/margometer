@@ -7,7 +7,7 @@
  * `DESIGN.md` owns what these values are for; this file owns what they are.
  */
 
-import { assert } from "@std/assert/assert";
+import { getValueWithin } from "@/libs/number-range.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 
 export const SURFACE = {
@@ -174,20 +174,25 @@ const LOW_SLOPE = 12.92;
 const CHANNEL_OFFSET = 0.055;
 const CHANNEL_EXPONENT = 2.4;
 const LUMINANCE_OFFSET = 0.05;
-const INK_DARK_CHANNELS = [0x14, 0x14, 0x1a];
-const INK_LIGHT_CHANNELS = [0xff, 0xff, 0xff];
+/**
+ * ⚠️ **Three, held by the compiler rather than by a check.** Everything here writes its answers
+ * straight into a rule, and a list one short puts the word `undefined` inside `rgb(…)` — which a
+ * browser drops, leaving the element on whatever it inherits with nothing saying so. A guard at
+ * each writer was the first answer and it was dead code: nothing could reach it. **ADR 0051.**
+ */
+type ColourChannels = readonly [number, number, number];
+
+const INK_DARK_CHANNELS: ColourChannels = [0x14, 0x14, 0x1a];
+const INK_LIGHT_CHANNELS: ColourChannels = [0xff, 0xff, 0xff];
 
 function getDigitFromHex(character: string): number | null {
-    assert(character.length === 1, "a digit is one character");
     const at = HEX_DIGITS.indexOf(character.toLowerCase());
     if (at === -1) return null;
-    assert(at >= 0, "a digit that was found has a place in the run");
     return at;
 }
 
 /** The other spelling, because a bar is composed as one and its ink is read back off it. */
-function getChannelsFromRgb(colour: string): number[] | null {
-    assert(colour.length > 0, "a colour is text that says something");
+function getChannelsFromRgb(colour: string): ColourChannels | null {
     if (!colour.startsWith(RGB_OPENER)) return null;
     if (!colour.endsWith(RGB_CLOSER)) return null;
     const channels: number[] = [];
@@ -199,31 +204,35 @@ function getChannelsFromRgb(colour: string): number[] | null {
         if (channel > CHANNEL_MAXIMUM) return null;
         channels.push(channel);
     }
-    if (channels.length !== CHANNELS_IN_A_COLOUR) return null;
-    assert(channels.every((one) => one >= 0), "a channel that was read is not below nothing");
-    return channels;
+    return composeChannels(channels);
 }
 
 /** Null for anything that is neither spelling, because a colour nobody wrote is not a colour. */
-function getChannelsFromColour(colour: string): number[] | null {
+function getChannelsFromColour(colour: string): ColourChannels | null {
     if (colour.startsWith(RGB_OPENER)) return getChannelsFromRgb(colour);
     if (!colour.startsWith("#")) return null;
     if (colour.length !== HEX_COLOUR_LENGTH) return null;
     const channels: number[] = [];
-    assert(colour.length === HEX_COLOUR_LENGTH, "a hex colour is a hash and six digits");
     for (let at = 1; at < colour.length; at += HEX_DIGITS_PER_CHANNEL) {
         const high = getDigitFromHex(colour.charAt(at));
         const low = getDigitFromHex(colour.charAt(at + 1));
         if (high === null || low === null) return null;
         channels.push(high * HEX_BASE + low);
     }
-    assert(channels.length === CHANNELS_IN_A_COLOUR, "a colour is three channels");
-    assert(channels.every((one) => one <= CHANNEL_MAXIMUM), "and each stays inside a byte");
-    return channels;
+    return composeChannels(channels);
 }
 
-function getLuminanceFromChannels(channels: readonly number[]): number {
-    assert(channels.length === CHANNELS_IN_A_COLOUR, "a luminance is taken of three channels");
+/** The one place a list becomes three channels, so no writer downstream has to ask again. */
+function composeChannels(read: readonly number[]): ColourChannels | null {
+    if (read.length !== CHANNELS_IN_A_COLOUR) return null;
+    const [red, green, blue] = read;
+    if (red === undefined) return null;
+    if (green === undefined) return null;
+    if (blue === undefined) return null;
+    return [red, green, blue];
+}
+
+function getLuminanceFromChannels(channels: ColourChannels): number {
     let luminance = 0;
     for (const [at, channel] of channels.entries()) {
         const share = channel / CHANNEL_MAXIMUM;
@@ -232,18 +241,14 @@ function getLuminanceFromChannels(channels: readonly number[]): number {
             : ((share + CHANNEL_OFFSET) / (1 + CHANNEL_OFFSET)) ** CHANNEL_EXPONENT;
         luminance += linear * (LUMINANCE_WEIGHTS[at] ?? 0);
     }
-    assert(luminance >= 0, "a luminance is never below nothing");
-    assert(luminance <= 1, "and never above everything");
+
     return luminance;
 }
 
-function getContrastFromChannels(one: readonly number[], other: readonly number[]): number {
+function getContrastFromChannels(one: ColourChannels, other: ColourChannels): number {
     const bright = Math.max(getLuminanceFromChannels(one), getLuminanceFromChannels(other));
     const dim = Math.min(getLuminanceFromChannels(one), getLuminanceFromChannels(other));
-    assert(bright >= dim, "the brighter of two is not the dimmer");
     const ratio = (bright + LUMINANCE_OFFSET) / (dim + LUMINANCE_OFFSET);
-    assert(ratio >= 1, "a ratio compares the brighter against the dimmer");
-    assert(Number.isFinite(ratio), "and answers a number either way");
     return ratio;
 }
 
@@ -255,35 +260,42 @@ export function getContrastRatio(one: string, other: string): number {
     return getContrastFromChannels(first, second);
 }
 
-function getInkForChannels(channels: readonly number[]): string {
-    assert(channels.length === CHANNELS_IN_A_COLOUR, "an ink is chosen against three channels");
+function getInkForChannels(channels: ColourChannels): string {
     const onDark = getContrastFromChannels(channels, INK_DARK_CHANNELS);
     const onLight = getContrastFromChannels(channels, INK_LIGHT_CHANNELS);
-    assert(onDark >= 1, "an ink is compared against what it sits on");
     if (onDark >= onLight) return TEXT.inkDark;
     return TEXT.inkLight;
 }
 
-function composeBarChannels(hue: string): number[] {
+/** A colour nothing could be read from is the track, which is a colour and not a dropped rule. */
+function composeRgbText(channels: ColourChannels | null): string {
+    if (channels === null) return SURFACE.track;
+    const [red, green, blue] = channels;
+    return `rgb(${red} ${green} ${blue})`;
+}
+
+/** Null for a hue that is not a colour this file wrote, which is the caller's to answer for. */
+function composeBarChannels(hue: string): ColourChannels | null {
     const chosen = getChannelsFromColour(hue);
     const track = getChannelsFromColour(SURFACE.track);
-    assert(chosen !== null, "the palette is written as colours");
-    assert(track !== null, "and so is the track they sit on");
-    assert(chosen.length === track.length, "a hue and a track are mixed channel for channel");
-    return chosen.map((channel, at) =>
-        Math.round((track[at] ?? 0) * (1 - BAR_TINT) + channel * BAR_TINT)
+    if (chosen === null) return null;
+    if (track === null) return null;
+    return composeChannels(
+        chosen.map((channel, at) =>
+            Math.round((track[at] ?? 0) * (1 - BAR_TINT) + channel * BAR_TINT)
+        ),
     );
 }
 
+/** A bar drawn in its own track states its length and says nothing about whose it is. */
 export function composeBarColour(hue: string): string {
-    assert(hue.length > 0, "a bar is drawn in a colour that was chosen");
-    const mixed = composeBarChannels(hue);
-    assert(mixed.length === CHANNELS_IN_A_COLOUR, "a bar is three channels like any other");
-    return `rgb(${mixed[0]} ${mixed[1]} ${mixed[2]})`;
+    return composeRgbText(composeBarChannels(hue));
 }
 
 export function getInkForBar(hue: string): string {
-    return getInkForChannels(composeBarChannels(hue));
+    const mixed = composeBarChannels(hue);
+    if (mixed === null) return TEXT.inkLight;
+    return getInkForChannels(mixed);
 }
 
 /**
@@ -302,31 +314,26 @@ const PROFESSION_HUES: Record<string, number> = {
 
 export function getColourForProfession(profession: string | null): string {
     if (profession === null) return SIGNAL.unknown;
-    assert(profession.length > 0, "a profession that was stated says something");
     const stated = PROFESSION_HUES[profession];
     if (stated === undefined) return SIGNAL.unknown;
-    const held = PALETTE_COLOURS[stated];
-    assert(held !== undefined, "a stated hue is a place inside the palette");
-    return held;
+    return PALETTE_COLOURS[stated] ?? SIGNAL.unknown;
 }
 
 /** One colour over another at an alpha, in sRGB because that is what the browser does here. */
 function composeColourOver(top: string, bottom: string, alpha: number): string {
-    assert(alpha >= 0, "a colour is laid over another at a share of itself");
-    assert(alpha <= 1, "and never at more than the whole of itself");
     const above = getChannelsFromColour(top);
     const below = getChannelsFromColour(bottom);
-    assert(above !== null, "the colour laid over another is one this file wrote");
-    assert(below !== null, "and so is the one underneath it");
-    const mixed = above.map((one, at) => Math.round(alpha * one + (1 - alpha) * (below[at] ?? 0)));
-    return `rgb(${mixed[0]} ${mixed[1]} ${mixed[2]})`;
+    // Nothing to lay over anything: what is underneath stands, which is a colour and not a rule
+    // the browser will drop.
+    if (above === null) return bottom;
+    if (below === null) return bottom;
+    const share = getValueWithin(alpha, 0, 1);
+    const mixed = above.map((one, at) => Math.round(share * one + (1 - share) * (below[at] ?? 0)));
+    return composeRgbText(composeChannels(mixed));
 }
 
 function composeHeadingColour(): string {
-    const colour = composeColourOver(TEXT.quiet, SURFACE.panel, HEADING_TINT);
-    assert(colour.startsWith("rgb("), "a composite is written the way a bar's colour is");
-    assert(colour.endsWith(")"), "and closed like one");
-    return colour;
+    return composeColourOver(TEXT.quiet, SURFACE.panel, HEADING_TINT);
 }
 
 const VARIABLE_PREFIX = "--MargoMeter-";
@@ -338,8 +345,6 @@ const LINE_HEIGHT = "15px";
 const LINE_HEIGHT_TITLE = "13px";
 
 function composeVariable(name: string, value: string): string {
-    assert(name.length > 0, "a token is named");
-    assert(value.length > 0, "and carries a value");
     return `${VARIABLE_PREFIX}${name}:${value};`;
 }
 
@@ -368,8 +373,6 @@ function composeVariables(): string {
         composeVariable("radius", SHAPE.radius),
         composeVariable("radius-small", SHAPE.radiusSmall),
     ].join("");
-    assert(stated.length > 0, "the panel spends tokens rather than values");
-    assert(stated.startsWith(VARIABLE_PREFIX), "and every one of them is ours by name");
     return stated;
 }
 
@@ -381,8 +384,6 @@ function composeVariables(): string {
  * survive the line above it, and what the panel is moved by.
  */
 function composeFrameRules(): string {
-    assert(PLACE.width.endsWith("px"), "the panel is as wide as it was told, in pixels");
-    assert(CLASS.title.startsWith("MargoMeter-"), "a region is named as ours before it is styled");
     const ceiling = `min(calc(100vh - var(${VARIABLE_PREFIX}panel-top) - ${PLACE.inset}),` +
         `${SPACE.heightShareMaximum})`;
     return `:host{all:initial;${composeVariables()}` +
@@ -430,8 +431,6 @@ function composeFrameRules(): string {
 }
 
 function composeRegionRules(): string {
-    assert(SPACE.regionDown.endsWith("px"), "a region is inset by a length, in pixels");
-    assert(CLASS.header.length > 0, "and every region it draws is named");
     const region = `var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across)`;
     return `.${CLASS.header}{display:block;padding:${region};padding-bottom:0;}` +
         `.${CLASS.headerLine}{display:flex;justify-content:space-between;align-items:baseline;}` +
@@ -463,16 +462,12 @@ function composeRegionRules(): string {
 
 /** What insets a region under its rows, less the margin its last row carries. **ADR 0014.** */
 function composeInsetUnderRows(inset: string): string {
-    assert(inset.startsWith(VARIABLE_PREFIX), "a region's own inset is spent by name");
     const written = `calc(var(${inset}) - var(${VARIABLE_PREFIX}half))`;
-    assert(written.includes("half"), "and the row's own margin is what comes off it");
     return written;
 }
 
 /** The list's height is the rows it promises times what a row costs. **ADR 0014.** */
 function composeListRules(): string {
-    assert(SPACE.regionDown.endsWith("px"), "a list is inset by a length, in pixels");
-    assert(CLASS.list.length > 0, "and the one region that scrolls is named");
     const region = `var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across)`;
     const belowRows = composeInsetUnderRows(VARIABLE_PREFIX + "region-down");
     const rowCost = `(var(${VARIABLE_PREFIX}row-height) + var(${VARIABLE_PREFIX}half))`;
@@ -532,9 +527,6 @@ function composeListRules(): string {
 }
 
 function composeRowRules(): string {
-    assert(SPACE.rowHeight.length > 0, "every row is drawn at one height");
-    assert(SHAPE.radiusSmall.endsWith("px"), "what sits in a row is rounded in pixels");
-    assert(ROW_INK_DROP.endsWith("px"), "and the ink is dropped onto its middle by a length");
     const cap = `var(${VARIABLE_PREFIX}radius-small) 0 0 var(${VARIABLE_PREFIX}radius-small)`;
     return `.${CLASS.row}{position:relative;display:flex;justify-content:space-between;` +
         `align-items:center;box-sizing:border-box;height:var(${VARIABLE_PREFIX}row-height);` +
@@ -596,8 +588,6 @@ function composeRowRules(): string {
  * cannot clip it: the host creates none, having no transform, filter or containment.
  */
 function composeTipRules(): string {
-    assert(TIP.width.endsWith("px"), "the tip is as wide as it was told, and does not reflow");
-    assert(LINE_HEIGHT.endsWith("px"), "and a line of it costs whole pixels, as every line does");
     // A detail opening leftwards from the left edge of the screen would be drawn off it.
     const left = `var(${VARIABLE_PREFIX}tip-left,calc(100vw - ${PLACE.inset} - ${PLACE.width} - ` +
         `${TIP.width} - ${SPACE.small}))`;
@@ -642,8 +632,6 @@ function composeTipRules(): string {
  * itself, and the padding and border the box reserves inside its own height.
  */
 function composeTipHeight(): string {
-    assert(LINE_HEIGHT.endsWith("px"), "a card is counted in lines of whole pixels");
-    assert(SPACE.small.endsWith("px"), "and the air around them is whole pixels too");
     return `calc(var(${VARIABLE_PREFIX}tip-lines,1) * ${LINE_HEIGHT} + ` +
         `var(${VARIABLE_PREFIX}tip-groups,0) * ` +
         `(2 * var(${VARIABLE_PREFIX}small) + 1px) + ` +
@@ -651,15 +639,11 @@ function composeTipHeight(): string {
 }
 
 function composeTipTop(): string {
-    assert(PLACE.inset.endsWith("px"), "a card stops a stated length from either edge");
     return `clamp(${PLACE.inset},var(${VARIABLE_PREFIX}tip-top,${PLACE.inset}),` +
         `calc(100vh - ${composeTipHeight()} - ${PLACE.inset}))`;
 }
 
 export function composeStyleSheet(): string {
-    const sheet = `${composeFrameRules()}${composeRegionRules()}${composeListRules()}` +
+    return `${composeFrameRules()}${composeRegionRules()}${composeListRules()}` +
         `${composeRowRules()}${composeTipRules()}`;
-    assert(sheet.startsWith(":host{all:initial;"), "the sheet shuts the game out before anything");
-    assert(!sheet.includes("}}"), "and closes each rule once");
-    return sheet;
 }
