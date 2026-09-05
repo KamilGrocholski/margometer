@@ -12,8 +12,8 @@ import { composeDefectText, type DefectKind, type PanelRegion } from "@/src/ui/p
 /** Kind and region are finite, so this is headroom; it holds by refusing, never by throwing. */
 const MAXIMUM_DEFECTS_KEPT = 64;
 
-/** What is drawn, against what is counted: a panel saying six things has said enough. */
-const MAXIMUM_DEFECTS_SAID = 6;
+/** What is drawn, against what is counted: a panel saying four things has said enough. */
+const MAXIMUM_DEFECTS_SAID = 4;
 
 interface KeptDefect {
     kind: DefectKind;

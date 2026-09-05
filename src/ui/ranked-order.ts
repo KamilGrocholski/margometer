@@ -1,9 +1,9 @@
 /**
  * The tie-break is what makes a ranking stable, so two readings of one fight draw the same rows
- * in the same places. `DESIGN.md` owns what a ranking looks like; this is only its order.
+ * in the same places. A figure that is not a number sorts last rather than stopping the draw
+ * (**E14**): subtracting one answers `NaN`, and a sort handed `NaN` orders by nothing at all.
+ * `DESIGN.md` owns what a ranking looks like; this is only its order.
  */
-
-import { assert } from "@std/assert/assert";
 
 export function getRankedOrder(
     oneFigure: number,
@@ -11,9 +11,15 @@ export function getRankedOrder(
     oneText: string,
     otherText: string,
 ): number {
-    assert(Number.isFinite(oneFigure), "a rank is decided between two figures");
-    assert(Number.isFinite(otherFigure), "and both of them are stated");
-    if (otherFigure !== oneFigure) return otherFigure - oneFigure;
+    const isOneStated = Number.isFinite(oneFigure);
+    const isOtherStated = Number.isFinite(otherFigure);
+    if (isOneStated) {
+        if (!isOtherStated) return -1;
+        if (otherFigure !== oneFigure) return otherFigure - oneFigure;
+    }
+    if (!isOneStated) {
+        if (isOtherStated) return 1;
+    }
     if (oneText === otherText) return 0;
     return oneText < otherText ? -1 : 1;
 }

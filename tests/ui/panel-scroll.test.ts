@@ -14,6 +14,7 @@ import { composeFakeDocument } from "@/tests/fake-document.ts";
 /** Past the memo's own maximum, so the bound is met rather than approached. */
 const NAMES_TRIED = 40;
 const SOMEWHERE_DOWN = 240;
+const SOMEWHERE = "damageDealtApplied|everyone";
 
 function composeElementOfClass(className: string): PanelElement {
     const element = composeFakeDocument().createElement("div");
@@ -70,4 +71,36 @@ Deno.test("a position is put on a list and never on a slot", () => {
     setTopOfList(slot, SOMEWHERE_DOWN);
     assertStrictEquals(slot.scrollTop, 0, "and a slot is left exactly as it was");
     assertEquals(getTopOfList(slot), null, "and is not asked about a position either");
+});
+
+/**
+ * What a position nobody could use costs is the place a reader was at, and nothing more. It used
+ * to cost the draw it arrived in — **E14**, **ADR 0051**.
+ */
+Deno.test("a position no region could be put at is refused, and the kept one stands", () => {
+    const kept = composeKeptScrollMemo();
+    kept.setTop(SOMEWHERE, SOMEWHERE_DOWN);
+    kept.setTop(SOMEWHERE, Number.NaN);
+    assertStrictEquals(
+        kept.getTop(SOMEWHERE),
+        SOMEWHERE_DOWN,
+        "a figure that is not one is not kept",
+    );
+    kept.setTop(SOMEWHERE, -1);
+    assertStrictEquals(kept.getTop(SOMEWHERE), SOMEWHERE_DOWN, "and neither is one above the top");
+    kept.setTop("", SOMEWHERE_DOWN);
+    assertStrictEquals(kept.getTop(""), 0, "a list with no name keeps no place of its own");
+});
+
+Deno.test("a region that answers with no position at all leaves the reader where they were", () => {
+    const list = composeElementOfClass(CLASS.list);
+    list.scrollTop = Number.NaN;
+    assertStrictEquals(getTopOfList(list), null, "nothing is read off it");
+    list.scrollTop = SOMEWHERE_DOWN;
+    setTopOfList(list, Number.NaN);
+    assertStrictEquals(
+        list.scrollTop,
+        SOMEWHERE_DOWN,
+        "and nothing that is not a position is put on it",
+    );
 });

@@ -767,7 +767,7 @@ export function composeUndrawnText(region: PanelRegion): string {
 }
 
 /** Every kind of defect there is, so a reader over the words can be held to the list — **S11**. */
-export const DEFECT_KINDS = ["region", "reading", "gesture", "figure", "list", "file"] as const;
+export const DEFECT_KINDS = ["region", "reading", "gesture", "file"] as const;
 
 export type DefectKind = typeof DEFECT_KINDS[number];
 
@@ -776,8 +776,6 @@ const DEFECT_WORDS: Record<DefectKind, string> = {
     region: "Panel nie narysował jednej ze swoich części",
     reading: "Panel nie przeliczył tej walki",
     gesture: "Panel nie wykonał kliknięcia",
-    figure: "Panel nie zapisał jednej z liczb",
-    list: "Panel pokazał tylko część danych",
     file: "Panel nie przygotował pliku z walką",
 };
 

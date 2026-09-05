@@ -5,7 +5,6 @@
  * written onto whichever list stands next under the same name. **ADR 0050.**
  */
 
-import { assert } from "@std/assert/assert";
 import type { PanelElement } from "@/src/ui/panel-element.ts";
 import { CLASS } from "@/src/ui/panel-look.ts";
 
@@ -22,28 +21,27 @@ export function composeKeptScrollMemo(): KeptScrolls {
     const held = new Map<string, number>();
     return {
         getTop(name: string): number {
-            assert(name.length > 0, "a position is looked up under the name of a list");
             const kept = held.get(name);
             if (kept === undefined) return 0;
-            assert(kept >= 0, "a position kept is at or below the top of the region");
+            if (!Number.isFinite(kept)) return 0;
+            if (kept < 0) return 0;
             return kept;
         },
+        // A name nobody can look up again, or a position no region could be put at, is refused
+        // rather than kept: what a bad one costs is the place a reader was at (**E14**).
         setTop(name: string, top: number): void {
-            assert(name.length > 0, "a position is kept under the name of a list");
-            assert(Number.isFinite(top), "and is a number a region answered with");
-            assert(top >= 0, "and is at or below the top of that region");
+            if (name.length === 0) return;
+            if (!Number.isFinite(top)) return;
+            if (top < 0) return;
             held.set(name, top);
-            if (held.size > MAXIMUM_LISTS_KEPT) {
-                const oldest = held.keys().next();
-                if (!oldest.done) held.delete(oldest.value);
-            }
-            assert(held.size <= MAXIMUM_LISTS_KEPT, "no more is kept than the stated maximum");
+            if (held.size <= MAXIMUM_LISTS_KEPT) return;
+            const oldest = held.keys().next();
+            if (!oldest.done) held.delete(oldest.value);
         },
     };
 }
 
 function getRegionIsList(region: PanelElement): boolean {
-    assert(CLASS.list.length > 0, "the one region that scrolls is named");
     return region.className.includes(CLASS.list);
 }
 
@@ -52,7 +50,7 @@ export function getTopOfList(region: PanelElement): number | null {
     if (!getRegionIsList(region)) return null;
     const top = region.scrollTop;
     if (!Number.isFinite(top)) return null;
-    assert(top >= 0, "a region answers with a position at or below its own top");
+    if (top < 0) return null;
     return top;
 }
 
@@ -62,8 +60,8 @@ export function getTopOfList(region: PanelElement): number | null {
  * sticks, onto a replacement of the same height and onto a taller one.
  */
 export function setTopOfList(region: PanelElement, top: number): void {
-    assert(Number.isFinite(top), "a region is put at a position that is a number");
-    assert(top >= 0, "and at one at or below its own top");
+    if (!Number.isFinite(top)) return;
+    if (top < 0) return;
     if (!getRegionIsList(region)) return;
     region.scrollTop = top;
 }

@@ -5,7 +5,7 @@
  * which is how one fight draws two different rankings from the same figures.
  */
 
-import { assertEquals } from "@std/assert";
+import { assertEquals, assertStrictEquals } from "@std/assert";
 import { getRankedOrder } from "@/src/ui/ranked-order.ts";
 
 Deno.test("the bigger figure is drawn first, whichever side it arrived on", () => {
@@ -28,4 +28,28 @@ Deno.test("two figures that are equal are decided by their text", () => {
 Deno.test("two rows nothing tells apart are drawn in the order they arrived", () => {
     assertEquals(getRankedOrder(4, 4, "a", "a"), 0, "an equal figure and an equal text is a tie");
     assertEquals(getRankedOrder(0, 0, "", ""), 0, "and so is nothing against nothing");
+});
+
+/**
+ * A figure that is not a number used to stop the ranking. It now sorts last, which is a place: a
+ * comparator answering `NaN` orders by nothing at all, so the same fight would draw its rows in a
+ * different order every time it was drawn. **E14**.
+ */
+Deno.test("a figure that is not a number sorts last, and the sort stays decided", () => {
+    assertStrictEquals(getRankedOrder(10, Number.NaN, "a", "b"), -1, "a stated figure comes first");
+    assertStrictEquals(
+        getRankedOrder(Number.NaN, 10, "a", "b"),
+        1,
+        "and one that is not comes after",
+    );
+    assertStrictEquals(
+        getRankedOrder(Number.NaN, Number.NaN, "a", "b"),
+        -1,
+        "two of them fall back to the text, which is what decides a tie already",
+    );
+    assertStrictEquals(
+        getRankedOrder(Number.POSITIVE_INFINITY, 10, "a", "b"),
+        1,
+        "and a figure with no end to it is not a figure either",
+    );
 });
