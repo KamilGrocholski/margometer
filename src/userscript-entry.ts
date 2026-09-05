@@ -585,6 +585,48 @@ function getStandingFight(
 }
 
 /**
+ * Composing a screen out of a fight, guarded. Everything under here reaches `core/`, which throws
+ * (**E7**), and the nearest catch was the engine wrap's — so a reading that would not compose
+ * stopped the panel updating for the rest of the fight rather than costing it one region, and one
+ * console line was all anybody got. **E5**'s render region, applied to composing what it draws.
+ * **ADR 0051.**
+ *
+ * The tally is read again in the `catch`, because the defect this draw just recorded is the one
+ * the reader needs now rather than at the next payload. Nothing here asks for a redraw.
+ */
+function drawFight(
+    session: BattleSession,
+    screen: ScreenState,
+    panel: PanelHandle,
+    shelf: ShelfKeeper,
+    liveFight: LiveFight,
+    readClock: (atMilliseconds: number) => { hour: number; minute: number } | null,
+    defects: KeptDefects,
+): void {
+    const said = defects.getSaid();
+    try {
+        if (showFight(session, screen, panel, shelf, liveFight, readClock, said)) return;
+        panel.showWaiting(screen.isCollapsed, { defects: said, isFightUnread: false });
+        return;
+    } catch (failure) {
+        defects.add("reading", null, failure);
+    }
+    showFightUnread(panel, screen.isCollapsed, defects);
+}
+
+/**
+ * The panel standing on a fight it could not read. A failure here has nowhere left to degrade to,
+ * so its mark is the console entry the keeper writes and not a line anybody sees — **ADR 0025**.
+ */
+function showFightUnread(panel: PanelHandle, isCollapsed: boolean, defects: KeptDefects): void {
+    try {
+        panel.showWaiting(isCollapsed, { defects: defects.getSaid(), isFightUnread: true });
+    } catch (failure) {
+        defects.add("reading", null, failure);
+    }
+}
+
+/**
  * Puts what the session holds into the panel that is already on the page. False where there is
  * nothing to put there — no fight and an empty shelf — because a panel of zeroes over a game that
  * has not started is a claim.
@@ -1203,10 +1245,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     const draw = (): void => {
         assert(screen.current.length > 0, "a draw is of a panel that is on a screen");
         assert(live.openedAt >= 0, "and of a fight that opened at a moment, or has not opened");
-        const said = defects.getSaid();
-        const { readClock } = environment;
-        const drawn = showFight(session, screen, panel, shelf, live, readClock, said);
-        if (!drawn) panel.showWaiting(screen.isCollapsed, said);
+        drawFight(session, screen, panel, shelf, live, environment.readClock, defects);
     };
     const showAndMount = (): void => {
         draw();

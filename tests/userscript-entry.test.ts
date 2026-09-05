@@ -156,6 +156,41 @@ Deno.test("a recording played through the add-on ends on the panel a reader woul
     assertEquals(battle.updateData, engineOwn, "and detaching puts the game's own method back");
 });
 
+/**
+ * The failure this whole surface was built for. Composing a screen reaches `core/`, which throws,
+ * and until ADR 0051 the nearest catch was the engine wrap's: the panel stopped updating for the
+ * rest of the fight, one console line was written, and the reader was left reading figures that
+ * had quietly stopped moving. The clock is the seam a test can drive without inventing a fight.
+ */
+Deno.test("a fight the panel cannot read leaves it saying so, not saying nothing", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown, reported } = composeEnvironment({ Engine: { battle } });
+    const refused: UserscriptEnvironment = {
+        ...environment,
+        readClock: () => {
+            throw new RangeError("a clock this browser will not answer");
+        },
+    };
+    const attachment = startMargoMeter(refused);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+
+    assert(attachment.isAttached(), "the add-on is still on the game, not stood down");
+    assertStrictEquals(shown.length, 1, "and its panel is still the one on the page");
+    const panel = shown[0] as FakeElement;
+    assertEquals(
+        getTextsByClass(panel, "empty"),
+        [PANEL_WORDS.fightUnread],
+        "which says this fight cannot be shown, and never that there has not been one",
+    );
+    const said = getTextsByClass(panel, "defect");
+    assertStrictEquals(said.length, 1, "with one line saying what the panel could not do");
+    assertStringIncludes(said[0] ?? "", "×", "and a tally, because it happened on every payload");
+    assertStrictEquals(reported.length, 1, "E11: the console hears it once, not once per payload");
+    attachment.detach();
+});
+
 Deno.test("a reader presses a screen and the panel goes there, and nowhere else", () => {
     const battle: Record<string, unknown> = { updateData: () => 1 };
     const { environment, shown } = composeEnvironment({ Engine: { battle } });

@@ -1876,7 +1876,7 @@ Deno.test("a panel that has seen no fight says so, at the height a ranking stand
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     const host = panel.element as FakeElement;
-    panel.showWaiting(false, []);
+    panel.showWaiting(false, { defects: [], isFightUnread: false });
     const list = getElementsWithin(host).find((one) => one.className.startsWith("list"));
     assertExists(list, "the list is drawn");
     assertEquals(list.className, "list list-waiting", "as the one list its sentence is centred in");
@@ -1893,7 +1893,7 @@ Deno.test("a panel that has seen no fight says so, at the height a ranking stand
     const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
     assert(bar?.textContent.endsWith(PANEL_WORDS.title), "while the bar stands as it always does");
 
-    panel.showWaiting(true, []);
+    panel.showWaiting(true, { defects: [], isFightUnread: false });
     const folded = getElementsWithin(host).filter((one) => one.className.endsWith(CLASS.folded));
     assertEquals(folded.length, 1, "a reader who folded the panel away keeps it folded");
     assertEquals(getTextsByClass(host, "empty"), [], "and nothing under the bar is composed");
@@ -1986,7 +1986,7 @@ Deno.test("a press on a control is not a drag, whatever the pointer does next", 
         handleMoved: () => {},
     });
     const host = panel.element as FakeElement;
-    panel.showWaiting(false, []);
+    panel.showWaiting(false, { defects: [], isFightUnread: false });
     const fold = getElementsWithin(host).find((one) => one.attributes.has("data-fold"));
     assertExists(fold, "the bar carries the control that folds the panel");
     dragOnElement(host, "pointerdown", fold, { clientX: 100, clientY: 100 });
@@ -2868,7 +2868,7 @@ Deno.test("the bar a panel waits behind carries nobody's position", () => {
     const host = panel.element as FakeElement;
     readList(host).scrollTop = SOMEWHERE_DOWN;
 
-    panel.showWaiting(false, []);
+    panel.showWaiting(false, { defects: [], isFightUnread: false });
     const waiting = readList(host);
     assert(waiting.className.includes(CLASS.listWaiting), "the panel is back to waiting for one");
     assertStrictEquals(waiting.scrollTop, 0, "and the bar it waits behind stands at its own top");

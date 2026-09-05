@@ -34,6 +34,8 @@ export const PANEL_WORDS = {
     unknown: "Nie wiadomo",
     nothingYet: "Nikogo tu jeszcze nie ma.",
     noFightYet: "Nie było jeszcze walki.",
+    // Never "no fight yet": there was one, and it is this panel that could not show it.
+    fightUnread: "Nie da się pokazać tej walki.",
     noSides: "brak składu",
     fights: "Walki",
     backFromFights: "wróć",
@@ -769,12 +771,7 @@ export const DEFECT_KINDS = ["region", "reading", "gesture", "figure", "list", "
 
 export type DefectKind = typeof DEFECT_KINDS[number];
 
-/**
- * What the panel could not do, in the words of somebody who is playing a game rather than reading
- * this repository. **L3**: not one of them says what our code believed, or names a key of the
- * game's — a player is told a part of the panel is missing, and the failure itself stays in the
- * console.
- */
+/** **L3**: a player is told a part of the panel is missing, never what our code believed. */
 const DEFECT_WORDS: Record<DefectKind, string> = {
     region: "Panel nie narysował jednej ze swoich części",
     reading: "Panel nie przeliczył tej walki",
@@ -784,10 +781,7 @@ const DEFECT_WORDS: Record<DefectKind, string> = {
     file: "Panel nie przygotował pliku z walką",
 };
 
-/**
- * A defect names the region it happened in where there was one, and says how many times only
- * where that is more than once: a tally of one reads as a tally somebody has to work out.
- */
+/** A tally of one is not drawn: `(1×)` reads as a count somebody has to work out. */
 export function composeDefectText(
     kind: DefectKind,
     region: PanelRegion | null,

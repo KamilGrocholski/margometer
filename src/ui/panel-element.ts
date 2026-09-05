@@ -713,10 +713,11 @@ function composeEmptyElement(document: PanelDocument, words: string): PanelEleme
     return empty;
 }
 
-function composeWaitingElement(document: PanelDocument): PanelElement {
+function composeWaitingElement(document: PanelDocument, isFightUnread: boolean): PanelElement {
     const list = composeListElement(document, ROWS_WAITING);
     list.className = `${CLASS.list} ${CLASS.listWaiting}`;
-    list.append(composeEmptyElement(document, PANEL_WORDS.noFightYet));
+    const said = isFightUnread ? PANEL_WORDS.fightUnread : PANEL_WORDS.noFightYet;
+    list.append(composeEmptyElement(document, said));
     assert(list.className.includes(CLASS.list), "a panel waiting is a panel at the list's height");
     assert(ROWS_WAITING > 0, "which is a height of at least one row");
     return list;
@@ -1181,6 +1182,13 @@ function composeRegion(
         undrawn.textContent = composeUndrawnText(region);
         return undrawn;
     }
+}
+
+/** A panel with no screen to draw, and which of the two reasons it has for standing there. */
+export interface WaitingReading {
+    defects: readonly string[];
+    /** A fight arrived and could not be turned into a screen. Never "there has been no fight". */
+    isFightUnread: boolean;
 }
 
 export interface PanelView {
@@ -1683,7 +1691,7 @@ export interface PanelHandle {
      * With no draw at all before the first payload, an add-on waiting for a fight and one that
      * died on the way to the page are the same picture.
      */
-    showWaiting(isCollapsed: boolean, defects: readonly string[]): void;
+    showWaiting(isCollapsed: boolean, waiting: WaitingReading): void;
 }
 
 function composeRegionInPlace(
@@ -1830,11 +1838,11 @@ export function composePanelHost(
             assert(regions.list !== regions.sides, "the regions are that many elements");
             assert(regions.title !== regions.header, "and none of them stands in for another");
         },
-        showWaiting(isCollapsed: boolean, defects: readonly string[]): void {
+        showWaiting(isCollapsed: boolean, waiting: WaitingReading): void {
             drawing.keep();
             register.reset();
             setFoldDrawn(document, regions, frame, redraw, isCollapsed);
-            setPanelWaiting(document, regions, isCollapsed, defects, redraw, drawing);
+            setPanelWaiting(document, regions, isCollapsed, waiting, redraw, drawing);
             drawing.settle();
             tip.refresh();
         },
@@ -1850,7 +1858,7 @@ function setPanelWaiting(
     document: PanelDocument,
     regions: PanelRegions,
     isCollapsed: boolean,
-    defects: readonly string[],
+    waiting: WaitingReading,
     redraw: PanelRedraw,
     drawing: ListDrawing,
 ): void {
@@ -1858,11 +1866,14 @@ function setPanelWaiting(
     assert(regions.sides.className === CLASS.slot, "with nothing standing under it");
     assert(regions.nouns.className === CLASS.slot, "and no strip of tabs over it");
     if (isCollapsed) return;
-    drawing.draw(WAITING_LIST_NAME, () => composeWaitingElement(document));
+    drawing.draw(
+        WAITING_LIST_NAME,
+        () => composeWaitingElement(document, waiting.isFightUnread),
+    );
     regions.defects = redraw(
         regions.defects,
         "defects",
-        () => composeDefectsElement(document, defects),
+        () => composeDefectsElement(document, waiting.defects),
     );
 }
 
