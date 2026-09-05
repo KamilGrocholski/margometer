@@ -31,20 +31,20 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
-## [Niewydane]
+## [0.13.0] — 2026-09-05
 
-- **Poprawka** — Panel nie gubi już listy, kiedy półka jest pełna. Jeśli miałeś na półce komplet
-  zapisanych walk i zaczynała się nowa, lista znikała i zostawał w jej miejscu komunikat o
-  nienarysowanym fragmencie. Teraz trwająca walka mieści się na półce obok wszystkich zapisanych.
-- **Poprawka** — Lista zostaje tam, gdzie ją przewinąłeś. Wcześniej każda tura walki przesuwała ją z
-  powrotem na początek, a po wyjściu z rozwiniętego wiersza znów oglądałeś jego górę. Teraz panel
-  wraca w to samo miejsce — także po zwinięciu go do belki i rozwinięciu z powrotem — a wiersz
-  otwierany pierwszy raz zaczyna się od góry.
 - **Nowość** — Karta postaci mówi, ile tur ta postać wykonała, a pod spodem ile straciła. Tura to
   jedna akcja: zwykły atak, krok do przodu, użycie umiejętności albo jej przygotowanie — a wszystkie
   ciosy jednej umiejętności liczą się jako jedna tura, tak jak liczy je gra. Tura, w której postać
   nic nie zrobiła, bo była ogłuszona, stoi osobno jako „utracone" i gra sama ogłasza je w logu
   walki. Obie liczby stoją na własnych liniach i panel niczego przez nie nie dzieli.
+- **Poprawka** — Lista zostaje tam, gdzie ją przewinąłeś. Wcześniej każda tura walki przesuwała ją z
+  powrotem na początek, a po wyjściu z rozwiniętego wiersza znów oglądałeś jego górę. Teraz panel
+  wraca w to samo miejsce — także po zwinięciu go do belki i rozwinięciu z powrotem — a wiersz
+  otwierany pierwszy raz zaczyna się od góry.
+- **Poprawka** — Panel nie gubi już listy, kiedy półka jest pełna. Jeśli miałeś na półce komplet
+  zapisanych walk i zaczynała się nowa, lista znikała i zostawał w jej miejscu komunikat o
+  nienarysowanym fragmencie. Teraz trwająca walka mieści się na półce obok wszystkich zapisanych.
 
 ## [0.12.1] — 2026-09-01
 
