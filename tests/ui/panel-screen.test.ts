@@ -3,7 +3,7 @@
  *
  * A screen is a figure the statistics state, so the list here is held against what a reading can
  * actually be composed for rather than against itself. The strips are held against the screens:
- * a tab that reaches nothing and a screen no tab reaches are the same defect from either end.
+ * a strip that reaches nothing and a screen no strip reaches are the same defect from either end.
  */
 
 import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
@@ -11,11 +11,11 @@ import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { composePanelReading, NOTHING_SUSPECT } from "@/src/ui/panel-reading.ts";
 import {
-    composeDirectionTabs,
+    composeDirectionStrips,
     composeListName,
-    composeNounTabs,
+    composeNounStrips,
     composeScreenState,
-    composeSideTabs,
+    composeSideStrips,
     getScreenFromName,
     getSideFromName,
     getWordsForMetric,
@@ -69,21 +69,21 @@ Deno.test("a name no side answers to moves nothing either", () => {
     assertEquals(getSideFromName(""), null, "and neither is nothing at all");
 });
 
-Deno.test("every screen is reachable through the two strips, and every tab reaches one", () => {
+Deno.test("every screen is reachable through the two rows, and every strip reaches one", () => {
     const reached = new Set<string>();
     for (const screen of SCREEN_ORDER) {
-        for (const tab of [...composeNounTabs(screen), ...composeDirectionTabs(screen)]) {
-            assertExists(getScreenFromName(tab.name), `${tab.name} is a screen that exists`);
-            reached.add(tab.name);
+        for (const strip of [...composeNounStrips(screen), ...composeDirectionStrips(screen)]) {
+            assertExists(getScreenFromName(strip.name), `${strip.name} is a screen that exists`);
+            reached.add(strip.name);
         }
     }
     assertEquals(reached.size, SCREEN_ORDER.length, "and no screen is left with no way in");
 });
 
-Deno.test("one tab is marked on each strip, and it is the screen the panel is on", () => {
+Deno.test("one strip is marked on each row, and it is the screen the panel is on", () => {
     for (const screen of SCREEN_ORDER) {
-        const nouns = composeNounTabs(screen);
-        const directions = composeDirectionTabs(screen);
+        const nouns = composeNounStrips(screen);
+        const directions = composeDirectionStrips(screen);
         assertEquals(nouns.filter((one) => one.isCurrent).length, 1, "one noun is marked");
         assertEquals(directions.filter((one) => one.isCurrent).length, 1, "and one direction");
         const marked = directions.find((one) => one.isCurrent);
@@ -96,31 +96,31 @@ Deno.test("one tab is marked on each strip, and it is the screen the panel is on
  * was a noun with no direction. Crossing the nouns keeps the direction the reader is reading in.
  */
 Deno.test("crossing between the nouns keeps the direction, or says there is none to keep", () => {
-    const fromDealt = composeNounTabs("damageDealtApplied").find((one) => !one.isCurrent);
+    const fromDealt = composeNounStrips("damageDealtApplied").find((one) => !one.isCurrent);
     assertEquals(fromDealt?.name, "healthGiven", "damage given crosses to healing given");
-    const fromTaken = composeNounTabs("damageTakenApplied").find((one) => !one.isCurrent);
+    const fromTaken = composeNounStrips("damageTakenApplied").find((one) => !one.isCurrent);
     assertEquals(fromTaken?.name, "healthRestored", "and damage taken to healing received");
-    const back = composeNounTabs("healthGiven").find((one) => !one.isCurrent);
+    const back = composeNounStrips("healthGiven").find((one) => !one.isCurrent);
     assertEquals(back?.name, "damageDealtApplied", "and the crossing goes back the way it came");
 });
 
 Deno.test("the direction strip draws the noun's own screens and nobody else's", () => {
-    const damage = composeDirectionTabs("damageDealtApplied").map((one) => one.name);
+    const damage = composeDirectionStrips("damageDealtApplied").map((one) => one.name);
     assertEquals(damage, ["damageDealtApplied", "damageTakenApplied"], "damage both ways round");
-    const healing = composeDirectionTabs("healthRestored").map((one) => one.name);
+    const healing = composeDirectionStrips("healthRestored").map((one) => one.name);
     assertEquals(healing, ["healthGiven", "healthRestored"], "and healing two");
     for (const name of healing) assert(!damage.includes(name), "and no screen is on both strips");
 });
 
 Deno.test("the side strip offers every choice there is, one of them marked", () => {
     for (const choice of SIDE_CHOICES) {
-        const tabs = composeSideTabs(choice);
-        assertEquals(tabs.length, SIDE_CHOICES.length, "every choice is on the strip");
-        assertEquals(tabs.filter((one) => one.isCurrent).length, 1, "and one of them is marked");
-        assertEquals(tabs.find((one) => one.isCurrent)?.name, choice, "the one that was chosen");
+        const strips = composeSideStrips(choice);
+        assertEquals(strips.length, SIDE_CHOICES.length, "every choice is on the strip");
+        assertEquals(strips.filter((one) => one.isCurrent).length, 1, "and one of them is marked");
+        assertEquals(strips.find((one) => one.isCurrent)?.name, choice, "the one that was chosen");
     }
     assertEquals(
-        new Set(composeSideTabs("everyone").map((one) => one.words)).size,
+        new Set(composeSideStrips("everyone").map((one) => one.words)).size,
         3,
         "worded apart",
     );

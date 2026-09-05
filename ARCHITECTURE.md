@@ -233,7 +233,7 @@ tests/
     panel-crawler.ts       The crawl itself, as one expression a page is handed.
     panel-boot.spec.ts     The file a reader installs, run by a browser, and a page with no game.
     panel-drag.spec.ts     Where a drag starts, where it does not, and how far it goes.
-    panel-tabs.spec.ts     Every tab: the nouns, the directions, the audiences, the stores.
+    panel-strips.spec.ts   Every strip: the nouns, directions, audiences, stores.
     panel-drill.spec.ts    The rows that open a level, and the two ways back out.
     panel-tip.spec.ts      The card the pointer leaves behind, and what closes it.
     panel-scroll.spec.ts   The one region that scrolls, and what scrolling it must not do.

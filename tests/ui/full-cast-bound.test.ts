@@ -13,7 +13,7 @@ import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { type CombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
-import { composePanelHost, type PanelView } from "@/src/ui/panel-element.ts";
+import { composePanelHost, type ShownScreen } from "@/src/ui/panel-element.ts";
 import {
     composePanelReading,
     NOTHING_SUSPECT,
@@ -75,7 +75,7 @@ function composeWidestFight(): {
 }
 
 /** The view the drawing tests stand in, so each of them says only what it is changing. */
-function composeShownView(reading: PanelReading, metric: PanelMetric, side: PanelSideChoice) {
+function composeShownScreen(reading: PanelReading, metric: PanelMetric, side: PanelSideChoice) {
     return {
         listName: SHOWN_LIST,
         reading,
@@ -94,18 +94,18 @@ function composeShownView(reading: PanelReading, metric: PanelMetric, side: Pane
         halfNamedDrill: null,
         place: null,
         isCollapsed: false,
-    } satisfies PanelView;
+    } satisfies ShownScreen;
 }
 
 /** The panel with that view on it, and whatever a region refused to draw while it went up. */
-function drawShownView(view: PanelView): { host: FakeElement; failures: unknown[] } {
+function drawShownView(shown: ShownScreen): { host: FakeElement; failures: unknown[] } {
     const failures: unknown[] = [];
     const panel = composePanelHost(
         composeFakeDocument(),
         () => {},
         (failure) => failures.push(failure),
     );
-    panel.show(view);
+    panel.show(shown);
     return { host: panel.element as FakeElement, failures };
 }
 
@@ -164,7 +164,7 @@ Deno.test("a full cast with both ends unknown draws its rows and both unnamed on
     assert(reading.rows.every((one) => one.shareText.length > 0), "every row states its share");
 
     const { host, failures } = drawShownView(
-        composeShownView(reading, BOTH_ENDS_SCREEN, "everyone"),
+        composeShownScreen(reading, BOTH_ENDS_SCREEN, "everyone"),
     );
     assertEquals(failures, [], "the widest screen there is costs the reader no region");
     assertEquals(getTextsByClass(host, "undrawn"), [], "and leaves no region standing undrawn");
@@ -194,7 +194,7 @@ Deno.test("no screen and no side of the widest fight costs the reader a region",
                 NOTHING_SUSPECT,
             );
             assert(reading.rows.length <= MAXIMUM_COMBATANTS, `${metric} ${side}: inside the cast`);
-            const { host, failures } = drawShownView(composeShownView(reading, metric, side));
+            const { host, failures } = drawShownView(composeShownScreen(reading, metric, side));
             assertEquals(failures, [], `${metric} ${side}: a region the reader was not shown`);
             assertEquals(getTextsByClass(host, "undrawn"), [], `${metric} ${side}: undrawn`);
             assertStrictEquals(

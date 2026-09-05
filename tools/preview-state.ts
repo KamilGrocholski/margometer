@@ -20,7 +20,7 @@ const STATE_WAIT_EVERY_MILLISECONDS = 25;
 export const STATE_ENTRY_NAME = "e";
 export const STATE_SCREEN_NAME = "s";
 export const STATE_STORE_NAME = "k";
-/** The panel's own mark for a tab, which `tools/panel-screenshots.ts` presses by the same name. */
+/** The panel's own mark for a strip, which `tools/panel-screenshots.ts` presses by the name. */
 export const SCREEN_ATTRIBUTE = "data-screen";
 
 /**
@@ -109,7 +109,7 @@ function composePreviewStateParser(): string {
 
 /**
  * The address, written after the bundle has drawn: the store as it stands, the entry the strip is
- * on, and the tab that was last pressed. The panel is found as the one shadow root on the page,
+ * on, and the strip that was last pressed. The panel is found as the one shadow root on the page,
  * which is how this stays ignorant of every name the add-on chose.
  */
 export function composePreviewStateWriting(): string {
@@ -127,7 +127,7 @@ export function composePreviewStateWriting(): string {
     return writing;
 }
 
-/** Reaching the panel, remembering the tab that was pressed, and pressing one back. */
+/** Reaching the panel, remembering the strip that was pressed, and pressing one back. */
 function composePreviewStatePanel(): string {
     const panel = `var shownScreen = PREVIEW_STATE.screen;
 
@@ -159,7 +159,7 @@ var setPreviewScreenRestored = function (root) {
     }
   }
 };`;
-    assertStringIncludes(panel, "querySelectorAll", "the tab that was read is pressed back");
+    assertStringIncludes(panel, "querySelectorAll", "the strip that was read is pressed back");
     assertStringIncludes(panel, "pointerdown", "and pressed as the panel listens, never clicked");
     return panel;
 }

@@ -26,7 +26,7 @@ its own — it is opened from a row standing under the ranking rather than from 
 
 | view          | level | what it lists                                             | how a reader gets there                                      |
 | ------------- | ----- | --------------------------------------------------------- | ------------------------------------------------------------ |
-| `ranking`     | 1     | one row per combatant, by the chosen figure               | the screen a tab opens on                                    |
+| `ranking`     | 1     | one row per combatant, by the chosen figure               | the screen a strip opens on                                  |
 | `opened`      | 2     | that combatant's figure, in up to three cuts              | pressing a ranking row                                       |
 | `unnamed`     | 2     | the end the game **did** name, and what it was dealt with | pressing a pinned row under the ranking                      |
 | `pair`        | 3     | what one of them did to the other, by skill and by key    | pressing a person in the opened row's `KOMU` / `OD KOGO` cut |

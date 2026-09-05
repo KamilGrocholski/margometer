@@ -168,13 +168,13 @@ test("a payload arriving leaves the region where the reader left it", async ({ p
 });
 
 /**
- * A tab is the other way a reader leaves a level and comes back to it, and it takes a different
+ * A strip is the other way a reader leaves a level and comes back to it, and it takes a different
  * road through the panel than the crumb: the strips are redrawn, the screen changes and the level
- * is composed again out of the other figure. What is on the strip is `panel-tabs.spec.ts`'s.
+ * is composed again out of the other figure. What is on the strip is `panel-strips.spec.ts`'s.
  */
 test("a screen away and back is where the reader left it", async ({ panel }) => {
     // Two: the noun above and the direction below both stand on the screen a panel opens on,
-    // and both are marked. Which tab is which is `panel-tabs.spec.ts`'s subject, not this one's.
+    // and both are marked. Which is which is `panel-strips.spec.ts`'s subject, not this one's.
     await expect(panel.at(`[data-screen="${HOME_SCREEN}"].selected`), "the panel opens here")
         .toHaveCount(2);
     await setOverflowingLevelOpened(panel);
@@ -186,15 +186,15 @@ test("a screen away and back is where the reader left it", async ({ panel }) => 
     }).toBeGreaterThan(0);
     const left = (await readScrollers(panel)).top;
 
-    // ⚠️ **The way back is the direction tab and never the noun above it.** A noun keeps the
+    // ⚠️ **The way back is the direction strip and never the noun above it.** A noun keeps the
     // direction being read, so from the screen crossed to it leads back to that same screen.
-    // Once the panel is there, one tab and only one answers to the screen left behind.
+    // Once the panel is there, one strip and only one answers to the screen left behind.
     await panel.at(`[data-screen="${OTHER_SCREEN}"]`).click();
     expect((await readScrollers(panel)).top, "the same row on the next screen is its own place")
         .toBe(0);
 
     const back = panel.at(`[data-screen="${HOME_SCREEN}"]`);
-    await expect(back, "and the way back is one tab, on the strip that says which way round")
+    await expect(back, "and the way back is one strip, on the row that says which way round")
         .toHaveCount(1);
     await back.click();
     expect((await readScrollers(panel)).top, "and the screen came back where it was").toBe(left);

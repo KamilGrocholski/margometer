@@ -682,7 +682,7 @@ export function composeUnplacedHealRowSuspicion(count: number): string {
 
 export const REGION_WORDS = {
     header: "nagłówka",
-    tabs: "zakładek",
+    strips: "zakładek",
     crumb: "ścieżki",
     list: "listy",
     pinned: "wiersza",

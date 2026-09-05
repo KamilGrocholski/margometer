@@ -1135,9 +1135,9 @@ Deno.test("the place a fight is fought reaches the bar, and goes on the shelf wi
     );
 
     // The fight this recording holds ends, so the shelf has a row to say it of.
-    const tab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
-    assertExists(tab, "the bar carries the way onto the shelf");
-    pressElement(host, "pointerdown", tab);
+    const strip = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assertExists(strip, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", strip);
     // Inside the row, not anywhere on the panel: the bar says the same words over the shelf, so
     // a test that asks the whole panel passes with the row saying nothing.
     const row = getElementsWithin(host).find((one) => one.className.split(" ")[0] === "row");
@@ -1204,7 +1204,11 @@ Deno.test("a panel goes up when the reading starts, saying there has been no fig
         [PANEL_WORDS.noFightYet],
         "saying what it is waiting for, in the reader's words",
     );
-    assertEquals(getElementsWithin(host).filter((one) => one.className === "tabs"), [], "no tabs");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "strips"),
+        [],
+        "no strips",
+    );
 
     const update = battle.updateData;
     assert(typeof update === "function", "the wrap left a function behind it");
@@ -1301,9 +1305,9 @@ Deno.test("a pin is the reader's own answer, and the shelf keeps it", () => {
     assert(typeof update === "function", "the wrap went on");
     for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
     const host = kept.shown[0] as FakeElement;
-    const tab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
-    assertExists(tab, "the bar carries the way onto the shelf");
-    pressElement(host, "pointerdown", tab);
+    const strip = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assertExists(strip, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", strip);
 
     const pin = (): FakeElement => {
         const found = getElementsWithin(host).find((one) => one.className.startsWith("row-pin"));
@@ -1342,9 +1346,9 @@ Deno.test("where the shelf is kept is the reader's answer, and the fights travel
     assert(typeof update === "function", "the wrap went on");
     for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
     const host = held.shown[0] as FakeElement;
-    const tab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
-    assertExists(tab, "the bar carries the way onto the shelf");
-    pressElement(host, "pointerdown", tab);
+    const strip = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assertExists(strip, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", strip);
     assert(held.getShelf("local").has("MargoMeter-fights"), "the fight is where nothing was asked");
 
     const choose = (name: string): void => {
@@ -1367,7 +1371,7 @@ Deno.test("where the shelf is kept is the reader's answer, and the fights travel
     );
     assertEquals(held.held.get("MargoMeter-storage"), "session", "the answer itself is kept");
     assertEquals(
-        getElementsWithin(host).filter((one) => one.className === "tab selected").map((one) =>
+        getElementsWithin(host).filter((one) => one.className === "strip selected").map((one) =>
             one.textContent
         ),
         ["do zamknięcia karty"],
@@ -1400,9 +1404,9 @@ Deno.test("a browser that will not keep the answer moves nothing, and says so", 
     assert(typeof update === "function", "the wrap went on");
     for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
     const host = shown[0] as FakeElement;
-    const tab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
-    assertExists(tab, "the bar carries the way onto the shelf");
-    pressElement(host, "pointerdown", tab);
+    const strip = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assertExists(strip, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", strip);
     const chosen = getElementsWithin(host).find((one) =>
         one.attributes.get("data-storage") === "memory"
     );
@@ -1415,7 +1419,7 @@ Deno.test("a browser that will not keep the answer moves nothing, and says so", 
         "the fights stay where they are, because nothing may move on a refused answer",
     );
     assertEquals(
-        getTextsByClass(host, "tab selected"),
+        getTextsByClass(host, "strip selected"),
         ["na stałe"],
         "and the strip goes on saying where they are",
     );
@@ -1440,9 +1444,9 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
     const live = drawnFigures();
     assert(live.length > 0, "the panel is drawing the fight that just ended");
 
-    const tab = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
-    assertExists(tab, "the bar carries the way onto the shelf");
-    pressElement(host, "pointerdown", tab);
+    const strip = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assertExists(strip, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", strip);
     const rows = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row");
     // One row for one fight: what just ended is the live one and a kept one at once, until the
     // next begins.
@@ -1450,7 +1454,7 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
 
     // A second fight, so the live session and the shelf hold different figures: reading the kept
     // one off the session would pass on one fight and be wrong on the next.
-    pressElement(host, "pointerdown", tab);
+    pressElement(host, "pointerdown", strip);
     const second = getRecordedEngineUpdates(ANOTHER);
     for (const payload of second) update(payload);
     const now = drawnFigures();
@@ -1459,7 +1463,7 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
 
     // What was kept is the cast and the messages, so what is drawn is decoded again rather than
     // restored from figures somebody stored.
-    pressElement(host, "pointerdown", tab);
+    pressElement(host, "pointerdown", strip);
     // The row itself rather than every part of it: a press lands on the deepest element, so each
     // cell wears the row's mark too.
     const kepts = getElementsWithin(host).filter((one) => {
@@ -1474,7 +1478,7 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
     assertEquals(getTextsByClass(host, "crumb-here"), [], "the shelf gives way to the figures");
     assertEquals(drawnFigures(), live, "which are the first fight's, read back off what was kept");
 
-    pressElement(host, "pointerdown", tab);
+    pressElement(host, "pointerdown", strip);
     const marked = getElementsWithin(host).filter((one) => one.className.includes("chosen"));
     assertEquals(marked.length, 1, "and the shelf marks which fight is on screen");
     assertEquals(

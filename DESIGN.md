@@ -199,7 +199,7 @@ the top row of a ten-person fight is a full bar, and the share in brackets is wh
 fraction.
 
 **A ranking row does not say which side is the reader's, and that is a decision.** The strip under
-the list totals both sides and the tabs narrow to either, which is where the question is answered.
+the list totals both sides and the strips narrow to either, which is where the question is answered.
 The row itself does not answer it, and the two channels that could are both spoken for: the hue says
 a profession, and the lightness of the name cannot — a row's name sits over its own bar, and over
 the worst bar in the palette the plain ink clears the AA floor at 5.09 while the quiet ink reaches
@@ -319,9 +319,9 @@ read as a number half its size, which is worse than a figure not drawn at all.
 row can carry it. It is a reading's summary, **not** a banner — the distinction is that it always
 shows, rather than appearing when something goes wrong.
 
-**Tab strips.** Two rows, three questions: which quantity on the upper, then which way round and
-whose rows sharing the lower — the direction against the left edge and the sides against the right,
-held apart by a gap that is a node rather than a margin, because it is absent with the direction it
+**Strips.** Two rows, three questions: which quantity on the upper, then which way round and whose
+rows sharing the lower — the direction against the left edge and the sides against the right, held
+apart by a gap that is a node rather than a margin, because it is absent with the direction it
 follows. They share a row because the vertical budget is the list's: every strip is a row of the
 ranking the reader does not get. Quiet until hover or current; the current one is marked by more
 than colour, standing on `surfaceRaised`. The nouns are upper case and the directions lower, because

@@ -36,7 +36,7 @@ test.describe("before the game has said anything", () => {
         await expect(panel.host, "the panel is up before there is anything to draw").toHaveCount(1);
         await expect(panel.at(".list .empty"), "and it says so where the ranking would be")
             .toHaveText(NOTHING_YET);
-        await expect(panel.at("[data-screen]"), "with no tabs to press").toHaveCount(0);
+        await expect(panel.at("[data-screen]"), "with no strips to press").toHaveCount(0);
         await expect(panel.at(".list .row"), "and no rows").toHaveCount(0);
         await panel.expectHonest("a panel waiting for a fight");
     });
@@ -45,7 +45,7 @@ test.describe("before the game has said anything", () => {
 test.describe("while the fight is going on", () => {
     test.use({ fedThrough: A_FEW });
 
-    test("the header, the tabs and the ranking are all drawn", async ({ panel }) => {
+    test("the header, the strips and the ranking are all drawn", async ({ panel }) => {
         await expect(panel.at(".header-line"), "the header says who is against whom")
             .not.toHaveCount(0);
         await expect(panel.at(".header-place"), "and where").not.toHaveCount(0);

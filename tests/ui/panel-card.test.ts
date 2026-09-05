@@ -415,7 +415,7 @@ Deno.test("a card on a damage screen says nothing about a cast, which puts back 
 /**
  * The screen picks which of the four figures is bold and nothing else. A reader on _leczenie dane_
  * gets the same two runs as one on _obrażenia zadane_, so "he heals a lot, but how does he fight"
- * needs no tab. **ADR 0032.**
+ * needs no strip. **ADR 0032.**
  */
 Deno.test("both runs stand on every screen, and the screen moves only the bold figure", () => {
     const readScreen = (metric: PanelMetric) =>

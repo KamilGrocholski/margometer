@@ -177,7 +177,7 @@ export function getWordsForMetric(metric: PanelMetric): string {
     return `${getWordsForNoun(axes.noun)} ${getWordsForDirection(metric)}`;
 }
 
-export interface ScreenTab {
+export interface ScreenStrip {
     name: string;
     words: string;
     isCurrent: boolean;
@@ -200,29 +200,29 @@ function getScreenAfterNoun(noun: PanelNoun, current: PanelMetric): PanelMetric 
     return reached;
 }
 
-export function composeNounTabs(current: PanelMetric): ScreenTab[] {
-    const tabs = PANEL_NOUNS.map((noun) => ({
+export function composeNounStrips(current: PanelMetric): ScreenStrip[] {
+    const strips = PANEL_NOUNS.map((noun) => ({
         name: getScreenAfterNoun(noun, current),
         words: getWordsForNoun(noun),
         isCurrent: noun === SCREEN_AXES[current].noun,
     }));
-    return tabs;
+    return strips;
 }
 
-export function composeDirectionTabs(current: PanelMetric): ScreenTab[] {
-    const tabs = getScreensForNoun(SCREEN_AXES[current].noun).map((screen) => ({
+export function composeDirectionStrips(current: PanelMetric): ScreenStrip[] {
+    const strips = getScreensForNoun(SCREEN_AXES[current].noun).map((screen) => ({
         name: screen,
         words: getWordsForDirection(screen),
         isCurrent: screen === current,
     }));
-    return tabs;
+    return strips;
 }
 
-export function composeSideTabs(current: PanelSideChoice): ScreenTab[] {
-    const tabs = SIDE_CHOICES.map((choice) => ({
+export function composeSideStrips(current: PanelSideChoice): ScreenStrip[] {
+    const strips = SIDE_CHOICES.map((choice) => ({
         name: choice,
         words: getWordsForSide(choice),
         isCurrent: choice === current,
     }));
-    return tabs;
+    return strips;
 }

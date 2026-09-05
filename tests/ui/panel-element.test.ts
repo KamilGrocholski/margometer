@@ -18,7 +18,7 @@ import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
-import { composePanelHost, type PanelPress, type PanelView } from "@/src/ui/panel-element.ts";
+import { composePanelHost, type PanelPress, type ShownScreen } from "@/src/ui/panel-element.ts";
 import {
     composeDrillReading,
     composeHalfNamedReading,
@@ -32,9 +32,9 @@ import {
 } from "@/src/ui/panel-reading.ts";
 import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
 import {
-    composeDirectionTabs,
-    composeNounTabs,
-    composeSideTabs,
+    composeDirectionStrips,
+    composeNounStrips,
+    composeSideStrips,
     getScreenFromName,
     getWordsForMetric,
     type PanelSideChoice,
@@ -144,7 +144,7 @@ function readPinnedFight(
 }
 
 /** A whole view around one reading, so a test says only what it is changing about the panel. */
-function composeShownView(reading: PanelReading, metric: PanelMetric = "damageDealtApplied") {
+function composeShownScreen(reading: PanelReading, metric: PanelMetric = "damageDealtApplied") {
     return {
         listName: SHOWN_LIST,
         reading,
@@ -186,7 +186,7 @@ function readPinnedCard(
     assertExists(pinned, `${metric} ${choice}: this fight pins a figure`);
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({ ...composeShownView(reading, metric), side: choice });
+    panel.show({ ...composeShownScreen(reading, metric), side: choice });
     const host = panel.element as FakeElement;
     const part = getElementsWithin(host).find(
         (one) => one.attributes.get("data-tip") === `pinned:${pinned.end}`,
@@ -246,26 +246,26 @@ Deno.test("every name a reader meets before the panel's contents is ours", () =>
 
 Deno.test("the strips say which screen the panel is on, and mark it as more than a colour", () => {
     const host = draw(readFight());
-    const strips = getElementsWithin(host).filter((one) => one.className === "tabs");
+    const strips = getElementsWithin(host).filter((one) => one.className === "strips");
     // Two rows: which quantity, then which way round. Nothing said which side is the reader's
-    // own, so the second row carries no side tabs beside the directions.
+    // own, so the second row carries no side strips beside the directions.
     assertEquals(strips.length, 2, "which quantity, and which way round");
-    const tabs = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "tab");
+    const drawn = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "strip");
     assertEquals(
-        tabs.length,
-        composeNounTabs("damageDealtApplied").length +
-            composeDirectionTabs("damageDealtApplied").length,
-        "one tab for each thing the two strips offer",
+        drawn.length,
+        composeNounStrips("damageDealtApplied").length +
+            composeDirectionStrips("damageDealtApplied").length,
+        "one strip for each thing the two rows offer",
     );
-    const current = tabs.filter((one) => one.className.includes("selected"));
+    const current = drawn.filter((one) => one.className.includes("selected"));
     assertEquals(current.length, 2, "one on each strip is where the panel is");
     for (const marked of current) {
-        // More than a hue: the marked tab stands on the raised surface, which is a shape.
+        // More than a hue: the marked strip stands on the raised surface, which is a shape.
         assert(marked.className.split(" ").length > 1, "and it is marked, not only tinted");
     }
-    for (const tab of tabs) {
-        const screen = tab.attributes.get("data-screen");
-        assertExists(screen, "each tab says which screen it would reach");
+    for (const one of drawn) {
+        const screen = one.attributes.get("data-screen");
+        assertExists(screen, "each strip says which screen it would reach");
         assertExists(getScreenFromName(screen), "by a name a screen answers to");
     }
 });
@@ -293,17 +293,17 @@ Deno.test("the side strip is drawn where the client said which side is the reade
         isCollapsed: false,
     });
     const host = panel.element as FakeElement;
-    const strips = getElementsWithin(host).filter((one) => one.className === "tabs");
+    const strips = getElementsWithin(host).filter((one) => one.className === "strips");
     assertEquals(strips.length, 2, "two rows, and whose rows shares the lower one");
     const sides = getElementsWithin(host).filter(
         (one) => one.attributes.get("data-side") !== undefined,
     );
-    assertEquals(sides.length, composeSideTabs("reader").length, "one tab for each choice");
+    assertEquals(sides.length, composeSideStrips("reader").length, "one strip for each choice");
     const lower = strips[1];
     assertExists(lower, "the lower row is drawn");
-    assertArrayIncludes(lower.children, [sides[0] ?? lower], "and the side tabs stand on it");
+    assertArrayIncludes(lower.children, [sides[0] ?? lower], "and the side strips stand on it");
     assert(
-        lower.children.some((one) => one.className === "tabs-gap"),
+        lower.children.some((one) => one.className === "strips-gap"),
         "behind the gap that holds them against the right edge",
     );
     const marked = sides.filter((one) => one.className.includes("selected"));
@@ -340,9 +340,9 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
     // A header saying how this fight went, over a list of other fights, answers a question
     // nobody asked of that list; a strip picking a figure of it is the same thing twice. The one
     // strip here is the shelf's own, and it asks about the list rather than about a fight.
-    const strips = getElementsWithin(host).filter((one) => one.className === "tabs");
+    const strips = getElementsWithin(host).filter((one) => one.className === "strips");
     assertEquals(strips.length, 1, "one strip, and it is not one of the fight's");
-    assertEquals(getTextsByClass(host, "tabs-label"), [PANEL_WORDS.storage], "what it asks");
+    assertEquals(getTextsByClass(host, "strips-label"), [PANEL_WORDS.storage], "what it asks");
     assertEquals(
         getElementsWithin(host).filter((one) => one.attributes.get("data-storage") !== undefined)
             .map((one) => one.attributes.get("data-storage")),
@@ -350,7 +350,7 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
         "the three places a shelf can be kept, in the order they keep longest",
     );
     assertEquals(
-        getElementsWithin(host).filter((one) => one.className === "tab selected").map((one) =>
+        getElementsWithin(host).filter((one) => one.className === "strip selected").map((one) =>
             one.textContent
         ),
         [getWordsForStorage("local")],
@@ -368,7 +368,7 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
         (one) => one.attributes.get("data-shelf") !== undefined,
     );
     assertEquals(shelf.length, 1, "the shelf is reached by one control, on the bar");
-    assert(shelf[0]?.className.startsWith("titlebar-button"), "a control and not a tab");
+    assert(shelf[0]?.className.startsWith("titlebar-button"), "a control and not a strip");
 });
 
 Deno.test("a fight draws a row for everybody in it, named", () => {
@@ -590,7 +590,7 @@ Deno.test("a pinned row is pressed by the end it leaves out, from any part of it
     const pressed: PanelPress[] = [];
     const document = composeFakeDocument();
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
-    panel.show({ ...composeShownView(reading), side: "everyone" as const });
+    panel.show({ ...composeShownScreen(reading), side: "everyone" as const });
     const host = panel.element as FakeElement;
     const block = getElementsWithin(host).find((one) => one.className === "pinned-region");
     assertExists(block, "the pinned row stands in a block of its own");
@@ -619,7 +619,7 @@ Deno.test("a pinned row opens onto the end the game did name, under its own head
     assertExists(halfNamed, "which opens onto a level");
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({ ...composeShownView(reading), halfNamed });
+    panel.show({ ...composeShownScreen(reading), halfNamed });
     const host = panel.element as FakeElement;
     const sections = getElementsWithin(host)
         .filter((one) => one.className === "section-heading")
@@ -662,7 +662,7 @@ Deno.test("an end left out inside an opened figure says what was left out, and n
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
-        ...composeShownView(reading),
+        ...composeShownScreen(reading),
         drill: {
             ...drill,
             byOpponent: {
@@ -792,7 +792,7 @@ Deno.test("a region that throws is marked in place, and said once however often 
         },
     };
     for (let time = 0; time < 2; time += 1) {
-        panel.show({ ...composeShownView(broken) });
+        panel.show({ ...composeShownScreen(broken) });
     }
     assertEquals(
         marks.map((one) => `${one.kind}/${one.region}`),
@@ -862,7 +862,7 @@ Deno.test("every listener sits on the root, where a press is not retargeted", ()
     }
 });
 
-Deno.test("a press on a tab reaches the panel, and a press on anything else does not", () => {
+Deno.test("a press on a strip reaches the panel, and a press on anything else does not", () => {
     const document = composeFakeDocument();
     const pressed: PanelPress[] = [];
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
@@ -886,14 +886,14 @@ Deno.test("a press on a tab reaches the panel, and a press on anything else does
         isCollapsed: false,
     });
     const host = panel.element as FakeElement;
-    const tabs = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "tab");
-    const other = tabs.find((one) => one.attributes.get("data-screen") === "damageTakenApplied");
+    const strips = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "strip");
+    const other = strips.find((one) => one.attributes.get("data-screen") === "damageTakenApplied");
     assertExists(other, "there is a screen to reach for");
     pressElement(host, "pointerdown", other);
-    assertEquals(pressed, [{ kind: "screen", screen: "damageTakenApplied" }], "the tab's screen");
+    assertEquals(pressed, [{ kind: "screen", screen: "damageTakenApplied" }], "the strip's screen");
 
     const title = getElementsWithin(host).find((one) => one.className.endsWith("titlebar"));
-    assertExists(title, "there is something that is not a tab to press");
+    assertExists(title, "there is something that is not a strip to press");
     pressElement(host, "pointerdown", title);
     assertEquals(pressed.length, 1, "the bar asks for nothing, so pressing it moves nothing");
 });
@@ -940,23 +940,24 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
     const document = composeFakeDocument();
     const pressed: PanelPress[] = [];
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
-    panel.show(composeShownView(readFight()));
+    panel.show(composeShownScreen(readFight()));
     const host = panel.element as FakeElement;
-    const before = getElementsWithin(host).filter((one) => one.className === "tabs").length;
+    const before = getElementsWithin(host).filter((one) => one.className === "strips").length;
 
-    panel.show(composeShownView(readFight(), "healthRestored"));
-    const tabs = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "tab");
+    panel.show(composeShownScreen(readFight(), "healthRestored"));
+    const strips = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "strip");
     assertEquals(
-        getElementsWithin(host).filter((one) => one.className === "tabs").length,
+        getElementsWithin(host).filter((one) => one.className === "strips").length,
         before,
         "the strips are drawn again, not drawn twice",
     );
     assertEquals(
-        tabs.length,
-        composeNounTabs("healthRestored").length + composeDirectionTabs("healthRestored").length,
+        strips.length,
+        composeNounStrips("healthRestored").length +
+            composeDirectionStrips("healthRestored").length,
         "and each carries what the new screen puts on it",
     );
-    const current = tabs.filter((one) => one.className.includes("selected"));
+    const current = strips.filter((one) => one.className.includes("selected"));
     // The marked noun carries the screen it would cross to, which for the noun already being
     // read is the screen itself: crossing back keeps the direction rather than turning it round.
     assertEquals(
@@ -965,9 +966,9 @@ Deno.test("the listener outlives a redraw, because the host does", () => {
         "both strips are on the new screen",
     );
 
-    const tab = tabs[0];
-    assertExists(tab, "and the strips still have tabs");
-    pressElement(host, "pointerdown", tab);
+    const strip = strips[0];
+    assertExists(strip, "and the rows still have strips");
+    pressElement(host, "pointerdown", strip);
     // The damage noun, which from healing received crosses to damage received: a press reaches
     // the listener the host has carried since before either redraw.
     assertEquals(
@@ -1295,7 +1296,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
 Deno.test("the bar says where the fight is being fought, and stays a bar without it", () => {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    const view = {
+    const shown = {
         listName: SHOWN_LIST,
         reading: readFight(),
         current: "damageDealtApplied" as const,
@@ -1313,7 +1314,7 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
         halfNamedDrill: null,
         isCollapsed: false,
     };
-    panel.show({ ...view, place: "Mapa (12, 34)" });
+    panel.show({ ...shown, place: "Mapa (12, 34)" });
     const host = panel.element as FakeElement;
     // A line of its own under the headcount, because it is the one thing on the header whose
     // length this panel does not choose.
@@ -1325,7 +1326,7 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
     const header = getElementsWithin(host).find((one) => one.className === "header");
     assertEquals(header?.children.length, 2, "under the line that says what the fight is");
 
-    panel.show({ ...view, place: null });
+    panel.show({ ...shown, place: null });
     assertEquals(getTextsByClass(host, "header-place"), [], "and nothing where nothing was said");
     assertEquals(
         getElementsWithin(host).find((one) => one.className === "header")?.children.length,
@@ -1339,7 +1340,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
     const pressed: PanelPress[] = [];
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
     const host = panel.element as FakeElement;
-    const view = {
+    const shown = {
         listName: SHOWN_LIST,
         reading: readFight(),
         current: "damageDealtApplied" as const,
@@ -1359,7 +1360,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
         isCollapsed: false,
     };
 
-    panel.show(view);
+    panel.show(shown);
     // A block body, not an expression: the recursion guard reads a one-line named arrow as
     // opening no brace, and so reads every line after it as this function's body — gap 13.
     const controls = () => {
@@ -1378,7 +1379,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
     pressElement(host, "pointerdown", control);
     assertEquals(pressed.at(-1), { kind: "fold" }, "and a press on it asks for the fold");
 
-    panel.show({ ...view, isCollapsed: true });
+    panel.show({ ...shown, isCollapsed: true });
     const folded = getElementsWithin(host).filter((one) => one.className.endsWith(CLASS.folded));
     assertEquals(folded.length, 1, "everything under the bar is folded away in one region");
     assertEquals(
@@ -1889,7 +1890,11 @@ Deno.test("a panel that has seen no fight says so, at the height a ranking stand
     assertEquals(list.attributes.get("style"), "--MargoMeter-rows:11", "at the ranking's height");
     // Nothing else: there is no screen to pick, no row to open and nothing to total, so a strip
     // would be a control over a fight that is not on.
-    assertEquals(getElementsWithin(host).filter((one) => one.className === "tabs"), [], "no tabs");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "strips"),
+        [],
+        "no strips",
+    );
     assertEquals(getTextsByClass(host, "MargoMeter-summary"), [], "and no strip under it");
     const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
     assert(bar?.textContent.endsWith(PANEL_WORDS.title), "while the bar stands as it always does");
@@ -2693,7 +2698,7 @@ Deno.test("an opened healing pair draws its announcements and its keys as one se
 
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({ ...composeShownView(reading, "healthGiven"), drill, pair });
+    panel.show({ ...composeShownScreen(reading, "healthGiven"), drill, pair });
     const host = panel.element as FakeElement;
     const headings = getElementsWithin(host).filter((one) => one.className === "section-heading");
     assertEquals(headings.length, 1, "one section, holding the whole of what passed between them");
@@ -2755,7 +2760,7 @@ Deno.test("a row that opens says so, and a row that does not says nothing of the
 
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({ ...composeShownView(reading, "damageTakenApplied"), drill });
+    panel.show({ ...composeShownScreen(reading, "damageTakenApplied"), drill });
     const host = panel.element as FakeElement;
     const pointAtRow = (key: string) => {
         const part = getElementsWithin(host).find((one) => {
@@ -2871,19 +2876,22 @@ function readList(host: FakeElement): FakeElement {
 }
 
 /** A panel with a fight on it, and the reading its views are drawn from. */
-function composeScrolledPanel(): { panel: ReturnType<typeof composePanelHost>; view: PanelView } {
+function composeScrolledPanel(): {
+    panel: ReturnType<typeof composePanelHost>;
+    shown: ShownScreen;
+} {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    return { panel, view: { ...composeShownView(readFight()), listName: "ranking" } };
+    return { panel, shown: { ...composeShownScreen(readFight()), listName: "ranking" } };
 }
 
 Deno.test("a redraw of the same place puts the region back where the reader left it", () => {
-    const { panel, view } = composeScrolledPanel();
-    panel.show(view);
+    const { panel, shown } = composeScrolledPanel();
+    panel.show(shown);
     const host = panel.element as FakeElement;
     readList(host).scrollTop = SOMEWHERE_DOWN;
 
-    panel.show(view);
+    panel.show(shown);
 
     const after = readList(host);
     assertStrictEquals(after.scrollTop, SOMEWHERE_DOWN, "the payload left the reader where he was");
@@ -2891,15 +2899,15 @@ Deno.test("a redraw of the same place puts the region back where the reader left
 });
 
 Deno.test("a place nobody has been starts at the top, and the one left keeps its position", () => {
-    const { panel, view } = composeScrolledPanel();
-    panel.show(view);
+    const { panel, shown } = composeScrolledPanel();
+    panel.show(shown);
     const host = panel.element as FakeElement;
     readList(host).scrollTop = SOMEWHERE_DOWN;
 
-    panel.show({ ...view, listName: "opened" });
+    panel.show({ ...shown, listName: "opened" });
     assertStrictEquals(readList(host).scrollTop, 0, "a level opened is read from its top");
 
-    panel.show(view);
+    panel.show(shown);
     assertStrictEquals(
         readList(host).scrollTop,
         SOMEWHERE_DOWN,
@@ -2908,25 +2916,25 @@ Deno.test("a place nobody has been starts at the top, and the one left keeps its
 });
 
 Deno.test("a fold keeps the place, and unfolding gives the reader it back", () => {
-    const { panel, view } = composeScrolledPanel();
-    panel.show(view);
+    const { panel, shown } = composeScrolledPanel();
+    panel.show(shown);
     const host = panel.element as FakeElement;
     readList(host).scrollTop = SOMEWHERE_DOWN;
 
-    panel.show({ ...view, isCollapsed: true });
+    panel.show({ ...shown, isCollapsed: true });
     assertEquals(
         getElementsWithin(host).filter((one) => one.className.includes(CLASS.list)),
         [],
         "a panel folded away draws no list at all",
     );
 
-    panel.show(view);
+    panel.show(shown);
     assertStrictEquals(readList(host).scrollTop, SOMEWHERE_DOWN, "and unfolding is where it was");
 });
 
 Deno.test("the bar a panel waits behind carries nobody's position", () => {
-    const { panel, view } = composeScrolledPanel();
-    panel.show(view);
+    const { panel, shown } = composeScrolledPanel();
+    panel.show(shown);
     const host = panel.element as FakeElement;
     readList(host).scrollTop = SOMEWHERE_DOWN;
 
@@ -2935,6 +2943,6 @@ Deno.test("the bar a panel waits behind carries nobody's position", () => {
     assert(waiting.className.includes(CLASS.listWaiting), "the panel is back to waiting for one");
     assertStrictEquals(waiting.scrollTop, 0, "and the bar it waits behind stands at its own top");
 
-    panel.show(view);
+    panel.show(shown);
     assertStrictEquals(readList(host).scrollTop, SOMEWHERE_DOWN, "the fight is where it was left");
 });

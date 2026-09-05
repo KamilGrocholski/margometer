@@ -1,12 +1,12 @@
 /**
- * Every tab the panel offers, pressed: the two nouns, the two directions, the three audiences and
+ * Every strip the panel offers, pressed: the two nouns, the two directions, the three audiences
  * the three places a shelf can be kept.
  */
 
 import { expect, test } from "@/tests/e2e/panel-fixture.ts";
 
 /** Two nouns and two directions, and the panel's own arithmetic says there are four of them. */
-const TABS_ON_A_FIGHT = 4;
+const STRIPS_ON_A_FIGHT = 4;
 /** One mark per strip, and there are two strips of screens: the nouns and the directions. */
 const MARKS_ON_THE_SCREENS = 2;
 /** Everyone, the reader's side, the other one. */
@@ -16,29 +16,29 @@ const PLACES_TO_KEEP = 3;
 /** The one key the choice is written under, named as `src/userscript-entry.ts` names it. */
 const STORAGE_KEY = "MargoMeter-storage";
 
-test("every noun and direction is a tab, and pressing one moves the mark", async ({ panel }) => {
-    const tabs = panel.at("[data-screen]");
-    await expect(tabs, "the strips carry four between them").toHaveCount(TABS_ON_A_FIGHT);
+test("every noun and direction is a strip, and pressing one moves the mark", async ({ panel }) => {
+    const strips = panel.at("[data-screen]");
+    await expect(strips, "the strips carry four between them").toHaveCount(STRIPS_ON_A_FIGHT);
     await expect(panel.at("[data-screen].selected"), "each strip marks where it stands")
         .toHaveCount(MARKS_ON_THE_SCREENS);
 
     const drawn: string[] = [];
-    for (let at = 0; at < TABS_ON_A_FIGHT; at += 1) {
-        // Re-read every round: pressing a noun rewrites what the direction tabs are tabs for.
+    for (let at = 0; at < STRIPS_ON_A_FIGHT; at += 1) {
+        // Re-read every round: pressing a noun rewrites what the direction strips are for.
         const name = await panel.at("[data-screen]").nth(at).getAttribute("data-screen");
-        expect(name, "a tab says which screen it opens").not.toBeNull();
+        expect(name, "a strip says which screen it opens").not.toBeNull();
         await panel.at("[data-screen]").nth(at).click();
-        // The tab itself and not a lookup by name: a noun and a direction can both be tabs for
+        // The strip itself and not a lookup by name: a noun and a direction can both be strips for
         // the same screen, so `[data-screen="…"]` finds two and neither is "the one pressed".
         await expect(panel.at("[data-screen]").nth(at), `${name} is where it stands now`)
-            .toHaveClass("tab selected");
+            .toHaveClass("strip selected");
         await expect(panel.at("[data-screen].selected"), "and neither strip lost its mark")
             .toHaveCount(MARKS_ON_THE_SCREENS);
         drawn.push(await panel.said());
         await panel.expectHonest(`the ${name} screen`);
     }
-    expect(drawn.length, "all four were pressed").toBe(TABS_ON_A_FIGHT);
-    // Not four distinct: a noun and a direction can be tabs for the same screen, and pressing
+    expect(drawn.length, "all four were pressed").toBe(STRIPS_ON_A_FIGHT);
+    // Not four distinct: a noun and a direction can be strips for the same screen, and pressing
     // where the panel already stands redraws the same figures. What is held is that the strips
     // lead somewhere, rather than one screen wearing four labels.
     expect(new Set(drawn).size, "and they are not one screen four times").toBeGreaterThan(1);

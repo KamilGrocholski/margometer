@@ -135,8 +135,8 @@ function composeCrawlScreens(): string {
 var sideCount = all("[data-side]").length;
 for (var s = 0; s < screenCount; s += 1) {
   for (var d = 0; d < sideCount; d += 1) {
-    var tabs = all("[data-screen]");
-    if (s < tabs.length) press(tabs[s]);
+    var strips = all("[data-screen]");
+    if (s < strips.length) press(strips[s]);
     var sides = all("[data-side]");
     if (d < sides.length) press(sides[d]);
     seen.screens += 1;

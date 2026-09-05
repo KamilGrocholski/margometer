@@ -30,9 +30,9 @@ import type {
 } from "@/src/ui/panel-reading.ts";
 import { getEndForPinned, getRowIsSuspect } from "@/src/ui/panel-reading.ts";
 import {
-    composeDirectionTabs,
-    composeNounTabs,
-    composeSideTabs,
+    composeDirectionStrips,
+    composeNounStrips,
+    composeSideStrips,
     getDirectionForMetric,
     getNounForMetric,
     getWordsForKindCut,
@@ -41,7 +41,7 @@ import {
     type PanelNoun,
     type PanelSideChoice,
     type PanelStorageChoice,
-    type ScreenTab,
+    type ScreenStrip,
     STORAGE_CHOICES,
 } from "@/src/ui/panel-screen.ts";
 import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
@@ -146,7 +146,7 @@ export interface PanelElement {
  *
  * A press inside a shadow root is **retargeted** for any listener outside it, and the host is
  * outside it: a listener there is handed the host as the target, whatever was actually pressed.
- * Reading an attribute off that answers null for every row, tab and crumb, so a panel listening
+ * Reading an attribute off that answers null for every row, strip and crumb, so a panel listening
  * on its host draws correctly and does nothing at all. The element interface above carries no
  * `addEventListener` for that reason — the wrong place to put it is not reachable from here.
  */
@@ -495,42 +495,42 @@ function composeUnnamedReading(row: UnnamedRow | PinnedRow, name: string): RowRe
     };
 }
 
-function composeTabElement(
+function composeStripElement(
     document: PanelDocument,
     attribute: string,
-    tab: ScreenTab,
+    strip: ScreenStrip,
 ): PanelElement {
-    const marked = tab.isCurrent ? ` ${CLASS.tabCurrent}` : "";
-    const element = composeElement(document, "div", `${CLASS.tab}${marked}`);
-    element.setAttribute(attribute, tab.name);
-    element.textContent = tab.words;
+    const marked = strip.isCurrent ? ` ${CLASS.stripCurrent}` : "";
+    const element = composeElement(document, "div", `${CLASS.strip}${marked}`);
+    element.setAttribute(attribute, strip.name);
+    element.textContent = strip.words;
     return element;
 }
 
-function composeNounStripElement(document: PanelDocument, view: PanelView): PanelElement {
-    const strip = composeElement(document, "div", CLASS.tabs);
-    for (const tab of composeNounTabs(view.current)) {
-        strip.append(composeTabElement(document, SCREEN_ATTRIBUTE, getShownTab(tab, view)));
+function composeNounStripElement(document: PanelDocument, shown: ShownScreen): PanelElement {
+    const strips = composeElement(document, "div", CLASS.strips);
+    for (const one of composeNounStrips(shown.current)) {
+        strips.append(composeStripElement(document, SCREEN_ATTRIBUTE, getShownStrip(one, shown)));
     }
-    return strip;
+    return strips;
 }
 
-function composeDirectionStripElement(document: PanelDocument, view: PanelView): PanelElement {
-    const strip = composeElement(document, "div", CLASS.tabs);
-    for (const tab of composeDirectionTabs(view.current)) {
-        strip.append(composeTabElement(document, SCREEN_ATTRIBUTE, getShownTab(tab, view)));
+function composeDirectionStripElement(document: PanelDocument, shown: ShownScreen): PanelElement {
+    const strips = composeElement(document, "div", CLASS.strips);
+    for (const one of composeDirectionStrips(shown.current)) {
+        strips.append(composeStripElement(document, SCREEN_ATTRIBUTE, getShownStrip(one, shown)));
     }
-    if (!view.hasReaderSide) return strip;
-    strip.append(composeElement(document, "span", CLASS.tabsGap));
-    for (const tab of composeSideTabs(view.side)) {
-        strip.append(composeTabElement(document, SIDE_ATTRIBUTE, getShownTab(tab, view)));
+    if (!shown.hasReaderSide) return strips;
+    strips.append(composeElement(document, "span", CLASS.stripsGap));
+    for (const one of composeSideStrips(shown.side)) {
+        strips.append(composeStripElement(document, SIDE_ATTRIBUTE, getShownStrip(one, shown)));
     }
-    return strip;
+    return strips;
 }
 
-function getShownTab(tab: ScreenTab, view: PanelView): ScreenTab {
-    if (!view.isOnShelf) return tab;
-    return { ...tab, isCurrent: false };
+function getShownStrip(strip: ScreenStrip, shown: ShownScreen): ScreenStrip {
+    if (!shown.isOnShelf) return strip;
+    return { ...strip, isCurrent: false };
 }
 
 function composeFoldControl(document: PanelDocument, isCollapsed: boolean): PanelElement {
@@ -582,54 +582,54 @@ function composeTitleElement(document: PanelDocument, isCollapsed: boolean): Pan
     return bar;
 }
 
-function composeHeaderElement(document: PanelDocument, view: PanelView): PanelElement {
+function composeHeaderElement(document: PanelDocument, shown: ShownScreen): PanelElement {
     const header = composeElement(document, "div", CLASS.header);
     const line = composeElement(document, "div", CLASS.headerLine);
     const who = composeElement(document, "span", "");
-    who.textContent = composeSideCountsText(view.reading.sizes, view.reading.unplaced);
+    who.textContent = composeSideCountsText(shown.reading.sizes, shown.reading.unplaced);
     line.append(who);
     // Absent rather than empty where the reading says nothing, and `ui/panel-reading.ts` says
     // when it does and why the header may not fill the silence in.
-    const outcome = view.reading.outcome;
+    const outcome = shown.reading.outcome;
     if (outcome !== null) {
         const said = composeElement(document, "span", CLASS.headerOutcome);
         said.textContent = getWordsForOutcome(outcome);
         line.append(said);
     }
     header.append(line);
-    if (view.place === null) return header;
+    if (shown.place === null) return header;
     const place = composeElement(document, "div", CLASS.headerPlace);
-    place.textContent = view.place;
-    place.setAttribute(TITLE_ATTRIBUTE, view.place);
+    place.textContent = shown.place;
+    place.setAttribute(TITLE_ATTRIBUTE, shown.place);
     header.append(place);
     return header;
 }
 
-function composeCrumbRegion(document: PanelDocument, view: PanelView): PanelElement {
-    if (view.isOnShelf) {
+function composeCrumbRegion(document: PanelDocument, shown: ShownScreen): PanelElement {
+    if (shown.isOnShelf) {
         return composeCrumbElement(document, PANEL_WORDS.fights, PANEL_WORDS.backFromFights);
     }
-    if (view.halfNamedDrill !== null) {
+    if (shown.halfNamedDrill !== null) {
         return composeCrumbElement(
             document,
-            getWordsForHalfNamedDrill(view.halfNamedDrill, view.current),
-            getWordsForUnnamedRow(getEndForPinned(view.halfNamedDrill.case)),
+            getWordsForHalfNamedDrill(shown.halfNamedDrill, shown.current),
+            getWordsForUnnamedRow(getEndForPinned(shown.halfNamedDrill.case)),
         );
     }
-    if (view.halfNamed !== null) {
-        return composeCrumbElement(document, getWordsForUnnamedRow(view.halfNamed.end));
+    if (shown.halfNamed !== null) {
+        return composeCrumbElement(document, getWordsForUnnamedRow(shown.halfNamed.end));
     }
-    if (view.drill === null) return composeSlotElement(document);
-    const opened = view.drill.name ?? PANEL_WORDS.unknown;
-    if (view.part !== null) {
+    if (shown.drill === null) return composeSlotElement(document);
+    const opened = shown.drill.name ?? PANEL_WORDS.unknown;
+    if (shown.part !== null) {
         return composeCrumbElement(
             document,
-            getWordsForNamedPart(view.part.part, view.current),
+            getWordsForNamedPart(shown.part.part, shown.current),
             opened,
         );
     }
-    if (view.pair === null) return composeCrumbElement(document, opened);
-    return composeCrumbElement(document, view.pair.otherName ?? PANEL_WORDS.unknown, opened);
+    if (shown.pair === null) return composeCrumbElement(document, opened);
+    return composeCrumbElement(document, shown.pair.otherName ?? PANEL_WORDS.unknown, opened);
 }
 
 function composeCrumbElement(
@@ -726,15 +726,15 @@ function composeRankingElement(
  */
 function composeShelfElement(
     document: PanelDocument,
-    view: PanelView,
+    shown: ShownScreen,
     register: TipRegister,
 ): PanelElement {
-    const list = composeListElement(document, view.reading.visibleRows);
-    if (view.shelf.length === 0) {
+    const list = composeListElement(document, shown.reading.visibleRows);
+    if (shown.shelf.length === 0) {
         list.append(composeEmptyElement(document, PANEL_WORDS.shelfEmpty));
         return list;
     }
-    for (const fight of view.shelf) list.append(composeShelfRow(document, fight, register));
+    for (const fight of shown.shelf) list.append(composeShelfRow(document, fight, register));
     return list;
 }
 
@@ -778,19 +778,19 @@ function composePinElement(document: PanelDocument, fight: ShelfRow): PanelEleme
     return pin;
 }
 
-function composeStorageStripElement(document: PanelDocument, view: PanelView): PanelElement {
-    const strip = composeElement(document, "div", CLASS.tabs);
-    const label = composeElement(document, "span", CLASS.tabsLabel);
+function composeStorageStripElement(document: PanelDocument, shown: ShownScreen): PanelElement {
+    const strips = composeElement(document, "div", CLASS.strips);
+    const label = composeElement(document, "span", CLASS.stripsLabel);
     label.textContent = PANEL_WORDS.storage;
-    strip.append(label);
+    strips.append(label);
     for (const choice of STORAGE_CHOICES) {
-        const marked = choice === view.storage ? ` ${CLASS.tabCurrent}` : "";
-        const tab = composeElement(document, "div", `${CLASS.tab}${marked}`);
-        tab.textContent = getWordsForStorage(choice);
-        tab.setAttribute(STORAGE_ATTRIBUTE, choice);
-        strip.append(tab);
+        const marked = choice === shown.storage ? ` ${CLASS.stripCurrent}` : "";
+        const one = composeElement(document, "div", `${CLASS.strip}${marked}`);
+        one.textContent = getWordsForStorage(choice);
+        one.setAttribute(STORAGE_ATTRIBUTE, choice);
+        strips.append(one);
     }
-    return strip;
+    return strips;
 }
 
 function composeOpponentSection(
@@ -978,34 +978,34 @@ function getRowsForDrill(drill: DrillReading, floor: number): number {
  */
 function composeDrillElement(
     document: PanelDocument,
-    view: PanelView,
+    shown: ShownScreen,
     drill: DrillReading,
     register: TipRegister,
     translate: TranslateLabel | null,
 ): PanelElement {
-    const list = composeListElement(document, getRowsForDrill(drill, view.reading.visibleRows));
-    const figure = getWordsForMetric(view.current);
+    const list = composeListElement(document, getRowsForDrill(drill, shown.reading.visibleRows));
+    const figure = getWordsForMetric(shown.current);
     const place: CardPlace = {
-        metric: view.current,
-        suspicions: view.reading.suspicions,
+        metric: shown.current,
+        suspicions: shown.reading.suspicions,
         translate,
         isRowNarrower: true,
     };
     composeOpponentSection(document, list, drill, {
-        metric: view.current,
+        metric: shown.current,
         register,
         figure,
         place,
     });
-    composeSkillSection(document, list, drill, { metric: view.current, register, figure });
+    composeSkillSection(document, list, drill, { metric: shown.current, register, figure });
     composeElementSection(document, list, drill.byElement, {
-        metric: view.current,
+        metric: shown.current,
         register,
         figure,
         total: drill.total,
     });
     if (drill.total === 0) {
-        list.append(composeEmptyElement(document, getWordsForNothing(view.current)));
+        list.append(composeEmptyElement(document, getWordsForNothing(shown.current)));
     }
     return list;
 }
@@ -1023,8 +1023,8 @@ function composeSidesPart(
     return part;
 }
 
-function composeSidesElement(document: PanelDocument, view: PanelView): PanelElement {
-    const sides = view.reading.sides;
+function composeSidesElement(document: PanelDocument, shown: ShownScreen): PanelElement {
+    const sides = shown.reading.sides;
     // Two sides nothing can tell apart are not two figures, and a strip of them says nothing:
     // `setPanelBody` asks the same question, and this answers it rather than trusting it.
     if (sides === null) return composeSlotElement(document);
@@ -1033,7 +1033,7 @@ function composeSidesElement(document: PanelDocument, view: PanelView): PanelEle
     const ours = composeElement(document, "span", `${CLASS.sidesOurs} ${CLASS.figure}`);
     ours.textContent = composeFigureText(sides.ours);
     const label = composeElement(document, "span", CLASS.sidesLabel);
-    label.textContent = composeSidesLabel(view);
+    label.textContent = composeSidesLabel(shown);
     const theirs = composeElement(document, "span", `${CLASS.sidesTheirs} ${CLASS.figure}`);
     theirs.textContent = composeFigureText(sides.theirs);
     line.append(ours);
@@ -1080,9 +1080,9 @@ function composeSidesSpare(document: PanelDocument, figure: number): PanelElemen
     return spare;
 }
 
-function composeSidesLabel(view: PanelView): string {
+function composeSidesLabel(shown: ShownScreen): string {
     const sides = `${PANEL_WORDS.ourSide} / ${PANEL_WORDS.theirSide}`;
-    if (view.side === "everyone" && view.drill === null) return sides;
+    if (shown.side === "everyone" && shown.drill === null) return sides;
     return `${PANEL_WORDS.wholeFight} · ${sides}`;
 }
 
@@ -1109,7 +1109,7 @@ export interface WaitingReading {
     isFightUnread: boolean;
 }
 
-export interface PanelView {
+export interface ShownScreen {
     reading: PanelReading;
     /**
      * Which list this is — the place a reader stands in, named by `composeListName` in
@@ -1154,27 +1154,27 @@ export type PanelPress =
     | { kind: "save" }
     | { kind: "shelf" };
 
-function composeViewList(
+function composeShownList(
     document: PanelDocument,
-    view: PanelView,
+    shown: ShownScreen,
     register: TipRegister,
     translate: TranslateLabel | null,
 ): PanelElement {
-    if (view.isOnShelf) return composeShelfElement(document, view, register);
-    if (view.part !== null) {
-        return composePartElement(document, view, view.part, register, translate);
+    if (shown.isOnShelf) return composeShelfElement(document, shown, register);
+    if (shown.part !== null) {
+        return composePartElement(document, shown, shown.part, register, translate);
     }
-    if (view.pair !== null) return composePairElement(document, view, view.pair, register);
-    if (view.halfNamedDrill !== null) {
-        return composeHalfNamedDrillElement(document, view, view.halfNamedDrill, register);
+    if (shown.pair !== null) return composePairElement(document, shown, shown.pair, register);
+    if (shown.halfNamedDrill !== null) {
+        return composeHalfNamedDrillElement(document, shown, shown.halfNamedDrill, register);
     }
-    if (view.halfNamed !== null) {
-        return composeHalfNamedElement(document, view, view.halfNamed, register, translate);
+    if (shown.halfNamed !== null) {
+        return composeHalfNamedElement(document, shown, shown.halfNamed, register, translate);
     }
-    if (view.drill !== null) {
-        return composeDrillElement(document, view, view.drill, register, translate);
+    if (shown.drill !== null) {
+        return composeDrillElement(document, shown, shown.drill, register, translate);
     }
-    return composeRankingElement(document, view.reading, view.current, register, translate);
+    return composeRankingElement(document, shown.reading, shown.current, register, translate);
 }
 
 /**
@@ -1185,17 +1185,17 @@ function composeViewList(
  */
 function composeHalfNamedDrillElement(
     document: PanelDocument,
-    view: PanelView,
+    shown: ShownScreen,
     drill: HalfNamedDrillReading,
     register: TipRegister,
 ): PanelElement {
-    const figure = getWordsForMetric(view.current);
+    const figure = getWordsForMetric(shown.current);
     if (drill.opened === "element") {
         const rows = drill.rows.length + (drill.neither === null ? 0 : 1);
-        const list = composeListElement(document, Math.max(rows + 1, view.reading.visibleRows));
+        const list = composeListElement(document, Math.max(rows + 1, shown.reading.visibleRows));
         const heading = getWordsForHalfNamedCut(drill.end);
         list.append(composeSectionElement(document, heading, drill.total));
-        composeHalfNamedRows(document, list, view, {
+        composeHalfNamedRows(document, list, shown, {
             rows: drill.rows,
             neither: drill.neither,
             doesOpen: false,
@@ -1205,9 +1205,9 @@ function composeHalfNamedDrillElement(
         return list;
     }
     const kinds = drill.kinds.rows.length + (drill.kinds.unnamed === null ? 0 : 1);
-    const list = composeListElement(document, Math.max(kinds + 1, view.reading.visibleRows));
+    const list = composeListElement(document, Math.max(kinds + 1, shown.reading.visibleRows));
     composeElementSection(document, list, drill.kinds, {
-        metric: view.current,
+        metric: shown.current,
         register,
         figure,
         total: drill.total,
@@ -1233,7 +1233,7 @@ function getWordsForHalfNamedDrill(drill: HalfNamedDrillReading, metric: PanelMe
  */
 function composeHalfNamedElement(
     document: PanelDocument,
-    view: PanelView,
+    shown: ShownScreen,
     halfNamed: HalfNamedReading,
     register: TipRegister,
     translate: TranslateLabel | null,
@@ -1241,10 +1241,10 @@ function composeHalfNamedElement(
     const named = halfNamed.rows.length + (halfNamed.neither === null ? 0 : 1);
     const kinds = halfNamed.kinds.rows.length + (halfNamed.kinds.unnamed === null ? 0 : 1);
     const needed = named + 1 + (kinds === 0 ? 0 : kinds + 1);
-    const list = composeListElement(document, Math.max(needed, view.reading.visibleRows));
+    const list = composeListElement(document, Math.max(needed, shown.reading.visibleRows));
     const heading = getWordsForHalfNamedCut(halfNamed.end);
     list.append(composeSectionElement(document, heading, halfNamed.total));
-    composeHalfNamedRows(document, list, view, {
+    composeHalfNamedRows(document, list, shown, {
         rows: halfNamed.rows,
         neither: halfNamed.neither,
         doesOpen: true,
@@ -1252,9 +1252,9 @@ function composeHalfNamedElement(
         translate,
     });
     composeElementSection(document, list, halfNamed.kinds, {
-        metric: view.current,
+        metric: shown.current,
         register,
-        figure: getWordsForMetric(view.current),
+        figure: getWordsForMetric(shown.current),
         total: halfNamed.total,
     });
     return list;
@@ -1268,7 +1268,7 @@ function getWordsForHalfNamedCut(end: PanelUnnamedEnd): string {
 function composeHalfNamedRows(
     document: PanelDocument,
     list: PanelElement,
-    view: PanelView,
+    shown: ShownScreen,
     stated: {
         rows: readonly HalfNamedRow[];
         neither: UnnamedRow | null;
@@ -1279,13 +1279,13 @@ function composeHalfNamedRows(
     },
 ): void {
     const { rows, neither, doesOpen, register, translate } = stated;
-    const figure = getWordsForMetric(view.current);
+    const figure = getWordsForMetric(shown.current);
     const share = PANEL_WORDS.shareOfFigure;
     // The card is the fight's four figures, as it is wherever a person's row stands, and this row
     // states a cut of them — so it owes the sentence saying so (**ADR 0032**).
     const place: CardPlace = {
-        metric: view.current,
-        suspicions: view.reading.suspicions,
+        metric: shown.current,
+        suspicions: shown.reading.suspicions,
         translate,
         isRowNarrower: true,
     };
@@ -1297,7 +1297,7 @@ function composeHalfNamedRows(
             share,
             compose: composePersonCard(row, place, doesOpen),
         };
-        const reading = composeCombatantReading(row, at + 1, view.current);
+        const reading = composeCombatantReading(row, at + 1, shown.current);
         const mark = doesOpen ? { attribute: ROW_ATTRIBUTE, stated: `${row.combatantId}` } : null;
         list.append(composeRowElement(document, reading, mark, tip));
     }
@@ -1319,21 +1319,21 @@ function composeHalfNamedRows(
  */
 function composePartElement(
     document: PanelDocument,
-    view: PanelView,
+    shown: ShownScreen,
     part: PartReading,
     register: TipRegister,
     translate: TranslateLabel | null,
 ): PanelElement {
     const rows = part.byOpponent.rows.length + (part.byOpponent.unnamed === null ? 0 : 1);
-    const list = composeListElement(document, Math.max(rows + 1, view.reading.visibleRows));
-    const figure = getWordsForMetric(view.current);
-    const heading = getWordsForOpponentCut(view.current);
+    const list = composeListElement(document, Math.max(rows + 1, shown.reading.visibleRows));
+    const figure = getWordsForMetric(shown.current);
+    const heading = getWordsForOpponentCut(shown.current);
     list.append(composeSectionElement(document, heading, part.total));
     const share = PANEL_WORDS.shareOfFigure;
     // Nothing on this rung opens, so no card here promises a gesture (`docs/drill-levels.md`).
     const place: CardPlace = {
-        metric: view.current,
-        suspicions: view.reading.suspicions,
+        metric: shown.current,
+        suspicions: shown.reading.suspicions,
         translate,
         isRowNarrower: true,
     };
@@ -1348,7 +1348,7 @@ function composePartElement(
         list.append(
             composeRowElement(
                 document,
-                composeCombatantReading(row, at + 1, view.current),
+                composeCombatantReading(row, at + 1, shown.current),
                 null,
                 tip,
             ),
@@ -1357,13 +1357,13 @@ function composePartElement(
     if (part.byOpponent.unnamed === null) return list;
     // The end the protocol left out of a blow this part carried: it is inside the figure over the
     // level, so the column comes to a hundred with it and falls short without it.
-    const end = getUnnamedEndForMetric(view.current);
+    const end = getUnnamedEndForMetric(shown.current);
     const tip = {
         register,
         key: "reached:nobody",
         figure,
         share,
-        notes: [getWordsForUnnamedEnd(end, getNounForMetric(view.current))],
+        notes: [getWordsForUnnamedEnd(end, getNounForMetric(shown.current))],
     };
     const reading = composeUnnamedReading(part.byOpponent.unnamed, getWordsForUnnamedRow(end));
     list.append(composeRowElement(document, reading, null, tip));
@@ -1372,14 +1372,14 @@ function composePartElement(
 
 function composePairElement(
     document: PanelDocument,
-    view: PanelView,
+    shown: ShownScreen,
     pair: PairReading,
     register: TipRegister,
 ): PanelElement {
-    const list = composeListElement(document, getRowsForPair(pair, view.reading.visibleRows));
-    const figure = getWordsForMetric(view.current);
+    const list = composeListElement(document, getRowsForPair(pair, shown.reading.visibleRows));
+    const figure = getWordsForMetric(shown.current);
     const share = PANEL_WORDS.shareOfFigure;
-    composePairParts(document, list, pair, { metric: view.current, register, figure, share });
+    composePairParts(document, list, pair, { metric: shown.current, register, figure, share });
     composePairKinds(document, list, pair, { register, figure, share });
     return list;
 }
@@ -1571,7 +1571,7 @@ function setPanelRootListeners(
 
 export interface PanelHandle {
     element: PanelElement;
-    show(view: PanelView): void;
+    show(shown: ShownScreen): void;
     /**
      * With no draw at all before the first payload, an add-on waiting for a fight and one that
      * died on the way to the page are the same picture.
@@ -1708,12 +1708,12 @@ export function composePanelHost(
     }
     return {
         element: host,
-        show(view: PanelView): void {
+        show(shown: ShownScreen): void {
             drawing.keep();
             register.reset();
-            setFoldDrawn(document, regions, frame, redraw, view.isCollapsed);
-            if (view.isCollapsed) setPanelFolded(document, regions, redraw);
-            else setPanelBody(document, regions, view, register, translate, redraw, drawing);
+            setFoldDrawn(document, regions, frame, redraw, shown.isCollapsed);
+            if (shown.isCollapsed) setPanelFolded(document, regions, redraw);
+            else setPanelBody(document, regions, shown, register, translate, redraw, drawing);
             drawing.settle();
             drag?.handleDrawn();
             tip.refresh();
@@ -1839,10 +1839,10 @@ function setPanelFolded(
     redraw: PanelRedraw,
 ): void {
     regions.header = redraw(regions.header, "header", () => composeSlotElement(document));
-    regions.nouns = redraw(regions.nouns, "tabs", () => composeSlotElement(document));
-    regions.directions = redraw(regions.directions, "tabs", () => composeSlotElement(document));
+    regions.nouns = redraw(regions.nouns, "strips", () => composeSlotElement(document));
+    regions.directions = redraw(regions.directions, "strips", () => composeSlotElement(document));
     regions.crumb = redraw(regions.crumb, "crumb", () => composeSlotElement(document));
-    regions.storage = redraw(regions.storage, "tabs", () => composeSlotElement(document));
+    regions.storage = redraw(regions.storage, "strips", () => composeSlotElement(document));
     regions.list = redraw(regions.list, "list", () => composeSlotElement(document));
     regions.pinnedActor = redraw(regions.pinnedActor, "pinned", () => composeSlotElement(document));
     regions.pinnedTarget = redraw(
@@ -1862,42 +1862,43 @@ function setPanelFolded(
 function setPanelBody(
     document: PanelDocument,
     regions: PanelRegions,
-    view: PanelView,
+    shown: ShownScreen,
     register: TipRegister,
     translate: TranslateLabel | null,
     redraw: PanelRedraw,
     drawing: ListDrawing,
 ): void {
-    const isFight = !view.isOnShelf;
+    const isFight = !shown.isOnShelf;
     regions.header = redraw(
         regions.header,
         "header",
-        () => isFight ? composeHeaderElement(document, view) : composeSlotElement(document),
+        () => isFight ? composeHeaderElement(document, shown) : composeSlotElement(document),
     );
     regions.nouns = redraw(
         regions.nouns,
-        "tabs",
-        () => isFight ? composeNounStripElement(document, view) : composeSlotElement(document),
+        "strips",
+        () => isFight ? composeNounStripElement(document, shown) : composeSlotElement(document),
     );
     regions.directions = redraw(
         regions.directions,
-        "tabs",
-        () => isFight ? composeDirectionStripElement(document, view) : composeSlotElement(document),
+        "strips",
+        () =>
+            isFight ? composeDirectionStripElement(document, shown) : composeSlotElement(document),
     );
-    regions.crumb = redraw(regions.crumb, "crumb", () => composeCrumbRegion(document, view));
+    regions.crumb = redraw(regions.crumb, "crumb", () => composeCrumbRegion(document, shown));
     regions.storage = redraw(
         regions.storage,
-        "tabs",
-        () => isFight ? composeSlotElement(document) : composeStorageStripElement(document, view),
+        "strips",
+        () => isFight ? composeSlotElement(document) : composeStorageStripElement(document, shown),
     );
-    drawing.draw(view.listName, () => composeViewList(document, view, register, translate));
-    setPinnedRegions(document, regions, view, register, redraw);
+    drawing.draw(shown.listName, () => composeShownList(document, shown, register, translate));
+    setPinnedRegions(document, regions, shown, register, redraw);
     // Whether there is a summary to draw is asked **inside** the guard, not before it: a reading
     // that throws on being asked cost the whole panel where the question stood outside (**E5**).
     regions.sides = redraw(regions.sides, "sides", () => {
-        const hasSides = view.reading.sides !== null && !view.isOnShelf;
+        const hasSides = shown.reading.sides !== null && !shown.isOnShelf;
         if (!hasSides) return composeSlotElement(document);
-        return composeSidesElement(document, view);
+        return composeSidesElement(document, shown);
     });
     regions.suspicions = redraw(
         regions.suspicions,
@@ -1905,7 +1906,7 @@ function setPanelBody(
         () =>
             composeSuspicionsElement(
                 document,
-                view.isOnShelf ? view.shelfAnswers : view.reading.suspicions,
+                shown.isOnShelf ? shown.shelfAnswers : shown.reading.suspicions,
             ),
     );
     // Last, and drawn on every screen: what the panel could not do is not about the fight, so it
@@ -1913,7 +1914,7 @@ function setPanelBody(
     regions.defects = redraw(
         regions.defects,
         "defects",
-        () => composeDefectsElement(document, view.defects),
+        () => composeDefectsElement(document, shown.defects),
     );
 }
 
@@ -1924,18 +1925,18 @@ function setPanelBody(
 function setPinnedRegions(
     document: PanelDocument,
     regions: PanelRegions,
-    view: PanelView,
+    shown: ShownScreen,
     register: TipRegister,
     redraw: PanelRedraw,
 ): void {
     const stated = {
-        metric: view.current,
-        isSideChosen: view.side !== "everyone",
-        figure: getWordsForMetric(view.current),
+        metric: shown.current,
+        isSideChosen: shown.side !== "everyone",
+        figure: getWordsForMetric(shown.current),
     };
-    const isOpen = view.drill !== null || view.halfNamed !== null ||
-        view.halfNamedDrill !== null;
-    const pinned = !isOpen && !view.isOnShelf ? view.reading.pinned : [];
+    const isOpen = shown.drill !== null || shown.halfNamed !== null ||
+        shown.halfNamedDrill !== null;
+    const pinned = !isOpen && !shown.isOnShelf ? shown.reading.pinned : [];
     for (const [end, standing] of [["actor", "pinnedActor"], ["target", "pinnedTarget"]] as const) {
         const row = pinned.find((one) => one.end === end) ?? null;
         regions[standing] = redraw(

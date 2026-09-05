@@ -94,8 +94,8 @@ export interface PanelShotRecord {
 }
 
 /**
- * Tabs are addressed by position, never by their label: the labels are Polish and this file is
- * English (**L2**), and a strip that gains a tab is then caught by a guard rather than by a
+ * Strips are addressed by position, never by their label: the labels are Polish and this file is
+ * English (**L2**), and a row that gains a strip is then caught by a guard rather than by a
  * picture of the wrong screen. The order is `composeNounTabs` then `composeDirectionTabs`
  * (`src/ui/panel-screen.ts`), so two nouns are followed by two directions.
  */

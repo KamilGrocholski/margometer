@@ -69,8 +69,8 @@ test("what the reader was reading is not remembered, and that is the point", asy
     // be showing a level the fight no longer has.
     await expect(panel.at(".crumb-here"), "the open row is gone").toHaveCount(0);
     await expect(panel.at("[data-screen]").first(), "the panel opens where it always opens")
-        .toHaveClass("tab selected");
+        .toHaveClass("strip selected");
     await expect(panel.at("[data-side]").first(), "and on the audience it always opens on")
-        .toHaveClass("tab selected");
+        .toHaveClass("strip selected");
     await panel.expectHonest("a panel come back to");
 });

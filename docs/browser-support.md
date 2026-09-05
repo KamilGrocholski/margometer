@@ -111,10 +111,10 @@ reason the tier column is not enough on its own:
 
 **Safari has never supported `user-select` unprefixed** — only `-webkit-user-select`, since
 Safari 3. `src/ui/panel-look.ts` spells both, in both of the rules that need them: the title bar the
-panel is dragged by, and the tabs. While it spelled only the standard property, the declaration did
-nothing on Safari — dragging the panel selected the text under the cursor, and so did a drag that
-started on a row. That was neither a floor nor a degradation but a defect, filed by the round that
-read this register and fixed by the round after it.
+panel is dragged by, and the strips. While it spelled only the standard property, the declaration
+did nothing on Safari — dragging the panel selected the text under the cursor, and so did a drag
+that started on a row. That was neither a floor nor a degradation but a defect, filed by the round
+that read this register and fixed by the round after it.
 
 Neither row is a floor on its own, and neither is in the tier arithmetic above. Between them they
 cover every engine in scope; separately they cannot, and one of them says `never`. That `never` is

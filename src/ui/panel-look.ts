@@ -60,11 +60,11 @@ export const CLASS = {
     headerLine: "header-line",
     headerPlace: "header-place",
     headerOutcome: "header-outcome",
-    tabs: "tabs",
-    tabsGap: "tabs-gap",
-    tabsLabel: "tabs-label",
-    tab: "tab",
-    tabCurrent: "selected",
+    strips: "strips",
+    stripsGap: "strips-gap",
+    stripsLabel: "strips-label",
+    strip: "strip",
+    stripCurrent: "selected",
     crumb: "crumb",
     crumbBack: "crumb-back",
     crumbHere: "crumb-here",
@@ -440,17 +440,17 @@ function composeRegionRules(): string {
         // word a row at a time, in the case it was composed in.
         `.${CLASS.headerOutcome}{color:var(${VARIABLE_PREFIX}quiet);text-transform:uppercase;` +
         `font-size:10px;}` +
-        `.${CLASS.tabs}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);` +
+        `.${CLASS.strips}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);` +
         `padding:${region};padding-bottom:0;}` +
-        `.${CLASS.tabs}+.${CLASS.tabs}{padding-top:var(${VARIABLE_PREFIX}radius-small);}` +
-        `.${CLASS.tabsGap}{flex:1;}` +
-        `.${CLASS.tabsLabel}{color:var(${VARIABLE_PREFIX}quiet);align-self:center;` +
+        `.${CLASS.strips}+.${CLASS.strips}{padding-top:var(${VARIABLE_PREFIX}radius-small);}` +
+        `.${CLASS.stripsGap}{flex:1;}` +
+        `.${CLASS.stripsLabel}{color:var(${VARIABLE_PREFIX}quiet);align-self:center;` +
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
-        `.${CLASS.tab}{white-space:nowrap;padding:1px var(${VARIABLE_PREFIX}small);` +
+        `.${CLASS.strip}{white-space:nowrap;padding:1px var(${VARIABLE_PREFIX}small);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);color:var(${VARIABLE_PREFIX}quiet);` +
         `background:transparent;cursor:pointer;` +
         `-webkit-user-select:none;user-select:none;}` +
-        `.${CLASS.tab}.${CLASS.tabCurrent}{color:var(${VARIABLE_PREFIX}text);` +
+        `.${CLASS.strip}.${CLASS.stripCurrent}{color:var(${VARIABLE_PREFIX}text);` +
         `background:var(${VARIABLE_PREFIX}raised);}` +
         `.${CLASS.crumb}{display:flex;gap:var(${VARIABLE_PREFIX}wide);align-items:baseline;` +
         `padding:${region};padding-bottom:0;}` +

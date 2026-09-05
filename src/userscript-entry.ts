@@ -459,9 +459,9 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
     if (press.kind === "row") {
         const opened = getIntegerFromText(press.stated);
         if (opened === null) return false;
-        // Not a toggle, unlike the shelf's tab: an opened row covers the screen it was opened on,
-        // so the row that would close it is not on the panel to be pressed a second time. A press
-        // inside an opened row is the rung under it — the pair of the two of them.
+        // Not a toggle, unlike the shelf's control: an opened row covers the screen it was
+        // opened on, so the row that would close it is not on the panel to be pressed twice.
+        // A press inside an opened row is the rung under it — the pair of the two of them.
         // Three places a person's row stands, and the rung under it is the same field in two of
         // them: inside somebody's figure it is the pair, under a pinned row it is that person's
         // own share of what nobody was named for.
