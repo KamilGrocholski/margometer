@@ -46,7 +46,12 @@ import {
 } from "@/src/ui/panel-screen.ts";
 import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
 import type { HandlePanelFailure } from "@/src/ui/panel-defect.ts";
-import { composeKeptScrollMemo, getTopOfList, setTopOfList } from "@/src/ui/panel-scroll.ts";
+import {
+    composeKeptScrollMemo,
+    getTopOfList,
+    setListRowsDrawn,
+    setTopOfList,
+} from "@/src/ui/panel-scroll.ts";
 import {
     CARD_WORDS,
     composeFigureText,
@@ -122,6 +127,12 @@ export interface PanelElement {
     scrollTop: number;
     append(child: PanelElement): void;
     replaceWith(other: PanelElement): void;
+    /**
+     * What stands inside a region, and the one way to swap it without replacing the region
+     * itself. Only the list is drawn that way, and `src/ui/panel-scroll.ts` says why.
+     */
+    children: ArrayLike<PanelElement>;
+    replaceChildren(...children: PanelElement[]): void;
     setAttribute(name: string, value: string): void;
     attachShadow(options: { mode: "open" }): PanelRoot;
     /** A drag keeping the pointer it has. Optional: a document offering neither still drags. */
@@ -1667,7 +1678,7 @@ export function composePanelHost(
         handleFailure({ kind: "gesture", region: null, failure });
     };
     const register = composeTipRegister();
-    const drawing = composeListDrawing(regions, redraw);
+    const drawing = composeListDrawing(document, regions, handleFailure);
     // Null for good on a panel never made movable, which is every panel a test draws.
     let drag: PanelDragHandle | null = null;
     const tip: TipHandle = composeTipHandle(
@@ -1757,13 +1768,27 @@ interface ListDrawing {
     settle(): void;
 }
 
-function composeListDrawing(regions: PanelRegions, redraw: PanelRedraw): ListDrawing {
+function composeListDrawing(
+    document: PanelDocument,
+    regions: PanelRegions,
+    handleFailure: HandlePanelFailure,
+): ListDrawing {
     const keptScrolls = composeKeptScrollMemo();
     // Which list is standing in the region, so a position read off it is kept under the place it
     // belongs to rather than under the place taking its turn.
     let shownName = WAITING_LIST_NAME;
+    // The region the reader is scrolling stayed, so the browser holds their place and their turn.
+    let isRegionKept = false;
     const draw = (name: string, compose: () => PanelElement): void => {
-        regions.list = redraw(regions.list, "list", compose);
+        const next = composeRegion(document, "list", compose, handleFailure);
+        // The same list, drawn again: a payload landing is not a reason to take the region the
+        // reader is turning away from them. Another list is the region replaced, as before, so
+        // the place kept under its own name is what they land on.
+        isRegionKept = name === shownName && setListRowsDrawn(regions.list, next);
+        if (!isRegionKept) {
+            regions.list.replaceWith(next);
+            regions.list = next;
+        }
         shownName = name;
     };
     return {
@@ -1779,7 +1804,12 @@ function composeListDrawing(regions: PanelRegions, redraw: PanelRedraw): ListDra
         // And after every region is standing, for the same reason read the other way round. A
         // fold empties the region like any other and takes no name away, so what a reader unfolds
         // onto is the list they were reading, at the position they left it at.
-        settle: () => setTopOfList(regions.list, keptScrolls.getTop(shownName)),
+        // Nothing to put back where the region itself stayed: the browser has the reader's place
+        // already, and writing one over it is what takes a wheel turn away (`panel-scroll.ts`).
+        settle: () => {
+            if (isRegionKept) return;
+            setTopOfList(regions.list, keptScrolls.getTop(shownName));
+        },
     };
 }
 

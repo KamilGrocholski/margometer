@@ -7,7 +7,12 @@
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
 import { CLASS } from "@/src/ui/panel-look.ts";
-import { composeKeptScrollMemo, getTopOfList, setTopOfList } from "@/src/ui/panel-scroll.ts";
+import {
+    composeKeptScrollMemo,
+    getTopOfList,
+    setListRowsDrawn,
+    setTopOfList,
+} from "@/src/ui/panel-scroll.ts";
 import type { PanelElement } from "@/src/ui/panel-element.ts";
 import { composeFakeDocument } from "@/tests/fake-document.ts";
 
@@ -102,5 +107,48 @@ Deno.test("a region that answers with no position at all leaves the reader where
         list.scrollTop,
         SOMEWHERE_DOWN,
         "and nothing that is not a position is put on it",
+    );
+});
+
+/**
+ * A wheel turn belongs to the element it is turning, so the rows move and the region stays. What
+ * a browser then does with the turn is `tests/e2e/panel-scroll.spec.ts`'s to say — **ADR 0052**.
+ */
+Deno.test("the rows are swapped under the reader, and the region they scroll in stays", () => {
+    const document = composeFakeDocument();
+    const standing = document.createElement("div");
+    standing.className = CLASS.list;
+    const wasRow = document.createElement("div");
+    standing.append(wasRow);
+    const next = document.createElement("div");
+    next.className = `${CLASS.list} ${CLASS.listWaiting}`;
+    const row = document.createElement("div");
+    next.append(row);
+
+    assertStrictEquals(setListRowsDrawn(standing, next), true, "both are lists, so the rows move");
+    assertEquals(Array.from(standing.children), [row], "the region holds what was drawn for it");
+    assertStrictEquals(
+        standing.className,
+        `${CLASS.list} ${CLASS.listWaiting}`,
+        "and wears what the next one was drawn wearing",
+    );
+});
+
+Deno.test("a region that is not a list is left for the caller to replace", () => {
+    const document = composeFakeDocument();
+    const slot = document.createElement("div");
+    slot.className = CLASS.slot;
+    const list = document.createElement("div");
+    list.className = CLASS.list;
+    const row = document.createElement("div");
+    list.append(row);
+
+    assertStrictEquals(setListRowsDrawn(slot, list), false, "a slot is not swapped into");
+    assertEquals(Array.from(slot.children), [], "and nothing was moved into it");
+    assertStrictEquals(setListRowsDrawn(list, slot), false, "and neither is a slot swapped in");
+    assertEquals(
+        Array.from(list.children),
+        [row],
+        "the list still holds the row it was drawn with",
     );
 });

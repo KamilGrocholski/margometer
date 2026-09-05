@@ -118,6 +118,9 @@ export function composeFakeDocument(): PanelDocument & { created: FakeElement[] 
                     assertNotStrictEquals(child, element, "an element never holds itself");
                     element.children.push(child as FakeElement);
                 },
+                replaceChildren(...children: PanelElement[]): void {
+                    element.children = children as FakeElement[];
+                },
                 setAttribute(name: string, value: string): void {
                     element.attributes.set(name, value);
                 },

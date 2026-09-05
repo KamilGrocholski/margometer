@@ -124,6 +124,32 @@ test("a heading stays over the rows it names while they go past", async ({ panel
         .toBeLessThanOrEqual(1);
 });
 
+/**
+ * The turn rather than the position, and the difference is the whole test. Chrome animates a wheel
+ * turn on its compositor, so a payload landing inside one used to throw the turn away and write the
+ * position from before it back over the region. Under 50ms wide, and the preview plays a payload
+ * every 220ms. **ADR 0052.**
+ */
+test("a payload landing inside a wheel turn does not take the turn away", async ({ panel }) => {
+    await setOverflowingLevelOpened(panel);
+    const before = await readScrollers(panel);
+    expect(before.top, "the region starts at the top").toBe(0);
+    expect(await panel.remaining(), "the fight has more to deliver").toBeGreaterThan(0);
+    const over = await readCentreOf(panel.page, ".list");
+    await panel.page.mouse.move(over.x, over.y);
+
+    // ⚠️ Nothing at all between the turn and the payload, and that is the whole test: every other
+    // test here reads the region to a standstill first, which is the one timing that loses nothing,
+    // and a single question asked of the page in between is already wider than the window.
+    await panel.page.mouse.wheel(0, WHEEL_DOWN);
+    await panel.feed(1);
+
+    await expect.poll(async () => (await readScrollers(panel)).top, {
+        message: "the turn went as far as the reader aimed it",
+    }).toBe(before.height - before.shown);
+    await panel.expectHonest("a payload landed inside a wheel turn");
+});
+
 test("a payload arriving leaves the region where the reader left it", async ({ panel }) => {
     await setOverflowingLevelOpened(panel);
     const over = await readCentreOf(panel.page, ".list");

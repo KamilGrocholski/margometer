@@ -151,3 +151,5 @@ edited to agree with the new rule.
   at. **Accepted**
 - [0051](0051-the-layer-a-reader-touches-never-fails.md) — The layer a reader touches never fails.
   **Accepted**
+- [0052](0052-a-wheel-turn-outlives-the-payload-that-lands-in-it.md) — A wheel turn outlives the
+  payload that lands in it. **Accepted**

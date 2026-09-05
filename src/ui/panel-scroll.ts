@@ -55,6 +55,18 @@ export function getTopOfList(region: PanelElement): number | null {
 }
 
 /**
+ * ⚠️ **A wheel turn belongs to the element it is turning**, so the rows are swapped under the
+ * reader rather than the region replaced. False where either side is not a list. **ADR 0052.**
+ */
+export function setListRowsDrawn(standing: PanelElement, next: PanelElement): boolean {
+    if (!getRegionIsList(standing)) return false;
+    if (!getRegionIsList(next)) return false;
+    standing.className = next.className;
+    standing.replaceChildren(...Array.from(next.children));
+    return true;
+}
+
+/**
  * ⚠️ **A slot is left alone**, so a fold does not write a zero over the place a reader was at.
  * Measured on Chrome 152.0.7977.64, 2026-09-04: written straight after `replaceWith` the position
  * sticks, onto a replacement of the same height and onto a taller one.
