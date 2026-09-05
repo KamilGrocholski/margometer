@@ -9,7 +9,6 @@
  */
 
 import { getRankedOrder } from "@/src/ui/ranked-order.ts";
-import { assert } from "@std/assert/assert";
 import { type CombatantRoster, getCombatantIdByName } from "@/src/core/combatant-roster.ts";
 import {
     type CombatantFigures,
@@ -24,8 +23,6 @@ import {
     getDirectionForScreen,
     getNounForScreen,
     type PanelSideChoice,
-    SCREEN_ORDER,
-    SIDE_CHOICES,
 } from "@/src/ui/panel-screen.ts";
 import {
     composeJoinedInProgressWarning,
@@ -245,12 +242,10 @@ export const PINNED_CASES: readonly PinnedCase[] = [
 ];
 
 export function getEndForPinned(kase: PinnedCase): PanelUnnamedEnd {
-    assert(kase.length > 0, "a pinned figure is asked about by name");
     return PINNED_SHAPES[kase].end;
 }
 
 export function getMetricForPinned(kase: PinnedCase): PanelMetric {
-    assert(kase.length > 0, "a pinned figure is asked about by name");
     return PINNED_SHAPES[kase].metric;
 }
 
@@ -260,22 +255,16 @@ export function getMetricForPinned(kase: PinnedCase): PanelMetric {
  * and opening the screen's other end instead would be a level about something else.
  */
 export function getPinnedCase(metric: PanelMetric, end: PanelUnnamedEnd): PinnedCase | null {
-    assert(SCREEN_ORDER.includes(metric), "an end is asked about on a screen the strips draw");
-    assert(end.length > 0, "and about an end asked for by name");
     const found = PINNED_CASES.filter((kase) => {
         const shape = PINNED_SHAPES[kase];
         if (shape.metric !== metric) return false;
         return shape.end === end;
     });
-    assert(found.length <= 1, "a screen pins one figure per end, never two");
     return found[0] ?? null;
 }
 
 /** What one screen can pin, in the order it draws them. One screen pins two; the rest pin one. */
 function getPinnedCasesForScreen(metric: PanelMetric): PinnedCase[] {
-    assert(SCREEN_ORDER.includes(metric), "a screen pins on a screen the strips draw");
-    const named = Object.keys(PINNED_SHAPES).length;
-    assert(PINNED_CASES.length === named, "and every case the table holds is one the list names");
     return PINNED_CASES.filter((kase) => PINNED_SHAPES[kase].metric === metric);
 }
 
@@ -378,14 +367,17 @@ export interface PanelReading {
     total: number;
     pinned: PinnedRow[];
     warnings: string[];
+    /**
+     * Whether two counts of one figure came out different — a drawn figure that is wrong rather
+     * than short, which nothing else here can say. The entry turns it into a defect. **ADR 0051.**
+     */
+    hasFiguresDisagreed: boolean;
     sides: PanelSides | null;
     visibleRows: number;
 }
 
 function getFigure(figures: CombatantFigures, metric: PanelMetric): number {
     const figure = figures[metric];
-    assert(Number.isFinite(figure), "a figure a screen shows is a number");
-    assert(figure >= 0, "and never below nothing");
     return figure;
 }
 
@@ -411,11 +403,7 @@ function composeWarnings(
     metric: PanelMetric,
     doubts: FightDoubts,
 ): string[] {
-    assert(statistics.unreadMessages >= 0, "a count of unread messages is never below nothing");
-    assert(statistics.castsUnplaced >= 0, "and neither is a count of casts nobody could place");
-    assert(doubts.messagesLost >= 0, "and neither is a count of messages that never arrived");
     const said: string[] = [];
-    assert(SCREEN_ORDER.includes(metric), "a screen is qualified by what could shorten its own");
     if (doubts.hasJoinedInProgress) said.push(composeJoinedInProgressWarning());
     if (doubts.messagesLost > 0) said.push(composeLostMessageWarning(doubts.messagesLost));
     if (statistics.unreadMessages > 0) said.push(composeUnreadWarning(statistics.unreadMessages));
@@ -423,8 +411,7 @@ function composeWarnings(
     if (isHealing && statistics.castsUnplaced > 0) {
         said.push(composeUnplacedHealWarning(statistics.castsUnplaced));
     }
-    assert(said.length <= MAXIMUM_WARNINGS, "a screen says at most the four things it can");
-    return said;
+    return said.slice(0, MAXIMUM_WARNINGS);
 }
 
 /**
@@ -435,16 +422,13 @@ function composeWarnings(
  * doubt over a figure that cannot carry it. Composed on demand, like a card's other words.
  */
 export function composeRowWarnings(detail: RowDetail, metric: PanelMetric): string[] {
-    assert(detail.unreadMessages >= 0, "a count of what went unread is never below nothing");
-    assert(detail.castsUnplaced >= 0, "and neither is a count of casts nobody could place");
     const said: string[] = [];
     if (detail.unreadMessages > 0) said.push(composeUnreadRowWarning(detail.unreadMessages));
     const isHealing = getNounForScreen(metric) === "healing";
     if (isHealing && detail.castsUnplaced > 0) {
         said.push(composeUnplacedHealRowWarning(detail.castsUnplaced));
     }
-    assert(said.length <= ROW_WARNINGS, "a row says at most the two things it can");
-    return said;
+    return said.slice(0, ROW_WARNINGS);
 }
 
 /**
@@ -453,7 +437,6 @@ export function composeRowWarnings(detail: RowDetail, metric: PanelMetric): stri
  * stops on one.
  */
 export function getRowHasDoubt(detail: RowDetail, metric: PanelMetric): boolean {
-    assert(SCREEN_ORDER.includes(metric), "a row is qualified on a screen the strips draw");
     if (detail.unreadMessages > 0) return true;
     if (getNounForScreen(metric) !== "healing") return false;
     return detail.castsUnplaced > 0;
@@ -470,8 +453,6 @@ function getIsRowListed(
     choice: PanelSideChoice,
     readerSide: number | null,
 ): boolean {
-    assert(side === null || Number.isFinite(side), "a side a row states is a number or nothing");
-    assert(readerSide === null || Number.isFinite(readerSide), "and so is the reader's own");
     if (choice === "everyone") return true;
     if (readerSide === null) return true;
     if (side === null) return false;
@@ -488,16 +469,10 @@ interface UnsharedRow {
 }
 
 function getSkillUses(figures: CombatantFigures): number {
-    assert(figures.skills.size <= MAXIMUM_SKILLS, "a combatant stays inside the skills bound");
     let uses = 0;
     for (const skill of figures.skills.values()) {
-        assert(
-            skill.uses >= 0,
-            "a skill was announced a number of times that is not below nothing",
-        );
         uses += skill.uses;
     }
-    assert(uses >= 0, "and what they announced in all is not below nothing either");
     return uses;
 }
 
@@ -507,10 +482,8 @@ function getSkillUses(figures: CombatantFigures): number {
  * left out — the same rule `composeElementCut` keeps.
  */
 function composeCutParts(cut: FigureCut): CutPart[] {
-    assert(cut.size <= MAXIMUM_CUT_PARTS, "a cut stays inside its stated bound");
     const parts: CutPart[] = [];
     for (const [key, figure] of cut) {
-        assert(figure >= 0, "a part of a figure is never below nothing");
         if (figure > 0) parts.push({ key, figure });
     }
     parts.sort((one, other) => getRankedOrder(one.figure, other.figure, one.key, other.key));
@@ -523,8 +496,6 @@ function composeCutParts(cut: FigureCut): CutPart[] {
  * nothing is a reading.
  */
 function composeRowDetail(figures: CombatantFigures, level: number | null): RowDetail {
-    assert(figures.damageDealtApplied >= 0, "a figure a card states is not below nothing");
-    assert(figures.blowsStruck >= 0, "and neither is a count of the blows behind one");
     return {
         level,
         damageDealtApplied: figures.damageDealtApplied,
@@ -564,8 +535,6 @@ function composeRowDetailFor(
     roster: CombatantRoster,
     combatantId: number,
 ): RowDetail {
-    assert(Number.isSafeInteger(combatantId), "a card is composed for somebody the panel names");
-    assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "out of a fight inside its stated bound");
     return composeRowDetail(
         statistics.byCombatantId.get(combatantId) ?? composeCombatantFigures(),
         roster.byId.get(combatantId)?.level ?? null,
@@ -574,7 +543,6 @@ function composeRowDetailFor(
 
 /** By figure, then by id — a tie broken by something that does not move between draws. */
 function compareRows(one: UnsharedRow, other: UnsharedRow): number {
-    assert(Number.isFinite(one.figure), "a row compared states a figure");
     if (one.figure !== other.figure) return other.figure - one.figure;
     return one.combatantId - other.combatantId;
 }
@@ -584,8 +552,6 @@ function composeUnsharedRows(
     roster: CombatantRoster,
     metric: PanelMetric,
 ): UnsharedRow[] {
-    assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its stated bound");
-    assert(roster.byId.size <= MAXIMUM_ROWS, "and so does the roster it is fought by");
     const rows: UnsharedRow[] = [];
     const seen = new Set<number>();
     for (const [combatantId, figures] of statistics.byCombatantId) {
@@ -609,8 +575,6 @@ function composeUnsharedRows(
             figure: 0,
         });
     }
-    assert(rows.length >= roster.byId.size, "every combatant the roster holds gets a row");
-    assert(rows.length <= MAXIMUM_ROWS, "and the fight stays inside its stated bound");
     return rows;
 }
 
@@ -625,12 +589,9 @@ function getListedTotal(
     metric: PanelMetric,
     choice: PanelSideChoice,
 ): number {
-    assert(SIDE_CHOICES.includes(choice), "a list is totalled for a choice a reader could make");
     if (choice === "everyone") return getFigure(statistics.totals, metric);
     let total = 0;
-    assert(rows.length <= MAXIMUM_ROWS, "a list stays inside the fight's stated bound");
     for (const row of rows) total += row.figure;
-    assert(Number.isSafeInteger(total), "a total stays inside what a number holds exactly");
     return total;
 }
 
@@ -640,8 +601,6 @@ function getListedTotal(
  * answer the same, or a figure would be charged to a side no row was filtered by.
  */
 function getPartListed(choice: PanelSideChoice, readerSide: number | null): PanelSidePart | null {
-    assert(SIDE_CHOICES.includes(choice), "a list is shown for a choice a reader could make");
-    assert(readerSide === null || Number.isFinite(readerSide), "from a seat, or from none at all");
     if (choice === "everyone") return null;
     if (readerSide === null) return null;
     if (choice === "reader") return "ours";
@@ -675,20 +634,16 @@ function composeHalfNamedParts(
     part: PanelSidePart | null,
     readerSide: number | null,
 ): HalfNamedPart[] {
-    assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its stated bound");
-    assert(part !== "nobody", "a figure is charged to a side, never to the refusal beside them");
     const shape = PINNED_SHAPES[kase];
     const listed = new Set(rows.map((one) => one.combatantId));
     const found: HalfNamedPart[] = [];
     for (const [combatantId, figures] of statistics.byCombatantId) {
         const figure = figures[shape.field];
-        assert(figure >= 0, "a half-named figure is never below nothing");
         if (figure <= 0) continue;
         const held = getPartOfSide(roster.byId.get(combatantId)?.side ?? null, readerSide);
         if (!getIsHalfNamedKept(shape, held, listed.has(combatantId), part)) continue;
         found.push({ combatantId, figure });
     }
-    assert(found.length <= MAXIMUM_ROWS, "and so does what stands under one of its pinned rows");
     return found;
 }
 
@@ -699,7 +654,6 @@ function getIsHalfNamedKept(
     isListed: boolean,
     part: PanelSidePart | null,
 ): boolean {
-    assert(shape.field.length > 0, "a figure is kept out of a cut the shape names");
     if (shape.standing === "cut") return isListed;
     if (part === null) return true;
     return getPartCharged(held, shape.metric) === part;
@@ -719,12 +673,9 @@ function getPinnedFigure(
     parts: readonly HalfNamedPart[],
     part: PanelSidePart | null,
 ): number {
-    assert(statistics.byNeitherEnd >= 0, "what names neither end is never below nothing");
     let total = 0;
     for (const one of parts) total += one.figure;
     total += getNeitherEndForPinned(statistics, kase, part);
-    assert(Number.isSafeInteger(total), "a total stays inside what a number holds exactly");
-    assertPinnedTotalsTheFight(statistics, kase, total, part);
     return total;
 }
 
@@ -733,8 +684,6 @@ function getNeitherEndForPinned(
     kase: PinnedCase,
     part: PanelSidePart | null,
 ): number {
-    assert(statistics.byNeitherEnd >= 0, "what names neither end is never below nothing");
-    assert(part !== "nobody", "and a list is narrowed to a side, never to the refusal beside them");
     const shape = PINNED_SHAPES[kase];
     if (part !== null) return 0;
     if (shape.standing === "cut") return 0;
@@ -742,24 +691,27 @@ function getNeitherEndForPinned(
     return statistics.byNeitherEnd;
 }
 
-const PINNED_SUM_SAID = "a pinned figure is the whole of what stands under it";
-
 /**
- * Under everybody a figure standing apart **is** the fight's own count, and this says so out loud.
- * `getHalfNamedBalance` in `src/core/fight-statistics.ts` is what makes it hold — the count is the
- * sum of one field across the rows plus what named neither end, and nothing else.
+ * Under everybody a figure standing apart **is** the fight's own count, and this asks whether it
+ * still is. `getHalfNamedBalance` in `src/core/fight-statistics.ts` is what makes it hold — the
+ * count is the sum of one field across the rows plus what named neither end, and nothing else.
+ *
+ * It was an assertion until **ADR 0051**, and what it holds is worth more than the panel it used
+ * to stop: two independent counts disagreeing is the one thing here that says a drawn figure is
+ * wrong rather than short, so the reading carries the answer and the entry states it.
  */
-function assertPinnedTotalsTheFight(
+function getPinnedDisagrees(
     statistics: FightStatistics,
     kase: PinnedCase,
     total: number,
     part: PanelSidePart | null,
-): void {
-    if (part !== null) return;
-    if (PINNED_SHAPES[kase].standing === "cut") return;
-    if (kase === "dealtWithNoActor") assert(total === statistics.dealtByNobody, PINNED_SUM_SAID);
-    if (kase === "takenWithNoTarget") assert(total === statistics.takenByNobody, PINNED_SUM_SAID);
-    if (kase === "givenWithNoActor") assert(total === statistics.givenByNobody, PINNED_SUM_SAID);
+): boolean {
+    if (part !== null) return false;
+    if (PINNED_SHAPES[kase].standing === "cut") return false;
+    if (kase === "dealtWithNoActor") return total !== statistics.dealtByNobody;
+    if (kase === "takenWithNoTarget") return total !== statistics.takenByNobody;
+    if (kase === "givenWithNoActor") return total !== statistics.givenByNobody;
+    return false;
 }
 
 /**
@@ -777,8 +729,6 @@ function composePinnedFigures(
     choice: PanelSideChoice,
     readerSide: number | null,
 ): Array<Omit<PinnedRow, "fill" | "shareText">> {
-    assert(SIDE_CHOICES.includes(choice), "a figure is pinned for a choice a reader could make");
-    assert(statistics.dealtByNobody >= 0, "and one that is never below nothing");
     const part = getPartListed(choice, readerSide);
     const found: Array<Omit<PinnedRow, "fill" | "shareText">> = [];
     for (const kase of getPinnedCasesForScreen(metric)) {
@@ -797,7 +747,6 @@ function composePinnedFigures(
             kinds: composeHalfNamedKinds(statistics, kase, parts, neither, figure),
         });
     }
-    assert(found.length <= 2, "a screen pins the two ends the protocol can leave out, at most");
     return found;
 }
 
@@ -824,7 +773,6 @@ function composeHalfNamedListing(
     choice: PanelSideChoice,
     readerSide: number | null,
 ): HalfNamedListing {
-    assert(SIDE_CHOICES.includes(choice), "a level opens for a choice a reader could make");
     const metric = getMetricForPinned(kase);
     const listed = composeUnsharedRows(statistics, roster, metric).filter((row) =>
         getIsRowListed(row.side, choice, readerSide)
@@ -879,8 +827,6 @@ function composeHalfNamedKinds(
     neither: number,
     total: number,
 ): ElementCut {
-    assert(total > 0, "a figure being cut by kind is a figure there is something of");
-    assert(neither >= 0, "and what named neither end is never below nothing");
     const shape = PINNED_SHAPES[kase];
     const folded = new Map<string, number>();
     for (const one of parts) {
@@ -903,14 +849,11 @@ function getHalfNamedByKind(
     parts: readonly HalfNamedPart[],
     element: string,
 ): HalfNamedPart[] {
-    assert(element.length > 0, "a key is asked about by the name the protocol wrote");
-    assert(parts.length <= MAXIMUM_ROWS, "and asked of a level inside its stated bound");
     const found: HalfNamedPart[] = [];
     for (const one of parts) {
         const figures = statistics.byCombatantId.get(one.combatantId);
         if (figures === undefined) continue;
         const figure = figures[kinds].get(element) ?? 0;
-        assert(figure >= 0, "a part of a figure is never below nothing");
         if (figure <= 0) continue;
         found.push({ combatantId: one.combatantId, figure });
     }
@@ -919,11 +862,13 @@ function getHalfNamedByKind(
 
 /** One person's own cut into the fold, under the key the protocol wrote it with. */
 function addFoldedCut(folded: Map<string, number>, held: FigureCut): void {
-    assert(folded.size <= MAXIMUM_CUT_PARTS, "a fold stays inside the bound one cut is kept to");
-    assert(held.size <= MAXIMUM_CUT_PARTS, "and so does each cut folded into it");
     for (const [key, figure] of held) {
-        assert(figure >= 0, "a part of a figure is never below nothing");
-        folded.set(key, (folded.get(key) ?? 0) + figure);
+        if (folded.has(key)) {
+            folded.set(key, (folded.get(key) ?? 0) + figure);
+            continue;
+        }
+        if (folded.size >= MAXIMUM_CUT_PARTS) continue;
+        folded.set(key, figure);
     }
 }
 
@@ -944,7 +889,6 @@ export function composeHalfNamedDrillReading(
     opened: HalfNamedOpened,
 ): HalfNamedDrillReading | null {
     const { parts, part } = composeHalfNamedListing(statistics, roster, kase, choice, readerSide);
-    assert(getPinnedFigure(statistics, kase, parts, part) >= 0, "a level opens under a figure");
     if (opened.kind === "person") {
         return composeHalfNamedForPerson(statistics, roster, kase, parts, opened.combatantId);
     }
@@ -959,13 +903,10 @@ function composeHalfNamedForPerson(
     parts: readonly HalfNamedPart[],
     combatantId: number,
 ): HalfNamedDrillReading | null {
-    assert(Number.isSafeInteger(combatantId), "a person is opened by the number the game named");
-    assert(parts.length <= MAXIMUM_ROWS, "on a level inside its stated bound");
     const held = parts.find((one) => one.combatantId === combatantId);
     if (held === undefined) return null;
     const figures = statistics.byCombatantId.get(combatantId);
     if (figures === undefined) return null;
-    assert(held.figure > 0, "a person on a level carries some of the figure over it");
     const [row] = composeHalfNamedRows(statistics, roster, [held], ["100%"], held.figure);
     if (row === undefined) return null;
     return {
@@ -996,7 +937,7 @@ function composeHalfNamedForKind(
     const neither = apart <= 0 ? 0 : statistics.byNeitherEndByElement.get(opened.element) ?? 0;
     let total = neither;
     for (const one of found) total += one.figure;
-    assert(total > 0, "a key that opens carries some of the figure over it");
+    if (total <= 0) return null;
     const figures = [...found.map((one) => one.figure), neither];
     const shares = composeShareTexts(figures, total);
     const largest = getLargestFigure(figures);
@@ -1039,23 +980,21 @@ function composeHalfNamedRows(
     rows.sort((one, other) =>
         getRankedOrder(one.figure, other.figure, one.name ?? "", other.name ?? "")
     );
-    assert(rows.length <= MAXIMUM_ROWS, "a level stays inside the fight's stated bound");
+    // No bound of its own: a level is cut out of the list above it, which `composePanelReading`
+    // has already held to `MAXIMUM_ROWS`. One here is a second guard on one hazard, and nothing
+    // can reach it — **W4**.
     return rows;
 }
 
 function getLargestFigure(figures: readonly number[]): number {
-    assert(figures.every((one) => Number.isFinite(one)), "a screen draws figures that are numbers");
     let largest = 0;
     for (const figure of figures) {
         if (figure > largest) largest = figure;
     }
-    assert(figures.every((one) => one <= largest), "and none of them stands above the biggest");
     return largest;
 }
 
 function getFill(figure: number, largest: number): number {
-    assert(figure >= 0, "a bar is drawn for a figure that is not below nothing");
-    assert(largest >= 0, "and against a screen whose biggest figure is not either");
     if (largest <= 0) return 0;
     return figure / largest;
 }
@@ -1074,7 +1013,6 @@ function composeHeadcount(
     const countBySide = new Map<number, number>();
     let unplaced = 0;
     const everybody = new Set<number>([...statistics.byCombatantId.keys(), ...roster.byId.keys()]);
-    assert(everybody.size <= MAXIMUM_ROWS, "a fight stays inside the headcount it is bounded to");
     for (const combatantId of everybody) {
         const side = roster.byId.get(combatantId)?.side ?? null;
         if (side === null) unplaced += 1;
@@ -1085,15 +1023,12 @@ function composeHeadcount(
         if (readerSide === other) return 1;
         return one - other;
     });
-    assert(unplaced >= 0, "a headcount of people on no side is never below nothing");
     const sizes = sides.map(([, count]) => count);
     let counted = unplaced;
     for (const size of sizes) counted += size;
     // The invariant that matters here, and it is about sides rather than about rows: a ranking is
     // filtered by the side strip and the headcount never is, so a fight of ten against one draws
     // one row beside two sizes and there is no relation between the two lengths to hold.
-    assert(counted === everybody.size, "a headcount places everybody, on a side or on none");
-    assert(sizes.every((one) => one > 0), "and a side that is counted has somebody on it");
     return { sizes, unplaced };
 }
 
@@ -1102,8 +1037,6 @@ function getIsOurSideNamed(
     readerSide: number,
     names: readonly string[],
 ): boolean {
-    assert(Number.isFinite(readerSide), "a seat is read from a side the client stated");
-    assert(names.every((one) => one.length > 0), "and against names the protocol wrote out");
     for (const name of names) {
         const combatantId = getCombatantIdByName(roster, name);
         if (combatantId === null) continue;
@@ -1134,10 +1067,6 @@ export function getOutcomeForSeat(
     roster: CombatantRoster,
     readerSide: number | null,
 ): PanelOutcome | null {
-    assert(
-        outcome.wonNames.every((one) => one.length > 0),
-        "a side is named by names that say something",
-    );
     if (outcome.isDrawn) return "drawn";
     if (readerSide === null) return null;
     if (getIsOurSideNamed(roster, readerSide, outcome.wonNames)) return "won";
@@ -1155,8 +1084,6 @@ function composePinnedRows(
     whole: number,
     largest: number,
 ): PinnedRow[] {
-    assert(pinned.length <= 2, "a screen pins the two ends the protocol can leave out, at most");
-    assert(whole >= 0, "and divides by a whole that is never below nothing");
     let taken = 0;
     return pinned.map((one) => {
         const shareText = one.standing === "apart"
@@ -1174,11 +1101,15 @@ export function composePanelReading(
     readerSide: number | null,
     doubts: FightDoubts,
 ): PanelReading {
-    assert(metric.length > 0, "a reading is composed for a screen asked for by name");
-    const listed = composeUnsharedRows(statistics, roster, metric).filter((row) =>
+    const found = composeUnsharedRows(statistics, roster, metric).filter((row) =>
         getIsRowListed(row.side, choice, readerSide)
     );
-    listed.sort(compareRows);
+    found.sort(compareRows);
+    // **S11, and it is where the bound has to be**: after the sort, so a cast past it costs the
+    // smallest figures rather than whichever rows the fold reached last, and before every figure
+    // derived from the list, so the column a reader adds up is the column that was drawn. The
+    // strip under the list is composed off the statistics and still totals everybody.
+    const listed = found.slice(0, MAXIMUM_ROWS);
     const total = getListedTotal(statistics, listed, metric, choice);
     const pinned = composePinnedFigures(statistics, roster, listed, metric, choice, readerSide);
     // Only a figure standing apart joins the whole: one standing as a cut is already inside the
@@ -1194,14 +1125,12 @@ export function composePanelReading(
         shareText: shares[at] ?? "",
         detail: composeRowDetailFor(statistics, roster, row.combatantId),
     }));
-    assert(rows.length <= MAXIMUM_ROWS, "a list stays inside the fight's stated bound");
-    assert(rows.every((one) => one.shareText.length > 0), "and every row states a share");
-    const isEveryone = choice === "everyone" || readerSide === null;
-    assert(!isEveryone || rows.length >= roster.byId.size, "everybody listed is everybody drawn");
     const sides = composePanelSides(statistics, roster, metric, readerSide);
-    assertWholeIsTheSide(whole, sides, getPartListed(choice, readerSide));
+    const part = getPartListed(choice, readerSide);
     return {
         rows,
+        hasFiguresDisagreed: getWholeDisagreesWithSide(whole, sides, part) ||
+            pinned.some((one) => getPinnedDisagrees(statistics, one.case, one.figure, part)),
         outcome: getOutcomeForReader(statistics, roster, readerSide),
         ...composeHeadcount(statistics, roster, readerSide),
         total,
@@ -1218,16 +1147,14 @@ export function composePanelReading(
  * name. A charge that stopped agreeing with the list it stands over is a broken invariant, not a
  * figure that quietly moved. **ADR 0036.**
  */
-function assertWholeIsTheSide(
+function getWholeDisagreesWithSide(
     whole: number,
     sides: PanelSides | null,
     part: PanelSidePart | null,
-): void {
-    assert(whole >= 0, "a list divides by a whole that is never below nothing");
-    if (part === null) return;
-    if (sides === null) return;
-    const stated = part === "ours" ? sides.ours : sides.theirs;
-    assert(whole === stated, "a one-side list divides by that side's own figure");
+): boolean {
+    if (part === null) return false;
+    if (sides === null) return false;
+    return whole !== (part === "ours" ? sides.ours : sides.theirs);
 }
 
 /** Null without a seat: two sides nothing can tell apart are not two figures. */
@@ -1241,8 +1168,6 @@ export interface PanelSides {
 type PanelSidePart = "ours" | "theirs" | "nobody";
 
 function getPartOfSide(side: number | null, readerSide: number | null): PanelSidePart {
-    assert(side === null || Number.isFinite(side), "a side a row states is a number or nothing");
-    assert(readerSide === null || Number.isFinite(readerSide), "and so is the reader's own");
     if (side === null) return "nobody";
     if (readerSide === null) return "nobody";
     return side === readerSide ? "ours" : "theirs";
@@ -1257,8 +1182,6 @@ function getPartOfSide(side: number | null, readerSide: number | null): PanelSid
  * never derived is a **name**: the pinned rows go on saying which end the game left out.
  */
 function getPartCharged(part: PanelSidePart, metric: PanelMetric): PanelSidePart {
-    assert(metric.length > 0, "a figure is charged on a screen asked for by name");
-    assert(SCREEN_ORDER.includes(metric), "and one the strips draw");
     if (part === "nobody") return part;
     if (metric === "healthGiven") return part;
     if (metric === "healthRestored") return part;
@@ -1266,7 +1189,6 @@ function getPartCharged(part: PanelSidePart, metric: PanelMetric): PanelSidePart
 }
 
 function getHalfNamed(figures: CombatantFigures, metric: PanelMetric): number {
-    assert(figures.damageTakenFromNobody >= 0, "a half-named figure is never below nothing");
     if (metric === "damageDealtApplied") return figures.damageTakenFromNobody;
     if (metric === "damageTakenApplied") return figures.damageDealtToNobody;
     if (metric === "healthGiven") return figures.healthRestoredByNobody;
@@ -1275,8 +1197,6 @@ function getHalfNamed(figures: CombatantFigures, metric: PanelMetric): number {
 
 /** What names neither end, which belongs to no side at all and is only ever damage. */
 function getWithNeitherEnd(statistics: FightStatistics, metric: PanelMetric): number {
-    assert(statistics.byNeitherEnd >= 0, "what names neither end is never below nothing");
-    assert(SCREEN_ORDER.includes(metric), "and is asked about on a screen the strips draw");
     if (metric === "damageDealtApplied") return statistics.byNeitherEnd;
     if (metric === "damageTakenApplied") return statistics.byNeitherEnd;
     return 0;
@@ -1290,15 +1210,12 @@ export function composePanelSides(
 ): PanelSides | null {
     if (readerSide === null) return null;
     const totals: Record<PanelSidePart, number> = { ours: 0, theirs: 0, nobody: 0 };
-    assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its stated bound");
     for (const [combatantId, figures] of statistics.byCombatantId) {
         const part = getPartOfSide(roster.byId.get(combatantId)?.side ?? null, readerSide);
         totals[part] += getFigure(figures, metric);
         totals[getPartCharged(part, metric)] += getHalfNamed(figures, metric);
     }
     totals.nobody += getWithNeitherEnd(statistics, metric);
-    assert(totals.ours >= 0, "a side's own figure is never below nothing");
-    assert(totals.nobody >= 0, "and neither is what no side can be charged with");
     return totals;
 }
 
@@ -1448,8 +1365,6 @@ interface MetricCuts {
 /** Healing given has no cut by key, and the empty map says so outright — whose those keys are
  * is `core/fight-statistics.ts`'s to state, and it does. */
 function getCutsForMetric(figures: CombatantFigures, metric: PanelMetric): MetricCuts {
-    assert(metric.length > 0, "a screen is asked for by name");
-    assert(figures.damageDealtApplied >= 0, "a figure that could be cut is not below nothing");
     if (metric === "damageDealtApplied") {
         return {
             byOpponent: figures.damageDealtByOpponent,
@@ -1476,7 +1391,6 @@ function compareElementRows(one: { element: string; figure: number }, other: {
     element: string;
     figure: number;
 }): number {
-    assert(one.element.length > 0, "a kind compared is a kind the protocol named");
     if (one.figure !== other.figure) return other.figure - one.figure;
     return one.element < other.element ? -1 : 1;
 }
@@ -1498,11 +1412,9 @@ function composeElementCut(
     total: number,
     opens: (element: string) => boolean,
 ): ElementCut {
-    assert(total >= 0, "a figure being cut is never below nothing");
     const stated: Array<{ element: string; figure: number }> = [];
     let held = 0;
     for (const [element, figure] of cut) {
-        assert(figure >= 0, "a part of a figure is never below nothing");
         held += figure;
         // A part that came to nothing is not a part of the figure: it takes a row and adds none
         // of it. The combatant at zero on a ranking is the other case and is still drawn — that
@@ -1510,7 +1422,6 @@ function composeElementCut(
         if (figure > 0) stated.push({ element, figure });
     }
     stated.sort(compareElementRows);
-    assert(held <= total, "the kinds a figure was dealt in come to no more than that figure");
     const unnamed = total - held;
     const figures = unnamed > 0 ? [...stated.map((one) => one.figure), unnamed] : stated.map((
         one,
@@ -1548,7 +1459,6 @@ function composeOpponentCut(
     total: number,
     opens: (otherId: number) => boolean,
 ): OpponentCut {
-    assert(total >= 0, "a figure being cut is never below nothing");
     const stated: UnsharedRow[] = [];
     let held = 0;
     for (const [named, figure] of cut) {
@@ -1565,7 +1475,6 @@ function composeOpponentCut(
         });
     }
     stated.sort(compareRows);
-    assert(held <= total, "the ends a figure reached come to no more than that figure");
     const unnamed = total - held;
     const figures = stated.map((one) => one.figure);
     if (unnamed > 0) figures.push(unnamed);
@@ -1617,7 +1526,6 @@ interface UnsharedSkill extends UnsharedPart {
  * rather than a regeneration, which is why the section names each and not the lot.
  */
 function composeSourceRows(cut: FigureCut): UnsharedPart[] {
-    assert(cut.size <= MAXIMUM_CUT_PARTS, "a cut stays inside the bound it is kept to");
     const stated: UnsharedPart[] = [];
     for (const [source, figure] of cut) {
         // No count: the protocol states no number of applications of a key.
@@ -1641,13 +1549,18 @@ function composeSkillRowsReceived(
     combatantId: number,
     getCut: (skill: SkillFigures) => FigureCut,
 ): UnsharedPart[] {
-    assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its bound");
     const byName = new Map<string, number>();
     for (const held of statistics.byCombatantId.values()) {
         for (const skill of held.skills.values()) {
             const figure = getCut(skill).get(`${combatantId}`) ?? 0;
-            if (figure > 0) byName.set(skill.name, (byName.get(skill.name) ?? 0) + figure);
-            assert(byName.size <= MAXIMUM_SKILLS, "a cut stays inside the skills bound");
+            if (figure <= 0) continue;
+            if (byName.has(skill.name)) {
+                byName.set(skill.name, (byName.get(skill.name) ?? 0) + figure);
+                continue;
+            }
+            // S11: the bound holds the fold rather than an assertion standing beside it.
+            if (byName.size >= MAXIMUM_SKILLS) continue;
+            byName.set(skill.name, figure);
         }
     }
     // No count: the announcement was somebody else's, and how many times it was made says
@@ -1691,7 +1604,6 @@ function composeSkillRowsStated(
     metric: PanelMetric,
     combatantId: number,
 ): UnsharedPart[] {
-    assert(SCREEN_ORDER.includes(metric), "a cut is composed for a screen the strips draw");
     if (metric === "healthRestored") {
         return [
             ...composeSkillRowsReceived(statistics, combatantId, (one) => one.restoredByOpponent),
@@ -1735,7 +1647,6 @@ function getGivenSourceCut(figures: CombatantFigures): FigureCut {
     for (const cut of figures.healthGivenWithoutSkillByReceiverAndSource.values()) {
         for (const [source, figure] of cut) {
             folded.set(source, (folded.get(source) ?? 0) + figure);
-            assert(folded.size <= MAXIMUM_CUT_PARTS, "a cut stays inside the bound it is kept to");
         }
     }
     return folded;
@@ -1758,7 +1669,6 @@ function composeSkillCut(
     total: number,
     combatantId: number,
 ): SkillCut {
-    assert(total >= 0, "a figure being cut is never below nothing");
     const stated = composeSkillRows(statistics, figures, metric, combatantId);
     stated.sort((one, other) =>
         getRankedOrder(
@@ -1769,16 +1679,15 @@ function composeSkillCut(
         )
     );
     const held = stated.reduce((sum, one) => sum + one.figure, 0);
-    assert(held <= total, "what the skills came to is no more than the figure they are a cut of");
     // Drawn even where it landed nothing: three blows that were all blocked are three blows, and
     // a section that skipped them would say the combatant never swung.
     const plain = total - held;
-    // On the healing screens the keys hold what no announcement did, and by construction: one
-    // condition sends a movement to a skill's row or to the key cut, never to both and never to
-    // neither. A remainder here is that condition having come apart, not a figure to close against.
-    if (getNounForScreen(metric) === "healing") {
-        assert(plain === 0, "health that moved is on a skill's row or under the key that moved it");
-    }
+    // ⚠️ **On the healing screens this is nought by construction**, and it was asserted until
+    // **ADR 0051**: one condition in `src/core/fight-statistics.ts` sends a movement to a skill's
+    // row or to the key cut, never to both and never to neither. It is not carried out as a defect
+    // like the two `composePanelReading` answers for, because the two of them are invisible — a
+    // share divided by the wrong whole — and this one is not: a remainder draws a row of its own,
+    // with the figure on it, where a reader can see it and add it up.
     const isCounted = metric === "damageDealtApplied";
     const hasPlain = plain > 0 || (isCounted && figures.blowsWithoutSkill > 0);
     const figuresOnScreen = stated.map((one) => one.figure);
@@ -1824,7 +1733,6 @@ export function composePartReading(
     const cut = composePartCut(statistics, figures, metric, combatantId, part);
     if (cut === null) return null;
     const total = getPartTotal(figures, metric, part, cut);
-    assert(total >= 0, "a part opened states a figure that is not below nothing");
     return {
         part,
         total,
@@ -1844,7 +1752,6 @@ function composePartCut(
     combatantId: number,
     part: NamedPart,
 ): FigureCut | null {
-    assert(SCREEN_ORDER.includes(metric), "a part is opened on a screen the strips draw");
     if (part.kind === "skill") {
         return composePartCutForSkill(statistics, figures, metric, combatantId, part.name);
     }
@@ -1880,14 +1787,12 @@ function composePartCutForSkill(
     combatantId: number,
     name: string,
 ): FigureCut | null {
-    assert(name.length > 0, "a skill is opened by the name it was announced under");
     const isDamage = getNounForScreen(metric) === "damage";
     if (getDirectionForScreen(metric) === "given") {
         const skill = figures.skills.get(name);
         if (skill === undefined) return null;
         return composePartCutStated(isDamage ? skill.dealtByOpponent : skill.restoredByOpponent);
     }
-    assert(statistics.byCombatantId.size <= MAXIMUM_ROWS, "a fight stays inside its bound");
     const reached = new Map<string, number>();
     for (const [otherId, held] of statistics.byCombatantId) {
         for (const skill of held.skills.values()) {
@@ -1896,7 +1801,6 @@ function composePartCutForSkill(
             const figure = cut.get(`${combatantId}`) ?? 0;
             if (figure > 0) reached.set(`${otherId}`, (reached.get(`${otherId}`) ?? 0) + figure);
         }
-        assert(reached.size <= MAXIMUM_ROWS, "and so does the level under one of its rows");
     }
     return reached.size === 0 ? null : reached;
 }
@@ -1906,8 +1810,6 @@ function composePartCutFromPairs(
     pairs: ReadonlyMap<string, FigureCut>,
     named: string,
 ): FigureCut | null {
-    assert(named.length > 0, "a part is opened under the name the game wrote it under");
-    assert(pairs.size <= MAXIMUM_ROWS, "a fight stays inside its bound");
     const reached = new Map<string, number>();
     for (const [other, cut] of pairs) {
         const figure = cut.get(named) ?? 0;
@@ -1918,7 +1820,6 @@ function composePartCutFromPairs(
 
 /** A reading of the cut and never the cut itself, and a part that came to nothing is no part. */
 function composePartCutStated(cut: FigureCut): FigureCut | null {
-    assert(cut.size <= MAXIMUM_ROWS, "a part reaches the people a fight holds, at most");
     const stated = new Map<string, number>();
     for (const [other, figure] of cut) {
         if (figure > 0) stated.set(other, figure);
@@ -1971,7 +1872,6 @@ export function composePairReading(
     if (total === null) return null;
     const kinds = getPairKinds(figures, metric, otherId);
     const held = roster.byId.get(otherId);
-    assert(total >= 0, "what passed between two combatants is never below nothing");
     return {
         combatantId,
         otherId,
@@ -1991,7 +1891,6 @@ function getPairKinds(
     metric: PanelMetric,
     otherId: number,
 ): FigureCut | null {
-    assert(Number.isSafeInteger(otherId), "the other end of a pair is named by a number");
     if (metric === "damageDealtApplied") {
         return figures.damageDealtByOpponentAndKind.get(`${otherId}`) ?? null;
     }
@@ -2021,7 +1920,6 @@ function getPairTotal(
     metric: PanelMetric,
     otherId: number,
 ): number | null {
-    assert(Number.isSafeInteger(otherId), "the other end of a pair is named by a number");
     if (getNounForScreen(metric) === "damage") {
         const kinds = getPairKinds(figures, metric, otherId);
         return kinds === null ? null : getTotalFromCut(kinds);
@@ -2033,8 +1931,6 @@ function getPairTotal(
 function getTotalFromCut(cut: FigureCut): number {
     let total = 0;
     for (const figure of cut.values()) total += figure;
-    assert(Number.isSafeInteger(total), "a total stays inside what a number holds exactly");
-    assert(total >= 0, "and is never below nothing");
     return total;
 }
 
@@ -2046,10 +1942,8 @@ interface UnsharedPairPart {
 function getTotalFromParts(parts: readonly UnsharedPairPart[]): number {
     let total = 0;
     for (const one of parts) {
-        assert(one.figure > 0, "a part that is drawn is a part with a figure in it");
         total += one.figure;
     }
-    assert(Number.isSafeInteger(total), "a total stays inside what a number holds exactly");
     return total;
 }
 
@@ -2066,7 +1960,6 @@ function getPairGivingEnd(
     combatantId: number,
     otherId: number,
 ): { figures: CombatantFigures | undefined; subject: string } {
-    assert(SCREEN_ORDER.includes(metric), "a pair is read for a screen the strips draw");
     if (getDirectionForScreen(metric) === "received") {
         return { figures: statistics.byCombatantId.get(otherId), subject: `${combatantId}` };
     }
@@ -2097,7 +1990,6 @@ function composePairPartFigures(
             : skill.restoredByOpponent.get(end.subject) ?? 0;
         if (figure > 0) stated.push({ part: { kind: "skill", name: skill.name }, figure });
     }
-    assert(stated.length <= MAXIMUM_SKILLS, "a cut stays inside the skills bound");
     if (isDamage) return stated;
     const cut = end.figures.healthGivenWithoutSkillByReceiverAndSource.get(end.subject);
     if (cut === undefined) return stated;
@@ -2124,7 +2016,6 @@ function composePairParts(
     otherId: number,
     total: number,
 ): PairPartRow[] {
-    assert(total >= 0, "a figure being cut is never below nothing");
     const stated = composePairPartFigures(statistics, metric, combatantId, otherId);
     stated.sort((one, other) =>
         getRankedOrder(
@@ -2135,7 +2026,6 @@ function composePairParts(
         )
     );
     const held = getTotalFromParts(stated);
-    assert(held <= total, "what the parts came to is no more than what passed between the two");
     const plain = total - held;
     const figures = stated.map((one) => one.figure);
     if (plain > 0) figures.push(plain);
@@ -2189,8 +2079,6 @@ export function composeDrillReading(
                 element,
             }) !== null,
     );
-    assert(byOpponent.rows.length <= MAXIMUM_ROWS, "an opened row stays inside the fight's bound");
-    assert(byElement.rows.every((one) => one.figure >= 0), "and no kind of it is below nothing");
     return {
         combatantId,
         name: held?.name ?? null,

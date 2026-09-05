@@ -41,6 +41,8 @@ const CHOICES: PanelSideChoice[] = ["everyone", "reader", "opposing"];
 const WITHOUT_ACTOR = "Nieznany sprawca";
 const WITHOUT_TARGET = "Nieznany cel";
 const UNKNOWN_TARGET_BLOW = 700;
+/** An id no combatant in the fabricated fight answers to, so the roster names nobody for it. */
+const ONE_TOO_MANY = 999999;
 const SHOWN_LIST = "shown";
 
 /**
@@ -114,6 +116,33 @@ Deno.test("the widest fight there is fields a full cast, with both ends left out
     assert(statistics.dealtByNobody > 0, "a blow the protocol gave no striker");
     assert(statistics.takenByNobody > 0, "and one it gave no target");
     assertStrictEquals(statistics.byNeitherEnd, 0, "neither of them left both ends out");
+});
+
+/**
+ * A cast wider than the widest there is. `composeCombatantRoster` refuses one, so this drives the
+ * reading past its own bound the only way anything can — by handing it figures for somebody the
+ * roster does not hold, which is what the exported surface allows. The list is what it costs, and
+ * the strip under it still totals everybody. **S11**, **ADR 0051**.
+ */
+Deno.test("a cast past the bound costs the smallest figures, and never the list", () => {
+    const { roster, statistics, readerSide } = composeWidestFight();
+    const byCombatantId = new Map(statistics.byCombatantId);
+    const [smallest] = [...byCombatantId.values()];
+    assert(smallest !== undefined, "the fight states figures to copy the shape of");
+    byCombatantId.set(ONE_TOO_MANY, { ...smallest, damageDealtApplied: 1 });
+    const reading = composePanelReading(
+        { ...statistics, byCombatantId },
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        readerSide,
+        NOTHING_MISSED,
+    );
+    assertStrictEquals(reading.rows.length, MAXIMUM_COMBATANTS, "the list stays at its bound");
+    assert(
+        !reading.rows.some((one) => one.combatantId === ONE_TOO_MANY),
+        "and what it drops is the smallest figure, not whichever row arrived last",
+    );
 });
 
 Deno.test("a full cast with both ends unknown draws its rows and both unnamed ones", () => {

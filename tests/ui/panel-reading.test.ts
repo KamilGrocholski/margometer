@@ -113,6 +113,36 @@ Deno.test("a screen shows every combatant, in the order the figures put them", (
     assert(reading.rows[0].figure > 0, "and in this fight somebody dealt damage");
 });
 
+/**
+ * The one check in this file that says a drawn figure is **wrong** rather than short: two counts
+ * of the figure standing apart, taken independently, coming out different. It was an assertion
+ * until ADR 0051 and cost the whole panel; the reading answers instead, and the entry states it.
+ */
+Deno.test("two counts of one figure agreeing is what the reading says, and it says so", () => {
+    const { roster, statistics } = readFight(HILDUR);
+    const agreed = composePanelReading(
+        statistics,
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    assertStrictEquals(agreed.hasFiguresDisagreed, false, "a real fight's two counts agree");
+    // The count beside the sum moved, and nothing else did: the rows still add to what they added
+    // to, so this is the disagreement rather than a figure that quietly changed.
+    const moved = composePanelReading(
+        { ...statistics, dealtByNobody: statistics.dealtByNobody + 1 },
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        null,
+        NOTHING_MISSED,
+    );
+    assertStrictEquals(moved.hasFiguresDisagreed, true, "and one that has moved is answered for");
+    assert(moved.rows.length > 0, "while the screen is still drawn, rows and all");
+});
+
 Deno.test("a share is the row against the fight, and the shares come to one", () => {
     const { roster, statistics } = readFight(HILDUR);
     const reading = composePanelReading(

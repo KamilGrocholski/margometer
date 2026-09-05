@@ -7,13 +7,18 @@
  * (**E11**). **ADR 0051.**
  */
 
-import { composeDefectText, type DefectKind, type PanelRegion } from "@/src/ui/panel-words.ts";
+import {
+    composeDefectText,
+    DEFECT_KINDS,
+    type DefectKind,
+    type PanelRegion,
+} from "@/src/ui/panel-words.ts";
 
 /** Kind and region are finite, so this is headroom; it holds by refusing, never by throwing. */
 const MAXIMUM_DEFECTS_KEPT = 64;
 
-/** What is drawn, against what is counted: a panel saying four things has said enough. */
-const MAXIMUM_DEFECTS_SAID = 4;
+/** What is drawn, against what is counted: one line per kind is a panel that has said enough. */
+const MAXIMUM_DEFECTS_SAID = DEFECT_KINDS.length;
 
 interface KeptDefect {
     kind: DefectKind;

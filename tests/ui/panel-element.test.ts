@@ -404,6 +404,7 @@ Deno.test("a fight nothing has happened in says so, rather than drawing nothing"
         total: 0,
         pinned: [],
         warnings: [],
+        hasFiguresDisagreed: false,
         sides: null,
         visibleRows: 11,
     });

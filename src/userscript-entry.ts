@@ -72,6 +72,7 @@ import {
     type HalfNamedReading,
     type PairReading,
     type PanelOutcome,
+    type PanelReading,
     type PartReading,
     type ShelfRow,
 } from "@/src/ui/panel-reading.ts";
@@ -579,7 +580,7 @@ function drawFight(
 ): void {
     const said = defects.getSaid();
     try {
-        if (showFight(session, screen, panel, shelf, liveFight, readClock, said)) return;
+        if (showFight(session, screen, panel, shelf, liveFight, readClock, said, defects)) return;
         panel.showWaiting(screen.isCollapsed, { defects: said, isFightUnread: false });
         return;
     } catch (failure) {
@@ -613,6 +614,7 @@ function showFight(
     liveFight: LiveFight,
     readClock: (atMilliseconds: number) => { hour: number; minute: number } | null,
     defects: readonly string[],
+    keeper: KeptDefects,
 ): boolean {
     const { place, openedAt } = liveFight;
     const live = composeFightFigures(session);
@@ -628,6 +630,7 @@ function showFight(
         fight.readerSide,
         { messagesLost: fight.messagesLost, hasJoinedInProgress: fight.hasJoinedInProgress },
     );
+    addFiguresDisagreed(keeper, reading);
     const { drill, pair, part, halfNamed, halfNamedDrill } = composeOpenedReadings(
         figures,
         screen,
@@ -669,6 +672,16 @@ function showFight(
         isCollapsed: screen.isCollapsed,
     });
     return true;
+}
+
+/**
+ * Two counts of one figure came out different, which is the one thing this panel can say about a
+ * drawn figure being wrong rather than short. `src/ui/panel-reading.ts` answers it; it was an
+ * assertion there until **ADR 0051**, and stopping the panel is what it used to cost.
+ */
+function addFiguresDisagreed(keeper: KeptDefects, reading: PanelReading): void {
+    if (!reading.hasFiguresDisagreed) return;
+    keeper.add("figures", null, "two counts of one figure came out different");
 }
 
 interface OpenedReadings {
