@@ -84,7 +84,7 @@ export const CLASS = {
     rowPinSet: "pinned",
     rowValue: "row-value",
     rowShare: "row-share",
-    rowWarning: "row-warning",
+    rowSuspect: "row-suspect",
     bar: "bar",
     barCap: "bar-cap",
     /** Worn by every cell that carries a figure, wherever in the panel it stands. */
@@ -92,8 +92,8 @@ export const CLASS = {
     pinned: "pinned-region",
     empty: "empty",
     undrawn: "undrawn",
-    warnings: "warnings",
-    warning: "warning",
+    suspicions: "suspicions",
+    suspicion: "suspicion",
     defects: "defects",
     defect: "defect",
     sides: "MargoMeter-sides",
@@ -117,7 +117,7 @@ export const CLASS = {
     tipValue: "tip-value",
     /** A sentence rather than a column, so the placement counts it as wrapping. */
     tipNote: "tip-note",
-    tipWarning: "tip-warning",
+    tipSuspect: "tip-suspect",
 } as const;
 
 export const SPACE = {
@@ -516,9 +516,9 @@ function composeListRules(): string {
         `.${CLASS.sidesTheirs}{color:var(${VARIABLE_PREFIX}theirs);}` +
         `.${CLASS.sidesNobody}{color:var(${VARIABLE_PREFIX}nobody);}` +
         `.${CLASS.sidesTrack}>*{background:currentColor;}` +
-        `.${CLASS.warnings}{border-top:1px solid var(${VARIABLE_PREFIX}border);` +
+        `.${CLASS.suspicions}{border-top:1px solid var(${VARIABLE_PREFIX}border);` +
         `padding-top:var(${VARIABLE_PREFIX}region-down);}` +
-        `.${CLASS.warning}{color:var(${VARIABLE_PREFIX}suspect);` +
+        `.${CLASS.suspicion}{color:var(${VARIABLE_PREFIX}suspect);` +
         `padding:0 var(${VARIABLE_PREFIX}region-across) var(${VARIABLE_PREFIX}region-down);}` +
         `.${CLASS.defects}{border-top:1px solid var(${VARIABLE_PREFIX}border);` +
         `padding-top:var(${VARIABLE_PREFIX}region-down);}` +
@@ -552,8 +552,8 @@ function composeRowRules(): string {
         `white-space:nowrap;flex:1;}` +
         // Before the name and never in place of it: the name is the cell that shortens, and a
         // mark taking width from it every row would be the cost ADR 0023 refused. This one is
-        // drawn on the rows a doubt reaches, which is none of the rows in `captures/`.
-        `.${CLASS.rowWarning}{position:relative;color:var(${VARIABLE_PREFIX}suspect);flex:none;` +
+        // drawn on the rows a suspicion reaches, which is none of the rows in `captures/`.
+        `.${CLASS.rowSuspect}{position:relative;color:var(${VARIABLE_PREFIX}suspect);flex:none;` +
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.rowSize}{flex:none;padding-right:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.row}.${CLASS.rowChosen}{box-shadow:inset 3px 0 0 var(${VARIABLE_PREFIX}text);}` +
@@ -624,7 +624,7 @@ function composeTipRules(): string {
         `font-size:10px;text-transform:uppercase;overflow:hidden;` +
         `text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipNote}{color:var(${VARIABLE_PREFIX}quiet);}` +
-        `.${CLASS.tipNote}.${CLASS.tipWarning}{color:var(${VARIABLE_PREFIX}suspect);}`;
+        `.${CLASS.tipNote}.${CLASS.tipSuspect}{color:var(${VARIABLE_PREFIX}suspect);}`;
 }
 
 /**

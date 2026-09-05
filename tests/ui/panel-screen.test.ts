@@ -9,7 +9,7 @@
 import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import { composePanelReading, NOTHING_MISSED } from "@/src/ui/panel-reading.ts";
+import { composePanelReading, NOTHING_SUSPECT } from "@/src/ui/panel-reading.ts";
 import {
     composeDirectionTabs,
     composeListName,
@@ -33,7 +33,7 @@ Deno.test("every screen names a figure a reading can be composed for", () => {
             screen,
             "everyone",
             null,
-            NOTHING_MISSED,
+            NOTHING_SUSPECT,
         );
         assertEquals(reading.total, 0, `${screen} composes, and an empty fight totals nothing`);
     }

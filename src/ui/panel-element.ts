@@ -28,7 +28,7 @@ import type {
     SkillRow,
     UnnamedRow,
 } from "@/src/ui/panel-reading.ts";
-import { getEndForPinned, getRowHasDoubt } from "@/src/ui/panel-reading.ts";
+import { getEndForPinned, getRowIsSuspect } from "@/src/ui/panel-reading.ts";
 import {
     composeDirectionTabs,
     composeNounTabs,
@@ -75,8 +75,8 @@ import {
     NEITHER_END_WORDS,
     PANEL_WORDS,
     type PanelRegion,
+    SUSPECT_MARK,
     type TranslateLabel,
-    WARNING_MARK,
 } from "@/src/ui/panel-words.ts";
 import {
     composeTipLeft,
@@ -294,7 +294,7 @@ interface RowReading {
     rank: number | null;
     uses?: number | null | undefined;
     /** Whether this row's own figure is short of something. Only a person's row can be. */
-    hasDoubt?: boolean | undefined;
+    isSuspect?: boolean | undefined;
 }
 
 /**
@@ -320,7 +320,7 @@ function composeBarElements(document: PanelDocument, reading: RowReading): Panel
  */
 interface CardPlace {
     metric: PanelMetric;
-    warnings: readonly string[];
+    suspicions: readonly string[];
     translate: TranslateLabel | null;
     isRowNarrower: boolean;
 }
@@ -342,7 +342,7 @@ function composePersonCard(
             profession: row.profession,
             detail: row.detail,
             metric: place.metric,
-            warnings: place.warnings,
+            suspicions: place.suspicions,
             opens,
             isRowNarrower: place.isRowNarrower,
             translate: place.translate,
@@ -370,9 +370,9 @@ function composeRowTipReading(reading: RowReading, tip: RowTip, opens: boolean):
     }
     const said: TipLine[] = [];
     for (const note of tip.notes ?? []) {
-        said.push({ kind: "note", text: note, isWarning: false });
+        said.push({ kind: "note", text: note, isSuspect: false });
     }
-    if (opens) said.push({ kind: "note", text: CARD_WORDS.gesture, isWarning: false });
+    if (opens) said.push({ kind: "note", text: CARD_WORDS.gesture, isSuspect: false });
     const cut = composeRowTipCutLines(tip.cut);
     // One group where there is nothing to divide. A rule drawn between two lines and the two
     // sentences under them is a card cut in half for the sake of it, and every row but a pinned
@@ -413,9 +413,9 @@ function composeRowElement(
     parts.push(rank);
     // Built only where there is one to build: this runs per row per redraw, and a node made to be
     // thrown away is a cost paid a fight's worth of times.
-    if (reading.hasDoubt === true) {
-        const mark = composeElement(document, "span", CLASS.rowWarning);
-        mark.textContent = WARNING_MARK;
+    if (reading.isSuspect === true) {
+        const mark = composeElement(document, "span", CLASS.rowSuspect);
+        mark.textContent = SUSPECT_MARK;
         parts.push(mark);
     }
     const name = composeElement(document, "span", CLASS.rowName);
@@ -452,7 +452,7 @@ function composeCombatantReading(
         colour: getColourForProfession(row.profession),
         profession: row.profession,
         rank,
-        hasDoubt: getRowHasDoubt(row.detail, metric),
+        isSuspect: getRowIsSuspect(row.detail, metric),
     };
 }
 
@@ -708,7 +708,7 @@ function composeRankingElement(
             share: PANEL_WORDS.share,
             compose: composePersonCard(
                 row,
-                { metric, warnings: reading.warnings, translate, isRowNarrower: false },
+                { metric, suspicions: reading.suspicions, translate, isRowNarrower: false },
                 true,
             ),
         };
@@ -987,7 +987,7 @@ function composeDrillElement(
     const figure = getWordsForScreen(view.current);
     const place: CardPlace = {
         metric: view.current,
-        warnings: view.reading.warnings,
+        suspicions: view.reading.suspicions,
         translate,
         isRowNarrower: true,
     };
@@ -1122,7 +1122,7 @@ export interface PanelView {
     hasReaderSide: boolean;
     shelf: readonly ShelfRow[];
     storage: PanelStorageChoice;
-    shelfWarnings: readonly string[];
+    shelfAnswers: readonly string[];
     /**
      * What the panel could not do, said once per kind — `src/ui/panel-defect.ts` owns the tally.
      * Read off the keeper before a draw begins, so a defect this draw records is said at the next
@@ -1285,7 +1285,7 @@ function composeHalfNamedRows(
     // states a cut of them — so it owes the sentence saying so (**ADR 0032**).
     const place: CardPlace = {
         metric: view.current,
-        warnings: view.reading.warnings,
+        suspicions: view.reading.suspicions,
         translate,
         isRowNarrower: true,
     };
@@ -1333,7 +1333,7 @@ function composePartElement(
     // Nothing on this rung opens, so no card here promises a gesture (`docs/drill-levels.md`).
     const place: CardPlace = {
         metric: view.current,
-        warnings: view.reading.warnings,
+        suspicions: view.reading.suspicions,
         translate,
         isRowNarrower: true,
     };
@@ -1602,7 +1602,7 @@ interface PanelRegions {
     pinnedActor: PanelElement;
     pinnedTarget: PanelElement;
     sides: PanelElement;
-    warnings: PanelElement;
+    suspicions: PanelElement;
     defects: PanelElement;
 }
 
@@ -1618,7 +1618,7 @@ function composePanelRegions(document: PanelDocument): PanelRegions {
         pinnedActor: composeSlotElement(document),
         pinnedTarget: composeSlotElement(document),
         sides: composeSlotElement(document),
-        warnings: composeSlotElement(document),
+        suspicions: composeSlotElement(document),
         defects: composeSlotElement(document),
     };
     return regions;
@@ -1655,7 +1655,7 @@ function composePanelFrame(document: PanelDocument, regions: PanelRegions): Pane
         panel.append(region);
     }
     panel.append(regions.sides);
-    panel.append(regions.warnings);
+    panel.append(regions.suspicions);
     panel.append(regions.defects);
     frame.append(panel);
     return frame;
@@ -1851,7 +1851,11 @@ function setPanelFolded(
         () => composeSlotElement(document),
     );
     regions.sides = redraw(regions.sides, "sides", () => composeSlotElement(document));
-    regions.warnings = redraw(regions.warnings, "warnings", () => composeSlotElement(document));
+    regions.suspicions = redraw(
+        regions.suspicions,
+        "suspicions",
+        () => composeSlotElement(document),
+    );
     regions.defects = redraw(regions.defects, "defects", () => composeSlotElement(document));
 }
 
@@ -1895,13 +1899,13 @@ function setPanelBody(
         if (!hasSides) return composeSlotElement(document);
         return composeSidesElement(document, view);
     });
-    regions.warnings = redraw(
-        regions.warnings,
-        "warnings",
+    regions.suspicions = redraw(
+        regions.suspicions,
+        "suspicions",
         () =>
-            composeWarningsElement(
+            composeSuspicionsElement(
                 document,
-                view.isOnShelf ? view.shelfWarnings : view.reading.warnings,
+                view.isOnShelf ? view.shelfAnswers : view.reading.suspicions,
             ),
     );
     // Last, and drawn on every screen: what the panel could not do is not about the fight, so it
@@ -1960,15 +1964,15 @@ function composeDefectsElement(
     return block;
 }
 
-function composeWarningsElement(
+function composeSuspicionsElement(
     document: PanelDocument,
-    warnings: readonly string[],
+    suspicions: readonly string[],
 ): PanelElement {
-    if (warnings.length === 0) return composeSlotElement(document);
-    const block = composeElement(document, "div", CLASS.warnings);
-    for (const warning of warnings) {
-        const line = composeElement(document, "div", CLASS.warning);
-        line.textContent = `${WARNING_MARK}${warning}`;
+    if (suspicions.length === 0) return composeSlotElement(document);
+    const block = composeElement(document, "div", CLASS.suspicions);
+    for (const suspicion of suspicions) {
+        const line = composeElement(document, "div", CLASS.suspicion);
+        line.textContent = `${SUSPECT_MARK}${suspicion}`;
         block.append(line);
     }
     return block;

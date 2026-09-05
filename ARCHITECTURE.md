@@ -365,7 +365,7 @@ One contract is this document's own, because it is about attribution rather than
   short without ever saying by how much. A gap naming nobody stays in the fight's own summary. A cut
   of a figure never carries one — a shortfall cannot be placed onto one opponent or one skill, so
   the mark rides the combatant's own row at every level. `[ASK]` before a third kind of gap joins
-  the two that exist: a gap placed on a row it was not named for is a guess wearing a warning's
+  the two that exist: a gap placed on a row it was not named for is a guess wearing a suspicion's
   clothes.
 
 Three severities, and a fourth is `[ASK]`: **suspect**, **undrawn** and **defect** (`CONTEXT.md`).
@@ -490,15 +490,15 @@ commit that opens or closes one.
    and reloads it on a change under `src/`, `deno task preview:site` writes the same page down for
    somebody with no clone, `deno task panel:shots` photographs it, and `deno task capture:intake`
    redacts a recording and admits it to `captures/`. The header says how the fight went, the strip
-   under the list totals the two sides and what belongs to neither, a doubt is said as a sentence
-   under it and again on every card, a row whose own figure a doubt reaches wears a mark with that
-   row's own sentence on its card, and the panel is moved by its bar and comes back where it was
-   left, with the list standing at the place the reader scrolled it to (**ADR 0050**). Which rows of
-   all that open and which are the last is `docs/drill-levels.md`'s to say, measured rather than
-   claimed here. The card that says what a combatant's figures are made of is written, and so are
-   both of its runs, on every screen and each under the heading naming its end: the criticals
-   against the blows struck, the hardest blow, what fired beside one and what it destroyed on the
-   other side, what a defence stopped, cut by the defence (**ADR 0032**), and the turns that
+   under the list totals the two sides and what belongs to neither, a suspicion is said as a
+   sentence under it and again on every card, a row whose own figure a suspicion reaches wears a
+   mark with that row's own sentence on its card, and the panel is moved by its bar and comes back
+   where it was left, with the list standing at the place the reader scrolled it to (**ADR 0050**).
+   Which rows of all that open and which are the last is `docs/drill-levels.md`'s to say, measured
+   rather than claimed here. The card that says what a combatant's figures are made of is written,
+   and so are both of its runs, on every screen and each under the heading naming its end: the
+   criticals against the blows struck, the hardest blow, what fired beside one and what it destroyed
+   on the other side, what a defence stopped, cut by the defence (**ADR 0032**), and the turns that
    combatant took with, under them, the ones a stun took away — each on a line of its own, and
    nothing divided by either (**ADR 0048**, **ADR 0049**). Two proc keys reach no row — `-tenacity`
    and `+superspell-dispel`, whose end article view,372 does not settle — and they are decoded and
@@ -528,8 +528,8 @@ commit that opens or closes one.
 5. **Every key in `captures/` is read, and no recording is short.** `healall_per` was the last, and
    ADR 0010 carries how a share stated about a whole side is sized onto its members. Measured over
    `captures/` on 2026-08-29: 115 casts across 22 recordings, every one of them whole, and no
-   message anywhere unread — so the doubt mark never fires on the material this repository holds. It
-   is held by probes only, and the next protocol change is what it exists for.
+   message anywhere unread — so the suspect mark never fires on the material this repository holds.
+   It is held by probes only, and the next protocol change is what it exists for.
 6. **A payload can move health with no message stating it.** Every comparison between the health the
    protocol states about a combatant and the movement decoded from its own messages agrees inside
    the reading's tolerance, bar three kinds: a killing blow landing more than the health that was

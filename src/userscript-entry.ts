@@ -93,11 +93,11 @@ import {
     type PanelViewport,
 } from "@/src/ui/panel-drag.ts";
 import {
-    CHOICE_REFUSED_WARNING,
+    CHOICE_REFUSED_ANSWER,
     composePlaceWords,
-    EVERY_SLOT_PINNED_WARNING,
-    STORE_MADE_ROOM_WARNING,
-    STORE_REFUSED_WARNING,
+    EVERY_SLOT_PINNED_ANSWER,
+    STORE_MADE_ROOM_ANSWER,
+    STORE_REFUSED_ANSWER,
 } from "@/src/ui/panel-words.ts";
 
 const FAILURE_LINE = "MargoMeter/Panel";
@@ -225,15 +225,20 @@ interface ShelfKeeper {
 }
 
 /** The four things that can go wrong with a shelf, of which at most three ever hold at once. */
-const MAXIMUM_SHELF_WARNINGS = 3;
+const MAXIMUM_SHELF_ANSWERS = 3;
 
-function composeShelfWarnings(keeper: ShelfKeeper): string[] {
-    const warnings: string[] = [];
-    if (keeper.isEverySlotPinned) warnings.push(EVERY_SLOT_PINNED_WARNING);
-    if (keeper.hasStoreRefused) warnings.push(STORE_REFUSED_WARNING);
-    if (keeper.hasStoreMadeRoom) warnings.push(STORE_MADE_ROOM_WARNING);
-    if (keeper.hasChoiceRefused) warnings.push(CHOICE_REFUSED_WARNING);
-    return warnings.slice(0, MAXIMUM_SHELF_WARNINGS);
+/**
+ * What the store answered, which is not a suspicion: a refusal is an answer (**E5**), and the
+ * figures it stands beside are whole. They share the block and the glyph because both say a thing
+ * the reader would otherwise have to notice was missing.
+ */
+function composeShelfAnswers(keeper: ShelfKeeper): string[] {
+    const answers: string[] = [];
+    if (keeper.isEverySlotPinned) answers.push(EVERY_SLOT_PINNED_ANSWER);
+    if (keeper.hasStoreRefused) answers.push(STORE_REFUSED_ANSWER);
+    if (keeper.hasStoreMadeRoom) answers.push(STORE_MADE_ROOM_ANSWER);
+    if (keeper.hasChoiceRefused) answers.push(CHOICE_REFUSED_ANSWER);
+    return answers.slice(0, MAXIMUM_SHELF_ANSWERS);
 }
 
 /**
@@ -688,7 +693,7 @@ function showFight(
             (one) => shelf.readFigures(one),
         ),
         storage: shelf.choice,
-        shelfWarnings: composeShelfWarnings(shelf),
+        shelfAnswers: composeShelfAnswers(shelf),
         defects,
         isOnShelf: screen.isOnShelf,
         drill,

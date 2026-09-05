@@ -26,7 +26,7 @@ import {
     type HalfNamedOpened,
     type HalfNamedReading,
     type NamedPart,
-    NOTHING_MISSED,
+    NOTHING_SUSPECT,
     type PanelMetric,
     type PinnedCase,
 } from "@/src/ui/panel-reading.ts";
@@ -298,7 +298,7 @@ function addScreenToTally(tally: DrillTally, replay: FightReplay, screen: PanelM
         screen,
         "everyone",
         replay.reading.readerSide,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     // The one verdict no reading can answer: a ranking row's mark is written by the element layer
     // without asking anybody, so it is stated here and held against the drawn panel by
@@ -433,7 +433,7 @@ export function composeDrillReport(
             screen,
             "everyone",
             replay.reading.readerSide,
-            NOTHING_MISSED,
+            NOTHING_SUSPECT,
         );
         for (const row of reading.rows) {
             lines.push(...composeOpenedLines(replay, screen, row.combatantId));

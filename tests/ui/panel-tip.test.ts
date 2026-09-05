@@ -40,7 +40,7 @@ const HILDUR: TipReading = {
                 { kind: "stat", label: "Otrzymane", stated: "141 710", isStrong: false },
             ],
         },
-        { lines: [{ kind: "note", text: ONE_LINE_NOTE, isWarning: false }] },
+        { lines: [{ kind: "note", text: ONE_LINE_NOTE, isSuspect: false }] },
     ],
 };
 
@@ -113,16 +113,16 @@ Deno.test("a row with nothing further to say draws a name, and nobody hovered dr
     assertEquals(nothing.children.length, 0, "and says nothing at all");
 });
 
-Deno.test("a warning on the card wears the mark as well as the colour", () => {
+Deno.test("a suspicion on the card wears the mark as well as the colour", () => {
     const document = composeFakeDocument();
     const tip = composeTipElement(document, {
         ...HILDUR,
-        groups: [{ lines: [{ kind: "note", text: ONE_LINE_NOTE, isWarning: true }] }],
+        groups: [{ lines: [{ kind: "note", text: ONE_LINE_NOTE, isSuspect: true }] }],
     }) as FakeElement;
     assertEquals(
         getClassesByPrefix(tip, CLASS.tipNote),
-        [`${CLASS.tipNote} ${CLASS.tipWarning}`],
-        "a doubt is a note before it is a doubt, so the colour is never carrying it alone",
+        [`${CLASS.tipNote} ${CLASS.tipSuspect}`],
+        "a suspicion is a note before it is a suspicion, so the colour is never carrying it alone",
     );
 });
 
@@ -140,7 +140,7 @@ Deno.test("how tall a card stands is counted, and a note as the lines it wraps t
     );
     const wrapped = {
         ...HILDUR,
-        groups: [{ lines: [{ kind: "note" as const, text: TWO_LINE_NOTE, isWarning: false }] }],
+        groups: [{ lines: [{ kind: "note" as const, text: TWO_LINE_NOTE, isSuspect: false }] }],
     };
     assertEquals(
         getTipSize(wrapped),

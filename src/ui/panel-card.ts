@@ -5,7 +5,7 @@
 
 import { getRankedOrder } from "@/src/ui/ranked-order.ts";
 import {
-    composeRowWarnings,
+    composeRowSuspicions,
     type CutPart,
     type PanelMetric,
     type RowDetail,
@@ -21,8 +21,8 @@ import {
     getWordsForCardMetric,
     getWordsForDestroyed,
     PANEL_WORDS,
+    SUSPECT_MARK,
     type TranslateLabel,
-    WARNING_MARK,
 } from "@/src/ui/panel-words.ts";
 import { CRITICAL_PROC_KEYS } from "@/src/core/fight-decoder.ts";
 
@@ -31,7 +31,7 @@ export interface CardSubject {
     profession: string | null;
     detail: RowDetail;
     metric: PanelMetric;
-    warnings: readonly string[];
+    suspicions: readonly string[];
     opens: boolean;
     /**
      * Whether the row the card stands over states a narrower figure than the card does. True
@@ -52,9 +52,9 @@ interface CardFigure {
 }
 
 /** No screen draws more than two, and a card that carried a page of them is not a card. */
-const MAXIMUM_CARD_WARNINGS = 4;
+const MAXIMUM_CARD_SUSPICIONS_FROM_FIGHT = 4;
 /** The fight's four, plus the two of them that can be charged to the person the card is about. */
-const MAXIMUM_CARD_DOUBTS = 6;
+const MAXIMUM_CARD_SUSPICIONS = 6;
 /** Past the widest cut a card draws: fourteen worded procs, four destroyed, three defences. */
 const MAXIMUM_CARD_PARTS = 64;
 /** Counted in the line above it rather than beside it, so the card never says it twice. */
@@ -316,25 +316,25 @@ function getIsRawStated(detail: RowDetail): boolean {
 function composeCardNoteLines(subject: CardSubject): TipLine[] {
     const lines: TipLine[] = [];
     if (getIsRawStated(subject.detail)) {
-        lines.push({ kind: "note", text: CARD_WORDS.damageNote, isWarning: false });
+        lines.push({ kind: "note", text: CARD_WORDS.damageNote, isSuspect: false });
     }
     // This person's own first, and the fight's under them: the card is about the person, and the
     // mark on their row is what a reader followed here to have explained.
     const said = [
-        ...composeRowWarnings(subject.detail, subject.metric),
-        ...subject.warnings.slice(0, MAXIMUM_CARD_WARNINGS),
+        ...composeRowSuspicions(subject.detail, subject.metric),
+        ...subject.suspicions.slice(0, MAXIMUM_CARD_SUSPICIONS_FROM_FIGHT),
     ];
-    for (const warning of said.slice(0, MAXIMUM_CARD_DOUBTS)) {
-        if (warning.length === 0) continue;
-        lines.push({ kind: "note", text: `${WARNING_MARK}${warning}`, isWarning: true });
+    for (const suspicion of said.slice(0, MAXIMUM_CARD_SUSPICIONS)) {
+        if (suspicion.length === 0) continue;
+        lines.push({ kind: "note", text: `${SUSPECT_MARK}${suspicion}`, isSuspect: true });
     }
     // Last of the sentences and before the instruction, because it answers for every figure above
     // it rather than for one of them.
     if (subject.isRowNarrower) {
-        lines.push({ kind: "note", text: CARD_WORDS.scope, isWarning: false });
+        lines.push({ kind: "note", text: CARD_WORDS.scope, isSuspect: false });
     }
     if (subject.opens) {
-        lines.push({ kind: "note", text: CARD_WORDS.gesture, isWarning: false });
+        lines.push({ kind: "note", text: CARD_WORDS.gesture, isSuspect: false });
     }
     return lines;
 }

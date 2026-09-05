@@ -10,7 +10,7 @@
 import { assert, assertArrayIncludes, assertEquals } from "@std/assert";
 import { composeFakeDocument, type FakeElement, getElementsWithin } from "@/tests/fake-document.ts";
 import { composePanelHost } from "@/src/ui/panel-element.ts";
-import { composePanelReading, NOTHING_MISSED } from "@/src/ui/panel-reading.ts";
+import { composePanelReading, NOTHING_SUSPECT } from "@/src/ui/panel-reading.ts";
 import {
     composeCaseReport,
     composeDrillCases,
@@ -162,7 +162,7 @@ Deno.test("every row of every ranking carries the mark that opens it", () => {
             screen,
             "everyone",
             replay.reading.readerSide,
-            NOTHING_MISSED,
+            NOTHING_SUSPECT,
         );
         const document = composeFakeDocument();
         const panel = composePanelHost(document, () => {}, () => {});
@@ -175,7 +175,7 @@ Deno.test("every row of every ranking carries the mark that opens it", () => {
             shelf: [],
             isOnShelf: false,
             storage: "local" as const,
-            shelfWarnings: [],
+            shelfAnswers: [],
             defects: [],
             drill: null,
             pair: null,

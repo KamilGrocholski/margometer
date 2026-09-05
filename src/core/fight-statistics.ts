@@ -171,13 +171,13 @@ export interface CombatantFigures {
      */
     statisticsDestroyed: Map<string, number>;
     /**
-     * This combatant's own share of the two doubts the fight-wide counts below hold: messages
+     * This combatant's own share of the two suspicions the fight-wide counts below hold: messages
      * left unread that **named them**, and casts of theirs nobody could size onto a side.
      *
      * ⚠️ **Neither sums to the count of the same name on `FightStatistics`, and neither is meant
      * to.** One unread message may name both ends, so it stands on two rows and is one message;
      * a cast whose caster went unread stands on no row at all. What these answer is whose figure
-     * a doubt qualifies, which is a different question from how much of the fight went unread —
+     * a suspicion qualifies, which is a different question from how much of the fight went unread —
      * so `composeTotals` leaves them out.
      */
     unreadMessages: number;
@@ -984,7 +984,7 @@ function addUnplacedCast(build: StatisticsBuild, casterId: number | null): void 
     assert(Number.isSafeInteger(casterId), "a cast is charged to somebody the protocol named");
     const figures = getFiguresForCombatant(build.byCombatantId, casterId);
     figures.castsUnplaced += 1;
-    assert(figures.castsUnplaced > 0, "a doubt charged to a row is one the row now carries");
+    assert(figures.castsUnplaced > 0, "a suspicion charged to a row is one the row now carries");
 }
 
 /**
@@ -999,8 +999,8 @@ function addTeamHeal(
     if (heal === undefined) {
         build.castsUnplaced += 1;
         // The announcement is the only place a caster is stated for a cast nobody could size: the
-        // sizing is what would otherwise have named one. Where nothing announced it, the doubt is
-        // the fight's and stands on no row.
+        // sizing is what would otherwise have named one. Where nothing announced it, the
+        // suspicion is the fight's and stands on no row.
         addUnplacedCast(build, announced?.actorId ?? null);
         return;
     }

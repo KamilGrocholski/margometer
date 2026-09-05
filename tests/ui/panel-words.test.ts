@@ -11,13 +11,13 @@ import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import {
     composeCountedNoun,
     composeFigureText,
-    composeJoinedInProgressWarning,
-    composeLostMessageWarning,
+    composeJoinedInProgressSuspicion,
+    composeLostMessageSuspicion,
     composePlaceWords,
     composeShareText,
     composeShareTexts,
-    composeUnplacedHealWarning,
-    composeUnreadWarning,
+    composeUnplacedHealSuspicion,
+    composeUnreadSuspicion,
     composeUsesText,
     COUNTED_NOUNS,
     getWordsForHealthSource,
@@ -62,13 +62,13 @@ function getSentences(): string[] {
         found.push(getWordsForPinnedScope(kase));
     }
     found.push(NEITHER_END_WORDS.label, NEITHER_END_WORDS.note);
-    // The four a doubt is said in. They are composed rather than declared, so a table of the
+    // The four a suspicion is said in. They are composed rather than declared, so a table of the
     // panel's words does not reach them and the guards below would read past every one.
-    found.push(composeJoinedInProgressWarning());
+    found.push(composeJoinedInProgressSuspicion());
     for (const count of [1, 2, 5]) {
-        found.push(composeLostMessageWarning(count));
-        found.push(composeUnreadWarning(count));
-        found.push(composeUnplacedHealWarning(count));
+        found.push(composeLostMessageSuspicion(count));
+        found.push(composeUnreadSuspicion(count));
+        found.push(composeUnplacedHealSuspicion(count));
     }
     return found;
 }
@@ -276,11 +276,11 @@ Deno.test("a key health moved under is worded, and one nobody named travels as w
     }
 });
 
-Deno.test("a doubt about what never arrived counts in all three Polish forms", () => {
-    assertStringIncludes(composeLostMessageWarning(1), "1 wiadomość", "one takes the first form");
-    assertStringIncludes(composeLostMessageWarning(2), "2 wiadomości", "two takes the second");
-    assertStringIncludes(composeLostMessageWarning(5), "5 wiadomości", "and five the third");
+Deno.test("a suspicion about what never arrived counts in all three Polish forms", () => {
+    assertStringIncludes(composeLostMessageSuspicion(1), "1 wiadomość", "one takes the first form");
+    assertStringIncludes(composeLostMessageSuspicion(2), "2 wiadomości", "two takes the second");
+    assertStringIncludes(composeLostMessageSuspicion(5), "5 wiadomości", "and five the third");
     // Nothing to warn about is nothing said. The empty sentence is dropped where it is drawn,
     // rather than stopping the draw it arrived in — **E14**, ADR 0051.
-    assertEquals(composeLostMessageWarning(0), "", "and nothing lost is nothing to say");
+    assertEquals(composeLostMessageSuspicion(0), "", "and nothing lost is nothing to say");
 });

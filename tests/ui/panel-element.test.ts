@@ -25,7 +25,7 @@ import {
     composePairReading,
     composePanelReading,
     composePartReading,
-    NOTHING_MISSED,
+    NOTHING_SUSPECT,
     type PanelMetric,
     type PanelReading,
     type PinnedRow,
@@ -56,7 +56,7 @@ import {
     getWordsForUnannounced,
     getWordsForUnnamedEnd,
     PANEL_WORDS,
-    WARNING_MARK,
+    SUSPECT_MARK,
 } from "@/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
@@ -99,7 +99,7 @@ function readFight(): PanelReading {
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
 }
 
@@ -113,7 +113,7 @@ function openFirstRow() {
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const first = reading.rows[0];
     assertExists(first, "there is a row to open");
@@ -138,7 +138,7 @@ function readPinnedFight(
         metric,
         choice,
         readerSide,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     return { reading, statistics, roster, readerSide };
 }
@@ -154,7 +154,7 @@ function composeShownView(reading: PanelReading, metric: PanelMetric = "damageDe
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: null,
         pair: null,
@@ -208,7 +208,7 @@ function draw(reading: PanelReading, defects: readonly string[] = []): FakeEleme
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects,
         drill: null,
         pair: null,
@@ -282,7 +282,7 @@ Deno.test("the side strip is drawn where the client said which side is the reade
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: null,
         pair: null,
@@ -326,7 +326,7 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
         shelf: [],
         isOnShelf: true,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: null,
         pair: null,
@@ -403,7 +403,7 @@ Deno.test("a fight nothing has happened in says so, rather than drawing nothing"
         unplaced: 0,
         total: 0,
         pinned: [],
-        warnings: [],
+        suspicions: [],
         hasFiguresDisagreed: false,
         sides: null,
         visibleRows: 11,
@@ -529,7 +529,7 @@ Deno.test("a pinned row on a healing screen heads its run with the key, not the 
         "healthGiven",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const held = readPinnedCard(reading, "healthGiven", "everyone");
     assertEquals(held.card.headings, [PANEL_WORDS.healthSource], "the key is what put it back");
@@ -569,7 +569,7 @@ Deno.test("a pinned row with more kinds than the card holds sums the rest into o
         "damageTakenApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const held = readPinnedCard(reading, "damageTakenApplied", "everyone");
     assertEquals(held.pinned.kinds.rows.length, keys.length, "the level holds every key of it");
@@ -685,7 +685,7 @@ Deno.test("an end left out inside an opened figure says what was left out, and n
     );
 });
 
-Deno.test("the fight is totalled in two figures, and a doubt is said under them", () => {
+Deno.test("the fight is totalled in two figures, and a suspicion is said under them", () => {
     const reading = readFight();
     const sides = { ours: 300, theirs: 700, nobody: 0 };
     const host = draw({ ...reading, sides });
@@ -704,7 +704,7 @@ Deno.test("the fight is totalled in two figures, and a doubt is said under them"
         "and a track split where the fight is split, with no segment for a part of nothing",
     );
     assertEquals(getTextsByClass(host, "sides-spare"), [], "and nothing said about no side");
-    assertEquals(getTextsByClass(host, "warning"), [], "nothing here is short, so none is said");
+    assertEquals(getTextsByClass(host, "suspicion"), [], "nothing here is short, so none is said");
 
     // Colour never carries a meaning alone: each figure stands beside its own label, in its own
     // fixed place, and the ink is what the segment of the track paints itself with.
@@ -733,39 +733,39 @@ Deno.test("what belongs to neither side is drawn as belonging to neither", () =>
     assertEquals(track?.children.length, 3, "and the track states it as a third segment");
 });
 
-Deno.test("a doubt about the reading is said under the strip, in words and once", () => {
+Deno.test("a suspicion about the reading is said under the strip, in words and once", () => {
     const reading = readFight();
     const said = "Nie udało się odczytać wszystkiego.";
-    const short = draw({ ...reading, warnings: [said] });
+    const short = draw({ ...reading, suspicions: [said] });
     assertEquals(
-        getTextsByClass(short, "warning"),
+        getTextsByClass(short, "suspicion"),
         [`⚠ ${said}`],
         "in words, behind a glyph, since colour never carries a meaning alone",
     );
     const list = getElementsWithin(short).find((one) => one.className === "list");
     assertExists(list, "the list is a region of its own");
-    const under = getElementsWithin(list).filter((one) => one.className === "warning");
-    assertEquals(under, [], "and the doubt is not a row, so it never scrolls away with one");
+    const under = getElementsWithin(list).filter((one) => one.className === "suspicion");
+    assertEquals(under, [], "and the suspicion is not a row, so it never scrolls away with one");
 });
 
 /**
- * A defect is a claim about the add-on and a doubt is a claim about the fight, so the panel keeps
- * them in two blocks. Collapsing them is how a reader learns to skip both — `CONTEXT.md`.
+ * A defect is a claim about the add-on and a suspicion is a claim about the fight, so the panel
+ * keeps them in two blocks. Collapsing them is how a reader learns to skip both — `CONTEXT.md`.
  */
-Deno.test("what the panel could not do stands apart from what it doubts", () => {
+Deno.test("what the panel could not do stands apart from what the reading leaves suspect", () => {
     const reading = readFight();
-    const doubt = "Nie udało się odczytać wszystkiego.";
+    const suspicion = "Nie udało się odczytać wszystkiego.";
     const defect = "Panel nie narysował listy.";
-    const host = draw({ ...reading, warnings: [doubt] }, [defect]);
+    const host = draw({ ...reading, suspicions: [suspicion] }, [defect]);
     assertEquals(
         getTextsByClass(host, "defect"),
         [`✖ ${defect}`],
         "in words, behind a glyph of its own, since colour never carries a meaning alone",
     );
     assertEquals(
-        getTextsByClass(host, "warning"),
-        [`⚠ ${doubt}`],
-        "and the doubt keeps its own block and its own glyph",
+        getTextsByClass(host, "suspicion"),
+        [`⚠ ${suspicion}`],
+        "and the suspicion keeps its own block and its own glyph",
     );
 });
 
@@ -809,11 +809,11 @@ Deno.test("a region that throws is marked in place, and said once however often 
 });
 
 /**
- * A doubt about one person goes on their row and nowhere else: a sentence under the list qualifies
- * every row on it, and a reader looking at one of them could not tell whether it meant theirs.
- * `DESIGN.md` — put a warning where its consequence is.
+ * A suspicion about one person goes on their row and nowhere else: a sentence under the list
+ * qualifies every row on it, and a reader looking at one of them could not tell whether it meant
+ * theirs. `DESIGN.md` — put a suspicion where its consequence is.
  */
-Deno.test("a doubt about one person is a mark on their row, and on nobody else's", () => {
+Deno.test("a suspicion about one person is a mark on their row, and on nobody else's", () => {
     const reading = readFight();
     const first = reading.rows[0];
     assertExists(first, "there is a row to mark");
@@ -825,18 +825,18 @@ Deno.test("a doubt about one person is a mark on their row, and on nobody else's
                 : row
         ),
     });
-    const marks = getElementsWithin(host).filter((one) => one.className === CLASS.rowWarning);
+    const marks = getElementsWithin(host).filter((one) => one.className === CLASS.rowSuspect);
     assertEquals(marks.length, 1, "one row wears it, out of a fight of eleven");
-    assertEquals(marks[0]?.textContent, WARNING_MARK, "as a glyph, never as a colour alone");
+    assertEquals(marks[0]?.textContent, SUSPECT_MARK, "as a glyph, never as a colour alone");
     assertEquals(
-        getTextsByClass(host, "warning"),
+        getTextsByClass(host, "suspicion"),
         [],
         "and nothing about it stands under the list",
     );
 
     const unmarked = draw(reading);
     assertEquals(
-        getElementsWithin(unmarked).filter((one) => one.className === CLASS.rowWarning),
+        getElementsWithin(unmarked).filter((one) => one.className === CLASS.rowSuspect),
         [],
         "a fight nothing went unread in draws no mark at all",
     );
@@ -875,7 +875,7 @@ Deno.test("a press on a tab reaches the panel, and a press on anything else does
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: null,
         pair: null,
@@ -912,7 +912,7 @@ Deno.test("a press on a side asks for that side, and on the shelf for the shelf"
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: null,
         pair: null,
@@ -997,7 +997,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: null,
         pair: null,
@@ -1047,7 +1047,7 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill,
         pair: null,
@@ -1153,7 +1153,7 @@ Deno.test("a kind's row carries a bar of its own, measured against its own cut",
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill,
         pair: null,
@@ -1205,7 +1205,7 @@ Deno.test("a part of a figure no kind was stated for is drawn last, under the ki
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         // Health that went down outside a blow, which the protocol states carrying no kind.
         drill: {
@@ -1243,7 +1243,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: null,
         pair: null,
@@ -1269,7 +1269,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill,
         pair: null,
@@ -1304,7 +1304,7 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: null,
         pair: null,
@@ -1348,7 +1348,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: null,
         pair: null,
@@ -1412,7 +1412,7 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: null,
         pair: null,
@@ -1652,7 +1652,7 @@ Deno.test("a person inside an opened row opens the card the ranking opens", () =
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill,
         pair: null,
@@ -1724,7 +1724,7 @@ Deno.test("a person under an opened skill opens a card promising no gesture", ()
         "healthGiven",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const drill = composeDrillReading(statistics, roster, "healthGiven", HEALER);
     assertExists(drill, "the healer's row opens");
@@ -1744,7 +1744,7 @@ Deno.test("a person under an opened skill opens a card promising no gesture", ()
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill,
         pair: null,
@@ -1789,7 +1789,7 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill,
         pair: null,
@@ -1844,7 +1844,7 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
         }],
         isOnShelf: true,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: null,
         pair: null,
@@ -1937,7 +1937,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: null,
         pair: null,
@@ -2072,7 +2072,7 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
             screen,
             "everyone",
             null,
-            NOTHING_MISSED,
+            NOTHING_SUSPECT,
         );
         const first = reading.rows[0];
         assertExists(first, `${screen}: there is a row to open`);
@@ -2089,7 +2089,7 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
             shelf: [],
             isOnShelf: false,
             storage: "local" as const,
-            shelfWarnings: [],
+            shelfAnswers: [],
             defects: [],
             drill,
             pair: null,
@@ -2131,7 +2131,7 @@ Deno.test("a row opened on a screen its own figure is nothing on says so, about 
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         // The same person, carried onto a screen they did nothing on: one press of a strip away,
         // because the strips carry an opened row from screen to screen.
@@ -2166,7 +2166,7 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
             shelf: [],
             isOnShelf: false,
             storage: "local" as const,
-            shelfWarnings: [],
+            shelfAnswers: [],
             defects: [],
             drill: open,
             pair: null,
@@ -2236,7 +2236,7 @@ Deno.test("a cut that repeats the figure above it is drawn all the same", () => 
             shelf: [],
             isOnShelf: false,
             storage: "local" as const,
-            shelfWarnings: [],
+            shelfAnswers: [],
             defects: [],
             drill: open,
             pair: null,
@@ -2301,7 +2301,7 @@ Deno.test("a lone row of a section names what the heading over it never does", (
             shelf: [],
             isOnShelf: false,
             storage: "local" as const,
-            shelfWarnings: [],
+            shelfAnswers: [],
             defects: [],
             drill: open,
             pair: null,
@@ -2370,7 +2370,7 @@ Deno.test("a heading is its words and a figure, and says only what its level is 
         "healthGiven",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const opened = composeDrillReading(statistics, roster, "healthGiven", healer);
     assertExists(opened, "the healer's row opens");
@@ -2398,7 +2398,7 @@ Deno.test("a heading is its words and a figure, and says only what its level is 
             shelf: [],
             isOnShelf: false,
             storage: "local" as const,
-            shelfWarnings: [],
+            shelfAnswers: [],
             defects: [],
             halfNamed: null,
             halfNamedDrill: null,
@@ -2451,7 +2451,7 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         // Three blows that were all blocked are three blows: the row is drawn at nothing, and a
         // section that skipped it would say the combatant never swung.
@@ -2515,7 +2515,7 @@ Deno.test("a skill that opens asks for itself by name, wherever the press lands 
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: { ...drill, total: 1000, bySkill: { rows, plain: null } },
         pair: null,
@@ -2578,7 +2578,7 @@ Deno.test("every row in a list draws the same cells before its name", () => {
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         pair: null,
         part: null,
@@ -2622,7 +2622,7 @@ Deno.test("a healing section draws the key the game named, not a row saying it d
         "healthGiven",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const drill = composeDrillReading(statistics, roster, "healthGiven", 469657);
     assertExists(drill, "the healer's row opens");
@@ -2638,7 +2638,7 @@ Deno.test("a healing section draws the key the game named, not a row saying it d
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill,
         pair: null,
@@ -2683,7 +2683,7 @@ Deno.test("an opened healing pair draws its announcements and its keys as one se
         "healthGiven",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const drill = composeDrillReading(statistics, roster, "healthGiven", healer);
     assertExists(drill, "the healer's row opens");
@@ -2742,7 +2742,7 @@ Deno.test("a row that opens says so, and a row that does not says nothing of the
         "damageTakenApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const first = reading.rows[0];
     assertExists(first, "there is a row to open");
@@ -2804,7 +2804,7 @@ function composeNotesForOpenedRow(
         metric,
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const drill = composeDrillReading(statistics, roster, metric, combatantId);
     assertExists(drill, "the row opens");
@@ -2819,7 +2819,7 @@ function composeNotesForOpenedRow(
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill,
         pair: null,

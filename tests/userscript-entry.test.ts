@@ -1420,7 +1420,7 @@ Deno.test("a browser that will not keep the answer moves nothing, and says so", 
         "and the strip goes on saying where they are",
     );
     assertEquals(
-        getTextsByClass(host, "warning"),
+        getTextsByClass(host, "suspicion"),
         ["⚠ Przeglądarka nie zapisała tego wyboru — zostaje tak, jak było."],
         "which the shelf says outright rather than drawing a choice as taken",
     );
@@ -1495,11 +1495,11 @@ Deno.test("a fight the reader walked into says so on the panel", () => {
     assertExists(opening, "the recording opens with a payload");
     for (const payload of rest) update(payload);
     const host = shown[0] as FakeElement;
-    const getWarnings = () => {
-        return getElementsWithin(host).find((one) => one.className === "warnings");
+    const getSuspicions = () => {
+        return getElementsWithin(host).find((one) => one.className === "suspicions");
     };
-    const drawn = getWarnings();
-    assertExists(drawn, "the panel drew the region a doubt is said in");
+    const drawn = getSuspicions();
+    assertExists(drawn, "the panel drew the region a suspicion is said in");
     const said = getElementsWithin(drawn).map((one) => one.textContent ?? "").join(" ");
     assertStringIncludes(said, "w trakcie", "and says the reading began after the fight did");
 });

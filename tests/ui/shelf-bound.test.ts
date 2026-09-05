@@ -10,7 +10,7 @@
 import { assertEquals, assertStrictEquals } from "@std/assert";
 import { MAXIMUM_KEPT } from "@/src/game/kept-fights.ts";
 import { composePanelHost, MAXIMUM_SHELF_ROWS } from "@/src/ui/panel-element.ts";
-import { composePanelReading, NOTHING_MISSED, type ShelfRow } from "@/src/ui/panel-reading.ts";
+import { composePanelReading, NOTHING_SUSPECT, type ShelfRow } from "@/src/ui/panel-reading.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { composeFakeDocument } from "@/tests/fake-document.ts";
@@ -72,7 +72,7 @@ Deno.test("a full shelf with a fight still running draws, rather than going undr
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     panel.show({
         listName: "shelf",
@@ -83,7 +83,7 @@ Deno.test("a full shelf with a fight still running draws, rather than going undr
         shelf: rows,
         isOnShelf: true,
         storage: "local",
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: null,
         pair: null,

@@ -23,7 +23,7 @@ import {
     composePairReading,
     composePanelReading,
     composePartReading,
-    NOTHING_MISSED,
+    NOTHING_SUSPECT,
     type PanelMetric,
 } from "@/src/ui/panel-reading.ts";
 import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
@@ -170,7 +170,7 @@ function composeSectionsForScreen(
         metric,
         side,
         readerSide,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const found: Section[] = [{
         where: `${metric}/ranking`,

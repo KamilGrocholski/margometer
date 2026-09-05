@@ -319,7 +319,7 @@ Deno.test("a cast sized reaches the figures, and one nobody could place is count
 
 /**
  * The mark on a row answers *whose figure is short*, which the fight-wide count cannot: a reader
- * looking at one person had no way to ask whether the doubt under the list was about them.
+ * looking at one person had no way to ask whether the suspicion under the list was about them.
  */
 Deno.test("an unread message is charged to both of the ends it named, once each", () => {
     const events = decodeFightMessages([
@@ -337,7 +337,11 @@ Deno.test("a message naming one end twice charges that row once", () => {
     ], null);
     const statistics = composeFightStatistics(events, new Map());
     assertEquals(statistics.unreadMessages, 1, "one message");
-    assertEquals(statistics.byCombatantId.get(469657)?.unreadMessages, 1, "and one row's doubt");
+    assertEquals(
+        statistics.byCombatantId.get(469657)?.unreadMessages,
+        1,
+        "and one row's suspicion",
+    );
 });
 
 Deno.test("a message the grammar refuses is charged to nobody, because it named nobody", () => {

@@ -22,7 +22,7 @@ export interface CountedNoun {
     many: string;
 }
 
-export const WARNING_MARK = "⚠ ";
+export const SUSPECT_MARK = "⚠ ";
 
 export const DEFECT_MARK = "✖ ";
 
@@ -558,18 +558,17 @@ export function getWordsForStorage(choice: PanelStorageChoice): string {
     return words;
 }
 
-export const STORE_REFUSED_WARNING =
-    "Przeglądarka nie przyjęła tej walki — nie została zapisana. " +
+export const STORE_REFUSED_ANSWER = "Przeglądarka nie przyjęła tej walki — nie została zapisana. " +
     "Odepnij którąś, żeby zrobić miejsce.";
 
-export const STORE_MADE_ROOM_WARNING =
+export const STORE_MADE_ROOM_ANSWER =
     "Zabrakło miejsca w przeglądarce — najstarsze walki zostały usunięte, żeby zmieścić tę. " +
     "Przypnij te, które chcesz zachować.";
 
-export const EVERY_SLOT_PINNED_WARNING =
+export const EVERY_SLOT_PINNED_ANSWER =
     "Wszystkie miejsca są zajęte przez przypięte walki — ta się nie zapisała.";
 
-export const CHOICE_REFUSED_WARNING =
+export const CHOICE_REFUSED_ANSWER =
     "Przeglądarka nie zapisała tego wyboru — zostaje tak, jak było.";
 
 const LIVE_FIGHT_TIME = "teraz";
@@ -634,7 +633,7 @@ const MAXIMUM_THOUSAND_GROUPS = 5;
  * The count sits in an apposition rather than as the subject, so one sentence carries all three
  * Polish forms without the verb having to agree with the number.
  */
-export function composeUnreadWarning(count: number): string {
+export function composeUnreadSuspicion(count: number): string {
     if (count <= 0) return "";
     const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
     return `Nie udało się odczytać wszystkiego — ${said} bez odczytu, ` +
@@ -642,7 +641,7 @@ export function composeUnreadWarning(count: number): string {
 }
 
 /** The count sits in an apposition: under *nie dotarło* the verb would have to agree with it. */
-export function composeLostMessageWarning(count: number): string {
+export function composeLostMessageSuspicion(count: number): string {
     if (count <= 0) return "";
     const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
     return `Część walki nie dotarła do panelu — ${said} bez odbioru, ` +
@@ -650,12 +649,12 @@ export function composeLostMessageWarning(count: number): string {
 }
 
 /** No count: what happened before the reading began is stated nowhere. */
-export function composeJoinedInProgressWarning(): string {
+export function composeJoinedInProgressSuspicion(): string {
     return "Panel zaczął czytać tę walkę już w trakcie — nie widział jej początku, " +
         "więc liczby mogą być zaniżone.";
 }
 
-export function composeUnplacedHealWarning(count: number): string {
+export function composeUnplacedHealSuspicion(count: number): string {
     if (count <= 0) return "";
     const said = composeCountedNoun(count, COUNTED_NOUNS.heals);
     return `Nie da się rozdzielić leczenia drużyny — ${said} bez podziału, ` +
@@ -663,18 +662,18 @@ export function composeUnplacedHealWarning(count: number): string {
 }
 
 /**
- * The same two doubts, said about one person rather than about the fight — `DESIGN.md` puts a
- * warning where its consequence is. `postać` is feminine, so the possessive is `jej` whoever the
+ * The same two suspicions, said about one person rather than about the fight — `DESIGN.md` puts a
+ * suspicion where its consequence is. `postać` is feminine, so the possessive is `jej` whoever the
  * row stands for.
  */
-export function composeUnreadRowWarning(count: number): string {
+export function composeUnreadRowSuspicion(count: number): string {
     if (count <= 0) return "";
     const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
     return `Nie udało się odczytać wszystkiego z jej udziałem — ${said} bez odczytu, ` +
         "więc jej liczby mogą być zaniżone.";
 }
 
-export function composeUnplacedHealRowWarning(count: number): string {
+export function composeUnplacedHealRowSuspicion(count: number): string {
     if (count <= 0) return "";
     const said = composeCountedNoun(count, COUNTED_NOUNS.heals);
     return `Nie da się rozdzielić jej leczenia drużyny — ${said} bez podziału, ` +
@@ -688,7 +687,7 @@ export const REGION_WORDS = {
     list: "listy",
     pinned: "wiersza",
     sides: "podsumowania stron",
-    warnings: "ostrzeżenia",
+    suspicions: "ostrzeżenia",
     defects: "spisu usterek",
 } as const;
 

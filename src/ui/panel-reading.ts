@@ -25,14 +25,14 @@ import {
     type PanelSideChoice,
 } from "@/src/ui/panel-screen.ts";
 import {
-    composeJoinedInProgressWarning,
-    composeLostMessageWarning,
+    composeJoinedInProgressSuspicion,
+    composeLostMessageSuspicion,
     composeShareText,
     composeShareTexts,
-    composeUnplacedHealRowWarning,
-    composeUnplacedHealWarning,
-    composeUnreadRowWarning,
-    composeUnreadWarning,
+    composeUnplacedHealRowSuspicion,
+    composeUnplacedHealSuspicion,
+    composeUnreadRowSuspicion,
+    composeUnreadSuspicion,
 } from "@/src/ui/panel-words.ts";
 
 /** A fight holds twenty, and a list draws a row for each. */
@@ -114,7 +114,7 @@ export interface RowDetail {
     damagePreventedByDefence: readonly CutPart[];
     statisticsDestroyed: readonly CutPart[];
     /**
-     * This person's own share of the fight's two doubts, which is what puts a mark on their row
+     * This person's own share of the fight's two suspicions, which is what puts a mark on their row
      * rather than under the whole list (`src/core/fight-statistics.ts` says why neither sums to
      * the fight's own count).
      */
@@ -366,7 +366,7 @@ export interface PanelReading {
     unplaced: number;
     total: number;
     pinned: PinnedRow[];
-    warnings: string[];
+    suspicions: string[];
     /**
      * Whether two counts of one figure came out different — a drawn figure that is wrong rather
      * than short, which nothing else here can say. The entry turns it into a defect. **ADR 0051.**
@@ -382,12 +382,12 @@ function getFigure(figures: CombatantFigures, metric: PanelMetric): number {
 }
 
 /** What is short about the reading rather than about a figure on it. The session states both. */
-export interface FightDoubts {
+export interface FightSuspicions {
     messagesLost: number;
     hasJoinedInProgress: boolean;
 }
 
-export const NOTHING_MISSED: FightDoubts = { messagesLost: 0, hasJoinedInProgress: false };
+export const NOTHING_SUSPECT: FightSuspicions = { messagesLost: 0, hasJoinedInProgress: false };
 
 /** The list below is the bound, not anything a fight can do. */
 const MAXIMUM_WARNINGS = 4;
@@ -396,20 +396,22 @@ const ROW_WARNINGS = 2;
 
 /**
  * Widening to narrowing. The first three qualify every screen; a cast nobody could place puts back
- * health, so saying it on a damage screen would put a doubt on a figure that cannot carry it.
+ * health, so saying it on a damage screen would put a suspicion on a figure that cannot carry it.
  */
-function composeWarnings(
+function composeSuspicions(
     statistics: FightStatistics,
     metric: PanelMetric,
-    doubts: FightDoubts,
+    suspicions: FightSuspicions,
 ): string[] {
     const said: string[] = [];
-    if (doubts.hasJoinedInProgress) said.push(composeJoinedInProgressWarning());
-    if (doubts.messagesLost > 0) said.push(composeLostMessageWarning(doubts.messagesLost));
-    if (statistics.unreadMessages > 0) said.push(composeUnreadWarning(statistics.unreadMessages));
+    if (suspicions.hasJoinedInProgress) said.push(composeJoinedInProgressSuspicion());
+    if (suspicions.messagesLost > 0) {
+        said.push(composeLostMessageSuspicion(suspicions.messagesLost));
+    }
+    if (statistics.unreadMessages > 0) said.push(composeUnreadSuspicion(statistics.unreadMessages));
     const isHealing = metric === "healthRestored" || metric === "healthGiven";
     if (isHealing && statistics.castsUnplaced > 0) {
-        said.push(composeUnplacedHealWarning(statistics.castsUnplaced));
+        said.push(composeUnplacedHealSuspicion(statistics.castsUnplaced));
     }
     return said.slice(0, MAXIMUM_WARNINGS);
 }
@@ -419,24 +421,24 @@ function composeWarnings(
  *
  * The screen decides which of the two are owed for the same reason it decides the fight's own:
  * a cast nobody could place puts back health, so saying it beside a damage figure would be a
- * doubt over a figure that cannot carry it. Composed on demand, like a card's other words.
+ * suspicion over a figure that cannot carry it. Composed on demand, like a card's other words.
  */
-export function composeRowWarnings(detail: RowDetail, metric: PanelMetric): string[] {
+export function composeRowSuspicions(detail: RowDetail, metric: PanelMetric): string[] {
     const said: string[] = [];
-    if (detail.unreadMessages > 0) said.push(composeUnreadRowWarning(detail.unreadMessages));
+    if (detail.unreadMessages > 0) said.push(composeUnreadRowSuspicion(detail.unreadMessages));
     const isHealing = getNounForScreen(metric) === "healing";
     if (isHealing && detail.castsUnplaced > 0) {
-        said.push(composeUnplacedHealRowWarning(detail.castsUnplaced));
+        said.push(composeUnplacedHealRowSuspicion(detail.castsUnplaced));
     }
     return said.slice(0, ROW_WARNINGS);
 }
 
 /**
- * Whether the row wears the mark, which is the same question `composeRowWarnings` answers and
+ * Whether the row wears the mark, which is the same question `composeRowSuspicions` answers and
  * asked without composing a sentence: this runs per row per redraw and that runs when a pointer
  * stops on one.
  */
-export function getRowHasDoubt(detail: RowDetail, metric: PanelMetric): boolean {
+export function getRowIsSuspect(detail: RowDetail, metric: PanelMetric): boolean {
     if (detail.unreadMessages > 0) return true;
     if (getNounForScreen(metric) !== "healing") return false;
     return detail.castsUnplaced > 0;
@@ -1099,7 +1101,7 @@ export function composePanelReading(
     metric: PanelMetric,
     choice: PanelSideChoice,
     readerSide: number | null,
-    doubts: FightDoubts,
+    suspicions: FightSuspicions,
 ): PanelReading {
     const found = composeUnsharedRows(statistics, roster, metric).filter((row) =>
         getIsRowListed(row.side, choice, readerSide)
@@ -1135,7 +1137,7 @@ export function composePanelReading(
         ...composeHeadcount(statistics, roster, readerSide),
         total,
         pinned: composePinnedRows(pinned, shares.slice(listed.length), whole, largest),
-        warnings: composeWarnings(statistics, metric, doubts),
+        suspicions: composeSuspicions(statistics, metric, suspicions),
         sides,
         visibleRows: choice === "everyone" ? RANKING_ROWS : SIDE_ROWS,
     };

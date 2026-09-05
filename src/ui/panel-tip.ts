@@ -18,7 +18,7 @@ export type TipLine =
     | { kind: "stat"; label: string; stated: string; isStrong: boolean }
     | { kind: "sub"; label: string; stated: string }
     | { kind: "heading"; text: string }
-    | { kind: "note"; text: string; isWarning: boolean };
+    | { kind: "note"; text: string; isSuspect: boolean };
 
 export interface TipGroup {
     lines: TipLine[];
@@ -149,7 +149,7 @@ function composeTipNoteElement(
     line: Extract<TipLine, { kind: "note" }>,
 ): PanelElement {
     const element = document.createElement("div");
-    element.className = line.isWarning ? `${CLASS.tipNote} ${CLASS.tipWarning}` : CLASS.tipNote;
+    element.className = line.isSuspect ? `${CLASS.tipNote} ${CLASS.tipSuspect}` : CLASS.tipNote;
     element.textContent = line.text;
     return element;
 }

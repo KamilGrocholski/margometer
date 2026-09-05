@@ -16,7 +16,7 @@ import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-s
 import { composePanelHost, type PanelView } from "@/src/ui/panel-element.ts";
 import {
     composePanelReading,
-    NOTHING_MISSED,
+    NOTHING_SUSPECT,
     type PanelMetric,
     type PanelReading,
 } from "@/src/ui/panel-reading.ts";
@@ -85,7 +85,7 @@ function composeShownView(reading: PanelReading, metric: PanelMetric, side: Pane
         shelf: [],
         isOnShelf: false,
         storage: "local",
-        shelfWarnings: [],
+        shelfAnswers: [],
         defects: [],
         drill: null,
         pair: null,
@@ -136,7 +136,7 @@ Deno.test("a cast past the bound costs the smallest figures, and never the list"
         "damageDealtApplied",
         "everyone",
         readerSide,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     assertStrictEquals(reading.rows.length, MAXIMUM_COMBATANTS, "the list stays at its bound");
     assert(
@@ -153,7 +153,7 @@ Deno.test("a full cast with both ends unknown draws its rows and both unnamed on
         BOTH_ENDS_SCREEN,
         "everyone",
         readerSide,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     assertStrictEquals(reading.rows.length, MAXIMUM_COMBATANTS, "a row for everybody in it");
     assertEquals(
@@ -191,7 +191,7 @@ Deno.test("no screen and no side of the widest fight costs the reader a region",
                 metric,
                 side,
                 readerSide,
-                NOTHING_MISSED,
+                NOTHING_SUSPECT,
             );
             assert(reading.rows.length <= MAXIMUM_COMBATANTS, `${metric} ${side}: inside the cast`);
             const { host, failures } = drawShownView(composeShownView(reading, metric, side));

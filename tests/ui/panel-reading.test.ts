@@ -36,11 +36,11 @@ import {
     composePairReading,
     composePanelReading,
     composePartReading,
-    composeRowWarnings,
+    composeRowSuspicions,
     getPinnedCase,
-    getRowHasDoubt,
+    getRowIsSuspect,
     getTextForNamedPart,
-    NOTHING_MISSED,
+    NOTHING_SUSPECT,
 } from "@/src/ui/panel-reading.ts";
 import { getWordsForDamageKind, HEALTH_LOSS_WORDS } from "@/src/ui/panel-words.ts";
 import {
@@ -100,7 +100,7 @@ Deno.test("a screen shows every combatant, in the order the figures put them", (
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     assert(reading.rows.length >= roster.byId.size, "nobody in the fight is left off the screen");
     for (const [at, row] of reading.rows.entries()) {
@@ -126,7 +126,7 @@ Deno.test("two counts of one figure agreeing is what the reading says, and it sa
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     assertStrictEquals(agreed.hasFiguresDisagreed, false, "a real fight's two counts agree");
     // The count beside the sum moved, and nothing else did: the rows still add to what they added
@@ -137,7 +137,7 @@ Deno.test("two counts of one figure agreeing is what the reading says, and it sa
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     assertStrictEquals(moved.hasFiguresDisagreed, true, "and one that has moved is answered for");
     assert(moved.rows.length > 0, "while the screen is still drawn, rows and all");
@@ -151,7 +151,7 @@ Deno.test("a share is the row against the fight, and the shares come to one", ()
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     let fill = 0;
     for (const row of reading.rows) {
@@ -174,7 +174,7 @@ Deno.test("a combatant who did nothing is drawn at nothing, not left out", () =>
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const idle = reading.rows.filter((one) => one.figure === 0);
     assert(idle.length > 0, "in this fight somebody dealt no damage at all");
@@ -196,7 +196,7 @@ Deno.test("a fight that has just opened draws its whole cast at nothing", () => 
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     assertEquals(reading.rows.length, roster.byId.size, "everybody in the fight is on the screen");
     assertEquals(reading.total, 0, "and nothing has happened yet");
@@ -216,7 +216,7 @@ Deno.test("a figure nobody can be charged with stands apart from the rows", () =
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     assertEquals(dealt.pinned.length, 1, "the dealing side pins the end the protocol left out");
     assertEquals(dealt.pinned[0]?.end, "actor", "which on that screen is the actor");
@@ -228,7 +228,7 @@ Deno.test("a figure nobody can be charged with stands apart from the rows", () =
         "damageTakenApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     // Zero on this recording, which is the boundary the other side of the same rule: a figure of
     // nothing is not pinned at all, because a row saying nothing was lost states a loss.
@@ -248,10 +248,10 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     assertEquals(whole.statistics.unreadMessages, 0, "every key this fight carries is read");
-    assertEquals(readable.warnings, [], "so nothing on the screen is qualified");
+    assertEquals(readable.suspicions, [], "so nothing on the screen is qualified");
 
     // A probe, because no recording carries an unread key any more: the next protocol change is
     // what this mark exists for.
@@ -262,9 +262,9 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
         "healthRestored",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
-    assertEquals(short.warnings.length, 1, "a key nobody read qualifies the figure beside it");
+    assertEquals(short.suspicions.length, 1, "a key nobody read qualifies the figure beside it");
     for (const metric of SCREENS) {
         const any = composePanelReading(
             composeFightStatistics(events, new Map()),
@@ -272,9 +272,9 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
             metric,
             "everyone",
             null,
-            NOTHING_MISSED,
+            NOTHING_SUSPECT,
         );
-        assertEquals(any.warnings.length, 1, `${metric}: an unread key could carry anything`);
+        assertEquals(any.suspicions.length, 1, `${metric}: an unread key could carry anything`);
     }
 });
 
@@ -299,21 +299,21 @@ Deno.test("a cast nobody could place shortens the healing, and says so only ther
             metric,
             "everyone",
             null,
-            NOTHING_MISSED,
+            NOTHING_SUSPECT,
         );
         if (metric === "healthRestored" || metric === "healthGiven") {
             assertEquals(
-                reading.warnings.length,
+                reading.suspicions.length,
                 1,
                 "what a cast puts back is health, so both halves of it may be short",
             );
             continue;
         }
-        assertEquals(reading.warnings, [], `${metric}: a cast never shortens what it never fed`);
+        assertEquals(reading.suspicions, [], `${metric}: a cast never shortens what it never fed`);
     }
     assertEquals(
-        composePanelReading(statistics, roster, "healthRestored", "everyone", null, NOTHING_MISSED)
-            .warnings,
+        composePanelReading(statistics, roster, "healthRestored", "everyone", null, NOTHING_SUSPECT)
+            .suspicions,
         [],
         "and a fight whose casts all placed says nothing",
     );
@@ -329,7 +329,7 @@ Deno.test("every recording composes every screen without inventing a row", () =>
                 metric,
                 "everyone",
                 null,
-                NOTHING_MISSED,
+                NOTHING_SUSPECT,
             );
             const ids = new Set(reading.rows.map((one) => one.combatantId));
             assertEquals(ids.size, reading.rows.length, `${path}: a combatant drawn twice`);
@@ -350,7 +350,7 @@ Deno.test("an opened row states the same figure, cut by whom each blow reached",
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const first = reading.rows[0];
     assertExists(first, "there is a row to open");
@@ -378,7 +378,7 @@ Deno.test("the same figure is cut a second time, by the kind of damage each blow
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const first = reading.rows[0];
     assertExists(first, "there is a row to open");
@@ -549,7 +549,7 @@ Deno.test("a side lists that side alone, and the two sides together are everybod
         "damageDealtApplied",
         "everyone",
         readerSide,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const ours = composePanelReading(
         statistics,
@@ -557,7 +557,7 @@ Deno.test("a side lists that side alone, and the two sides together are everybod
         "damageDealtApplied",
         "reader",
         readerSide,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const theirs = composePanelReading(
         statistics,
@@ -565,7 +565,7 @@ Deno.test("a side lists that side alone, and the two sides together are everybod
         "damageDealtApplied",
         "opposing",
         readerSide,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     assert(ours.rows.length > 0, "somebody is on the reader's side");
     assert(theirs.rows.length > 0, "and somebody is opposite them");
@@ -584,7 +584,7 @@ Deno.test("a share on one side's list is a share of that side, and the shares co
         "damageDealtApplied",
         "reader",
         readerSide,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     let figure = 0;
     for (const row of ours.rows) figure += row.figure;
@@ -610,7 +610,7 @@ Deno.test("a side that did nothing on this screen is drawn, at nothing", () => {
         "damageDealtApplied",
         "reader",
         [...roster.byId.values()][0]?.side ?? 0,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     assert(empty.rows.length > 0, "the people are still on the list");
     assertEquals(empty.total, 0, "and the list totals nothing");
@@ -629,7 +629,7 @@ Deno.test("a reader whose own side nobody stated is shown everybody, whatever wa
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     for (const choice of ["reader", "opposing"] as const) {
         const reading = composePanelReading(
@@ -638,7 +638,7 @@ Deno.test("a reader whose own side nobody stated is shown everybody, whatever wa
             "damageDealtApplied",
             choice,
             null,
-            NOTHING_MISSED,
+            NOTHING_SUSPECT,
         );
         assertEquals(
             reading.rows.length,
@@ -669,7 +669,7 @@ Deno.test("a figure nobody can be charged with is shown under everybody and nowh
         "damageDealtApplied",
         "everyone",
         readerSide,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     assertEquals(everyone.pinned.map((one) => one.figure), [700], "under everybody it is drawn");
     for (const choice of ["reader", "opposing"] as const) {
@@ -679,7 +679,7 @@ Deno.test("a figure nobody can be charged with is shown under everybody and nowh
             "damageDealtApplied",
             choice,
             readerSide,
-            NOTHING_MISSED,
+            NOTHING_SUSPECT,
         );
         assertEquals(narrowed.pinned, [], `${choice}: no side is charged with it`);
     }
@@ -743,7 +743,7 @@ Deno.test("a pinned row is the whole of what stands under it, on every list", ()
                         metric,
                         choice,
                         readerSide,
-                        NOTHING_MISSED,
+                        NOTHING_SUSPECT,
                     );
                     for (const pinned of reading.pinned) {
                         const held = composeHalfNamedReading(
@@ -887,7 +887,7 @@ Deno.test("a pinned row carries the cut the level under it draws, on every recor
                 metric,
                 "everyone",
                 null,
-                NOTHING_MISSED,
+                NOTHING_SUSPECT,
             );
             for (const row of reading.pinned) {
                 const held = composeHalfNamedReading(
@@ -1027,7 +1027,7 @@ Deno.test("a one-side list divides by the figure the strip states for that side"
                         metric,
                         choice,
                         side,
-                        NOTHING_MISSED,
+                        NOTHING_SUSPECT,
                     );
                     const sides = reading.sides;
                     assertExists(sides, `${path}: a seat states two figures`);
@@ -1068,7 +1068,7 @@ Deno.test("what one side dealt with no striker named is what the other took from
                 "damageDealtApplied",
                 "reader",
                 side,
-                NOTHING_MISSED,
+                NOTHING_SUSPECT,
             );
             const taken = composePanelReading(
                 statistics,
@@ -1076,7 +1076,7 @@ Deno.test("what one side dealt with no striker named is what the other took from
                 "damageTakenApplied",
                 "opposing",
                 side,
-                NOTHING_MISSED,
+                NOTHING_SUSPECT,
             );
             const apart = dealt.pinned.find((one) => one.standing === "apart");
             const cut = taken.pinned.find((one) => one.standing === "cut");
@@ -1110,7 +1110,14 @@ Deno.test("a side charged with a point states it, one charged with none draws no
         new Map(),
     );
     const read = (statistics: typeof struck, choice: "reader" | "opposing") =>
-        composePanelReading(statistics, TWO_SIDES, "damageDealtApplied", choice, 1, NOTHING_MISSED);
+        composePanelReading(
+            statistics,
+            TWO_SIDES,
+            "damageDealtApplied",
+            choice,
+            1,
+            NOTHING_SUSPECT,
+        );
     assertEquals(read(struck, "reader").pinned.map((one) => one.figure), [1], "one point, stated");
     assertEquals(read(struck, "opposing").pinned, [], "and the side it is not charged to has none");
     const quiet = composeFightStatistics([], new Map());
@@ -1135,7 +1142,7 @@ Deno.test("a giver the protocol left out is charged to the side the health reach
         announced: null,
     }], new Map());
     const read = (metric: PanelMetric, choice: "reader" | "opposing") =>
-        composePanelReading(statistics, TWO_SIDES, metric, choice, 1, NOTHING_MISSED);
+        composePanelReading(statistics, TWO_SIDES, metric, choice, 1, NOTHING_SUSPECT);
     const given = read("healthGiven", "reader");
     assertEquals(given.pinned.map((one) => one.standing), ["apart"], "no row of ours holds it");
     assertEquals(given.pinned[0]?.figure, 500, "at the whole of the figure");
@@ -1155,7 +1162,7 @@ Deno.test("healing given is a screen of its own, and the two halves come to one 
         "healthGiven",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const received = composePanelReading(
         statistics,
@@ -1163,7 +1170,7 @@ Deno.test("healing given is a screen of its own, and the two halves come to one 
         "healthRestored",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     assert(given.total > 0, "somebody in this fight put health back");
     assertEquals(
@@ -1197,7 +1204,7 @@ Deno.test("healing no giver can be read for is apart on one screen and a cut on 
         announced: null,
     }], new Map());
     const read = (metric: PanelMetric) =>
-        composePanelReading(statistics, roster, metric, "everyone", null, NOTHING_MISSED);
+        composePanelReading(statistics, roster, metric, "everyone", null, NOTHING_SUSPECT);
     const given = read("healthGiven");
     assertEquals(given.pinned.map((one) => one.standing), ["apart"], "no row above it holds it");
     assertEquals(given.pinned[0]?.end, "actor", "and the end it could not name is the giver");
@@ -1237,7 +1244,7 @@ Deno.test("what reached somebody is cut by the skill's name, whoever announced i
         "healthRestored",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const first = received.rows[0];
     assertExists(first, "somebody in this fight was healed");
@@ -1311,7 +1318,7 @@ Deno.test("healing given and received come to one figure in every recording", ()
             "healthGiven",
             "everyone",
             null,
-            NOTHING_MISSED,
+            NOTHING_SUSPECT,
         );
         const received = composePanelReading(
             statistics,
@@ -1319,7 +1326,7 @@ Deno.test("healing given and received come to one figure in every recording", ()
             "healthRestored",
             "everyone",
             null,
-            NOTHING_MISSED,
+            NOTHING_SUSPECT,
         );
         assertEquals(
             given.total + (given.pinned[0]?.figure ?? 0),
@@ -1347,7 +1354,7 @@ Deno.test("a fight that ended says so from a seat, and says nothing without one"
             "damageDealtApplied",
             "everyone",
             side,
-            NOTHING_MISSED,
+            NOTHING_SUSPECT,
         ).outcome
     );
     assertEquals([...said].sort(), ["lost", "won"], "one seat won it and the other lost it");
@@ -1357,7 +1364,7 @@ Deno.test("a fight that ended says so from a seat, and says nothing without one"
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     // Not a loss and not a win: a fight the panel cannot place is not a fight it may call either.
     assertEquals(seatless.outcome, null, "a reader whose seat nobody stated is told nothing");
@@ -1376,7 +1383,7 @@ Deno.test("every recording states how it ended, and every seat in it reads a wor
                 "healthGiven",
                 "everyone",
                 side,
-                NOTHING_MISSED,
+                NOTHING_SUSPECT,
             );
             assertExists(reading.outcome, `${path}: a seat this fight named reads no word`);
             seats += 1;
@@ -1399,7 +1406,7 @@ Deno.test("a figure the rows already hold is a cut of them, not another part of 
         "damageTakenApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const cut = taken.pinned.find((one) => one.standing === "cut");
     assertExists(cut, "in this fight somebody was struck by nobody the game named");
@@ -1418,7 +1425,7 @@ Deno.test("a figure the rows already hold is a cut of them, not another part of 
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const apart = dealt.pinned.find((one) => one.standing === "apart");
     assertExists(apart, "the dealing side holds a figure no row above it does");
@@ -1437,7 +1444,7 @@ Deno.test("a pair states what passed between the two, and nothing that did not",
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const first = reading.rows[0];
     assertExists(first, "there is a row to open");
@@ -1527,7 +1534,7 @@ Deno.test("every person row inside an opened row opens onto the pair under it", 
         "damageTakenApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     let repeats = 0;
     let says = 0;
@@ -1705,7 +1712,7 @@ Deno.test("a healing pair says what passed between the two, and says it from bot
             metric,
             "everyone",
             null,
-            NOTHING_MISSED,
+            NOTHING_SUSPECT,
         );
         for (const row of reading.rows) {
             const drill = composeDrillReading(statistics, roster, metric, row.combatantId);
@@ -1925,19 +1932,19 @@ Deno.test("a reading short of its own start or of a message says so, on every sc
             messagesLost: 0,
             hasJoinedInProgress: true,
         });
-        assertEquals(joined.warnings.length, 1, `${metric}: a start nobody saw shortens it`);
+        assertEquals(joined.suspicions.length, 1, `${metric}: a start nobody saw shortens it`);
 
         const lost = composePanelReading(statistics, roster, metric, "everyone", null, {
             messagesLost: 3,
             hasJoinedInProgress: false,
         });
-        assertEquals(lost.warnings.length, 1, `${metric}: and so does a message that never came`);
+        assertEquals(lost.suspicions.length, 1, `${metric}: and so does a message that never came`);
 
         const whole = composePanelReading(statistics, roster, metric, "everyone", null, {
             messagesLost: 0,
             hasJoinedInProgress: false,
         });
-        assertEquals(whole.warnings, [], `${metric}: a reading missing neither says nothing`);
+        assertEquals(whole.suspicions, [], `${metric}: a reading missing neither says nothing`);
     }
 });
 
@@ -1954,21 +1961,21 @@ Deno.test("what shortens a reading is said before what shortens one figure on it
         { messagesLost: 2, hasJoinedInProgress: true },
     );
     assertEquals(
-        reading.warnings.length,
+        reading.suspicions.length,
         3,
         "three of the four, the fourth needing an unsized cast",
     );
-    assert(reading.warnings[0]?.includes("w trakcie"), "the start nobody saw comes first");
-    assert(reading.warnings[1]?.includes("nie dotarła"), "then what never arrived");
-    assert(reading.warnings[2]?.includes("odczytać"), "then what arrived and could not be read");
+    assert(reading.suspicions[0]?.includes("w trakcie"), "the start nobody saw comes first");
+    assert(reading.suspicions[1]?.includes("nie dotarła"), "then what never arrived");
+    assert(reading.suspicions[2]?.includes("odczytać"), "then what arrived and could not be read");
 });
 
 /**
- * The same two doubts, charged to the row they are about. A cast is the one that turns on the
+ * The same two suspicions, charged to the row they are about. A cast is the one that turns on the
  * screen: it puts back health, so beside a damage figure it would qualify a figure that cannot
- * carry it — which is the rule the fight's own warnings follow one level up.
+ * carry it — which is the rule the fight's own suspicions follow one level up.
  */
-Deno.test("a doubt about one person qualifies the screens their figure is on", () => {
+Deno.test("a suspicion about one person qualifies the screens their figure is on", () => {
     const { roster } = readFight(HILDUR);
     const events = decodeFightMessages([
         "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
@@ -1980,21 +1987,21 @@ Deno.test("a doubt about one person qualifies the screens their figure is on", (
         "healthGiven",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     const caster = reading.rows.find((row) => row.combatantId === 1);
     assertExists(caster, "the caster is on the list");
     assertEquals(caster.detail.castsUnplaced, 1, "carrying the cast nobody could place");
 
-    assert(getRowHasDoubt(caster.detail, "healthGiven"), "which marks their row where it counts");
-    assert(getRowHasDoubt(caster.detail, "healthRestored"), "on either healing screen");
-    assert(!getRowHasDoubt(caster.detail, "damageDealtApplied"), "and on neither damage one");
-    assert(!getRowHasDoubt(caster.detail, "damageTakenApplied"), "where it qualifies no figure");
+    assert(getRowIsSuspect(caster.detail, "healthGiven"), "which marks their row where it counts");
+    assert(getRowIsSuspect(caster.detail, "healthRestored"), "on either healing screen");
+    assert(!getRowIsSuspect(caster.detail, "damageDealtApplied"), "and on neither damage one");
+    assert(!getRowIsSuspect(caster.detail, "damageTakenApplied"), "where it qualifies no figure");
 
-    const said = composeRowWarnings(caster.detail, "healthGiven");
+    const said = composeRowSuspicions(caster.detail, "healthGiven");
     assertEquals(said.length, 1, "and the mark opens onto one sentence");
     assert(said[0]?.includes("jej leczenia"), "saying whose leczenie is short, not the fight's");
-    assertEquals(composeRowWarnings(caster.detail, "damageDealtApplied"), [], "and nothing else");
+    assertEquals(composeRowSuspicions(caster.detail, "damageDealtApplied"), [], "and nothing else");
 });
 
 Deno.test("a message that went unread marks the rows it named, on every screen", () => {
@@ -2008,13 +2015,13 @@ Deno.test("a message that went unread marks the rows it named, on every screen",
             metric,
             "everyone",
             null,
-            NOTHING_MISSED,
+            NOTHING_SUSPECT,
         );
-        const named = reading.rows.filter((row) => getRowHasDoubt(row.detail, metric));
+        const named = reading.rows.filter((row) => getRowIsSuspect(row.detail, metric));
         assertEquals(named.length, 2, `${metric}: the two ends the message named, and nobody else`);
         const first = named[0];
         assertExists(first, `${metric}: one of them is a row the panel draws`);
-        const said = composeRowWarnings(first.detail, metric);
+        const said = composeRowSuspicions(first.detail, metric);
         assert(said[0]?.includes("z jej udziałem"), `${metric}: the sentence says whose it is`);
     }
 });
@@ -2037,7 +2044,7 @@ Deno.test("a drawn fight reads the same from every seat, and from none", () => {
             "damageDealtApplied",
             "everyone",
             side,
-            NOTHING_MISSED,
+            NOTHING_SUSPECT,
         );
         assertEquals(reading.outcome, "drawn", `seat ${side}: a draw is nobody's win`);
     }
@@ -2057,7 +2064,7 @@ Deno.test("a row's card states the turns the figures hold, and not a count besid
         "damageDealtApplied",
         "everyone",
         null,
-        NOTHING_MISSED,
+        NOTHING_SUSPECT,
     );
     let differed = 0;
     for (const row of reading.rows) {

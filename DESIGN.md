@@ -14,8 +14,8 @@ competing for attention — the game is what the reader is looking at, and the p
 glance at between turns. Everything below follows from that: dark, dense, still, and legible at a
 glance without being loud.
 
-The visual system carries one job that ordinary design systems do not: **it has to show doubt**. A
-figure the protocol could not fully feed must be visibly different from one it could, without the
+The visual system carries one job that ordinary design systems do not: **it has to show suspicion**.
+A figure the protocol could not fully feed must be visibly different from one it could, without the
 panel shouting, and without colour being the only thing that says so.
 
 ## Named rules
@@ -85,9 +85,9 @@ printed on a bar at present, and the pair is what proves the tint keeps every hu
 view on which one the reader should be pleased about.
 
 `defect` is a magenta because every other family already means something here: green and red are the
-two sides, amber is a doubt about a figure, grey is the absence of a category, and the eight below
-are the professions. Measured 2026-09-05, it sits 65 from its nearest neighbour in the palette —
-`#9085e9` — where the two closest professions sit 38 apart, and clears 5.02:1 against the panel,
+two sides, amber is a suspicion about a figure, grey is the absence of a category, and the eight
+below are the professions. Measured 2026-09-05, it sits 65 from its nearest neighbour in the palette
+— `#9085e9` — where the two closest professions sit 38 apart, and clears 5.02:1 against the panel,
 over the 4.5:1 the floor asks of text.
 
 ### The palette
@@ -215,12 +215,12 @@ and the card a reader opens by pointing is the answer — it names the professio
 channel in the row was tried and removed on 2026-08-29: a letter beside every name took width from
 the one cell that has to shorten, to say a thing the card already said. **ADR 0023.**
 
-**A row whose own figure is short wears the doubt mark**, before the name and drawn only there. It
+**A row whose own figure is short wears the suspect mark**, before the name and drawn only there. It
 is not the second channel the paragraph above refuses: that one would stand on every row to say a
-thing the card already says, and this stands on the rows a doubt actually reaches — none of the rows
-in `captures/`. What it opens onto is the sentence naming whose figure is short, which the sentence
-under the list cannot: that one qualifies every row at once, and a reader looking at one of them had
-no way to ask whether it meant theirs. _Put a warning where its consequence is._
+thing the card already says, and this stands on the rows a suspicion actually reaches — none of the
+rows in `captures/`. What it opens onto is the sentence naming whose figure is short, which the
+sentence under the list cannot: that one qualifies every row at once, and a reader looking at one of
+them had no way to ask whether it meant theirs. _Put a suspicion where its consequence is._
 
 **Pinned row.** Stands apart from the ranking, below it and outside the list, for figures that
 belong to no combatant. It is a row, not a footnote: same height, same shape — with a dashed rule
@@ -364,10 +364,10 @@ the only place it is. Then all four figures rather than the one the screen is sh
 in bold; under each, the part of it the protocol named only that row's end of; then how they fought
 at each end, and last what qualifies every figure above. A figure stated before reduction carries
 the sentence that says not to subtract it. **A card whose row states a narrower figure says so**, in
-one sentence under the doubts and over the instruction: the card is about the person and its figures
-are the fight's, while the row it stands over is one cut of them. Nowhere else is it a card, because
-nowhere else is there a person to compose one from: a skill, a kind and a fight on the shelf each
-get the name their own cell had to cut.
+one sentence under the suspicions and over the instruction: the card is about the person and its
+figures are the fight's, while the row it stands over is one cut of them. Nowhere else is it a card,
+because nowhere else is there a person to compose one from: a skill, a kind and a fight on the shelf
+each get the name their own cell had to cut.
 
 **A row the protocol left an end of says which end, and where its figure stands.** It is not a card
 and names nobody — that is what the row is — but the two lines every leaf gets are not an answer to
@@ -408,7 +408,7 @@ It says a figure may be short and never says by how much.
 **Undrawn marker.** Replaces one section in place, at that section's size, in `textQuiet`. It is the
 least interesting thing on screen on purpose.
 
-**Defect list.** Stands under the warnings, in `defect` plus a glyph of its own, and is drawn only
+**Defect list.** Stands under the suspicions, in `defect` plus a glyph of its own, and is drawn only
 where something failed. One line per kind of failure, each saying what the panel could not do and
 how many times. It is the one mark that is about the add-on rather than about the fight, which is
 why it sits apart from the figures instead of beside one — Suspect Is Adjacent binds a mark to the
@@ -432,7 +432,7 @@ figure it concerns, and a defect concerns none.
 ## Do
 
 - Spend a token, always.
-- Put a warning where its consequence is.
+- Put a suspicion where its consequence is.
 - Let the game be the loud thing on the screen.
 - Keep every row the same height.
 - Show the reader what could not be read.

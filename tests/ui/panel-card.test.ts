@@ -11,7 +11,7 @@ import { composeCardReading } from "@/src/ui/panel-card.ts";
 import type { PanelMetric, RowDetail } from "@/src/ui/panel-reading.ts";
 import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 import type { TipGroup } from "@/src/ui/panel-tip.ts";
-import { CARD_WORDS, PANEL_WORDS, WARNING_MARK } from "@/src/ui/panel-words.ts";
+import { CARD_WORDS, PANEL_WORDS, SUSPECT_MARK } from "@/src/ui/panel-words.ts";
 
 /** A combatant who did every one of the four, and whose log left an end out of three of them. */
 const HILDUR: RowDetail = {
@@ -99,7 +99,7 @@ Deno.test("a card states all four figures, and the one on screen is the one in b
         profession: "p",
         detail: HILDUR,
         metric: "damageTakenApplied",
-        warnings: [],
+        suspicions: [],
         opens: true,
         isRowNarrower: false,
         translate: null,
@@ -156,7 +156,7 @@ Deno.test("a figure before reduction says it is the blows', and owes the sentenc
         profession: "p",
         detail: HILDUR,
         metric: "damageTakenApplied",
-        warnings: [],
+        suspicions: [],
         opens: false,
         isRowNarrower: false,
         translate: null,
@@ -181,7 +181,7 @@ Deno.test("a figure before reduction says it is the blows', and owes the sentenc
         profession: null,
         detail: { ...HILDUR, damageDealtRaw: 0, damageTakenRaw: 0 },
         metric: "damageTakenApplied",
-        warnings: [],
+        suspicions: [],
         opens: false,
         isRowNarrower: false,
         translate: null,
@@ -205,7 +205,7 @@ Deno.test("the card says what they did when they struck, and what held when they
         profession: "p",
         detail: HILDUR,
         metric: "damageTakenApplied",
-        warnings: [],
+        suspicions: [],
         opens: true,
         isRowNarrower: false,
         translate: null,
@@ -249,7 +249,7 @@ Deno.test("what somebody is stands beside how far along they are, or whichever w
             profession,
             detail: { ...NOBODY, level },
             metric: "damageDealtApplied",
-            warnings: [],
+            suspicions: [],
             opens: false,
             isRowNarrower: false,
             translate: null,
@@ -282,7 +282,7 @@ Deno.test("a key nothing here words is drawn as the player's own client names it
             profession: null,
             detail: struck,
             metric: "damageDealtApplied",
-            warnings: [],
+            suspicions: [],
             opens: false,
             isRowNarrower: false,
             translate,
@@ -308,7 +308,7 @@ Deno.test("a combatant the fight never touched states four zeros and nothing els
         profession: null,
         detail: NOBODY,
         metric: "damageDealtApplied",
-        warnings: [],
+        suspicions: [],
         opens: false,
         isRowNarrower: false,
         translate: null,
@@ -337,7 +337,7 @@ Deno.test("a part of a figure is drawn from the first point of it, and never bel
                 profession: null,
                 detail: { ...NOBODY, damageDealtApplied: figure, damageDealtToNobody: figure },
                 metric: "damageDealtApplied",
-                warnings: [],
+                suspicions: [],
                 opens: false,
                 isRowNarrower: false,
                 translate: null,
@@ -347,48 +347,48 @@ Deno.test("a part of a figure is drawn from the first point of it, and never bel
     assertEquals(at(1)[1], `  ${PANEL_WORDS.withoutTarget} 1`, "and one point of it is said");
 });
 
-Deno.test("what the screen doubts is said again where the figures it doubts are", () => {
+Deno.test("a suspicion about the screen is said again where the figures it reaches are", () => {
     const card = composeCardReading({
         name: "Hildur Muza Śmierci",
         profession: "m",
         detail: NOBODY,
         metric: "healthRestored",
-        warnings: ["Nie udało się odczytać wszystkiego."],
+        suspicions: ["Nie udało się odczytać wszystkiego."],
         opens: false,
         isRowNarrower: false,
         translate: null,
     });
     const notes = card.groups[1];
-    assertExists(notes, "a doubt about the screen is a doubt about every figure on it");
+    assertExists(notes, "a suspicion about the screen is a suspicion about every figure on it");
     assertEquals(
         readGroup(notes),
-        [`${WARNING_MARK}Nie udało się odczytać wszystkiego.`],
+        [`${SUSPECT_MARK}Nie udało się odczytać wszystkiego.`],
         "and a reader looking at a card is looking away from the strip that says it",
     );
     assert(
-        notes.lines.every((line) => line.kind === "note" && line.isWarning),
-        "each drawn as a doubt, which is a mark as well as a colour",
+        notes.lines.every((line) => line.kind === "note" && line.isSuspect),
+        "each drawn as a suspicion, which is a mark as well as a colour",
     );
 });
 
 /**
  * The mark on a row is what a reader followed here, so the sentence explaining it stands over the
- * fight's own: this card is about the person, and the fight's doubt is about every row at once.
+ * fight's own: this card is about the person, and the fight's suspicion is about every row at once.
  */
-Deno.test("a card states this person's own doubt before the whole fight's", () => {
+Deno.test("a card states this person's own suspicion before the whole fight's", () => {
     const card = composeCardReading({
         name: "Hildur Muza Śmierci",
         profession: "m",
         detail: { ...HILDUR, unreadMessages: 2, castsUnplaced: 1 },
         metric: "healthGiven",
-        warnings: ["Nie udało się odczytać wszystkiego."],
+        suspicions: ["Nie udało się odczytać wszystkiego."],
         opens: false,
         isRowNarrower: false,
         translate: null,
     });
     const notes = card.groups.at(-1);
-    assertExists(notes, "the doubts are the last thing the card says");
-    const said = readGroup(notes).filter((line) => line.startsWith(WARNING_MARK));
+    assertExists(notes, "the suspicions are the last thing the card says");
+    const said = readGroup(notes).filter((line) => line.startsWith(SUSPECT_MARK));
     assertEquals(said.length, 3, "two of this person's own, and the fight's under them");
     assert(said[0]?.includes("z jej udziałem"), "what went unread with them in comes first");
     assert(said[1]?.includes("jej leczenia"), "then the cast of theirs nobody could place");
@@ -401,15 +401,15 @@ Deno.test("a card on a damage screen says nothing about a cast, which puts back 
         profession: "m",
         detail: { ...HILDUR, unreadMessages: 0, castsUnplaced: 1 },
         metric: "damageDealtApplied",
-        warnings: [],
+        suspicions: [],
         opens: false,
         isRowNarrower: false,
         translate: null,
     });
     const said = card.groups.flatMap((group) => readGroup(group)).filter((line) =>
-        line.startsWith(WARNING_MARK)
+        line.startsWith(SUSPECT_MARK)
     );
-    assertEquals(said, [], "a doubt over a figure that cannot carry it is not drawn");
+    assertEquals(said, [], "a suspicion over a figure that cannot carry it is not drawn");
 });
 
 /**
@@ -424,7 +424,7 @@ Deno.test("both runs stand on every screen, and the screen moves only the bold f
             profession: "p",
             detail: HILDUR,
             metric,
-            warnings: [],
+            suspicions: [],
             opens: false,
             isRowNarrower: false,
             translate: null,
@@ -474,7 +474,7 @@ Deno.test("a run that came to nothing is not drawn, and neither is its heading",
             profession: null,
             detail,
             metric: "damageDealtApplied",
-            warnings: [],
+            suspicions: [],
             opens: false,
             isRowNarrower: false,
             translate: null,
@@ -508,7 +508,7 @@ Deno.test("a card over a narrower row says its figures are the whole fight's", (
             profession: null,
             detail: NOBODY,
             metric: "damageDealtApplied",
-            warnings: ["Nie udało się odczytać wszystkiego."],
+            suspicions: ["Nie udało się odczytać wszystkiego."],
             opens: true,
             isRowNarrower,
             translate: null,
@@ -520,11 +520,11 @@ Deno.test("a card over a narrower row says its figures are the whole fight's", (
             "Otrzymane 0",
             "Leczenie dane 0",
             "Leczenie otrzymane 0",
-            `${WARNING_MARK}Nie udało się odczytać wszystkiego.`,
+            `${SUSPECT_MARK}Nie udało się odczytać wszystkiego.`,
             CARD_WORDS.scope,
             CARD_WORDS.gesture,
         ],
-        "after the doubts, because it answers for every figure, and before the instruction",
+        "after the suspicions, because it answers for every figure, and before the instruction",
     );
     assert(
         !notesOf(false).includes(CARD_WORDS.scope),
@@ -539,7 +539,7 @@ Deno.test("a rate is taken of blows, and a rate of no blows is no rate at all", 
             profession: null,
             detail: { ...NOBODY, blowsCritical, blowsStruck },
             metric: "damageDealtApplied",
-            warnings: [],
+            suspicions: [],
             opens: false,
             isRowNarrower: false,
             translate: null,
@@ -572,7 +572,7 @@ Deno.test("a card nobody is named on says so, rather than standing on a blank", 
         profession: null,
         detail: NOBODY,
         metric: "damageDealtApplied",
-        warnings: [],
+        suspicions: [],
         opens: false,
         isRowNarrower: false,
         translate: null,
@@ -597,7 +597,7 @@ Deno.test("two keys the panel words the same way are one line, not two of one wo
             ],
         },
         metric: "damageDealtApplied",
-        warnings: [],
+        suspicions: [],
         opens: false,
         isRowNarrower: false,
         translate: null,
@@ -622,7 +622,7 @@ Deno.test("the card says how many turns a combatant took, and only where they to
         name: "Hildur Muza Śmierci",
         profession: "p",
         metric: "damageDealtApplied" as const,
-        warnings: [],
+        suspicions: [],
         opens: true,
         isRowNarrower: false,
         translate: null,
