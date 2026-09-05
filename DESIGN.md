@@ -78,10 +78,17 @@ printed on a bar at present, and the pair is what proves the tint keeps every hu
 | `ours`           | `#6fbf8b` | The reader's own side.                                        |
 | `theirs`         | `#e0736f` | The other side.                                               |
 | `suspect`        | `#c98500` | A figure that may be short.                                   |
+| `defect`         | `#c25ce0` | What the panel itself could not do.                           |
 | `UNKNOWN_COLOUR` | `#8a8a80` | Desaturated on purpose: unknown is the absence of a category. |
 
 `ours` and `theirs` are **not** green-good and red-bad: they are two sides, and the panel takes no
 view on which one the reader should be pleased about.
+
+`defect` is a magenta because every other family already means something here: green and red are the
+two sides, amber is a doubt about a figure, grey is the absence of a category, and the eight below
+are the professions. Measured 2026-09-05, it sits 65 from its nearest neighbour in the palette —
+`#9085e9` — where the two closest professions sit 38 apart, and clears 5.02:1 against the panel,
+over the 4.5:1 the floor asks of text.
 
 ### The palette
 
@@ -400,6 +407,12 @@ It says a figure may be short and never says by how much.
 
 **Undrawn marker.** Replaces one section in place, at that section's size, in `textQuiet`. It is the
 least interesting thing on screen on purpose.
+
+**Defect list.** Stands under the warnings, in `defect` plus a glyph of its own, and is drawn only
+where something failed. One line per kind of failure, each saying what the panel could not do and
+how many times. It is the one mark that is about the add-on rather than about the fight, which is
+why it sits apart from the figures instead of beside one — Suspect Is Adjacent binds a mark to the
+figure it concerns, and a defect concerns none.
 
 ## Motion and interaction
 

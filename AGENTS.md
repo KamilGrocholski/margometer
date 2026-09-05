@@ -67,8 +67,10 @@ this language does not have would be**; each states what binds instead.
 - **S3.** The cost of one payload is **measured** over the recordings, never assumed, and a change
   to the decode path that raises it is a finding.
 - **S4.** No function is longer than 70 lines, which is one printed page.
-- **S5.** Assertion density averages at least two per function across `libs/`, `project/`, `src/`
-  and `tools/` — the code that ships and the code that runs. **ADR 0007.** See **Assertions**.
+- **S5.** Assertion density averages at least two per function across `libs/`, `project/`,
+  `src/core/`, `src/game/` and `tools/` — the code that may throw. What a reader touches is held by
+  **A11** instead, and measures nothing here. **ADR 0007**, narrowed by **ADR 0051**. See
+  **Assertions**.
 - **S6.** Declare at the smallest possible scope, `const` by default, at the point of use.
 - **S7.** Every return value is used or explicitly discarded; every parameter is checked. Held by
   the compiler.
@@ -118,6 +120,11 @@ this language does not have would be**; each states what binds instead.
   be read: in a test. And it imports that name by module path — `@std/assert/assert`, never the
   barrel: the barrel re-exports every module of the package, and the bundler keeps the top-level
   initialisers of the two it cannot prove pure. **ADR 0040.**
+- **A11. The layer a reader touches asserts nothing.** `src/ui/`, `src/userscript-entry.ts` and
+  `src/userscript-boot.ts` import no assertion and spell none: a broken invariant there is checked,
+  degraded in place and recorded as a defect (**E14**). An assertion is for what must never happen,
+  and what must never happen in front of a player is the panel stopping — which is what an assertion
+  there does. Two releases were spent on one at a stated bound. **ADR 0051.**
 
 ## Errors
 
@@ -155,7 +162,9 @@ this language does not have would be**; each states what binds instead.
   | the game's own page state      | outbound  | a reading marked unknown              |
   | a callback somebody else calls | inbound   | that gesture dropped, and marked once |
 
-  In `tools/` the same test applies and the boundaries are the network and a subprocess.
+  Composing the reading a region draws is part of drawing it, so the render region's `try` covers
+  both and no sixth row is earned by widening it. In `tools/` the same test applies and the
+  boundaries are the network and a subprocess.
 - **E6.** Pass the original in `cause` when wrapping.
 - **E7.** An expected failure in `src/` is **data** — an explicit unknown the panel can show. In
   `tools/` it throws loudly.
@@ -178,6 +187,11 @@ this language does not have would be**; each states what binds instead.
   call that answers one discards a failure, not a value. One exception, and it is stated: the
   top-level `if (import.meta.main)` block, where **E7**'s loud throw is the mark and the exit code
   is what a person and CI read. **ADR 0043.**
+- **E14. The layer a reader touches never fails.** `src/ui/`, `src/userscript-entry.ts` and
+  `src/userscript-boot.ts` check every value crossing into them before using it, catch every call
+  that can throw, and degrade in place — a bound clamps, a lookup falls back, a section stands
+  undrawn — so a fight goes on being drawn. Every failure they swallow becomes a **defect** the
+  panel states (`CONTEXT.md`), which is the mark **E11** asks of them. **ADR 0051.**
 
 Who throws what. Where a broad catch is legal is **E5**'s table, not this one.
 

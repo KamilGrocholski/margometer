@@ -352,7 +352,8 @@ wrong must never look like a number that is right.**
 
 How a failure is drawn is `DESIGN.md`'s — the Quiet Panel, Section Is Its Own Size, Suspect Is
 Adjacent and Zero Is Not Unknown rules. That a failure becomes state rather than an exception, and
-is never discarded silently, is `AGENTS.md` **E8** and **E11**. Neither is restated here.
+is never discarded silently, is `AGENTS.md` **E8** and **E11**. That the layer drawing it asserts
+nothing and throws nothing is **A11** and **E14**. None of them is restated here.
 
 One contract is this document's own, because it is about attribution rather than drawing:
 
@@ -363,7 +364,13 @@ One contract is this document's own, because it is about attribution rather than
   the two that exist: a gap placed on a row it was not named for is a guess wearing a warning's
   clothes.
 
-Two severities are enough, and a third is `[ASK]`: **suspect** and **undrawn** (`CONTEXT.md`).
+Three severities, and a fourth is `[ASK]`: **suspect**, **undrawn** and **defect** (`CONTEXT.md`).
+The first two are claims about the fight and ride what they qualify. The third is a claim about the
+add-on, granted by **ADR 0051** against the `[ASK]` this sentence used to hold, and it stands in a
+section of its own rather than beside a figure — there is no figure it is about. **A defect states
+what the panel could not do and how many times, and never why**: a sentence a player reads carries
+no failure of ours in it (**L3**), and the failure itself reaches the console once per kind
+(**E11**).
 
 ## Construct register
 
@@ -599,7 +606,15 @@ commit that opens or closes one.
     generic argument needs the type information a reader over text does not have. It closes if the
     spelling ever arrives, which is the day it would be worth the machinery.
 
-13. **W10 is held by a command a person runs, not by the gate.** `deno task game:readings status`
+13. **A11 and E14 are held by reading, and the layer they bind still breaks them.** **ADR 0051**
+    states that `src/ui/`, `src/userscript-entry.ts` and `src/userscript-boot.ts` assert nothing and
+    throw nothing, and measured 2026-09-05 at `52a1c10` they spell 624 assertions — 550 across the
+    eleven files of `src/ui/` and 74 in the entry. The rules landed before the conversion because
+    the conversion is a file at a time and each commit has to be green on its own (**G5**), so for
+    the length of that series the tree says one thing and does another. The guard arrives in the
+    commit the last assertion leaves, and this entry goes with it.
+
+14. **W10 is held by a command a person runs, not by the gate.** `deno task game:readings status`
     compares what `frozen/` carries against the game and exits non-zero where one has gone behind,
     which is a real observation and not a `by-reading` one — but it asks a host of the game's, and
     the gate deliberately reaches no network, so nothing red goes up between the moment a reading

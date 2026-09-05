@@ -117,6 +117,16 @@ Marked next to the figure it concerns, never in a banner. _Avoid_: Warning, erro
 **Undrawn**: A panel section that could not be rendered at all, replaced in place by a marker.
 _Avoid_: Crashed, broken, failed
 
+## What the add-on got wrong
+
+Every term above is a claim about the fight. This one is a claim about us, and it is kept apart for
+that reason.
+
+**Defect**: A failure of the add-on itself rather than of the reading — an expectation that did not
+hold, or a call that threw where nothing was meant to. Said as a sentence naming what the panel
+could not do and how many times, never why: what a player is told is that a part of the panel is
+missing, not what our code believed about it. _Avoid_: Error, bug, crash, exception, failure
+
 ## The surfaces
 
 **Panel**: What the add-on draws over the running game, inside its own shadow root. _Avoid_:

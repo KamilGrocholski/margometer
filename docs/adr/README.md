@@ -149,3 +149,5 @@ edited to agree with the new rule.
   by words. **Accepted**
 - [0050](0050-the-list-keeps-the-place-a-reader-was-at.md) — The list keeps the place a reader was
   at. **Accepted**
+- [0051](0051-the-layer-a-reader-touches-never-fails.md) — The layer a reader touches never fails.
+  **Accepted**
