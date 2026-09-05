@@ -55,7 +55,13 @@ _Avoid_: Source/destination, attacker/victim, from/to
 
 ## The figures
 
-**Hit**: A single damage number. One attack can carry several. _Avoid_: Strike, blow, instance
+**Blow**: One attack by one combatant, and the unit the counted figures are counted in. It carries
+the hits, the procs and what it destroyed, so the criticals are a share of the blows struck and the
+hardest blow is one of them. The decoder's own event kind spells it `attack`: that is the data
+contract's word (`core/battle-event.ts`), which **ARCHITECTURE.md** protects and this file does not
+rename. _Avoid_: Swing, exchange, hit
+
+**Hit**: A single damage number inside a blow. One blow can carry several. _Avoid_: Strike, instance
 
 **Raw / applied**: Damage before and after reduction. Their difference is **not** what a defence
 stopped. _Avoid_: Gross/net, base/final
@@ -122,10 +128,15 @@ _Avoid_: Crashed, broken, failed
 Every term above is a claim about the fight. This one is a claim about us, and it is kept apart for
 that reason.
 
-**Defect**: A failure of the add-on itself rather than of the reading — an expectation that did not
-hold, or a call that threw where nothing was meant to. Said as a sentence naming what the panel
-could not do and how many times, never why: what a player is told is that a part of the panel is
-missing, not what our code believed about it. _Avoid_: Error, bug, crash, exception, failure
+**Failure**: What a `catch` holds — a call that threw, or an expectation that did not hold. The word
+for the thing while it is still being handled, which is the sense `AGENTS.md`'s error rules use
+throughout. It is ours and nobody else's: a failure never reaches a player under any name. _Avoid_:
+Exception, crash, throw
+
+**Defect**: A failure that got as far as costing the reader something, which is the only kind the
+panel says anything about. Said as a sentence naming what the panel could not do and how many times,
+never why: what a player is told is that a part of the panel is missing, not what our code believed
+about it. _Avoid_: Error, bug, crash, exception
 
 ## The surfaces
 
