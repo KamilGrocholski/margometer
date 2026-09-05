@@ -151,11 +151,12 @@ this language does not have would be**; each states what binds instead.
   and the test is mechanical: **a broad catch is legal exactly where its `try` contains a call this
   project did not author.** Anywhere else it is a bug, and most of the `catch` clauses in shipped
   code sit at one of the five below.
-- **E5. There are five boundaries in the add-on, and they are enumerable.** A new one is `[ASK]`,
+- **E5. There are six boundaries in the add-on, and they are enumerable.** A new one is `[ASK]`,
   because an unlisted broad catch is indistinguishable from a swallowed bug.
 
   | Boundary                       | Direction | A failure there becomes               |
   | ------------------------------ | --------- | ------------------------------------- |
+  | the add-on standing up         | inbound   | a copy that stood down, and said so   |
   | the wrapped engine call        | inbound   | a fight that decodes no further       |
   | one render region              | outbound  | that region undrawn, in place         |
   | browser storage                | outbound  | a refusal, which is an answer         |
@@ -187,11 +188,17 @@ this language does not have would be**; each states what binds instead.
   call that answers one discards a failure, not a value. One exception, and it is stated: the
   top-level `if (import.meta.main)` block, where **E7**'s loud throw is the mark and the exit code
   is what a person and CI read. **ADR 0043.**
-- **E14. The layer a reader touches never fails.** `src/ui/`, `src/userscript-entry.ts` and
+- **E14. Nothing the bundle carries may stop the add-on.** `src/ui/`, `src/userscript-entry.ts` and
   `src/userscript-boot.ts` check every value crossing into them before using it, catch every call
   that can throw, and degrade in place — a bound clamps, a lookup falls back, a section stands
   undrawn — so a fight goes on being drawn. Every failure they swallow becomes a **defect** the
-  panel states (`CONTEXT.md`), which is the mark **E11** asks of them. **ADR 0051.**
+  panel states (`CONTEXT.md`), which is the mark **E11** asks of them.
+
+  **`core/`, `game/` and the `libs/` under them go on throwing, and that is not an exception to
+  this**: what binds is that no path from outside reaches them without one of **E5**'s boundaries
+  between. A failure there costs a region, a reading, a shelf or a file, and never the add-on. The
+  test is a path, not a file: **an entry into this program with no boundary on it is a bug**, and
+  the six rows above are the whole list of where one may be. **ADR 0051.**
 
 Who throws what. Where a broad catch is legal is **E5**'s table, not this one.
 

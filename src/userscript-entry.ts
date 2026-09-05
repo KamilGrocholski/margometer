@@ -236,7 +236,35 @@ function composeShelfWarnings(keeper: ShelfKeeper): string[] {
     return warnings.slice(0, MAXIMUM_SHELF_WARNINGS);
 }
 
-function composeShelfKeeper(environment: UserscriptEnvironment): ShelfKeeper {
+/**
+ * The shelf as the browser kept it, or an empty one. `readKeptFights` reads a value nobody here
+ * wrote and asserts about it — a shelf past its own bound, a moment before the epoch — so what a
+ * store somebody edited costs is the fights that were on it, never the add-on standing up.
+ */
+function readShelfOrNothing(store: BrowserStore, defects: KeptDefects): KeptFight[] {
+    try {
+        return readKeptFights(store, SHELF_KEY);
+    } catch (failure) {
+        defects.add("kept", null, failure);
+        return [];
+    }
+}
+
+/** The place the reader dragged it to, or none: the sheet's own corner is a place. */
+function readPlaceOrNothing(
+    store: BrowserStore | null,
+    defects: KeptDefects,
+): PanelPosition | null {
+    if (store === null) return null;
+    try {
+        return getPositionFromStoredText(store.read(PLACE_KEY) ?? "");
+    } catch (failure) {
+        defects.add("kept", null, failure);
+        return null;
+    }
+}
+
+function composeShelfKeeper(environment: UserscriptEnvironment, defects: KeptDefects): ShelfKeeper {
     const settings = environment.store;
     const answered = settings === null ? "" : settings.read(STORAGE_KEY) ?? "";
     const choice = getStorageFromName(answered) ?? STORAGE_DEFAULT;
@@ -251,7 +279,7 @@ function composeShelfKeeper(environment: UserscriptEnvironment): ShelfKeeper {
         figures.keepOnly(keeper.fights);
     };
     const keeper: ShelfKeeper = {
-        fights: readKeptFights(store, SHELF_KEY),
+        fights: readShelfOrNothing(store, defects),
         choice,
         hasStoreRefused: false,
         hasStoreMadeRoom: false,
@@ -1002,9 +1030,30 @@ function composeStoodDown(): GameAttachment {
     return { detach: () => {}, isAttached: () => false };
 }
 
+/**
+ * **E5's inbound boundary at the add-on standing up.** The browser runs the built file at the top
+ * of `userscript-boot.ts`, so this is the outermost frame there is: a throw here is the userscript
+ * dying with a line in the game's own console and nothing else. Standing up reads two things the
+ * browser kept and builds a panel, and each of those degrades on its own — this is what is left
+ * when one of them cannot.
+ */
 export function startFromWindow(page: unknown): GameAttachment {
     if (!isUserscriptWindow(page)) return composeStoodDown();
-    return startFromUserscriptWindow(page);
+    try {
+        return startFromUserscriptWindow(page);
+    } catch (failure) {
+        reportStoodDown(page, failure);
+        return composeStoodDown();
+    }
+}
+
+/** The console is the only mark left: nothing of ours is on the page to carry one. **E11.** */
+function reportStoodDown(page: UserscriptWindow, failure: unknown): void {
+    try {
+        page.console.error(FAILURE_LINE, failure);
+    } catch {
+        return;
+    }
 }
 
 function startFromUserscriptWindow(page: UserscriptWindow): GameAttachment {
@@ -1151,9 +1200,10 @@ function composeLiveFight(): LiveFight {
 function composePanelPlacement(
     environment: UserscriptEnvironment,
     store: BrowserStore | null,
+    defects: KeptDefects,
 ): PanelPlacement {
     return {
-        position: store === null ? null : getPositionFromStoredText(store.read(PLACE_KEY) ?? ""),
+        position: readPlaceOrNothing(store, defects),
         getViewport: () => environment.readViewport(),
         // Once per drag rather than once per frame. A refusal to write is an answer here as
         // wherever this panel writes: the reader's choice stands, and only the next visit is the
@@ -1238,8 +1288,8 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     const defects = composeDefectKeeper((failure) => environment.report(FAILURE_LINE, failure));
     const store = environment.store;
     const screen = composeScreenState(store !== null && store.read(FOLD_KEY) === FOLDED);
-    const shelf = composeShelfKeeper(environment);
-    const placement = composePanelPlacement(environment, store);
+    const shelf = composeShelfKeeper(environment, defects);
+    const placement = composePanelPlacement(environment, store, defects);
     const live = composeLiveFight();
     // The panel goes up when the wrap goes on, and not before: a copy that stood down never gets
     // one, and a page with no game on it is left as it was found.

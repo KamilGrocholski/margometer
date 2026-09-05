@@ -608,7 +608,20 @@ commit that opens or closes one.
     generic argument needs the type information a reader over text does not have. It closes if the
     spelling ever arrives, which is the day it would be worth the machinery.
 
-13. **Half of E14 is held by reading.** `tests/repository/sources.test.ts` holds **A11** whole —
+13. **That every path from outside ends at a boundary is held by reading and by behaviour, not by a
+    reader over the tree.** **E14** binds the whole bundle now: `core/`, `game/` and the `libs/`
+    under them go on throwing, and what must hold is that no entry into this program reaches them
+    without one of **E5**'s six boundaries between. `tests/repository/errors.test.ts` holds two
+    halves of that — nothing in the reader-facing layer throws (**E14**), and every handover to
+    somebody else's loop opens on a `try` (**E12**) — and `tests/userscript-entry.test.ts` holds the
+    rest by driving it: a page that throws when it is looked at, a document that refuses the panel,
+    a store nothing can be read out of, and seven pages handed to `startFromWindow`. What no machine
+    computes is the **path**: that a call added tomorrow is under one of the six. The guard that
+    would compute it needs a call graph from each entry point, which is the same machinery **S1**
+    builds for recursion and reads by name — enough to find a cycle, not enough to prove a frame is
+    covered.
+
+14. **Half of E14 is held by reading.** `tests/repository/sources.test.ts` holds **A11** whole —
     what a reader touches spells no assertion and imports none — and
     `tests/repository/errors.test.ts` holds the half of **E14** a machine can compute: that the same
     layer throws nothing at all. What neither reads is the rest of it: that every value crossing
@@ -617,7 +630,7 @@ commit that opens or closes one.
     that mattered, and whether a call can throw. The conversion that made them true is **ADR 0051**,
     and the register names what holds what.
 
-14. **W10 is held by a command a person runs, not by the gate.** `deno task game:readings status`
+15. **W10 is held by a command a person runs, not by the gate.** `deno task game:readings status`
     compares what `frozen/` carries against the game and exits non-zero where one has gone behind,
     which is a real observation and not a `by-reading` one — but it asks a host of the game's, and
     the gate deliberately reaches no network, so nothing red goes up between the moment a reading

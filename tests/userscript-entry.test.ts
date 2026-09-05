@@ -259,6 +259,67 @@ Deno.test("a page that throws when it is looked at leaves the add-on standing, a
     attachment.detach();
 });
 
+/**
+ * **E5's boundary at the add-on standing up.** Standing up reads two things the browser kept — a
+ * shelf and a place — and both go through readers in `game/` and `libs/` that assert about what
+ * they were handed. A store somebody edited, or one a later version wrote, used to be a raw throw
+ * on the outermost frame there is: the userscript dying with a line in the game's own console.
+ */
+Deno.test("a store nothing can be read out of costs what was in it, and not the add-on", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown, reported } = composeEnvironment({ Engine: { battle } });
+    // Past the shelf's own bound, which is what `readKeptFights` asserts about after reading it.
+    const tooMany: unknown[] = [];
+    for (let at = 0; at < 40; at += 1) {
+        tooMany.push({ openedAt: at + 1, payloads: [{ a: "1=100;0" }], isPinned: false });
+    }
+    const edited: UserscriptEnvironment = {
+        ...environment,
+        store: {
+            read: (key) => key.includes("place") ? "{" : JSON.stringify({ fights: tooMany }),
+            write: () => true,
+            remove: () => {},
+        },
+    };
+    const attachment = startMargoMeter(edited);
+    assert(attachment.isAttached(), "the add-on stood up over a store it could not read");
+    const update = battle.updateData;
+    assert(typeof update === "function", "and the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+
+    const panel = shown[0] as FakeElement;
+    const list = getElementsWithin(panel).find((one) => one.className === "list");
+    assertExists(list, "the panel drew its list");
+    assertStrictEquals(
+        getElementsWithin(list).filter((one) => one.className.split(" ")[0] === "row").length,
+        11,
+        "with the fight going on drawn in full, which is what a shelf has nothing to do with",
+    );
+    assert(reported.length <= 1, "and whatever it could not read was said once");
+    attachment.detach();
+});
+
+/**
+ * The last resort under it. Every part of standing up degrades on its own, and this is what is
+ * left when one of them cannot: a copy that stood down and said so, never a throw out of the
+ * outermost frame the browser gives us.
+ */
+Deno.test("nothing a page does makes the add-on throw where it is started", () => {
+    const throwing = {
+        get Engine(): unknown {
+            throw new RangeError("a page that will not be read");
+        },
+        get document(): unknown {
+            throw new RangeError("a document that will not be reached");
+        },
+    };
+    for (const page of [composeFakeWindow(), throwing, {}, null, "a window", 7, []]) {
+        const stood = startFromWindow(page);
+        assertStrictEquals(typeof stood.isAttached, "function", "something came back, every time");
+        stood.detach();
+    }
+});
+
 Deno.test("a recording played through the add-on ends on the panel a reader would see", () => {
     const battle: Record<string, unknown> = { updateData: () => "the engine's own answer" };
     const engineOwn = battle.updateData;
