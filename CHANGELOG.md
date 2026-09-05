@@ -31,6 +31,31 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [0.14.0] — 2026-09-05
+
+- **Nowość** — Panel mówi, czego nie zdołał pokazać. Pod ostrzeżeniami stoi lista brakujących
+  fragmentów: po jednym wpisie na rodzaj, a przy powtórkach z liczbą, ile razy to się zdarzyło.
+  Wcześniej taki fragment po prostu znikał i nic o nim nie mówiło.
+- **Poprawka** — Dodatek nie przerwie już walki w grze. W rzadkim wypadku, gdy dodatek raz za razem
+  nie umiał odczytać tego, co przychodzi z walki, potrafił zabrać ze sobą samą walkę. Teraz nie ma
+  takiej drogi: cokolwiek się w nim popsuje, gra toczy się dalej.
+- **Poprawka** — Walka, której panel nie umie pokazać, mówi o tym wprost. Wcześniej panel przestawał
+  się odświeżać i zostawiał na ekranie ostatnie liczby, które do końca walki wyglądały na aktualne.
+  Teraz stoi na nim zdanie, że tej walki nie da się pokazać.
+- **Poprawka** — Panel wstaje też wtedy, gdy coś przy starcie pójdzie nie tak — gdy strona nie daje
+  się odczytać za pierwszym razem albo gdy zapisane na półce walki są uszkodzone. Wcześniej w takim
+  wypadku panel nie pojawiał się wcale i nic o tym nie mówiło; teraz jest, z pustą półką, i sam
+  wypisuje, czego mu zabrakło.
+- **Poprawka** — Panel nie wyrywa się już z ręki w trakcie walki. Od pierwszej tury, która doszła w
+  czasie przeciągania, panel zatrzymywał się w chwili, gdy kursor wyszedł poza jego obrys, zostawał
+  w pół drogi i nie zapamiętywał nowego miejsca — a następny ruch myszy nad panelem przesuwał go,
+  choć nikt go już nie trzymał.
+- **Poprawka** — Belkę panelu można złapać na całej długości. Nad numerem wersji kursor obiecywał
+  chwyt, ale panel w tym miejscu nie ruszał się z miejsca — a napis stoi dokładnie tam, gdzie ręka
+  celująca w belkę ląduje. Przyciski po prawej jak dotąd nie przesuwają panelu.
+- **Poprawka** — Kółko myszy dokręca listę do końca. Gdy w trakcie obrotu doszła kolejna tura walki,
+  przewinięcie wracało tam, gdzie się zaczęło, i lista wyglądała, jakby nie chciała się ruszyć.
+
 ## [0.13.0] — 2026-09-05
 
 - **Nowość** — Karta postaci mówi, ile tur ta postać wykonała, a pod spodem ile straciła. Tura to

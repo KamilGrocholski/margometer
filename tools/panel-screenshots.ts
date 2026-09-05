@@ -223,6 +223,14 @@ function composeShotScriptCorner(): string {
   if (!isFinite(across) || across <= 0) across = window.innerWidth;
   var acrossBy = across - ${PANEL_INSET} - box.width - box.left;
   var downBy = ${PANEL_INSET} - box.top;
+  // A pointer this script dispatches is not one the browser has: measured on Chrome
+  // 152.0.7977.64, 2026-09-05, both \`setPointerCapture(0)\` and its release throw
+  // \`NotFoundError: No active pointer with the given id is found\`, so the drag below earned two
+  // gesture defects and the panel stated them in every picture of the set. A hand captures fine,
+  // so the method is taken away rather than photographed — \`src/ui/panel-drag.ts\` calls it
+  // through \`?.\` and a document offering none is a case it already answers for.
+  delete Element.prototype.setPointerCapture;
+  delete Element.prototype.releasePointerCapture;
   var setPointer = function (type, left, top) {
     bar.dispatchEvent(new PointerEvent(type, {
       bubbles: true, composed: true, button: 0, clientX: left, clientY: top

@@ -1,5 +1,5 @@
 {
-    "version": "0.13.0",
+    "version": "0.14.0",
     "tasks": {
         // The gate. One command, so there is no version of "I ran the tests but not the build".
         // `build` writes `dist/`, which git does not carry: what ships is checked as a file.
