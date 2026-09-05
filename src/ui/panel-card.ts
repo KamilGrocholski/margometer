@@ -4,14 +4,12 @@
  */
 
 import { getRankedOrder } from "@/src/ui/ranked-order.ts";
-import { assert } from "@std/assert/assert";
 import {
     composeRowWarnings,
     type CutPart,
     type PanelMetric,
     type RowDetail,
 } from "@/src/ui/panel-reading.ts";
-import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 import type { TipGroup, TipLine, TipReading } from "@/src/ui/panel-tip.ts";
 import {
     CARD_WORDS,
@@ -57,8 +55,6 @@ interface CardFigure {
 const MAXIMUM_CARD_WARNINGS = 4;
 /** The fight's four, plus the two of them that can be charged to the person the card is about. */
 const MAXIMUM_CARD_DOUBTS = 6;
-/** The figures, the counters, the two runs and the notes. A sixth is a card nobody designed. */
-const MAXIMUM_CARD_GROUPS = 5;
 /** Past the widest cut a card draws: fourteen worded procs, four destroyed, three defences. */
 const MAXIMUM_CARD_PARTS = 64;
 /** Counted in the line above it rather than beside it, so the card never says it twice. */
@@ -90,24 +86,17 @@ function composeCardFigures(detail: RowDetail): CardFigure[] {
             halfNamed: { label: PANEL_WORDS.withoutActor, figure: detail.healthRestoredByNobody },
         },
     ];
-    const order = figures.map((one) => one.metric).join(" ");
-    assert(
-        order === SCREEN_ORDER.join(" "),
-        "the card states the four the strip does, in its order",
-    );
-    assert(figures.every((one) => one.figure >= 0), "and no figure on it is below nothing");
     return figures;
 }
 
 function composeCardSubLine(label: string, figure: number): TipLine[] {
-    assert(label.length > 0, "a part of a figure says what part it is");
-    assert(Number.isFinite(figure), "and states how much of it there is");
+    if (label.length === 0) return [];
+    if (!Number.isFinite(figure)) return [];
     if (figure <= 0) return [];
     return [{ kind: "sub", label, stated: composeFigureText(figure) }];
 }
 
 function composeCardFigureLines(detail: RowDetail, metric: PanelMetric): TipLine[] {
-    assert(SCREEN_ORDER.includes(metric), "the figure drawn in bold is one of the four");
     const lines: TipLine[] = [];
     for (const one of composeCardFigures(detail)) {
         lines.push({
@@ -121,12 +110,10 @@ function composeCardFigureLines(detail: RowDetail, metric: PanelMetric): TipLine
             lines.push(...composeCardSubLine(one.halfNamed.label, one.halfNamed.figure));
         }
     }
-    assert(lines.length >= SCREEN_ORDER.length, "every figure the panel has stands on the card");
     return lines;
 }
 
 function composeCardCounterLines(detail: RowDetail): TipLine[] {
-    assert(detail.blowsWithoutSkill <= detail.blowsStruck, "a blow behind no announcement is one");
     const lines: TipLine[] = [];
     // First, because a turn is what the counts below happened inside of: the blows and the
     // announcements are what one was spent on (`docs/turns-taken.md`).
@@ -172,16 +159,14 @@ function composeCardWordedParts(
     parts: readonly CutPart[],
     translate: TranslateLabel | null,
 ): Array<{ label: string; figure: number }> {
-    assert(parts.length <= MAXIMUM_CARD_PARTS, "a card draws a cut inside its stated bound");
     const byLabel = new Map<string, number>();
-    for (const part of parts) {
+    for (const part of parts.slice(0, MAXIMUM_CARD_PARTS)) {
         const label = getWordsForBlowKey(part.key, translate);
-        assert(label.length > 0, "a part a card draws is drawn under something");
+        if (label.length === 0) continue;
         byLabel.set(label, (byLabel.get(label) ?? 0) + part.figure);
     }
     const folded = [...byLabel].map(([label, figure]) => ({ label, figure }));
     folded.sort((one, other) => getRankedOrder(one.figure, other.figure, one.label, other.label));
-    assert(folded.length <= parts.length, "folding a cut never makes it longer");
     return folded;
 }
 
@@ -202,9 +187,11 @@ function composeCardProcLines(
 
 /** Null where nothing was struck, because a rate of nothing is not zero — it is no rate. */
 function composeCardCriticalText(detail: RowDetail): string | null {
-    assert(detail.blowsCritical <= detail.blowsStruck, "a critical blow is a blow they struck");
     if (detail.blowsCritical <= 0) return null;
     if (detail.blowsStruck <= 0) return null;
+    // More criticals than blows is a share above the hundred, which is a number that is wrong
+    // looking like one that is right. The count is stated on its own instead (**E14**).
+    if (detail.blowsCritical > detail.blowsStruck) return composeFigureText(detail.blowsCritical);
     const share = composeShareText(detail.blowsCritical / detail.blowsStruck);
     return `${composeFigureText(detail.blowsCritical)} (${share})`;
 }
@@ -251,11 +238,10 @@ function composeCardStrikingLines(detail: RowDetail, translate: TranslateLabel |
  * are counted in different units and the figure carries which (`src/ui/panel-words.ts`).
  */
 function composeCardDestroyedLines(parts: readonly CutPart[]): TipLine[] {
-    assert(parts.length <= MAXIMUM_CARD_PARTS, "a card draws a cut inside its stated bound");
     if (parts.length === 0) return [];
     const lines: TipLine[] = [{ kind: "heading", text: CARD_WORDS.destroyed }];
-    for (const part of parts) {
-        assert(part.figure > 0, "a statistic that was destroyed was destroyed by something");
+    for (const part of parts.slice(0, MAXIMUM_CARD_PARTS)) {
+        if (part.figure <= 0) continue;
         lines.push({
             kind: "sub",
             label: getWordsForDestroyed(part.key),
@@ -270,7 +256,6 @@ function composeCardDestroyedLines(parts: readonly CutPart[]): TipLine[] {
  * on their side of somebody else's blow, then the hardest one that got through.
  */
 function composeCardStruckLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
-    assert(detail.damagePrevented >= 0, "what a defence stopped is never below nothing");
     const lines: TipLine[] = [];
     if (detail.damagePrevented > 0) {
         lines.push({
@@ -314,24 +299,20 @@ function composeCardRunGroups(detail: RowDetail, translate: TranslateLabel | nul
     ];
     const groups: TipGroup[] = [];
     for (const run of runs) {
-        assert(run.heading.length > 0, "a run the card draws stands under a heading");
+        if (run.heading.length === 0) continue;
         if (run.lines.length === 0) continue;
         groups.push({ lines: [{ kind: "heading", text: run.heading }, ...run.lines] });
     }
-    assert(groups.length <= runs.length, "and no run is drawn twice");
     return groups;
 }
 
 function getIsRawStated(detail: RowDetail): boolean {
-    assert(detail.damageDealtRaw >= 0, "a figure before reduction is not below nothing");
-    assert(detail.damageTakenRaw >= 0, "on either end of the blow it was stated for");
     if (detail.damageDealtRaw > 0) return true;
     if (detail.damageTakenRaw > 0) return true;
     return false;
 }
 
 function composeCardNoteLines(subject: CardSubject): TipLine[] {
-    assert(subject.warnings.length <= MAXIMUM_CARD_WARNINGS, "a card stays inside its doubts");
     const lines: TipLine[] = [];
     if (getIsRawStated(subject.detail)) {
         lines.push({ kind: "note", text: CARD_WORDS.damageNote, isWarning: false });
@@ -340,11 +321,10 @@ function composeCardNoteLines(subject: CardSubject): TipLine[] {
     // mark on their row is what a reader followed here to have explained.
     const said = [
         ...composeRowWarnings(subject.detail, subject.metric),
-        ...subject.warnings,
+        ...subject.warnings.slice(0, MAXIMUM_CARD_WARNINGS),
     ];
-    assert(said.length <= MAXIMUM_CARD_DOUBTS, "and inside them with the row's own added");
-    for (const warning of said) {
-        assert(warning.length > 0, "a doubt the panel states is a sentence");
+    for (const warning of said.slice(0, MAXIMUM_CARD_DOUBTS)) {
+        if (warning.length === 0) continue;
         lines.push({ kind: "note", text: `${WARNING_MARK}${warning}`, isWarning: true });
     }
     // Last of the sentences and before the instruction, because it answers for every figure above
@@ -359,8 +339,6 @@ function composeCardNoteLines(subject: CardSubject): TipLine[] {
 }
 
 export function composeCardReading(subject: CardSubject): TipReading {
-    assert(subject.name.length > 0, "a card names somebody, or says it cannot");
-    assert(SCREEN_ORDER.includes(subject.metric), "and stands on a screen the panel draws");
     const groups: TipGroup[] = [
         { lines: composeCardFigureLines(subject.detail, subject.metric) },
     ];
@@ -369,12 +347,9 @@ export function composeCardReading(subject: CardSubject): TipReading {
     groups.push(...composeCardRunGroups(subject.detail, subject.translate));
     const notes = composeCardNoteLines(subject);
     if (notes.length > 0) groups.push({ lines: notes });
-    assert(
-        groups.length <= MAXIMUM_CARD_GROUPS,
-        "and says it in the figures, the counters, the two runs and the notes",
-    );
     return {
-        name: subject.name,
+        // A card with nobody behind it says so rather than standing with a blank where a name is.
+        name: subject.name.length > 0 ? subject.name : PANEL_WORDS.unknown,
         subtitle: composeCardSubtitleText(subject.profession, subject.detail.level),
         groups,
     };

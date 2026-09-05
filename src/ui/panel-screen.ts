@@ -6,7 +6,6 @@
  * expressed at all and the compiler counts the rows.
  */
 
-import { assert } from "@std/assert/assert";
 import type { NamedPart, PanelMetric, PanelUnnamedEnd } from "@/src/ui/panel-reading.ts";
 import {
     getWordsForDirection,
@@ -28,8 +27,13 @@ export type PanelNoun = (typeof PANEL_NOUNS)[number];
 const PANEL_DIRECTIONS = ["given", "received"] as const;
 export type PanelDirection = (typeof PANEL_DIRECTIONS)[number];
 
+interface ScreenAxes {
+    noun: PanelNoun;
+    direction: PanelDirection;
+}
+
 /** A pair with no row here is a screen that does not exist: healing has no prevented half. */
-const SCREEN_AXES: Record<PanelMetric, { noun: PanelNoun; direction: PanelDirection }> = {
+const SCREEN_AXES: Record<PanelMetric, ScreenAxes> = {
     damageDealtApplied: { noun: "damage", direction: "given" },
     damageTakenApplied: { noun: "damage", direction: "received" },
     healthGiven: { noun: "healing", direction: "given" },
@@ -44,7 +48,6 @@ export function getStorageFromName(name: string): PanelStorageChoice | null {
     for (const choice of STORAGE_CHOICES) {
         if (choice === name) return choice;
     }
-    assert(!STORAGE_CHOICES.some((one) => one === name), "a name a choice answers to went back");
     return null;
 }
 
@@ -100,14 +103,6 @@ export function composeScreenState(isCollapsed: boolean): ScreenState {
         openFightId: null,
         isCollapsed,
     };
-    assert(SCREEN_ORDER.includes(state.current), "a panel opens on a screen it can draw");
-    assert(state.openRowId === null, "and with every row closed");
-    assert(state.openUnnamedEnd === null, "the ends the protocol leaves out among them");
-    assert(state.openPairId === null, "and no pair standing over one");
-    assert(state.openPart === null, "and no part of a cut standing over that");
-    assert(state.openFightId === null, "and the fight being read is the one going on");
-    assert(state.side === "everyone", "and listing everybody, before a reader has narrowed it");
-    assert(state.isCollapsed === isCollapsed, "and folded exactly as the reader last left it");
     return state;
 }
 
@@ -119,7 +114,6 @@ export function composeScreenState(isCollapsed: boolean): ScreenState {
  * last one's ranking with somebody else's position on it. **ADR 0050.**
  */
 export function composeListName(screen: ScreenState, fightId: number | null): string {
-    assert(screen.current.length > 0, "a place is named for a panel that is on a screen");
     if (screen.isOnShelf) return "shelf";
     const part = screen.openPart === null ? "" : composeNameForPart(screen.openPart);
     const name = [
@@ -131,7 +125,6 @@ export function composeListName(screen: ScreenState, fightId: number | null): st
         `${screen.openPairId}`,
         part,
     ].join("|");
-    assert(name.length > 0, "and a place a reader stands in has a name");
     return name;
 }
 
@@ -146,7 +139,6 @@ export function getScreenFromName(name: string): PanelMetric | null {
     for (const screen of SCREEN_ORDER) {
         if (screen === name) return screen;
     }
-    assert(!SCREEN_ORDER.some((one) => one === name), "a name a screen answers to went back");
     return null;
 }
 
@@ -154,41 +146,35 @@ export function getSideFromName(name: string): PanelSideChoice | null {
     for (const choice of SIDE_CHOICES) {
         if (choice === name) return choice;
     }
-    assert(!SIDE_CHOICES.some((one) => one === name), "a name a side answers to went back");
     return null;
 }
 
+/**
+ * ⚠️ **These four index a table and do not check what comes back, which E14 otherwise asks for.**
+ * Every one of the three tables is a `Record` over the whole of `PanelMetric`, so the compiler
+ * proves the row exists, and the only way a name off a strip or out of storage becomes a
+ * `PanelMetric` is `getScreenFromName`, which narrows or answers null. A fallback here is a branch
+ * no test can reach: written, then mutated away with nothing going red. **W4**, **ADR 0051**.
+ */
 export function getWordsForOpponentCut(screen: PanelMetric): string {
-    assert(screen.length > 0, "a screen is asked for by name");
-    const words = OPPONENT_WORDS[screen];
-    assert(words.length > 0, "a cut that is drawn says what it is cut by");
-    return words;
+    return OPPONENT_WORDS[screen];
 }
 
 export function getWordsForKindCut(screen: PanelMetric): string {
-    assert(screen.length > 0, "a screen is asked for by name");
-    const words = KIND_WORDS[screen];
-    assert(words.length > 0, "a cut that is drawn says what it is cut by");
-    return words;
+    return KIND_WORDS[screen];
 }
 
 export function getNounForScreen(screen: PanelMetric): PanelNoun {
-    assert(SCREEN_ORDER.includes(screen), "a screen asked about is one the strips draw");
     return SCREEN_AXES[screen].noun;
 }
 
 export function getDirectionForScreen(screen: PanelMetric): PanelDirection {
-    assert(SCREEN_ORDER.includes(screen), "a screen asked about is one the strips draw");
     return SCREEN_AXES[screen].direction;
 }
 
 export function getWordsForScreen(screen: PanelMetric): string {
-    assert(screen.length > 0, "a screen is asked for by name");
-    assert(SCREEN_ORDER.includes(screen), "and one the strips draw");
     const axes = SCREEN_AXES[screen];
-    const words = `${getWordsForNoun(axes.noun)} ${getWordsForDirection(screen)}`;
-    assert(words.length > 0, "a screen a reader can reach is a screen with a name");
-    return words;
+    return `${getWordsForNoun(axes.noun)} ${getWordsForDirection(screen)}`;
 }
 
 export interface ScreenTab {
@@ -199,7 +185,6 @@ export interface ScreenTab {
 
 function getScreensForNoun(noun: PanelNoun): PanelMetric[] {
     const found = SCREEN_ORDER.filter((screen) => SCREEN_AXES[screen].noun === noun);
-    assert(found.length > 0, "a noun a strip draws is a noun with a screen behind it");
     return found;
 }
 
@@ -212,40 +197,32 @@ function getScreenAfterNoun(noun: PanelNoun, current: PanelMetric): PanelMetric 
     const screens = getScreensForNoun(noun);
     const kept = screens.find((screen) => SCREEN_AXES[screen].direction === wanted);
     const reached = kept ?? screens[0] ?? current;
-    assert(SCREEN_AXES[reached].noun === noun, "a noun's tab reaches that noun's own screen");
-    assert(SCREEN_ORDER.includes(reached), "and one the strips draw");
     return reached;
 }
 
 export function composeNounTabs(current: PanelMetric): ScreenTab[] {
-    assert(SCREEN_ORDER.includes(current), "a strip is drawn for a screen the panel is on");
     const tabs = PANEL_NOUNS.map((noun) => ({
         name: getScreenAfterNoun(noun, current),
         words: getWordsForNoun(noun),
         isCurrent: noun === SCREEN_AXES[current].noun,
     }));
-    assert(tabs.filter((one) => one.isCurrent).length === 1, "and marks the noun being read");
     return tabs;
 }
 
 export function composeDirectionTabs(current: PanelMetric): ScreenTab[] {
-    assert(SCREEN_ORDER.includes(current), "a strip is drawn for a screen the panel is on");
     const tabs = getScreensForNoun(SCREEN_AXES[current].noun).map((screen) => ({
         name: screen,
         words: getWordsForDirection(screen),
         isCurrent: screen === current,
     }));
-    assert(tabs.filter((one) => one.isCurrent).length === 1, "and marks the way round being read");
     return tabs;
 }
 
 export function composeSideTabs(current: PanelSideChoice): ScreenTab[] {
-    assert(SIDE_CHOICES.includes(current), "a strip is drawn for a choice a reader could make");
     const tabs = SIDE_CHOICES.map((choice) => ({
         name: choice,
         words: getWordsForSide(choice),
         isCurrent: choice === current,
     }));
-    assert(tabs.filter((one) => one.isCurrent).length === 1, "and marks the one that was made");
     return tabs;
 }

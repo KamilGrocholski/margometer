@@ -6,7 +6,7 @@
  * because the arithmetic that would have needed measuring is in the stylesheet and not here.
  */
 
-import { assert, assertEquals, assertExists, AssertionError, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import {
     composeTipElement,
     composeTipHandle,
@@ -51,7 +51,13 @@ Deno.test("a row is looked up by the name it stated, and by no other", () => {
     register.add("row:7", compose);
     assertEquals(register.get("row:7"), compose, "and one that was drawn says what it drew");
     assertEquals(register.get("row:8"), null, "which reaches no neighbour");
-    assertThrows(() => register.add("row:7", compose), AssertionError, "no two rows in one draw");
+    // Two rows answering to one name used to stop the draw. The first stands and the second is
+    // refused, so what a clash costs is a card on hover and never the panel — **E14**, ADR 0051.
+    const other = () => HILDUR;
+    register.add("row:7", other);
+    assertEquals(register.get("row:7"), compose, "and a second row of that name changes nothing");
+    register.add("", compose);
+    assertEquals(register.get(""), null, "as does a row with no name to be looked up by");
     register.reset();
     assertEquals(register.get("row:7"), null, "a redraw starts with nothing said about any row");
 });

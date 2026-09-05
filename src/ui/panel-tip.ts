@@ -6,7 +6,6 @@
  * and the sheet multiplies.
  */
 
-import { assert } from "@std/assert/assert";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { CLASS } from "@/src/ui/panel-look.ts";
 
@@ -85,20 +84,19 @@ const STYLE_ATTRIBUTE = "style";
 export function composeTipRegister(): TipRegister {
     const held = new Map<string, TipCompose>();
     return {
+        // A row with no name, one already registered, or one past the bound is left without a
+        // card. What that costs is detail on hover, and never the draw it arrived in (**E14**).
         add(key: string, compose: TipCompose): void {
-            assert(key.length > 0, "a row that carries a tip is asked for by name");
-            assert(!held.has(key), "and no two rows in one draw answer to the same name");
-            assert(held.size < MAXIMUM_TIPS, "a draw stays inside the tips it is bounded to");
+            if (key.length === 0) return;
+            if (held.has(key)) return;
+            if (held.size >= MAXIMUM_TIPS) return;
             held.set(key, compose);
         },
         get(key: string): TipCompose | null {
-            assert(key.length > 0, "a tip is asked for by the name it was registered under");
-            assert(held.size <= MAXIMUM_TIPS, "a register read stays inside its stated bound");
             return held.get(key) ?? null;
         },
         reset(): void {
             held.clear();
-            assert(held.size === 0, "a redraw starts with nothing said about any row");
         },
     };
 }
@@ -108,25 +106,23 @@ export function composeTipRegister(): TipRegister {
  * other kind is held to one by the stylesheet, which cuts a long label rather than folding it.
  */
 function getTipLineCost(line: TipLine): number {
-    assert(NOTE_CHARACTERS_PER_LINE > 0, "a line of a note holds some of it");
     if (line.kind !== "note") return 1;
-    assert(line.text.length > 0, "a note the card carries says something");
     const wrapped = Math.ceil(line.text.length / NOTE_CHARACTERS_PER_LINE);
-    assert(wrapped >= 1, "and stands on at least the one line it is written on");
+    if (wrapped < 1) return 1;
     return wrapped;
 }
 
 export function getTipSize(reading: TipReading | null): TipSize {
     if (reading === null) return { lines: 1, groups: 0 };
-    assert(reading.groups.length <= MAXIMUM_TIP_LINES, "a card stays inside its stated bound");
     let lines = reading.subtitle === null ? 1 : 2;
     for (const group of reading.groups) {
         for (const line of group.lines) {
             lines += getTipLineCost(line);
-            assert(lines <= MAXIMUM_TIP_LINES, "and a card counted stays inside it as it grows");
         }
     }
-    assert(lines >= 1, "a card is at least the name it names somebody by");
+    // The height the card is drawn at, so a card taller than the bound is placed at the bound
+    // rather than off the bottom of the screen. What is drawn is still every line it holds.
+    if (lines > MAXIMUM_TIP_LINES) lines = MAXIMUM_TIP_LINES;
     return { lines, groups: reading.groups.length };
 }
 
@@ -134,27 +130,17 @@ function composeTipHeadingElement(
     document: PanelDocument,
     line: Extract<TipLine, { kind: "heading" }>,
 ): PanelElement {
-    assert(line.text.length > 0, "a run of parts is headed by something");
     const element = document.createElement("div");
     element.className = CLASS.tipHeading;
     element.textContent = line.text;
-    assert(
-        element.className === CLASS.tipHeading,
-        "and the heading stands under a rule of its own",
-    );
     return element;
 }
 
 function composeTipLineClass(line: TipLine): string {
-    assert(line.kind.length > 0, "a line of the card is drawn as something");
     if (line.kind === "sub") return `${CLASS.tipLine} ${CLASS.tipSub}`;
     if (line.kind === "stat") {
         if (line.isStrong) return `${CLASS.tipLine} ${CLASS.tipStrong}`;
     }
-    assert(
-        CLASS.tipLine.length > 0,
-        "and every one of them is a line before it is one of the three",
-    );
     return CLASS.tipLine;
 }
 
@@ -162,20 +148,15 @@ function composeTipNoteElement(
     document: PanelDocument,
     line: Extract<TipLine, { kind: "note" }>,
 ): PanelElement {
-    assert(line.text.length > 0, "a note the card draws says something");
     const element = document.createElement("div");
     element.className = line.isWarning ? `${CLASS.tipNote} ${CLASS.tipWarning}` : CLASS.tipNote;
     element.textContent = line.text;
-    assert(element.className.startsWith(CLASS.tipNote), "and is a note before it is a warning");
     return element;
 }
 
 function composeTipLineElement(document: PanelDocument, line: TipLine): PanelElement {
-    assert(line.kind.length > 0, "a line of the card is one of the kinds the card has");
     if (line.kind === "note") return composeTipNoteElement(document, line);
     if (line.kind === "heading") return composeTipHeadingElement(document, line);
-    assert(line.label.length > 0, "a line of the detail says what its figure is");
-    assert(line.stated.length > 0, "and states it");
     const element = document.createElement("div");
     element.className = composeTipLineClass(line);
     const label = document.createElement("span");
@@ -190,12 +171,9 @@ function composeTipLineElement(document: PanelDocument, line: TipLine): PanelEle
 }
 
 function composeTipGroupElement(document: PanelDocument, group: TipGroup): PanelElement {
-    assert(group.lines.length > 0, "a run of lines the card draws has a line in it");
-    assert(group.lines.length <= MAXIMUM_TIP_LINES, "and stays inside the card's stated bound");
     const element = document.createElement("div");
     element.className = CLASS.tipGroup;
     for (const line of group.lines) element.append(composeTipLineElement(document, line));
-    assert(element.className === CLASS.tipGroup, "and stands under a rule of its own");
     return element;
 }
 
@@ -205,9 +183,7 @@ export function composeTipElement(
 ): PanelElement {
     const tip = document.createElement("div");
     tip.className = reading === null ? `${CLASS.tip} ${CLASS.tipHidden}` : CLASS.tip;
-    assert(tip.className.startsWith(CLASS.tip), "the detail is ours by name before it says a word");
     if (reading === null) return tip;
-    assert(reading.name.length > 0, "a detail names somebody, or says it cannot");
     // A block rather than a span: `text-overflow` reads nothing on an inline box, so a name too
     // long for the window would be cut off flat instead of ending in the ellipsis the row uses.
     const name = document.createElement("div");
@@ -215,7 +191,6 @@ export function composeTipElement(
     name.textContent = reading.name;
     tip.append(name);
     if (reading.subtitle !== null) {
-        assert(reading.subtitle.length > 0, "what a card says about somebody says something");
         const subtitle = document.createElement("div");
         subtitle.className = CLASS.tipSubtitle;
         subtitle.textContent = reading.subtitle;
@@ -226,9 +201,7 @@ export function composeTipElement(
 }
 
 export function setTipHidden(tip: PanelElement, isHidden: boolean): void {
-    assert(tip.className.length > 0, "the detail wears a class before it is hidden or shown");
     tip.className = isHidden ? `${CLASS.tip} ${CLASS.tipHidden}` : CLASS.tip;
-    assert(tip.className.includes(CLASS.tipHidden) === isHidden, "and wears what it was told to");
 }
 
 /**
@@ -243,10 +216,10 @@ export function setTipPlace(
     left: number | null,
     size: TipSize,
 ): void {
-    assert(Number.isFinite(clientY), "a pointer states where it is");
-    assert(size.lines > 0, "and the card it places stands at least one line tall");
-    const top = Math.max(0, Math.round(clientY));
-    assert(top >= 0, "and never above the top of the screen");
+    // A pointer that states no position puts the card at the top rather than nowhere: `Math.round`
+    // of a figure that is not one is not one either, and a card placed at it is off the screen.
+    const stated = Number.isFinite(clientY) ? clientY : 0;
+    const top = Math.max(0, Math.round(stated));
     const across = left === null ? "" : `;${LEFT_VARIABLE}:${Math.max(0, Math.round(left))}px`;
     tip.setAttribute(
         STYLE_ATTRIBUTE,
@@ -282,23 +255,18 @@ export function composeTipHandle(
     let openTop = 0;
     let openSize: TipSize = getTipSize(null);
     const setTo = (reading: TipReading): void => {
-        assert(reading.name.length > 0, "what the detail is put to names somebody");
         openSize = getTipSize(reading);
         standing = redraw(standing, () => composeTipElement(document, reading));
-        assert(standing.className.length > 0, "and what now stands there is a region of its own");
         setTipPlace(standing, openTop, getLeft(), openSize);
     };
     const hide = (): void => {
-        assert(openTop >= 0, "the pointer was somewhere before it left");
         if (openKey === null) return;
         openKey = null;
         setTipHidden(standing, true);
-        assert(openKey === null, "and the detail is open for nobody once it is hidden");
     };
     return {
         element: standing,
         show(key: string | null, clientY: number): void {
-            assert(Number.isFinite(clientY), "a press or a move states where the pointer is");
             if (key === null) {
                 hide();
                 return;
@@ -322,7 +290,6 @@ export function composeTipHandle(
             setTo(compose());
         },
         refresh(): void {
-            assert(openTop >= 0, "an open tip was opened somewhere");
             if (openKey === null) return;
             const compose = register.get(openKey);
             if (compose === null) {

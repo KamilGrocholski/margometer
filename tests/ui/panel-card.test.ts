@@ -553,6 +553,31 @@ Deno.test("a rate is taken of blows, and a rate of no blows is no rate at all", 
         "and one of them is said",
     );
     assertEquals(critical(40, 40), [`${CARD_WORDS.blowsCritical} 40 (100%)`], "as is all of them");
+    // More criticals than blows cannot be, and the card used to stop rather than draw. A share
+    // above the hundred is a number that is wrong looking like one that is right — **E14**.
+    assertEquals(
+        critical(41, 40),
+        [`${CARD_WORDS.blowsCritical} 41`],
+        "and more of them than there were blows states the count and takes no share of it",
+    );
+});
+
+/**
+ * A card with nobody behind it. The name used to be asserted, so a row the roster could not place
+ * cost the card rather than standing with a word for it — **E14**.
+ */
+Deno.test("a card nobody is named on says so, rather than standing on a blank", () => {
+    const card = composeCardReading({
+        name: "",
+        profession: null,
+        detail: NOBODY,
+        metric: "damageDealtApplied",
+        warnings: [],
+        opens: false,
+        isRowNarrower: false,
+        translate: null,
+    });
+    assertEquals(card.name, PANEL_WORDS.unknown, "in the word the panel already has for it");
 });
 
 Deno.test("two keys the panel words the same way are one line, not two of one word", () => {
