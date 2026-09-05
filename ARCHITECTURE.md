@@ -199,6 +199,7 @@ tests/
     panel-words.test.ts       What the words must never say, and how Polish counts.
     ranked-order.test.ts      The order two rows are drawn in, and the tie nothing breaks.
     share-column.test.ts      Every column of shares the panel draws, against the hundred.
+    shelf-bound.test.ts       A full shelf with a live fight on it, and the two bounds held.
   libs/                    A test sits where its subject sits.
     json-text.test.ts         Both directions, over the answers `null` used to stand for.
     number-range.test.ts      Every side of two ends, and the range with no room in it.

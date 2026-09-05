@@ -200,6 +200,16 @@ const LEAVE_EVENT = "pointerout";
 /** The button a press has to be to open anything. A press that states none is that button. */
 const PRIMARY_BUTTON = 0;
 const MAXIMUM_ROWS = 20;
+/**
+ * ⚠️ **One more than the shelf keeps, and the shelf list is the only list that draws it.** The
+ * row for the fight still **running** is not a kept one — a fight goes on the shelf when it ends
+ * — so a reader with a full shelf who starts a fight is handed one row past `MAXIMUM_KEPT` in
+ * `src/game/kept-fights.ts`. Asserting the ranking's bound here took the whole list down at
+ * exactly that moment, reported on 0.12.1 with a capture of a one-payload fight whose ranking
+ * held three rows. `tests/ui/shelf-bound.test.ts` holds the two constants together, and is the
+ * one place both layers may be read at once.
+ */
+export const MAXIMUM_SHELF_ROWS = 21;
 const PIN_MARK = "★";
 const UNPINNED_MARK = "☆";
 const ROWS_WAITING = 11;
@@ -764,7 +774,10 @@ function composeShelfElement(
     register: TipRegister,
 ): PanelElement {
     const list = composeListElement(document, view.reading.visibleRows);
-    assert(view.shelf.length <= MAXIMUM_ROWS, "a shelf draws no more rows than a list holds");
+    assert(
+        view.shelf.length <= MAXIMUM_SHELF_ROWS,
+        "a shelf draws the kept fights and the live one",
+    );
     assert(view.isOnShelf, "and is drawn where the reader asked for it");
     if (view.shelf.length === 0) {
         list.append(composeEmptyElement(document, PANEL_WORDS.shelfEmpty));
@@ -1214,7 +1227,10 @@ function composeViewList(
     translate: TranslateLabel | null,
 ): PanelElement {
     assert(SCREEN_ORDER.includes(view.current), "a view is on a screen the strip draws");
-    assert(view.shelf.length <= MAXIMUM_ROWS, "and carries no more of them than a list draws");
+    assert(
+        view.shelf.length <= MAXIMUM_SHELF_ROWS,
+        "and carries the kept fights and the live one",
+    );
     if (view.isOnShelf) return composeShelfElement(document, view, register);
     if (view.part !== null) {
         return composePartElement(document, view, view.part, register, translate);
