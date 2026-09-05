@@ -166,7 +166,7 @@ const HEX_COLOUR_LENGTH = 7;
 const RGB_OPENER = "rgb(";
 const RGB_CLOSER = ")";
 const CHANNELS_IN_A_COLOUR = 3;
-const CHANNEL_MAXIMUM = 255;
+const MAXIMUM_CHANNEL_VALUE = 255;
 /** The sRGB transfer function and the channel weights, as WCAG states them. */
 const LUMINANCE_WEIGHTS = [0.2126, 0.7152, 0.0722];
 const LOW_CHANNEL = 0.03928;
@@ -201,7 +201,7 @@ function getChannelsFromRgb(colour: string): ColourChannels | null {
         const channel = getIntegerFromText(stated);
         if (channel === null) return null;
         if (channel < 0) return null;
-        if (channel > CHANNEL_MAXIMUM) return null;
+        if (channel > MAXIMUM_CHANNEL_VALUE) return null;
         channels.push(channel);
     }
     return composeChannels(channels);
@@ -235,7 +235,7 @@ function composeChannels(read: readonly number[]): ColourChannels | null {
 function getLuminanceFromChannels(channels: ColourChannels): number {
     let luminance = 0;
     for (const [at, channel] of channels.entries()) {
-        const share = channel / CHANNEL_MAXIMUM;
+        const share = channel / MAXIMUM_CHANNEL_VALUE;
         const linear = share <= LOW_CHANNEL
             ? share / LOW_SLOPE
             : ((share + CHANNEL_OFFSET) / (1 + CHANNEL_OFFSET)) ** CHANNEL_EXPONENT;

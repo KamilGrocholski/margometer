@@ -18,6 +18,9 @@ const SHORT_UNITS_SHOUTED = ["_MS", "_SEC", "_SECS", "_PX", "_PCT", "_HZ", "_KB"
 const BOOLEAN_PREFIXES = ["is", "was", "will", "has", "does", "should"];
 /** An index signature names its key by type, and a type is nobody's boolean to prefix. */
 const INDEX_KEYS = ["string", "number", "symbol"];
+/** N3: the two edges a name states, in the two spellings N1 allows. */
+const EDGES = ["MAXIMUM", "MINIMUM"];
+const EDGES_SPELLED = ["Maximum", "Minimum"];
 const NEGATIONS = ["Not", "No"];
 /** Where the game, and nothing else, is reached — ARCHITECTURE.md gives this layer that contact. */
 const CROSSING_PATHS = ["src/game/", "src/userscript-entry.ts"];
@@ -408,4 +411,47 @@ Deno.test("every boolean says which state holds", () => {
         }
     }
     assertEquals(wrong, [], "N8: a boolean carries the prefix its tense asks for");
+});
+
+/**
+ * N3 over an edge: a shouted constant states it **first** and a camelCase name states it **last**.
+ *
+ * The split is the rule's own, and the two halves need one reader each because each is the other's
+ * mistake. `ROWS_MAXIMUM` and `maximumHealth` are both wrong, and neither reader can see the one
+ * the other is for.
+ */
+function getEdgesOutOfPlace(text: string): string[] {
+    const found: string[] = [];
+    for (const name of getIdentifiers(text)) {
+        for (const edge of EDGES) {
+            if (name.endsWith(`_${edge}`)) found.push(name);
+        }
+        for (const edge of EDGES_SPELLED) {
+            if (!name.startsWith(edge.toLowerCase())) continue;
+            const after = name.charAt(edge.length);
+            if (isUpperLetter(after)) found.push(name);
+        }
+    }
+    assert(found.every((one) => one.length > 0), "a finding names an identifier");
+    assert(found.length <= text.length, "no more findings than there is text to hold them");
+    return found;
+}
+
+Deno.test("an edge is stated first when it is shouted and last when it is not", () => {
+    assertEquals(getEdgesOutOfPlace("const ROWS_MAXIMUM = 4;"), ["ROWS_MAXIMUM"], "shouted last");
+    assertEquals(
+        getEdgesOutOfPlace("const maximumRows = 4;"),
+        ["maximumRows"],
+        "and spelled first",
+    );
+    assertEquals(getEdgesOutOfPlace("const MAXIMUM_ROWS = 4;"), [], "the shouted form N3 asks for");
+    assertEquals(getEdgesOutOfPlace("const rowsMaximum = 4;"), [], "and the spelled one");
+    assertEquals(getEdgesOutOfPlace("const maximum = 4;"), [], "a bare edge names no subject");
+    const wrong: string[] = [];
+    for (const path of getSourcePaths()) {
+        for (const name of getEdgesOutOfPlace(Deno.readTextFileSync(path))) {
+            wrong.push(`${path}: ${name}`);
+        }
+    }
+    assertEquals(wrong, [], "N3: an edge goes where the spelling puts it");
 });

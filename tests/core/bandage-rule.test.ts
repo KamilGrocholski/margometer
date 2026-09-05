@@ -24,7 +24,7 @@ const TOLERANCE = 0.01;
 Deno.test("the figure is health, and raises the percentage stated before it by its share", () => {
     const combatants = getRecordedCombatants(BANDAGE);
     const roster = composeCombatantRoster(combatants);
-    const maximumById = new Map(combatants.map((one) => [one.id, one.healthMaximum]));
+    const healthMaximumById = new Map(combatants.map((one) => [one.id, one.healthMaximum]));
     const percentById = new Map<number, number>();
     let healed = 0;
     for (const event of decodeFightMessages(getRecordedMessages(BANDAGE), roster)) {
@@ -32,7 +32,7 @@ Deno.test("the figure is health, and raises the percentage stated before it by i
             const id = event.combatantId;
             assertExists(id, "the healing names whose health moved");
             const before = percentById.get(id);
-            const maximum = maximumById.get(id) ?? null;
+            const maximum = healthMaximumById.get(id) ?? null;
             assertExists(before, "the protocol stated them before it");
             assertExists(maximum, "and the snapshot states their pool");
             assertExists(event.healthPercent, "and it says where they stand after");

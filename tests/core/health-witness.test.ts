@@ -92,7 +92,7 @@ function addComparison(reading: WitnessReading, one: Comparison): void {
 function witnessRecording(path: string, reading: WitnessReading): void {
     const combatants = getRecordedCombatants(path);
     const roster = composeCombatantRoster(combatants);
-    const maximumById = new Map(combatants.map((one) => [one.id, one.healthMaximum]));
+    const healthMaximumById = new Map(combatants.map((one) => [one.id, one.healthMaximum]));
     const payloads = getRecordedPayloads(path);
     const doesCarryUnsizedShare = payloads.some((payload) =>
         payload.some((message) => message.includes(UNSIZED_SHARE_KEY))
@@ -120,7 +120,7 @@ function witnessRecording(path: string, reading: WitnessReading): void {
             }
             for (const [combatantId, percentAfter] of statedHere) {
                 const percentBefore = percentById.get(combatantId);
-                const healthMaximum = maximumById.get(combatantId) ?? null;
+                const healthMaximum = healthMaximumById.get(combatantId) ?? null;
                 const moved = pendingById.get(combatantId) ?? 0;
                 percentById.set(combatantId, percentAfter);
                 pendingById.set(combatantId, 0);

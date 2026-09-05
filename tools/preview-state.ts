@@ -10,9 +10,9 @@
 import { assert, assertStringIncludes } from "@std/assert";
 
 /** One value that travels. Past this lies the shelf, which is a fight rather than a setting. */
-export const STATE_VALUE_MAXIMUM = 200;
+export const MAXIMUM_STATE_VALUE = 200;
 /** The whole hash. A browser takes far more; an address somebody has to look at does not. */
-export const STATE_TEXT_MAXIMUM = 2000;
+export const MAXIMUM_STATE_TEXT = 2000;
 /** How long the panel is waited for, in tries of `STATE_WAIT_EVERY_MILLISECONDS`. */
 export const STATE_WAIT_TRIES = 40;
 const STATE_WAIT_EVERY_MILLISECONDS = 25;
@@ -48,7 +48,7 @@ var getPreviewStoreFromText = function (text) {
   for (var at = 0; at < names.length; at += 1) {
     var value = read[names[at]];
     if (typeof value === "string") {
-      if (value.length <= ${STATE_VALUE_MAXIMUM}) held[names[at]] = value;
+      if (value.length <= ${MAXIMUM_STATE_VALUE}) held[names[at]] = value;
     }
   }
   return held;
@@ -75,7 +75,7 @@ function composePreviewStateParser(): string {
   var state = { entry: null, screen: null, store: {} };
   var text = hash.charAt(0) === "#" ? hash.slice(1) : hash;
   if (text.length === 0) return state;
-  if (text.length > ${STATE_TEXT_MAXIMUM}) return state;
+  if (text.length > ${MAXIMUM_STATE_TEXT}) return state;
   var parts = text.split("&");
   try {
     for (var at = 0; at < parts.length; at += 1) {
@@ -175,11 +175,11 @@ function composePreviewStateHash(): string {
   var kept = {};
   var names = Object.keys(held);
   for (var at = 0; at < names.length; at += 1) {
-    if (held[names[at]].length <= ${STATE_VALUE_MAXIMUM}) kept[names[at]] = held[names[at]];
+    if (held[names[at]].length <= ${MAXIMUM_STATE_VALUE}) kept[names[at]] = held[names[at]];
   }
   parts.push(${JSON.stringify(STATE_STORE_NAME)} + "=" + encodeURIComponent(JSON.stringify(kept)));
   var whole = "#" + parts.join("&");
-  if (whole.length <= ${STATE_TEXT_MAXIMUM}) return whole;
+  if (whole.length <= ${MAXIMUM_STATE_TEXT}) return whole;
   parts.pop();
   return "#" + parts.join("&");
 };

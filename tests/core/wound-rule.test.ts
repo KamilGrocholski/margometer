@@ -20,7 +20,7 @@ const TOLERANCE = 0.007;
 Deno.test("every tick takes the percentage stated before it down by its own figure", () => {
     const combatants = getRecordedCombatants(WOUND);
     const roster = composeCombatantRoster(combatants);
-    const maximumById = new Map(combatants.map((one) => [one.id, one.healthMaximum]));
+    const healthMaximumById = new Map(combatants.map((one) => [one.id, one.healthMaximum]));
     const percentById = new Map<number, number>();
     let closed = 0;
     let past = 0;
@@ -32,7 +32,7 @@ Deno.test("every tick takes the percentage stated before it down by its own figu
             const id = event.combatantId;
             assertExists(id, "a tick names whose health moved");
             const before = percentById.get(id);
-            const maximum = maximumById.get(id) ?? null;
+            const maximum = healthMaximumById.get(id) ?? null;
             assertExists(before, "the protocol stated this combatant before the tick");
             assertExists(maximum, "and the snapshot beside it states their pool");
             assertExists(event.healthPercent, "the tick states where they stand after it");

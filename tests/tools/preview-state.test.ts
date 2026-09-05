@@ -11,8 +11,8 @@ import { assert, assertEquals } from "@std/assert";
 import {
     composePreviewStateReading,
     composePreviewStateWriting,
-    STATE_TEXT_MAXIMUM,
-    STATE_VALUE_MAXIMUM,
+    MAXIMUM_STATE_TEXT,
+    MAXIMUM_STATE_VALUE,
 } from "@/tools/preview-state.ts";
 
 interface PreviewStateReading {
@@ -73,8 +73,8 @@ Deno.test("an address nobody composed reads as no state rather than as a wrong o
 });
 
 Deno.test("a value too long for an address does not travel, and one at the edge does", () => {
-    const edge = "x".repeat(STATE_VALUE_MAXIMUM);
-    const over = "x".repeat(STATE_VALUE_MAXIMUM + 1);
+    const edge = "x".repeat(MAXIMUM_STATE_VALUE);
+    const over = "x".repeat(MAXIMUM_STATE_VALUE + 1);
     const read = readStateFromHash(composeHashOfShown({ edge, over }, { entry: 0, screen: null }));
     assertEquals(read.store["edge"], edge, "the longest value that fits is carried");
     assertEquals(read.store["over"], undefined, "and the first one past it is left behind");
@@ -86,7 +86,7 @@ Deno.test("a value too long for an address does not travel, and one at the edge 
  * whole store past the length below, and everything small would be dropped along with it.
  */
 Deno.test("one value nobody could carry does not take the small ones down with it", () => {
-    const shelf = "x".repeat(STATE_TEXT_MAXIMUM * 2);
+    const shelf = "x".repeat(MAXIMUM_STATE_TEXT * 2);
     const held = { shelf, place: `{"left":10,"top":20}` };
     const read = readStateFromHash(composeHashOfShown(held, { entry: 2, screen: null }));
     assertEquals(read.store["place"], held.place, "the setting beside it still travels");
@@ -95,11 +95,11 @@ Deno.test("one value nobody could carry does not take the small ones down with i
 
 Deno.test("a store too big for the whole address is dropped, and the rest still travels", () => {
     const held: Record<string, string> = {};
-    for (let at = 0; at * STATE_VALUE_MAXIMUM < STATE_TEXT_MAXIMUM * 2; at += 1) {
-        held[`key${at}`] = "x".repeat(STATE_VALUE_MAXIMUM);
+    for (let at = 0; at * MAXIMUM_STATE_VALUE < MAXIMUM_STATE_TEXT * 2; at += 1) {
+        held[`key${at}`] = "x".repeat(MAXIMUM_STATE_VALUE);
     }
     const hash = composeHashOfShown(held, { entry: 4, screen: "healthGiven" });
-    assert(hash.length <= STATE_TEXT_MAXIMUM, "an address stays inside the length it states");
+    assert(hash.length <= MAXIMUM_STATE_TEXT, "an address stays inside the length it states");
     const read = readStateFromHash(hash);
     assertEquals(read.entry, 4, "the entry survives the store being left behind");
     assertEquals(read.screen, "healthGiven", "and so does the screen");

@@ -241,7 +241,10 @@ TypeScript idiom, with the naming rules stated here.
   inverse is `delete`. `parse` and `decode` are not synonyms, and the split keeps the layers apart.
   Other verbs are allowed where they are more precise, but never a **synonym** for one in the table.
 - **N3.** Units and qualifiers go **last**, sorted by descending significance: `damageRawTotal`,
-  `latencyMillisecondsMax` — never `maxLatencyMilliseconds`.
+  `latencyMillisecondsMaximum` — never `maximumLatencyMilliseconds`. **A shouted constant puts its
+  bound first**: `MAXIMUM_ROWS`, never `ROWS_MAXIMUM`. There the bound is what the name is for
+  rather than a qualifier on it — every one of them is a maximum **S11** asks to be stated — and a
+  reader looking for what a file bounds reads down the first word.
 - **N4.** No abbreviations. `button`, not `btn`; `percent`, not `hpp`. Abbreviate only where the
   game does, and say so in a comment. _(`by-reading` whether a shortened word is an abbreviation or
   the game's own spelling)_
@@ -497,7 +500,7 @@ the same thing a second way.
 | `tests/repository/errors.test.ts`             | E1, E2, E11–E13, E14 part, each with a sample    |
 | `tests/repository/unguarded-paths.test.ts`    | E14's paths, and the methods they step over      |
 | `tests/source-graph.ts`                       | the reader both of those stand on, S1 included   |
-| `tests/repository/names.test.ts`              | N1, N8, N11, N14, N15, N16, each with a sample   |
+| `tests/repository/names.test.ts`              | N1, N3, N8, N11, N14, N15, N16, with samples     |
 | `tests/repository/type-assertions.test.ts`    | C13, with a register read both ways              |
 | `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts   |
 | `tests/repository/readmes.test.ts`            | the two READMEs, and both against the shot set   |
