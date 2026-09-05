@@ -36,7 +36,7 @@ import {
     composeNounTabs,
     composeSideTabs,
     getScreenFromName,
-    getWordsForScreen,
+    getWordsForMetric,
     type PanelSideChoice,
     SCREEN_ORDER,
 } from "@/src/ui/panel-screen.ts";
@@ -1812,7 +1812,7 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
         readTip(host).lines,
         [
             getWordsForDamageKind(kind.element),
-            getWordsForScreen("damageDealtApplied"),
+            getWordsForMetric("damageDealtApplied"),
             PANEL_WORDS.shareOfFigure,
             composeFigureText(kind.figure),
             kind.shareText,

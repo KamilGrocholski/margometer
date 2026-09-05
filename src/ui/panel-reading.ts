@@ -20,8 +20,8 @@ import {
 } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import {
-    getDirectionForScreen,
-    getNounForScreen,
+    getDirectionForMetric,
+    getNounForMetric,
     type PanelSideChoice,
 } from "@/src/ui/panel-screen.ts";
 import {
@@ -264,7 +264,7 @@ export function getPinnedCase(metric: PanelMetric, end: PanelUnnamedEnd): Pinned
 }
 
 /** What one screen can pin, in the order it draws them. One screen pins two; the rest pin one. */
-function getPinnedCasesForScreen(metric: PanelMetric): PinnedCase[] {
+function getPinnedCasesForMetric(metric: PanelMetric): PinnedCase[] {
     return PINNED_CASES.filter((kase) => PINNED_SHAPES[kase].metric === metric);
 }
 
@@ -426,7 +426,7 @@ function composeSuspicions(
 export function composeRowSuspicions(detail: RowDetail, metric: PanelMetric): string[] {
     const said: string[] = [];
     if (detail.unreadMessages > 0) said.push(composeUnreadRowSuspicion(detail.unreadMessages));
-    const isHealing = getNounForScreen(metric) === "healing";
+    const isHealing = getNounForMetric(metric) === "healing";
     if (isHealing && detail.castsUnplaced > 0) {
         said.push(composeUnplacedHealRowSuspicion(detail.castsUnplaced));
     }
@@ -440,7 +440,7 @@ export function composeRowSuspicions(detail: RowDetail, metric: PanelMetric): st
  */
 export function getRowIsSuspect(detail: RowDetail, metric: PanelMetric): boolean {
     if (detail.unreadMessages > 0) return true;
-    if (getNounForScreen(metric) !== "healing") return false;
+    if (getNounForMetric(metric) !== "healing") return false;
     return detail.castsUnplaced > 0;
 }
 
@@ -689,7 +689,7 @@ function getNeitherEndForPinned(
     const shape = PINNED_SHAPES[kase];
     if (part !== null) return 0;
     if (shape.standing === "cut") return 0;
-    if (getNounForScreen(shape.metric) === "healing") return 0;
+    if (getNounForMetric(shape.metric) === "healing") return 0;
     return statistics.byNeitherEnd;
 }
 
@@ -733,7 +733,7 @@ function composePinnedFigures(
 ): Array<Omit<PinnedRow, "fill" | "shareText">> {
     const part = getPartListed(choice, readerSide);
     const found: Array<Omit<PinnedRow, "fill" | "shareText">> = [];
-    for (const kase of getPinnedCasesForScreen(metric)) {
+    for (const kase of getPinnedCasesForMetric(metric)) {
         const parts = composeHalfNamedParts(statistics, roster, kase, rows, part, readerSide);
         const figure = getPinnedFigure(statistics, kase, parts, part);
         // A figure of nothing is not pinned, and its cut is a cut of nothing: the fold below
@@ -1787,8 +1787,8 @@ function composePartCutForSkill(
     combatantId: number,
     name: string,
 ): FigureCut | null {
-    const isDamage = getNounForScreen(metric) === "damage";
-    if (getDirectionForScreen(metric) === "given") {
+    const isDamage = getNounForMetric(metric) === "damage";
+    if (getDirectionForMetric(metric) === "given") {
         const skill = figures.skills.get(name);
         if (skill === undefined) return null;
         return composePartCutStated(isDamage ? skill.dealtByOpponent : skill.restoredByOpponent);
@@ -1844,10 +1844,10 @@ function getPartTotal(
             getTotalFromCut(cut);
     }
     if (part.kind === "skill") {
-        if (getDirectionForScreen(metric) === "given") {
+        if (getDirectionForMetric(metric) === "given") {
             const skill = figures.skills.get(part.name);
             if (skill === undefined) return getTotalFromCut(cut);
-            return getNounForScreen(metric) === "damage" ? skill.dealt : skill.restored;
+            return getNounForMetric(metric) === "damage" ? skill.dealt : skill.restored;
         }
     }
     // What was received under a name, and what a key gave, are read by folding the same cut the
@@ -1920,7 +1920,7 @@ function getPairTotal(
     metric: PanelMetric,
     otherId: number,
 ): number | null {
-    if (getNounForScreen(metric) === "damage") {
+    if (getNounForMetric(metric) === "damage") {
         const kinds = getPairKinds(figures, metric, otherId);
         return kinds === null ? null : getTotalFromCut(kinds);
     }
@@ -1960,7 +1960,7 @@ function getPairGivingEnd(
     combatantId: number,
     otherId: number,
 ): { figures: CombatantFigures | undefined; subject: string } {
-    if (getDirectionForScreen(metric) === "received") {
+    if (getDirectionForMetric(metric) === "received") {
         return { figures: statistics.byCombatantId.get(otherId), subject: `${combatantId}` };
     }
     return { figures: statistics.byCombatantId.get(combatantId), subject: `${otherId}` };
@@ -1982,7 +1982,7 @@ function composePairPartFigures(
 ): UnsharedPairPart[] {
     const end = getPairGivingEnd(statistics, metric, combatantId, otherId);
     if (end.figures === undefined) return [];
-    const isDamage = getNounForScreen(metric) === "damage";
+    const isDamage = getNounForMetric(metric) === "damage";
     const stated: UnsharedPairPart[] = [];
     for (const skill of end.figures.skills.values()) {
         const figure = isDamage

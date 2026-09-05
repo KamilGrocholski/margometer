@@ -33,11 +33,11 @@ import {
     composeDirectionTabs,
     composeNounTabs,
     composeSideTabs,
-    getDirectionForScreen,
-    getNounForScreen,
+    getDirectionForMetric,
+    getNounForMetric,
     getWordsForKindCut,
+    getWordsForMetric,
     getWordsForOpponentCut,
-    getWordsForScreen,
     type PanelNoun,
     type PanelSideChoice,
     type PanelStorageChoice,
@@ -475,8 +475,8 @@ function composeElementReading(row: ElementRow, noun: PanelNoun, rank: number): 
  * given screen names no receiver, a received one names nobody who did it. One copy, because the
  * two levels that draw such a row were spelling the same rule two ways.
  */
-function getUnnamedEndForScreen(metric: PanelMetric): PanelUnnamedEnd {
-    return getDirectionForScreen(metric) === "given" ? "target" : "actor";
+function getUnnamedEndForMetric(metric: PanelMetric): PanelUnnamedEnd {
+    return getDirectionForMetric(metric) === "given" ? "target" : "actor";
 }
 
 function getWordsForUnnamedRow(end: PanelUnnamedEnd): string {
@@ -698,7 +698,7 @@ function composeRankingElement(
         list.append(composeEmptyElement(document, PANEL_WORDS.nothingYet));
         return list;
     }
-    const figure = getWordsForScreen(metric);
+    const figure = getWordsForMetric(metric);
     for (const [at, row] of reading.rows.entries()) {
         const reader = composeCombatantReading(row, at + 1, metric);
         const tip = {
@@ -827,7 +827,7 @@ function composeOpponentSection(
         );
     }
     if (cut.unnamed === null) return;
-    const end = getUnnamedEndForScreen(stated.metric);
+    const end = getUnnamedEndForMetric(stated.metric);
     const tip = {
         register: stated.register,
         key: "to:nobody",
@@ -835,7 +835,7 @@ function composeOpponentSection(
         share,
         // What the game did not say, and only that: where this figure stands is answered by the
         // heading over it — it is a cut of the one person's figure the level is about.
-        notes: [getWordsForUnnamedEnd(end, getNounForScreen(stated.metric))],
+        notes: [getWordsForUnnamedEnd(end, getNounForMetric(stated.metric))],
     };
     const reading = composeUnnamedReading(cut.unnamed, getWordsForUnnamedRow(end));
     list.append(composeRowElement(document, reading, null, tip));
@@ -854,7 +854,7 @@ function getWordsForNamedPart(part: NamedPart | { kind: "plain" }, metric: Panel
     if (part.kind === "skill") return part.name;
     if (part.kind === "plain") return getWordsForUnannounced(metric);
     const named = part.kind === "source" ? part.source : part.element;
-    return getNounForScreen(metric) === "damage"
+    return getNounForMetric(metric) === "damage"
         ? getWordsForDamageKind(named)
         : getWordsForHealthSource(named);
 }
@@ -928,7 +928,7 @@ function composeElementSection(
 ): void {
     if (cut.rows.length === 0 && cut.unnamed === null) return;
     list.append(composeSectionElement(document, getWordsForKindCut(stated.metric), stated.total));
-    const noun = getNounForScreen(stated.metric);
+    const noun = getNounForMetric(stated.metric);
     const share = PANEL_WORDS.shareOfFigure;
     for (const [at, row] of cut.rows.entries()) {
         const tip = {
@@ -984,7 +984,7 @@ function composeDrillElement(
     translate: TranslateLabel | null,
 ): PanelElement {
     const list = composeListElement(document, getRowsForDrill(drill, view.reading.visibleRows));
-    const figure = getWordsForScreen(view.current);
+    const figure = getWordsForMetric(view.current);
     const place: CardPlace = {
         metric: view.current,
         suspicions: view.reading.suspicions,
@@ -1189,7 +1189,7 @@ function composeHalfNamedDrillElement(
     drill: HalfNamedDrillReading,
     register: TipRegister,
 ): PanelElement {
-    const figure = getWordsForScreen(view.current);
+    const figure = getWordsForMetric(view.current);
     if (drill.opened === "element") {
         const rows = drill.rows.length + (drill.neither === null ? 0 : 1);
         const list = composeListElement(document, Math.max(rows + 1, view.reading.visibleRows));
@@ -1218,7 +1218,7 @@ function composeHalfNamedDrillElement(
 /** What the way back calls the row that is open, which is the row itself and not its level. */
 function getWordsForHalfNamedDrill(drill: HalfNamedDrillReading, metric: PanelMetric): string {
     if (drill.opened === "person") return drill.row.name ?? PANEL_WORDS.unknown;
-    return getNounForScreen(metric) === "damage"
+    return getNounForMetric(metric) === "damage"
         ? getWordsForDamageKind(drill.element)
         : getWordsForHealthSource(drill.element);
 }
@@ -1254,7 +1254,7 @@ function composeHalfNamedElement(
     composeElementSection(document, list, halfNamed.kinds, {
         metric: view.current,
         register,
-        figure: getWordsForScreen(view.current),
+        figure: getWordsForMetric(view.current),
         total: halfNamed.total,
     });
     return list;
@@ -1279,7 +1279,7 @@ function composeHalfNamedRows(
     },
 ): void {
     const { rows, neither, doesOpen, register, translate } = stated;
-    const figure = getWordsForScreen(view.current);
+    const figure = getWordsForMetric(view.current);
     const share = PANEL_WORDS.shareOfFigure;
     // The card is the fight's four figures, as it is wherever a person's row stands, and this row
     // states a cut of them — so it owes the sentence saying so (**ADR 0032**).
@@ -1326,7 +1326,7 @@ function composePartElement(
 ): PanelElement {
     const rows = part.byOpponent.rows.length + (part.byOpponent.unnamed === null ? 0 : 1);
     const list = composeListElement(document, Math.max(rows + 1, view.reading.visibleRows));
-    const figure = getWordsForScreen(view.current);
+    const figure = getWordsForMetric(view.current);
     const heading = getWordsForOpponentCut(view.current);
     list.append(composeSectionElement(document, heading, part.total));
     const share = PANEL_WORDS.shareOfFigure;
@@ -1357,13 +1357,13 @@ function composePartElement(
     if (part.byOpponent.unnamed === null) return list;
     // The end the protocol left out of a blow this part carried: it is inside the figure over the
     // level, so the column comes to a hundred with it and falls short without it.
-    const end = getUnnamedEndForScreen(view.current);
+    const end = getUnnamedEndForMetric(view.current);
     const tip = {
         register,
         key: "reached:nobody",
         figure,
         share,
-        notes: [getWordsForUnnamedEnd(end, getNounForScreen(view.current))],
+        notes: [getWordsForUnnamedEnd(end, getNounForMetric(view.current))],
     };
     const reading = composeUnnamedReading(part.byOpponent.unnamed, getWordsForUnnamedRow(end));
     list.append(composeRowElement(document, reading, null, tip));
@@ -1377,7 +1377,7 @@ function composePairElement(
     register: TipRegister,
 ): PanelElement {
     const list = composeListElement(document, getRowsForPair(pair, view.reading.visibleRows));
-    const figure = getWordsForScreen(view.current);
+    const figure = getWordsForMetric(view.current);
     const share = PANEL_WORDS.shareOfFigure;
     composePairParts(document, list, pair, { metric: view.current, register, figure, share });
     composePairKinds(document, list, pair, { register, figure, share });
@@ -1441,7 +1441,7 @@ function getRowsForPair(pair: PairReading, floor: number): number {
  */
 function composePinnedNotes(row: PinnedRow, metric: PanelMetric, isSideChosen: boolean): string[] {
     const notes = [
-        getWordsForUnnamedEnd(row.end, getNounForScreen(metric)),
+        getWordsForUnnamedEnd(row.end, getNounForMetric(metric)),
         getWordsForPinnedStanding(row.case),
     ];
     if (isSideChosen) notes.push(getWordsForPinnedScope(row.case));
@@ -1931,7 +1931,7 @@ function setPinnedRegions(
     const stated = {
         metric: view.current,
         isSideChosen: view.side !== "everyone",
-        figure: getWordsForScreen(view.current),
+        figure: getWordsForMetric(view.current),
     };
     const isOpen = view.drill !== null || view.halfNamed !== null ||
         view.halfNamedDrill !== null;

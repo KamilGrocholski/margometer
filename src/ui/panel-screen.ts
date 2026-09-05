@@ -156,25 +156,25 @@ export function getSideFromName(name: string): PanelSideChoice | null {
  * `PanelMetric` is `getScreenFromName`, which narrows or answers null. A fallback here is a branch
  * no test can reach: written, then mutated away with nothing going red. **W4**, **ADR 0051**.
  */
-export function getWordsForOpponentCut(screen: PanelMetric): string {
-    return OPPONENT_WORDS[screen];
+export function getWordsForOpponentCut(metric: PanelMetric): string {
+    return OPPONENT_WORDS[metric];
 }
 
-export function getWordsForKindCut(screen: PanelMetric): string {
-    return KIND_WORDS[screen];
+export function getWordsForKindCut(metric: PanelMetric): string {
+    return KIND_WORDS[metric];
 }
 
-export function getNounForScreen(screen: PanelMetric): PanelNoun {
-    return SCREEN_AXES[screen].noun;
+export function getNounForMetric(metric: PanelMetric): PanelNoun {
+    return SCREEN_AXES[metric].noun;
 }
 
-export function getDirectionForScreen(screen: PanelMetric): PanelDirection {
-    return SCREEN_AXES[screen].direction;
+export function getDirectionForMetric(metric: PanelMetric): PanelDirection {
+    return SCREEN_AXES[metric].direction;
 }
 
-export function getWordsForScreen(screen: PanelMetric): string {
-    const axes = SCREEN_AXES[screen];
-    return `${getWordsForNoun(axes.noun)} ${getWordsForDirection(screen)}`;
+export function getWordsForMetric(metric: PanelMetric): string {
+    const axes = SCREEN_AXES[metric];
+    return `${getWordsForNoun(axes.noun)} ${getWordsForDirection(metric)}`;
 }
 
 export interface ScreenTab {

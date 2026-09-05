@@ -84,8 +84,8 @@ const NOTHING_WORDS: Record<PanelMetric, string> = {
     healthRestored: "Nikt jej nie leczył.",
 };
 
-export function getWordsForNothing(screen: PanelMetric): string {
-    const words = NOTHING_WORDS[screen];
+export function getWordsForNothing(metric: PanelMetric): string {
+    const words = NOTHING_WORDS[metric];
     return words;
 }
 
@@ -104,8 +104,8 @@ const UNANNOUNCED_WORDS: Record<PanelMetric, string> = {
     healthRestored: "Bez podanej umiejętności",
 };
 
-export function getWordsForUnannounced(screen: PanelMetric): string {
-    const words = UNANNOUNCED_WORDS[screen];
+export function getWordsForUnannounced(metric: PanelMetric): string {
+    const words = UNANNOUNCED_WORDS[metric];
     return words;
 }
 
@@ -136,8 +136,8 @@ export function getWordsForNoun(noun: PanelNoun): string {
     return words;
 }
 
-export function getWordsForDirection(screen: PanelMetric): string {
-    const words = DIRECTION_WORDS[screen];
+export function getWordsForDirection(metric: PanelMetric): string {
+    const words = DIRECTION_WORDS[metric];
     return words;
 }
 

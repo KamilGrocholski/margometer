@@ -18,7 +18,7 @@ import {
     composeSideTabs,
     getScreenFromName,
     getSideFromName,
-    getWordsForScreen,
+    getWordsForMetric,
     SCREEN_ORDER,
     SIDE_CHOICES,
 } from "@/src/ui/panel-screen.ts";
@@ -41,7 +41,7 @@ Deno.test("every screen names a figure a reading can be composed for", () => {
 });
 
 Deno.test("every screen has words of its own, and no two share them", () => {
-    const said = SCREEN_ORDER.map((screen) => getWordsForScreen(screen));
+    const said = SCREEN_ORDER.map((screen) => getWordsForMetric(screen));
     for (const words of said) assert(words.length > 0, "a screen a reader can reach is named");
     assertEquals(new Set(said).size, said.length, "and two screens never say the same thing");
 });
