@@ -214,6 +214,7 @@ tests/
     sources.test.ts        S1, S2, S13, C5, C15, C16, S4 and S5 over every TypeScript file.
     type-assertions.test.ts  C13, and the register of crossings that narrow no other way.
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
+    unguarded-paths.test.ts  What standing up reaches, with no `try` anywhere over it.
     names.test.ts          File names, exported functions and exported types.
     protocol-keys.test.ts  The register help claims, re-counted against the frozen table.
     readmes.test.ts        The two READMEs to one skeleton, and both to one set of shots.
@@ -608,18 +609,17 @@ commit that opens or closes one.
     generic argument needs the type information a reader over text does not have. It closes if the
     spelling ever arrives, which is the day it would be worth the machinery.
 
-13. **That every path from outside ends at a boundary is held by reading and by behaviour, not by a
-    reader over the tree.** **E14** binds the whole bundle now: `core/`, `game/` and the `libs/`
-    under them go on throwing, and what must hold is that no entry into this program reaches them
-    without one of **E5**'s six boundaries between. `tests/repository/errors.test.ts` holds two
-    halves of that — nothing in the reader-facing layer throws (**E14**), and every handover to
-    somebody else's loop opens on a `try` (**E12**) — and `tests/userscript-entry.test.ts` holds the
-    rest by driving it: a page that throws when it is looked at, a document that refuses the panel,
-    a store nothing can be read out of, and seven pages handed to `startFromWindow`. What no machine
-    computes is the **path**: that a call added tomorrow is under one of the six. The guard that
-    would compute it needs a call graph from each entry point, which is the same machinery **S1**
-    builds for recursion and reads by name — enough to find a cycle, not enough to prove a frame is
-    covered.
+13. **The path guard walks one entry, and reads calls by name.**
+    `tests/repository/unguarded-paths.test.ts` walks the call graph from the add-on standing up,
+    following only calls no `try` stands over, and holds that nothing it reaches can throw. That is
+    **E14** read as a path rather than as a file, and it closes what this entry used to say was
+    missing. Three things it does not see. **A method is nobody's to resolve** — `store.read(…)`,
+    `panel.show(…)` and every callback held in a variable draw no edge, so what is reached only that
+    way is invisible; each of those is a handover **E12** guards, which is why the blind spot is
+    affordable. **It walks one entry**, because every other way in is a callback and E12 holds those
+    to opening on a `try`. And **a name is a name**: a call resolves to a function of that name in
+    the same file or in one it imports, so a local shadowing an import would draw an edge that is
+    not there.
 
 14. **Half of E14 is held by reading.** `tests/repository/sources.test.ts` holds **A11** whole —
     what a reader touches spells no assertion and imports none — and

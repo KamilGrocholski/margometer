@@ -128,6 +128,34 @@ function getClosingLine(opener: string): string {
     return "}";
 }
 
+/**
+ * Whether a declaration takes anything. **A function with no argument has no precondition a caller
+ * could break**, so its assertions can only be postconditions over what it built itself — and six
+ * of those were found on the frame the add-on stands up on, each asserting a literal written two
+ * lines above it. Counting them made the density a figure padded by assertions that assert
+ * nothing. **ADR 0007** narrowed S5 by directory for the same reason; this narrows it by what a
+ * declaration is handed. **ADR 0051.**
+ *
+ * Read from the bracket to its match rather than by looking for `()`, because a parameter that is
+ * itself a function of no arguments — `step: () => void` — spells one in the middle of a list.
+ */
+function getIsTakingSomething(lines: readonly string[], from: number): boolean {
+    const limit = Math.min(lines.length, from + MAXIMUM_DECLARATION_LINES);
+    let depth = 0;
+    let held = "";
+    for (let at = from; at < limit; at += 1) {
+        for (const character of getCodeOutsideStrings(lines[at] ?? "")) {
+            if (character === ")") depth -= 1;
+            if (depth > 0) held += character;
+            if (character === "(") depth += 1;
+            if (depth === 0) {
+                if (held.length > 0) return held.trim().length > 0;
+            }
+        }
+    }
+    return held.trim().length > 0;
+}
+
 function getSourceReading(path: string): SourceReading {
     const lines = Deno.readTextFileSync(path).split("\n");
     const reading: SourceReading = {
@@ -148,7 +176,7 @@ function getSourceReading(path: string): SourceReading {
         const isOpener = openedAt === -1 && isDeclarationOpener(line) &&
             getBlockOpenedAt(lines, offset) !== null;
         if (isOpener) {
-            reading.functions += 1;
+            if (getIsTakingSomething(lines, offset)) reading.functions += 1;
             openedAt = offset;
             closing = getClosingLine(line);
         } else if (openedAt !== -1 && line === closing) {

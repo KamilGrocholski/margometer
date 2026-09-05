@@ -67,9 +67,11 @@ this language does not have would be**; each states what binds instead.
 - **S3.** The cost of one payload is **measured** over the recordings, never assumed, and a change
   to the decode path that raises it is a finding.
 - **S4.** No function is longer than 70 lines, which is one printed page.
-- **S5.** Assertion density averages at least two per function across `libs/`, `project/`,
-  `src/core/`, `src/game/` and `tools/` — the code that may throw. What a reader touches is held by
-  **A11** instead, and measures nothing here. **ADR 0007**, narrowed by **ADR 0051**. See
+- **S5.** Assertion density averages at least two per **function that takes something**, across
+  `libs/`, `project/`, `src/core/`, `src/game/` and `tools/` — the code that may throw. A function
+  handed nothing has no precondition a caller could break, and counting it made the figure a number
+  padded by assertions over literals the function wrote itself. What a reader touches is held by
+  **A11** instead, and measures nothing here. **ADR 0007**, narrowed twice by **ADR 0051**. See
   **Assertions**.
 - **S6.** Declare at the smallest possible scope, `const` by default, at the point of use.
 - **S7.** Every return value is used or explicitly discarded; every parameter is checked. Held by
@@ -493,6 +495,7 @@ the same thing a second way.
 | `tests/repository/decisions.test.ts`          | the decision records                             |
 | `tests/repository/sources.test.ts`            | S1, S2, S4, S5, S13, A10, A11, C5, C8, C15, C16  |
 | `tests/repository/errors.test.ts`             | E1, E2, E11–E13, E14 part, each with a sample    |
+| `tests/repository/unguarded-paths.test.ts`    | E14's paths, walked from the add-on standing up  |
 | `tests/repository/names.test.ts`              | N1, N11, N14, N15, N16, each with a sample       |
 | `tests/repository/type-assertions.test.ts`    | C13, with a register read both ways              |
 | `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts   |

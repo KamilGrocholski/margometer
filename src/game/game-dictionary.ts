@@ -1,9 +1,7 @@
 /**
- * Asking the running client what the player's own copy calls something.
- *
- * The panel asks only where this repository has no word of its own, so a mechanic nobody here has
- * read a name for is named by the game rather than by us, and no sentence of the game's is written
- * down here (`NOTICE.md`). What is refused, and why each refusal exists: **ADR 0024**.
+ * Asking the running client what the player's own copy calls something. The panel asks only where
+ * this repository has no word of its own, and no sentence of the game's is written down here
+ * (`NOTICE.md`). What is refused, and why each refusal exists: **ADR 0024**.
  */
 
 import { assert } from "@std/assert/assert";
@@ -53,7 +51,6 @@ export function readDictionaryFromPage(page: unknown): TranslateLabel | null {
     if (!isRecord(page)) return null;
     const translate = page[TRANSLATE_FIELD];
     if (typeof translate !== "function") return null;
-    assert(TRANSLATE_FIELD.length > 0, "the client's own field is named before it is read");
     return (id: string): string | null => {
         assert(id.length > 0, "an id asked of the client is one the panel named");
         let entry: unknown;

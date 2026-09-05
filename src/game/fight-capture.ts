@@ -90,8 +90,6 @@ export function composeEmptyCapture(): FightCapture {
         shapesSeen: new Set(),
         statesSeen: new Set(),
     };
-    assert(capture.calls.length === 0, "a recording starts holding no call");
-    assert(!capture.isTruncated, "and with room for every one that arrives");
     return capture;
 }
 

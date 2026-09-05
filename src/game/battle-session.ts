@@ -86,8 +86,6 @@ export function composeBattleSession(): BattleSession {
         hasFight: false,
         readerSide: null,
     };
-    assert(session.events.length === 0, "a session starts holding no fight of its own");
-    assert(!session.hasFight, "and says so, rather than reading as a fight with no figures");
     return session;
 }
 
