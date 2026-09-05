@@ -24,6 +24,7 @@
 - [ ] Test turns
 
 ## Up Next
+- [ ] Change how user level code (UI, what user interacts with) is written - no more asserts, check every type before calculation, use operators like `?.`
 - [ ] Add "ucieczka" as a new fight outcome
 - [ ] Do a manual audit
 
