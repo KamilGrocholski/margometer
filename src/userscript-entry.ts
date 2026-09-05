@@ -135,7 +135,7 @@ export interface UserscriptEnvironment {
      * is answered with one that forgets, so the panel is never handed nothing.
      */
     composeShelfStore(choice: PanelStorageChoice): BrowserStore;
-    save: ((name: string, text: string) => void) | null;
+    write: ((name: string, text: string) => void) | null;
     readSurroundings(): CaptureSurroundings;
     now(): number;
     readClock(atMilliseconds: number): { hour: number; minute: number } | null;
@@ -613,20 +613,22 @@ function drawFight(
 ): void {
     const said = defects.getSaid();
     try {
-        if (showFight(session, screen, panel, shelf, liveFight, readClock, said, defects)) return;
+        if (drawFightOnPanel(session, screen, panel, shelf, liveFight, readClock, said, defects)) {
+            return;
+        }
         panel.showWaiting(screen.isCollapsed, { defects: said, isFightUnread: false });
         return;
     } catch (failure) {
         defects.add("reading", null, failure);
     }
-    showFightUnread(panel, screen.isCollapsed, defects);
+    drawFightUnread(panel, screen.isCollapsed, defects);
 }
 
 /**
  * The panel standing on a fight it could not read. A failure here has nowhere left to degrade to,
  * so its mark is the console entry the keeper writes and not a line anybody sees — **ADR 0025**.
  */
-function showFightUnread(panel: PanelHandle, isCollapsed: boolean, defects: KeptDefects): void {
+function drawFightUnread(panel: PanelHandle, isCollapsed: boolean, defects: KeptDefects): void {
     try {
         panel.showWaiting(isCollapsed, { defects: defects.getSaid(), isFightUnread: true });
     } catch (failure) {
@@ -639,7 +641,7 @@ function showFightUnread(panel: PanelHandle, isCollapsed: boolean, defects: Kept
  * nothing to put there — no fight and an empty shelf — because a panel of zeroes over a game that
  * has not started is a claim.
  */
-function showFight(
+function drawFightOnPanel(
     session: BattleSession,
     screen: ScreenState,
     panel: PanelHandle,
@@ -1022,7 +1024,7 @@ function isDocumentOfAPage(value: unknown): boolean {
 /**
  * ⚠️ **A class is not a record.** `typeof` answers `function` of `URL`, `Blob` and `Date`, so
  * `isRecord` refuses all three: they are asked for above by `typeof`, and their members not at
- * all — a missing `URL.createObjectURL` costs the file, which `saveRecording` answers for.
+ * all — a missing `URL.createObjectURL` costs the file, which `writeRecording` answers for.
  */
 function isCallableOn(held: unknown, name: string): boolean {
     if (!isRecord(held)) return false;
@@ -1083,7 +1085,7 @@ function startFromUserscriptWindow(page: UserscriptWindow): GameAttachment {
         report,
         store: composeStoreForChoice(page, STORAGE_DEFAULT),
         composeShelfStore: (choice) => composeStoreForChoice(page, choice),
-        save: (name, text) =>
+        write: (name, text) =>
             writeTextToFile(page, name, text, (failure) => report(FAILURE_LINE, failure)),
         readSurroundings: () => ({
             world: readWorldFromPage(page),
@@ -1145,14 +1147,14 @@ function composeReportSubject(session: BattleSession, live: LiveFight): ReportSu
  * fight going on, and the panel may be standing on one off the shelf. A refusal to write leaves a
  * mark rather than an empty file.
  */
-function saveRecording(
+function writeRecording(
     environment: UserscriptEnvironment,
     live: LiveFight,
     session: BattleSession,
     defects: KeptDefects,
 ): void {
-    const save = environment.save;
-    if (save === null) return;
+    const write = environment.write;
+    if (write === null) return;
     const surroundings = environment.readSurroundings();
     const subject = composeReportSubject(session, live);
     const text = composeCaptureText(live.capture, surroundings, subject);
@@ -1164,7 +1166,7 @@ function saveRecording(
     // The browser's own `click()` is in here and throws where a page is being torn down, and it
     // was reaching the press that called it rather than the reader (**E14**).
     try {
-        save(composeCaptureFileName(surroundings), text);
+        write(composeCaptureFileName(surroundings), text);
     } catch (failure) {
         defects.add("file", null, failure);
     }
@@ -1321,7 +1323,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     const panel = composePanelHost(
         environment.document,
         (press) => {
-            if (press.kind === "save") saveRecording(environment, live, session, defects);
+            if (press.kind === "save") writeRecording(environment, live, session, defects);
             const isShelfPress = setShelfFromPress(shelf, press);
             if (!isShelfPress && !handlePress(screen, press)) return;
             if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");

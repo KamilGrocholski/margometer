@@ -189,7 +189,7 @@ export function hasWord(code: string, word: string): boolean {
 /**
  * The line closing a `try`, where that line is its `catch`. **A `try`/`finally` catches nothing**,
  * and `writeTextToFile` holds the one in this tree — reading it as a guard would call the download
- * path covered when `saveRecording` is what covers it.
+ * path covered when `writeRecording` is what covers it.
  *
  * ⚠️ **Counted a character at a time, because `} catch {` nets nothing.** Taking the braces a line
  * at a time never sees the depth fall to zero at a catch, so every `try` read as never closing and

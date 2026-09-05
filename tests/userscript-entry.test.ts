@@ -96,7 +96,7 @@ function composeEnvironment(page: unknown) {
         report: (line) => reported.push(line),
         store: composeHeldStore(held),
         composeShelfStore: (choice) => composeHeldStore(getShelf(choice)),
-        save: (name, text) => {
+        write: (name, text) => {
             saved.push({ name, text });
         },
         readSurroundings: () => ({

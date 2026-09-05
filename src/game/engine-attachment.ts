@@ -87,7 +87,7 @@ interface Search {
     hasFailed: boolean;
 }
 
-function stopLooking(search: Search, schedule: Scheduler): void {
+function stopLookingForEngine(search: Search, schedule: Scheduler): void {
     assert(search.looks >= 0, "a look that happened is counted");
     search.isDone = true;
     if (search.handle === null) return;
@@ -96,19 +96,24 @@ function stopLooking(search: Search, schedule: Scheduler): void {
     assert(search.handle === null, "a search that stopped is holding no timer");
 }
 
-function look(page: unknown, report: AttachmentReport, schedule: Scheduler, search: Search): void {
+function lookForEngine(
+    page: unknown,
+    report: AttachmentReport,
+    schedule: Scheduler,
+    search: Search,
+): void {
     if (search.isDone) return;
     search.looks += 1;
     assert(search.looks <= MAXIMUM_LOOKS, "the search stays inside its stated bound");
     const battle = readBattleFromPage(page);
     if (battle === null) {
         if (search.looks < MAXIMUM_LOOKS) return;
-        stopLooking(search, schedule);
+        stopLookingForEngine(search, schedule);
         report.handleSearchAbandoned();
         return;
     }
     if (isEngineBattleWrapped(battle)) {
-        stopLooking(search, schedule);
+        stopLookingForEngine(search, schedule);
         report.handleAnotherReader();
         return;
     }
@@ -119,7 +124,7 @@ function look(page: unknown, report: AttachmentReport, schedule: Scheduler, sear
         handleFirstFailure: (failure) => report.handleFailure(failure),
     });
     if (search.wrap !== null) {
-        stopLooking(search, schedule);
+        stopLookingForEngine(search, schedule);
         report.handleAttached();
         return;
     }
@@ -152,7 +157,7 @@ function handleLookFailure(
     }
     assert(search.hasFailed, "a failure that was marked stays marked");
     if (search.looks < MAXIMUM_LOOKS) return;
-    stopLooking(search, schedule);
+    stopLookingForEngine(search, schedule);
     report.handleSearchAbandoned();
 }
 
@@ -176,14 +181,14 @@ export function attachToGame(
     // look that mounts the panel, and a throw here left a reader with a raw failure in the
     // console and no add-on at all.
     try {
-        look(page, report, schedule, search);
+        lookForEngine(page, report, schedule, search);
     } catch (failure) {
         handleLookFailure(failure, report, schedule, search);
     }
     if (!search.isDone) {
         search.handle = schedule.every(() => {
             try {
-                look(page, report, schedule, search);
+                lookForEngine(page, report, schedule, search);
             } catch (failure) {
                 handleLookFailure(failure, report, schedule, search);
             }
@@ -193,7 +198,7 @@ export function attachToGame(
     assert(search.looks <= MAXIMUM_LOOKS, "and stays inside the bound like every other");
     return {
         detach(): void {
-            stopLooking(search, schedule);
+            stopLookingForEngine(search, schedule);
             search.wrap?.detach();
             search.wrap = null;
         },

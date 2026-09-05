@@ -41,13 +41,13 @@ export function composeKeptScrollMemo(): KeptScrolls {
     };
 }
 
-function getRegionIsList(region: PanelElement): boolean {
+function getIsRegionList(region: PanelElement): boolean {
     return region.className.includes(CLASS.list);
 }
 
 /** Null where what stands in the region is a slot, which does not scroll and holds no position. */
 export function getTopOfList(region: PanelElement): number | null {
-    if (!getRegionIsList(region)) return null;
+    if (!getIsRegionList(region)) return null;
     const top = region.scrollTop;
     if (!Number.isFinite(top)) return null;
     if (top < 0) return null;
@@ -59,8 +59,8 @@ export function getTopOfList(region: PanelElement): number | null {
  * reader rather than the region replaced. False where either side is not a list. **ADR 0052.**
  */
 export function setListRowsDrawn(standing: PanelElement, next: PanelElement): boolean {
-    if (!getRegionIsList(standing)) return false;
-    if (!getRegionIsList(next)) return false;
+    if (!getIsRegionList(standing)) return false;
+    if (!getIsRegionList(next)) return false;
     standing.className = next.className;
     standing.replaceChildren(...Array.from(next.children));
     return true;
@@ -74,6 +74,6 @@ export function setListRowsDrawn(standing: PanelElement, next: PanelElement): bo
 export function setTopOfList(region: PanelElement, top: number): void {
     if (!Number.isFinite(top)) return;
     if (top < 0) return;
-    if (!getRegionIsList(region)) return;
+    if (!getIsRegionList(region)) return;
     region.scrollTop = top;
 }

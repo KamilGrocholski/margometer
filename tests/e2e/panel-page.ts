@@ -68,7 +68,7 @@ export function readRecordedCalls(rootDirectory: string, name: string): unknown[
 
 /**
  * What the page keeps for a test. `Blob` is wrapped because the panel hands a file over as an
- * object URL it clicks and revokes on the next macrotask (`saveRecording`, in the entry) — the
+ * object URL it clicks and revokes on the next macrotask (`writeRecording`, in the entry) — the
  * text is kept here synchronously, where nothing can lose the race for it.
  */
 function composeProbe(): string {
