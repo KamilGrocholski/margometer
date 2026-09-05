@@ -1146,7 +1146,9 @@ function composePanelPlacement(
         // wherever this panel writes: the reader's choice stands, and only the next visit is the
         // poorer for it.
         handleMoved: (position: PanelPosition) => {
-            store?.write(PLACE_KEY, composeStoredTextFromPosition(position));
+            const written = composeStoredTextFromPosition(position);
+            if (written === null) return;
+            store?.write(PLACE_KEY, written);
         },
     };
 }

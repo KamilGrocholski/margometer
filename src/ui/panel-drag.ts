@@ -1,7 +1,5 @@
 /** Where the panel sits, and how a reader moves it. Nothing here measures the document. */
 
-import { assert } from "@std/assert/assert";
-
 /** A position is two numbers written as JSON; text longer than this is not one. */
 const MAXIMUM_STORED = 4096;
 import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
@@ -38,22 +36,31 @@ const TOP_VARIABLE = "--MargoMeter-panel-top";
 const STYLE_ATTRIBUTE = "style";
 const GRIP_ATTRIBUTE = "data-grip";
 
-/** Whole pixels are the panel's concern, so the rounding stays here and not in the range. */
+/**
+ * A whole pixel, on the screen, and a number a style can be written from. `getValueWithin` refuses
+ * anything else, so what is not one is answered before it is handed over (**E14**).
+ */
 function getPositionWithin(value: number, limit: number): number {
-    assert(Number.isFinite(value), "a position being clamped is a number");
-    assert(Number.isFinite(limit), "and is clamped against one");
-    return Math.round(getValueWithin(value, 0, limit));
+    if (!Number.isFinite(value)) return 0;
+    if (!Number.isFinite(limit)) return Math.round(value);
+    const held = Math.round(getValueWithin(value, 0, limit));
+    if (!Number.isSafeInteger(held)) return 0;
+    return held;
 }
 
-/** A null viewport clamps nothing: a width read as zero would look exactly like one that works. */
+/**
+ * **Every position downstream of this is whole, finite and safe to write into a style.** A null
+ * viewport clamps nothing: a width read as zero would look exactly like one that works.
+ */
 export function composeClampedPosition(
     position: PanelPosition,
     viewport: PanelViewport | null,
 ): PanelPosition {
-    assert(Number.isFinite(position.left), "a position is two numbers");
-    assert(Number.isFinite(position.top), "and both of them are stated");
     if (viewport === null) {
-        return { left: Math.round(position.left), top: Math.round(position.top) };
+        return {
+            left: getPositionWithin(position.left, Number.POSITIVE_INFINITY),
+            top: getPositionWithin(position.top, Number.POSITIVE_INFINITY),
+        };
     }
     return {
         left: getPositionWithin(position.left, viewport.width - MINIMUM_VISIBLE),
@@ -73,10 +80,11 @@ export function composeDefaultPosition(viewport: PanelViewport | null): PanelPos
     if (viewport === null) return null;
     const width = getIntegerFromText(PLACE.width.slice(0, -2));
     const share = getIntegerFromText(SPACE.heightShareMaximum.slice(0, -2));
-    assert(width !== null, "the panel is as wide as the sheet says, in whole pixels");
-    assert(share !== null, "and as tall as the share of the window the sheet allows it");
+    // A token that stopped reading as pixels leaves the sheet's own corner standing, which the
+    // docblock above says is a place and not a guess (**E14**).
+    if (width === null) return null;
+    if (share === null) return null;
     const height = viewport.height * share / 100;
-    assert(height >= 0, "a window a panel is centred in has a height");
     return composeClampedPosition({
         left: (viewport.width - width) / 2,
         top: (viewport.height - height) / 2,
@@ -88,8 +96,6 @@ function composeDraggedPosition(
     pointer: PanelPosition,
     viewport: PanelViewport | null,
 ): PanelPosition {
-    assert(Number.isFinite(grab.panelLeft), "a drag moves a panel that was somewhere");
-    assert(Number.isFinite(pointer.left), "and follows a pointer that is somewhere");
     return composeClampedPosition({
         left: grab.panelLeft + (pointer.left - grab.pointerLeft),
         top: grab.panelTop + (pointer.top - grab.pointerTop),
@@ -102,7 +108,7 @@ function composeDraggedPosition(
  * shape all read the same, which is *no position*.
  */
 export function getPositionFromStoredText(text: string): PanelPosition | null {
-    assert(text.length <= MAXIMUM_STORED, "a stored position is shorter than one can be written");
+    if (text.length > MAXIMUM_STORED) return null;
     const reading = getJsonReading(text);
     if (!reading.isOk) return null;
     if (!isRecord(reading.value)) return null;
@@ -111,16 +117,18 @@ export function getPositionFromStoredText(text: string): PanelPosition | null {
     if (left === null || top === null) return null;
     if (!Number.isSafeInteger(left)) return null;
     if (!Number.isSafeInteger(top)) return null;
-    assert(Number.isSafeInteger(left), "a position read back is two whole numbers");
     return { left, top };
 }
 
-/** By hand rather than through a stringifier, which turns a `NaN` into `null` without saying so. */
-export function composeStoredTextFromPosition(position: PanelPosition): string {
+/**
+ * By hand rather than through a stringifier, which turns a `NaN` into `null` without saying so.
+ * Null where there is no position to write, so the reader keeps the place they last left.
+ */
+export function composeStoredTextFromPosition(position: PanelPosition): string | null {
+    if (!Number.isSafeInteger(position.left)) return null;
+    if (!Number.isSafeInteger(position.top)) return null;
     const left = composeIntegerText(position.left);
     const top = composeIntegerText(position.top);
-    assert(left.length > 0, "a position written down states where it is across");
-    assert(top.length > 0, "and where it is down");
     return `{"left":${left},"top":${top}}`;
 }
 
@@ -131,13 +139,12 @@ export function composeStoredTextFromPosition(position: PanelPosition): string {
  * is the window's height less where its top edge is, and CSS cannot read a `top` back out of an
  * inline style.
  */
-export function composePositionStyle(position: PanelPosition): string {
+export function composePositionStyle(position: PanelPosition): string | null {
+    if (!Number.isSafeInteger(position.left)) return null;
+    if (!Number.isSafeInteger(position.top)) return null;
     const left = composeIntegerText(position.left);
     const top = composeIntegerText(position.top);
-    const style = `left:${left}px;top:${top}px;${TOP_VARIABLE}:${top}px;right:auto`;
-    assert(style.includes(TOP_VARIABLE), "the ceiling is told where the panel's top edge is");
-    assert(style.endsWith("right:auto"), "and the corner the sheet anchored to is released");
-    return style;
+    return `left:${left}px;top:${top}px;${TOP_VARIABLE}:${top}px;right:auto`;
 }
 
 export function composeTipLeft(
@@ -145,19 +152,19 @@ export function composeTipLeft(
     viewport: PanelViewport | null,
     tipWidth: number,
 ): number | null {
-    assert(tipWidth > 0, "a detail window is as wide as it was told");
+    if (!Number.isFinite(tipWidth)) return null;
+    if (tipWidth <= 0) return null;
     if (position === null) return null;
     if (viewport === null) return null;
     // Both are this panel's own tokens, so a reading that fails is a token that changed shape
     // rather than anything a page did — zero would place the window against the wrong edge.
     const width = getIntegerFromText(PLACE.width.slice(0, -2));
     const gap = getIntegerFromText(SPACE.small.slice(0, -2));
-    assert(width !== null, "the panel's own width is stated in whole pixels");
-    assert(gap !== null, "and so is the gap beside it");
+    if (width === null) return null;
+    if (gap === null) return null;
     const beside = position.left - tipWidth - gap;
     if (beside >= 0) return beside;
     const other = position.left + width + gap;
-    assert(other > beside, "the other side of a panel is further along than the first");
     return Math.min(other, Math.max(0, viewport.width - tipWidth));
 }
 
@@ -169,17 +176,13 @@ export interface PanelPlacement {
 }
 
 export function setGripMark(bar: PanelElement): void {
-    assert(GRIP_ATTRIBUTE.startsWith("data-"), "what starts a drag is marked by an attribute");
     bar.setAttribute(GRIP_ATTRIBUTE, "");
-    assert(bar.className.length > 0, "and the bar is a region before it is a handle");
 }
 
 function getPointerFromEvent(event: PanelEvent): PanelPosition | null {
-    assert(typeof event === "object", "a pointer states where it is on an event of its own");
     const left = getNumberFromUnknown(event.clientX);
     const top = getNumberFromUnknown(event.clientY);
     if (left === null || top === null) return null;
-    assert(Number.isFinite(left), "and states it as a number this arithmetic can use");
     return { left, top };
 }
 
@@ -200,7 +203,6 @@ function composePanelDragGrab(
     position: PanelPosition | null,
     placement: PanelPlacement,
 ): PanelGrab | null {
-    assert(typeof placement.getViewport === "function", "a grab is clamped against something");
     if (event.target?.getAttribute(GRIP_ATTRIBUTE) === null) return null;
     const pointer = getPointerFromEvent(event);
     if (pointer === null) return null;
@@ -208,7 +210,6 @@ function composePanelDragGrab(
     if (from === null) return null;
     // Without this the browser starts its own text or image drag from the bar.
     event.preventDefault?.();
-    assert(Number.isFinite(from.left), "a drag starts from a place the panel actually has");
     return {
         pointerLeft: pointer.left,
         pointerTop: pointer.top,
@@ -229,24 +230,23 @@ export function setPanelDrag(
     placement: PanelPlacement,
     handleFailure: (failure: unknown) => void,
 ): () => PanelPosition | null {
-    assert(typeof placement.getViewport === "function", "a drag is clamped against something");
-    assert(typeof getBar === "function", "and starts from the bar as it stands now");
     // The reader's place, or the middle of the window: a position from the first frame is what
     // lets the detail window and the card answer the side the panel is on (**ADR 0019**), where a
     // panel left on the sheet's corner has no `left` for either of them to read.
     let position = placement.position ?? composeDefaultPosition(placement.getViewport());
     let grab: PanelGrab | null = null;
+    // A position that writes no style leaves the host on the sheet's own corner, which is a place
+    // — and the panel is still there to be grabbed (**E14**).
     const setHostPosition = (next: PanelPosition): void => {
-        assert(Number.isSafeInteger(next.left), "a panel is put at a whole pixel across");
-        assert(Number.isSafeInteger(next.top), "and at a whole one down");
+        const style = composePositionStyle(next);
+        if (style === null) return;
         position = next;
-        host.setAttribute(STYLE_ATTRIBUTE, composePositionStyle(next));
+        host.setAttribute(STYLE_ATTRIBUTE, style);
     };
     if (position !== null) {
         setHostPosition(composeClampedPosition(position, placement.getViewport()));
     }
     const setGuarded = (type: string, handle: (event: PanelEvent) => void): void => {
-        assert(type.startsWith("pointer"), "a drag listens for the pointer and nothing else");
         setGuardedListener(root, type, handle, (failure) => {
             // A grab left standing after a failure moves the panel under the next pointer that
             // crosses it, with nobody having pressed the bar.
@@ -268,7 +268,6 @@ export function setPanelDrag(
         setHostPosition(composeDraggedPosition(held, pointer, placement.getViewport()));
     });
     const handleDragEnd = (event: PanelEvent): void => {
-        assert(typeof placement.handleMoved === "function", "where a drag ends is reported once");
         if (grab === null) return;
         grab = null;
         setPointerHeld(getBar(), false, event.pointerId, handleFailure);
@@ -293,7 +292,6 @@ function setPointerHeld(
     pointerId: number | undefined,
     handleFailure: (failure: unknown) => void,
 ): void {
-    assert(typeof handleFailure === "function", "a refusal to hold a pointer is reported");
     if (pointerId === undefined) return;
     try {
         if (isHeld) bar.setPointerCapture?.(pointerId);

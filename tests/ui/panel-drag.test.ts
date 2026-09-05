@@ -3,7 +3,7 @@
  * and it is where they left it when they come back.
  */
 
-import { assertEquals, assertStringIncludes } from "@std/assert";
+import { assertEquals, assertExists, assertStringIncludes } from "@std/assert";
 import {
     composeClampedPosition,
     composeDefaultPosition,
@@ -60,8 +60,27 @@ Deno.test("a panel nobody has moved opens in the middle of the window", () => {
     assertEquals(composeDefaultPosition(null), null, "and nothing where the page states no size");
 });
 
+/**
+ * A window that answers with something that is not a number. `getValueWithin` refuses one, so the
+ * panel used to stop being drawn over a reading nothing here can do anything with; the corner is
+ * a place and the panel is still there to be grabbed — **E14**, ADR 0051.
+ */
+Deno.test("a window stating no size to clamp against leaves the panel where it is", () => {
+    assertEquals(
+        composeClampedPosition({ left: 40, top: 60 }, { width: Number.NaN, height: 900 }),
+        { left: 40, top: 60 },
+        "an edge nothing can be measured against clamps nothing, as a window with no size does",
+    );
+    assertEquals(
+        composeClampedPosition({ left: Number.NaN, top: Number.NaN }, null),
+        { left: 0, top: 0 },
+        "and a position that is not one at all is the corner in both",
+    );
+});
+
 Deno.test("a position survives a reload, and nothing else is read as one", () => {
     const written = composeStoredTextFromPosition({ left: 12, top: 34 });
+    assertExists(written, "a position of two whole numbers is one that can be written down");
     assertEquals(getPositionFromStoredText(written), { left: 12, top: 34 }, "what was put in");
     assertEquals(getPositionFromStoredText(""), null, "nothing stored is no position");
     assertEquals(getPositionFromStoredText("{"), null, "and neither is text that was cut short");
@@ -70,10 +89,18 @@ Deno.test("a position survives a reload, and nothing else is read as one", () =>
     assertEquals(getPositionFromStoredText('{"left":"1","top":2}'), null, "as numbers, not text");
     assertEquals(getPositionFromStoredText('{"left":1.5,"top":2}'), null, "and as whole ones");
     assertEquals(getPositionFromStoredText('{"left":0,"top":0}'), { left: 0, top: 0 }, "zero is a");
+    // Nothing is written rather than the draw being stopped: the reader keeps the place they left,
+    // and only the next visit is the poorer for it — **E14**, ADR 0051.
+    assertEquals(
+        composeStoredTextFromPosition({ left: Number.NaN, top: 0 }),
+        null,
+        "a position that is not two whole numbers is not written down at all",
+    );
 });
 
 Deno.test("what puts the panel there releases the corner it was anchored to", () => {
     const style = composePositionStyle({ left: 40, top: 60 });
+    assertExists(style, "a position of two whole numbers puts the panel somewhere");
     assertStringIncludes(style, "left:40px", "the panel is put where it was dragged to");
     assertStringIncludes(style, "top:60px", "in both directions");
     // The ceiling that keeps the panel above the bottom edge is the window less its top, and CSS
@@ -84,6 +111,11 @@ Deno.test("what puts the panel there releases the corner it was anchored to", ()
         "the ceiling is told where the top is",
     );
     assertStringIncludes(style, "right:auto", "and the corner the sheet anchored to is released");
+    assertEquals(
+        composePositionStyle({ left: 40, top: Number.POSITIVE_INFINITY }),
+        null,
+        "and a position that is not one writes no style, leaving the sheet's corner standing",
+    );
 });
 
 /** 250 pixels, which is what the sheet draws the detail window at. */
