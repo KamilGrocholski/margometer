@@ -188,6 +188,7 @@ tests/
     declared-version.test.ts  The declaration read both ways, and the mark a dev build wears.
   ui/
     blow-vocabulary.test.ts   Every key a blow carried, against the words the panel has for it.
+    full-cast-bound.test.ts   The widest cast there is, with both unnamed rows beside it.
     panel-card.test.ts        Every figure a card states, and the parts it draws under them.
     panel-drag.test.ts        A panel kept on the screen, and put back where it was left.
     panel-element.test.ts     What the panel puts on a page, read back out of it.
