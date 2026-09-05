@@ -61,8 +61,9 @@ const MAXIMUM_CARD_PARTS = 64;
 const OFFHAND_CRIT_KEY = "+of_crit";
 
 /**
- * The four in the order the strip over the list puts them, which is the order asserted rather
- * than derived: a table read out of `SCREEN_ORDER` could not say which end each one is missing.
+ * The four in the order the strip over the list puts them, written out rather than derived: a
+ * table read out of `SCREEN_ORDER` could not say which end each one is missing. That the order is
+ * the strip's is read back in words by `tests/ui/panel-card.test.ts`.
  */
 function composeCardFigures(detail: RowDetail): CardFigure[] {
     const figures: CardFigure[] = [

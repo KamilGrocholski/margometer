@@ -1402,10 +1402,8 @@ function compareElementRows(one: { element: string; figure: number }, other: {
  * took, a restoring key beside what it put back — so a kind cut comes to the figure it is a cut
  * of. Measured over `captures/` on 2026-08-30: 0 of 1,060 combatant-and-screen readings.
  *
- * It stays rather than becoming an assertion, unlike the one `composeSkillCut` keeps. That
- * invariant is one condition over one movement; this one is four call sites agreeing, and a fifth
- * that forgot the cut should leave a reader a row saying so rather than a region that failed to
- * draw.
+ * It stays as a row rather than becoming a check of any kind: this is four call sites agreeing,
+ * and a fifth that forgot the cut should leave a reader a row saying so.
  */
 function composeElementCut(
     cut: FigureCut,
