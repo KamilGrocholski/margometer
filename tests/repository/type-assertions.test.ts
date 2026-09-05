@@ -14,15 +14,17 @@ const SHIPPED_ROOTS = ["libs/", "project/", "src/", "tools/"];
 
 /**
  * The whole register, and the reason for each, held here so no two files carry one copy of it.
- * `userscript-boot.ts` takes a browser's `Window`, which states far more than the entry asks of
- * it. `engine-battle-wrap.ts` and `game-dictionary.ts` name a signature `typeof` cannot give:
- * it narrows to `Function`, which answers `any` to a call, and a call nobody typed is worse than
- * the assertion that types it.
+ * Both name a signature `typeof` cannot give: it narrows to `Function`, which answers `any` to a
+ * call, and a call nobody typed is worse than the assertion that types it.
+ *
+ * `userscript-boot.ts` was the third until **ADR 0051**. It took a browser's `Window`, which
+ * states far more than the entry asks of it, and claiming that shape is not the same as having
+ * it — `isUserscriptWindow` checks the members the add-on calls before one of them is reached,
+ * which is a `value is X` predicate and exactly what C13 asks for instead.
  */
 const ASSERTIONS_WITH_A_REASON = [
     "src/game/engine-battle-wrap.ts",
     "src/game/game-dictionary.ts",
-    "src/userscript-boot.ts",
 ];
 
 /** The identifier standing at the front of `text`, so `constant` is not read as `const`. */

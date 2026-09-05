@@ -15,7 +15,7 @@ import {
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
-import { getNumberFromUnknown, getTextFromUnknown } from "@/libs/unknown-reading.ts";
+import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import {
     addPayloadToSession,
@@ -812,8 +812,7 @@ export interface UserscriptWindow {
  * handed one and states its own surface.
  *
  * `createElement` answers an anchor for every tag, which is a shape only an anchor really has.
- * Nothing here reads those members off anything but an `a`, and the boundary that asserts it is
- * the one cast in `userscript-boot.ts`.
+ * Nothing here reads those members off anything but an `a`.
  */
 export interface UserscriptDocument {
     createElement(tag: string): DownloadAnchor;
@@ -960,7 +959,55 @@ function composeStoreForChoice(page: UserscriptWindow, choice: PanelStorageChoic
     }
 }
 
-export function startFromWindow(page: UserscriptWindow): GameAttachment {
+/**
+ * Whether the page states the members this add-on **calls**, asked before one of them is reached.
+ * It stands where a cast in `userscript-boot.ts` used to. **That a member is there and callable
+ * is all it says** — a signature is not `typeof`'s to give, and a function of the wrong shape is
+ * answered for by every boundary below. What this closes is the start, which has none.
+ */
+function isUserscriptWindow(value: unknown): value is UserscriptWindow {
+    if (!isRecord(value)) return false;
+    if (typeof value.setInterval !== "function") return false;
+    if (typeof value.clearInterval !== "function") return false;
+    if (typeof value.setTimeout !== "function") return false;
+    if (typeof value.Date !== "function") return false;
+    if (typeof value.Blob !== "function") return false;
+    if (typeof value.URL !== "function") return false;
+    if (!isCallableOn(value.console, "error")) return false;
+    if (!isRecord(value.location)) return false;
+    if (!isRecord(value.navigator)) return false;
+    return isDocumentOfAPage(value.document);
+}
+
+function isDocumentOfAPage(value: unknown): boolean {
+    if (!isRecord(value)) return false;
+    if (typeof value.createElement !== "function") return false;
+    if (typeof value.querySelectorAll !== "function") return false;
+    return isCallableOn(value.body, "append");
+}
+
+/**
+ * ⚠️ **A class is not a record.** `typeof` answers `function` of `URL`, `Blob` and `Date`, so
+ * `isRecord` refuses all three: they are asked for above by `typeof`, and their members not at
+ * all — a missing `URL.createObjectURL` costs the file, which `saveRecording` answers for.
+ */
+function isCallableOn(held: unknown, name: string): boolean {
+    if (!isRecord(held)) return false;
+    return typeof held[name] === "function";
+}
+
+/** Nothing is done to it, console line included: the console is one of the things that may
+ * not be there. `isAttached` says no, which is what a second copy of the add-on also answers. */
+function composeStoodDown(): GameAttachment {
+    return { detach: () => {}, isAttached: () => false };
+}
+
+export function startFromWindow(page: unknown): GameAttachment {
+    if (!isUserscriptWindow(page)) return composeStoodDown();
+    return startFromUserscriptWindow(page);
+}
+
+function startFromUserscriptWindow(page: UserscriptWindow): GameAttachment {
     let shown: PanelElement | null = null;
     const report = (line: string, failure: unknown): void => page.console.error(line, failure);
     return startMargoMeter({
@@ -1197,9 +1244,16 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     // The panel goes up when the wrap goes on, and not before: a copy that stood down never gets
     // one, and a page with no game on it is left as it was found.
     let isMounted = false;
+    // A refusal leaves `isMounted` false, so the next payload tries again, and the defect is
+    // read once the panel does stand (**E14**).
     const mount = (): void => {
         if (isMounted) return;
-        environment.mount.show(panel.element);
+        try {
+            environment.mount.show(panel.element);
+        } catch (failure) {
+            defects.add("mount", null, failure);
+            return;
+        }
         isMounted = true;
     };
     const draw = (): void => {

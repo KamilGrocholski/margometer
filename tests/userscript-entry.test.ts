@@ -15,7 +15,11 @@ import {
     assertStringIncludes,
 } from "@std/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
-import { startMargoMeter, type UserscriptEnvironment } from "@/src/userscript-entry.ts";
+import {
+    startFromWindow,
+    startMargoMeter,
+    type UserscriptEnvironment,
+} from "@/src/userscript-entry.ts";
 import {
     addPayloadToSession,
     composeBattleSession,
@@ -108,6 +112,152 @@ function composeEnvironment(page: unknown) {
     };
     return { environment, shown, reported, held, shelves, getShelf, saved };
 }
+
+/**
+ * A window, as `startFromWindow` asks for one. Every member here is one the add-on **calls**, so
+ * taking any of them away is a page it has to stand down on rather than throw at.
+ *
+ * ⚠️ **The globals are the runtime's own, not stand-ins written here.** A hand-written
+ * `URL: { createObjectURL }` is a plain object where a browser has a class, and a predicate that
+ * asked `isRecord` of it passed this test and refused every real page — `tests/AGENTS.md`: a guess
+ * about somebody else's shape is a claim about their program.
+ */
+function composeFakeWindow(battle: unknown = null): Record<string, unknown> {
+    const document = composeFakeDocument();
+    return {
+        Engine: battle === null ? undefined : { battle },
+        document: {
+            createElement: (tag: string) => document.createElement(tag),
+            querySelectorAll: () => [],
+            body: { append: () => {} },
+        },
+        setInterval: () => 1,
+        clearInterval: () => {},
+        setTimeout: () => 1,
+        console,
+        Date,
+        Blob,
+        URL,
+        location: { hostname: "tempest.margonem.pl" },
+        navigator: { userAgent: "a browser that said so" },
+    };
+}
+
+/** Each spelled to the function, not to the object holding it, so no check covers another. */
+const MEMBERS_THE_ADD_ON_CALLS = [
+    "document",
+    "document.createElement",
+    "document.querySelectorAll",
+    "document.body",
+    "document.body.append",
+    "setInterval",
+    "clearInterval",
+    "setTimeout",
+    "console",
+    "Date",
+    "Blob",
+    "URL",
+    "location",
+    "navigator",
+];
+
+/** Walks the dots and takes the last name off whatever it lands on. */
+function removeMember(page: Record<string, unknown>, path: string): void {
+    const names = path.split(".");
+    let held: Record<string, unknown> = page;
+    for (const name of names.slice(0, -1)) {
+        const next = held[name];
+        assert(isRecord(next), `${path} names something to walk into`);
+        held = next;
+    }
+    const last = names[names.length - 1];
+    assertExists(last, "a path names something to take away");
+    delete held[last];
+}
+
+/**
+ * The one path in the gate that enters where the browser enters. It used to take a cast — a
+ * `Window` claimed rather than checked — and a page missing one of the members the add-on calls
+ * threw a raw failure into the game's console with nothing to catch it. **ADR 0051.**
+ */
+Deno.test("a page stating what the add-on calls is taken up, and one that does not is left", () => {
+    const battle: Record<string, unknown> = { updateData: () => "the engine's own answer" };
+    const engineOwn = battle.updateData;
+    const attached = startFromWindow(composeFakeWindow(battle));
+    assert(attached.isAttached(), "a page that states them all is one the wrap goes on");
+    assertNotStrictEquals(battle.updateData, engineOwn, "and the game's own method is wrapped");
+    attached.detach();
+    assertStrictEquals(battle.updateData, engineOwn, "until it is put back");
+
+    // Every one of these is something the add-on calls, and a page without it used to throw where
+    // nothing was standing to catch it: the start is the one path with no boundary above it. The
+    // nested ones are here because taking a whole member away is answered by whichever check
+    // reaches it first, and would leave the others covered by nothing.
+    for (const missing of MEMBERS_THE_ADD_ON_CALLS) {
+        const page = composeFakeWindow({ updateData: () => 1 });
+        removeMember(page, missing);
+        const stood = startFromWindow(page);
+        assert(!stood.isAttached(), `a page stating no ${missing} is one nothing is wrapped on`);
+    }
+    for (const value of [null, undefined, "a window", 7, []]) {
+        assert(!startFromWindow(value).isAttached(), "and so is anything that is not a page");
+    }
+});
+
+/**
+ * The panel refused a place on the page. Putting it there is a call into the game's own document
+ * and the first one happens on the stack that started the add-on, so a refusal used to take the
+ * add-on with it. It is tried again on the next payload, and said once the panel does stand.
+ */
+Deno.test("a document that will not take the panel is tried again, and said once it does", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown, reported } = composeEnvironment({ Engine: { battle } });
+    let refusals = 0;
+    const refused: UserscriptEnvironment = {
+        ...environment,
+        mount: {
+            show: (panel) => {
+                refusals += 1;
+                if (refusals === 1) throw new RangeError("a document being torn down");
+                shown.push(panel);
+            },
+        },
+    };
+    const attachment = startMargoMeter(refused);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on regardless");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+
+    assert(attachment.isAttached(), "the add-on is still on the game");
+    assertStrictEquals(shown.length, 1, "and the panel got its place on the next payload");
+    const panel = shown[0] as FakeElement;
+    assertEquals(
+        getTextsByClass(panel, "defect"),
+        ["✖ Panel nie od razu stanął na stronie."],
+        "which says so in the past, because by the time it is read the panel is standing",
+    );
+    assertStrictEquals(reported.length, 1, "E11: the console heard it once");
+    attachment.detach();
+});
+
+/**
+ * The first look for the game runs on the stack that started the add-on, and every look after it
+ * lands in the browser's timer where a throw is caught. This one was not, so a page whose own
+ * object graph refuses to be read took the add-on down with a raw failure and no panel.
+ */
+Deno.test("a page that throws when it is looked at leaves the add-on standing, and says so", () => {
+    const page = {
+        get Engine(): unknown {
+            throw new RangeError("a page that will not be read");
+        },
+    };
+    const { environment, reported, shown } = composeEnvironment(page);
+    const attachment = startMargoMeter(environment);
+    assert(!attachment.isAttached(), "nothing was wrapped, because nothing could be read");
+    assertStrictEquals(shown.length, 0, "and no panel went up over a game nobody found");
+    assertStrictEquals(reported.length, 1, "the failure was said once, rather than thrown");
+    attachment.detach();
+});
 
 Deno.test("a recording played through the add-on ends on the panel a reader would see", () => {
     const battle: Record<string, unknown> = { updateData: () => "the engine's own answer" };

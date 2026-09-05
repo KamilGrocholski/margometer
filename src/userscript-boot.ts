@@ -1,4 +1,5 @@
-import { startFromWindow, type UserscriptWindow } from "@/src/userscript-entry.ts";
+/** The page handed over as it was found: what a window must state is checked in the entry. */
 
-// The one cast in `src/`: a browser's `Window` states far more than the entry point asks of it.
-startFromWindow(window as unknown as UserscriptWindow);
+import { startFromWindow } from "@/src/userscript-entry.ts";
+
+startFromWindow(window);

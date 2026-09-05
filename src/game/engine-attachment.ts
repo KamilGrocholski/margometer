@@ -169,7 +169,17 @@ export function attachToGame(
         hasRefused: false,
         hasFailed: false,
     };
-    look(page, report, schedule, search);
+    // ⚠️ **The first look is guarded like every other, and it was not.** Every look after this
+    // one lands in the browser's timer and is caught there; this one runs on the stack that
+    // started the add-on, where the only thing above it is the game's own page. It is also the
+    // look that finds the game on a page that already had one — the common case — so it is the
+    // look that mounts the panel, and a throw here left a reader with a raw failure in the
+    // console and no add-on at all.
+    try {
+        look(page, report, schedule, search);
+    } catch (failure) {
+        handleLookFailure(failure, report, schedule, search);
+    }
     if (!search.isDone) {
         search.handle = schedule.every(() => {
             try {
