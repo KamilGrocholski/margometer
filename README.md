@@ -45,8 +45,8 @@ Walka dziesięciu na jednego, na zakładce obrażeń otrzymanych.
 - Wiersz się rozwija, i to trzy poziomy w głąb: kto komu, potem czym — umiejętnością albo typem
   obrażeń.
 - Najedź na wiersz postaci — na liście albo w rozwiniętym wierszu — żeby zobaczyć jej kartę:
-  wszystkie cztery liczby, krytyki, największy cios, co zatrzymała obrona i co zniszczył atak. To
-  samo na każdej zakładce.
+  wszystkie cztery liczby, tury wykonane i te utracone, krytyki, największy cios, co zatrzymała
+  obrona i co zniszczył atak. To samo na każdej zakładce.
 - Skończone walki trafiają na półkę i można do nich wrócić. Panel mówi, gdzie się toczyły.
 - Tylko sumy, bez przeliczników. To, czego log nikomu nie przypisuje, dostaje własny wiersz i własną
   liczbę — nigdy nie doklejamy tego do czyjegoś wyniku. Ten wiersz mówi, czego gra nie podała, i też

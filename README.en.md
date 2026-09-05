@@ -44,8 +44,8 @@ A ten-against-one fight, on the damage-taken screen.
 - Damage and health restored, dealt and taken, per combatant, per fight.
 - A row opens, three levels deep: who to whom, then with what — a skill, or a kind of damage.
 - Hover the row of anybody in the fight — on the list, or inside an opened row — for their card: all
-  four figures, criticals, the hardest blow, what a defence stopped and what an attack destroyed.
-  The same on every screen.
+  four figures, the turns they took and the ones they lost, criticals, the hardest blow, what a
+  defence stopped and what an attack destroyed. The same on every screen.
 - A finished fight goes on a shelf you can go back to, and the panel says where it was fought.
 - Totals only, no rate. What the log credits to nobody gets a row and a figure of its own — it is
   never folded into somebody's score. That row says what the game left out, and opens as well: whom
