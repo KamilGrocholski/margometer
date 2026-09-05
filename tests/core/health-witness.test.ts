@@ -19,7 +19,7 @@ import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 /** The one key the decoder still names unread, and the reason health can appear from nowhere. */
@@ -149,7 +149,7 @@ Deno.test("what was read agrees with the health the protocol states about itself
         vanished: [],
         unexplained: [],
     };
-    for (const path of getRecordingPaths()) witnessRecording(path, reading);
+    for (const path of readRecordingPaths()) witnessRecording(path, reading);
     assert(reading.compared > 1000, "the recordings state health often enough to be checked");
     assertEquals(reading.unexplained, [], "a disagreement with no answer of the protocol's own");
     // 17,729 of 17,958 as the material stands, 2026-08-28. Stated as a share rather than a count
@@ -168,7 +168,7 @@ Deno.test("one payload moves health with no message saying so, and it is pinned 
         vanished: [],
         unexplained: [],
     };
-    for (const path of getRecordingPaths()) witnessRecording(path, reading);
+    for (const path of readRecordingPaths()) witnessRecording(path, reading);
     assertEquals(reading.vanished.length, 1, "the material carries exactly one, and it is known");
     assert(
         reading.vanished[0]?.includes("2026-08-06-tempest-grupa-vs-hildur-1785244275300-none"),

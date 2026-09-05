@@ -13,7 +13,7 @@ import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import {
     getRecordedCombatants,
     getRecordedMessages,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 const KEY = "npc_heal";
@@ -74,7 +74,7 @@ Deno.test("the restoration is the actor's, and the figure a share of their own p
 });
 
 Deno.test("no other recording carries the key, so the reading rests on this one", () => {
-    const carrying = getRecordingPaths().filter((path) =>
+    const carrying = readRecordingPaths().filter((path) =>
         getRecordedMessages(path).some((message) =>
             parseProtocolMessage(message).parameters.some((one) => one.key === KEY)
         )

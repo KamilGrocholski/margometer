@@ -20,7 +20,7 @@ import {
     readKeptFights,
     writeKeptFights,
 } from "@/src/game/kept-fights.ts";
-import { getRecordedEngineUpdates, getRecordingPaths } from "@/tests/recorded-fight.ts";
+import { getRecordedEngineUpdates, readRecordingPaths } from "@/tests/recorded-fight.ts";
 
 const KEY = "MargoMeter-fights";
 
@@ -238,7 +238,7 @@ Deno.test("a store with room for nothing keeps nothing, and does not pretend oth
  * by whatever version is running. **ADR 0026.**
  */
 Deno.test("a fight off the shelf reads as the fight that went on it, through one chain", () => {
-    const [path] = getRecordingPaths();
+    const [path] = readRecordingPaths();
     assertExists(path, "a recording to keep");
     const payloads = getRecordedEngineUpdates(path);
     const store = composeStore();

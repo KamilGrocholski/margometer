@@ -23,7 +23,7 @@ const CRAWL_MILLISECONDS = 300_000;
  * Every recording, read at collection time so each is a test of its own and the workers share them
  * out. Read rather than listed (`captures/AGENTS.md`), and an empty directory is a failure.
  */
-function getRecordingPaths(): string[] {
+function readRecordingPaths(): string[] {
     const root = process.cwd();
     const names = readdirSync(join(root, "captures"))
         .filter((name) => name.endsWith(".json"))
@@ -58,7 +58,7 @@ test.describe("one recording, walked to the bottom", () => {
     });
 });
 
-for (const path of getRecordingPaths()) {
+for (const path of readRecordingPaths()) {
     test.describe(path, () => {
         test.use({ recording: path });
 

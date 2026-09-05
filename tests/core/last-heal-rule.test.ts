@@ -12,7 +12,7 @@ import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import {
     getRecordedCombatants,
     getRecordedMessages,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 const HEAL_KEY = "legbon_lastheal";
@@ -66,7 +66,7 @@ interface Occurrence {
 
 function getOccurrences(): Occurrence[] {
     const found: Occurrence[] = [];
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         // The running statement, because the blow that fired the bonus is not always a segment of
         // the bonus's own message: where it is not, the percentage before it is the last one the

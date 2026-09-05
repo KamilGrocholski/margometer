@@ -13,7 +13,7 @@ import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import { readCombatantFromWarrior } from "@/src/game/engine-warrior.ts";
 import { CAPTURE_FIELDS } from "@/src/game/fight-capture.ts";
-import { getRecordingPaths as getRecordingFilePaths } from "@/project/repository-layout.ts";
+import { readRecordingPaths as readRecordingFilePaths } from "@/project/repository-layout.ts";
 
 function getNumberFromField(value: unknown, subject: string): number {
     assert(typeof value === "number", `${subject} is stated as a number`);
@@ -21,8 +21,8 @@ function getNumberFromField(value: unknown, subject: string): number {
     return value;
 }
 
-export function getRecordingPaths(): string[] {
-    const paths = getRecordingFilePaths();
+export function readRecordingPaths(): string[] {
+    const paths = readRecordingFilePaths();
     assert(paths.length > 0, "an empty evidence directory is a finding, not a pass");
     assertStrictEquals(new Set(paths).size, paths.length, "a recording is listed once");
     return paths;

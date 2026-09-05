@@ -18,7 +18,7 @@ import { getRecordedFightAt } from "@/tools/recorded-fights.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
@@ -58,7 +58,7 @@ Deno.test("the roster comes off the payloads, so an auto fight is not a fight of
 });
 
 Deno.test("every recording replays, and states what it could not read", () => {
-    const paths = getRecordingPaths();
+    const paths = readRecordingPaths();
     assert(paths.length > 0, "there is material to replay");
     for (const path of paths) {
         const replay = composeFightReplay(getRecordedFightAt(path));

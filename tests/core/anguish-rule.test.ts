@@ -14,7 +14,7 @@ import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import {
     getRecordedCombatants,
     getRecordedMessages,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 const TICK_KEY = "anguish";
@@ -28,7 +28,7 @@ const TWO_APPLIERS = "captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json";
 
 Deno.test("every tick names its victim in the actor slot and nobody at the other end", () => {
     let ticks = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         for (const message of getRecordedMessages(path)) {
             const parsed = parseProtocolMessage(message);
             const carries = parsed.parameters.some((one) => one.key === TICK_KEY);
@@ -47,7 +47,7 @@ Deno.test("every tick names its victim in the actor slot and nobody at the other
  */
 Deno.test("the announcement carries no figure, so nothing says which application ticks", () => {
     let announcements = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         for (const message of getRecordedMessages(path)) {
             for (const one of parseProtocolMessage(message).parameters) {
                 if (one.key !== ANNOUNCEMENT_KEY) continue;

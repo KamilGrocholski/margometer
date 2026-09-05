@@ -14,7 +14,7 @@ export const RECORDING_DIRECTORY = "captures";
 export const RECORDING_SUFFIX = ".json";
 
 /** Sorted, and possibly none: what an empty set means is the caller's to say — **E7**. */
-export function getRecordingNames(): string[] {
+export function readRecordingNames(): string[] {
     const names: string[] = [];
     for (const entry of Deno.readDirSync(RECORDING_DIRECTORY)) {
         if (!entry.name.endsWith(RECORDING_SUFFIX)) continue;
@@ -33,8 +33,8 @@ export function composeRecordingPath(name: string): string {
 }
 
 /** The same set as paths, for a reader that opens them rather than naming them. */
-export function getRecordingPaths(): string[] {
-    const paths = getRecordingNames().map(composeRecordingPath);
+export function readRecordingPaths(): string[] {
+    const paths = readRecordingNames().map(composeRecordingPath);
     assertStrictEquals(new Set(paths).size, paths.length, "a recording is opened once");
     assert(paths.every((path) => path.startsWith(RECORDING_DIRECTORY)), "and from where they sit");
     return paths;

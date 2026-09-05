@@ -19,7 +19,7 @@ import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import {
     getRecordedCombatants,
     getRecordedMessages,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 /** A victim wounded by three different attackers, which is what makes *freshest* a claim. */
@@ -28,7 +28,7 @@ const THREE_ATTACKERS = "captures/2026-08-15-tempest-grupa-vs-hildur-3-178651481
 Deno.test("every tick lands on a victim already wounded, stating what that wound announced", () => {
     let ticks = 0;
     let wounds = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const freshestByVictim = new Map<number, string>();
         for (const message of getRecordedMessages(path)) {
             const parsed = parseProtocolMessage(message);

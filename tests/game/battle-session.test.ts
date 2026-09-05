@@ -18,7 +18,7 @@ import {
     getRecordedCombatants,
     getRecordedEngineUpdates,
     getRecordedPayloads,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 /** The one recording whose calls carry no snapshot, so its roster can only come from a payload. */
@@ -42,7 +42,7 @@ Deno.test("a fight nobody has seen is not a fight holding nothing", () => {
 });
 
 Deno.test("a recording replayed call by call reads as the whole of itself", () => {
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         let decoded = 0;
         for (const payload of getRecordedPayloads(path)) {
@@ -57,7 +57,7 @@ Deno.test("a recording replayed call by call reads as the whole of itself", () =
 });
 
 Deno.test("a fight that opens replaces the one standing before it", () => {
-    const [first, second] = getRecordingPaths();
+    const [first, second] = readRecordingPaths();
     assert(first !== undefined && second !== undefined, "two recordings to run together");
     const session = composeBattleSession();
     for (const update of getRecordedEngineUpdates(first)) addPayloadToSession(session, update);
@@ -90,7 +90,7 @@ Deno.test("a payload says how many messages it carried, and the count is held to
 });
 
 Deno.test("every recording is read whole, by the count the payloads themselves state", () => {
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const fight = replay(path);
         assertEquals(fight?.messagesLost, 0, `${path}: a message the payload stated went unread`);
     }
@@ -138,7 +138,7 @@ Deno.test("the reader's own side is kept once seen, and cleared when a fight ope
 });
 
 Deno.test("every recording states its reader's side, on the payload that opens the fight", () => {
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const session = composeBattleSession();
         const [first] = getRecordedEngineUpdates(path);
         addPayloadToSession(session, first);
@@ -183,7 +183,7 @@ Deno.test("a session says whether it saw the payload that opened the fight", () 
 });
 
 Deno.test("no recording is a fight joined in progress, and each says so", () => {
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const fight = replay(path);
         assertExists(fight, `${path}: the replay produced a fight`);
         assertEquals(

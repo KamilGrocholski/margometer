@@ -11,7 +11,7 @@ import {
     composeCombatantRoster,
     getCombatantIdByName,
 } from "@/src/core/combatant-roster.ts";
-import { getRecordedCombatants, getRecordingPaths } from "@/tests/recorded-fight.ts";
+import { getRecordedCombatants, readRecordingPaths } from "@/tests/recorded-fight.ts";
 
 /** Two boars called `Odyniec`, and one player nobody shares a name with. */
 const TWO_OF_A_NAME = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
@@ -55,7 +55,7 @@ Deno.test("a name that has gone ambiguous never comes back", () => {
 });
 
 Deno.test("every recording composes a roster of its own people", () => {
-    const paths = getRecordingPaths();
+    const paths = readRecordingPaths();
     let largest = 0;
     let sidesSeen = 0;
     for (const path of paths) {

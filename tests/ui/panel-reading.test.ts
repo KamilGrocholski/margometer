@@ -46,7 +46,7 @@ import { getWordsForDamageKind, HEALTH_LOSS_WORDS } from "@/src/ui/panel-words.t
 import {
     getRecordedCombatants,
     getRecordedPayloads,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
@@ -320,7 +320,7 @@ Deno.test("a cast nobody could place shortens the healing, and says so only ther
 });
 
 Deno.test("every recording composes every screen without inventing a row", () => {
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         for (const metric of SCREENS) {
             const reading = composePanelReading(
@@ -407,7 +407,7 @@ Deno.test("the same figure is cut a second time, by the kind of damage each blow
 
 Deno.test("every kind every recording states is one the panel has a word for", () => {
     const kinds = new Set<string>();
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         for (const metric of ["damageDealtApplied", "damageTakenApplied"] as const) {
             for (const combatantId of statistics.byCombatantId.keys()) {
@@ -508,7 +508,7 @@ Deno.test("health that went down outside a blow is a kind of its own, named by i
 
 Deno.test("every point of damage taken states what it was made of, on every recording", () => {
     let byKey = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         for (const combatantId of statistics.byCombatantId.keys()) {
             const open = (metric: PanelMetric) => {
@@ -731,7 +731,7 @@ Deno.test("a pinned row is the whole of what stands under it, on every list", ()
     let opened = 0;
     let people = 0;
     let kinds = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         const sides = [...new Set([...roster.byId.values()].map((one) => one.side))];
         for (const readerSide of [...sides, null]) {
@@ -878,7 +878,7 @@ Deno.test("a pinned row says what its figure was dealt with, key by key", () => 
  */
 Deno.test("a pinned row carries the cut the level under it draws, on every recording", () => {
     let read = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         for (const metric of ["damageDealtApplied", "damageTakenApplied"] as const) {
             const reading = composePanelReading(
@@ -1015,7 +1015,7 @@ Deno.test("what named neither end closes the level it is inside", () => {
 Deno.test("a one-side list divides by the figure the strip states for that side", () => {
     let checked = 0;
     let charged = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         for (const side of new Set([...roster.byId.values()].map((one) => one.side))) {
             if (side === null) continue;
@@ -1058,7 +1058,7 @@ Deno.test("a one-side list divides by the figure the strip states for that side"
 Deno.test("what one side dealt with no striker named is what the other took from nobody", () => {
     let seats = 0;
     let together = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         for (const side of new Set([...roster.byId.values()].map((one) => one.side))) {
             if (side === null) continue;
@@ -1265,7 +1265,7 @@ Deno.test("what reached somebody is cut by the skill's name, whoever announced i
  */
 Deno.test("a skill under damage dealt states damage, or a swing that landed none", () => {
     let drawn = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         for (const combatantId of roster.byId.keys()) {
             const drill = composeDrillReading(
@@ -1310,7 +1310,7 @@ Deno.test("a skill whose swings all landed nothing still stands, at nothing", ()
 });
 
 Deno.test("healing given and received come to one figure in every recording", () => {
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         const given = composePanelReading(
             statistics,
@@ -1373,7 +1373,7 @@ Deno.test("a fight that ended says so from a seat, and says nothing without one"
 Deno.test("every recording states how it ended, and every seat in it reads a word", () => {
     let stated = 0;
     let seats = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         if (statistics.outcome !== null) stated += 1;
         for (const side of new Set([...roster.byId.values()].map((one) => one.side))) {
@@ -1390,7 +1390,7 @@ Deno.test("every recording states how it ended, and every seat in it reads a wor
         }
     }
     // 28 recordings, one of which carries no roster at all and so has no seat to read from.
-    assertEquals(stated, getRecordingPaths().length, "every recording carries an outcome");
+    assertEquals(stated, readRecordingPaths().length, "every recording carries an outcome");
     assertEquals(seats, 54, "and 27 of them state two sides apiece");
 });
 
@@ -1581,7 +1581,7 @@ Deno.test("every person row inside an opened row opens onto the pair under it", 
 Deno.test("a part opened states the figure of the row that opened it, self-casts included", () => {
     const levels = new Map<string, number>();
     let withSelf = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         for (const metric of SCREENS) {
             for (const combatantId of statistics.byCombatantId.keys()) {
@@ -1658,7 +1658,7 @@ Deno.test("a healing section names the keys the game stated, and closes against 
     let sections = 0;
     let announced = 0;
     let stated = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         for (const metric of ["healthGiven", "healthRestored"] as const) {
             for (const combatantId of statistics.byCombatantId.keys()) {
@@ -1764,7 +1764,7 @@ Deno.test("a healing pair opens whatever its level holds, one key included", () 
     let repeats = 0;
     let opened = 0;
     let keys = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const { roster, statistics } = readFight(path);
         for (const metric of ["healthGiven", "healthRestored"] as const) {
             for (const combatantId of statistics.byCombatantId.keys()) {

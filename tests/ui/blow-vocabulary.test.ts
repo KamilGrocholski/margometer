@@ -24,7 +24,7 @@ import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 interface BlowKeys {
@@ -36,7 +36,7 @@ interface BlowKeys {
 /** Every key the recordings actually carried, read through the decoder rather than off the text. */
 function getBlowKeysFromRecordings(): BlowKeys {
     const found: BlowKeys = { procs: new Set(), defences: new Set(), destroyed: new Set() };
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         for (const event of decodeFightMessages(getRecordedPayloads(path).flat(), roster)) {
             if (event.kind !== "attack") continue;

@@ -10,7 +10,7 @@
 import { assert, assertEquals } from "@std/assert";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
-import { getRecordingPaths } from "@/tests/recorded-fight.ts";
+import { readRecordingPaths } from "@/tests/recorded-fight.ts";
 import { CAPTURE_FIELDS } from "@/src/game/fight-capture.ts";
 import {
     FABRICATED_DIRECTORY,
@@ -65,7 +65,7 @@ Deno.test("the reader knows a fabricated envelope from a recording's", () => {
 });
 
 Deno.test("no recording in the evidence directory is a fight nobody fought", () => {
-    const paths = getRecordingPaths();
+    const paths = readRecordingPaths();
     assert(paths.length > 0, "an empty evidence directory is a finding, not a pass");
     const marked: string[] = [];
     for (const path of paths) {

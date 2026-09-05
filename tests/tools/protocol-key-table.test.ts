@@ -9,7 +9,7 @@
 import { assert, assertEquals, assertThrows } from "@std/assert";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { getRecordedMessages, getRecordingPaths } from "@/tests/recorded-fight.ts";
+import { getRecordedMessages, readRecordingPaths } from "@/tests/recorded-fight.ts";
 import {
     FROZEN_KEY_BANNER,
     getComputedKeyFamily,
@@ -73,7 +73,7 @@ Deno.test("every key a real fight carried is one the client knows", () => {
     const named = new Set<string>(keys);
     const { marker, markerAt, markerLength } = computedFamily;
     const seen = new Set<string>();
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         for (const message of getRecordedMessages(path)) {
             for (const parameter of parseProtocolMessage(message).parameters) {
                 seen.add(parameter.key);

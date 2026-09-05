@@ -10,7 +10,7 @@ import { readCombatantFromWarrior, readCombatantsFromPayload } from "@/src/game/
 import {
     getRecordedCombatants,
     getRecordedEngineUpdates,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 /** The one recording whose calls carry no snapshot at all, so nothing can be held against them. */
@@ -43,20 +43,20 @@ Deno.test("a payload states the whole cast or none of it", () => {
     assertEquals(readCombatantsFromPayload({}), [], "and neither is a payload with no warriors");
     let whole = 0;
     let moved = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         for (const update of getRecordedEngineUpdates(path)) {
             if (readCombatantsFromPayload(update).length > 0) whole += 1;
             else moved += 1;
         }
     }
-    assertEquals(whole, getRecordingPaths().length, "each recording opens with its cast, once");
+    assertEquals(whole, readRecordingPaths().length, "each recording opens with its cast, once");
     assert(moved > whole, "and every call after it states only what moved");
 });
 
 Deno.test("what a payload states about a combatant is what the snapshot states", () => {
     let compared = 0;
     let withoutSnapshot = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const snapshots = new Map(getRecordedCombatants(path).map((one) => [one.id, one]));
         for (const update of getRecordedEngineUpdates(path)) {
             for (const combatant of readCombatantsFromPayload(update)) {

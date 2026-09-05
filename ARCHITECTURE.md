@@ -579,12 +579,19 @@ commit that opens or closes one.
    the second should cite instead — so the band closes a few at a time rather than in one round.
 
 9. **`tools/` still `get`s across a boundary.** **N16** binds everywhere, and `src/` was converted
-   in the commit that stated it (**ADR 0042**); `tests/repository/names.test.ts` reads `src/game/`
-   and `src/userscript-entry.ts`, where the game is reached. The names in `tools/` that reach a
-   file, a subprocess or the network still say `get` and `set`, and each needs a judgement of its
-   own — some are **N16**'s finding and some are **N2** drift, `setPreviewServer` and `setRebuilt`
-   among them. They are converted as each file is next edited for its own reasons, which is the
-   shape gap 3 already has.
+   in the commit that stated it (**ADR 0042**), `project/` in the one that found it. The names in
+   `tools/` that reach a file, a subprocess or the network still say `get` and `set`, and each needs
+   a judgement of its own — some are **N16**'s finding and some are **N2** drift, `setPreviewServer`
+   and `setRebuilt` among them. They are converted as each file is next edited for its own reasons,
+   which is the shape gap 3 already has.
+
+   **The guard now reads two kinds of crossing, and neither reaches `tools/`.**
+   `tests/repository/names.test.ts` reads `src/game/` and `src/userscript-entry.ts` for a `get`
+   whose **parameters** carry the game in, and `project/` for a `get` in a file that reaches `Deno.`
+   at all. The second exists because the first is blind to a crossing no parameter shows:
+   `readRecordingNames()` takes nothing and opens a directory. It is read at file granularity, so it
+   can find too much and never too little — matching a name to its own braces opens the walk early
+   on a return type spelled as an object literal.
 
 10. **The handover guard reads a fixed list, and reads only `src/`.** **E12** binds everywhere, and
     the three handovers in `src/` were converted in the commit that stated it (**ADR 0043**).

@@ -18,7 +18,7 @@ import { isRecord } from "@/libs/unknown-reading.ts";
 import { PreviewBuildError, RecordingReadError } from "@/tools/margometer-tool-error.ts";
 import {
     composeRecordingPath,
-    getRecordingNames,
+    readRecordingNames,
     RECORDING_SUFFIX,
 } from "@/project/repository-layout.ts";
 
@@ -33,7 +33,7 @@ export interface RecordedFight {
 }
 
 export function getRecordedFightNames(): string[] {
-    const names = getRecordingNames();
+    const names = readRecordingNames();
     if (names.length === 0) {
         throw new RecordingReadError("there is no recording to read");
     }

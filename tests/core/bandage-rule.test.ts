@@ -14,7 +14,7 @@ import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import {
     getRecordedCombatants,
     getRecordedMessages,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 const KEY = "bandage";
@@ -48,7 +48,7 @@ Deno.test("the figure is health, and raises the percentage stated before it by i
 });
 
 Deno.test("one recording carries it, and a second would have to be read as well", () => {
-    const carrying = getRecordingPaths().filter((path) =>
+    const carrying = readRecordingPaths().filter((path) =>
         getRecordedMessages(path).some((message) =>
             parseProtocolMessage(message).parameters.some((one) => one.key === KEY)
         )

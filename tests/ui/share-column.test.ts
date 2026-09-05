@@ -30,7 +30,7 @@ import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 const HUNDRED = 100;
@@ -199,7 +199,7 @@ function composeCutShares(
 
 Deno.test("every column of shares the panel draws comes to a hundred", () => {
     let drawn = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const fight = readFight(path);
         const seats = [...new Set([...fight.roster.byId.values()].map((one) => one.side))];
         for (const readerSide of [null, ...seats]) {

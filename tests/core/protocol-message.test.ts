@@ -11,7 +11,7 @@ import {
     parseProtocolMessage,
     ProtocolMessageFormatError,
 } from "@/src/core/protocol-message.ts";
-import { getRecordedMessages, getRecordingPaths } from "@/tests/recorded-fight.ts";
+import { getRecordedMessages, readRecordingPaths } from "@/tests/recorded-fight.ts";
 
 /**
  * `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`, the fight this file's samples are
@@ -78,7 +78,7 @@ Deno.test("an id past what a number holds exactly is refused, not rounded", () =
 });
 
 Deno.test("every message in every recording parses and writes back unchanged", () => {
-    const paths = getRecordingPaths();
+    const paths = readRecordingPaths();
     let read = 0;
     let nobodyNamed = 0;
     for (const path of paths) {

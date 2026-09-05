@@ -39,7 +39,7 @@ import {
     getTextsByClass,
     pressElement,
 } from "@/tests/fake-document.ts";
-import { getRecordedEngineUpdates, getRecordingPaths } from "@/tests/recorded-fight.ts";
+import { getRecordedEngineUpdates, readRecordingPaths } from "@/tests/recorded-fight.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /** Another fight, so a shelf and a session can hold different figures at the same moment. */
@@ -850,7 +850,7 @@ Deno.test("a second copy of the add-on stands down and never draws", () => {
 });
 
 Deno.test("every recording plays through without a word of failure", () => {
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const battle: Record<string, unknown> = { updateData: () => 1 };
         const { environment, shown, reported } = composeEnvironment({ Engine: { battle } });
         startMargoMeter(environment);

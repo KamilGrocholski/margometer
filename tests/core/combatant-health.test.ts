@@ -19,7 +19,7 @@ import {
     getRecordedCombatants,
     getRecordedHealthReadings,
     getRecordedPayloads,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 const PERCENT_PLACES = 100;
@@ -43,7 +43,7 @@ Deno.test("a wider pool is read less exactly, and says so", () => {
 
 Deno.test("the client's own percentage is its health rounded to two places", () => {
     let read = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         for (const reading of getRecordedHealthReadings(path)) {
             assert(reading.healthMaximum > 0, `${path}: a pool of nothing`);
             const exact = (reading.health / reading.healthMaximum) * 100;
@@ -58,7 +58,7 @@ Deno.test("the client's own percentage is its health rounded to two places", () 
 Deno.test("a stated percentage reads back to the health the client holds", () => {
     let exact = 0;
     let approximate = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         for (const reading of getRecordedHealthReadings(path)) {
             const health = getHealthFromPercent(reading.healthPercent, reading.healthMaximum);
             assertExists(health, `${path}: a stated maximum reads`);
@@ -77,7 +77,7 @@ Deno.test("every combatant in every recording is stated before anything happens 
     let entered = 0;
     let full = 0;
     let hurt = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const cast = getRecordedCombatants(path);
         const roster = composeCombatantRoster(cast);
         const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
@@ -99,7 +99,7 @@ Deno.test("every combatant in every recording is stated before anything happens 
 
 Deno.test("what states a combatant first is usually an event with no figure at all", () => {
     const firstBy = new Map<string, number>();
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const seen = new Set<number>();
         for (const payload of getRecordedPayloads(path)) {
@@ -265,7 +265,7 @@ Deno.test("every cast in the recordings is sized, and the cap is what does the w
     let whole = 0;
     let capped = 0;
     let atShare = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
         for (const heal of composeTeamHeals(events, roster).values()) {

@@ -29,7 +29,7 @@ import {
 } from "@/tools/capture-intake.ts";
 import { getRecordedFights } from "@/tools/recorded-fights.ts";
 import { CaptureIntakeError } from "@/tools/margometer-tool-error.ts";
-import { getRecordingPaths } from "@/tests/recorded-fight.ts";
+import { readRecordingPaths } from "@/tests/recorded-fight.ts";
 
 /**
  * A recording in the shape the add-on writes. The names in it are invented for this file: nothing
@@ -329,7 +329,7 @@ Deno.test("every recording already admitted is a fixed point of this tool", () =
     // Both directions at once. That the redaction changes nothing says the material is redacted;
     // that the tool runs at all over 28 real files says the shapes it depends on are the shapes
     // those files have. A recording it refused would show up here as a throw.
-    const paths = getRecordingPaths();
+    const paths = readRecordingPaths();
     assert(paths.length > 0, "there is material to hold this against");
     const moved: string[] = [];
     for (const path of paths) {
@@ -364,7 +364,7 @@ Deno.test("a recording carrying no call is refused, because nothing is not evide
  * the preview states the day, world and build of the replay, so the path it composes is free.
  */
 Deno.test("a fight already here is refused, whatever day, world and build are claimed", () => {
-    const [admitted] = getRecordingPaths();
+    const [admitted] = readRecordingPaths();
     assertExists(admitted, "there is material to hold this against");
     const reading = getJsonReading(Deno.readTextFileSync(admitted));
     assert(reading.isOk, `${admitted} is JSON`);

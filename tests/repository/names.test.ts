@@ -19,6 +19,13 @@ const BOOLEAN_PREFIXES = ["is", "was", "will", "has", "does", "should"];
 const NEGATIONS = ["Not", "No"];
 /** Where the game, and nothing else, is reached — ARCHITECTURE.md gives this layer that contact. */
 const CROSSING_PATHS = ["src/game/", "src/userscript-entry.ts"];
+/**
+ * Where the file system is reached. `tools/` belongs here too and is ARCHITECTURE.md's gap 9,
+ * which stays open until every name in it has had its own judgement.
+ */
+const FILE_CROSSING_PATHS = ["project/"];
+/** How a file reaches the world outside this program when no parameter carries it in. */
+const OUTSIDE_OPENER = "Deno.";
 /** A parameter arriving from outside wears one of these, or `unknown` before it is read. */
 const CROSSING_TYPES = ["unknown", "Page", "Window", "Engine", "Storage"];
 const HELD_VERBS = ["get", "set"];
@@ -274,6 +281,50 @@ Deno.test("what crosses to the game is read, never got", () => {
     for (const path of getSourcePaths()) {
         if (!CROSSING_PATHS.some((one) => path.startsWith(one))) continue;
         for (const name of getHeldVerbsOverCrossings(Deno.readTextFileSync(path))) {
+            wrong.push(`${path}: ${name}`);
+        }
+    }
+    assertEquals(wrong, [], "N16: a value from outside this program is read");
+});
+
+/**
+ * N16 over a crossing no parameter shows: a `get` or `set` in a file that reaches `Deno.`.
+ *
+ * **What a name takes is not what it reaches**, and `readRecordingNames()` takes nothing at all,
+ * so the parameter reader above is blind to it. This one is read at file granularity on purpose:
+ * matching a name to the body it owns needs the braces, and a return type spelled as an object
+ * literal opens the walk one brace early — a reader that quietly finds too little. At this
+ * granularity it can only find too much, and a file that both holds values and crosses is one
+ * C10 would split anyway.
+ */
+function getHeldVerbsOverFileCrossing(text: string): string[] {
+    if (!text.includes(OUTSIDE_OPENER)) return [];
+    const found: string[] = [];
+    for (const line of text.split("\n")) {
+        if (isCommentLine(line)) continue;
+        for (const verb of HELD_VERBS) {
+            const name = getExportedName(line, "function");
+            if (!name.startsWith(verb)) continue;
+            if (!isUpperLetter(name.charAt(verb.length))) continue;
+            found.push(name);
+        }
+    }
+    assert(found.every((one) => one.length > 0), "a finding names a function");
+    assert(found.length <= text.length, "no more findings than there is text to hold them");
+    return found;
+}
+
+Deno.test("what crosses to the file system is read, never got", () => {
+    const crossing = 'const held = Deno.readDirSync(".");\nexport function getRecordingNames() {';
+    assertEquals(getHeldVerbsOverFileCrossing(crossing), ["getRecordingNames"], "the reader works");
+    const read = 'const held = Deno.readDirSync(".");\nexport function readRecordingNames() {';
+    assertEquals(getHeldVerbsOverFileCrossing(read), [], "and the verb N16 asks for passes");
+    const held = "export function getRecordingNames() {";
+    assertEquals(getHeldVerbsOverFileCrossing(held), [], "a file that reaches nothing is not one");
+    const wrong: string[] = [];
+    for (const path of getSourcePaths()) {
+        if (!FILE_CROSSING_PATHS.some((one) => path.startsWith(one))) continue;
+        for (const name of getHeldVerbsOverFileCrossing(Deno.readTextFileSync(path))) {
             wrong.push(`${path}: ${name}`);
         }
     }

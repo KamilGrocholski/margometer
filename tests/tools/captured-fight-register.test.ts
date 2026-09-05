@@ -12,7 +12,7 @@ import { isRecord } from "@/libs/unknown-reading.ts";
 import {
     getRecordedEngineUpdates,
     getRecordedMessages,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 import { READER_SIDE_KEY } from "@/src/game/battle-session.ts";
 import { WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
@@ -96,7 +96,7 @@ function composeVersionInName(stated: string): string {
  * at intake. **ADR 0030.**
  */
 Deno.test("a recording is filed under the two versions it states", () => {
-    const paths = getRecordingPaths();
+    const paths = readRecordingPaths();
     assert(paths.length > 0, "there is material to check");
     for (const path of paths) {
         const build = composeVersionInName(getEnvelopeField(path, CAPTURE_FIELDS.gameBuild));
@@ -124,7 +124,7 @@ Deno.test("every recording is named by the register, and every row names one", (
     const rows = getRecordingRows(Deno.readTextFileSync(REGISTER_PATH));
     assert(rows.length > 0, "the register carries rows to check");
     const named = new Set(rows.map((cells) => cells[0] ?? ""));
-    const held = new Set(getRecordingPaths());
+    const held = new Set(readRecordingPaths());
     const missing = [...held].filter((path) => !named.has(path)).sort();
     const invented = [...named].filter((path) => !held.has(path)).sort();
     assertEquals(missing, [], "a recording the register does not name");
@@ -138,7 +138,7 @@ Deno.test("every recording is named by the register, and every row names one", (
 Deno.test("what the register states of each recording is what the recording states", () => {
     const rows = getRecordingRows(Deno.readTextFileSync(REGISTER_PATH));
     let checked = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const stated = rows.filter((cells) => cells[0] === path);
         const counted = stated.find((cells) =>
             cells.length === 6 && isCountText(cells[4] ?? "") && isCountText(cells[5] ?? "")
@@ -174,7 +174,7 @@ Deno.test("what the register states of each recording is what the recording stat
         );
         checked += 1;
     }
-    assertEquals(checked, getRecordingPaths().length, "every recording was re-earned");
+    assertEquals(checked, readRecordingPaths().length, "every recording was re-earned");
 });
 
 /**
@@ -282,7 +282,7 @@ Deno.test("the cast each row states is the cast the recording's payloads state",
     const register = Deno.readTextFileSync(REGISTER_PATH);
     const rows = getRecordingRows(getSection(register, CAST_HEADING, RECORDINGS_HEADING));
     let checked = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const row = rows.find((cells) => cells[0] === path);
         assertExists(row, `${path}: no row states its cast`);
         const seat = getReaderSide(path);
@@ -294,13 +294,13 @@ Deno.test("the cast each row states is the cast the recording's payloads state",
         assertEquals(row[4], composeCastText(theirs), `${path}: and who was on the other`);
         checked += 1;
     }
-    assertEquals(checked, getRecordingPaths().length, "every recording's cast was re-earned");
+    assertEquals(checked, readRecordingPaths().length, "every recording's cast was re-earned");
 });
 
 Deno.test("the census of shapes is the shapes the recordings actually are", () => {
     const register = Deno.readTextFileSync(REGISTER_PATH);
     const counted = new Map<string, number>();
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const seat = getReaderSide(path);
         const cast = [...getRecordedWarriors(path).values()];
         const ours = cast.filter((one) => one.side === seat).length;

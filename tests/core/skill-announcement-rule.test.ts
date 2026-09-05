@@ -8,7 +8,7 @@
 
 import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { getRecordedMessages, getRecordingPaths } from "@/tests/recorded-fight.ts";
+import { getRecordedMessages, readRecordingPaths } from "@/tests/recorded-fight.ts";
 
 const TABLE_NAME_KEY = "tspell";
 const CUSTOM_NAME_KEY = "tcustom";
@@ -29,7 +29,7 @@ function isAnnouncement(keys: readonly string[]): boolean {
 
 Deno.test("what a skill spends stands on its announcement and nowhere else", () => {
     let stated = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         for (const message of getRecordedMessages(path)) {
             const parsed = parseProtocolMessage(message);
             const keys = parsed.parameters.map((one) => one.key);
@@ -48,7 +48,7 @@ Deno.test("what a skill spends stands on its announcement and nowhere else", () 
  */
 Deno.test("what a skill spends is a count, never a quantity", () => {
     const values = new Set<number>();
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         for (const message of getRecordedMessages(path)) {
             for (const one of parseProtocolMessage(message).parameters) {
                 if (one.key !== COUNT_KEY) continue;
@@ -71,7 +71,7 @@ Deno.test("what a skill spends is a count, never a quantity", () => {
  */
 Deno.test("a declaration rides a name the game did not take from its own table", () => {
     const found: string[] = [];
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         for (const message of getRecordedMessages(path)) {
             const parsed = parseProtocolMessage(message);
             const keys = parsed.parameters.map((one) => one.key);
@@ -101,7 +101,7 @@ Deno.test("a declaration rides a name the game did not take from its own table",
  */
 Deno.test("three keys state their figure on the announcement itself, and name an actor", () => {
     const counted = new Map<string, number>();
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         for (const message of getRecordedMessages(path)) {
             const parsed = parseProtocolMessage(message);
             const keys = parsed.parameters.map((one) => one.key);
@@ -120,7 +120,7 @@ Deno.test("three keys state their figure on the announcement itself, and name an
 
 Deno.test("the reducer of a side's healing stands on an announcement too", () => {
     let stated = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         for (const message of getRecordedMessages(path)) {
             const parsed = parseProtocolMessage(message);
             const keys = parsed.parameters.map((one) => one.key);

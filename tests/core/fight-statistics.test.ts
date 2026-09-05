@@ -14,7 +14,7 @@ import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 /**
@@ -247,7 +247,7 @@ Deno.test("the corpus says who gave every point of health it put back", () => {
     let restored = 0;
     let given = 0;
     let nobody = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
@@ -271,7 +271,7 @@ Deno.test("every point applied is counted once at each end, in every recording",
     let dealt = 0;
     let taken = 0;
     let fights = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const events = getRecordedPayloads(path).flatMap((payload) =>
             decodeFightMessages(payload, roster)
@@ -290,7 +290,7 @@ Deno.test("every point applied is counted once at each end, in every recording",
         taken += fightTaken;
         fights += 1;
     }
-    assertEquals(fights, getRecordingPaths().length, "every recording was totalled");
+    assertEquals(fights, readRecordingPaths().length, "every recording was totalled");
     assert(dealt > 0, "the recordings carry damage");
     assertEquals(dealt, taken, "and it balances across all of them");
 });
@@ -370,7 +370,7 @@ Deno.test("a cast nobody could place is charged to whoever announced it", () => 
 Deno.test("what the recordings restore is mostly what a cast put back", () => {
     let restored = 0;
     let unplaced = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
@@ -392,7 +392,7 @@ Deno.test("a blow is cut by what it was dealt with and by whom it reached", () =
 });
 
 Deno.test("every cut of a combatant comes to that combatant's own total", () => {
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
@@ -418,7 +418,7 @@ Deno.test("every cut of a combatant comes to that combatant's own total", () => 
  * both ends at once have to come to the same total, or the panel is drawing a figure nobody has.
  */
 Deno.test("a cut by both ends comes to the same figure as the cut by one", () => {
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
@@ -469,7 +469,7 @@ Deno.test("what one dealt another is the announcements aimed at them, and never 
     let whole = 0;
     let none = 0;
     let between = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
@@ -512,7 +512,7 @@ Deno.test("what one gave another is the skills announced for it plus the keys, e
     let pairs = 0;
     let announced = 0;
     let stated = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
@@ -672,7 +672,7 @@ Deno.test("the hardest blow is the hardest blow, and no total can be read back t
 });
 
 Deno.test("every recording places what a blow carried, and places none of it twice", () => {
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const events = decodeFightMessages(getRecordedPayloads(path).flat(), roster);
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
@@ -773,7 +773,7 @@ Deno.test("a turn the protocol named nobody for is charged to no row", () => {
  */
 Deno.test("every recording charges a turn to somebody who was already in the fight", () => {
     let turns = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         // One decode per payload, which is what the session does: an announcement is glued
         // inside the payload it arrived in and never across two of them.
@@ -847,7 +847,7 @@ Deno.test("the game's other lines about a combatant are not turns anybody lost",
  */
 Deno.test("every turn the recordings say was lost is charged to somebody in the fight", () => {
     let lost = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));

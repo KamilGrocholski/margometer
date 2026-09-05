@@ -18,7 +18,7 @@ import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 /**
@@ -487,7 +487,7 @@ function getCorpusTally(): CorpusTally {
         glued: 0,
         unread: 0,
     };
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         for (const payload of getRecordedPayloads(path)) {
             const events = decodeFightMessages(payload, roster);
@@ -547,7 +547,7 @@ Deno.test("every message in every recording decodes, and the pairs hold", () => 
     assertEquals(tally.unread, 0, "and nothing in the recordings goes unread any more");
     assertEquals(
         tally.outcomes,
-        getRecordingPaths().length * 2,
+        readRecordingPaths().length * 2,
         "each fight ends once, twice over",
     );
 });

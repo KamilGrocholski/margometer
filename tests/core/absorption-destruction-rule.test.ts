@@ -8,7 +8,7 @@
 
 import { assert, assertEquals, assertExists } from "@std/assert";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { getRecordedMessages, getRecordingPaths } from "@/tests/recorded-fight.ts";
+import { getRecordedMessages, readRecordingPaths } from "@/tests/recorded-fight.ts";
 
 const KEY = "active_absorbdest_per";
 const ANNOUNCEMENT_KEY = "tspell";
@@ -16,7 +16,7 @@ const ANNOUNCEMENT_KEY = "tspell";
 /** Every report of the share, as the material states it: who declared it, where, and what. */
 function getReports(): { path: string; caster: number; share: string }[] {
     const found: { path: string; caster: number; share: string }[] = [];
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         for (const message of getRecordedMessages(path)) {
             const parsed = parseProtocolMessage(message);
             for (const one of parsed.parameters) {
@@ -32,7 +32,7 @@ function getReports(): { path: string; caster: number; share: string }[] {
 
 Deno.test("the share stands on a skill announcement and never on a blow", () => {
     let reports = 0;
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         for (const message of getRecordedMessages(path)) {
             const parsed = parseProtocolMessage(message);
             if (!parsed.parameters.some((one) => one.key === KEY)) continue;
@@ -73,7 +73,7 @@ Deno.test("the share is neither the key's nor the fight's", () => {
     assert(shares.size > 1, "one value across every caster would make the share the key's");
 
     const disagreeing = new Set<string>();
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const here = new Set(reports.filter((one) => one.path === path).map((one) => one.share));
         if (here.size > 1) disagreeing.add(path);
     }

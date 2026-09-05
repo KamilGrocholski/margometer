@@ -12,12 +12,12 @@ import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
-    getRecordingPaths,
+    readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
 Deno.test("every variant the union holds is produced by the recordings", () => {
     const produced = new Set<string>();
-    for (const path of getRecordingPaths()) {
+    for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         for (const payload of getRecordedPayloads(path)) {
             for (const event of decodeFightMessages(payload, roster)) produced.add(event.kind);
