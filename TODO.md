@@ -17,7 +17,6 @@
 
 
 ## In Progress
-- [ ] !!!IMPORTANT!!!I need fabricated fights - create a tool for it
 - [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development, now I only know 1-93lvl)
 - [ ] Create a better design for helper
     - [ ] Ask discord for help
@@ -29,6 +28,9 @@
 - [ ] Do a manual audit
 
 ## Done
+- [x] Fix error "MargoMeter/Panel AssertionError: and carries no more of them than a list draws", using 
+      capture "margometer-luvia-ne0iTNdg-0.12.1-2026-09-05T07-17-00-939Z.json".
+- [x] !!!IMPORTANT!!!I need fabricated fights - create a tool for it
 - [x] FIX: remember the last scroll position
 - [x] Consider adding `turn` to stats - maybe I will find a solution to read turns after the latest fail
 - [x] !!!IMPORTANT!!! Fix workflow each time before doing ANY work round: fetch game source files; refresh frozen dir content
