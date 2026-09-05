@@ -7,13 +7,7 @@
  * and no key of the game's, and that a count is spelled the way Polish spells one.
  */
 
-import {
-    assert,
-    assertEquals,
-    AssertionError,
-    assertStringIncludes,
-    assertThrows,
-} from "@std/assert";
+import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import {
     composeCountedNoun,
     composeFigureText,
@@ -24,6 +18,7 @@ import {
     composeShareTexts,
     composeUnplacedHealWarning,
     composeUnreadWarning,
+    composeUsesText,
     COUNTED_NOUNS,
     getWordsForHealthSource,
     getWordsForPinnedScope,
@@ -152,8 +147,41 @@ Deno.test("a share is spelled in whole points, and a figure too small to round s
     assertEquals(composeShareText(1), "100%", "and the whole of a fight is the whole of it");
     // The floor and the measurement stand apart: one says too small to print, the other says none.
     assertEquals(composeShareText(0.0004), "<1%", "a share too small to print is not zero");
-    assertThrows(() => composeShareText(1.5), AssertionError, "more than the whole");
-    assertThrows(() => composeShareText(-1), AssertionError, "below nothing");
+    // A share outside the whole used to stop the panel. It is held to the ends instead, and one
+    // that is not a number at all says so — **E14**, ADR 0051.
+    assertEquals(composeShareText(1.5), "100%", "more than the whole is drawn as the whole");
+    assertEquals(composeShareText(-1), "0%", "and below nothing is drawn as nothing");
+    assertEquals(
+        composeShareText(Number.NaN),
+        PANEL_WORDS.unknown,
+        "while a share that is not a number is said as not known, which is not zero",
+    );
+});
+
+/**
+ * The figure every reader sees, and what it does with one that is not a figure. It used to stop
+ * the panel; the word for *not known* is what the panel already has, and zero is not it —
+ * `CONTEXT.md` keeps those apart. **E14**, ADR 0051.
+ */
+Deno.test("a figure that is not one is said as not known, and never as a number", () => {
+    for (const value of [Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY, 1e21]) {
+        assertEquals(composeFigureText(value), PANEL_WORDS.unknown, `${value} is not a figure`);
+    }
+    assertEquals(composeFigureText(0), "0", "while zero happened, and is written as it was");
+});
+
+Deno.test("a count of things that is not a count says so, and still says what of", () => {
+    assertStringIncludes(
+        composeUsesText(Number.NaN),
+        PANEL_WORDS.unknown,
+        "a count that is not one is not drawn as a number",
+    );
+    assertStringIncludes(
+        composeUsesText(-1),
+        PANEL_WORDS.unknown,
+        "and neither is one below nothing, which no announcement could come to",
+    );
+    assertEquals(composeUsesText(3), "×3", "and one that is is drawn as it stands");
 });
 
 Deno.test("a figure is spaced the way the game spaces one, from three digits up", () => {
@@ -252,5 +280,7 @@ Deno.test("a doubt about what never arrived counts in all three Polish forms", (
     assertStringIncludes(composeLostMessageWarning(1), "1 wiadomość", "one takes the first form");
     assertStringIncludes(composeLostMessageWarning(2), "2 wiadomości", "two takes the second");
     assertStringIncludes(composeLostMessageWarning(5), "5 wiadomości", "and five the third");
-    assertThrows(() => composeLostMessageWarning(0), AssertionError, "said because something");
+    // Nothing to warn about is nothing said. The empty sentence is dropped where it is drawn,
+    // rather than stopping the draw it arrived in — **E14**, ADR 0051.
+    assertEquals(composeLostMessageWarning(0), "", "and nothing lost is nothing to say");
 });

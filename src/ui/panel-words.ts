@@ -6,7 +6,7 @@
  * letter, a token. Wording a mechanic nobody named would be a claim about the game. **ADR 0011.**
  */
 
-import { assert } from "@std/assert/assert";
+import { getValueWithin } from "@/libs/number-range.ts";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import type {
     PanelMetric,
@@ -73,9 +73,7 @@ const OUTCOME_WORDS: Record<PanelOutcome, string> = {
 };
 
 export function getWordsForOutcome(outcome: PanelOutcome): string {
-    assert(outcome.length > 0, "an outcome is asked for by name");
     const words = OUTCOME_WORDS[outcome];
-    assert(words.length > 0, "and a fight that ended somehow is a fight with a word for it");
     return words;
 }
 
@@ -87,9 +85,7 @@ const NOTHING_WORDS: Record<PanelMetric, string> = {
 };
 
 export function getWordsForNothing(screen: PanelMetric): string {
-    assert(screen.length > 0, "a screen is asked for by name");
     const words = NOTHING_WORDS[screen];
-    assert(words.length > 0, "and a figure of nothing is said in words on every one of them");
     return words;
 }
 
@@ -98,9 +94,8 @@ export function getWordsForNothing(screen: PanelMetric): string {
  *
  * ⚠️ **The two healing entries are never read, and they stay.** What no announcement covered there
  * is named by the key the game stated it under and stands as a row of its own, so nothing is left
- * to close against — `composeSkillCut` asserts as much. The table is exhaustive for the reason
- * every table here is: a fifth screen becomes a question the compiler asks rather than one that
- * inherits whichever wording came first.
+ * to close against. The table is exhaustive for the reason every table here is: a fifth screen
+ * becomes a question the compiler asks rather than one inheriting whichever wording came first.
  */
 const UNANNOUNCED_WORDS: Record<PanelMetric, string> = {
     damageDealtApplied: "Zwykły cios",
@@ -110,9 +105,7 @@ const UNANNOUNCED_WORDS: Record<PanelMetric, string> = {
 };
 
 export function getWordsForUnannounced(screen: PanelMetric): string {
-    assert(screen.length > 0, "a screen is asked for by name");
     const words = UNANNOUNCED_WORDS[screen];
-    assert(words.length > 0, "and every screen names what stood behind no announcement");
     return words;
 }
 
@@ -139,23 +132,17 @@ const SIDE_WORDS: Record<PanelSideChoice, string> = {
 };
 
 export function getWordsForNoun(noun: PanelNoun): string {
-    assert(noun.length > 0, "a quantity is asked for by name");
     const words = NOUN_WORDS[noun];
-    assert(words.length > 0, "a quantity a strip draws is a quantity with a name");
     return words;
 }
 
 export function getWordsForDirection(screen: PanelMetric): string {
-    assert(screen.length > 0, "a screen is asked for by name");
     const words = DIRECTION_WORDS[screen];
-    assert(words.length > 0, "a screen a strip draws says which way round it is");
     return words;
 }
 
 export function getWordsForSide(choice: PanelSideChoice): string {
-    assert(choice.length > 0, "a choice of side is asked for by name");
     const words = SIDE_WORDS[choice];
-    assert(words.length > 0, "a choice a strip draws is a choice with a name");
     return words;
 }
 
@@ -168,9 +155,7 @@ const CARD_METRIC_WORDS: Record<PanelMetric, string> = {
 };
 
 export function getWordsForCardMetric(metric: PanelMetric): string {
-    assert(metric.length > 0, "a figure the card states is asked for by name");
     const words = CARD_METRIC_WORDS[metric];
-    assert(words.length > 0, "and every one of the four has a word of its own");
     return words;
 }
 
@@ -192,10 +177,7 @@ const UNNAMED_END_NOTES: Record<PanelUnnamedEnd, Record<PanelNoun, string>> = {
 };
 
 export function getWordsForUnnamedEnd(end: PanelUnnamedEnd, noun: PanelNoun): string {
-    assert(end.length > 0, "an end the game left out is asked about by name");
-    assert(noun.length > 0, "and about a quantity asked for by one");
     const words = UNNAMED_END_NOTES[end][noun];
-    assert(words.length > 0, "and every end of every quantity says what was not said about it");
     return words;
 }
 
@@ -214,9 +196,7 @@ const PINNED_STANDING_NOTES: Record<PinnedCase, string> = {
 };
 
 export function getWordsForPinnedStanding(kase: PinnedCase): string {
-    assert(kase.length > 0, "a pinned figure is asked about by name");
     const words = PINNED_STANDING_NOTES[kase];
-    assert(words.length > 0, "and every one of them says where it stands against the list");
     return words;
 }
 
@@ -235,9 +215,7 @@ const PINNED_SCOPE_NOTES: Record<PinnedCase, string> = {
 };
 
 export function getWordsForPinnedScope(kase: PinnedCase): string {
-    assert(kase.length > 0, "a pinned figure is asked about by name");
     const words = PINNED_SCOPE_NOTES[kase];
-    assert(words.length > 0, "and every one of them says what a chosen side narrows it to");
     return words;
 }
 
@@ -307,9 +285,7 @@ export const CARD_WORDS = {
  * **Keyed by the client's own token, with no sign**, the way an element is: a figure carries the
  * token and the sign says which half of the blow it was, not which defence. The procs below are
  * keyed the other way for the opposite reason — there the sign is part of what the key names.
- *
- * All three are stated in `captures/`, measured 2026-08-30: `-absorb` on 624 blows, `-absorbm` on
- * 301 and `-blok` on 175.
+ * How often each is stated is `docs/protocol-keys.md`'s, key by key.
  */
 export const DEFENCE_WORDS: Record<string, string> = {
     blok: "blok",
@@ -321,18 +297,13 @@ export const DEFENCE_WORDS: Record<string, string> = {
  * What fired beside a blow, in the player's words. Ours, and short: these sit in a column beside a
  * count, so each is the mechanic's name and not a sentence about it.
  *
- * **Six of the twenty keys are deliberately absent**, and a reader meets them as the game's own
- * token. `+legbon_curse`, `+legbon_verycrit`, `-legbon_cleanse` and `-legbon_glare` are legendary
- * bonuses whose published name this repository has not read; `-tenacity` and `+superspell-dispel`
- * are the two article view,372 does not carry at all. Wording a mechanic nothing named would be a
- * claim about the game. **ADR 0011.**
+ * **Six of the twenty keys are deliberately absent**, and `CLIENT_IDS_FOR_UNWORDED_KEYS` below
+ * names them and says why. The five stun keys share one word because they are one event from five
+ * sources, which is what `+stun2-d`'s entry in `docs/protocol-keys.md` says outright.
  *
- * The five stun keys share one word because they are one event from five sources, which is what
- * `+stun2-d`'s entry in `docs/protocol-keys.md` says outright.
- *
- * **Keyed with the sign**, unlike the two tables of tokens beside it: a proc is stated by the key
- * and no figure, so the sign is part of the name — `+wound` is a wound a blow announced and
- * `wound` is one ticking afterwards, and they are different rows on different screens.
+ * **Keyed with the sign**, for the reason `DEFENCE_WORDS` above states: `+wound` is a wound a blow
+ * announced and `wound` is one ticking afterwards, and they are different rows on different
+ * screens.
  */
 export const PROC_WORDS: Record<string, string> = {
     "+crit": "krytyk",
@@ -353,18 +324,15 @@ export const PROC_WORDS: Record<string, string> = {
 };
 
 /**
- * A name out of the running client, or null where it has none to give.
- *
- * Declared here rather than imported: `ARCHITECTURE.md` names no direction from `ui/` to `game/`,
- * so the panel says what it needs and the entry point supplies it.
+ * A name out of the running client, or null where it has none to give. Declared here rather than
+ * imported: `ARCHITECTURE.md` names no direction from `ui/` to `game/`.
  */
 export type TranslateLabel = (id: string) => string | null;
 
 /**
- * What a label may run to before the sheet cuts it with an ellipsis. Not a look: `getTipSize`
- * counts a stat line as one line, so a label the sheet had to fold would stand the card lower than
- * it was measured for. Every word in this file is inside it; a label out of the client is not
- * ours to keep short, which is what `getWordsForBlowKey` holds it to.
+ * What a label may run to before the sheet cuts it. Not a look: `getTipSize` counts a stat line as
+ * one, so a label the sheet had to fold would stand the card lower than it was measured for. Every
+ * word here is inside it; a label out of the client is not ours to keep short.
  */
 export const MAXIMUM_LABEL_CHARACTERS = 22;
 
@@ -372,11 +340,8 @@ export const MAXIMUM_LABEL_CHARACTERS = 22;
  * The six keys this repository has no word for, and what the client calls each in its own
  * dictionary. **The panel asks only here** — every other key it draws it has a word of its own
  * for, chosen short enough for the column above, and an answer out of somebody else's program is
- * not. **ADR 0024.**
- *
- * Four are legendary bonuses whose published name has not been read; two are the pair article
- * `view,372` does not carry at all (**ADR 0011**). Wording one **ourselves** would be a claim
- * about the game; letting the player's own client word it is the game speaking.
+ * not. **ADR 0024.** Four are legendary bonuses whose published name has not been read; two are
+ * the pair article `view,372` does not carry at all (**ADR 0011**).
  *
  * Every id is spelled by the client, checked against `.cache/game-client/production/main.js` at
  * build `53XkBRxF` on 2026-08-30. Five are `msg_` and the key; `+superspell-dispel` is the one
@@ -391,15 +356,10 @@ export const CLIENT_IDS_FOR_UNWORDED_KEYS: Record<string, string> = {
     "+superspell-dispel": "msg_+dispel",
 };
 
-/**
- * Our word where we have one, the player's own client where we do not, and the key as the game
- * wrote it where neither answers. **ADR 0011**, **ADR 0024**.
- */
+/** Ours, then the player's own client, then the key as the game wrote it. **ADR 0024.** */
 export function getWordsForBlowKey(key: string, translate: TranslateLabel | null = null): string {
-    assert(key.length > 0, "a key a blow carried is named");
     const words = PROC_WORDS[key] ?? DEFENCE_WORDS[key];
     if (words !== undefined) {
-        assert(words.length > 0, "a key either table holds is worded");
         return words;
     }
     const stated = getClientWordsForKey(key, translate);
@@ -417,7 +377,7 @@ function getClientWordsForKey(key: string, translate: TranslateLabel | null): st
     // The column is ours and the answer is not: a longer label would be cut by the sheet and
     // would stand the card at a height it was not measured for.
     if (label.length > MAXIMUM_LABEL_CHARACTERS) return null;
-    assert(label.length > 0, "a label the client gave is a label");
+    if (label.length === 0) return null;
     return label;
 }
 
@@ -438,20 +398,16 @@ export const DESTROYED_WORDS: Record<string, { name: string; unit: string }> = {
 };
 
 export function getWordsForDestroyed(statistic: string): string {
-    assert(statistic.length > 0, "a statistic a blow destroyed is named");
     const held = DESTROYED_WORDS[statistic];
     if (held === undefined) return statistic;
-    assert(held.name.length > 0, "a statistic the table holds is worded");
     return held.name;
 }
 
 /** The figure with the unit it is in, which is the whole reason the two are never totalled. */
 export function composeDestroyedText(statistic: string, figure: number): string {
-    assert(figure > 0, "a statistic that was destroyed was destroyed by something");
     const stated = composeFigureText(figure);
     const held = DESTROYED_WORDS[statistic];
     if (held === undefined) return stated;
-    assert(held.unit.length > 0, "and a statistic the table holds is counted in something");
     return `${stated} ${held.unit}`;
 }
 
@@ -470,10 +426,8 @@ export const PROFESSION_WORDS: Record<string, string> = {
 };
 
 export function getWordsForProfession(profession: string): string {
-    assert(profession.length > 0, "a profession that was stated says something");
     const words = PROFESSION_WORDS[profession];
     if (words === undefined) return profession;
-    assert(words.length > 0, "a letter the table holds is worded");
     return words;
 }
 
@@ -481,8 +435,12 @@ export function composeCardSubtitleText(
     profession: string | null,
     level: number | null,
 ): string | null {
-    assert(level === null || Number.isSafeInteger(level), "a level stated is a whole number");
-    assert(level === null || level > 0, "and somebody who has one is at least on the first");
+    if (level !== null) {
+        if (!Number.isSafeInteger(level)) level = null;
+    }
+    if (level !== null) {
+        if (level <= 0) level = null;
+    }
     const stated = profession === null ? null : getWordsForProfession(profession);
     if (level === null) return stated;
     const counted = `(${composeIntegerText(level)})`;
@@ -510,11 +468,8 @@ export const ELEMENT_WORDS: Record<string, string> = {
 /**
  * The key health moved under, in the player's words. Ours, like the damage kinds beside it and
  * for the reason **ADR 0011** gives: the client words most of these as sentences with holes in
- * them, which is not a phrase a column can take.
- *
- * Every one of the six is stated in `captures/`, measured 2026-08-29: `heal` on 2,057 movements,
- * `heal_target` on 114, `legbon_holytouch_heal` on 53, `legbon_lastheal` on 13 stated against a
- * name, `npc_heal` on 2 and `bandage` on 1.
+ * them, which is not a phrase a column can take. How often each is stated is
+ * `docs/protocol-keys.md`'s, key by key.
  */
 export const HEALTH_SOURCE_WORDS: Record<string, string> = {
     heal: "przywracanie życia",
@@ -527,10 +482,8 @@ export const HEALTH_SOURCE_WORDS: Record<string, string> = {
 };
 
 export function getWordsForHealthSource(source: string): string {
-    assert(source.length > 0, "a key health moved under is named");
     const words = HEALTH_SOURCE_WORDS[source];
     if (words === undefined) return source;
-    assert(words.length > 0, "a key the table holds is worded");
     return words;
 }
 
@@ -547,11 +500,8 @@ export const COUNTED_NOUNS = {
  * Kept apart from the elements above, and the pairs are the reason: `poison` is the poisoning
  * ticking afterwards and `dmgp` is the damage a blow of that element lands, so one label over
  * both would be two quantities under one word — a wrong number that looks right. The same split
- * holds for `fire` against `dmgf` and `light` against `dmgl`.
- *
- * All seven are stated in `captures/`, measured 2026-08-29: `poison` takes 543,391 over 812
- * movements, `injure` 28,521 over 184, `anguish` 24,208 over 70, `wound` 22,957 over 42, a
- * negative `heal` 8,348 over 154, `fire` 7,497 over 43 and `light` 2,677 over 69.
+ * holds for `fire` against `dmgf` and `light` against `dmgl`. How much each takes and over how
+ * many movements is `docs/protocol-keys.md`'s, key by key.
  */
 export const HEALTH_LOSS_WORDS: Record<string, string> = {
     poison: "zatrucie",
@@ -565,10 +515,8 @@ export const HEALTH_LOSS_WORDS: Record<string, string> = {
 
 /** What a figure was made of, whether a blow carried it or health went out under it. */
 export function getWordsForDamageKind(kind: string): string {
-    assert(kind.length > 0, "a kind of damage is named");
     const words = ELEMENT_WORDS[kind] ?? HEALTH_LOSS_WORDS[kind];
     if (words === undefined) return kind;
-    assert(words.length > 0, "a kind either table holds is worded");
     return words;
 }
 
@@ -584,8 +532,8 @@ const HUNDRED = 100;
  * whatever that digit is. Twenty-two takes the few form and twelve does not.
  */
 export function composeCountedNoun(count: number, noun: CountedNoun): string {
-    assert(Number.isSafeInteger(count), "a count is a whole number");
-    assert(count >= 0, "a count is never below nothing");
+    if (!Number.isSafeInteger(count)) return `${PANEL_WORDS.unknown} ${noun.many}`;
+    if (count < 0) return `${PANEL_WORDS.unknown} ${noun.many}`;
     if (count === 1) return `1 ${noun.one}`;
     const lastTwo = count % HUNDRED;
     const last = count % TEN;
@@ -595,7 +543,6 @@ export function composeCountedNoun(count: number, noun: CountedNoun): string {
 }
 
 export function getWordsForPin(isPinned: boolean): string {
-    assert(typeof isPinned === "boolean", "a pin is drawn for a fight that is pinned or is not");
     if (isPinned) return "Odepnij — będzie mogła zniknąć";
     return "Przypnij, żeby nie zniknęła";
 }
@@ -607,9 +554,7 @@ const STORAGE_WORDS: Record<PanelStorageChoice, string> = {
 };
 
 export function getWordsForStorage(choice: PanelStorageChoice): string {
-    assert(choice.length > 0, "a place a shelf is kept in is asked for by name");
     const words = STORAGE_WORDS[choice];
-    assert(words.length > 0, "and each of the three is worded");
     return words;
 }
 
@@ -639,17 +584,17 @@ export function getWordsForShelfTime(
     at: { hour: number; minute: number } | null,
     isLive: boolean,
 ): string {
-    assert(typeof isLive === "boolean", "a row says whether it is the fight going on now");
     if (isLive) return LIVE_FIGHT_TIME;
     if (at === null) return "";
-    assert(at.hour >= 0, "a moment on a clock is not before its own start");
+    if (at.hour < 0) return "";
+    if (at.minute < 0) return "";
     return `${composeTwoDigitText(at.hour)}:${composeTwoDigitText(at.minute)}`;
 }
 
 function composeTwoDigitText(value: number): string {
+    if (!Number.isSafeInteger(value)) return "";
+    if (value < 0) return "";
     const digits = composeIntegerText(value);
-    assert(digits.length > 0, "a part of a moment is written as at least one digit");
-    assert(value >= 0, "and is never below nothing");
     return digits.length >= TWO_DIGITS ? digits : `0${digits}`;
 }
 
@@ -658,13 +603,12 @@ function composeTwoDigitText(value: number): string {
  * borrowed word would be it. The header says the same with `vs`, where there is room for a word.
  */
 export function composeShelfSizeText(counts: readonly number[]): string {
-    assert(counts.every((one) => one > 0), "a side that is counted has somebody on it");
+    counts = counts.filter((one) => one > 0);
     if (counts.length === 0) return "";
     return counts.map((count) => composeFigureText(count)).join("×");
 }
 
 export function getWordsForShelfOutcome(outcome: PanelOutcome | null, isLive: boolean): string {
-    assert(typeof isLive === "boolean", "a row says whether it is the fight going on now");
     // How it went outranks the word for one going on: a fight that has ended is still the live
     // one until the next begins, and *trwa* over a fight the game has already called is wrong.
     if (outcome !== null) return getWordsForOutcome(outcome);
@@ -673,8 +617,7 @@ export function getWordsForShelfOutcome(outcome: PanelOutcome | null, isLive: bo
 }
 
 export function composeUsesText(uses: number): string {
-    assert(Number.isSafeInteger(uses), "a count of announcements is a whole number");
-    assert(uses >= 0, "and never below nothing");
+    if (uses < 0) return PANEL_WORDS.unknown;
     return `×${composeFigureText(uses)}`;
 }
 
@@ -692,18 +635,16 @@ const MAXIMUM_THOUSAND_GROUPS = 5;
  * Polish forms without the verb having to agree with the number.
  */
 export function composeUnreadWarning(count: number): string {
-    assert(count > 0, "a warning about what could not be read is said because something was not");
+    if (count <= 0) return "";
     const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
-    assert(said.length > 0, "and it says how much of it there was");
     return `Nie udało się odczytać wszystkiego — ${said} bez odczytu, ` +
         "więc liczby mogą być zaniżone.";
 }
 
 /** The count sits in an apposition: under *nie dotarło* the verb would have to agree with it. */
 export function composeLostMessageWarning(count: number): string {
-    assert(count > 0, "a warning about what never arrived is said because something did not");
+    if (count <= 0) return "";
     const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
-    assert(said.length > 0, "and it says how much of it there was");
     return `Część walki nie dotarła do panelu — ${said} bez odbioru, ` +
         "więc liczby mogą być zaniżone.";
 }
@@ -715,33 +656,27 @@ export function composeJoinedInProgressWarning(): string {
 }
 
 export function composeUnplacedHealWarning(count: number): string {
-    assert(count > 0, "a warning about healing nobody could place is said because some was not");
+    if (count <= 0) return "";
     const said = composeCountedNoun(count, COUNTED_NOUNS.heals);
-    assert(said.length > 0, "and it says how much of it there was");
     return `Nie da się rozdzielić leczenia drużyny — ${said} bez podziału, ` +
         "więc leczenie może być zaniżone.";
 }
 
 /**
- * The same two doubts, said about one person rather than about the fight.
- *
- * Both say **whose** figure is short, which is the whole of why they exist beside the four above:
- * a sentence under the list qualifies every row on it, and a reader wanting to know if the row
- * they are looking at is one of them had no way to ask. `postać` is feminine, so the possessive
- * is `jej` whoever the row stands for.
+ * The same two doubts, said about one person rather than about the fight — `DESIGN.md` puts a
+ * warning where its consequence is. `postać` is feminine, so the possessive is `jej` whoever the
+ * row stands for.
  */
 export function composeUnreadRowWarning(count: number): string {
-    assert(count > 0, "a row is marked because something with it in went unread");
+    if (count <= 0) return "";
     const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
-    assert(said.length > 0, "and the mark says how much of it there was");
     return `Nie udało się odczytać wszystkiego z jej udziałem — ${said} bez odczytu, ` +
         "więc jej liczby mogą być zaniżone.";
 }
 
 export function composeUnplacedHealRowWarning(count: number): string {
-    assert(count > 0, "a row is marked because a cast of theirs could not be placed");
+    if (count <= 0) return "";
     const said = composeCountedNoun(count, COUNTED_NOUNS.heals);
-    assert(said.length > 0, "and the mark says how much of it there was");
     return `Nie da się rozdzielić jej leczenia drużyny — ${said} bez podziału, ` +
         "więc jej leczenie może być zaniżone.";
 }
@@ -760,10 +695,7 @@ export const REGION_WORDS = {
 export type PanelRegion = keyof typeof REGION_WORDS;
 
 export function composeUndrawnText(region: PanelRegion): string {
-    const words = REGION_WORDS[region];
-    assert(words.length > 0, "a region that could not be drawn is a region with a name");
-    assert(PANEL_WORDS.undrawn.length > 0, "and the sentence saying so says something");
-    return `Nie udało się narysować ${words}.`;
+    return `Nie udało się narysować ${REGION_WORDS[region]}.`;
 }
 
 /** Every kind of defect there is, so a reader over the words can be held to the list — **S11**. */
@@ -798,19 +730,22 @@ export function composeDefectText(
  * added to a side, because which side they are on is exactly what nobody knows.
  */
 export function composeSideCountsText(sizes: readonly number[], unplaced: number): string {
-    assert(unplaced >= 0, "a headcount of people on no side is never below nothing");
-    assert(sizes.every((one) => one > 0), "and a side that is counted has somebody on it");
-    if (sizes.length === 0) return PANEL_WORDS.noSides;
-    const counted = sizes.map((count) => composeFigureText(count)).join(" vs ");
-    if (unplaced === 0) return counted;
+    const counts = sizes.filter((one) => one > 0);
+    if (counts.length === 0) return PANEL_WORDS.noSides;
+    const counted = counts.map((count) => composeFigureText(count)).join(" vs ");
+    if (unplaced <= 0) return counted;
     return `${counted} +${composeFigureText(unplaced)}`;
 }
 
-/** Thousands spaced as the game spaces them, on a space that never breaks — `DESIGN.md`. */
+/**
+ * Thousands spaced as the game spaces them, on a space that never breaks — `DESIGN.md`. A figure
+ * that is not one is drawn as *not known*, never as `0`: they are different claims (`CONTEXT.md`).
+ */
 export function composeFigureText(value: number): string {
-    assert(Number.isFinite(value), "a figure a reader is shown is a number");
+    // ⚠️ One check, not two, and every caller relies on it: rounding what is not a number answers
+    // what is not a whole one either, so a second guard anywhere above this is unreachable.
     const rounded = Math.round(value);
-    assert(Number.isSafeInteger(rounded), "and one the panel writes out exactly");
+    if (!Number.isSafeInteger(rounded)) return PANEL_WORDS.unknown;
     const digits = composeIntegerText(rounded);
     const sign = digits.startsWith(MINUS_SIGN) ? MINUS_SIGN : "";
     const body = digits.slice(sign.length);
@@ -822,7 +757,6 @@ export function composeFigureText(value: number): string {
         spaced = `${THOUSAND_SEPARATOR}${body.slice(from, start)}${spaced}`;
         start = from;
     }
-    assert(start <= THOUSAND_DIGITS, "every group of three past the first stands apart");
     return `${sign}${body.slice(0, start)}${spaced}`;
 }
 
@@ -838,8 +772,8 @@ const MAXIMUM_SHARES = 128;
  * without it every one of them would read `0%` beside a figure that is not one.
  */
 function composeSharePointsText(points: number, isPresent: boolean): string {
-    assert(Number.isSafeInteger(points), "a share in points is a whole number of them");
-    assert(points >= 0, "and never below nothing");
+    if (!Number.isSafeInteger(points)) return PANEL_WORDS.unknown;
+    if (points < 0) return PANEL_WORDS.unknown;
     if (points === 0 && isPresent) return SHARE_FLOOR;
     return `${composeIntegerText(points)}%`;
 }
@@ -852,8 +786,6 @@ interface ShareInPoints {
 }
 
 function composeSharesInPoints(amounts: readonly number[], whole: number): ShareInPoints[] {
-    assert(whole > 0, "a share is taken of a whole that is something");
-    assert(amounts.length <= MAXIMUM_SHARES, "and no more of them than a screen draws");
     return amounts.map((amount, index) => {
         const exact = (amount / whole) * HUNDRED;
         const points = Math.floor(exact);
@@ -861,11 +793,11 @@ function composeSharesInPoints(amounts: readonly number[], whole: number): Share
     });
 }
 
+/** A group with nobody in it takes no points and sorts last, which is what an empty one is. */
+const NOBODY_TO_PAY: ShareInPoints = { index: 0, amount: 0, points: 0, remainder: 0 };
+
 function getShareGroupHead(group: readonly ShareInPoints[]): ShareInPoints {
-    const first = group[0];
-    assert(first !== undefined, "a group that was formed has a member");
-    assert(first.remainder > 0, "and a fraction somebody could be paid for");
-    return first;
+    return group[0] ?? NOBODY_TO_PAY;
 }
 
 /**
@@ -874,7 +806,7 @@ function getShareGroupHead(group: readonly ShareInPoints[]): ShareInPoints {
  * cannot add up. So a group of equal figures is one candidate costing as many points as it has
  * members, and where the points left will not cover it a smaller remainder is paid instead. Over
  * `captures/` on 2026-08-29 that is 12 groups of equal figures across the four screens and the
- * three side choices, and no two of a figure print different shares.
+ * three side choices.
  */
 function composeShareGroups(shares: readonly ShareInPoints[]): ShareInPoints[][] {
     const byAmount = new Map<number, ShareInPoints[]>();
@@ -886,14 +818,12 @@ function composeShareGroups(shares: readonly ShareInPoints[]): ShareInPoints[][]
         else held.push(share);
     }
     const groups = [...byAmount.values()];
-    assert(groups.length <= shares.length, "a group holds at least the share that formed it");
     groups.sort((one, other) => {
         const first = getShareGroupHead(one);
         const second = getShareGroupHead(other);
         if (first.remainder !== second.remainder) return second.remainder - first.remainder;
         return first.index - second.index;
     });
-    assert(groups.every((group) => group.length > 0), "and no group is drawn up empty");
     return groups;
 }
 
@@ -901,15 +831,16 @@ function composeShareGroups(shares: readonly ShareInPoints[]): ShareInPoints[][]
  * Every share of one whole, written so what the reader adds up comes to what the panel says it is
  * a share of. Rounding each on its own loses up to half a point per row in the same direction: of
  * the 312 screens drawing a figure over `captures/` on 2026-08-29, 106 would print a set that did
- * not add to a hundred, and all 312 do under the apportionment here. The largest remainder decides
- * who takes the points that are left; a second decimal place does not close it, because `33,3%`
- * three times adds to `99,9%` and the column still does not sum.
+ * not add to a hundred. The largest remainder decides who takes the points that are left; a second
+ * decimal place does not close it, because `33,3%` three times adds to `99,9%` and the column
+ * still does not sum.
  */
 export function composeShareTexts(amounts: readonly number[], whole: number): string[] {
-    assert(whole >= 0, "a whole a share is taken of is never below nothing");
-    assert(amounts.length <= MAXIMUM_SHARES, "and a screen asks for no more shares than it draws");
+    // A whole that is not a number states no share of anything, and neither does one at or below
+    // nothing: every row reads `0%`, which is what a screen with no figure on it already draws.
+    if (!Number.isFinite(whole)) return amounts.map(() => composeSharePointsText(0, false));
     if (whole <= 0) return amounts.map(() => composeSharePointsText(0, false));
-    const shares = composeSharesInPoints(amounts, whole);
+    const shares = composeSharesInPoints(amounts.slice(0, MAXIMUM_SHARES), whole);
     const held = shares.reduce((sum, one) => sum + one.points, 0);
     const exact = shares.reduce((sum, one) => sum + one.points + one.remainder, 0);
     let left = Math.round(exact) - held;
@@ -931,14 +862,13 @@ export function composeShareTexts(amounts: readonly number[], whole: number): st
             left -= 1;
         }
     }
-    assert(left >= 0, "no more points are handed out than were left to hand out");
     return shares.map((one) => composeSharePointsText(one.points, one.amount > 0));
 }
 
 export function composeShareText(share: number): string {
-    assert(share >= 0, "a share is never below nothing");
-    assert(share <= 1, "and never more than the whole");
-    return composeSharePointsText(Math.round(share * HUNDRED), share > 0);
+    if (!Number.isFinite(share)) return PANEL_WORDS.unknown;
+    const held = getValueWithin(share, 0, 1);
+    return composeSharePointsText(Math.round(held * HUNDRED), held > 0);
 }
 
 export function composePlaceWords(
@@ -946,10 +876,9 @@ export function composePlaceWords(
     x: number | null,
     y: number | null,
 ): string | null {
-    assert(mapName === null || mapName.length > 0, "a map that was named says something");
+    const named = mapName !== null && mapName.length > 0 ? mapName : null;
     const tile = x === null || y === null ? null : `(${x}, ${y})`;
-    if (mapName === null) return tile;
-    if (tile === null) return mapName;
-    assert(tile.length > 0, "a tile that was read is written out");
-    return `${mapName} ${tile}`;
+    if (named === null) return tile;
+    if (tile === null) return named;
+    return `${named} ${tile}`;
 }
