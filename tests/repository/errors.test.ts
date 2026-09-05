@@ -97,6 +97,42 @@ Deno.test("nobody throws a bare Error", () => {
     assertEquals(offenders, [], "E1: an unbranded error says nothing about whose it is");
 });
 
+/** What a reader touches, which E14 binds and A11 holds the other half of. **ADR 0051.** */
+const READER_FACING = ["src/ui/", "src/userscript-entry.ts", "src/userscript-boot.ts"];
+
+function getLinesThrowing(text: string): number[] {
+    const found: number[] = [];
+    for (const [offset, line] of text.split("\n").entries()) {
+        // A docblock saying what a throw would cost is not one: four of them stand in this layer,
+        // and every one of them is there because the throw was taken out.
+        if (isCommentLine(line)) continue;
+        if (hasOutsideStrings(line, "throw ")) found.push(offset + 1);
+    }
+    return found;
+}
+
+/**
+ * **E14 in part.** That the layer never fails is held by reading; that it never *throws* is not,
+ * and it is the half that turns a broken invariant into a panel a reader is left staring at. The
+ * other half — every value checked, every call that can throw caught — has no reader yet, and
+ * `ARCHITECTURE.md` says so.
+ */
+Deno.test("what a reader touches throws nothing at all", () => {
+    const sample = 'throw new RangeError("a region that will not draw");';
+    assertEquals(getLinesThrowing(sample), [1], "the reader flags its own sample");
+    assertEquals(getLinesThrowing('const said = "throw a fight";'), [], "a literal is not one");
+    assertEquals(getLinesThrowing(" * a throw out of `handle` reaches nobody"), [], "nor is prose");
+
+    const offenders: string[] = [];
+    for (const path of getSourcePaths()) {
+        if (!READER_FACING.some((one) => path.startsWith(one))) continue;
+        for (const line of getLinesThrowing(Deno.readTextFileSync(path))) {
+            offenders.push(`${path}:${line}`);
+        }
+    }
+    assertEquals(offenders, [], "E14: a throw where the panel is what somebody is looking at");
+});
+
 Deno.test("no catch is empty", () => {
     const sample = "try {\n    read();\n} catch {}";
     assertEquals(getEmptyCatchLines(sample), [3], "the reader flags its own sample");

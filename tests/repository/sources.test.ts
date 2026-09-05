@@ -46,6 +46,8 @@ const SHIPPED_ROOTS = ["libs/", "project/", "src/", "tools/"];
  * front of somebody playing a game, so this is where the density is not measured. **ADR 0051.**
  */
 const READER_FACING = ["src/ui/", "src/userscript-entry.ts", "src/userscript-boot.ts"];
+/** Both spellings of it, so a file reaching the package by either is found. */
+const ASSERTION_PACKAGE = "@std/assert";
 /** One line said twice is a citation; a block said twice is an essay with two copies. */
 const MINIMUM_REPEATED_LINES = 2;
 /** More blocks than any tree this repository will hold, so the count stays a stated bound. */
@@ -419,7 +421,7 @@ Deno.test("the counter sees every assertion the library ships, and no group of o
         "and the longest name is not read as the shorter one inside it",
     );
     assertEquals(
-        countCallsOutsideStrings("    assertPinnedTotalsTheFight(one, two, three);", []),
+        countCallsOutsideStrings("    assertTheFightTotals(one, two, three);", []),
         0,
         "a group of ours is not an assertion whatever the counter is asked for",
     );
@@ -428,6 +430,33 @@ Deno.test("the counter sees every assertion the library ships, and no group of o
         0,
         "and holding several assertions still counts as none of them",
     );
+});
+
+/**
+ * **A11 and E14: the layer a reader touches asserts nothing and imports no assertion.** A broken
+ * invariant there is checked, degraded in place and recorded as a defect — an assertion is what
+ * stops the panel in front of somebody playing a game, and two releases were spent on one at a
+ * stated bound. **ADR 0051.**
+ */
+Deno.test("what a reader touches spells no assertion, and imports none either", () => {
+    assert(isReaderFacingPath("src/ui/panel-element.ts"), "the panel is what a reader touches");
+    assert(isReaderFacingPath("src/userscript-entry.ts"), "and so is where the layers meet");
+    assert(!isReaderFacingPath("src/core/fight-decoder.ts"), "the decoder under it is not");
+    assert(!isReaderFacingPath("libs/number-text.ts"), "and neither is a primitive it reaches");
+    assertEquals(
+        getNamesSpelled("tests/repository/sources.test.ts", ASSERTION_CALLS).size > 0,
+        true,
+        "and the reader still finds an assertion where one stands",
+    );
+
+    const found: string[] = [];
+    for (const path of getSourcePaths()) {
+        if (!isReaderFacingPath(path)) continue;
+        const text = Deno.readTextFileSync(path);
+        for (const name of getNamesSpelled(path, ASSERTION_CALLS)) found.push(`${path}: ${name}`);
+        if (text.includes(ASSERTION_PACKAGE)) found.push(`${path}: imports ${ASSERTION_PACKAGE}`);
+    }
+    assertEquals(found.sort(), [], "A11: an assertion in front of somebody playing a game");
 });
 
 /** The roots the bundle carries. `project/` runs beside the tools that read it and is not one. */

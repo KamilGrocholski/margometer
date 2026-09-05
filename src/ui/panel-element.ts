@@ -3,7 +3,6 @@
  * the surface this asks of a browser declared rather than assumed.
  */
 
-import { assert } from "@std/assert/assert";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import { composeDecimalText } from "@/libs/number-text.ts";
 import { setGuardedListener } from "@/src/ui/panel-listener.ts";
@@ -42,7 +41,6 @@ import {
     type PanelNoun,
     type PanelSideChoice,
     type PanelStorageChoice,
-    SCREEN_ORDER,
     type ScreenTab,
     STORAGE_CHOICES,
 } from "@/src/ui/panel-screen.ts";
@@ -201,7 +199,6 @@ const MOVE_EVENT = "pointermove";
 const LEAVE_EVENT = "pointerout";
 /** The button a press has to be to open anything. A press that states none is that button. */
 const PRIMARY_BUTTON = 0;
-const MAXIMUM_ROWS = 20;
 /**
  * ⚠️ **One more than the shelf keeps, and the shelf list is the only list that draws it.** The
  * row for the fight still **running** is not a kept one — a fight goes on the shelf when it ends
@@ -217,10 +214,6 @@ const UNPINNED_MARK = "☆";
 const ROWS_WAITING = 11;
 /** The place a panel with no fight stands in. Nothing to scroll, and nobody's position. */
 const WAITING_LIST_NAME = "waiting";
-/** What the statistics keep a cut inside. `captures/` states ten kinds in all, 2026-08-28. */
-const MAXIMUM_KINDS = 64;
-/** And the bound on a combatant's own skills, measured in `src/ui/panel-reading.ts`. */
-const MAXIMUM_SKILLS = 256;
 /**
  * How many kinds a pinned row's card states before what is left of them is summed into one line.
  * Measured over `captures/` with `deno task panel:drill` on 2026-09-01: the widest pinned row
@@ -235,17 +228,13 @@ const FILL_PLACES = 1;
 const AS_PERCENT = 100;
 
 function composeElement(document: PanelDocument, tag: string, className: string): PanelElement {
-    assert(tag.length > 0, "an element is made under a tag the document knows");
     const element = document.createElement(tag);
     element.className = className;
-    assert(element.className === className, "an element wears the class it was given");
     return element;
 }
 
 function composeSlotElement(document: PanelDocument): PanelElement {
     const slot = composeElement(document, "div", CLASS.slot);
-    assert(slot.textContent === "", "a slot that draws nothing says nothing");
-    assert(slot.className === CLASS.slot, "and is the slot it says it is");
     return slot;
 }
 
@@ -302,14 +291,10 @@ interface RowReading {
  * the same reason the press attribute is written on the spans and not on the row alone.
  */
 function setRowMarks(parts: readonly PanelElement[], name: string, value: string): void {
-    assert(name.startsWith("data-"), "a row is marked by an attribute of ours");
-    assert(parts.length > 0, "and the pointer can land on some part of it");
     for (const part of parts) part.setAttribute(name, value);
 }
 
 function composeBarElements(document: PanelDocument, reading: RowReading): PanelElement[] {
-    assert(reading.fill >= 0, "a bar is drawn for a share that is not below nothing");
-    assert(reading.colour.length > 0, "and in a colour that was chosen");
     const width = composeDecimalText(Math.min(reading.fill, 1) * AS_PERCENT, FILL_PLACES);
     const bar = composeElement(document, "div", CLASS.bar);
     bar.setAttribute(STYLE_ATTRIBUTE, `width:${width}%;background:${reading.colour}`);
@@ -340,8 +325,6 @@ function composePersonCard(
     place: CardPlace,
     opens: boolean,
 ): TipCompose {
-    assert(SCREEN_ORDER.includes(place.metric), "a card stands on a screen the strips draw");
-    assert(Number.isSafeInteger(row.combatantId), "and over a row the panel can name somebody by");
     return () =>
         composeCardReading({
             name: row.name ?? PANEL_WORDS.unknown,
@@ -365,8 +348,6 @@ function composePersonCard(
  * else. Half a section being pressable and silent about it teaches a reader that none of it is.
  */
 function composeRowTipReading(reading: RowReading, tip: RowTip, opens: boolean): TipReading {
-    assert(reading.name.length > 0, "a row that says nothing else at least names itself");
-    assert(tip.figure.length > 0, "and says what the figure beside the name is a figure of");
     const stated: TipLine[] = [{
         kind: "stat",
         label: tip.figure,
@@ -378,7 +359,6 @@ function composeRowTipReading(reading: RowReading, tip: RowTip, opens: boolean):
     }
     const said: TipLine[] = [];
     for (const note of tip.notes ?? []) {
-        assert(note.length > 0, "a sentence a row carries says something");
         said.push({ kind: "note", text: note, isWarning: false });
     }
     if (opens) said.push({ kind: "note", text: CARD_WORDS.gesture, isWarning: false });
@@ -398,11 +378,8 @@ function composeRowTipReading(reading: RowReading, tip: RowTip, opens: boolean):
 function composeRowTipCutLines(cut: RowTipCut | undefined): TipLine[] {
     if (cut === undefined) return [];
     if (cut.parts.length === 0) return [];
-    assert(cut.heading.length > 0, "a run of parts on a card stands under a heading");
     const lines: TipLine[] = [{ kind: "heading", text: cut.heading }];
     for (const part of cut.parts) {
-        assert(part.label.length > 0, "a part of a figure says what part it is");
-        assert(part.stated.length > 0, "and states how much of it there is");
         lines.push({ kind: "sub", label: part.label, stated: part.stated });
     }
     return lines;
@@ -414,7 +391,6 @@ function composeRowElement(
     mark: RowMark | null,
     tip: RowTip,
 ): PanelElement {
-    assert(reading.figure >= 0, "a row drawn states a figure that is not below nothing");
     // The mark it wears is the whole answer: the cursor, the note the card carries and what a
     // press resolves to are one question asked once.
     const opens = mark !== null;
@@ -449,7 +425,6 @@ function composeRowElement(
     if (mark !== null) setRowMarks(marked, mark.attribute, mark.stated);
     tip.register.add(tip.key, tip.compose ?? (() => composeRowTipReading(reading, tip, opens)));
     setRowMarks(marked, TIP_ATTRIBUTE, tip.key);
-    assert(name.textContent.length > 0, "a row names somebody, or says it cannot");
     return element;
 }
 
@@ -458,8 +433,6 @@ function composeCombatantReading(
     rank: number | null,
     metric: PanelMetric,
 ): RowReading {
-    assert(row.figure >= 0, "a combatant's figure is never below nothing");
-    assert(row.shareText.length > 0, "and their row states a share of the screen");
     return {
         name: row.name ?? PANEL_WORDS.unknown,
         figure: row.figure,
@@ -473,8 +446,6 @@ function composeCombatantReading(
 }
 
 function composeElementReading(row: ElementRow, noun: PanelNoun, rank: number): RowReading {
-    assert(row.element.length > 0, "a part of a figure is one the protocol named");
-    assert(row.figure >= 0, "and states a figure that is not below nothing");
     return {
         name: noun === "damage"
             ? getWordsForDamageKind(row.element)
@@ -494,18 +465,14 @@ function composeElementReading(row: ElementRow, noun: PanelNoun, rank: number): 
  * two levels that draw such a row were spelling the same rule two ways.
  */
 function getUnnamedEndForScreen(metric: PanelMetric): PanelUnnamedEnd {
-    assert(SCREEN_ORDER.includes(metric), "an end is left out on a screen the strips draw");
     return getDirectionForScreen(metric) === "given" ? "target" : "actor";
 }
 
 function getWordsForUnnamedRow(end: PanelUnnamedEnd): string {
-    assert(end.length > 0, "an end the game left out is asked about by name");
     return end === "actor" ? PANEL_WORDS.withoutActor : PANEL_WORDS.withoutTarget;
 }
 
 function composeUnnamedReading(row: UnnamedRow | PinnedRow, name: string): RowReading {
-    assert(row.figure >= 0, "a figure nobody can be charged with is never below nothing");
-    assert(name.length > 0, "and the row saying so is labelled");
     return {
         name,
         figure: row.figure,
@@ -526,15 +493,11 @@ function composeTabElement(
     const element = composeElement(document, "div", `${CLASS.tab}${marked}`);
     element.setAttribute(attribute, tab.name);
     element.textContent = tab.words;
-    assert(element.textContent.length > 0, "a tab a reader could press says where it goes");
-    assert(tab.name.length > 0, "and names what it would reach");
     return element;
 }
 
 function composeNounStripElement(document: PanelDocument, view: PanelView): PanelElement {
     const strip = composeElement(document, "div", CLASS.tabs);
-    assert(SCREEN_ORDER.includes(view.current), "the panel is on a screen the strips draw");
-    assert(strip.textContent === "", "and the region begins saying nothing of its own");
     for (const tab of composeNounTabs(view.current)) {
         strip.append(composeTabElement(document, SCREEN_ATTRIBUTE, getShownTab(tab, view)));
     }
@@ -543,12 +506,10 @@ function composeNounStripElement(document: PanelDocument, view: PanelView): Pane
 
 function composeDirectionStripElement(document: PanelDocument, view: PanelView): PanelElement {
     const strip = composeElement(document, "div", CLASS.tabs);
-    assert(SCREEN_ORDER.includes(view.current), "the panel is on a screen the strips draw");
     for (const tab of composeDirectionTabs(view.current)) {
         strip.append(composeTabElement(document, SCREEN_ATTRIBUTE, getShownTab(tab, view)));
     }
     if (!view.hasReaderSide) return strip;
-    assert(view.side.length > 0, "a side strip is drawn for a choice the reader has made");
     strip.append(composeElement(document, "span", CLASS.tabsGap));
     for (const tab of composeSideTabs(view.side)) {
         strip.append(composeTabElement(document, SIDE_ATTRIBUTE, getShownTab(tab, view)));
@@ -557,8 +518,6 @@ function composeDirectionStripElement(document: PanelDocument, view: PanelView):
 }
 
 function getShownTab(tab: ScreenTab, view: PanelView): ScreenTab {
-    assert(tab.words.length > 0, "a tab that is drawn says where it goes");
-    assert(typeof view.isOnShelf === "boolean", "and knows whether the shelf covers the screen");
     if (!view.isOnShelf) return tab;
     return { ...tab, isCurrent: false };
 }
@@ -568,8 +527,6 @@ function composeFoldControl(document: PanelDocument, isCollapsed: boolean): Pane
     control.textContent = isCollapsed ? UNFOLD_MARK : FOLD_MARK;
     control.setAttribute(FOLD_ATTRIBUTE, "");
     control.setAttribute(TITLE_ATTRIBUTE, isCollapsed ? PANEL_WORDS.expand : PANEL_WORDS.collapse);
-    assert(control.textContent.length > 0, "a control a reader could press wears a mark");
-    assert(control.className === CLASS.control, "and is a control by name before it is pressed");
     return control;
 }
 
@@ -581,8 +538,6 @@ function composeBarControl(
     control.textContent = stated.mark;
     control.setAttribute(stated.attribute, "");
     control.setAttribute(TITLE_ATTRIBUTE, stated.words);
-    assert(control.textContent.length > 0, "a control a reader could press wears a mark");
-    assert(stated.attribute.startsWith("data-"), "and asks for what it does by an attribute");
     return control;
 }
 
@@ -593,11 +548,9 @@ function composeTitleElement(document: PanelDocument, isCollapsed: boolean): Pan
     bar.textContent = `${GRIP_MARK}${PANEL_WORDS.title}`;
     bar.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.drag);
     setGripMark(bar);
-    assert(bar.textContent.length > 0, "the panel says whose it is before anything else");
     const version = composeElement(document, "span", CLASS.titleVersion);
     version.textContent = BUILD_VERSION;
     bar.append(version);
-    assert(version.textContent.length > 0, "and which build of it a reader is looking at");
     bar.append(composeBarControl(document, {
         className: `${CLASS.control} ${CLASS.controlFights}`,
         mark: SHELF_MARK,
@@ -629,9 +582,7 @@ function composeHeaderElement(document: PanelDocument, view: PanelView): PanelEl
         line.append(said);
     }
     header.append(line);
-    assert(who.textContent.length > 0, "a header says what the fight is, even where it is nothing");
     if (view.place === null) return header;
-    assert(view.place.length > 0, "a place that is drawn says something");
     const place = composeElement(document, "div", CLASS.headerPlace);
     place.textContent = view.place;
     place.setAttribute(TITLE_ATTRIBUTE, view.place);
@@ -640,8 +591,6 @@ function composeHeaderElement(document: PanelDocument, view: PanelView): PanelEl
 }
 
 function composeCrumbRegion(document: PanelDocument, view: PanelView): PanelElement {
-    assert(typeof view.isOnShelf === "boolean", "a crumb is drawn for a panel that is somewhere");
-    assert(SCREEN_ORDER.includes(view.current), "and on a screen the strips draw");
     if (view.isOnShelf) {
         return composeCrumbElement(document, PANEL_WORDS.fights, PANEL_WORDS.backFromFights);
     }
@@ -673,7 +622,6 @@ function composeCrumbElement(
     said: string,
     from: string | null = null,
 ): PanelElement {
-    assert(said.length > 0, "what stands over the screen is named before the way back is drawn");
     const crumb = composeElement(document, "div", CLASS.crumb);
     const back = composeElement(document, "span", CLASS.crumbBack);
     back.textContent = `${BACK_MARK}${from ?? PANEL_WORDS.back}`;
@@ -683,8 +631,6 @@ function composeCrumbElement(
     here.setAttribute(TITLE_ATTRIBUTE, here.textContent);
     crumb.append(back);
     crumb.append(here);
-    assert(back.textContent.startsWith(BACK_MARK), "the way back is marked as the way back");
-    assert(here.textContent.length > 0, "the row standing open names somebody, or says it cannot");
     return crumb;
 }
 
@@ -693,8 +639,6 @@ function composeSectionElement(
     heading: string,
     total: number,
 ): PanelElement {
-    assert(heading.length > 0, "a cut that is drawn says what it is cut by");
-    assert(total >= 0, "and states the figure it stands over");
     const section = composeElement(document, "div", CLASS.section);
     const words = composeElement(document, "span", CLASS.sectionWords);
     words.textContent = heading;
@@ -706,10 +650,8 @@ function composeSectionElement(
 }
 
 function composeEmptyElement(document: PanelDocument, words: string): PanelElement {
-    assert(words.length > 0, "a list with nothing on it says so in words");
     const empty = composeElement(document, "div", CLASS.empty);
     empty.textContent = words;
-    assert(empty.textContent === words, "and says exactly that");
     return empty;
 }
 
@@ -718,14 +660,12 @@ function composeWaitingElement(document: PanelDocument, isFightUnread: boolean):
     list.className = `${CLASS.list} ${CLASS.listWaiting}`;
     const said = isFightUnread ? PANEL_WORDS.fightUnread : PANEL_WORDS.noFightYet;
     list.append(composeEmptyElement(document, said));
-    assert(list.className.includes(CLASS.list), "a panel waiting is a panel at the list's height");
-    assert(ROWS_WAITING > 0, "which is a height of at least one row");
     return list;
 }
 
 function composeListElement(document: PanelDocument, visibleRows: number): PanelElement {
-    assert(visibleRows > 0, "a list stands at a height of at least one row");
-    assert(Number.isSafeInteger(visibleRows), "and at a whole number of them");
+    if (!Number.isSafeInteger(visibleRows)) visibleRows = ROWS_WAITING;
+    if (visibleRows < 1) visibleRows = ROWS_WAITING;
     const list = composeElement(document, "div", CLASS.list);
     list.setAttribute(STYLE_ATTRIBUTE, `${ROWS_VARIABLE}:${composeFigureText(visibleRows)}`);
     return list;
@@ -739,13 +679,11 @@ function composeRankingElement(
     translate: TranslateLabel | null,
 ): PanelElement {
     const list = composeListElement(document, reading.visibleRows);
-    assert(reading.rows.length <= MAXIMUM_ROWS, "a screen stays inside the fight's stated bound");
     if (reading.rows.length === 0) {
         list.append(composeEmptyElement(document, PANEL_WORDS.nothingYet));
         return list;
     }
     const figure = getWordsForScreen(metric);
-    assert(figure.length > 0, "a row states what its figure is a figure of");
     for (const [at, row] of reading.rows.entries()) {
         const reader = composeCombatantReading(row, at + 1, metric);
         const tip = {
@@ -777,11 +715,6 @@ function composeShelfElement(
     register: TipRegister,
 ): PanelElement {
     const list = composeListElement(document, view.reading.visibleRows);
-    assert(
-        view.shelf.length <= MAXIMUM_SHELF_ROWS,
-        "a shelf draws the kept fights and the live one",
-    );
-    assert(view.isOnShelf, "and is drawn where the reader asked for it");
     if (view.shelf.length === 0) {
         list.append(composeEmptyElement(document, PANEL_WORDS.shelfEmpty));
         return list;
@@ -795,8 +728,6 @@ function composeShelfRow(
     fight: ShelfRow,
     register: TipRegister,
 ): PanelElement {
-    assert(fight.openedAt >= 0, "a fight on the shelf was kept at a moment");
-    assert(fight.sizes.every((one) => one > 0), "and a side of it that is counted has somebody");
     const chosen = fight.isChosen ? ` ${CLASS.rowChosen}` : "";
     const row = composeElement(document, "div", `${CLASS.row} ${CLASS.rowDrillable}${chosen}`);
     if (fight.isPinnable) row.append(composePinElement(document, fight));
@@ -818,12 +749,10 @@ function composeShelfRow(
     setRowMarks(parts, TIP_ATTRIBUTE, `shelf:${fight.openedAt}`);
     // A moment would have to be one no kept fight could carry, and there is no such moment.
     setRowMarks(parts, FIGHT_ATTRIBUTE, fight.isLive ? LIVE_FIGHT : `${fight.openedAt}`);
-    assert(row.className.includes(CLASS.row), "a fight on the shelf is a row like any other");
     return row;
 }
 
 function composePinElement(document: PanelDocument, fight: ShelfRow): PanelElement {
-    assert(fight.isPinnable, "a pin is drawn where there is something to pin");
     const set = fight.isPinned ? ` ${CLASS.rowPinSet}` : "";
     const pin = composeElement(document, "span", `${CLASS.rowPin}${set}`);
     pin.textContent = fight.isPinned ? PIN_MARK : UNPINNED_MARK;
@@ -831,13 +760,11 @@ function composePinElement(document: PanelDocument, fight: ShelfRow): PanelEleme
     // The moment and never the word a live row is pressed by: what a pin acts on is a fight the
     // shelf holds, and the one going on now is on the shelf only while it is also kept.
     pin.setAttribute(PIN_ATTRIBUTE, `${fight.openedAt}`);
-    assert(pin.textContent.length > 0, "and says which of the two states it is in");
     return pin;
 }
 
 function composeStorageStripElement(document: PanelDocument, view: PanelView): PanelElement {
     const strip = composeElement(document, "div", CLASS.tabs);
-    assert(view.isOnShelf, "the question about keeping fights is asked over the fights");
     const label = composeElement(document, "span", CLASS.tabsLabel);
     label.textContent = PANEL_WORDS.storage;
     strip.append(label);
@@ -848,7 +775,6 @@ function composeStorageStripElement(document: PanelDocument, view: PanelView): P
         tab.setAttribute(STORAGE_ATTRIBUTE, choice);
         strip.append(tab);
     }
-    assert(label.textContent.length > 0, "and the strip says what its three words answer");
     return strip;
 }
 
@@ -859,11 +785,8 @@ function composeOpponentSection(
     stated: { metric: PanelMetric; register: TipRegister; figure: string; place: CardPlace },
 ): void {
     const cut = drill.byOpponent;
-    assert(cut.rows.length <= MAXIMUM_ROWS, "an opened row stays inside the fight's bound");
     if (cut.rows.length === 0 && cut.unnamed === null) return;
     const heading = getWordsForOpponentCut(stated.metric);
-    assert(heading.length > 0, "a cut says what it is cut by");
-    assert(drill.total >= 0, "and stands under a figure that is not below nothing");
     list.append(composeSectionElement(document, heading, drill.total));
     const share = PANEL_WORDS.shareOfFigure;
     for (const [at, row] of cut.rows.entries()) {
@@ -931,7 +854,6 @@ function getMarkForNamedPart(part: NamedPart, opens: boolean): RowMark | null {
 
 /** One key per part and per section, so a tip is never the one a row beside it registered. */
 function getKeyForNamedPart(where: string, part: NamedPart | { kind: "plain" }): string {
-    assert(where.length > 0, "a tip is registered under the section it was drawn in");
     if (part.kind === "skill") return `${where}-skill:${part.name}`;
     if (part.kind === "plain") return `${where}-skill:plain`;
     if (part.kind === "element") return `${where}-kind:${part.element}`;
@@ -945,7 +867,6 @@ function composeSkillSection(
     stated: { metric: PanelMetric; register: TipRegister; figure: string },
 ): void {
     const cut = drill.bySkill;
-    assert(cut.rows.length <= MAXIMUM_SKILLS, "a cut stays inside the bound it is kept to");
     if (cut.rows.length === 0 && cut.plain === null) return;
     list.append(composeSectionElement(document, PANEL_WORDS.skills, drill.total));
     const share = PANEL_WORDS.shareOfFigure;
@@ -971,8 +892,6 @@ function composeSkillSection(
 
 function composeSkillRowReading(row: SkillRow, metric: PanelMetric, rank: number): RowReading {
     const name = getWordsForNamedPart(row.part, metric);
-    assert(name.length > 0, "a row of the section is drawn under a name");
-    assert(row.figure >= 0, "and states a figure that is not below nothing");
     return {
         name,
         figure: row.figure,
@@ -992,8 +911,6 @@ function composeElementSection(
     cut: ElementCut,
     stated: { metric: PanelMetric; register: TipRegister; figure: string; total: number },
 ): void {
-    assert(cut.rows.length <= MAXIMUM_KINDS, "a cut stays inside the bound it is kept to");
-    assert(stated.total >= 0, "a cut stands under a figure that is not below nothing");
     if (cut.rows.length === 0 && cut.unnamed === null) return;
     list.append(composeSectionElement(document, getWordsForKindCut(stated.metric), stated.total));
     const noun = getNounForScreen(stated.metric);
@@ -1027,7 +944,6 @@ function composeElementSection(
  * ceiling on the host is what stops either from reaching past the bottom of the screen.
  */
 function getRowsForDrill(drill: DrillReading, floor: number): number {
-    assert(floor > 0, "a list stands at a height of at least one row");
     const sections = [drill.byOpponent, drill.byElement];
     let needed = 0;
     for (const cut of sections) {
@@ -1038,7 +954,6 @@ function getRowsForDrill(drill: DrillReading, floor: number): number {
     if (drill.bySkill.rows.length > 0 || drill.bySkill.plain !== null) {
         needed += drill.bySkill.rows.length + (drill.bySkill.plain === null ? 0 : 1) + 1;
     }
-    assert(needed >= 0, "a cut costs no less than nothing");
     return Math.max(needed, floor);
 }
 
@@ -1055,7 +970,6 @@ function composeDrillElement(
 ): PanelElement {
     const list = composeListElement(document, getRowsForDrill(drill, view.reading.visibleRows));
     const figure = getWordsForScreen(view.current);
-    assert(figure.length > 0, "an opened row states what its figure is a figure of");
     const place: CardPlace = {
         metric: view.current,
         warnings: view.reading.warnings,
@@ -1075,7 +989,6 @@ function composeDrillElement(
         figure,
         total: drill.total,
     });
-    assert(drill.total >= 0, "a figure opened is never below nothing");
     if (drill.total === 0) {
         list.append(composeEmptyElement(document, getWordsForNothing(view.current)));
     }
@@ -1087,8 +1000,6 @@ function composeSidesPart(
     share: number,
     className: string,
 ): PanelElement | null {
-    assert(share >= 0, "a part of the track is never below nothing");
-    assert(className.length > 0, "and says whose part of it that is");
     if (share <= 0) return null;
     const part = composeElement(document, "span", className);
     const width = composeDecimalText(Math.min(share, 1) * AS_PERCENT, FILL_PLACES);
@@ -1099,10 +1010,10 @@ function composeSidesPart(
 
 function composeSidesElement(document: PanelDocument, view: PanelView): PanelElement {
     const sides = view.reading.sides;
-    assert(sides !== null, "a strip of two sides is drawn where there are two to tell apart");
+    // Two sides nothing can tell apart are not two figures, and a strip of them says nothing:
+    // `setPanelBody` asks the same question, and this answers it rather than trusting it.
+    if (sides === null) return composeSlotElement(document);
     const block = composeElement(document, "div", CLASS.sides);
-    assert(sides.ours >= 0, "a side's own figure is never below nothing");
-    assert(sides.theirs >= 0, "and neither is the other's");
     const line = composeElement(document, "div", CLASS.sidesLine);
     const ours = composeElement(document, "span", `${CLASS.sidesOurs} ${CLASS.figure}`);
     ours.textContent = composeFigureText(sides.ours);
@@ -1125,9 +1036,7 @@ function composeSidesTrack(
     sides: PanelSides,
 ): void {
     const whole = sides.ours + sides.theirs + sides.nobody;
-    assert(whole >= 0, "a fight totals no less than nothing");
     if (whole <= 0) return;
-    assert(sides.nobody >= 0, "and neither is what belongs to neither of them");
     const track = composeElement(document, "div", CLASS.sidesTrack);
     const parts: Array<[number, string]> = [
         [sides.ours / whole, CLASS.sidesOurs],
@@ -1142,7 +1051,6 @@ function composeSidesTrack(
 }
 
 function composeSidesSpare(document: PanelDocument, figure: number): PanelElement {
-    assert(figure > 0, "what belongs to no side is drawn because there is some of it");
     const spare = composeElement(
         document,
         "div",
@@ -1154,14 +1062,11 @@ function composeSidesSpare(document: PanelDocument, figure: number): PanelElemen
     stated.textContent = composeFigureText(figure);
     spare.append(label);
     spare.append(stated);
-    assert(label.textContent.length > 0, "what belongs to no side says so before it says how much");
     return spare;
 }
 
 function composeSidesLabel(view: PanelView): string {
     const sides = `${PANEL_WORDS.ourSide} / ${PANEL_WORDS.theirSide}`;
-    assert(sides.length > 0, "the two sides are named before they are totalled");
-    assert(SCREEN_ORDER.includes(view.current), "and totalled on a screen the strips draw");
     if (view.side === "everyone" && view.drill === null) return sides;
     return `${PANEL_WORDS.wholeFight} · ${sides}`;
 }
@@ -1172,8 +1077,6 @@ function composeRegion(
     compose: () => PanelElement,
     handleFailure: HandlePanelFailure,
 ): PanelElement {
-    assert(typeof compose === "function", "a region is drawn by something");
-    assert(typeof handleFailure === "function", "and a failure of one is reported to somebody");
     try {
         return compose();
     } catch (failure) {
@@ -1242,11 +1145,6 @@ function composeViewList(
     register: TipRegister,
     translate: TranslateLabel | null,
 ): PanelElement {
-    assert(SCREEN_ORDER.includes(view.current), "a view is on a screen the strip draws");
-    assert(
-        view.shelf.length <= MAXIMUM_SHELF_ROWS,
-        "and carries the kept fights and the live one",
-    );
     if (view.isOnShelf) return composeShelfElement(document, view, register);
     if (view.part !== null) {
         return composePartElement(document, view, view.part, register, translate);
@@ -1276,11 +1174,8 @@ function composeHalfNamedDrillElement(
     drill: HalfNamedDrillReading,
     register: TipRegister,
 ): PanelElement {
-    assert(drill.total > 0, "a level stands under a figure there is something of");
-    assert(SCREEN_ORDER.includes(view.current), "and on a screen the strips draw");
     const figure = getWordsForScreen(view.current);
     if (drill.opened === "element") {
-        assert(drill.rows.length > 0, "a key that opened has somebody's row carrying it");
         const rows = drill.rows.length + (drill.neither === null ? 0 : 1);
         const list = composeListElement(document, Math.max(rows + 1, view.reading.visibleRows));
         const heading = getWordsForHalfNamedCut(drill.end);
@@ -1307,9 +1202,7 @@ function composeHalfNamedDrillElement(
 
 /** What the way back calls the row that is open, which is the row itself and not its level. */
 function getWordsForHalfNamedDrill(drill: HalfNamedDrillReading, metric: PanelMetric): string {
-    assert(SCREEN_ORDER.includes(metric), "a way back is drawn on a screen the strips draw");
     if (drill.opened === "person") return drill.row.name ?? PANEL_WORDS.unknown;
-    assert(drill.element.length > 0, "and a key is named by what the protocol wrote");
     return getNounForScreen(metric) === "damage"
         ? getWordsForDamageKind(drill.element)
         : getWordsForHealthSource(drill.element);
@@ -1332,8 +1225,6 @@ function composeHalfNamedElement(
 ): PanelElement {
     const named = halfNamed.rows.length + (halfNamed.neither === null ? 0 : 1);
     const kinds = halfNamed.kinds.rows.length + (halfNamed.kinds.unnamed === null ? 0 : 1);
-    assert(named > 0, "a pinned row that opens has somebody under it, or says it has nobody");
-    assert(halfNamed.total > 0, "and a figure that is there to be cut");
     const needed = named + 1 + (kinds === 0 ? 0 : kinds + 1);
     const list = composeListElement(document, Math.max(needed, view.reading.visibleRows));
     const heading = getWordsForHalfNamedCut(halfNamed.end);
@@ -1356,7 +1247,6 @@ function composeHalfNamedElement(
 
 /** The end the game did name, as the heading that names it: whom it reached, or who did it. */
 function getWordsForHalfNamedCut(end: PanelUnnamedEnd): string {
-    assert(end.length > 0, "an end the game named is asked about by name");
     return end === "actor" ? PANEL_WORDS.dealtTo : PANEL_WORDS.takenFrom;
 }
 
@@ -1420,12 +1310,9 @@ function composePartElement(
     translate: TranslateLabel | null,
 ): PanelElement {
     const rows = part.byOpponent.rows.length + (part.byOpponent.unnamed === null ? 0 : 1);
-    assert(rows > 0, "a part that opens reached somebody");
     const list = composeListElement(document, Math.max(rows + 1, view.reading.visibleRows));
     const figure = getWordsForScreen(view.current);
-    assert(part.total >= 0, "a part opened states a figure that is not below nothing");
     const heading = getWordsForOpponentCut(view.current);
-    assert(heading.length > 0, "and says what the people under it are cut by");
     list.append(composeSectionElement(document, heading, part.total));
     const share = PANEL_WORDS.shareOfFigure;
     // Nothing on this rung opens, so no card here promises a gesture (`docs/drill-levels.md`).
@@ -1476,8 +1363,6 @@ function composePairElement(
 ): PanelElement {
     const list = composeListElement(document, getRowsForPair(pair, view.reading.visibleRows));
     const figure = getWordsForScreen(view.current);
-    assert(figure.length > 0, "a pair states what its figure is a figure of");
-    assert(pair.total >= 0, "and a figure that is not below nothing");
     const share = PANEL_WORDS.shareOfFigure;
     composePairParts(document, list, pair, { metric: view.current, register, figure, share });
     composePairKinds(document, list, pair, { register, figure, share });
@@ -1490,7 +1375,6 @@ function composePairParts(
     pair: PairReading,
     stated: { metric: PanelMetric; register: TipRegister; figure: string; share: string },
 ): void {
-    assert(pair.parts.length <= MAXIMUM_SKILLS, "a cut stays inside the bound it is kept to");
     if (pair.parts.length === 0) return;
     list.append(composeSectionElement(document, PANEL_WORDS.skills, pair.total));
     for (const [at, row] of pair.parts.entries()) {
@@ -1504,7 +1388,6 @@ function composePairParts(
             profession: null,
             rank: at + 1,
         };
-        assert(reading.name.length > 0, "a part of a pair is drawn under a name");
         list.append(composeRowElement(document, reading, null, tip));
     }
 }
@@ -1516,7 +1399,6 @@ function composePairKinds(
     stated: { register: TipRegister; figure: string; share: string },
 ): void {
     const cut = pair.byElement;
-    assert(cut.rows.length <= MAXIMUM_KINDS, "a cut stays inside the bound it is kept to");
     if (cut.rows.length === 0) return;
     list.append(composeSectionElement(document, PANEL_WORDS.damageKind, pair.total));
     for (const [at, row] of cut.rows.entries()) {
@@ -1528,8 +1410,6 @@ function composePairKinds(
 }
 
 function getRowsForPair(pair: PairReading, floor: number): number {
-    assert(floor > 0, "a list stands at a height of at least one row");
-    assert(pair.total >= 0, "and holds a figure that is not below nothing");
     const parts = pair.parts.length;
     const kinds = pair.byElement.rows.length;
     const needed = (parts === 0 ? 0 : parts + 1) + (kinds === 0 ? 0 : kinds + 1);
@@ -1545,13 +1425,11 @@ function getRowsForPair(pair: PairReading, floor: number): number {
  * pins two ends whose answers differ.
  */
 function composePinnedNotes(row: PinnedRow, metric: PanelMetric, isSideChosen: boolean): string[] {
-    assert(SCREEN_ORDER.includes(metric), "a figure is pinned on a screen the strips draw");
     const notes = [
         getWordsForUnnamedEnd(row.end, getNounForScreen(metric)),
         getWordsForPinnedStanding(row.case),
     ];
     if (isSideChosen) notes.push(getWordsForPinnedScope(row.case));
-    assert(notes.length <= 3, "and says it in three sentences at the most");
     return notes;
 }
 
@@ -1562,11 +1440,8 @@ function composePinnedNotes(row: PinnedRow, metric: PanelMetric, isSideChosen: b
  * What will not fit is summed rather than dropped, so the run always comes to the figure over it.
  */
 function composePinnedCutParts(row: PinnedRow, metric: PanelMetric): RowTipCut {
-    assert(SCREEN_ORDER.includes(metric), "a cut is stated on a screen the strips draw");
-    assert(row.kinds.rows.length <= MAXIMUM_KINDS, "and stays inside the bound a cut is kept to");
     // Every key is written where the figure is, so a pinned figure's kinds come to the whole of
     // it and this run needs no row for a shortfall (`src/core/fight-statistics.ts`, **ADR 0039**).
-    assert(row.kinds.unnamed === null, "a pinned figure states a kind for every point of itself");
     const parts: Array<{ label: string; stated: string }> = [];
     let rest = 0;
     for (const [at, one] of row.kinds.rows.entries()) {
@@ -1601,16 +1476,13 @@ function composePinnedElement(
     const reading = composeUnnamedReading(row, getWordsForUnnamedRow(row.end));
     const mark = { attribute: UNNAMED_ATTRIBUTE, stated: row.end };
     block.append(composeRowElement(document, reading, mark, tip));
-    assert(row.figure > 0, "a figure is pinned because there is one to pin");
-    assert(block.className === CLASS.pinned, "and the block saying so is one of its own");
     return block;
 }
 
 function getPressFromTarget(
     target: { getAttribute(name: string): string | null },
 ): PanelPress | null {
-    assert(typeof target.getAttribute === "function", "a press landed on something readable");
-    assert(SCREEN_ATTRIBUTE.startsWith("data-"), "and what it asks for is read off an attribute");
+    if (typeof target.getAttribute !== "function") return null;
     const screen = target.getAttribute(SCREEN_ATTRIBUTE);
     if (screen !== null) return { kind: "screen", screen };
     const side = target.getAttribute(SIDE_ATTRIBUTE);
@@ -1657,8 +1529,6 @@ function setPanelRootListeners(
     handleHover: (key: string | null, clientY: number) => void,
     handleFailure: (failure: unknown) => void,
 ): void {
-    assert(typeof handlePress === "function", "a press reaches somebody who can act on it");
-    assert(typeof handleHover === "function", "and so does the pointer that opens the detail");
     setGuardedListener(root, PRESS_EVENT, (event) => {
         // The primary button alone: without this a right press would open a row and the listener
         // below would step straight back out of it, which is worse than either half.
@@ -1701,10 +1571,8 @@ function composeRegionInPlace(
     compose: () => PanelElement,
     handleFailure: HandlePanelFailure,
 ): PanelElement {
-    assert(standing.className.length > 0, "a region gives way to another, never to nothing");
     const next = composeRegion(document, region, compose, handleFailure);
     standing.replaceWith(next);
-    assert(next.className.length > 0, "a region that took another's place is a region of its own");
     return next;
 }
 
@@ -1738,8 +1606,6 @@ function composePanelRegions(document: PanelDocument): PanelRegions {
         warnings: composeSlotElement(document),
         defects: composeSlotElement(document),
     };
-    assert(regions.title.className === CLASS.title, "the bar is the bar before anything is drawn");
-    assert(regions.warnings.className === CLASS.slot, "and every other begins as a slot");
     return regions;
 }
 
@@ -1753,14 +1619,12 @@ function composePanelRegions(document: PanelDocument): PanelRegions {
  */
 function composePanelShadow(document: PanelDocument): { host: PanelElement; root: PanelRoot } {
     const host = document.createElement("div");
-    assert(HOST_NAME.startsWith("MargoMeter-"), "the host is named as ours before anything else");
     host.setAttribute("id", HOST_NAME);
     host.setAttribute(VERSION_ATTRIBUTE, BUILD_VERSION);
     const root = host.attachShadow({ mode: "open" });
     const sheet = document.createElement("style");
     sheet.textContent = composeStyleSheet();
     root.append(sheet);
-    assert(sheet.textContent.length > 0, "the panel is handed its look before it draws anything");
     return { host, root };
 }
 
@@ -1779,7 +1643,6 @@ function composePanelFrame(document: PanelDocument, regions: PanelRegions): Pane
     panel.append(regions.warnings);
     panel.append(regions.defects);
     frame.append(panel);
-    assert(panel !== frame, "the panel is a box of its own inside the frame");
     return frame;
 }
 
@@ -1821,10 +1684,8 @@ export function composePanelHost(
     // After the listeners that read a press, and on the same root: a drag is four more of them,
     // and the bar is the only thing on the panel that starts one.
     if (placement !== null) {
-        assert(typeof placement.getViewport === "function", "a panel is moved inside something");
         getPosition = setPanelDrag(root, host, () => regions.title, placement, handleGesture);
     }
-    assert(host.className === "", "the host wears no class of the game's making");
     return {
         element: host,
         show(view: PanelView): void {
@@ -1835,8 +1696,6 @@ export function composePanelHost(
             else setPanelBody(document, regions, view, register, translate, redraw, drawing);
             drawing.settle();
             tip.refresh();
-            assert(regions.list !== regions.sides, "the regions are that many elements");
-            assert(regions.title !== regions.header, "and none of them stands in for another");
         },
         showWaiting(isCollapsed: boolean, waiting: WaitingReading): void {
             drawing.keep();
@@ -1863,8 +1722,6 @@ function setPanelWaiting(
     drawing: ListDrawing,
 ): void {
     setPanelFolded(document, regions, redraw);
-    assert(regions.sides.className === CLASS.slot, "with nothing standing under it");
-    assert(regions.nouns.className === CLASS.slot, "and no strip of tabs over it");
     if (isCollapsed) return;
     drawing.draw(
         WAITING_LIST_NAME,
@@ -1899,7 +1756,6 @@ function composeListDrawing(regions: PanelRegions, redraw: PanelRedraw): ListDra
     // belongs to rather than under the place taking its turn.
     let shownName = WAITING_LIST_NAME;
     const draw = (name: string, compose: () => PanelElement): void => {
-        assert(name.length > 0, "a list drawn into the region is a list with a name");
         regions.list = redraw(regions.list, "list", compose);
         shownName = name;
     };
@@ -1928,7 +1784,6 @@ function setFoldDrawn(
     redraw: PanelRedraw,
     isCollapsed: boolean,
 ): void {
-    assert(CLASS.folded.length > 0, "a panel folded away is a panel wearing a class for it");
     regions.title = redraw(
         regions.title,
         "header",
@@ -1942,7 +1797,6 @@ function setPanelFolded(
     regions: PanelRegions,
     redraw: PanelRedraw,
 ): void {
-    assert(regions.list.className.length > 0, "a region emptied is a region that was standing");
     regions.header = redraw(regions.header, "header", () => composeSlotElement(document));
     regions.nouns = redraw(regions.nouns, "tabs", () => composeSlotElement(document));
     regions.directions = redraw(regions.directions, "tabs", () => composeSlotElement(document));
@@ -1958,7 +1812,6 @@ function setPanelFolded(
     regions.sides = redraw(regions.sides, "sides", () => composeSlotElement(document));
     regions.warnings = redraw(regions.warnings, "warnings", () => composeSlotElement(document));
     regions.defects = redraw(regions.defects, "defects", () => composeSlotElement(document));
-    assert(regions.warnings.className === CLASS.slot, "and every one of them is a slot after it");
 }
 
 function setPanelBody(
@@ -1970,7 +1823,6 @@ function setPanelBody(
     redraw: PanelRedraw,
     drawing: ListDrawing,
 ): void {
-    assert(SCREEN_ORDER.includes(view.current), "a body is drawn for a screen the strips draw");
     const isFight = !view.isOnShelf;
     regions.header = redraw(
         regions.header,
@@ -2039,7 +1891,6 @@ function setPinnedRegions(
     const isOpen = view.drill !== null || view.halfNamed !== null ||
         view.halfNamedDrill !== null;
     const pinned = !isOpen && !view.isOnShelf ? view.reading.pinned : [];
-    assert(pinned.length <= 2, "a screen pins the two ends the protocol can leave out, at most");
     for (const [end, standing] of [["actor", "pinnedActor"], ["target", "pinnedTarget"]] as const) {
         const row = pinned.find((one) => one.end === end) ?? null;
         regions[standing] = redraw(
@@ -2072,7 +1923,6 @@ function composeWarningsElement(
     document: PanelDocument,
     warnings: readonly string[],
 ): PanelElement {
-    assert(warnings.every((one) => one.length > 0), "a warning that is drawn says something");
     if (warnings.length === 0) return composeSlotElement(document);
     const block = composeElement(document, "div", CLASS.warnings);
     for (const warning of warnings) {
@@ -2080,6 +1930,5 @@ function composeWarningsElement(
         line.textContent = `${WARNING_MARK}${warning}`;
         block.append(line);
     }
-    assert(block.className === CLASS.warnings, "the block is the one thing there is always one of");
     return block;
 }

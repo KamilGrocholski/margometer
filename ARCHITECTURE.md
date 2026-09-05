@@ -608,13 +608,14 @@ commit that opens or closes one.
     generic argument needs the type information a reader over text does not have. It closes if the
     spelling ever arrives, which is the day it would be worth the machinery.
 
-13. **A11 and E14 are held by reading, and the layer they bind still breaks them.** **ADR 0051**
-    states that `src/ui/`, `src/userscript-entry.ts` and `src/userscript-boot.ts` assert nothing and
-    throw nothing, and measured 2026-09-05 at `52a1c10` they spell 624 assertions — 550 across the
-    eleven files of `src/ui/` and 74 in the entry. The rules landed before the conversion because
-    the conversion is a file at a time and each commit has to be green on its own (**G5**), so for
-    the length of that series the tree says one thing and does another. The guard arrives in the
-    commit the last assertion leaves, and this entry goes with it.
+13. **Half of E14 is held by reading.** `tests/repository/sources.test.ts` holds **A11** whole —
+    what a reader touches spells no assertion and imports none — and
+    `tests/repository/errors.test.ts` holds the half of **E14** a machine can compute: that the same
+    layer throws nothing at all. What neither reads is the rest of it: that every value crossing
+    into that layer is checked before it is used, and every call that can throw is caught. Both are
+    `by-reading` questions of the kind **C2** and **V1** already are — whether a check is the one
+    that mattered, and whether a call can throw. The conversion that made them true is **ADR 0051**,
+    and the register names what holds what.
 
 14. **W10 is held by a command a person runs, not by the gate.** `deno task game:readings status`
     compares what `frozen/` carries against the game and exits non-zero where one has gone behind,
