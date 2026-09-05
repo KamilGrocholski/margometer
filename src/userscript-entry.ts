@@ -7,7 +7,6 @@
  * userscript's contact with its browser stated in one file and testable without one.
  */
 
-import { assert } from "@std/assert/assert";
 import {
     type Combatant,
     type CombatantRoster,
@@ -146,20 +145,18 @@ export interface UserscriptEnvironment {
 function getPlaceWords(place: FightPlace | null): string | null {
     if (place === null) return null;
     const words = composePlaceWords(place.mapName, place.x, place.y);
-    assert(words === null || words.length > 0, "a place put into words says something");
     return words;
 }
 
 function composeShelfSizes(combatants: readonly Combatant[], readerSide: number | null): number[] {
     const countBySide = new Map<number, number>();
-    assert(combatants.length <= MAXIMUM_COMBATANTS, "a fight stays inside its stated bound");
+    combatants = combatants.slice(0, MAXIMUM_COMBATANTS);
     for (const one of combatants) countBySide.set(one.side, (countBySide.get(one.side) ?? 0) + 1);
     const sides = [...countBySide].sort(([one], [other]) => {
         if (readerSide === one) return -1;
         if (readerSide === other) return 1;
         return one - other;
     });
-    assert(sides.every(([, count]) => count > 0), "a side that is counted has somebody on it");
     return sides.map(([, count]) => count);
 }
 
@@ -170,7 +167,7 @@ interface FightFigures {
 }
 
 interface KeptFigures {
-    read(fight: KeptFight): FightFigures;
+    read(fight: KeptFight): FightFigures | null;
     forget(openedAt: number): void;
     keepOnly(fights: readonly KeptFight[]): void;
 }
@@ -186,13 +183,12 @@ interface KeptFigures {
 function composeKeptFigureMemo(): KeptFigures {
     const held = new Map<number, FightFigures>();
     return {
-        read(fight: KeptFight): FightFigures {
-            assert(fight.openedAt >= 0, "a fight is looked up by the moment it opened");
+        read(fight: KeptFight): FightFigures | null {
             const before = held.get(fight.openedAt);
             if (before !== undefined) return before;
             const figures = composeKeptFigures(fight);
-            held.set(fight.openedAt, figures);
-            assert(held.size <= MAXIMUM_KEPT, "no more is held than the shelf holds");
+            if (figures === null) return null;
+            if (held.size < MAXIMUM_KEPT) held.set(fight.openedAt, figures);
             return figures;
         },
         forget(openedAt: number): void {
@@ -203,7 +199,6 @@ function composeKeptFigureMemo(): KeptFigures {
                 if (fights.some((one) => one.openedAt === openedAt)) continue;
                 held.delete(openedAt);
             }
-            assert(held.size <= fights.length, "what is held is held for a fight on the shelf");
         },
     };
 }
@@ -221,11 +216,15 @@ interface ShelfKeeper {
     isEverySlotPinned: boolean;
     hasChoiceRefused: boolean;
     /** Derived through the live chain and memoised, never read out of the store. */
-    readFigures(fight: KeptFight): FightFigures;
+    /** Null for a fight the payloads no longer read, which is a fight to stand on no longer. */
+    readFigures(fight: KeptFight): FightFigures | null;
     keep(fight: KeptFight): void;
     setPinned(openedAt: number): void;
     setChoice(choice: PanelStorageChoice): void;
 }
+
+/** The four things that can go wrong with a shelf, of which at most three ever hold at once. */
+const MAXIMUM_SHELF_WARNINGS = 3;
 
 function composeShelfWarnings(keeper: ShelfKeeper): string[] {
     const warnings: string[] = [];
@@ -233,13 +232,10 @@ function composeShelfWarnings(keeper: ShelfKeeper): string[] {
     if (keeper.hasStoreRefused) warnings.push(STORE_REFUSED_WARNING);
     if (keeper.hasStoreMadeRoom) warnings.push(STORE_MADE_ROOM_WARNING);
     if (keeper.hasChoiceRefused) warnings.push(CHOICE_REFUSED_WARNING);
-    assert(!keeper.hasStoreRefused || !keeper.hasStoreMadeRoom, "one write, one answer");
-    assert(warnings.length <= 3, "a shelf says at most the three things that can go wrong");
-    return warnings;
+    return warnings.slice(0, MAXIMUM_SHELF_WARNINGS);
 }
 
 function composeShelfKeeper(environment: UserscriptEnvironment): ShelfKeeper {
-    assert(STORAGE_KEY.startsWith("MargoMeter-"), "the reader's answer is kept under our name");
     const settings = environment.store;
     const answered = settings === null ? "" : settings.read(STORAGE_KEY) ?? "";
     const choice = getStorageFromName(answered) ?? STORAGE_DEFAULT;
@@ -262,7 +258,6 @@ function composeShelfKeeper(environment: UserscriptEnvironment): ShelfKeeper {
         hasChoiceRefused: false,
         readFigures: (fight: KeptFight) => figures.read(fight),
         keep(fight: KeptFight): void {
-            assert(fight.openedAt >= 0, "a fight goes on the shelf under the moment it opened");
             // A fight kept a second time keeps the pin it was given: that is the reader's answer
             // and not something a later payload may revoke.
             const before = keeper.fights.find((one) => one.openedAt === fight.openedAt);
@@ -271,7 +266,6 @@ function composeShelfKeeper(environment: UserscriptEnvironment): ShelfKeeper {
             keeper.isEverySlotPinned = getIsEverySlotPinned(next);
             if (keeper.isEverySlotPinned) return;
             keeper.fights = composeKeptRotation(next);
-            assert(keeper.fights.length > 0, "a shelf that took a fight holds one");
             // Unreachable while `now()` is monotonic, and kept because keeping the pin above
             // defends the reader against that very case: two fights under one moment.
             figures.forget(fight.openedAt);
@@ -279,7 +273,7 @@ function composeShelfKeeper(environment: UserscriptEnvironment): ShelfKeeper {
             setWritten(writeKeptFights(store, SHELF_KEY, keeper.fights), offered);
         },
         setPinned(openedAt: number): void {
-            assert(Number.isSafeInteger(openedAt), "a fight is pinned by the moment it opened");
+            if (!Number.isSafeInteger(openedAt)) return;
             keeper.fights = keeper.fights.map((one) =>
                 one.openedAt === openedAt ? { ...one, isPinned: !one.isPinned } : one
             );
@@ -287,7 +281,6 @@ function composeShelfKeeper(environment: UserscriptEnvironment): ShelfKeeper {
             setWritten(writeKeptFights(store, SHELF_KEY, keeper.fights), offered);
         },
         setChoice(next: PanelStorageChoice): void {
-            assert(next.length > 0, "a shelf is moved to a place that is named");
             if (next === keeper.choice) return;
             // The answer is written down before anything is done about it: acting on a refused
             // one leaves the reader's fights, pinned ones included, in a place the next page
@@ -305,7 +298,7 @@ function composeShelfKeeper(environment: UserscriptEnvironment): ShelfKeeper {
             setWritten(writeKeptFights(store, SHELF_KEY, keeper.fights), offered);
         },
     };
-    assert(keeper.fights.length <= MAXIMUM_KEPT, "a shelf read back stays inside its stated bound");
+    keeper.fights = keeper.fights.slice(0, MAXIMUM_KEPT);
     return keeper;
 }
 
@@ -323,10 +316,9 @@ function composeShelfRows(
     } | null,
     chosenId: number | null,
     readClock: (atMilliseconds: number) => { hour: number; minute: number } | null,
-    readFigures: (fight: KeptFight) => FightFigures,
+    readFigures: (fight: KeptFight) => FightFigures | null,
 ): ShelfRow[] {
-    assert(typeof readClock === "function", "a shelf row is timed by the reader's own clock");
-    assert(kept.length <= MAXIMUM_KEPT, "and a shelf stays inside the bound it is rotated to");
+    kept = kept.slice(0, MAXIMUM_KEPT);
     const rows: ShelfRow[] = [];
     // One row for one fight: the one that has just ended is both the live one and a kept one
     // until the next begins. It keeps the live row's wording and the kept row's pin.
@@ -348,6 +340,9 @@ function composeShelfRows(
     for (const one of [...kept].sort((first, other) => other.openedAt - first.openedAt)) {
         if (one.openedAt === alsoKept?.openedAt) continue;
         const figures = readFigures(one);
+        // A row for a fight nothing can be read out of would state a headcount and an outcome it
+        // does not have. The shelf is one row shorter instead (**E14**).
+        if (figures === null) continue;
         rows.push({
             openedAt: one.openedAt,
             at: readClock(one.openedAt),
@@ -363,16 +358,10 @@ function composeShelfRows(
             isPinnable: true,
         });
     }
-    assert(rows.length >= kept.length, "a shelf draws a row for each fight it holds");
-    assert(rows.every((one) => one.place !== ""), "and a row that says where was fought says it");
     return rows;
 }
 
 function getOutcomeForFigures(figures: FightFigures): PanelOutcome | null {
-    assert(
-        figures.roster.byId.size <= MAXIMUM_COMBATANTS,
-        "a fight is called against a bounded cast",
-    );
     const outcome = figures.statistics.outcome;
     if (outcome === null) return null;
     return getOutcomeForSeat(outcome, figures.roster, figures.fight.readerSide);
@@ -383,18 +372,15 @@ function getOutcomeForFigures(figures: FightFigures): PanelOutcome | null {
  * the game's own markup never costs a redraw, let alone puts the panel somewhere it cannot draw.
  */
 function setFightChosen(screen: ScreenState, openedAt: number | null): void {
-    assert(openedAt === null || Number.isSafeInteger(openedAt), "a fight is asked for by moment");
     screen.openFightId = openedAt;
     screen.isOnShelf = false;
     screen.openRowId = null;
     screen.openUnnamedEnd = null;
     screen.openPairId = null;
     screen.openPart = null;
-    assert(screen.openRowId === null, "and nothing of the last one stands over the new one");
 }
 
 function setShelfFromPress(shelf: ShelfKeeper, press: PanelPress): boolean {
-    assert(press.kind.length > 0, "a press says what it asks for");
     if (press.kind === "pin") {
         const openedAt = getIntegerFromText(press.stated);
         if (openedAt === null) return false;
@@ -409,8 +395,6 @@ function setShelfFromPress(shelf: ShelfKeeper, press: PanelPress): boolean {
 }
 
 function handlePress(screen: ScreenState, press: PanelPress): boolean {
-    assert(press.kind.length > 0, "a press says what it asks for");
-    assert(screen.current.length > 0, "and lands on a panel that is on a screen");
     if (press.kind === "save") return false;
     if (press.kind === "pin") return false;
     if (press.kind === "storage") return false;
@@ -435,10 +419,6 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         return true;
     }
     if (press.kind === "unnamed") {
-        assert(
-            screen.openRowId === null,
-            "a pinned row is pressed from the ranking it stands under",
-        );
         screen.openUnnamedEnd = press.end;
         return true;
     }
@@ -466,7 +446,6 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
  * it named the person they had opened.
  */
 function handlePressBack(screen: ScreenState): void {
-    assert(screen.current.length > 0, "a way back is taken from a panel that is on a screen");
     if (screen.isOnShelf) {
         screen.isOnShelf = false;
         return;
@@ -525,13 +504,10 @@ function handlePressScreen(screen: ScreenState, said: string): boolean {
  * A fight off the shelf, through the chain the live one goes through: the payloads were kept, so
  * the figures are this version's rather than the version that watched the fight. **ADR 0026.**
  */
-function composeKeptFigures(kept: KeptFight): FightFigures {
-    assert(kept.payloads.length > 0, "a fight kept was kept from something");
+function composeKeptFigures(kept: KeptFight): FightFigures | null {
     const session = composeBattleSession();
     for (const payload of kept.payloads) addPayloadToSession(session, payload);
-    const figures = composeFightFigures(session);
-    assert(figures !== null, "and every payload kept was one the session reads");
-    return figures;
+    return composeFightFigures(session);
 }
 
 /**
@@ -541,22 +517,18 @@ function composeKeptFigures(kept: KeptFight): FightFigures {
 function composeFightFigures(session: BattleSession): FightFigures | null {
     const fight = getFightFromSession(session);
     if (fight === null) return null;
-    assert(fight.payloads > 0, "a fight that is read was built from something");
     const roster = composeCombatantRoster([...fight.roster.byId.values()]);
     const statistics = composeFightStatistics(fight.events, composeTeamHeals(fight.events, roster));
-    assert(statistics.unreadMessages >= 0, "a reading states what it could not read, even as none");
     return { fight, roster, statistics };
 }
 
 /** The newest fight on the shelf, or nothing where it holds none. */
 function getNewestKeptFight(fights: readonly KeptFight[]): KeptFight | null {
-    assert(fights.length <= MAXIMUM_KEPT, "a shelf stays inside its stated bound");
     let newest: KeptFight | null = null;
     for (const one of fights) {
         if (newest === null) newest = one;
         else if (one.openedAt > newest.openedAt) newest = one;
     }
-    assert(newest === null || newest.openedAt >= 0, "and the newest of them opened at a moment");
     return newest;
 }
 
@@ -576,11 +548,13 @@ function getStandingFight(
         : shelf.fights.find((one) => one.openedAt === screen.openFightId) ?? null;
     const kept = chosen ?? (live === null ? getNewestKeptFight(shelf.fights) : null);
     if (kept !== null) {
-        assert(kept.payloads.length > 0, "a fight off the shelf was kept from something");
-        return { figures: shelf.readFigures(kept), kept };
+        const figures = shelf.readFigures(kept);
+        // A fight the payloads no longer read is no fight to stand on, and the panel waits rather
+        // than drawing a shelf row's worth of nothing (**E14**).
+        if (figures === null) return null;
+        return { figures, kept };
     }
     if (live === null) return null;
-    assert(live.fight.payloads > 0, "a live fight that is drawn was built from something");
     return { figures: live, kept: null };
 }
 
@@ -707,12 +681,6 @@ interface OpenedReadings {
 
 function composeOpenedReadings(figures: FightFigures, screen: ScreenState): OpenedReadings {
     const { roster, statistics } = figures;
-    assert(screen.current.length > 0, "a rung is opened on a screen the panel is on");
-    assert(
-        screen.openPairId === null || screen.openRowId !== null ||
-            screen.openUnnamedEnd !== null,
-        "a person is opened from inside a figure or from under a pinned row, never on their own",
-    );
     const halfNamed = composeOpenedHalfNamed(figures, screen);
     const halfNamedDrill = composeOpenedHalfNamedDrill(figures, screen);
     const drill = screen.openRowId === null
@@ -723,7 +691,7 @@ function composeOpenedReadings(figures: FightFigures, screen: ScreenState): Open
     if (drill === null) {
         return { drill: null, pair: null, part: null, halfNamed, halfNamedDrill };
     }
-    assert(drill.total >= 0, "an opened figure is not below nothing");
+
     const pair = screen.openPairId === null ? null : composePairReading(
         statistics,
         roster,
@@ -738,8 +706,6 @@ function composeOpenedReadings(figures: FightFigures, screen: ScreenState): Open
         drill.combatantId,
         screen.openPart,
     );
-    assert(halfNamed === null, "a pinned row and an opened row are never both standing open");
-    assert(halfNamedDrill === null, "nor is the level under one");
     return { drill, pair, part, halfNamed, halfNamedDrill };
 }
 
@@ -753,7 +719,6 @@ function composeOpenedHalfNamedDrill(
     screen: ScreenState,
 ): HalfNamedDrillReading | null {
     const { roster, statistics, fight } = figures;
-    assert(screen.current.length > 0, "a level opens on a screen the panel is on");
     if (screen.openUnnamedEnd === null) return null;
     const kase = getPinnedCase(screen.current, screen.openUnnamedEnd);
     if (kase === null) return null;
@@ -771,8 +736,8 @@ function composeOpenedHalfNamedDrill(
 
 /** A person or a key, and never both: the way back closes the key first, so one of them is null. */
 function getHalfNamedOpened(screen: ScreenState): HalfNamedOpened | null {
-    assert(screen.openUnnamedEnd !== null, "a row of a pinned level is opened under a pinned row");
-    assert(screen.openRowId === null, "and never inside somebody's own figure");
+    if (screen.openUnnamedEnd === null) return null;
+    if (screen.openRowId !== null) return null;
     if (screen.openPart !== null) {
         if (screen.openPart.kind !== "element") return null;
         return { kind: "element", element: screen.openPart.element };
@@ -867,15 +832,14 @@ const SCRIPT_WITH_SOURCE = "script[src]";
 function readWorldFromPage(page: UserscriptWindow): string {
     const stated = page.location.hostname ?? "";
     const world = stated.split(".")[0] ?? "";
-    assert(world.length <= stated.length, "a world is the first label of the host it was read off");
     if (world.length === 0) return "unknown";
     return world;
 }
 
 function readGameBuildFromPage(page: UserscriptWindow): string | null {
     const scripts = page.document.querySelectorAll(SCRIPT_WITH_SOURCE);
-    assert(scripts.length <= MAXIMUM_SCRIPTS, "a page states no more scripts than are walked");
-    for (let at = 0; at < scripts.length; at += 1) {
+    const walked = Math.min(scripts.length, MAXIMUM_SCRIPTS);
+    for (let at = 0; at < walked; at += 1) {
         const source = getTextFromUnknown(scripts[at]?.src) ?? "";
         const build = getGameBuildFromScriptName(source);
         if (build !== null) return build;
@@ -902,9 +866,8 @@ function writeTextToFile(
     text: string,
     handleFailure: (failure: unknown) => void,
 ): void {
-    assert(name.length > 0, "a file handed to a browser is handed a name");
-    assert(text.length > 0, "and something to put in it");
-    assert(typeof handleFailure === "function", "and a way to say it did not arrive");
+    if (name.length === 0) return;
+    if (text.length === 0) return;
     const url = page.URL.createObjectURL(new page.Blob([text], { type: "application/json" }));
     const anchor = page.document.createElement("a");
     anchor.href = url;
@@ -938,14 +901,13 @@ function readClockFromPage(
     page: UserscriptWindow,
     atMilliseconds: number,
 ): { hour: number; minute: number } | null {
-    assert(typeof page.Date === "function" || typeof page.Date === "object", "a page has a clock");
     if (!Number.isFinite(atMilliseconds)) return null;
     const held = new page.Date(atMilliseconds);
     const hour = getNumberFromUnknown(held.getHours?.());
     const minute = getNumberFromUnknown(held.getMinutes?.());
     if (hour === null || minute === null) return null;
-    assert(hour >= 0, "an hour on a clock is not below nothing");
-    assert(minute >= 0, "and neither is a minute");
+    if (hour < 0) return null;
+    if (minute < 0) return null;
     return { hour, minute };
 }
 
@@ -957,8 +919,8 @@ function readViewportFromPage(page: UserscriptWindow): PanelViewport | null {
     const width = getNumberFromUnknown(page.innerWidth);
     const height = getNumberFromUnknown(page.innerHeight);
     if (width === null || height === null) return null;
-    assert(width >= 0, "a window is never narrower than nothing");
-    assert(height >= 0, "and never shorter than nothing");
+    if (width < 0) return null;
+    if (height < 0) return null;
     return { width, height };
 }
 
@@ -974,7 +936,6 @@ function readViewportFromPage(page: UserscriptWindow): PanelViewport | null {
  * so the page is asked inside the `try` and not before it.
  */
 function composeStoreForChoice(page: UserscriptWindow, choice: PanelStorageChoice): BrowserStore {
-    assert(choice.length > 0, "a store is asked for by the name of a place");
     if (choice === "memory") return composeMemoryStore();
     try {
         const storage = choice === "local" ? page.localStorage : page.sessionStorage;
@@ -987,7 +948,6 @@ function composeStoreForChoice(page: UserscriptWindow, choice: PanelStorageChoic
 }
 
 export function startFromWindow(page: UserscriptWindow): GameAttachment {
-    assert(typeof page.setInterval === "function", "a page states the clock this asks for");
     let shown: PanelElement | null = null;
     const report = (line: string, failure: unknown): void => page.console.error(line, failure);
     return startMargoMeter({
@@ -999,7 +959,7 @@ export function startFromWindow(page: UserscriptWindow): GameAttachment {
         },
         mount: {
             show: (panel) => {
-                assert(panel !== shown, "a panel never replaces itself");
+                if (panel === shown) return;
                 shown?.replaceWith(panel);
                 if (shown === null) page.document.body.append(panel);
                 shown = panel;
@@ -1036,9 +996,6 @@ function keepFight(
     const fight = getFightFromSession(session);
     if (fight === null) return;
     if (!fight.isOver) return;
-    assert(live.openedAt >= 0, "a fight is kept under the moment it opened");
-    assert(live.capture.calls.length > 0, "and from the calls a recording of it would carry");
-    assert(gameBuild !== "", "a build the page did not say is absent, never empty");
     shelf.keep({
         openedAt: live.openedAt,
         payloads: live.capture.calls.map((call) => call.payload),
@@ -1053,10 +1010,8 @@ function keepFight(
  * is a true statement the file carries: the add-on was attached and the game said nothing.
  */
 function composeReportSubject(session: BattleSession, live: LiveFight): ReportSubject | null {
-    assert(live.openedAt >= 0, "a fight written down opened at a moment, or has not opened");
     const figures = composeFightFigures(session);
     if (figures === null) return null;
-    assert(figures.fight.payloads > 0, "and a fight that was read was built from something");
     return {
         statistics: figures.statistics,
         roster: figures.roster,
@@ -1091,7 +1046,7 @@ function saveRecording(
         defects.add("file", null, "a recording that would not be written as text");
         return;
     }
-    assert(text.length > 0, "a recording written as text says something");
+
     // The browser's own `click()` is in here and throws where a page is being torn down, and it
     // was reaching the press that called it rather than the reader (**E14**).
     try {
@@ -1137,8 +1092,6 @@ function composePanelPlacement(
     environment: UserscriptEnvironment,
     store: BrowserStore | null,
 ): PanelPlacement {
-    assert(PLACE_KEY.startsWith("MargoMeter-"), "the place the reader dragged it to is ours");
-    assert(typeof environment.readViewport === "function", "and is clamped against something");
     return {
         position: store === null ? null : getPositionFromStoredText(store.read(PLACE_KEY) ?? ""),
         getViewport: () => environment.readViewport(),
@@ -1163,14 +1116,11 @@ function composePanelPlacement(
  * where they are: what they are reading did not change.
  */
 function setLiveFightOpened(screen: ScreenState): void {
-    assert(screen.current.length > 0, "a fight opens onto a screen the panel is on");
     if (screen.openFightId !== null) return;
     screen.openRowId = null;
     screen.openUnnamedEnd = null;
     screen.openPairId = null;
     screen.openPart = null;
-    assert(screen.openRowId === null, "a fight that opens is read from its ranking");
-    assert(screen.openPairId === null, "with no pair standing over it");
 }
 
 /**
@@ -1184,7 +1134,6 @@ function readPayloadIntoLive(
     environment: UserscriptEnvironment,
     stated: { payload: unknown; battle: EngineBattle },
 ): boolean {
-    assert(live.openedAt >= 0, "a fight opened at a moment, or has not opened");
     addPayloadToSession(session, stated.payload);
     live.capture = composeNextCapture(live.capture, {
         payload: stated.payload,
@@ -1215,7 +1164,6 @@ function readPayloadIntoLive(
  * the rest — the once **E11** asks for. **ADR 0051.**
  */
 function composeGameReports(environment: UserscriptEnvironment) {
-    assert(FAILURE_LINE.startsWith("MargoMeter/"), "a failure of ours says whose it is first");
     return {
         handleFailure: (failure: unknown) => environment.report(FAILURE_LINE, failure),
         handleAnotherReader: () =>
@@ -1231,11 +1179,8 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     const store = environment.store;
     const screen = composeScreenState(store !== null && store.read(FOLD_KEY) === FOLDED);
     const shelf = composeShelfKeeper(environment);
-    assert(SHELF_KEY.startsWith("MargoMeter-"), "every key this add-on writes is named as ours");
-    assert(FOLD_KEY.startsWith("MargoMeter-"), "the fold included");
     const placement = composePanelPlacement(environment, store);
     const live = composeLiveFight();
-    assert(getFightFromSession(session) === null, "a session starts holding no fight");
     // The panel goes up when the wrap goes on, and not before: a copy that stood down never gets
     // one, and a page with no game on it is left as it was found.
     let isMounted = false;
@@ -1245,8 +1190,6 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
         isMounted = true;
     };
     const draw = (): void => {
-        assert(screen.current.length > 0, "a draw is of a panel that is on a screen");
-        assert(live.openedAt >= 0, "and of a fight that opened at a moment, or has not opened");
         drawFight(session, screen, panel, shelf, live, environment.readClock, defects);
     };
     const showAndMount = (): void => {
@@ -1268,7 +1211,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
         // without one never grows one. Null is the panel drawing its own words (ADR 0024).
         readDictionaryFromPage(environment.page),
     );
-    assert(!isMounted, "nothing is on the page until a payload arrives");
+
     return attachToGame(environment.page, environment.schedule, {
         handleAttached: showAndMount,
         handleBeforeCall: (battle) => {

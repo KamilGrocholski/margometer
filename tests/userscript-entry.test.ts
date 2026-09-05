@@ -191,6 +191,38 @@ Deno.test("a fight the panel cannot read leaves it saying so, not saying nothing
     attachment.detach();
 });
 
+/**
+ * A window and a clock that answer with nothing an arithmetic can use. Both are read off the page,
+ * both used to be asserted, and both are what a browser tearing a page down hands back — the panel
+ * draws either way, and the reading says it could not be taken. **E14**, ADR 0051.
+ */
+Deno.test("a page answering with no size and no clock still draws its fight", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown, reported } = composeEnvironment({
+        Engine: { battle },
+        innerWidth: Number.NaN,
+        innerHeight: -1,
+    });
+    const refused: UserscriptEnvironment = {
+        ...environment,
+        readViewport: () => null,
+        readClock: () => null,
+    };
+    const attachment = startMargoMeter(refused);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+
+    const panel = shown[0] as FakeElement;
+    const list = getElementsWithin(panel).find((one) => one.className === "list");
+    assertExists(list, "the panel drew its list");
+    const rows = getElementsWithin(list).filter((one) => one.className.split(" ")[0] === "row");
+    assertStrictEquals(rows.length, 11, "with every one of the fight's combatants on it");
+    assertEquals(getTextsByClass(panel, "defect"), [], "and nothing of ours failed drawing it");
+    assertEquals(reported, [], "nor reached the console");
+    attachment.detach();
+});
+
 Deno.test("a reader presses a screen and the panel goes there, and nowhere else", () => {
     const battle: Record<string, unknown> = { updateData: () => 1 };
     const { environment, shown } = composeEnvironment({ Engine: { battle } });
