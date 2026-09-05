@@ -188,8 +188,8 @@ export interface PanelPlacement {
     handleMoved(position: PanelPosition): void;
 }
 
-export function setGripMark(bar: PanelElement): void {
-    bar.setAttribute(GRIP_ATTRIBUTE, "");
+export function setGripMark(grip: PanelElement): void {
+    grip.setAttribute(GRIP_ATTRIBUTE, "");
 }
 
 function getPointerFromEvent(event: PanelEvent): PanelPosition | null {

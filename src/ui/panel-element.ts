@@ -561,6 +561,10 @@ function composeTitleElement(document: PanelDocument, isCollapsed: boolean): Pan
     setGripMark(bar);
     const version = composeElement(document, "span", CLASS.titleVersion);
     version.textContent = BUILD_VERSION;
+    // Marked as well as the bar under it. The bar wears `cursor:move` and every child inherits
+    // it, so a label that starts no drag is an affordance that lies (`DESIGN.md`) — and this one
+    // sits between the name and the controls, where a hand aiming for the bar lands.
+    setGripMark(version);
     bar.append(version);
     bar.append(composeBarControl(document, {
         className: `${CLASS.control} ${CLASS.controlFights}`,

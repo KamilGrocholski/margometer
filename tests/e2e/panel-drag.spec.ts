@@ -62,7 +62,7 @@ test("a drag writes a left, a top, and the corner given up", async ({ panel }) =
     }
 });
 
-test("the bar is grabbable along its bare length, and its labels are not", async ({ panel }) => {
+test("the bar is grabbable along its length, and its controls are not", async ({ panel }) => {
     const points = await readPointsAlongBar(panel.page, ALONG_THE_BAR);
     expect(points.some((point) => point.isGrip), "some of the bar is bare grip").toBe(true);
     expect(points.some((point) => !point.isGrip), "and some of it is covered").toBe(true);
@@ -91,13 +91,27 @@ test("nothing the bar draws starts a drag, and neither does a row", async ({ pan
     expect(afterRow.left - before.left, "a row in the ranking is not a handle").toBe(0);
     expect(afterRow.top - before.top, "on either axis").toBe(0);
 
-    for (const selector of [".titlebar-version", "[data-shelf]", "[data-save]", "[data-fold]"]) {
+    for (const selector of ["[data-shelf]", "[data-save]", "[data-fold]"]) {
         const standing = await panel.place();
         await setDragged(panel.page, await readCentreOf(panel.page, selector), { x: 40, y: 20 });
         const after = await panel.place();
         expect(after.left - standing.left, `${selector} is not a handle`).toBe(0);
         expect(after.top - standing.top, `${selector} moves it on neither axis`).toBe(0);
     }
+});
+
+test("the version label is part of the handle, not a hole in it", async ({ panel }) => {
+    // It inherits the bar's `cursor:move` and sits between the name and the controls, so a hand
+    // aiming for the bar lands on it. Held here rather than left to the walk above, whose points
+    // are spaced along the bar and would stop covering it the day the version number narrows.
+    const before = await panel.place();
+    await setDragged(panel.page, await readCentreOf(panel.page, ".titlebar-version"), {
+        x: ACROSS,
+        y: DOWN,
+    });
+    const after = await panel.place();
+    expect(after.left - before.left, "the panel went where the label was taken").toBe(ACROSS);
+    expect(after.top - before.top, "on both axes").toBe(DOWN);
 });
 
 test("dragged at any edge, the panel keeps its footing on the screen", async ({ panel }) => {

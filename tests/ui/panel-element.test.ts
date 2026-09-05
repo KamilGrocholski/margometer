@@ -1979,6 +1979,28 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
     );
 });
 
+Deno.test("the version label on the bar is a handle, like the bar around it", () => {
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {}, {
+        position: { left: 40, top: 40 },
+        getViewport: () => ({ width: 1280, height: 900 }),
+        handleMoved: () => {},
+    });
+    const host = panel.element as FakeElement;
+    panel.showWaiting(false, { defects: [], isFightUnread: false });
+    const version = getElementsWithin(host).find((one) => one.className === CLASS.titleVersion);
+    assertExists(version, "the bar states the version it was built at");
+    assertEquals(version.attributes.get("data-grip"), "", "and a drag may start from it");
+
+    dragOnElement(host, "pointerdown", version, { clientX: 100, clientY: 100 });
+    dragOnElement(host, "pointermove", version, { clientX: 400, clientY: 300 });
+    assertEquals(
+        host.attributes.get("style"),
+        "left:340px;top:240px;--MargoMeter-panel-top:240px;right:auto",
+        "the panel follows a hand that took hold of the label",
+    );
+});
+
 Deno.test("a press on a control is not a drag, whatever the pointer does next", () => {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {}, {

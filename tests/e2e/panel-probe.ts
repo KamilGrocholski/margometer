@@ -30,16 +30,19 @@ export async function readUnderPoint(page: Page, at: PagePoint): Promise<string>
 }
 
 /**
- * ⚠️ **Never the middle of the bar.** A drag starts only where the press lands on the grip itself
- * and not on a child of it (`composePanelDragGrab`, `src/ui/panel-drag.ts`), and the middle is the
- * version label. So each point is measured rather than assumed: one that silently stopped being
- * the grip would report a panel that cannot be dragged as one nobody dragged.
+ * ⚠️ **Never assume a point along the bar is a grip.** A drag starts only where the press lands on
+ * an element carrying the mark (`composePanelDragGrab`, `src/ui/panel-drag.ts`) — the bar and the
+ * version label wear it, the three controls do not. So each point is measured rather than assumed:
+ * one that silently stopped being the grip would report a panel that cannot be dragged as one
+ * nobody dragged.
  */
 export async function readPointsAlongBar(
     page: Page,
     offsets: readonly number[],
 ): Promise<BarPoint[]> {
-    const box = await page.locator("[data-grip]").boundingBox();
+    // The first of them, which is the bar: the version label inside it wears the same mark and
+    // a locator matching two elements refuses to measure either.
+    const box = await page.locator("[data-grip]").first().boundingBox();
     expect(box, "the panel draws a bar to measure along").not.toBeNull();
     const bar = box ?? { x: 0, y: 0, width: 0, height: 0 };
     const points: BarPoint[] = [];
