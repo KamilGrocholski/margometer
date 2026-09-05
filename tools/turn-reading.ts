@@ -22,10 +22,10 @@ import {
     type TurnStanding,
 } from "@/src/core/fight-statistics.ts";
 import {
-    addPayloadToSession,
-    composeBattleSession,
-    getFightFromSession,
-} from "@/src/game/battle-session.ts";
+    addPayloadToFight,
+    composeFightUnderway,
+    getReadingFromFight,
+} from "@/src/game/fight-underway.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { TurnReadingError } from "@/tools/margometer-tool-error.ts";
 import { composeFightReplaySteps, composeRecordedMaterial } from "@/tools/fight-replay.ts";
@@ -260,15 +260,15 @@ function getOpenerKey(event: BattleEvent): string | null {
 export function composeMessageReadings(fight: RecordedFight): MessageReading[] {
     assert(fight.name.length > 0, "a reading is taken over a recording with a name");
     const byOrdinals = composeBoundariesByOrdinals(fight);
-    const session = composeBattleSession();
+    const underway = composeFightUnderway();
     const readings: MessageReading[] = [];
     let pending: MessageReading[] = [];
     let stated: number | null = null;
     let standing: TurnStanding = NO_TURN_STANDING;
     let previousActorId: number | null = null;
     for (const call of fight.calls) {
-        addPayloadToSession(session, call);
-        const held = getFightFromSession(session);
+        addPayloadToFight(underway, call);
+        const held = getReadingFromFight(underway);
         if (held === null) continue;
         const payload = held.messagesByPayload.length - 1;
         const messages = held.messagesByPayload[payload] ?? [];

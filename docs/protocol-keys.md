@@ -15,7 +15,7 @@ no sentence of the game's is copied in here — an entry carries the locator and
 **Guarded** by `tests/repository/protocol-keys.test.ts`, which re-counts what this file claims of
 the published help against the frozen table beside it. Coverage over the material is held elsewhere
 and as an assertion rather than a report: `tests/core/fight-decoder.test.ts` fails if anything in
-`captures/` goes unread, and `tests/game/battle-session.test.ts` fails per recording.
+`captures/` goes unread, and `tests/game/fight-underway.test.ts` fails per recording.
 
 ## What every entry states about its own material
 

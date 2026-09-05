@@ -16,7 +16,7 @@ import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import type { CapturedCombatant } from "@/src/game/engine-warrior.ts";
 import { composeReportFight, type ReportSubject } from "@/src/game/fight-report.ts";
-import { isFightStart } from "@/src/game/battle-session.ts";
+import { isFightStart } from "@/src/game/fight-underway.ts";
 
 /**
  * 3 is the envelope in English; 2 was Polish and carried `raport`, 1 Polish without it. The number

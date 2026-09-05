@@ -10,10 +10,10 @@ import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import {
-    addPayloadToSession,
-    composeBattleSession,
-    getFightFromSession,
-} from "@/src/game/battle-session.ts";
+    addPayloadToFight,
+    composeFightUnderway,
+    getReadingFromFight,
+} from "@/src/game/fight-underway.ts";
 import {
     getRecordedCombatants,
     getRecordedEngineUpdates,
@@ -26,19 +26,19 @@ const NO_SNAPSHOTS =
     "captures/2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1.json";
 
 function replay(path: string) {
-    const session = composeBattleSession();
-    for (const update of getRecordedEngineUpdates(path)) addPayloadToSession(session, update);
-    return getFightFromSession(session);
+    const underway = composeFightUnderway();
+    for (const update of getRecordedEngineUpdates(path)) addPayloadToFight(underway, update);
+    return getReadingFromFight(underway);
 }
 
 Deno.test("a fight nobody has seen is not a fight holding nothing", () => {
-    assertEquals(getFightFromSession(composeBattleSession()), null, "there is no fight to read");
-    const session = composeBattleSession();
-    addPayloadToSession(session, null);
-    assertEquals(getFightFromSession(session), null, "and what is not a payload starts none");
+    assertEquals(getReadingFromFight(composeFightUnderway()), null, "there is no fight to read");
+    const underway = composeFightUnderway();
+    addPayloadToFight(underway, null);
+    assertEquals(getReadingFromFight(underway), null, "and what is not a payload starts none");
     // A list is an object to `typeof`, and one reaching here used to open a fight nobody fought.
-    addPayloadToSession(session, ["0;0;txt=a"]);
-    assertEquals(getFightFromSession(session), null, "a list is not a payload either");
+    addPayloadToFight(underway, ["0;0;txt=a"]);
+    assertEquals(getReadingFromFight(underway), null, "a list is not a payload either");
 });
 
 Deno.test("a recording replayed call by call reads as the whole of itself", () => {
@@ -59,11 +59,11 @@ Deno.test("a recording replayed call by call reads as the whole of itself", () =
 Deno.test("a fight that opens replaces the one standing before it", () => {
     const [first, second] = readRecordingPaths();
     assert(first !== undefined && second !== undefined, "two recordings to run together");
-    const session = composeBattleSession();
-    for (const update of getRecordedEngineUpdates(first)) addPayloadToSession(session, update);
-    const opened = getFightFromSession(session);
-    for (const update of getRecordedEngineUpdates(second)) addPayloadToSession(session, update);
-    const replaced = getFightFromSession(session);
+    const underway = composeFightUnderway();
+    for (const update of getRecordedEngineUpdates(first)) addPayloadToFight(underway, update);
+    const opened = getReadingFromFight(underway);
+    for (const update of getRecordedEngineUpdates(second)) addPayloadToFight(underway, update);
+    const replaced = getReadingFromFight(underway);
     assert(opened !== null && replaced !== null, "both fights were read");
     assertEquals(replaced.payloads, getRecordedEngineUpdates(second).length, "only the second");
     const alone = replay(second);
@@ -71,22 +71,26 @@ Deno.test("a fight that opens replaces the one standing before it", () => {
 });
 
 Deno.test("a payload says how many messages it carried, and the count is held to it", () => {
-    const session = composeBattleSession();
-    addPayloadToSession(session, { init: 1, mi: [0, 0, 0], m: ["0;0;txt=a", "0;0;txt=b"] });
-    assertEquals(getFightFromSession(session)?.messagesLost, 1, "one was stated and not read");
+    const underway = composeFightUnderway();
+    addPayloadToFight(underway, { init: 1, mi: [0, 0, 0], m: ["0;0;txt=a", "0;0;txt=b"] });
+    assertEquals(getReadingFromFight(underway)?.messagesLost, 1, "one was stated and not read");
 
-    const renamed = composeBattleSession();
-    addPayloadToSession(renamed, { init: 1, mi: [0, 0], messages: ["0;0;txt=a", "0;0;txt=b"] });
-    assertEquals(getFightFromSession(renamed)?.messagesLost, 2, "a rename of `m` is caught whole");
+    const renamed = composeFightUnderway();
+    addPayloadToFight(renamed, { init: 1, mi: [0, 0], messages: ["0;0;txt=a", "0;0;txt=b"] });
+    assertEquals(getReadingFromFight(renamed)?.messagesLost, 2, "a rename of `m` is caught whole");
 
-    const witnessGone = composeBattleSession();
-    addPayloadToSession(witnessGone, { init: 1, m: ["0;0;txt=a"] });
-    assertEquals(getFightFromSession(witnessGone)?.messagesLost, 0, "and a lost witness is silent");
+    const witnessGone = composeFightUnderway();
+    addPayloadToFight(witnessGone, { init: 1, m: ["0;0;txt=a"] });
+    assertEquals(getReadingFromFight(witnessGone)?.messagesLost, 0, "and a lost witness is silent");
 
     // Two calls, each losing one: what is lost accumulates across a fight rather than standing
     // for whatever the last payload happened to lose.
-    addPayloadToSession(session, { mi: [0, 0], m: ["0;0;txt=c"] });
-    assertEquals(getFightFromSession(session)?.messagesLost, 2, "and every call adds to the count");
+    addPayloadToFight(underway, { mi: [0, 0], m: ["0;0;txt=c"] });
+    assertEquals(
+        getReadingFromFight(underway)?.messagesLost,
+        2,
+        "and every call adds to the count",
+    );
 });
 
 Deno.test("every recording is read whole, by the count the payloads themselves state", () => {
@@ -113,37 +117,41 @@ Deno.test("a fight whose calls carry no snapshot still has a cast", () => {
  * text and the client compares loosely.
  */
 Deno.test("the reader's own side is read off the payload, in either spelling", () => {
-    const asText = composeBattleSession();
-    addPayloadToSession(asText, { init: 1, myteam: "2" });
-    assertEquals(getFightFromSession(asText)?.readerSide, 2, "stated as text, as the corpus does");
+    const asText = composeFightUnderway();
+    addPayloadToFight(asText, { init: 1, myteam: "2" });
+    assertEquals(getReadingFromFight(asText)?.readerSide, 2, "stated as text, as the corpus does");
 
-    const asNumber = composeBattleSession();
-    addPayloadToSession(asNumber, { init: 1, myteam: 2 });
-    assertEquals(getFightFromSession(asNumber)?.readerSide, 2, "and stated as a number");
+    const asNumber = composeFightUnderway();
+    addPayloadToFight(asNumber, { init: 1, myteam: 2 });
+    assertEquals(getReadingFromFight(asNumber)?.readerSide, 2, "and stated as a number");
 
-    const silent = composeBattleSession();
-    addPayloadToSession(silent, { init: 1 });
-    assertEquals(getFightFromSession(silent)?.readerSide, null, "a payload that says nothing");
+    const silent = composeFightUnderway();
+    addPayloadToFight(silent, { init: 1 });
+    assertEquals(getReadingFromFight(silent)?.readerSide, null, "a payload that says nothing");
 });
 
 /** It arrives on the opening payload only, so a later one saying nothing must not take it away. */
 Deno.test("the reader's own side is kept once seen, and cleared when a fight opens", () => {
-    const session = composeBattleSession();
-    addPayloadToSession(session, { init: 1, myteam: "1" });
-    addPayloadToSession(session, { m: ["0;0;txt=a"] });
-    assertEquals(getFightFromSession(session)?.readerSide, 1, "a later payload takes nothing away");
+    const underway = composeFightUnderway();
+    addPayloadToFight(underway, { init: 1, myteam: "1" });
+    addPayloadToFight(underway, { m: ["0;0;txt=a"] });
+    assertEquals(
+        getReadingFromFight(underway)?.readerSide,
+        1,
+        "a later payload takes nothing away",
+    );
 
-    addPayloadToSession(session, { init: 1 });
-    assertEquals(getFightFromSession(session)?.readerSide, null, "and a new fight starts over");
+    addPayloadToFight(underway, { init: 1 });
+    assertEquals(getReadingFromFight(underway)?.readerSide, null, "and a new fight starts over");
 });
 
 Deno.test("every recording states its reader's side, on the payload that opens the fight", () => {
     for (const path of readRecordingPaths()) {
-        const session = composeBattleSession();
+        const underway = composeFightUnderway();
         const [first] = getRecordedEngineUpdates(path);
-        addPayloadToSession(session, first);
+        addPayloadToFight(underway, first);
         assertEquals(
-            getFightFromSession(session)?.readerSide,
+            getReadingFromFight(underway)?.readerSide,
             1,
             `${path}: the opening payload states the reader's own side`,
         );
@@ -151,32 +159,32 @@ Deno.test("every recording states its reader's side, on the payload that opens t
 });
 
 Deno.test("a session says whether it saw the payload that opened the fight", () => {
-    const fromStart = composeBattleSession();
-    addPayloadToSession(fromStart, { init: 1, myteam: "1" });
-    addPayloadToSession(fromStart, { m: ["0;0;txt=a"] });
+    const fromStart = composeFightUnderway();
+    addPayloadToFight(fromStart, { init: 1, myteam: "1" });
+    addPayloadToFight(fromStart, { m: ["0;0;txt=a"] });
     assertEquals(
-        getFightFromSession(fromStart)?.hasJoinedInProgress,
+        getReadingFromFight(fromStart)?.hasJoinedInProgress,
         false,
         "a fight watched from its opening payload lost nothing before it",
     );
 
-    const joined = composeBattleSession();
-    addPayloadToSession(joined, { m: ["0;0;txt=a"] });
+    const joined = composeFightUnderway();
+    addPayloadToFight(joined, { m: ["0;0;txt=a"] });
     assertEquals(
-        getFightFromSession(joined)?.hasJoinedInProgress,
+        getReadingFromFight(joined)?.hasJoinedInProgress,
         true,
         "and one whose first payload is anything else began before the reading did",
     );
-    addPayloadToSession(joined, { m: ["0;0;txt=b"] });
+    addPayloadToFight(joined, { m: ["0;0;txt=b"] });
     assertEquals(
-        getFightFromSession(joined)?.hasJoinedInProgress,
+        getReadingFromFight(joined)?.hasJoinedInProgress,
         true,
         "which no later payload undoes, having arrived after the same opening",
     );
 
-    addPayloadToSession(joined, { init: 1 });
+    addPayloadToFight(joined, { init: 1 });
     assertEquals(
-        getFightFromSession(joined)?.hasJoinedInProgress,
+        getReadingFromFight(joined)?.hasJoinedInProgress,
         false,
         "a fight that opens is watched whole, whatever the one before it was",
     );

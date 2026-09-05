@@ -294,7 +294,7 @@ Deno.test("no name carries its own negation", () => {
 Deno.test("what crosses to the game is read, never got", () => {
     const crossing = "function getPlaceFromPage(page: unknown): FightPlace | null {";
     assertEquals(getHeldVerbsOverCrossings(crossing), ["getPlaceFromPage"], "the reader works");
-    const held = "function getFightFromSession(session: BattleSession): FightReading | null {";
+    const held = "function getReadingFromFight(one: FightUnderway): FightReading | null {";
     assertEquals(getHeldVerbsOverCrossings(held), [], "a value this program holds is not one");
     const read = "function readPlaceFromPage(page: unknown): FightPlace | null {";
     assertEquals(getHeldVerbsOverCrossings(read), [], "and the verb N16 asks for passes");

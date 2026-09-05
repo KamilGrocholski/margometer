@@ -15,7 +15,7 @@
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
-import { MESSAGE_INDEX_KEY } from "@/src/game/battle-session.ts";
+import { MESSAGE_INDEX_KEY } from "@/src/game/fight-underway.ts";
 import type { FightStatistics } from "@/src/core/fight-statistics.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { getNumberFromUnknown, isRecord } from "@/libs/unknown-reading.ts";

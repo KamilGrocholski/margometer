@@ -62,7 +62,7 @@ export interface FightReading {
     readerSide: number | null;
 }
 
-export interface BattleSession {
+export interface FightUnderway {
     combatants: Combatant[];
     events: BattleEvent[];
     messagesByPayload: string[][];
@@ -74,8 +74,8 @@ export interface BattleSession {
     readerSide: number | null;
 }
 
-export function composeBattleSession(): BattleSession {
-    const session: BattleSession = {
+export function composeFightUnderway(): FightUnderway {
+    const underway: FightUnderway = {
         combatants: [],
         events: [],
         messagesByPayload: [],
@@ -86,7 +86,7 @@ export function composeBattleSession(): BattleSession {
         hasFight: false,
         readerSide: null,
     };
-    return session;
+    return underway;
 }
 
 function readMessagesFromPayload(payload: Record<string, unknown>): string[] {
@@ -110,17 +110,17 @@ function readMessageCountFromPayload(payload: Record<string, unknown>): number {
     return stated.length;
 }
 
-function resetSession(session: BattleSession): void {
-    session.combatants = [];
-    session.events = [];
-    session.messagesByPayload = [];
-    session.messagesLost = 0;
-    session.hasJoinedInProgress = false;
-    session.isOver = false;
-    session.payloads = 0;
-    session.readerSide = null;
-    assert(session.events.length === 0, "a fight opens holding nothing");
-    assert(session.combatants.length === 0, "and knowing nobody until its payload states them");
+function resetFight(underway: FightUnderway): void {
+    underway.combatants = [];
+    underway.events = [];
+    underway.messagesByPayload = [];
+    underway.messagesLost = 0;
+    underway.hasJoinedInProgress = false;
+    underway.isOver = false;
+    underway.payloads = 0;
+    underway.readerSide = null;
+    assert(underway.events.length === 0, "a fight opens holding nothing");
+    assert(underway.combatants.length === 0, "and knowing nobody until its payload states them");
 }
 
 /**
@@ -144,44 +144,44 @@ export function isFightStart(payload: unknown): boolean {
     return FIGHT_OPENS_KEY in payload;
 }
 
-export function addPayloadToSession(session: BattleSession, payload: unknown): void {
+export function addPayloadToFight(underway: FightUnderway, payload: unknown): void {
     if (!isRecord(payload)) return;
-    if (isFightStart(payload)) resetSession(session);
+    if (isFightStart(payload)) resetFight(underway);
     // `init` arrives once, so only the first payload of a fight can answer this.
-    if (session.payloads === 0) session.hasJoinedInProgress = !isFightStart(payload);
-    session.hasFight = true;
-    session.payloads += 1;
-    for (const combatant of readCombatantsFromPayload(payload)) session.combatants.push(combatant);
+    if (underway.payloads === 0) underway.hasJoinedInProgress = !isFightStart(payload);
+    underway.hasFight = true;
+    underway.payloads += 1;
+    for (const combatant of readCombatantsFromPayload(payload)) underway.combatants.push(combatant);
     // Kept once seen, because only the opening payload carries it: a fragment saying nothing
     // about the side would otherwise take the reader's own away mid-fight.
-    session.readerSide = readReaderSideFromPayload(payload) ?? session.readerSide;
-    const roster = composeCombatantRoster(session.combatants);
+    underway.readerSide = readReaderSideFromPayload(payload) ?? underway.readerSide;
+    const roster = composeCombatantRoster(underway.combatants);
     const messages = readMessagesFromPayload(payload);
-    session.messagesByPayload.push(messages);
+    underway.messagesByPayload.push(messages);
     const stated = readMessageCountFromPayload(payload);
-    if (stated > messages.length) session.messagesLost += stated - messages.length;
-    assert(session.messagesLost >= 0, "what a payload stated and nobody read is never negative");
-    for (const event of decodeFightMessages(messages, roster)) session.events.push(event);
-    if (FIGHT_ENDS_KEY in payload) session.isOver = true;
-    assert(session.events.length <= MAXIMUM_EVENTS, "a fight stays inside its stated bound");
-    assert(session.messagesByPayload.length <= MAXIMUM_EVENTS, "and so does what it kept");
-    assert(session.payloads > 0, "a payload that was read is counted");
-    assert(session.hasFight, "and leaves a fight behind it, however little it stated");
+    if (stated > messages.length) underway.messagesLost += stated - messages.length;
+    assert(underway.messagesLost >= 0, "what a payload stated and nobody read is never negative");
+    for (const event of decodeFightMessages(messages, roster)) underway.events.push(event);
+    if (FIGHT_ENDS_KEY in payload) underway.isOver = true;
+    assert(underway.events.length <= MAXIMUM_EVENTS, "a fight stays inside its stated bound");
+    assert(underway.messagesByPayload.length <= MAXIMUM_EVENTS, "and so does what it kept");
+    assert(underway.payloads > 0, "a payload that was read is counted");
+    assert(underway.hasFight, "and leaves a fight behind it, however little it stated");
 }
 
 /** Null until a payload has arrived: a fight nobody has seen is not a fight with no figures. */
-export function getFightFromSession(session: BattleSession): FightReading | null {
-    if (!session.hasFight) return null;
-    assert(session.payloads > 0, "a fight that exists was built from something");
-    assert(session.events.length <= MAXIMUM_EVENTS, "a fight stays inside its stated bound");
+export function getReadingFromFight(underway: FightUnderway): FightReading | null {
+    if (!underway.hasFight) return null;
+    assert(underway.payloads > 0, "a fight that exists was built from something");
+    assert(underway.events.length <= MAXIMUM_EVENTS, "a fight stays inside its stated bound");
     return {
-        roster: composeCombatantRoster(session.combatants),
-        events: session.events,
-        messagesByPayload: session.messagesByPayload,
-        messagesLost: session.messagesLost,
-        hasJoinedInProgress: session.hasJoinedInProgress,
-        isOver: session.isOver,
-        payloads: session.payloads,
-        readerSide: session.readerSide,
+        roster: composeCombatantRoster(underway.combatants),
+        events: underway.events,
+        messagesByPayload: underway.messagesByPayload,
+        messagesLost: underway.messagesLost,
+        hasJoinedInProgress: underway.hasJoinedInProgress,
+        isOver: underway.isOver,
+        payloads: underway.payloads,
+        readerSide: underway.readerSide,
     };
 }

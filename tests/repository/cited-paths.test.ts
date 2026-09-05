@@ -37,22 +37,22 @@ const SPAN_MARK = "`";
 const HISTORY_MARK = "git show ";
 
 /**
- * A path a document names on purpose while it does not exist. Each entry carries why, because the
- * list is the one way past this guard and a list nobody has to justify grows until it is the rule.
+ * A path a document names on purpose while it does not exist. Every entry is an ADR, and the
+ * reason is one: an ADR is a dated snapshot, never edited to agree with the tree it now sits in
+ * (`docs/adr/README.md`). Said once here, so a sixth entry is not a sixth copy of it; each says
+ * only what is its own, because a list nobody has to justify grows until it is the rule.
  */
 const CITED_WHILE_ABSENT: Record<string, string> = {
-    // ADR 0020's Context: the address the decision moved this file **from**. An ADR is a dated
-    // snapshot and is never edited to agree with the rule it changed (`docs/adr/README.md`).
+    // The address ADR 0020 moved this file from.
     "src/core/unknown-reading.ts": "docs/adr/0020-a-shared-address-for-what-knows-nothing.md",
-    // ADR 0017's Context: the tool the decision replaced, named in the past tense.
+    // The module accumulating one fight; `src/game/fight-underway.ts` since `battle` and `session`
+    // were read off **Fight**'s `_Avoid_` list.
+    "src/game/battle-session.ts": "docs/adr/0017-the-panel-is-served-and-published.md",
+    // The tool that decision replaced, named in the past tense.
     "tools/build-preview.ts": "docs/adr/0017-the-panel-is-served-and-published.md",
-    // ADR 0046's Decision: the module its suite launched a browser through. ADR 0047 replaced
-    // that suite, and the module folded back into the one tool left asking the question.
+    // The module ADR 0046's suite launched a browser through; ADR 0047 replaced that suite.
     "tools/installed-browser.ts": "docs/adr/0046-the-browser-layer-is-a-suite-of-its-own.md",
-    // ADR 0022's measurements, taken on two recordings under the names they were filed as before
-    // ADR 0030 renamed every one of them after the two versions it states. An ADR is a dated
-    // snapshot and is never edited to agree with the tree it now sits in
-    // (`docs/adr/README.md`); the same material is in `captures/` under a longer name.
+    // Two recordings under the names they were filed as before ADR 0030 renamed every one of them.
     "captures/2026-08-06-tempest-grupa-vs-hildur.json":
         "docs/adr/0022-a-tick-belongs-to-the-wound-that-is-ticking.md",
     "captures/2026-08-15-tempest-grupa-vs-hildur-3.json":

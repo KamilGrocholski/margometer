@@ -268,7 +268,7 @@ function composePreviewGame(words: PreviewWords): string {
 
 /**
  * Feeding the fight, one call at a time. Stepping **back** is replaying from the first call:
- * `src/game/battle-session.ts` accumulates and has no rewind, but it resets on the call a fight
+ * `src/game/fight-underway.ts` accumulates and has no rewind, but it resets on the call a fight
  * opens with, and `tests/tools/recorded-fights.test.ts` measures that every recording carries one
  * first. So a step back costs a replay and not a reload, and the panel keeps the screen the
  * reader chose.

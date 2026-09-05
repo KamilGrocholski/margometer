@@ -8,10 +8,10 @@
 import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeJsonWriting } from "@/libs/json-text.ts";
 import {
-    addPayloadToSession,
-    composeBattleSession,
-    getFightFromSession,
-} from "@/src/game/battle-session.ts";
+    addPayloadToFight,
+    composeFightUnderway,
+    getReadingFromFight,
+} from "@/src/game/fight-underway.ts";
 import type { BrowserStore } from "@/src/game/browser-store.ts";
 import {
     composeKeptRotation,
@@ -255,13 +255,13 @@ Deno.test("a fight off the shelf reads as the fight that went on it, through one
     const kept = readKeptFights(store, KEY)[0];
     assertExists(kept, "and read back");
 
-    const offShelf = composeBattleSession();
-    for (const payload of kept.payloads) addPayloadToSession(offShelf, payload);
-    const live = composeBattleSession();
-    for (const payload of payloads) addPayloadToSession(live, payload);
+    const offShelf = composeFightUnderway();
+    for (const payload of kept.payloads) addPayloadToFight(offShelf, payload);
+    const live = composeFightUnderway();
+    for (const payload of payloads) addPayloadToFight(live, payload);
 
-    const read = getFightFromSession(offShelf);
-    const watched = getFightFromSession(live);
+    const read = getReadingFromFight(offShelf);
+    const watched = getReadingFromFight(live);
     assertExists(read, "a fight off the shelf is a fight");
     assertExists(watched, "and so is the one that was watched");
     assertEquals(read.payloads, payloads.length, "every call the game made went on and came back");

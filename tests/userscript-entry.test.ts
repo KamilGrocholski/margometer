@@ -21,10 +21,10 @@ import {
     type UserscriptEnvironment,
 } from "@/src/userscript-entry.ts";
 import {
-    addPayloadToSession,
-    composeBattleSession,
-    getFightFromSession,
-} from "@/src/game/battle-session.ts";
+    addPayloadToFight,
+    composeFightUnderway,
+    getReadingFromFight,
+} from "@/src/game/fight-underway.ts";
 import type { BrowserStore } from "@/src/game/browser-store.ts";
 import { readKeptFights } from "@/src/game/kept-fights.ts";
 import { getJsonReading } from "@/libs/json-text.ts";
@@ -520,12 +520,12 @@ Deno.test("a fight that ends goes on the shelf, once, and comes back after a rel
 
     // What is kept is what the game delivered, so the fight reads the same off the shelf as it
     // did live: every figure is derived again by the code that is running. ADR 0026.
-    const offShelf = composeBattleSession();
-    for (const payload of kept[0]?.payloads ?? []) addPayloadToSession(offShelf, payload);
-    const watched = composeBattleSession();
-    for (const payload of getRecordedEngineUpdates(HILDUR)) addPayloadToSession(watched, payload);
-    const read = getFightFromSession(offShelf);
-    const live = getFightFromSession(watched);
+    const offShelf = composeFightUnderway();
+    for (const payload of kept[0]?.payloads ?? []) addPayloadToFight(offShelf, payload);
+    const watched = composeFightUnderway();
+    for (const payload of getRecordedEngineUpdates(HILDUR)) addPayloadToFight(watched, payload);
+    const read = getReadingFromFight(offShelf);
+    const live = getReadingFromFight(watched);
     assertExists(read, "a fight off the shelf is a fight");
     assertExists(live, "and so is the one that was watched");
     assertEquals(read.roster.byId.size, 11, "with the cast the payloads stated");

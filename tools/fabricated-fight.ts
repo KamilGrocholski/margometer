@@ -27,7 +27,7 @@ import {
     MESSAGE_INDEX_KEY,
     MESSAGES_KEY,
     READER_SIDE_KEY,
-} from "@/src/game/battle-session.ts";
+} from "@/src/game/fight-underway.ts";
 import { CAPTURE_FIELDS, MAXIMUM_CALLS } from "@/src/game/fight-capture.ts";
 import { WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
 import { getDevelopmentVersion } from "@/tools/declared-version.ts";

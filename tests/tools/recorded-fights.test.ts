@@ -13,7 +13,7 @@ import {
     assertStringIncludes,
     assertThrows,
 } from "@std/assert";
-import { isFightStart } from "@/src/game/battle-session.ts";
+import { isFightStart } from "@/src/game/fight-underway.ts";
 import {
     getPreviewRecordedFight,
     getRecordedFightAt,

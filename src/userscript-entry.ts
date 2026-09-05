@@ -1,5 +1,5 @@
 /**
- * Where the layers meet: the game is found, the payloads reach a session, and what the session
+ * Where the layers meet: the game is found, the payloads reach a fight underway, and what it
  * holds is drawn.
  *
  * Everything it touches is handed in — the page, the document, the clock, the place a panel goes
@@ -18,12 +18,12 @@ import { getIntegerFromText } from "@/libs/number-text.ts";
 import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import {
-    addPayloadToSession,
-    type BattleSession,
-    composeBattleSession,
+    addPayloadToFight,
+    composeFightUnderway,
     type FightReading,
-    getFightFromSession,
-} from "@/src/game/battle-session.ts";
+    type FightUnderway,
+    getReadingFromFight,
+} from "@/src/game/fight-underway.ts";
 import { attachToGame, type GameAttachment, type Scheduler } from "@/src/game/engine-attachment.ts";
 import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
 import { type FightPlace, readPlaceFromPage } from "@/src/game/engine-place.ts";
@@ -539,17 +539,17 @@ function handlePressScreen(screen: ScreenState, said: string): boolean {
  * the figures are this version's rather than the version that watched the fight. **ADR 0026.**
  */
 function composeKeptFigures(kept: KeptFight): FightFigures | null {
-    const session = composeBattleSession();
-    for (const payload of kept.payloads) addPayloadToSession(session, payload);
-    return composeFightFigures(session);
+    const underway = composeFightUnderway();
+    for (const payload of kept.payloads) addPayloadToFight(underway, payload);
+    return composeFightFigures(underway);
 }
 
 /**
- * The figures, derived rather than kept: what a session holds is what the game said, so the two
+ * The figures, derived rather than kept: what the fight holds is what the game said, so the two
  * readers of it are never looking at arithmetic one of them did earlier.
  */
-function composeFightFigures(session: BattleSession): FightFigures | null {
-    const fight = getFightFromSession(session);
+function composeFightFigures(underway: FightUnderway): FightFigures | null {
+    const fight = getReadingFromFight(underway);
     if (fight === null) return null;
     const roster = composeCombatantRoster([...fight.roster.byId.values()]);
     const statistics = composeFightStatistics(fight.events, composeTeamHeals(fight.events, roster));
@@ -603,7 +603,7 @@ function getStandingFight(
  * the reader needs now rather than at the next payload. Nothing here asks for a redraw.
  */
 function drawFight(
-    session: BattleSession,
+    underway: FightUnderway,
     screen: ScreenState,
     panel: PanelHandle,
     shelf: ShelfKeeper,
@@ -613,7 +613,7 @@ function drawFight(
 ): void {
     const said = defects.getSaid();
     try {
-        if (drawFightOnPanel(session, screen, panel, shelf, liveFight, readClock, said, defects)) {
+        if (drawFightOnPanel(underway, screen, panel, shelf, liveFight, readClock, said, defects)) {
             return;
         }
         panel.showWaiting(screen.isCollapsed, { defects: said, isFightUnread: false });
@@ -637,12 +637,12 @@ function drawFightUnread(panel: PanelHandle, isCollapsed: boolean, defects: Kept
 }
 
 /**
- * Puts what the session holds into the panel that is already on the page. False where there is
+ * Puts what the fight holds into the panel that is already on the page. False where there is
  * nothing to put there — no fight and an empty shelf — because a panel of zeroes over a game that
  * has not started is a claim.
  */
 function drawFightOnPanel(
-    session: BattleSession,
+    underway: FightUnderway,
     screen: ScreenState,
     panel: PanelHandle,
     shelf: ShelfKeeper,
@@ -652,7 +652,7 @@ function drawFightOnPanel(
     keeper: KeptDefects,
 ): boolean {
     const { place, openedAt } = liveFight;
-    const live = composeFightFigures(session);
+    const live = composeFightFigures(underway);
     const standing = getStandingFight(live, screen, shelf);
     if (standing === null) return false;
     const { figures, kept } = standing;
@@ -1104,12 +1104,12 @@ function startFromUserscriptWindow(page: UserscriptWindow): GameAttachment {
  * derived by the code that is running. **ADR 0026.**
  */
 function keepFight(
-    session: BattleSession,
+    underway: FightUnderway,
     shelf: ShelfKeeper,
     live: LiveFight,
     gameBuild: string | null,
 ): void {
-    const fight = getFightFromSession(session);
+    const fight = getReadingFromFight(underway);
     if (fight === null) return;
     if (!fight.isOver) return;
     shelf.keep({
@@ -1125,8 +1125,8 @@ function keepFight(
  * What the figures of the live fight are written from, or nothing where none has been read. Null
  * is a true statement the file carries: the add-on was attached and the game said nothing.
  */
-function composeReportSubject(session: BattleSession, live: LiveFight): ReportSubject | null {
-    const figures = composeFightFigures(session);
+function composeReportSubject(underway: FightUnderway, live: LiveFight): ReportSubject | null {
+    const figures = composeFightFigures(underway);
     if (figures === null) return null;
     return {
         statistics: figures.statistics,
@@ -1150,13 +1150,13 @@ function composeReportSubject(session: BattleSession, live: LiveFight): ReportSu
 function writeRecording(
     environment: UserscriptEnvironment,
     live: LiveFight,
-    session: BattleSession,
+    underway: FightUnderway,
     defects: KeptDefects,
 ): void {
     const write = environment.write;
     if (write === null) return;
     const surroundings = environment.readSurroundings();
-    const subject = composeReportSubject(session, live);
+    const subject = composeReportSubject(underway, live);
     const text = composeCaptureText(live.capture, surroundings, subject);
     if (text === null) {
         defects.add("file", null, "a recording that would not be written as text");
@@ -1246,19 +1246,19 @@ function setLiveFightOpened(screen: ScreenState): void {
  */
 function readPayloadIntoLive(
     live: LiveFight,
-    session: BattleSession,
+    underway: FightUnderway,
     shelf: ShelfKeeper,
     environment: UserscriptEnvironment,
     stated: { payload: unknown; battle: EngineBattle },
 ): boolean {
-    addPayloadToSession(session, stated.payload);
+    addPayloadToFight(underway, stated.payload);
     live.capture = composeNextCapture(live.capture, {
         payload: stated.payload,
-        messages: session.messagesByPayload.at(-1) ?? [],
+        messages: underway.messagesByPayload.at(-1) ?? [],
         combatantsBefore: live.combatantsBefore,
         combatantsAfter: composeSnapshotFromBattle(stated.battle),
     });
-    const fight = getFightFromSession(session);
+    const fight = getReadingFromFight(underway);
     const isOpening = fight !== null && fight.payloads === 1;
     if (isOpening) {
         live.place = readPlaceFromPage(environment.page);
@@ -1267,7 +1267,7 @@ function readPayloadIntoLive(
     // Once, on the call that ends it: a fight put on the shelf twice is two fights.
     if (fight !== null && fight.isOver && !live.wasOver) {
         live.wasOver = true;
-        keepFight(session, shelf, live, environment.readSurroundings().gameBuild);
+        keepFight(underway, shelf, live, environment.readSurroundings().gameBuild);
     }
     if (fight !== null && !fight.isOver) live.wasOver = false;
     return isOpening;
@@ -1291,7 +1291,7 @@ function composeGameReports(environment: UserscriptEnvironment) {
 }
 
 export function startMargoMeter(environment: UserscriptEnvironment): GameAttachment {
-    const session = composeBattleSession();
+    const underway = composeFightUnderway();
     const defects = composeDefectKeeper((failure) => environment.report(FAILURE_LINE, failure));
     const store = environment.store;
     const screen = composeScreenState(store !== null && store.read(FOLD_KEY) === FOLDED);
@@ -1314,7 +1314,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
         isMounted = true;
     };
     const draw = (): void => {
-        drawFight(session, screen, panel, shelf, live, environment.readClock, defects);
+        drawFight(underway, screen, panel, shelf, live, environment.readClock, defects);
     };
     const showAndMount = (): void => {
         draw();
@@ -1323,7 +1323,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     const panel = composePanelHost(
         environment.document,
         (press) => {
-            if (press.kind === "save") writeRecording(environment, live, session, defects);
+            if (press.kind === "save") writeRecording(environment, live, underway, defects);
             const isShelfPress = setShelfFromPress(shelf, press);
             if (!isShelfPress && !handlePress(screen, press)) return;
             if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
@@ -1342,7 +1342,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
             live.combatantsBefore = composeSnapshotFromBattle(battle);
         },
         handlePayload: (payload, battle) => {
-            const isOpening = readPayloadIntoLive(live, session, shelf, environment, {
+            const isOpening = readPayloadIntoLive(live, underway, shelf, environment, {
                 payload,
                 battle,
             });

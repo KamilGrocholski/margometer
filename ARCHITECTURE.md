@@ -69,7 +69,7 @@ src/
     protocol-message.ts  One message's grammar: both ends, then its parameters.
     protocol-number.ts   The shapes a percentage and a share are written in — a measurement.
   game/
-    battle-session.ts    One fight, accumulated payload by payload, in the order they arrive.
+    fight-underway.ts    One fight, accumulated payload by payload, in the order they arrive.
     browser-store.ts     The store a browser lends, wrapped so a refusal is an answer.
     engine-attachment.ts   Getting the wrap onto the game, and off again.
     engine-battle-wrap.ts  The one function here that changes the running game.
@@ -135,7 +135,7 @@ docs/
 tests/
   AGENTS.md                What is true of a test here and nowhere else.
   game/
-    battle-session.test.ts    Every recording replayed the way the game delivered it.
+    fight-underway.test.ts    Every recording replayed the way the game delivered it.
     browser-store.test.ts     A store that answers, and a browser that will not lend one.
     engine-attachment.test.ts   A page with a game, without one, or with a reader on it.
     engine-battle-wrap.test.ts  The promise the add-on makes to the page.
@@ -290,7 +290,7 @@ game client (production bundle)
 engine wrap ──── original runs first, its value returned untouched
       │  raw payload
       ▼
-battle session ── one fight accumulated payload by payload
+fight underway ── one fight accumulated payload by payload
       │  messages
       ▼
 protocol message ── grammar only: structure, reversible, no meaning
@@ -322,7 +322,7 @@ One owner per fact, once each module exists. A second module reads it; it does n
 | Who is in the fight        | `core/combatant-roster.ts` | An ambiguous name resolves to nobody. |
 | Health entered and held    | `core/combatant-health.ts` | Every input refused, never defaulted. |
 | Every figure a panel draws | `core/fight-statistics.ts` | Raw and applied kept apart.           |
-| Which side is the reader's | `game/battle-session.ts`   | The one thing `core` cannot know.     |
+| Which side is the reader's | `game/fight-underway.ts`   | The one thing `core` cannot know.     |
 | Where a fight happens      | `game/engine-place.ts`     | Off client state, never wrapped.      |
 | What the panel says        | `ui/panel-words.ts`        | The only Polish in `src/`.            |
 | Which screen it is on      | `ui/panel-screen.ts`       | And whose row stands open over it.    |

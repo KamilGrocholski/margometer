@@ -23,7 +23,7 @@ export interface ReportSubject {
     /** Where it was fought, as the client stated it rather than as the bar words it. */
     place: FightPlace | null;
     payloads: number;
-    /** Messages a payload said it carried and the session did not read. Zero is the answer. */
+    /** Messages a payload said it carried and the reading did not take. Zero is the answer. */
     messagesLost: number;
     isOver: boolean;
 }

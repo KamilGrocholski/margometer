@@ -14,7 +14,7 @@ import {
     getRecordedMessages,
     readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
-import { READER_SIDE_KEY } from "@/src/game/battle-session.ts";
+import { READER_SIDE_KEY } from "@/src/game/fight-underway.ts";
 import { WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
 import { CAPTURE_FIELDS, NOTHING_STATED } from "@/src/game/fight-capture.ts";
 import { getNumberFromUnknown, getStatedTextFromUnknown } from "@/libs/unknown-reading.ts";

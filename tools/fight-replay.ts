@@ -14,12 +14,12 @@ import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
 import {
-    addPayloadToSession,
-    type BattleSession,
-    composeBattleSession,
+    addPayloadToFight,
+    composeFightUnderway,
     type FightReading,
-    getFightFromSession,
-} from "@/src/game/battle-session.ts";
+    type FightUnderway,
+    getReadingFromFight,
+} from "@/src/game/fight-underway.ts";
 import { RECORDING_DIRECTORY } from "@/project/repository-layout.ts";
 import { RecordingReadError } from "@/tools/margometer-tool-error.ts";
 import {
@@ -65,9 +65,9 @@ export interface RecordedMaterial {
  * once, and every one of them would grow as the next payload arrived. Read straight, each step
  * then reports the whole fight and every delta between two of them is nothing.
  */
-function composeReplayOfSession(name: string, session: BattleSession): FightReplay | null {
+function composeReplayOfSession(name: string, underway: FightUnderway): FightReplay | null {
     assert(name.length > 0, "a replay is named for the recording it came from");
-    const held = getFightFromSession(session);
+    const held = getReadingFromFight(underway);
     if (held === null) return null;
     const reading: FightReading = {
         ...held,
@@ -87,9 +87,9 @@ function composeReplayOfSession(name: string, session: BattleSession): FightRepl
 export function composeFightReplay(fight: RecordedFight): FightReplay {
     assert(fight.name.length > 0, "a replay is named for the recording it came from");
     assert(fight.calls.length > 0, "and is built from at least one call");
-    const session = composeBattleSession();
-    for (const call of fight.calls) addPayloadToSession(session, call);
-    const replay = composeReplayOfSession(fight.name, session);
+    const underway = composeFightUnderway();
+    for (const call of fight.calls) addPayloadToFight(underway, call);
+    const replay = composeReplayOfSession(fight.name, underway);
     if (replay === null) {
         throw new RecordingReadError(`${fight.name} carries no payload the add-on would read`);
     }
@@ -108,11 +108,11 @@ export function composeFightReplay(fight: RecordedFight): FightReplay {
 export function composeFightReplaySteps(fight: RecordedFight): FightReplayStep[] {
     assert(fight.name.length > 0, "a replay is named for the recording it came from");
     assert(fight.calls.length > 0, "and is built from at least one call");
-    const session = composeBattleSession();
+    const underway = composeFightUnderway();
     const steps: FightReplayStep[] = [];
     for (const call of fight.calls) {
-        addPayloadToSession(session, call);
-        const replay = composeReplayOfSession(fight.name, session);
+        addPayloadToFight(underway, call);
+        const replay = composeReplayOfSession(fight.name, underway);
         if (replay !== null) steps.push({ payload: call, replay });
     }
     assert(steps.length <= fight.calls.length, "a payload leaves the fight in one state, not two");
