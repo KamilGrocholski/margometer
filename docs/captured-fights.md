@@ -32,6 +32,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `1 vs 1`  | `3`        |
 | `1 vs 2`  | `1`        |
 | `1 vs 3`  | `1`        |
+| `5 vs 1`  | `1`        |
 | `9 vs 1`  | `1`        |
 | `10 vs 1` | `22`       |
 
@@ -67,6 +68,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json`                   | `10 vs 1` | `ours won`   | `10 players · h 2, m 1, t 4, w 3 · levels 57–85`           | `1 NPC · w 1 · level 60`           | `184680`             |
 | `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`                  | `10 vs 1` | `theirs won` | `10 players · b 1, h 1, p 2, t 3, w 3 · levels 83–100`     | `1 NPC · p 1 · level 83`           | `209110`             |
 | `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json`                | `10 vs 1` | `ours won`   | `10 players · b 2, m 4, t 2, w 2 · levels 83–107`          | `1 NPC · p 1 · level 83`           | `209110`             |
+| `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json`         | `5 vs 1`  | `theirs won` | `5 players · m 2, p 1, t 1, w 1 · levels 23–61`            | `1 NPC · b 1 · level 36`           | `49124`              |
 
 ## The recordings
 
@@ -100,6 +102,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json`                   | `luvia`        | `53XkBRxF`      | `0.8.1`       | `3`   | `487`    |
 | `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json`                | `luvia`        | `53XkBRxF`      | `0.9.0`       | `111` | `715`    |
 | `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`                  | `luvia`        | `53XkBRxF`      | `0.9.0`       | `15`  | `709`    |
+| `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json`         | `luvia`        | `ne0iTNdg`      | `0.14.0`      | `3`   | `171`    |
 
 ## What the material does not hold
 
@@ -113,7 +116,7 @@ than a defect.
   one. A wide enemy side is untested on real protocol.
 - **No drawn fight.** The panel draws one, and the fight it draws it from is hand-built
   (`tests/ui/panel-reading.test.ts`).
-- **Three worlds, and one of them once.** Everything but the duel and the six recordings from
+- **Three worlds, and one of them once.** Everything but the duel and the seven recordings from
   `luvia` comes from `tempest`; the duel is the one that happened once.
 
 A loss **is** held, in more than one recording — which is what the outcome column is for, since
@@ -134,8 +137,8 @@ evidence.
   between two players, and the only recording from `experimental`, whose build lags production
   (§7.6). The keys it brought were read the day it arrived (`05d712f`).
 - `captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json` — the first fight the
-  game settled by itself, and one of two. Every payload carries `auto`, the whole battle arrives in
-  one engine call with no snapshot before it, and the two calls after it carry snapshots and no
+  game settled by itself, and one of three. Every payload carries `auto`, the whole battle arrives
+  in one engine call with no snapshot before it, and the two calls after it carry snapshots and no
   messages at all. So it contributes nothing to the health witness, for the same reason the duel
   does not (`tests/core/health-witness.test.ts`), and its opening call has to be unwound in full to
   say what anybody entered with.
@@ -162,9 +165,10 @@ evidence.
   It is also the only fight **entered by hand and finished on auto**: the opening call states `auto`
   as `0`, the third states `1`, and 304 of the 308 messages arrive in the closing call. Unlike the
   other auto recording it still has an opening snapshot, so the health witness judges it in full
-  rather than declining it. Of the four keys it brought, `+stun2` and `npc_heal` are still in no
-  other recording, while `anguish` and `+legbon_anguish` arrived here first and are in both Draugr
-  fights of the same day (`docs/protocol-keys.md`).
+  rather than declining it. Of the four keys it brought, `+stun2` and `npc_heal` are in one other
+  recording each — the Mamlambo fight of 2026-09-06, against the same monster — while `anguish` and
+  `+legbon_anguish` arrived here first and are in both Draugr fights of the same day
+  (`docs/protocol-keys.md`).
 
 - `captures/2026-08-25-luvia-grupa-vs-draugr-auto-none-none.json` — the second fight the game
   settled by itself, in the same shape as the first: `auto` on every payload, all 462 messages in
@@ -245,6 +249,18 @@ evidence.
   is. And `active_absorbdest_per` gained a third declared share, `6`: three casters announce in this
   one fight, each says one value and never another, which is the clearest evidence yet that the
   share belongs to the caster and not to the skill (`docs/protocol-keys.md`).
+
+- `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json` — the **smallest party
+  in the material**, and the third fight the game settled by itself, in the shape the other two
+  have: `auto` on every payload, all 171 messages in the opening call, no snapshot before it, and
+  the two calls after it carrying snapshots and nothing else. It contributes nothing to the health
+  witness for that reason. It is also the first recording on build `ne0iTNdg`.
+
+  ⚠️ **It is the only recording carrying `surpass_bonus_total`**, and it is what that key needed:
+  the corpus already held the same monster at the same level met by ten players, so the two together
+  say the value is a percentage over the monster's pool rather than a figure of its own
+  (`docs/protocol-keys.md`). Nothing else here is fought by fewer than nine, which is why no earlier
+  recording could carry it.
 
 - `captures/2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none.json`,
   `captures/2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none.json` and

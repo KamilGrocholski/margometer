@@ -534,8 +534,8 @@ Deno.test("every point of damage taken states what it was made of, on every reco
         }
     }
     // What a blow never carried, and what the cut would have had to call unknown before the key
-    // it moved under was read as a kind: 637,599 over `captures/`, measured 2026-08-29.
-    assertEquals(byKey, 637599, "and the health that moved outside a blow is named by its key");
+    // it moved under was read as a kind: 639,400 over `captures/`, measured 2026-09-06.
+    assertEquals(byKey, 639400, "and the health that moved outside a blow is named by its key");
 });
 
 /**
@@ -1081,8 +1081,8 @@ Deno.test("a one-side list divides by the figure the strip states for that side"
             }
         }
     }
-    assertEquals(checked, 432, "every seat of the corpus, on every screen, both ways round");
-    assertEquals(charged, 76, "and this many of them stand over a figure charged to that side");
+    assertEquals(checked, 448, "every seat of the corpus, on every screen, both ways round");
+    assertEquals(charged, 78, "and this many of them stand over a figure charged to that side");
 });
 
 /**
@@ -1125,8 +1125,8 @@ Deno.test("what one side dealt with no striker named is what the other took from
             together += apart?.figure ?? 0;
         }
     }
-    assertEquals(seats, 54, "every seat of the corpus reads the mirror");
-    assertEquals(together, 607970, "and this is what it comes to over all of them");
+    assertEquals(seats, 56, "every seat of the corpus reads the mirror");
+    assertEquals(together, 609771, "and this is what it comes to over all of them");
 });
 
 /** Two people, one apiece, so a side can be charged with something or with nothing. */
@@ -1425,9 +1425,9 @@ Deno.test("every recording states how it ended, and every seat in it reads a wor
             seats += 1;
         }
     }
-    // 28 recordings, one of which carries no roster at all and so has no seat to read from.
+    // 29 recordings, one of which carries no roster at all and so has no seat to read from.
     assertEquals(stated, readRecordingPaths().length, "every recording carries an outcome");
-    assertEquals(seats, 54, "and 27 of them state two sides apiece");
+    assertEquals(seats, 56, "and 28 of them state two sides apiece");
 });
 
 /**

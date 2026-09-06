@@ -1227,9 +1227,24 @@ function addCall(
     });
 }
 
+/**
+ * The one key the corpus states before anybody acts, on the side facing the reader. Written on
+ * the opening because that is where the protocol writes it, and the whole script has no other
+ * message that opens no turn and rides no act.
+ */
+function composeOpeningDeclarations(state: FabricationState): string[] {
+    const stated = state.warriors.find((one) => one.side === SIDE_THEIRS);
+    assertExists(stated, "an opening declaration is made about somebody in the fight");
+    return [composeMessage(composeSide(stated), null, [
+        composeValued("surpass_bonus_total", composeIntegerText(14)),
+    ])];
+}
+
 /** The client's own opening: the cast, the ground it stands on, and whose side the reader is. */
 function addOpeningCall(state: FabricationState): void {
     const before = composeSnapshot(state);
+    const messages = composeOpeningDeclarations(state);
+    const indexes = addMessageIndexes(state, messages);
     const payload: Record<string, unknown> = {
         [FIGHT_OPENS_KEY]: "1",
         auto: "0",
@@ -1239,6 +1254,8 @@ function addOpeningCall(state: FabricationState): void {
         skills: ["-1", "", "", "", "", "", "", "", "", ""],
         [WARRIOR_FIELDS.warriors]: composeWarriorMap(state.warriors, composeOpeningWarrior),
         [READER_SIDE_KEY]: SIDE_OURS,
+        [MESSAGES_KEY]: messages,
+        [MESSAGE_INDEX_KEY]: indexes,
         poolTime: { total: 120, minimum: 2, penalty: 5, left: 120 },
         start_move: 15,
         move: 15,
@@ -1246,7 +1263,7 @@ function addOpeningCall(state: FabricationState): void {
     assert(Object.keys(payload).length > 0, "an opening states something");
     assert(state.calls.length === 0, "and is the first call a fabricated fight carries");
     state.awaiting = payload;
-    addCall(state, payload, [], before);
+    addCall(state, payload, messages, before);
 }
 
 function addTurnCall(state: FabricationState, turn: FabricatedTurn, act: FabricatedAct): void {

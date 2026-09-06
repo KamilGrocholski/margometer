@@ -22,6 +22,22 @@ const NPC_HEAL = "captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.js
 const POINTS_PER_CAST = 4;
 const TOLERANCE = 0.01;
 
+/** Every recording carrying the key, so a rule about it is read on all of them and not on one. */
+function getRecordingsCarryingKey(): string[] {
+    return readRecordingPaths().filter((path) =>
+        getRecordedMessages(path).some((message) =>
+            parseProtocolMessage(message).parameters.some((one) => one.key === KEY)
+        )
+    );
+}
+
+/** The messages that recording states the key on, which is what every rule below is read over. */
+function getMessagesCarryingKey(path: string): string[] {
+    return getRecordedMessages(path).filter((message) =>
+        parseProtocolMessage(message).parameters.some((one) => one.key === KEY)
+    );
+}
+
 Deno.test("the key is read wherever it stands, including where it states nothing", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(NPC_HEAL));
     const restored = decodeFightMessages(getRecordedMessages(NPC_HEAL), roster).filter((event) =>
@@ -35,49 +51,58 @@ Deno.test("the key is read wherever it stands, including where it states nothing
 
 /**
  * The message names a different combatant at each end, so a reading off the wrong slot credits
- * somebody the game never said was healed — and both slots are populated in all three.
+ * somebody the game never said was healed — and both slots are populated in every occurrence.
+ *
+ * Read over **every** recording carrying the key rather than over the one it was first found on:
+ * a rule that holds on one fight and is never asked of the next is a coincidence with a test
+ * around it.
  */
 Deno.test("the restoration is the actor's, and the figure a share of their own pool", () => {
-    const combatants = getRecordedCombatants(NPC_HEAL);
-    const roster = composeCombatantRoster(combatants);
-    const messages = getRecordedMessages(NPC_HEAL).filter((message) =>
-        parseProtocolMessage(message).parameters.some((one) => one.key === KEY)
-    );
-    assertEquals(messages.length, 3, "the three the material carries");
-    const actors = new Set<number>();
-    const targets = new Set<number>();
-    for (const message of messages) {
-        const parsed = parseProtocolMessage(message);
-        assertExists(parsed.actor, "each names an actor");
-        assertExists(parsed.target, "and a target, which is what makes the slot a choice");
-        actors.add(parsed.actor.combatantId);
-        targets.add(parsed.target.combatantId);
-    }
-    assertEquals(actors.size, 1, "one combatant is restored in all three");
-    assert(targets.size > 1, "while the other slot names several, so the two cannot be confused");
+    const carrying = getRecordingsCarryingKey();
+    assert(carrying.length > 0, "the material carries the key somewhere");
+    for (const path of carrying) {
+        const combatants = getRecordedCombatants(path);
+        const roster = composeCombatantRoster(combatants);
+        const messages = getMessagesCarryingKey(path);
+        assert(messages.length > 0, `${path}: a carrier states the key at least once`);
+        const actors = new Set<number>();
+        const targets = new Set<number>();
+        for (const message of messages) {
+            const parsed = parseProtocolMessage(message);
+            assertExists(parsed.actor, `${path}: each names an actor`);
+            assertExists(parsed.target, `${path}: and a target, which makes the slot a choice`);
+            actors.add(parsed.actor.combatantId);
+            targets.add(parsed.target.combatantId);
+        }
+        assertEquals(actors.size, 1, `${path}: one combatant is restored throughout`);
+        assert(targets.size > 1, `${path}: the other slot names several, so neither is the other`);
 
-    const [healed] = [...actors];
-    assertExists(healed, "a set of one has a member");
-    const maximum = combatants.find((one) => one.id === healed)?.healthMaximum ?? null;
-    assertExists(maximum, "the snapshot beside the fight states that combatant's pool");
-    for (const event of decodeFightMessages(messages, roster)) {
-        if (event.kind !== "health-change") continue;
-        assertEquals(event.combatantId, healed, "every event lands on the actor slot's combatant");
-        assert(event.amount >= 0, "and puts health back rather than taking it");
-        if (event.amount === 0) continue;
-        const points = (event.amount * 100) / maximum;
-        assert(
-            Math.abs(points - POINTS_PER_CAST) < TOLERANCE,
-            `a cast worth ${points.toFixed(2)} points of the pool rather than four`,
-        );
+        const [healed] = [...actors];
+        assertExists(healed, "a set of one has a member");
+        const maximum = combatants.find((one) => one.id === healed)?.healthMaximum ?? null;
+        assertExists(maximum, `${path}: the snapshot states that combatant's pool`);
+        for (const event of decodeFightMessages(messages, roster)) {
+            if (event.kind !== "health-change") continue;
+            assertEquals(event.combatantId, healed, `${path}: every event lands on the actor`);
+            assert(event.amount >= 0, `${path}: and puts health back rather than taking it`);
+            if (event.amount === 0) continue;
+            const points = (event.amount * 100) / maximum;
+            assert(
+                Math.abs(points - POINTS_PER_CAST) < TOLERANCE,
+                `${path}: a cast worth ${points.toFixed(2)} points of the pool rather than four`,
+            );
+        }
     }
 });
 
-Deno.test("no other recording carries the key, so the reading rests on this one", () => {
-    const carrying = readRecordingPaths().filter((path) =>
-        getRecordedMessages(path).some((message) =>
-            parseProtocolMessage(message).parameters.some((one) => one.key === KEY)
-        )
+/**
+ * Which recordings the reading rests on. Named rather than counted, so a third arriving is a
+ * failure that says what to read next — the rule above is then asked of it too.
+ */
+Deno.test("the recordings carrying the key are the ones the reading was read on", () => {
+    assertEquals(
+        getRecordingsCarryingKey(),
+        [NPC_HEAL, "captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json"],
+        "two recordings, and a third would want reading too, 2026-09-06",
     );
-    assertEquals(carrying, [NPC_HEAL], "one recording, and a second would want reading too");
 });

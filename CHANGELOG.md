@@ -36,6 +36,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Poprawka** — Zapis do pliku bierze tę walkę, którą widzisz. Wcześniej brał tylko tę, którą panel
   czytał na bieżąco, więc po odświeżeniu strony — kiedy panel pokazuje walkę z zapisanych — pobierał
   się plik bez niczego w środku. Teraz pobiera się ta walka, na którą patrzysz.
+- **Poprawka** — Walka w mniejszej drużynie nie kończy się już ostrzeżeniem. Kiedy potwór dostaje
+  wzmocnienie za to, że staje przeciw małej grupie, gra mówi o tym na początku walki — panel tego
+  nie rozumiał i zaliczał to zdanie do rzeczy, których nie odczytał. Teraz je odczytuje, a liczby i
+  tak się nie zmieniają: wzmocnienie widać już w życiu potwora i w jego ciosach.
 - **Zmiana** — Przycisk zapisu pokazuje się tylko wtedy, gdy jest co zapisać. Na świeżo otwartej
   grze, zanim panel zobaczy jakąkolwiek walkę, nie ma go na belce.
 

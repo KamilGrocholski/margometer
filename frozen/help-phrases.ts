@@ -89,6 +89,7 @@ export const FROZEN_HELP_PHRASES = {
         "stun2": 3,
         "superspell": 0,
         "superspell-dispel": 0,
+        "surpass_bonus": 4,
         "swing": 3,
         "taken_dmg": 3,
         "tcustom": 0,

@@ -41,7 +41,7 @@ Deno.test("the share stands on a skill announcement and never on a blow", () => 
             assert(announced, `${path}: a share on a message announcing no skill`);
         }
     }
-    assertEquals(reports, 465, "every report the material carries, 2026-08-30");
+    assertEquals(reports, 477, "every report the material carries, 2026-09-06");
 });
 
 Deno.test("a caster never reports two different shares, in a fight or across them", () => {

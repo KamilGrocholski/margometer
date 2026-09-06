@@ -237,6 +237,7 @@ const DECLARATION_KEYS = [
     "poison_lowdmg_per-enemies",
     PREPARE_KEY,
     "shout",
+    "surpass_bonus_total",
     TEXT_KEY,
 ];
 /**
