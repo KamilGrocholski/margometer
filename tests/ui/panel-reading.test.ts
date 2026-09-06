@@ -17,7 +17,7 @@ import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
-import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import { composeCombatantFigures, composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import type { FightStatistics } from "@/src/core/fight-statistics.ts";
 import type { PanelSideChoice } from "@/src/ui/panel-screen.ts";
@@ -40,6 +40,7 @@ import {
     getPinnedCase,
     getRowIsSuspect,
     getTextForNamedPart,
+    MAXIMUM_SKILLS,
     NOTHING_SUSPECT,
 } from "@/src/ui/panel-reading.ts";
 import { getWordsForDamageKind, HEALTH_LOSS_WORDS } from "@/src/ui/panel-words.ts";
@@ -2110,3 +2111,83 @@ Deno.test("a row's card states the turns the figures hold, and not a count besid
     }
     assert(differed > 0, "and the fight tells the two counts apart, so the check is a check");
 });
+
+/**
+ * ⚠️ **A bound is a display bound, and it must never turn a true claim into a false one.** A
+ * section is bounded because it is drawn (**S11**), and what the bound could not give a row to used
+ * to be left out of the sum — so it landed in the row that closes the section, which on a received
+ * screen reads `Zwykły cios`: the game announced the blow, and the panel said it had not.
+ *
+ * The fight is built by hand because no recording reaches the bound: 81 announcement names over
+ * `captures/` on 2026-08-30, against a bound of 256. **ADR 0055.**
+ */
+Deno.test("a section past its own bound sums what is left, and never calls it unannounced", () => {
+    const receiverId = 1;
+    const roster = composeCombatantRoster([
+        {
+            id: receiverId,
+            name: "Odbiorca",
+            side: 1,
+            level: 100,
+            profession: "w",
+            healthMaximum: null,
+        },
+        { id: 2, name: "Nadawca", side: 2, level: 100, profession: "m", healthMaximum: null },
+    ]);
+    const statistics = composeStatisticsWithSkills(receiverId, NAMES_PAST_THE_BOUND);
+    const drill = composeDrillReading(statistics, roster, "damageTakenApplied", receiverId);
+    assertExists(drill, "the row opens");
+
+    assertEquals(drill.total, NAMES_PAST_THE_BOUND, "every announcement reached this combatant");
+    assert(drill.bySkill.rows.length < NAMES_PAST_THE_BOUND, "more names than the section draws");
+    assertExists(drill.bySkill.rest, "so what it could not draw is a row of its own");
+    assertEquals(drill.bySkill.plain, null, "and the closing row makes no claim it cannot make");
+
+    const drawn = drill.bySkill.rows.reduce((sum, one) => sum + one.figure, 0);
+    assertEquals(
+        drawn + drill.bySkill.rest.figure,
+        drill.total,
+        "the rows and the sum under them come to the figure over them",
+    );
+});
+
+/** One name past the bound, so the sum is one and the arithmetic is checkable by eye. */
+const NAMES_PAST_THE_BOUND = MAXIMUM_SKILLS + 1;
+
+/**
+ * A fight in which one combatant was reached by many announcements, each for a point. Built here
+ * rather than replayed: this is the shape no recording has, and `core/` is asked for the figures
+ * it hands out so the test states no shape of its own.
+ */
+function composeStatisticsWithSkills(receiverId: number, names: number): FightStatistics {
+    const receiver = composeCombatantFigures();
+    receiver.damageTakenApplied = names;
+    const giver = composeCombatantFigures();
+    giver.damageDealtApplied = names;
+    for (let at = 0; at < names; at += 1) {
+        giver.skills.set(`Cios ${at}`, {
+            name: `Cios ${at}`,
+            uses: 1,
+            dealt: 1,
+            blows: 1,
+            dealtByOpponent: new Map([[`${receiverId}`, 1]]),
+            restored: 0,
+            restoredByOpponent: new Map(),
+        });
+    }
+    const totals = composeCombatantFigures();
+    totals.damageTakenApplied = names;
+    totals.damageDealtApplied = names;
+    return {
+        byCombatantId: new Map([[receiverId, receiver], [2, giver]]),
+        totals,
+        dealtByNobody: 0,
+        takenByNobody: 0,
+        givenByNobody: 0,
+        byNeitherEnd: 0,
+        byNeitherEndByElement: new Map(),
+        unreadMessages: 0,
+        castsUnplaced: 0,
+        outcome: null,
+    };
+}

@@ -23,6 +23,7 @@ import type {
     PartReading,
     PersonRow,
     PinnedRow,
+    PlainRow,
     RankingRow,
     ShelfRow,
     SkillRow,
@@ -936,12 +937,38 @@ function composeSkillSection(
         const mark = getMarkForNamedPart(row.part, row.doesOpenPart);
         list.append(composeRowElement(document, reading, mark, tip));
     }
+    composeRestRow(document, list, cut.rest, { register: stated.register, figure: stated.figure });
     if (cut.plain === null) return;
     const tip = { register: stated.register, key: "skill:plain", figure: stated.figure, share };
     const reading = {
         ...composeUnnamedReading(cut.plain, getWordsForUnannounced(stated.metric)),
         uses: cut.plain.blows,
     };
+    list.append(composeRowElement(document, reading, null, tip));
+}
+
+/**
+ * What a section could not give a row to, summed into one — above the row that closes the section
+ * and never inside it. The two are different claims: this is what the game **did** name, and the
+ * one below it is what it named nothing for. **ADR 0055.**
+ *
+ * It opens nothing: a sum of parts nobody can list is a level of no figure.
+ */
+function composeRestRow(
+    document: PanelDocument,
+    list: PanelElement,
+    rest: PlainRow | null,
+    stated: { register: TipRegister; figure: string },
+): void {
+    if (rest === null) return;
+    const tip = {
+        register: stated.register,
+        key: "skill:rest",
+        figure: stated.figure,
+        share: PANEL_WORDS.shareOfFigure,
+        notes: [PANEL_WORDS.restNote],
+    };
+    const reading = composeUnnamedReading(rest, PANEL_WORDS.restOfKinds);
     list.append(composeRowElement(document, reading, null, tip));
 }
 
@@ -1007,7 +1034,10 @@ function getRowsForDrill(drill: DrillReading, floor: number): number {
         needed += cut.rows.length + (cut.unnamed === null ? 0 : 1) + 1;
     }
     if (drill.bySkill.rows.length > 0 || drill.bySkill.plain !== null) {
-        needed += drill.bySkill.rows.length + (drill.bySkill.plain === null ? 0 : 1) + 1;
+        // Three rows can close this one: what the bound would not draw, what no announcement
+        // covered, and the heading over the lot.
+        needed += drill.bySkill.rows.length + (drill.bySkill.rest === null ? 0 : 1) +
+            (drill.bySkill.plain === null ? 0 : 1) + 1;
     }
     return Math.max(needed, floor);
 }

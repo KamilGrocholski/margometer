@@ -20,14 +20,15 @@ const SHARE_FLOOR = "<1%";
 
 /**
  * The widest section, which is the skills section on a healing screen: every caster's names at
- * `MAXIMUM_SKILLS`, the keys no announcement covered, and the row that closes it.
+ * `MAXIMUM_SKILLS`, the keys no announcement covered, and **two** rows closing it — what the
+ * bound would not give a row to, and what no announcement covered at all (**ADR 0055**).
  */
-const WIDEST_SECTION = MAXIMUM_SKILLS + MAXIMUM_CUT_PARTS + 1;
+const WIDEST_SECTION = MAXIMUM_SKILLS + MAXIMUM_CUT_PARTS + 2;
 /** What a section costs a draw beyond its rows: the row named for nobody, and its heading. */
 const SECTION_EXTRAS = 2;
 /** And the widest screen: an opened row's three sections, their extras, and the two pinned. */
 const WIDEST_SCREEN = MAXIMUM_COMBATANTS + SECTION_EXTRAS +
-    (WIDEST_SECTION + SECTION_EXTRAS) +
+    (WIDEST_SECTION + 1) +
     (MAXIMUM_CUT_PARTS + SECTION_EXTRAS) + 2;
 
 function getPointsFromShareText(text: string): number {

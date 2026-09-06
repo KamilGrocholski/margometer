@@ -54,7 +54,10 @@ export const PANEL_WORDS = {
     healthSource: "OD CZEGO",
     skills: "CZYM",
     withoutKind: "Bez podanego typu",
+    /** What a bound would not give a row to, summed. Never the row that closes a section: that
+     * one is what the game named nothing for, and this is what it named (**ADR 0055**). */
     restOfKinds: "pozostałe",
+    restNote: "Za dużo pozycji, żeby pokazać każdą — te są tu zsumowane.",
     undrawn: "nie dało się narysować",
     combatants: "Postacie",
     share: "Udział w walce",

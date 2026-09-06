@@ -1289,6 +1289,13 @@ export interface PlainRow {
 
 export interface SkillCut {
     rows: SkillRow[];
+    /**
+     * ⚠️ **What would not fit, summed — and never folded into the row below it.** A section is
+     * bounded because it is drawn (**S11**), and a part past that bound is one the game **did**
+     * name. Left out of the rows it landed in `plain`, which says the game announced nothing: a
+     * figure moved from a true claim to a false one by a display bound. **ADR 0055.**
+     */
+    rest: PlainRow | null;
     plain: PlainRow | null;
 }
 
@@ -1505,6 +1512,15 @@ function composeOpponentCut(
     };
 }
 
+/**
+ * A fold that may meet its bound: the parts it kept a row for, and the figure of everything past
+ * it. The rest is carried rather than dropped, so what is drawn still comes to the figure over it.
+ */
+interface FoldedParts {
+    parts: UnsharedPart[];
+    rest: number;
+}
+
 interface UnsharedPart {
     part: NamedPart;
     /**
@@ -1532,14 +1548,19 @@ interface UnsharedSkill extends UnsharedPart {
  * and `legbon_holytouch_heal` 3.0%, of 1,429,693 points — and the last two are legendary bonuses
  * rather than a regeneration, which is why the section names each and not the lot.
  */
-function composeSourceRows(cut: FigureCut): UnsharedPart[] {
+function composeSourceRows(cut: FigureCut): FoldedParts {
     const stated: UnsharedPart[] = [];
+    let rest = 0;
     for (const [source, figure] of cut) {
+        if (figure <= 0) continue;
         // No count: the protocol states no number of applications of a key.
-        if (figure > 0) stated.push({ part: { kind: "source", source }, uses: null, figure });
-        if (stated.length >= MAXIMUM_CUT_PARTS) break;
+        if (stated.length < MAXIMUM_CUT_PARTS) {
+            stated.push({ part: { kind: "source", source }, uses: null, figure });
+            continue;
+        }
+        rest += figure;
     }
-    return stated;
+    return { parts: stated, rest };
 }
 
 /**
@@ -1556,8 +1577,9 @@ function composeSkillRowsReceived(
     statistics: FightStatistics,
     combatantId: number,
     getCut: (skill: SkillFigures) => FigureCut,
-): UnsharedPart[] {
+): FoldedParts {
     const byName = new Map<string, number>();
+    let rest = 0;
     for (const held of statistics.byCombatantId.values()) {
         for (const skill of held.skills.values()) {
             const figure = getCut(skill).get(`${combatantId}`) ?? 0;
@@ -1566,18 +1588,23 @@ function composeSkillRowsReceived(
                 byName.set(skill.name, (byName.get(skill.name) ?? 0) + figure);
                 continue;
             }
-            // S11: the bound holds the fold rather than an assertion standing beside it.
-            if (byName.size >= MAXIMUM_SKILLS) continue;
+            // S11: the bound holds the fold rather than an assertion standing beside it — and
+            // what it will not give a row to is summed, never dropped (**ADR 0055**).
+            if (byName.size >= MAXIMUM_SKILLS) {
+                rest += figure;
+                continue;
+            }
             byName.set(skill.name, figure);
         }
     }
     // No count: the announcement was somebody else's, and how many times it was made says
     // nothing about how much of what came of it reached this row.
-    return [...byName].map(([name, figure]) => ({
+    const parts = [...byName].map(([name, figure]) => ({
         part: { kind: "skill" as const, name },
         uses: null,
         figure,
     }));
+    return { parts, rest };
 }
 
 /**
@@ -1595,15 +1622,16 @@ function composeSkillRows(
     figures: CombatantFigures,
     metric: PanelMetric,
     combatantId: number,
-): UnsharedSkill[] {
+): { rows: UnsharedSkill[]; rest: number } {
     const stated = composeSkillRowsStated(statistics, figures, metric, combatantId);
     // Asked by composing the level and counting it, rather than by a rule written beside the
     // composer: two spellings of one question disagree silently, and the reader meets the
     // disagreement as an arrow leading nowhere.
-    return stated.map((one) => ({
+    const rows = stated.parts.map((one) => ({
         ...one,
         doesOpenPart: composePartCut(statistics, figures, metric, combatantId, one.part) !== null,
     }));
+    return { rows, rest: stated.rest };
 }
 
 function composeSkillRowsStated(
@@ -1611,12 +1639,17 @@ function composeSkillRowsStated(
     figures: CombatantFigures,
     metric: PanelMetric,
     combatantId: number,
-): UnsharedPart[] {
+): FoldedParts {
     if (metric === "healthRestored") {
-        return [
-            ...composeSkillRowsReceived(statistics, combatantId, (one) => one.restoredByOpponent),
-            ...composeSourceRows(figures.healthRestoredWithoutSkillBySource),
-        ];
+        const named = composeSkillRowsReceived(
+            statistics,
+            combatantId,
+            (o) => o.restoredByOpponent,
+        );
+        return composeFoldedTogether(
+            named,
+            composeSourceRows(figures.healthRestoredWithoutSkillBySource),
+        );
     }
     // No keys beside them: what a blow was made of stands in a section of its own, and putting it
     // here as well would draw it twice.
@@ -1625,20 +1658,28 @@ function composeSkillRowsStated(
     }
     const own = [...figures.skills.values()];
     if (metric === "healthGiven") {
-        return [
-            ...own.filter((one) => one.restored > 0).map((one) => ({
+        return composeFoldedTogether({
+            parts: own.filter((one) => one.restored > 0).map((one) => ({
                 part: { kind: "skill" as const, name: one.name },
                 uses: one.uses,
                 figure: one.restored,
             })),
-            ...composeSourceRows(getGivenSourceCut(figures)),
-        ];
+            rest: 0,
+        }, composeSourceRows(getGivenSourceCut(figures)));
     }
-    return own.filter((one) => one.dealt > 0 || one.blows > 0).map((one) => ({
-        part: { kind: "skill" as const, name: one.name },
-        uses: one.uses,
-        figure: one.dealt,
-    }));
+    return {
+        parts: own.filter((one) => one.dealt > 0 || one.blows > 0).map((one) => ({
+            part: { kind: "skill" as const, name: one.name },
+            uses: one.uses,
+            figure: one.dealt,
+        })),
+        rest: 0,
+    };
+}
+
+/** Two folds drawn as one section, so what neither could fit is one row rather than two. */
+function composeFoldedTogether(one: FoldedParts, other: FoldedParts): FoldedParts {
+    return { parts: [...one.parts, ...other.parts], rest: one.rest + other.rest };
 }
 
 /**
@@ -1677,7 +1718,8 @@ function composeSkillCut(
     total: number,
     combatantId: number,
 ): SkillCut {
-    const stated = composeSkillRows(statistics, figures, metric, combatantId);
+    const folded = composeSkillRows(statistics, figures, metric, combatantId);
+    const stated = folded.rows;
     stated.sort((one, other) =>
         getRankedOrder(
             one.figure,
@@ -1686,7 +1728,9 @@ function composeSkillCut(
             getTextForNamedPart(other.part),
         )
     );
-    const held = stated.reduce((sum, one) => sum + one.figure, 0);
+    // What the bound would not give a row to counts as held, because the game **did** name it:
+    // left out of this sum it would land in `plain`, which says nothing announced the blow.
+    const held = stated.reduce((sum, one) => sum + one.figure, folded.rest);
     // Drawn even where it landed nothing: three blows that were all blocked are three blows, and
     // a section that skipped them would say the combatant never swung.
     const plain = total - held;
@@ -1698,7 +1742,9 @@ function composeSkillCut(
     // with the figure on it, where a reader can see it and add it up.
     const isCounted = metric === "damageDealtApplied";
     const hasPlain = plain > 0 || (isCounted && figures.blowsWithoutSkill > 0);
+    const hasRest = folded.rest > 0;
     const figuresOnScreen = stated.map((one) => one.figure);
+    if (hasRest) figuresOnScreen.push(folded.rest);
     if (hasPlain) figuresOnScreen.push(plain);
     const shares = composeShareTexts(figuresOnScreen, total);
     const largest = getLargestFigure(figuresOnScreen);
@@ -1708,12 +1754,22 @@ function composeSkillCut(
             fill: getFill(one.figure, largest),
             shareText: shares[at] ?? "",
         })),
+        // Between the rows and the closing one, which is where its figure belongs: it is named
+        // like the rows above it and unnamed like the row below, and it is neither.
+        rest: hasRest
+            ? {
+                blows: null,
+                figure: folded.rest,
+                fill: getFill(folded.rest, largest),
+                shareText: shares[stated.length] ?? "",
+            }
+            : null,
         plain: hasPlain
             ? {
                 blows: isCounted ? figures.blowsWithoutSkill : null,
                 figure: Math.max(plain, 0),
                 fill: getFill(Math.max(plain, 0), largest),
-                shareText: shares[stated.length] ?? "",
+                shareText: shares[stated.length + (hasRest ? 1 : 0)] ?? "",
             }
             : null,
     };
