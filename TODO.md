@@ -19,6 +19,7 @@
 ## In Progress
 - [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development, now I only know 1-93lvl)
 - [ ] Create a better design for helper
+- [ ] !!!IMPORTANT!!! 256 abilities land silently in "Zwykły cios"
     - [ ] Ask discord for help
     - [ ] Add buffs and debuffs tracking - the second version of it is waiting outside the develop branch
 - [ ] Test turns
