@@ -106,6 +106,66 @@ test("a redraw that drops the row takes its card with it", async ({ panel }) => 
     );
 });
 
+/**
+ * ⚠️ **The draw counts the card in lines and the sheet turns that count into a height** — and it
+ * is that height, and nothing measured, that clamps the top edge so the card stays on the screen
+ * (`composeTipTop` in `src/ui/panel-look.ts`). A count that came out **under** what the browser
+ * draws would let the clamp place a card whose bottom is off the screen, with no scrollbar and
+ * nothing said: the card carries `overflow:hidden` and takes no pointer.
+ *
+ * So the claim is an inequality and not an equality. Measured on Chrome 152, 2026-09-06, over
+ * every row of `2026-08-06-tempest-grupa-vs-hildur`: the count stands 17 px above the drawing on
+ * all eleven, and the tallest card comes to 533 px drawn against 550 px counted.
+ */
+test("a card is counted at or above what it draws, and stays on screen", async ({ panel }) => {
+    const rows = await panel.at(".list .row").count();
+    expect(rows, "there are rows whose cards can be opened").toBeGreaterThan(0);
+    const under: string[] = [];
+    const off: string[] = [];
+    for (let at = 0; at < rows; at += 1) {
+        await panel.at(".list .row").nth(at).hover();
+        const seen = await readCardHeight(panel.page);
+        expect(seen, `row ${at} opened a card`).not.toBeNull();
+        if (seen === null) continue;
+        // The count is read off the properties the draw wrote and the costs off the sheet's own
+        // computed values, so neither half of the arithmetic is restated here.
+        if (seen.counted < seen.drawn) {
+            under.push(`row ${at}: counted ${seen.counted}, drew ${seen.drawn}`);
+        }
+        if (seen.bottom > seen.viewport) {
+            off.push(`row ${at}: bottom at ${seen.bottom} of ${seen.viewport}`);
+        }
+    }
+    expect(under, "a card counted under what it draws is one the clamp may put off the screen")
+        .toEqual([]);
+    expect(off, "and the clamp is what keeps every card's bottom edge on it").toEqual([]);
+    await panel.expectHonest("every card of a ranking opened");
+});
+
+/** The card as the browser has it: what the draw counted, what it drew, and where it ends. */
+async function readCardHeight(page: import("@playwright/test").Page) {
+    return await page.evaluate(() => {
+        const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
+        const tip = root?.querySelector(".MargoMeter-tip") ?? null;
+        if (tip === null) return null;
+        const style = getComputedStyle(tip);
+        const group = tip.querySelector(".tip-group");
+        const groupStyle = group === null ? null : getComputedStyle(group);
+        const groupCost = groupStyle === null ? 0 : parseFloat(groupStyle.marginTop) +
+            parseFloat(groupStyle.paddingTop) + parseFloat(groupStyle.borderTopWidth);
+        const lines = Number(style.getPropertyValue("--MargoMeter-tip-lines"));
+        const groups = Number(style.getPropertyValue("--MargoMeter-tip-groups"));
+        const counted = lines * parseFloat(style.lineHeight) + groups * groupCost +
+            2 * parseFloat(style.paddingTop) + 2 * parseFloat(style.borderTopWidth);
+        return {
+            counted: Math.round(counted),
+            drawn: tip.scrollHeight,
+            bottom: Math.round(tip.getBoundingClientRect().bottom),
+            viewport: globalThis.innerHeight,
+        };
+    });
+}
+
 test("the card stands on whichever side of the panel it fits", async ({ panel }) => {
     const row = panel.at(".list .row").first();
     await row.hover();

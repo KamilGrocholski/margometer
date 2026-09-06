@@ -190,6 +190,7 @@ tests/
   ui/
     blow-vocabulary.test.ts   Every key a blow carried, against the words the panel has for it.
     full-cast-bound.test.ts   The widest cast there is, with both unnamed rows beside it.
+    level-drawn.test.ts       Every level the corpus draws, read back: its height, its cards.
     panel-card.test.ts        Every figure a card states, and the parts it draws under them.
     panel-defect.test.ts      One line per kind, a tally rather than a repeat, one console line.
     panel-drag.test.ts        A panel kept on the screen, and put back where it was left.

@@ -62,15 +62,30 @@ var press = function (node) {
  * What must hold wherever the crawl stands. The text check is the one that catches a figure nobody
  * composed: a row drawing `undefined` is drawn, styled and wrong, and no assertion inside the
  * panel looks at the string a person actually reads.
+ *
+ * The width check is the other half of the same idea, and it needs a browser rather than a
+ * document: the panel is a fixed 260 pixels and every cell that may shorten says so in the sheet,
+ * so a cell that stopped shortening — a `min-width` gone, a flex child that refuses — pushes its
+ * neighbour out of a box nothing reports. A box with hidden overflow answers what it holds, so
+ * the list is asked as well as the panel; two reads a stop, against the whole tree `shape()`
+ * already serialises at each one.
  */
 function composeCrawlCheck(): string {
-    return `var check = function (where) {
+    return `var wide = function (node, where, what) {
+  if (node === null) return;
+  if (node.scrollWidth > node.clientWidth + 1) {
+    fault(where + ": " + what + " holds " + node.scrollWidth + " in " + node.clientWidth);
+  }
+};
+var check = function (where) {
   if (root.children.length === 0) fault(where + ": the panel drew nothing at all");
   if (all(".undrawn").length > 0) fault(where + ": a region gave way");
   var said = root.textContent;
   if (said.indexOf("undefined") !== -1) fault(where + ": a row reads undefined");
   if (said.indexOf("NaN") !== -1) fault(where + ": a row reads NaN");
   if (said.indexOf("[object") !== -1) fault(where + ": a row reads an object");
+  wide(root.querySelector(".panel"), where, "the panel");
+  wide(root.querySelector(".list"), where, "the list");
 };
 var closeTo = function (before, where) {
   var out = all("[data-back]").concat(all(".crumb-back"));

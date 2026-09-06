@@ -517,6 +517,7 @@ the same thing a second way.
 | `tests/tools/drill-report.test.ts`            | `docs/drill-levels.md` against every level drawn |
 | `tests/ui/blow-vocabulary.test.ts`            | N13 for what a blow carried, against `captures/` |
 | `tests/ui/share-bound.test.ts`                | both bounded writers against the widest screen   |
+| `tests/ui/level-drawn.test.ts`                | every level drawn: its height, and its cards     |
 
 A guard joins this table in the commit that makes it pass, and the known-gaps list shrinks by the
 same rules in that commit.

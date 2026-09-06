@@ -58,6 +58,35 @@ test.describe("one recording, walked to the bottom", () => {
     });
 });
 
+/**
+ * The sample the width check must flag, and the reason it needs one of its own.
+ *
+ * ⚠️ **No recording overflows the panel**: taking `min-width:0` off the name cell lit nothing
+ * over the deepest one on 2026-09-06, no nickname in `captures/` being long enough to push a row
+ * past 260 pixels. So the condition is made rather than found — a rule of the test's own, put
+ * into the root, narrowing the panel under content composed for the width it was drawn at.
+ */
+test.describe("a panel narrower than what it drew", () => {
+    test.use({ recording: DEEPEST });
+
+    test("is what the crawl's width check is looking for", async ({ panel }) => {
+        await panel.page.evaluate(() => {
+            const root = document.getElementById("MargoMeter-Panel")?.shadowRoot ?? null;
+            if (root === null) throw new ReferenceError("no panel to narrow");
+            const rule = document.createElement("style");
+            rule.textContent = ".panel{width:120px}.list{width:120px}";
+            root.append(rule);
+        });
+
+        const report = await panel.page.evaluate(composeCrawlScript(false)) as CrawlReport;
+        const said = report.faults.join(" ");
+        expect(report.faults.length, "a panel too narrow for its rows is a fault").toBeGreaterThan(
+            0,
+        );
+        expect(said, "and the fault says what held more than it had room for").toContain("holds");
+    });
+});
+
 for (const path of readRecordingPaths()) {
     test.describe(path, () => {
         test.use({ recording: path });
