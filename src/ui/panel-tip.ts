@@ -7,7 +7,8 @@
  */
 
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
-import { CLASS } from "@/src/ui/panel-look.ts";
+import { CLASS, getTipHeight } from "@/src/ui/panel-look.ts";
+import { CARD_WORDS } from "@/src/ui/panel-words.ts";
 
 /**
  * One line of a card. A shape rather than a sentence, because the panel draws the three of them
@@ -80,9 +81,10 @@ const MAXIMUM_TIP_LINES = 64;
 /** A custom property, which is the one kind `src/ui/panel-look.ts`'s reset leaves standing. */
 const TOP_VARIABLE = "--MargoMeter-tip-top";
 const LEFT_VARIABLE = "--MargoMeter-tip-left";
-const LINES_VARIABLE = "--MargoMeter-tip-lines";
-const GROUPS_VARIABLE = "--MargoMeter-tip-groups";
+const HEIGHT_VARIABLE = "--MargoMeter-tip-height";
 const STYLE_ATTRIBUTE = "style";
+/** Past every card there is: four figures, the counters, both runs and the notes come to five. */
+const MAXIMUM_TIP_GROUPS = 16;
 
 export function composeTipRegister(): TipRegister {
     const held = new Map<string, TipCompose>();
@@ -233,11 +235,73 @@ export function setTipPlace(
     const stated = Number.isFinite(clientY) ? clientY : 0;
     const top = Math.max(0, Math.round(stated));
     const across = left === null ? "" : `;${LEFT_VARIABLE}:${Math.max(0, Math.round(left))}px`;
-    tip.setAttribute(
-        STYLE_ATTRIBUTE,
-        `${TOP_VARIABLE}:${top}px;${LINES_VARIABLE}:${size.lines};` +
-            `${GROUPS_VARIABLE}:${size.groups}${across}`,
-    );
+    // The height rather than the counts it came from: the trim and the sheet's clamp spend one
+    // number. A height nothing could be read for leaves the property off (**E14**).
+    const height = getTipHeight(size);
+    const tall = height === null ? "" : `;${HEIGHT_VARIABLE}:${height}px`;
+    tip.setAttribute(STYLE_ATTRIBUTE, `${TOP_VARIABLE}:${top}px${tall}${across}`);
+}
+
+/** A run of nothing but notes, which is what a card puts last and what a trim never takes. */
+function getIsNoteGroup(group: TipGroup): boolean {
+    if (group.lines.length === 0) return false;
+    return group.lines.every((one) => one.kind === "note");
+}
+
+function getIsTipWithin(reading: TipReading, room: number): boolean {
+    const height = getTipHeight(getTipSize(reading));
+    if (height === null) return true;
+    return height <= room;
+}
+
+/**
+ * The card with its last sacrificeable run gone, or null where there is none left. The four
+ * figures are what a card is for and the notes carry the suspicions — a claim that a figure above
+ * may be wrong outranks how somebody fought — so what goes is between them, the last one first.
+ */
+function composeGroupsWithout(groups: readonly TipGroup[]): TipGroup[] | null {
+    const last = groups.length - 1;
+    if (last < 1) return null;
+    const at = getIsNoteGroup(groups[last] ?? { lines: [] }) ? last - 1 : last;
+    if (at < 1) return null;
+    return [...groups.slice(0, at), ...groups.slice(at + 1)];
+}
+
+/** The card once something was given up: it says so, where a figure's qualifiers are read. */
+function composeTipCut(reading: TipReading, kept: readonly TipGroup[]): TipReading {
+    if (kept.length === reading.groups.length) return reading;
+    const said: TipLine = { kind: "note", text: CARD_WORDS.cut, isSuspect: false };
+    const last = kept[kept.length - 1];
+    if (last !== undefined) {
+        if (getIsNoteGroup(last)) {
+            const groups = [...kept.slice(0, -1), { lines: [...last.lines, said] }];
+            return { ...reading, groups };
+        }
+    }
+    return { ...reading, groups: [...kept, { lines: [said] }] };
+}
+
+/**
+ * The card cut to the room there is, with a line saying so wherever anything was given up.
+ *
+ * ⚠️ **A card taller than the window used to be clipped, and say nothing.** The box carries
+ * `overflow:hidden` and takes no pointer: measured on Chrome 152, 2026-09-06, a 533 px card in a
+ * 480 px window showed 464 of it and lost the rest without a mark. So what will not fit is given
+ * up at a run's own edge and the card states it. Unchanged where the page states no height.
+ */
+export function composeTipWithin(reading: TipReading, room: number | null): TipReading {
+    if (room === null) return reading;
+    if (!Number.isFinite(room)) return reading;
+    if (room <= 0) return reading;
+    if (getIsTipWithin(reading, room)) return reading;
+    let kept: readonly TipGroup[] = reading.groups;
+    for (let step = 0; step < MAXIMUM_TIP_GROUPS; step += 1) {
+        const shorter = composeGroupsWithout(kept);
+        if (shorter === null) break;
+        kept = shorter;
+        if (getIsTipWithin(composeTipCut(reading, kept), room)) break;
+    }
+    return composeTipCut(reading, kept);
 }
 
 export type TipRedraw = (standing: PanelElement, compose: () => PanelElement) => PanelElement;
@@ -261,14 +325,19 @@ export function composeTipHandle(
     register: TipRegister,
     redraw: TipRedraw,
     getLeft: () => number | null = () => null,
+    /** How much of the window a card has to stand in. Null is a page that states no height. */
+    getRoom: () => number | null = () => null,
 ): TipHandle {
     let standing = composeTipElement(document, null);
     let openKey: string | null = null;
     let openTop = 0;
     let openSize: TipSize = getTipSize(null);
     const setTo = (reading: TipReading): void => {
-        openSize = getTipSize(reading);
-        standing = redraw(standing, () => composeTipElement(document, reading));
+        // Cut here rather than where a card is composed: the one place that knows both it and the
+        // window, and on the way in for a card opened and for one a redraw put up again.
+        const shown = composeTipWithin(reading, getRoom());
+        openSize = getTipSize(shown);
+        standing = redraw(standing, () => composeTipElement(document, shown));
         setTipPlace(standing, openTop, getLeft(), openSize);
     };
     const hide = (): void => {

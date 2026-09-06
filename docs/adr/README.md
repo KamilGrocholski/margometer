@@ -154,3 +154,5 @@ edited to agree with the new rule.
 - [0052](0052-a-wheel-turn-outlives-the-payload-that-lands-in-it.md) — A wheel turn outlives the
   payload that lands in it. **Accepted**
 - [0053](0053-the-file-is-the-fight-on-screen.md) — The file is the fight on screen. **Accepted**
+- [0054](0054-a-card-taller-than-the-window-gives-up-a-run.md) — A card taller than the window gives
+  up a run. **Accepted**

@@ -358,6 +358,12 @@ the rule and the air each run of them spends over itself. A wrapping sentence is
 of characters per line, so the count is never short: a card reserving a line it did not need stands
 higher up the screen, which is the direction that keeps it on one.
 
+**A card taller than the window gives up a run rather than being cut around.** The four figures
+stand whatever the window, and so do the notes — a suspicion is a claim about a figure above it — so
+what goes is the counters and the runs between them, the last one first, at a run's own edge and
+never inside one. A card that gave anything up says so, in one sentence. Nothing scrolls: the card
+takes no pointer, because a press on it belongs to the row underneath. **ADR 0054.**
+
 **Wherever a person's row stands, the tooltip is a card.** The name in full, then what they are and
 how far along on one line under it — which is where the hue on the bar is finally said in words, and
 the only place it is. Then all four figures rather than the one the screen is showing, with that one

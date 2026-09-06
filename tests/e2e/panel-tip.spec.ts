@@ -17,6 +17,10 @@ const CARD_OPEN = ".MargoMeter-tip:not(.tip-hidden)";
 const OPENS_NOTE = "LPM — rozbicie";
 /** Far enough left that the card cannot stand on that side of the panel any more. */
 const TO_THE_LEFT = -420;
+/** Under the 549 px the tallest card this corpus composes needs, measured 2026-09-06. */
+const SHORT_WINDOW = 480;
+/** What the card says where a run of it was given up. Read in words, as every sentence is. */
+const CUT_NOTE = "Nie wszystko się mieści w tym oknie.";
 
 test("the card opens under the pointer, and names the row it describes", async ({ panel }) => {
     await expect(panel.at(CARD), "the card is there before anybody is told anything").toHaveCount(
@@ -132,6 +136,9 @@ test("a card is counted at or above what it draws, and stays on screen", async (
         if (seen.counted < seen.drawn) {
             under.push(`row ${at}: counted ${seen.counted}, drew ${seen.drawn}`);
         }
+        if (seen.drawn > seen.shown + 1) {
+            under.push(`row ${at}: holds ${seen.drawn} and shows ${seen.shown}`);
+        }
         if (seen.bottom > seen.viewport) {
             off.push(`row ${at}: bottom at ${seen.bottom} of ${seen.viewport}`);
         }
@@ -140,6 +147,28 @@ test("a card is counted at or above what it draws, and stays on screen", async (
         .toEqual([]);
     expect(off, "and the clamp is what keeps every card's bottom edge on it").toEqual([]);
     await panel.expectHonest("every card of a ranking opened");
+});
+
+/**
+ * ⚠️ **A window too short for the card used to take the bottom off it in silence.** The box
+ * carries `overflow:hidden` and takes no pointer, so there was no scrollbar and no way to reach
+ * what had gone: measured on Chrome 152, 2026-09-06, before this, a 533 px card in a 480 px
+ * window showed 464 of it. What will not fit is now given up at a run's own edge and the card
+ * states it, so nothing goes missing without a mark.
+ */
+test("a window too short for the card is told about, not cut around", async ({ panel }) => {
+    await panel.page.setViewportSize({ width: 1280, height: SHORT_WINDOW });
+    await panel.at(".list .row").first().hover();
+
+    const seen = await readCardHeight(panel.page);
+    expect(seen, "the card opened").not.toBeNull();
+    if (seen === null) return;
+    expect(seen.drawn, "and the box shows the whole of what it drew").toBeLessThanOrEqual(
+        seen.shown + 1,
+    );
+    expect(seen.bottom, "with its bottom edge on the screen").toBeLessThanOrEqual(seen.viewport);
+    expect(seen.said, "and it says a part of it is not there").toContain(CUT_NOTE);
+    await panel.expectHonest("a card in a window too short for it");
 });
 
 /** The card as the browser has it: what the draw counted, what it drew, and where it ends. */
@@ -153,15 +182,16 @@ async function readCardHeight(page: import("@playwright/test").Page) {
         const groupStyle = group === null ? null : getComputedStyle(group);
         const groupCost = groupStyle === null ? 0 : parseFloat(groupStyle.marginTop) +
             parseFloat(groupStyle.paddingTop) + parseFloat(groupStyle.borderTopWidth);
-        const lines = Number(style.getPropertyValue("--MargoMeter-tip-lines"));
-        const groups = Number(style.getPropertyValue("--MargoMeter-tip-groups"));
-        const counted = lines * parseFloat(style.lineHeight) + groups * groupCost +
-            2 * parseFloat(style.paddingTop) + 2 * parseFloat(style.borderTopWidth);
         return {
-            counted: Math.round(counted),
+            // The panel's own answer, as the one property it writes the height on.
+            counted: Math.round(parseFloat(style.getPropertyValue("--MargoMeter-tip-height"))),
+            groupCost,
             drawn: tip.scrollHeight,
+            // What the box is showing of it. Less than it holds is a card cut in silence.
+            shown: tip.clientHeight,
             bottom: Math.round(tip.getBoundingClientRect().bottom),
             viewport: globalThis.innerHeight,
+            said: tip.textContent ?? "",
         };
     });
 }

@@ -44,7 +44,12 @@ import {
     type ScreenStrip,
     STORAGE_CHOICES,
 } from "@/src/ui/panel-screen.ts";
-import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
+import {
+    CLASS,
+    composeStyleSheet,
+    getColourForProfession,
+    getTipRoom,
+} from "@/src/ui/panel-look.ts";
 import type { HandlePanelFailure } from "@/src/ui/panel-defect.ts";
 import {
     composeKeptScrollMemo,
@@ -82,6 +87,7 @@ import {
     composeTipLeft,
     type PanelDragHandle,
     type PanelPlacement,
+    type PanelPosition,
     setGripMark,
     setPanelDrag,
 } from "@/src/ui/panel-drag.ts";
@@ -1740,6 +1746,22 @@ function composePanelFrame(document: PanelDocument, regions: PanelRegions): Pane
     return frame;
 }
 
+/**
+ * Where the card may stand, and how much of the window it has to stand in — both asked of the
+ * panel as it is now rather than as it was when the tip was wired, because a drag moves one and a
+ * window resize moves the other. A panel never made movable is handed neither, which is every
+ * panel a test draws and no page a reader is on.
+ */
+function composeTipPlace(
+    placement: PanelPlacement | null,
+    getPosition: () => PanelPosition | null,
+): { getLeft: () => number | null; getRoom: () => number | null } {
+    return {
+        getLeft: () => composeTipLeft(getPosition(), placement?.getViewport() ?? null, TIP_WIDTH),
+        getRoom: () => getTipRoom(placement?.getViewport()?.height ?? null),
+    };
+}
+
 export function composePanelHost(
     document: PanelDocument,
     handlePress: (press: PanelPress) => void,
@@ -1764,16 +1786,13 @@ export function composePanelHost(
     const drawing = composeListDrawing(document, regions, handleFailure);
     // Null for good on a panel never made movable, which is every panel a test draws.
     let drag: PanelDragHandle | null = null;
+    const place = composeTipPlace(placement, () => drag?.getPosition() ?? null);
     const tip: TipHandle = composeTipHandle(
         document,
         register,
         (standing, compose) => composeTipInPlace(standing, compose, handleFailure),
-        () =>
-            composeTipLeft(
-                drag?.getPosition() ?? null,
-                placement?.getViewport() ?? null,
-                TIP_WIDTH,
-            ),
+        place.getLeft,
+        place.getRoom,
     );
     root.append(regions.title);
     root.append(frame);

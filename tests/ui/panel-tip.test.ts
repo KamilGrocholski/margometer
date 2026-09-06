@@ -11,12 +11,14 @@ import {
     composeTipElement,
     composeTipHandle,
     composeTipRegister,
+    composeTipWithin,
     getTipSize,
     setTipHidden,
     setTipPlace,
     type TipReading,
 } from "@/src/ui/panel-tip.ts";
-import { CLASS } from "@/src/ui/panel-look.ts";
+import { CLASS, getTipHeight } from "@/src/ui/panel-look.ts";
+import { CARD_WORDS } from "@/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
     type FakeElement,
@@ -164,6 +166,10 @@ Deno.test("hiding and showing write the class, and nothing else moves", () => {
     assertEquals(getTextsByClass(tip, CLASS.tipName), [HILDUR.name], "what it says is untouched");
 });
 
+/**
+ * The height and not the counts it was worked out from: `getTipHeight` owns that arithmetic
+ * now, because the trim and the sheet's own clamp have to spend one number.
+ */
 Deno.test("where the detail sits and how tall it is are written together, in whole pixels", () => {
     const document = composeFakeDocument();
     const tip = composeTipElement(document, HILDUR) as FakeElement;
@@ -171,7 +177,7 @@ Deno.test("where the detail sits and how tall it is are written together, in who
     setTipPlace(tip, 292.33333333333, null, size);
     assertEquals(
         tip.attributes.get("style"),
-        "--MargoMeter-tip-top:292px;--MargoMeter-tip-lines:6;--MargoMeter-tip-groups:2",
+        "--MargoMeter-tip-top:292px;--MargoMeter-tip-height:118px",
         "a fractional `clientY` on a scaled display is not a place anybody can see",
     );
     setTipPlace(tip, 0, null, size);
@@ -186,9 +192,70 @@ Deno.test("where the detail sits and how tall it is are written together, in who
     setTipPlace(tip, 100, 42.6, size);
     assertEquals(
         tip.attributes.get("style"),
-        "--MargoMeter-tip-top:100px;--MargoMeter-tip-lines:6;--MargoMeter-tip-groups:2" +
-            ";--MargoMeter-tip-left:43px",
+        "--MargoMeter-tip-top:100px;--MargoMeter-tip-height:118px;--MargoMeter-tip-left:43px",
         "and a panel that has moved says which side the detail opens on",
+    );
+});
+
+/**
+ * A card taller than the window, and what the panel does about it. Every figure here is the
+ * panel's own arithmetic — `getTipHeight` — so the test states a room and never a pixel count of
+ * its own.
+ */
+Deno.test("a card too tall for the window gives up its runs, and says that it did", () => {
+    const tall: TipReading = {
+        name: "Hildur Muza Śmierci",
+        subtitle: "(83)",
+        groups: [
+            { lines: [{ kind: "stat", label: "Zadane", stated: "354 258", isStrong: true }] },
+            { lines: [{ kind: "stat", label: "Ciosy", stated: "180", isStrong: false }] },
+            { lines: [{ kind: "heading", text: "W CIOSACH ZADANYCH" }] },
+            { lines: [{ kind: "heading", text: "W CIOSACH PRZYJĘTYCH" }] },
+            { lines: [{ kind: "note", text: ONE_LINE_NOTE, isSuspect: true }] },
+        ],
+    };
+    const whole = getTipHeight(getTipSize(tall));
+    assertExists(whole, "the panel can say how tall its own card stands");
+
+    assertEquals(composeTipWithin(tall, whole), tall, "a card with room for it is left alone");
+    assertEquals(composeTipWithin(tall, null), tall, "and so is one in a window nobody sized");
+
+    // Room for one run less than the card holds, which is what a short window comes to.
+    const cut = composeTipWithin(tall, whole - 1);
+    const said = cut.groups.flatMap((one) => one.lines);
+    assertEquals(cut.groups[0], tall.groups[0], "the four figures are what a card is for");
+    assert(
+        said.some((one) => one.kind === "note" && one.text === CARD_WORDS.cut),
+        "and a card that gave something up says so rather than losing it in silence",
+    );
+    assert(
+        said.some((one) => one.kind === "note" && one.isSuspect),
+        "the suspicion stands: it is a claim that a figure above it may be wrong",
+    );
+    assert(
+        !said.some((one) => one.kind === "heading" && one.text === "W CIOSACH PRZYJĘTYCH"),
+        "and the run given up is the last of the ones between them",
+    );
+});
+
+/** A window with room for nothing keeps the figures, rather than handing back an empty card. */
+Deno.test("a window too short for even the figures still draws them, and says so", () => {
+    const tall: TipReading = {
+        name: "Hildur",
+        subtitle: null,
+        groups: [
+            { lines: [{ kind: "stat", label: "Zadane", stated: "354 258", isStrong: true }] },
+            { lines: [{ kind: "stat", label: "Ciosy", stated: "180", isStrong: false }] },
+            { lines: [{ kind: "note", text: ONE_LINE_NOTE, isSuspect: false }] },
+        ],
+    };
+    const cut = composeTipWithin(tall, 1);
+    assertEquals(cut.groups[0], tall.groups[0], "the figures are drawn whatever the room");
+    assert(
+        cut.groups.flatMap((one) => one.lines).some((one) =>
+            one.kind === "note" && one.text === CARD_WORDS.cut
+        ),
+        "and the card says a part of it is not there",
     );
 });
 
@@ -246,7 +313,7 @@ Deno.test("the detail follows the pointer, and lets go of a row that stopped bei
     assertEquals(getTextsByClass(later, CLASS.tipValue), ["400 000"], "with the new one");
     assertEquals(
         later.attributes.get("style"),
-        "--MargoMeter-tip-top:480px;--MargoMeter-tip-lines:3;--MargoMeter-tip-groups:1",
+        "--MargoMeter-tip-top:480px;--MargoMeter-tip-height:64px",
         "and a card that shrank says so, or the sheet clamps it against a height it no longer has",
     );
 

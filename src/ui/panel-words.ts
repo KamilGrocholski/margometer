@@ -275,6 +275,12 @@ export const CARD_WORDS = {
      * anywhere, and a reader on the ranking has nothing to go back to.
      */
     gesture: "LPM — rozbicie",
+    /**
+     * Said where the window is too short for the whole card, which is the one thing this panel
+     * cannot answer by drawing less of a figure. **L3**: what is not shown, never which of our
+     * runs was dropped to make it fit.
+     */
+    cut: "Nie wszystko się mieści w tym oknie.",
 } as const;
 
 /**

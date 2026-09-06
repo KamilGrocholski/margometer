@@ -342,6 +342,10 @@ const FONT_STACK = "system-ui, sans-serif";
 const FONT_SIZE = "11px";
 /** Whole pixels: a fractional line box puts every box under it off the grid. **ADR 0015.** */
 const LINE_HEIGHT = "15px";
+/** The two characters a length in pixels ends in, taken off before the number is read. */
+const PIXELS_SUFFIX = 2;
+/** What a border costs the box it is on, at the one width this panel draws one. */
+const RULE_WIDTH = 1;
 const LINE_HEIGHT_TITLE = "13px";
 
 function composeVariable(name: string, value: string): string {
@@ -628,19 +632,44 @@ function composeTipRules(): string {
 }
 
 /**
- * The lines the draw counted times what a line costs, the air and the rule each run spends over
- * itself, and the padding and border the box reserves inside its own height.
+ * How tall a card of so many lines and runs stands: the lines times what a line costs, the air and
+ * the rule each run spends over itself, and the padding and border the box reserves inside its own
+ * height. Null where a token stopped reading as pixels, which is the caller's to answer for.
+ *
+ * ⚠️ **One arithmetic, where there were two.** The sheet worked this out again from the counts the
+ * draw wrote, which was enough while nothing else needed the number. The panel needs it now — a
+ * card taller than the window is cut to the room there is rather than clipped
+ * (`src/ui/panel-tip.ts`) — and a trim and a clamp at two heights would put the notice on a card
+ * that fitted, or leave one that did not without it.
  */
-function composeTipHeight(): string {
-    return `calc(var(${VARIABLE_PREFIX}tip-lines,1) * ${LINE_HEIGHT} + ` +
-        `var(${VARIABLE_PREFIX}tip-groups,0) * ` +
-        `(2 * var(${VARIABLE_PREFIX}small) + 1px) + ` +
-        `2 * var(${VARIABLE_PREFIX}small) + 2px)`;
+export function getTipHeight(size: { lines: number; groups: number }): number | null {
+    const line = getIntegerFromText(LINE_HEIGHT.slice(0, -PIXELS_SUFFIX));
+    const air = getIntegerFromText(SPACE.small.slice(0, -PIXELS_SUFFIX));
+    if (line === null) return null;
+    if (air === null) return null;
+    if (!Number.isSafeInteger(size.lines)) return null;
+    if (!Number.isSafeInteger(size.groups)) return null;
+    const runs = size.groups * (2 * air + RULE_WIDTH);
+    return size.lines * line + runs + 2 * air + 2 * RULE_WIDTH;
+}
+
+/**
+ * What a card has to stand in: the window, less the air the sheet keeps at either end of it. Null
+ * where the page states no height, which is a window nothing here may reason about.
+ */
+export function getTipRoom(viewportHeight: number | null): number | null {
+    if (viewportHeight === null) return null;
+    if (!Number.isFinite(viewportHeight)) return null;
+    const inset = getIntegerFromText(PLACE.inset.slice(0, -PIXELS_SUFFIX));
+    if (inset === null) return null;
+    const room = viewportHeight - 2 * inset;
+    if (room <= 0) return null;
+    return room;
 }
 
 function composeTipTop(): string {
     return `clamp(${PLACE.inset},var(${VARIABLE_PREFIX}tip-top,${PLACE.inset}),` +
-        `calc(100vh - ${composeTipHeight()} - ${PLACE.inset}))`;
+        `calc(100vh - var(${VARIABLE_PREFIX}tip-height,0px) - ${PLACE.inset}))`;
 }
 
 export function composeStyleSheet(): string {
