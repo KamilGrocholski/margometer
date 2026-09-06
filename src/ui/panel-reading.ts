@@ -356,8 +356,11 @@ export interface ShelfRow {
     isPinnable: boolean;
 }
 
-/** How a fight went, from the reader's own seat. A draw needs no seat: nobody won it. */
-export type PanelOutcome = "won" | "lost" | "drawn";
+/**
+ * How a fight went, from the reader's own seat. Two of them need no seat: nobody won a draw, and
+ * nobody won a fight an escape broke off either.
+ */
+export type PanelOutcome = "won" | "lost" | "drawn" | "fled";
 
 export interface PanelReading {
     rows: RankingRow[];
@@ -1065,8 +1068,8 @@ function getIsOurSideNamed(
  *
  * The protocol names both sides and says nothing about which is the reader's, so the answer is
  * composed here. Without a seat, or where no name resolves, the header says nothing: a fight the
- * panel cannot place is not a fight it may call a loss. A draw is the one answer needing no seat
- * — the game states it by naming nobody, so it is the same word for everybody in the fight.
+ * panel cannot place is not a fight it may call a loss. Two answers need no seat, because the
+ * game states each by naming nobody: a draw, and a fight an escape broke off.
  */
 function getOutcomeForReader(
     statistics: FightStatistics,
@@ -1082,6 +1085,11 @@ export function getOutcomeForSeat(
     roster: CombatantRoster,
     readerSide: number | null,
 ): PanelOutcome | null {
+    // An escape ends the fight for everybody with health and position kept, so nobody won it —
+    // the published help, article 372, read 2026-09-06. It is read before a side the protocol
+    // named: no recording carries the two together, and until one does the interruption is what
+    // the fight came to.
+    if (outcome.isFled) return "fled";
     if (outcome.isDrawn) return "drawn";
     if (readerSide === null) return null;
     if (getIsOurSideNamed(roster, readerSide, outcome.wonNames)) return "won";

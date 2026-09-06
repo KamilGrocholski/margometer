@@ -57,6 +57,7 @@ export const FROZEN_HELP_PHRASES = {
         "exp": 17,
         "facade": 1,
         "fastarrow": 1,
+        "flee": 1,
         "freeze": 4,
         "glare": 3,
         "heal_per-enemies": 16,

@@ -7,7 +7,7 @@
  * thing goes back through the chain `src/userscript-entry.ts` runs with nothing left unread.
  */
 
-import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals, assertThrows } from "@std/assert";
 import { composeFightReplay } from "@/tools/fight-replay.ts";
 import {
     composeFabricatedCaptureText,
@@ -86,13 +86,18 @@ Deno.test("the readers know a decoded heading and a key from a message", () => {
 });
 
 const FIGHT = composeFabricatedFight();
-const MESSAGES = FIGHT.calls.flatMap((call) => call.messages);
+/**
+ * Both endings, because the register's decoded keys are spread across them: `flee` is stated by
+ * one and `winner`/`loser` by the other, and no single fight puts all three in front of anybody.
+ */
+const FLED = composeFabricatedFight(composeFabricationShape(2, 6, 20, "fled"));
+const MESSAGES = [...FIGHT.calls, ...FLED.calls].flatMap((call) => call.messages);
 const REPLAY = composeFightReplay({
     name: "fabricated",
     calls: FIGHT.calls.map((call) => call.payload),
 });
 
-Deno.test("the fabricated fight states every key the register calls decoded", () => {
+Deno.test("what the fabricator writes states every key the register calls decoded", () => {
     const verdicts = getRegisterVerdicts(Deno.readTextFileSync(REGISTER_PATH));
     assert(verdicts.size > 0, "the register names keys");
     const stated = new Set(MESSAGES.flatMap(getKeysOfMessage));
@@ -204,6 +209,35 @@ Deno.test("a fight at another level is fought at that level's figures", () => {
     const figures = [...replay.statistics.byCombatantId.values()];
     assert(figures.every((one) => one.damageDealtApplied > 0), "each of them dealt something");
     assert(figures.every((one) => one.turnsTaken > 0), "and each of them took a turn");
+});
+
+/**
+ * No recording carries an escape, so the fabricator is the only place the panel's `ucieczka` can
+ * be put in front of a browser at all. What it writes has to be the shape the client reads: the
+ * combatant in the actor slot, and nothing named on the side the fight was won from.
+ */
+Deno.test("a fight the script breaks off states an escape and names no side", () => {
+    const fled = composeFabricatedFight(composeFabricationShape(2, 6, 20, "fled"));
+    const replay = composeFightReplay({
+        name: "fled",
+        calls: fled.calls.map((call) => call.payload),
+    });
+    assertStrictEquals(replay.statistics.unreadMessages, 0, "the escape leaves nothing unread");
+    const outcome = replay.statistics.outcome;
+    assertExists(outcome, "a fight broken off still says how it ended");
+    assertStrictEquals(outcome.isFled, true, "and what it says is that somebody escaped");
+    assertEquals(outcome.wonNames, [], "no side won it");
+    assertEquals(outcome.lostNames, [], "and no side lost it");
+    assertStrictEquals(outcome.isDrawn, false, "which is not the same claim as a draw");
+});
+
+Deno.test("the ending the script was not asked for is the one it has always written", () => {
+    const outcome = REPLAY.statistics.outcome;
+    assertExists(outcome, "the default fight ends the way it did before the flag existed");
+    assertStrictEquals(outcome.isFled, false, "nobody escaped it");
+    assert(outcome.wonNames.length > 0, "a side won it");
+    assert(outcome.lostNames.length > 0, "and a side lost it");
+    assertStrictEquals(composeShapeText(composeFabricationShape()), "10v10-lvl92-r26");
 });
 
 /** A reader taking a short fight for full coverage of the register reads a wrong conclusion. */

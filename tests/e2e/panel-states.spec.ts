@@ -25,7 +25,7 @@ const STEPS_MOST = 1000;
  * the sheet puts them in upper (`DESIGN.md` owns the look), so this is what is on the screen and
  * `innerText` is what reports it.
  */
-const OUTCOMES = ["WYGRANA", "PRZEGRANA", "REMIS"];
+const OUTCOMES = ["WYGRANA", "PRZEGRANA", "REMIS", "UCIECZKA"];
 
 test.use({ recording: ENDING });
 
@@ -70,7 +70,7 @@ test.describe("while the fight is going on", () => {
         await expect(panel.at(".header-outcome"), "and at the end it says how it went")
             .toHaveCount(1);
         const outcome = await panel.at(".header-outcome").innerText();
-        expect(OUTCOMES, `${outcome} is one of the three ways a fight ends`).toContain(outcome);
+        expect(OUTCOMES, `${outcome} is one of the four ways a fight ends`).toContain(outcome);
         await panel.expectHonest("a fight run to its end");
     });
 });

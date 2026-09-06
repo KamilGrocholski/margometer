@@ -158,3 +158,5 @@ edited to agree with the new rule.
   up a run. **Accepted**
 - [0055](0055-a-bound-that-drops-a-part-makes-the-panel-lie.md) — A bound sums what it will not
   draw. **Accepted**
+- [0056](0056-a-fight-broken-off-is-neither-a-loss-nor-a-draw.md) — A fight broken off is neither a
+  loss nor a draw. **Accepted**

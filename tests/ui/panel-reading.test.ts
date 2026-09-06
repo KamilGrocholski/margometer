@@ -37,6 +37,7 @@ import {
     composePanelReading,
     composePartReading,
     composeRowSuspicions,
+    getOutcomeForSeat,
     getPinnedCase,
     getRowIsSuspect,
     getTextForNamedPart,
@@ -2083,6 +2084,57 @@ Deno.test("a drawn fight reads the same from every seat, and from none", () => {
             NOTHING_SUSPECT,
         );
         assertEquals(reading.outcome, "drawn", `seat ${side}: a draw is nobody's win`);
+    }
+});
+
+/**
+ * The same for an escape, and for the same reason: the help says it breaks the fight off for
+ * everybody, so there is no seat it reads differently from. No recording carries one either.
+ */
+Deno.test("a fight an escape broke off reads the same from every seat, and from none", () => {
+    const { roster } = readFight(HILDUR);
+    const events = decodeFightMessages(["500001=94.75;0;flee"], roster);
+    const fled = composeFightStatistics(events, new Map());
+    assertEquals(fled.outcome?.isFled, true, "the fight the decoder read was broken off");
+    assertEquals(fled.outcome?.isDrawn, false, "which is not the same claim as a draw");
+    const sides = [...new Set([...roster.byId.values()].map((one) => one.side))];
+    assert(sides.length > 1, "the fight has two seats to read it from");
+    for (const side of [...sides, null]) {
+        const reading = composePanelReading(
+            fled,
+            roster,
+            "damageDealtApplied",
+            "everyone",
+            side,
+            NOTHING_SUSPECT,
+        );
+        assertEquals(reading.outcome, "fled", `seat ${side}: an escape is nobody's win`);
+    }
+});
+
+/**
+ * The branch the ordering in `getOutcomeForSeat` turns on. Nothing measures a `flee` arriving
+ * beside a `winner` — no recording carries an escape at all — so this states the choice rather
+ * than the game: the interruption is what the fight came to, from either seat.
+ */
+Deno.test("an escape outranks a side the protocol named, from either seat", () => {
+    const { roster } = readFight(HILDUR);
+    const named = [...roster.byId.values()][0];
+    assertExists(named, "the fight fields somebody to name as the winner");
+    const events = decodeFightMessages(
+        ["500001=94.75;0;flee", `0;0;winner=${named.name}`],
+        roster,
+    );
+    const outcome = composeFightStatistics(events, new Map()).outcome;
+    assertExists(outcome, "the fight states how it ended");
+    assertEquals(outcome.isFled, true, "the escape is held");
+    assertEquals(outcome.wonNames, [named.name], "and so is the side the protocol named");
+    for (const side of [...new Set([...roster.byId.values()].map((one) => one.side))]) {
+        assertEquals(
+            getOutcomeForSeat(outcome, roster, side),
+            "fled",
+            `seat ${side}: the interruption is the word, not the win`,
+        );
     }
 });
 

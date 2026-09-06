@@ -184,6 +184,27 @@ read as a side of that name.
 
 _Shape:_ 29 occurrences; alone in its message; text
 
+### `flee` — decoded
+
+A fight broken off by an escape, which ends it for every combatant in it and names no side at all.
+The message names the one combatant who used the item, and it does so in its **actor slot** rather
+than in the key: the key's own value is never read by the client, so it arrives bare or valued and
+neither shape may be assumed.
+
+The captures carry none, so this entry omits the shape line and stands on the client and the help
+instead. What the panel does with it — the word, and that it outranks a side the protocol named — is
+`docs/adr/0056-a-fight-broken-off-is-neither-a-loss-nor-a-draw.md`.
+
+_Help:_ names `flee`
+
+_Evidence:_ production build `ne0iTNdg` composes `msg_flee %name% %hp%` from the actor slot and
+classes the line `txt` — not the `win` and `lose` that `winner` and `loser` set — in the same switch
+as those two keys; the same branch is in cached production build `1785244275300`, so it is not new.
+The published help view,372 (read 2026-09-06) documents the item that sends it: an escape is a
+consumable carrying `action=flee`, and it interrupts the fight for every participant with health and
+position kept. Measured over `captures/` on 2026-09-06: **0 occurrences across all 29 recordings**,
+which `tests/core/fight-decoder.test.ts` re-earns on every run.
+
 ### `+oth_dmg` — decoded
 
 Damage that landed on a combatant the protocol names **by name**, alongside an attack aimed at

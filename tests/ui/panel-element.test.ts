@@ -1974,6 +1974,12 @@ Deno.test("the header says how the fight went, and says nothing where nobody cou
     );
     const line = getElementsWithin(won).find((one) => one.className === "header-line");
     assertEquals(line?.children.length, 2, "beside what the fight is, at the other end of it");
+    const fled = draw({ ...reading, outcome: "fled" });
+    assertEquals(
+        getTextsByClass(fled, "header-outcome"),
+        [getWordsForOutcome("fled")],
+        "and a fight an escape broke off says so in the same place",
+    );
     const unsaid = draw({ ...reading, outcome: null });
     assertEquals(getTextsByClass(unsaid, "header-outcome"), [], "and nothing at all where none");
     assertEquals(

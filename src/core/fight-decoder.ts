@@ -136,6 +136,14 @@ const OUTCOME_KEYS: Record<string, "won" | "lost"> = { winner: "won", loser: "lo
 const NO_WINNER = "?";
 const NAME_SEPARATOR = ", ";
 /**
+ * A fight broken off by an escape, which ends it for everybody and names no side at all.
+ *
+ * ⚠️ **Its own value is never read by the client**, which takes the name and the health percent
+ * off the message's actor slot instead — production build `ne0iTNdg`. So the key arrives here
+ * bare or valued and neither shape may be assumed; both reach the same reading below.
+ */
+const FLED_KEY = "flee";
+/**
  * Healing stated by name: `amount,name(percent%)` — the figure first and the name second, the
  * opposite order from `+oth_dmg`, which is why the two cannot share a reader. Both ends of the
  * message are the wrong combatant: it rides a blow struck at somebody else.
@@ -428,8 +436,14 @@ function readNamedDamage(key: string, value: string): NamedDamageReading | null 
     };
 }
 
+/** A fight the escape key ended, whichever of its two shapes the key arrived in. */
+function composeFledOutcome(): FightOutcomeEvent {
+    return { kind: "fight-outcome", result: "fled", combatantNames: [] };
+}
+
 /** `loser=?` is not a side of that name, so it is left unread rather than read as a draw. */
 function readFightOutcome(key: string, value: string): FightOutcomeEvent | null {
+    if (key === FLED_KEY) return composeFledOutcome();
     const result = OUTCOME_KEYS[key];
     if (result === undefined) return null;
     if (value.length === 0) return null;
@@ -448,6 +462,10 @@ function addValuelessKey(reading: AttackReading, key: string): void {
     assert(key.length > 0, "a key is never empty");
     if (getProcEnd(key) !== null) {
         reading.procs.push(key);
+        return;
+    }
+    if (key === FLED_KEY) {
+        reading.outcomes.push(composeFledOutcome());
         return;
     }
     if (VALUELESS_DECLARATION_KEYS.includes(key)) {

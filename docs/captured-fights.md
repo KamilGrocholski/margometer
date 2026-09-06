@@ -116,6 +116,9 @@ than a defect.
   one. A wide enemy side is untested on real protocol.
 - **No drawn fight.** The panel draws one, and the fight it draws it from is hand-built
   (`tests/ui/panel-reading.test.ts`).
+- **No fight broken off by an escape.** The same again, and for a key the corpus has never carried:
+  `flee` is read off the client's own branch and the published help, and the panel's `ucieczka` is
+  drawn from a fight the fabricator writes (`docs/protocol-keys.md`).
 - **Three worlds, and one of them once.** Everything but the duel and the seven recordings from
   `luvia` comes from `tempest`; the duel is the one that happened once.
 

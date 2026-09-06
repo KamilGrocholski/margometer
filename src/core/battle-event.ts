@@ -127,9 +127,9 @@ export interface HealingToNamedCombatantEvent {
  */
 export interface FightOutcomeEvent {
     kind: "fight-outcome";
-    /** `drawn` is a fight nobody won, which the protocol states on the winners' own key. */
-    result: "won" | "lost" | "drawn";
-    /** Empty for `drawn`, where the protocol names nobody — never a side that went unread. */
+    /** `drawn` is a fight nobody won; `fled` is one an escape broke off. Neither names a side. */
+    result: "won" | "lost" | "drawn" | "fled";
+    /** Empty for those two, where the protocol names nobody — never a side that went unread. */
     combatantNames: string[];
 }
 

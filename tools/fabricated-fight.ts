@@ -3,6 +3,7 @@
  *
  *     deno task fight:fabricate --out fabricated/10v10-long.json
  *     deno task fight:fabricate --per-side 1 --level 5 --rounds 8 --out fabricated/duel-low.json
+ *     deno task fight:fabricate --ending fled --out fabricated/fled.json
  *
  * ⚠️ **Not material, and never becomes it.** Every figure below was invented by the script in
  * this file, so nothing read off one of these says anything about the game. They go to
@@ -44,7 +45,15 @@ export interface FabricationShape {
     rounds: number;
     level: number;
     scale: number;
+    ending: FabricationEnding;
 }
+
+/**
+ * How the script ends the fight: one side left standing, or an escape breaking it off. The corpus
+ * carries 29 of the first and none of the second, so the second is the only way the panel's
+ * `ucieczka` can be looked at at all.
+ */
+export type FabricationEnding = "settled" | "fled";
 
 /** One of the cast, and where the script has left them. */
 export interface FabricatedWarrior {
@@ -144,6 +153,11 @@ const OUTPUT_FLAG = "out";
 const PER_SIDE_FLAG = "per-side";
 const ROUNDS_FLAG = "rounds";
 const LEVEL_FLAG = "level";
+const ENDING_FLAG = "ending";
+const DEFAULT_ENDING: FabricationEnding = "settled";
+const FLED_ENDING: FabricationEnding = "fled";
+/** The key an escape arrives on; `docs/protocol-keys.md` says what it means and how we know. */
+const FLED_KEY = "flee";
 const DEFAULT_OUTPUT = `${FABRICATED_DIRECTORY}/10v10-long.json`;
 const PATH_SEPARATOR = "/";
 
@@ -242,6 +256,7 @@ export function composeFabricationShape(
     perSide = DEFAULT_PER_SIDE,
     rounds = DEFAULT_ROUNDS,
     level = DEFAULT_LEVEL,
+    ending: FabricationEnding = DEFAULT_ENDING,
 ): FabricationShape {
     if (!Number.isSafeInteger(perSide) || perSide < 1 || perSide > MAXIMUM_COMBATANTS / 2) {
         throw new FabricatedFightError(
@@ -264,13 +279,15 @@ export function composeFabricationShape(
     }
     const scale = composeHealthCeiling(level) / composeHealthCeiling(DEFAULT_LEVEL);
     assert(scale > 0, "a fight is composed at a scale above nothing");
-    return { perSide, rounds, level, scale };
+    return { perSide, rounds, level, scale, ending };
 }
 
 /** The shape as a reader writes it, which is what the envelope carries and a file is named for. */
 export function composeShapeText(shape: FabricationShape): string {
     assert(shape.perSide > 0, "a shape that is written down fields somebody");
-    return `${shape.perSide}v${shape.perSide}-lvl${shape.level}-r${shape.rounds}`;
+    const said = `${shape.perSide}v${shape.perSide}-lvl${shape.level}-r${shape.rounds}`;
+    if (shape.ending === DEFAULT_ENDING) return said;
+    return `${said}-${shape.ending}`;
 }
 
 export function composeFabricatedFight(
@@ -1331,9 +1348,18 @@ function addClosingCall(state: FabricationState): void {
     assert(state.calls.length > 1, "and after the calls that got it there");
     addTurnStatement(state, last);
     const before = composeSnapshot(state);
+    const messages = state.shape.ending === FLED_ENDING
+        ? composeFledClosing(last)
+        : composeSettledClosing(state);
+    assert(messages.length > 0, "a fight that ends says so");
+    addCall(state, composeClosingPayload(state, messages), messages, before);
+}
+
+/** The two sides named, and the spoils the winner is paid after them. */
+function composeSettledClosing(state: FabricationState): string[] {
     const won = getStandingOnSide(state, SIDE_OURS).length > 0 ? SIDE_OURS : SIDE_THEIRS;
     const lost = won === SIDE_OURS ? SIDE_THEIRS : SIDE_OURS;
-    const messages = [
+    return [
         composeMessage(null, null, [
             composeValued(OUTCOME_WINNER_KEY, composeSideNames(state, won)),
         ]),
@@ -1345,7 +1371,16 @@ function addClosingCall(state: FabricationState): void {
             composeValued("+ph", composeIntegerText(12)),
         ]),
     ];
-    addCall(state, composeClosingPayload(state, messages), messages, before);
+}
+
+/**
+ * One message and nothing after it. The escape names its combatant in the actor slot, which is
+ * where the client reads the name and the health percent it prints — and no side is named, no
+ * experience is paid and no honour changes hands, because a fight nobody finished settles none of
+ * that. Inventing a figure here would be a claim about the game.
+ */
+function composeFledClosing(fled: FabricatedWarrior): string[] {
+    return [composeMessage(composeSide(fled), null, [composeValueless(FLED_KEY)])];
 }
 
 function composeSideNames(state: FabricationState, side: number): string {
@@ -1376,14 +1411,24 @@ function readShapeFlag(stated: string | undefined, fallback: number, flag: strin
     return asked;
 }
 
+function readEndingFlag(stated: string | undefined): FabricationEnding {
+    if (stated === undefined) return DEFAULT_ENDING;
+    if (stated === DEFAULT_ENDING) return DEFAULT_ENDING;
+    if (stated === FLED_ENDING) return FLED_ENDING;
+    throw new FabricatedFightError(
+        `--${ENDING_FLAG} ${stated} is neither ${DEFAULT_ENDING} nor ${FLED_ENDING}`,
+    );
+}
+
 if (import.meta.main) {
     const parsed = parseArgs(Deno.args, {
-        string: [OUTPUT_FLAG, PER_SIDE_FLAG, ROUNDS_FLAG, LEVEL_FLAG],
+        string: [OUTPUT_FLAG, PER_SIDE_FLAG, ROUNDS_FLAG, LEVEL_FLAG, ENDING_FLAG],
     });
     const shape = composeFabricationShape(
         readShapeFlag(parsed[PER_SIDE_FLAG], DEFAULT_PER_SIDE, PER_SIDE_FLAG),
         readShapeFlag(parsed[ROUNDS_FLAG], DEFAULT_ROUNDS, ROUNDS_FLAG),
         readShapeFlag(parsed[LEVEL_FLAG], DEFAULT_LEVEL, LEVEL_FLAG),
+        readEndingFlag(parsed[ENDING_FLAG]),
     );
     const asked = parsed[OUTPUT_FLAG];
     // A shape nobody named a path for would land on the default one and take the fight already

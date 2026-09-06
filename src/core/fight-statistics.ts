@@ -193,6 +193,8 @@ export interface FightOutcome {
     wonNames: string[];
     lostNames: string[];
     isDrawn: boolean;
+    /** A fight broken off by an escape, which the protocol states on a key of its own. */
+    isFled: boolean;
 }
 
 export interface FightStatistics {
@@ -530,15 +532,18 @@ interface StatisticsBuild {
 }
 
 /**
- * How the fight ended, as it arrives: one message names the winners and another the losers, and a
- * draw is the winners' key naming nobody. A later statement replaces an earlier one on its own
- * side and leaves the other standing, because the two are separate claims about one fight.
+ * How the fight ended, as it arrives: one message names the winners and another the losers, a
+ * draw is the winners' key naming nobody, and an escape is a key of its own. A later statement
+ * replaces an earlier one on its own side and leaves the other standing, because the two are
+ * separate claims about one fight.
  */
 function addFightOutcome(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== "fight-outcome") return;
-    const held = build.outcome ?? { wonNames: [], lostNames: [], isDrawn: false };
+    const held = build.outcome ??
+        { wonNames: [], lostNames: [], isDrawn: false, isFled: false };
     assert(event.combatantNames.every((one) => one.length > 0), "a side named is named in full");
     if (event.result === "drawn") build.outcome = { ...held, isDrawn: true };
+    if (event.result === "fled") build.outcome = { ...held, isFled: true };
     if (event.result === "won") build.outcome = { ...held, wonNames: [...event.combatantNames] };
     if (event.result === "lost") build.outcome = { ...held, lostNames: [...event.combatantNames] };
     assert(build.outcome !== null, "a fight that stated its end holds one");

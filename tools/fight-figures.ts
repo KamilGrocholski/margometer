@@ -214,6 +214,7 @@ function composeOutcomeLines(statistics: FightStatistics): string[] {
     return [
         "  —— how it ended ——",
         ...(outcome.isDrawn ? ["    drawn: nobody won this fight"] : []),
+        ...(outcome.isFled ? ["    fled:  an escape broke this fight off"] : []),
         `    won:  ${outcome.wonNames.join(", ") || "(nobody stated)"}`,
         `    lost: ${outcome.lostNames.join(", ") || "(nobody stated)"}`,
     ];

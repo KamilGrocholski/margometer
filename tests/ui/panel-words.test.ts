@@ -21,6 +21,7 @@ import {
     composeUsesText,
     COUNTED_NOUNS,
     getWordsForHealthSource,
+    getWordsForOutcome,
     getWordsForPinnedScope,
     getWordsForPinnedStanding,
     getWordsForUnnamedEnd,
@@ -28,7 +29,7 @@ import {
     NEITHER_END_WORDS,
     PANEL_WORDS,
 } from "@/src/ui/panel-words.ts";
-import { type PanelUnnamedEnd, PINNED_CASES } from "@/src/ui/panel-reading.ts";
+import { type PanelOutcome, type PanelUnnamedEnd, PINNED_CASES } from "@/src/ui/panel-reading.ts";
 
 /** Words this repository chose for itself. A reader is told what is missing, never our reason. */
 const OUR_VOCABULARY = [
@@ -80,6 +81,31 @@ Deno.test("every word the panel says says something", () => {
         assert(sentence.length > 0, "an empty sentence is not a word");
         assertEquals(sentence.trim(), sentence, `${sentence} carries space it does not need`);
     }
+});
+
+/**
+ * The four words are written out here rather than read back, which is what the docblock above
+ * asks of every sentence in this file — and until this test there was nothing at all holding
+ * them. A word swapped for another outcome's passed the whole gate: the header test reads the
+ * string out of the module that writes it, and the browser suite only ever runs a fight that was
+ * won, so `REMIS` and `UCIECZKA` are in its list without ever being drawn.
+ */
+Deno.test("each way a fight can end has its own word, and no two share one", () => {
+    const said: Record<PanelOutcome, string> = {
+        won: "wygrana",
+        lost: "przegrana",
+        drawn: "remis",
+        fled: "ucieczka",
+    };
+    for (const [outcome, word] of Object.entries(said)) {
+        assertEquals(
+            getWordsForOutcome(outcome as PanelOutcome),
+            word,
+            `${outcome} is the word a reader reads for it`,
+        );
+    }
+    const words = Object.values(said);
+    assertEquals(new Set(words).size, words.length, "and no ending borrows another's word");
 });
 
 Deno.test("no sentence carries our vocabulary", () => {

@@ -395,6 +395,54 @@ Deno.test("a fight nobody won is stated on the winners' key alone", () => {
     assertEquals(refused.filter((one) => one.kind === "fight-outcome").length, 0, "no side of `?`");
 });
 
+/**
+ * The escape arrives on a key of its own, and the client never reads that key's value — it takes
+ * the name and the health percent off the actor slot instead. So both shapes are proved here:
+ * neither is the one the material settles, because the material carries no escape at all.
+ */
+Deno.test("a fight an escape broke off is read on its own key, valued or bare", () => {
+    const bare = decodeFightMessages(["500001=94.75;0;flee"], null);
+    assertStrictEquals(bare[0]?.kind, "fight-outcome", "the bare key is an outcome");
+    assertEquals(bare[0].result, "fled", "of a fight nobody finished");
+    assertEquals(bare[0].combatantNames, [], "naming no side, because the key names none");
+    assertEquals(bare.filter((one) => one.kind === "unknown-message").length, 0, "nothing unread");
+
+    const valued = decodeFightMessages(["500001=94.75;0;flee=1"], null);
+    assertStrictEquals(valued[0]?.kind, "fight-outcome", "and so is the valued one");
+    assertEquals(valued[0].result, "fled", "which says the same thing");
+    assertEquals(valued[0].combatantNames, [], "and names nobody either");
+});
+
+Deno.test("an escape beside a stated winner is still what the fight came to", () => {
+    const both = decodeFightMessages(["500001=94.75;0;flee", "0;0;winner=Gracz 1"], null);
+    const outcomes = both.filter((one) => one.kind === "fight-outcome");
+    assertEquals(outcomes.length, 2, "both messages are read, and neither swallows the other");
+    assertEquals(outcomes[0]?.result, "fled", "the escape as the escape");
+    assertEquals(outcomes[1]?.result, "won", "and the side the protocol named as named");
+});
+
+/**
+ * What stands behind the entry in `docs/protocol-keys.md`: the escape is read off the client's own
+ * branch and the published help, and the material says nothing either way. A recording of one
+ * would turn this red, which is the point — it is the day the entry gets a measurement.
+ */
+Deno.test("no recording carries an escape, which is why the register cites the client", () => {
+    let fled = 0;
+    let ended = 0;
+    for (const path of readRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        for (const payload of getRecordedPayloads(path)) {
+            for (const event of decodeFightMessages(payload, roster)) {
+                if (event.kind !== "fight-outcome") continue;
+                ended += 1;
+                if (event.result === "fled") fled += 1;
+            }
+        }
+    }
+    assert(ended > 0, "the walk reached the messages that state an ending");
+    assertEquals(fled, 0, "and not one of them is an escape");
+});
+
 interface CorpusTally {
     attacks: number;
     moved: number;
@@ -431,7 +479,7 @@ function countEvent(tally: CorpusTally, event: BattleEvent, path: string): void 
     if (event.kind === "fight-outcome") {
         tally.outcomes += 1;
         assert(event.combatantNames.every((one) => one.length > 0), `${path}: an unnamed member`);
-        if (event.result !== "drawn") {
+        if (event.result === "won" || event.result === "lost") {
             assert(event.combatantNames.length > 0, `${path}: a side with no member`);
         }
         return;

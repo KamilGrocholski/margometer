@@ -73,6 +73,7 @@ const OUTCOME_WORDS: Record<PanelOutcome, string> = {
     won: "wygrana",
     lost: "przegrana",
     drawn: "remis",
+    fled: "ucieczka",
 };
 
 export function getWordsForOutcome(outcome: PanelOutcome): string {
