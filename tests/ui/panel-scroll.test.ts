@@ -134,6 +134,34 @@ Deno.test("the rows are swapped under the reader, and the region they scroll in 
     );
 });
 
+/**
+ * How tall a list stands is written on its style, so a region that keeps its identity has to take
+ * that too: without it the height a place was first drawn at is the height it keeps for good.
+ */
+Deno.test("the region takes the height the list drawn for it was standing at", () => {
+    const standing = composeElementOfClass(CLASS.list);
+    standing.setAttribute("style", "--MargoMeter-rows:11");
+    const next = composeElementOfClass(CLASS.list);
+    next.setAttribute("style", "--MargoMeter-rows:22");
+
+    assertStrictEquals(setListRowsDrawn(standing, next), true, "the rows move");
+    assertStrictEquals(
+        standing.getAttribute("style"),
+        "--MargoMeter-rows:22",
+        "and the region stands as tall as what was drawn for it asks",
+    );
+});
+
+/** A list drawn with no height stated leaves none behind, rather than the one before it. */
+Deno.test("a list carrying no height takes none from the one it replaced", () => {
+    const standing = composeElementOfClass(CLASS.list);
+    standing.setAttribute("style", "--MargoMeter-rows:11");
+    const next = composeElementOfClass(CLASS.list);
+
+    assertStrictEquals(setListRowsDrawn(standing, next), true, "the rows move");
+    assertStrictEquals(standing.getAttribute("style"), "", "and the height goes with them");
+});
+
 Deno.test("a region that is not a list is left for the caller to replace", () => {
     const document = composeFakeDocument();
     const slot = document.createElement("div");

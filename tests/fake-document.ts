@@ -124,6 +124,9 @@ export function composeFakeDocument(): PanelDocument & { created: FakeElement[] 
                 setAttribute(name: string, value: string): void {
                     element.attributes.set(name, value);
                 },
+                getAttribute(name: string): string | null {
+                    return element.attributes.get(name) ?? null;
+                },
                 attachShadow(): PanelRoot {
                     assertStrictEquals(element.shadow, null, "a root is attached once");
                     const inside: FakeElement[] = [];

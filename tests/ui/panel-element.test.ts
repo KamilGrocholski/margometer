@@ -375,6 +375,27 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
     assert(shelf[0]?.className.startsWith("titlebar-button"), "a control and not a strip");
 });
 
+/**
+ * The side strip narrows a ranking, is not drawn over a shelf, and narrows no shelf — so a shelf
+ * standing at whichever height that strip last answered was following a choice about a list it is
+ * not. The reader's own answer survives leaving the shelf, so it is a press and a press away.
+ */
+Deno.test("the shelf stands at its own height, whatever the side strip was last asked", () => {
+    const readShelfHeight = (side: PanelSideChoice) => {
+        const { reading } = readPinnedFight("damageDealtApplied", side);
+        const document = composeFakeDocument();
+        const panel = composePanelHost(document, () => {}, () => {});
+        panel.show({ ...composeShownScreen(reading), side, isOnShelf: true, hasReaderSide: true });
+        const host = panel.element as FakeElement;
+        return getElementsWithin(host).find((one) => one.className.startsWith("list"))
+            ?.attributes.get("style");
+    };
+    const everyone = readShelfHeight("everyone");
+    assertExists(everyone, "the shelf is a list, and a list states how tall it stands");
+    assertEquals(readShelfHeight("reader"), everyone, "a side chosen shortens no shelf");
+    assertEquals(readShelfHeight("opposing"), everyone, "and neither does the other one");
+});
+
 Deno.test("a fight draws a row for everybody in it, named", () => {
     const reading = readFight();
     const host = draw(reading);
@@ -717,6 +738,44 @@ Deno.test("the fight is totalled in two figures, and a suspicion is said under t
     );
     assertExists(ours, "the reader's own side is named as theirs");
     assertEquals(ours.attributes.get("style"), undefined, "and no colour is written onto it");
+});
+
+/**
+ * The strip totals the whole fight whatever the list under it is showing, so wherever the two
+ * differ the label has to say so. The pinned row's level was the one that did not: it is reached
+ * without opening a row, and the question was spelled as `drill === null`.
+ */
+Deno.test("the strip says it is the whole fight wherever the list under it is not", () => {
+    const { reading, statistics, roster, readerSide } = readPinnedFight("damageDealtApplied");
+    const opened = reading.rows[0];
+    assertExists(opened, "there is a row to open");
+    const drill = composeDrillReading(statistics, roster, "damageDealtApplied", opened.combatantId);
+    assertExists(drill, "and it opens");
+    const halfNamed = composeHalfNamedReading(
+        statistics,
+        roster,
+        "dealtWithNoActor",
+        "everyone",
+        readerSide,
+    );
+    assertExists(halfNamed, "and this fight pins a figure that opens too");
+
+    const readLabel = (over: Partial<ShownScreen>) => {
+        const document = composeFakeDocument();
+        const panel = composePanelHost(document, () => {}, () => {});
+        panel.show({ ...composeShownScreen(reading), ...over });
+        return getTextsByClass(panel.element as FakeElement, CLASS.sidesLabel);
+    };
+    const whole = `${PANEL_WORDS.wholeFight} · ${PANEL_WORDS.ourSide} / ${PANEL_WORDS.theirSide}`;
+    const both = `${PANEL_WORDS.ourSide} / ${PANEL_WORDS.theirSide}`;
+
+    assertEquals(readLabel({}), [both], "on the ranking the strip and the list are one fight");
+    assertEquals(readLabel({ drill }), [whole], "inside a row the strip is wider than the list");
+    assertEquals(
+        readLabel({ halfNamed }),
+        [whole],
+        "and inside a pinned row it is wider too, which is what the label has to say",
+    );
 });
 
 Deno.test("what belongs to neither side is drawn as belonging to neither", () => {
@@ -2223,6 +2282,61 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
         drawOpened(small),
         `--MargoMeter-rows:${reading.visibleRows}`,
         "a shorter breakdown is drawn at the ranking's height rather than below it",
+    );
+});
+
+/**
+ * ⚠️ **The same place, drawn again, which is what a payload landing on an open level is.** The
+ * region is kept rather than replaced there (**ADR 0052**), so a height carried on the element
+ * rather than composed onto the new one froze at whatever the first draw of that place asked for:
+ * a level that grew as the fight went on went on being drawn at the ranking's eleven, and the
+ * section was cut off in the middle — the one thing counting the rows exists to stop.
+ *
+ * The test above draws each state on a panel of its own, which is the one path where nothing is
+ * kept, and that is why it stayed green through it.
+ */
+Deno.test("a level that grows while the fight goes on grows the region it is drawn in", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    const shown = {
+        ...composeShownScreen(reading),
+        // One place, whatever the level under it has come to: a payload moves no field of the
+        // name, which is exactly `composeListName`'s answer while a row stands open.
+        listName: SHOWN_LIST,
+    };
+    // The level as it stands early in a fight: fewer rows than the ranking promised.
+    const early = {
+        ...drill,
+        byOpponent: { rows: drill.byOpponent.rows.slice(0, 1), unnamed: null },
+        bySkill: { rows: [], plain: null },
+        byElement: { rows: [], unnamed: null },
+    };
+    panel.show({ ...shown, drill: early });
+    const host = panel.element as FakeElement;
+    const readHeight = () =>
+        getElementsWithin(host).find((one) => one.className.startsWith("list"))
+            ?.attributes.get("style");
+    assertEquals(
+        readHeight(),
+        `--MargoMeter-rows:${reading.visibleRows}`,
+        "a level shorter than the ranking is drawn at the ranking's height",
+    );
+
+    const heads = (
+        rows: unknown[],
+        extra: unknown,
+    ) => (rows.length === 0 && extra === null ? 0 : 1);
+    const needed = countDrillRows(drill) + heads(drill.byOpponent.rows, drill.byOpponent.unnamed) +
+        heads(drill.bySkill.rows, drill.bySkill.plain) +
+        heads(drill.byElement.rows, drill.byElement.unnamed);
+    assert(needed > reading.visibleRows, "and the whole of it needs more rows than the ranking");
+
+    panel.show({ ...shown, drill });
+    assertEquals(
+        readHeight(),
+        `--MargoMeter-rows:${needed}`,
+        "so the region the reader is standing in grows with the level, rather than cutting it off",
     );
 });
 

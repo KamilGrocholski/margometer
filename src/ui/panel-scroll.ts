@@ -1,8 +1,7 @@
 /**
- * Where a reader left the one region that scrolls, kept by which list was standing in it.
- *
- * A redraw replaces the region whole, so the position is read off the element about to go and
- * written onto whichever list stands next under the same name. **ADR 0050.**
+ * Where a reader left the one region that scrolls, kept by which list was standing in it. A
+ * redraw that replaces the region reads the position off the element about to go and writes it
+ * onto whichever list stands next under the same name. **ADR 0050.**
  */
 
 import type { PanelElement } from "@/src/ui/panel-element.ts";
@@ -10,6 +9,7 @@ import { CLASS } from "@/src/ui/panel-look.ts";
 
 /** Headroom rather than a bound anything meets: a reader comes back to a handful of places. */
 const MAXIMUM_LISTS_KEPT = 32;
+const STYLE_ATTRIBUTE = "style";
 
 export interface KeptScrolls {
     getTop(name: string): number;
@@ -56,12 +56,15 @@ export function getTopOfList(region: PanelElement): number | null {
 
 /**
  * ⚠️ **A wheel turn belongs to the element it is turning**, so the rows are swapped under the
- * reader rather than the region replaced. False where either side is not a list. **ADR 0052.**
+ * reader rather than the region replaced — and the style with them, since a list's own height is
+ * written there and one left behind froze (`tests/ui/panel-scroll.test.ts`). False where either
+ * side is not a list. **ADR 0052.**
  */
 export function setListRowsDrawn(standing: PanelElement, next: PanelElement): boolean {
     if (!getIsRegionList(standing)) return false;
     if (!getIsRegionList(next)) return false;
     standing.className = next.className;
+    standing.setAttribute(STYLE_ATTRIBUTE, next.getAttribute(STYLE_ATTRIBUTE) ?? "");
     standing.replaceChildren(...Array.from(next.children));
     return true;
 }

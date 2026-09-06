@@ -201,6 +201,7 @@ tests/
     panel-tip.test.ts         What the window draws, how tall it says it is, and what it drops.
     panel-words.test.ts       What the words must never say, and how Polish counts.
     ranked-order.test.ts      The order two rows are drawn in, and the tie nothing breaks.
+    share-bound.test.ts       The two writers with a bound, against the widest screen drawn.
     share-column.test.ts      Every column of shares the panel draws, against the hundred.
     shelf-bound.test.ts       A full shelf with a live fight on it, and the two bounds held.
   libs/                    A test sits where its subject sits.
@@ -237,6 +238,7 @@ tests/
     panel-drill.spec.ts    The rows that open a level, and the two ways back out.
     panel-tip.spec.ts      The card the pointer leaves behind, and what closes it.
     panel-scroll.spec.ts   The one region that scrolls, and what scrolling it must not do.
+    panel-level.spec.ts    A level open while payloads land, and the region it grows in.
     panel-fold.spec.ts     The panel folded away and brought back, and what is remembered.
     panel-shelf.spec.ts    The fights kept, the one being read, a pin, and the three stores.
     panel-save.spec.ts     The file the browser really takes, and what is inside it.

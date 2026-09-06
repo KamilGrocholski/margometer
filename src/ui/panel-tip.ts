@@ -54,13 +54,14 @@ export interface TipSize {
 }
 
 /**
- * Counted off **an opened row**, the widest screen the panel has: `MAXIMUM_COMBATANTS` (20) plus
- * `MAXIMUM_SKILLS` (256) plus `MAXIMUM_CUT_PARTS` (64), each with an unnamed row and a heading,
- * and the two pinned rows — 348. Counted off the ranking it was 128, which a drill reaches: a row
- * past the bound registers nothing, and `show` then hides the card rather than drawing one. The
- * figure below is that count with headroom, not a limit any screen meets.
+ * Counted off **an opened row**, the widest screen the panel has: its three sections, each with
+ * an unnamed row and a heading, and the two pinned rows. Counted off the ranking it was 128,
+ * which a drill reaches; counted with a skill section of names alone it was 384, and on the two
+ * healing screens that section is names **and** the keys no announcement covered. A row past the
+ * bound registers nothing, and `show` then hides the card rather than drawing one.
+ * `tests/ui/share-bound.test.ts` is where the arithmetic is, against the panel's own constants.
  */
-const MAXIMUM_TIPS = 384;
+export const MAXIMUM_TIPS = 512;
 /**
  * How many characters of a note stand on one line of the card, and it is a **floor** rather than
  * a measurement of any one sentence. At 242 pixels of type — the window less its padding — in
@@ -207,6 +208,15 @@ export function setTipHidden(tip: PanelElement, isHidden: boolean): void {
 }
 
 /**
+ * Whether the window standing is drawn. A card that would not compose is hidden where it stands
+ * (`src/ui/panel-element.ts`) without the handle below being told, so the key it was open under
+ * still names it and a pointer moving inside that row would only move a window nobody can see.
+ */
+function getIsTipHidden(tip: PanelElement): boolean {
+    return tip.className.includes(CLASS.tipHidden);
+}
+
+/**
  * Where the tip sits, and how tall it stands, as the properties the stylesheet clamps and
  * multiplies. Whole pixels down the screen, because `clientY` is fractional on a scaled display
  * and half a pixel is nothing anybody can see — while a declaration reading `292.33333333333px`
@@ -275,12 +285,14 @@ export function composeTipHandle(
             }
             const top = Math.max(0, Math.round(clientY));
             if (key === openKey) {
-                // A pointer reports far more moves than the window has places to stand in, and a
-                // move inside one pixel would rewrite the same declaration.
-                if (top === openTop) return;
-                openTop = top;
-                setTipPlace(standing, openTop, getLeft(), openSize);
-                return;
+                if (!getIsTipHidden(standing)) {
+                    // A pointer reports far more moves than the window has places to stand in,
+                    // and a move inside one pixel would rewrite the same declaration.
+                    if (top === openTop) return;
+                    openTop = top;
+                    setTipPlace(standing, openTop, getLeft(), openSize);
+                    return;
+                }
             }
             const compose = register.get(key);
             if (compose === null) {

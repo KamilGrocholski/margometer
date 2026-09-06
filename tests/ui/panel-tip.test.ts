@@ -269,6 +269,40 @@ Deno.test("a move inside one pixel writes nothing, because there is nowhere new 
     assertExists(shown.attributes.get("style"), "and a move to the next one does write");
 });
 
+/**
+ * The panel's own swap hides the window in place where a card will not compose (**E14**), and the
+ * handle is not told: the key it was open under still names the row the pointer is on. Without
+ * this the move that follows takes the shortcut for a card already standing and only writes a
+ * place onto a window nobody can see, so the row stays blank until the pointer leaves it.
+ */
+Deno.test("a card hidden where it stood is composed again, not moved", () => {
+    const document = composeFakeDocument();
+    const register = composeTipRegister();
+    let willFail = false;
+    const handle = composeTipHandle(document, register, (standing, compose) => {
+        // The panel's own answer to a card that throws: hidden where it stands, nothing replaced.
+        if (willFail) {
+            setTipHidden(standing, true);
+            return standing;
+        }
+        const next = compose();
+        standing.replaceWith(next);
+        return next;
+    });
+    const first = handle.element as FakeElement;
+
+    register.add("row:7", () => HILDUR);
+    willFail = true;
+    handle.show("row:7", 412);
+    assertEquals(first.className, `${CLASS.tip} ${CLASS.tipHidden}`, "the card is hidden in place");
+
+    willFail = false;
+    handle.show("row:7", 480);
+    const shown = first.replacedBy;
+    assertExists(shown, "a move on the same row asks for the card again rather than moving none");
+    assertEquals(getTextsByClass(shown, CLASS.tipName), [HILDUR.name], "and it names that row");
+});
+
 Deno.test("nobody under the pointer hides it, and a row nobody drew never opens it", () => {
     const { register, handle, first } = composeHandleUnderTest();
     handle.show("row:404", 200);

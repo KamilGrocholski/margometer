@@ -646,7 +646,34 @@ Deno.test("a reader whose own side nobody stated is shown everybody, whatever wa
             `${choice}: nobody is filtered out`,
         );
         assertEquals(reading.total, everyone.total, "and the total stays the fight's own");
+        // The height goes with the list rather than with the strip: a window a row shorter than
+        // the ranking is the shape of a side, and there is no side here to have narrowed to.
+        assertEquals(
+            reading.visibleRows,
+            everyone.visibleRows,
+            `${choice}: a list of everybody stands as tall as one`,
+        );
     }
+});
+
+/** And where there is a seat, a side chosen is a shorter list and says so. */
+Deno.test("a list narrowed to one side stands at the height of one", () => {
+    const { roster, statistics } = readFight(HILDUR);
+    const [readerSide] = [...new Set([...roster.byId.values()].map((one) => one.side))];
+    assertExists(readerSide, "the fight states a side to sit on");
+    const readRows = (choice: PanelSideChoice) =>
+        composePanelReading(
+            statistics,
+            roster,
+            "damageDealtApplied",
+            choice,
+            readerSide,
+            NOTHING_SUSPECT,
+        ).visibleRows;
+
+    const everyone = readRows("everyone");
+    assert(readRows("reader") < everyone, "one side is a shorter window than the whole fight");
+    assertEquals(readRows("opposing"), readRows("reader"), "and both sides are the same shape");
 });
 
 /**

@@ -38,9 +38,9 @@ import {
 /** A fight holds twenty, and a list draws a row for each. */
 const MAXIMUM_ROWS = 20;
 /** As many parts as the widest cut a card draws: the kinds, the defences, the procs. */
-const MAXIMUM_CUT_PARTS = 64;
+export const MAXIMUM_CUT_PARTS = 64;
 /** What one combatant's own skills are kept inside: 81 names over `captures/`, 2026-08-29. */
-const MAXIMUM_SKILLS = 256;
+export const MAXIMUM_SKILLS = 256;
 /**
  * The ranking's height, in bars. Ten is the most one side fields and eleven the most a whole
  * fight does, measured over `captures/`, where a group fight is ten of ours against one. A bigger
@@ -487,6 +487,10 @@ function composeCutParts(cut: FigureCut): CutPart[] {
     const parts: CutPart[] = [];
     for (const [key, figure] of cut) {
         if (figure > 0) parts.push({ key, figure });
+        // The panel's own bound and not `core/`'s (**S11**): nothing here may lean on an
+        // assertion a layer below it makes, and that layer's own cut is narrower, so a card
+        // drawn over any recording loses nothing to this.
+        if (parts.length >= MAXIMUM_CUT_PARTS) break;
     }
     parts.sort((one, other) => getRankedOrder(one.figure, other.figure, one.key, other.key));
     return parts;
@@ -1139,7 +1143,10 @@ export function composePanelReading(
         pinned: composePinnedRows(pinned, shares.slice(listed.length), whole, largest),
         suspicions: composeSuspicions(statistics, metric, suspicions),
         sides,
-        visibleRows: choice === "everyone" ? RANKING_ROWS : SIDE_ROWS,
+        // Read off what the list is, and never off what was pressed: with no seat to read from
+        // every list is everybody, whatever the strip last answered, and a shorter window would
+        // be the height of a side nothing narrowed to.
+        visibleRows: part === null ? RANKING_ROWS : SIDE_ROWS,
     };
 }
 
@@ -1530,6 +1537,7 @@ function composeSourceRows(cut: FigureCut): UnsharedPart[] {
     for (const [source, figure] of cut) {
         // No count: the protocol states no number of applications of a key.
         if (figure > 0) stated.push({ part: { kind: "source", source }, uses: null, figure });
+        if (stated.length >= MAXIMUM_CUT_PARTS) break;
     }
     return stated;
 }
@@ -1645,9 +1653,9 @@ function composeSkillRowsStated(
 function getGivenSourceCut(figures: CombatantFigures): FigureCut {
     const folded = new Map<string, number>();
     for (const cut of figures.healthGivenWithoutSkillByReceiverAndSource.values()) {
-        for (const [source, figure] of cut) {
-            folded.set(source, (folded.get(source) ?? 0) + figure);
-        }
+        // The fold runs over every receiver, so its own bound is the panel's (**S11**): what
+        // `core/` holds is one receiver's cut and not the union of twenty.
+        addFoldedCut(folded, cut);
     }
     return folded;
 }

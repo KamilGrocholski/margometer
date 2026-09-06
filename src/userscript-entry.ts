@@ -444,10 +444,7 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         screen.isOnShelf = !screen.isOnShelf;
         return true;
     }
-    if (press.kind === "back") {
-        handlePressBack(screen);
-        return true;
-    }
+    if (press.kind === "back") return handlePressBack(screen);
     if (press.kind === "fight") {
         setFightChosen(screen, getIntegerFromText(press.stated));
         return true;
@@ -481,25 +478,30 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
 /**
  * One rung at a time, and the part before the pair: the two are both a press away from the opened
  * row, so a way back that skipped the part left the reader on the ranking while the crumb beside
- * it named the person they had opened.
+ * it named the person they had opened. False where there was no rung to leave: the gesture is the
+ * whole panel's, so a right press on the ranking redrew the fight for nothing.
  */
-function handlePressBack(screen: ScreenState): void {
+function handlePressBack(screen: ScreenState): boolean {
     if (screen.isOnShelf) {
         screen.isOnShelf = false;
-        return;
+        return true;
     }
     if (screen.openPart !== null) {
         screen.openPart = null;
-        return;
+        return true;
     }
     if (screen.openPairId !== null) {
         screen.openPairId = null;
-        return;
+        return true;
+    }
+    if (screen.openRowId === null) {
+        if (screen.openUnnamedEnd === null) return false;
     }
     // The two cannot both be open — a pinned row is drawn under the ranking, so a reader inside
     // somebody's figure has none to press — and closing both says so once.
     screen.openRowId = null;
     screen.openUnnamedEnd = null;
+    return true;
 }
 
 function handlePressSide(screen: ScreenState, said: string): boolean {

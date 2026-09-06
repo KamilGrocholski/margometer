@@ -137,6 +137,13 @@ export interface PanelElement {
     children: ArrayLike<PanelElement>;
     replaceChildren(...children: PanelElement[]): void;
     setAttribute(name: string, value: string): void;
+    /**
+     * Read back off the element about to go, so a region that **stays** takes what the one drawn
+     * for it was carrying. `src/ui/panel-scroll.ts` owns the one attribute that travels that way
+     * and says which. A third name on this surface, after the two **ADR 0052** added: it earns no
+     * row in `docs/browser-support.md` either, being older than every floor stated there.
+     */
+    getAttribute(name: string): string | null;
     attachShadow(options: { mode: "open" }): PanelRoot;
     /** A drag keeping the pointer it has. Optional: a document offering neither still drags. */
     setPointerCapture?(pointerId: number): void;
@@ -226,6 +233,12 @@ export const MAXIMUM_SHELF_ROWS = 21;
 const PIN_MARK = "★";
 const UNPINNED_MARK = "☆";
 const ROWS_WAITING = 11;
+/**
+ * How tall the shelf stands, which is its own answer and never the ranking's: no side narrows a
+ * shelf and the strip that narrows one is not drawn over it, so a shelf reading the ranking's
+ * count shortened by a row whenever a reader had last chosen a side.
+ */
+const ROWS_SHELF = 11;
 /** The place a panel with no fight stands in. Nothing to scroll, and nobody's position. */
 const WAITING_LIST_NAME = "waiting";
 /**
@@ -745,7 +758,7 @@ function composeShelfElement(
     shown: ShownScreen,
     register: TipRegister,
 ): PanelElement {
-    const list = composeListElement(document, shown.reading.visibleRows);
+    const list = composeListElement(document, ROWS_SHELF);
     if (shown.shelf.length === 0) {
         list.append(composeEmptyElement(document, PANEL_WORDS.shelfEmpty));
         return list;
@@ -883,7 +896,12 @@ function getMarkForNamedPart(part: NamedPart, doesOpen: boolean): RowMark | null
     return { attribute: KIND_ATTRIBUTE, stated: part.element };
 }
 
-/** One key per part and per section, so a tip is never the one a row beside it registered. */
+/**
+ * One key per part and per section, so a tip is never the one a row beside it registered. Every
+ * caller names its own section here rather than spelling a key of its own: a second spelling
+ * lands on somebody else's key silently — the register refuses a duplicate, and the row wears the
+ * card of whichever section was drawn first.
+ */
 function getKeyForNamedPart(where: string, part: NamedPart | { kind: "plain" }): string {
     if (part.kind === "skill") return `${where}-skill:${part.name}`;
     if (part.kind === "plain") return `${where}-skill:plain`;
@@ -1096,10 +1114,28 @@ function composeSidesSpare(document: PanelDocument, figure: number): PanelElemen
     return spare;
 }
 
+/**
+ * The strip totals the whole fight whatever the list under it is showing, so the label says so
+ * wherever the two differ — a narrowed side, or any level standing over the list.
+ */
 function composeSidesLabel(shown: ShownScreen): string {
     const sides = `${PANEL_WORDS.ourSide} / ${PANEL_WORDS.theirSide}`;
-    if (shown.side === "everyone" && shown.drill === null) return sides;
+    if (shown.side === "everyone") {
+        if (!getIsLevelOpen(shown)) return sides;
+    }
     return `${PANEL_WORDS.wholeFight} · ${sides}`;
+}
+
+/**
+ * Whether a level stands over the screen's own list. Three fields and not five: a pair and a part
+ * are reached through an opened row, so neither stands without `drill`. Asked in two places, and
+ * spelled here once — the second spelling of it read `drill` alone and left the label over a
+ * pinned row's level saying the strip and the list were the same thing.
+ */
+function getIsLevelOpen(shown: ShownScreen): boolean {
+    if (shown.drill !== null) return true;
+    if (shown.halfNamed !== null) return true;
+    return shown.halfNamedDrill !== null;
 }
 
 function composeRegion(
@@ -1437,7 +1473,8 @@ function composePairKinds(
     if (cut.rows.length === 0) return;
     list.append(composeSectionElement(document, PANEL_WORDS.damageKind, pair.total));
     for (const [at, row] of cut.rows.entries()) {
-        const tip = { ...stated, key: `pair-kind:${row.element}` };
+        const part = { kind: "element" as const, element: row.element };
+        const tip = { ...stated, key: getKeyForNamedPart("pair-kinds", part) };
         list.append(
             composeRowElement(document, composeElementReading(row, "damage", at + 1), null, tip),
         );
@@ -1977,8 +2014,7 @@ function setPinnedRegions(
         isSideChosen: shown.side !== "everyone",
         figure: getWordsForMetric(shown.current),
     };
-    const isOpen = shown.drill !== null || shown.halfNamed !== null ||
-        shown.halfNamedDrill !== null;
+    const isOpen = getIsLevelOpen(shown);
     const pinned = !isOpen && !shown.isOnShelf ? shown.reading.pinned : [];
     for (const [end, standing] of [["actor", "pinnedActor"], ["target", "pinnedTarget"]] as const) {
         const row = pinned.find((one) => one.end === end) ?? null;

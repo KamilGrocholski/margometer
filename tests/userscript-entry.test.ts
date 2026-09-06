@@ -982,6 +982,39 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
 });
 
 /**
+ * The way back is the whole panel's — a right press anywhere on it goes back — so it lands on the
+ * ranking as readily as on a level, and answering that it moved something redrew the fight for
+ * nothing. Read off the bar, which is the one region every draw replaces.
+ */
+Deno.test("a way back with no rung to leave moves nothing, and redraws nothing", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = shown[0] as FakeElement;
+    const getRegion = (className: string) => {
+        return getElementsWithin(host).find((one) => one.className === className);
+    };
+
+    const bar = getRegion("MargoMeter-titlebar");
+    assertExists(bar, "the bar is drawn, and a draw is what replaces it");
+    pressElement(host, "contextmenu", host);
+    assertStrictEquals(bar.replacedBy, null, "a way back off the ranking leaves the panel alone");
+
+    const name = getRegion("row-name");
+    assertExists(name, "and there is a row to open");
+    pressElement(host, "pointerdown", name);
+    assertExists(getRegion("crumb"), "which opens over the screen");
+    const opened = getRegion("MargoMeter-titlebar");
+    assertExists(opened, "the bar standing after that draw");
+    pressElement(host, "contextmenu", host);
+    assertExists(opened.replacedBy, "a way back off a rung is a draw");
+    assertEquals(getRegion("crumb"), undefined, "and the rung is left");
+});
+
+/**
  * What survives a change of screen, and what does not: the person a reader went into stays,
  * because the strips are how they ask the next question about them.
  */

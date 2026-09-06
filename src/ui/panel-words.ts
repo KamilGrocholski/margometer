@@ -775,8 +775,8 @@ export function composeFigureText(value: number): string {
 }
 
 const SHARE_FLOOR = "<1%";
-/** More shares than any screen draws rows: twenty combatants, sixty-four kinds, and the pinned. */
-const MAXIMUM_SHARES = 128;
+/** More shares than the widest section draws rows — `tests/ui/share-bound.test.ts` holds it so. */
+export const MAXIMUM_SHARES = 384;
 
 /**
  * A share in whole points, with the floor spent where it is owed. A figure under half a point
