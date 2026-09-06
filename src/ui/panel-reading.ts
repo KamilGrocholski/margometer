@@ -835,17 +835,18 @@ function composeHalfNamedKinds(
 ): ElementCut {
     const shape = PINNED_SHAPES[kase];
     const folded = new Map<string, number>();
+    let rest = 0;
     for (const one of parts) {
         const figures = statistics.byCombatantId.get(one.combatantId);
         if (figures === undefined) continue;
-        addFoldedCut(folded, figures[shape.kinds]);
+        rest += addFoldedCut(folded, figures[shape.kinds]);
     }
-    if (neither > 0) addFoldedCut(folded, statistics.byNeitherEndByElement);
+    if (neither > 0) rest += addFoldedCut(folded, statistics.byNeitherEndByElement);
     // A key standing only for what named neither end has nobody's row to open onto, and a level
     // holding one refusal says nothing the row above it did not.
     return composeElementCut(folded, total, (element) => {
         return getHalfNamedByKind(statistics, shape.kinds, parts, element).length > 0;
-    });
+    }, rest);
 }
 
 /** Whoever carries one key of a half-named figure, with the part of it their row holds. */
@@ -866,16 +867,24 @@ function getHalfNamedByKind(
     return found;
 }
 
-/** One person's own cut into the fold, under the key the protocol wrote it with. */
-function addFoldedCut(folded: Map<string, number>, held: FigureCut): void {
+/**
+ * One person's own cut into the fold, under the key the protocol wrote it with — and the figure it
+ * could not give a key of its own to, which the caller owes a row (**ADR 0055**).
+ */
+function addFoldedCut(folded: Map<string, number>, held: FigureCut): number {
+    let rest = 0;
     for (const [key, figure] of held) {
         if (folded.has(key)) {
             folded.set(key, (folded.get(key) ?? 0) + figure);
             continue;
         }
-        if (folded.size >= MAXIMUM_CUT_PARTS) continue;
+        if (folded.size >= MAXIMUM_CUT_PARTS) {
+            rest += figure;
+            continue;
+        }
         folded.set(key, figure);
     }
+    return rest;
 }
 
 /**
@@ -1314,6 +1323,11 @@ export interface OpponentCut {
 
 export interface ElementCut {
     rows: ElementRow[];
+    /**
+     * What a fold could not give a key of its own to, summed — never the row below it, which
+     * is what the protocol stated no kind of at all. **ADR 0055.**
+     */
+    rest: UnnamedRow | null;
     unnamed: UnnamedRow | null;
 }
 
@@ -1425,9 +1439,11 @@ function composeElementCut(
     cut: FigureCut,
     total: number,
     doesOpen: (element: string) => boolean,
+    /** What a fold gave no key of its own to. Held, because the protocol did state it. */
+    rest = 0,
 ): ElementCut {
     const stated: Array<{ element: string; figure: number }> = [];
-    let held = 0;
+    let held = rest;
     for (const [element, figure] of cut) {
         held += figure;
         // A part that came to nothing is not a part of the figure: it takes a row and adds none
@@ -1437,11 +1453,12 @@ function composeElementCut(
     }
     stated.sort(compareElementRows);
     const unnamed = total - held;
-    const figures = unnamed > 0 ? [...stated.map((one) => one.figure), unnamed] : stated.map((
-        one,
-    ) => one.figure);
+    const figures = stated.map((one) => one.figure);
+    if (rest > 0) figures.push(rest);
+    if (unnamed > 0) figures.push(unnamed);
     const shares = composeShareTexts(figures, total);
     const largest = getLargestFigure(figures);
+    const closing = stated.length + (rest > 0 ? 1 : 0);
     return {
         rows: stated.map((one, at) => ({
             ...one,
@@ -1449,11 +1466,18 @@ function composeElementCut(
             fill: getFill(one.figure, largest),
             shareText: shares[at] ?? "",
         })),
+        rest: rest > 0
+            ? {
+                figure: rest,
+                fill: getFill(rest, largest),
+                shareText: shares[stated.length] ?? "",
+            }
+            : null,
         unnamed: unnamed > 0
             ? {
                 figure: unnamed,
                 fill: getFill(unnamed, largest),
-                shareText: shares[stated.length] ?? "",
+                shareText: shares[closing] ?? "",
             }
             : null,
     };
@@ -1658,14 +1682,17 @@ function composeSkillRowsStated(
     }
     const own = [...figures.skills.values()];
     if (metric === "healthGiven") {
+        const given = getGivenSourceCut(figures);
         return composeFoldedTogether({
             parts: own.filter((one) => one.restored > 0).map((one) => ({
                 part: { kind: "skill" as const, name: one.name },
                 uses: one.uses,
                 figure: one.restored,
             })),
-            rest: 0,
-        }, composeSourceRows(getGivenSourceCut(figures)));
+            // What the fold could not key travels with the section it was folded for, so the two
+            // bounds on one path come to one row rather than to a shortfall nobody drew.
+            rest: given.rest,
+        }, composeSourceRows(given.cut));
     }
     return {
         parts: own.filter((one) => one.dealt > 0 || one.blows > 0).map((one) => ({
@@ -1691,14 +1718,16 @@ function composeFoldedTogether(one: FoldedParts, other: FoldedParts): FoldedPart
  * is made of are one rung down, so folding is a reading of their own figure and not a claim about
  * somebody else's cause.
  */
-function getGivenSourceCut(figures: CombatantFigures): FigureCut {
+function getGivenSourceCut(figures: CombatantFigures): { cut: FigureCut; rest: number } {
     const folded = new Map<string, number>();
+    let rest = 0;
     for (const cut of figures.healthGivenWithoutSkillByReceiverAndSource.values()) {
         // The fold runs over every receiver, so its own bound is the panel's (**S11**): what
-        // `core/` holds is one receiver's cut and not the union of twenty.
-        addFoldedCut(folded, cut);
+        // `core/` holds is one receiver's cut and not the union of twenty. What it will not hold
+        // travels out with it, because the section below owes it a row (**ADR 0055**).
+        rest += addFoldedCut(folded, cut);
     }
-    return folded;
+    return { cut: folded, rest };
 }
 
 /**
@@ -1945,7 +1974,7 @@ export function composePairReading(
         parts: composePairParts(statistics, metric, combatantId, otherId, total),
         // Nothing on the last rung opens: the protocol states no further cut of a pair.
         byElement: kinds === null
-            ? { rows: [], unnamed: null }
+            ? { rows: [], rest: null, unnamed: null }
             : composeElementCut(kinds, total, () => false),
     };
 }
@@ -2134,15 +2163,17 @@ export function composeDrillReading(
         total,
         (otherId) => getPairTotal(figures, metric, otherId) !== null,
     );
-    const byElement = cuts.byElement === null ? { rows: [], unnamed: null } : composeElementCut(
-        cuts.byElement,
-        total,
-        (element) =>
-            composePartCut(statistics, figures, metric, combatantId, {
-                kind: "element",
-                element,
-            }) !== null,
-    );
+    const byElement = cuts.byElement === null
+        ? { rows: [], rest: null, unnamed: null }
+        : composeElementCut(
+            cuts.byElement,
+            total,
+            (element) =>
+                composePartCut(statistics, figures, metric, combatantId, {
+                    kind: "element",
+                    element,
+                }) !== null,
+        );
     return {
         combatantId,
         name: held?.name ?? null,

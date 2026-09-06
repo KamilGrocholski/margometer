@@ -2276,7 +2276,7 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
         ...drill,
         byOpponent: { rows: [], unnamed: null },
         bySkill: { rows: [], rest: null, plain: null },
-        byElement: { rows: drill.byElement.rows.slice(0, 2), unnamed: null },
+        byElement: { rows: drill.byElement.rows.slice(0, 2), rest: null, unnamed: null },
     };
     assertEquals(
         drawOpened(small),
@@ -2310,7 +2310,7 @@ Deno.test("a level that grows while the fight goes on grows the region it is dra
         ...drill,
         byOpponent: { rows: drill.byOpponent.rows.slice(0, 1), unnamed: null },
         bySkill: { rows: [], rest: null, plain: null },
-        byElement: { rows: [], unnamed: null },
+        byElement: { rows: [], rest: null, unnamed: null },
     };
     panel.show({ ...shown, drill: early });
     const host = panel.element as FakeElement;
@@ -2382,7 +2382,7 @@ Deno.test("a cut that repeats the figure above it is drawn all the same", () => 
         ...drill,
         total: one.figure,
         bySkill: { rows: [], rest: null, plain: null },
-        byElement: { rows: [one], unnamed: null },
+        byElement: { rows: [one], rest: null, unnamed: null },
     };
     assertEquals(
         headings(repeated),
@@ -2396,7 +2396,7 @@ Deno.test("a cut that repeats the figure above it is drawn all the same", () => 
         ...drill,
         total: two.reduce((sum, row) => sum + row.figure, 0),
         bySkill: { rows: [], rest: null, plain: null },
-        byElement: { rows: two, unnamed: null },
+        byElement: { rows: two, rest: null, unnamed: null },
     };
     assertEquals(
         headings(split),
@@ -2447,7 +2447,7 @@ Deno.test("a lone row of a section names what the heading over it never does", (
         ...drill,
         total: only.figure,
         byOpponent: { rows: [], unnamed: null },
-        byElement: { rows: [], unnamed: null },
+        byElement: { rows: [], rest: null, unnamed: null },
         bySkill: { rows: [only], rest: null, plain: null },
     };
     assertEquals(headings(alone), [PANEL_WORDS.skills], "so the section is drawn all the same");
@@ -2653,6 +2653,31 @@ Deno.test("what a section could not draw is a row of its own, over the one that 
         assertEquals(one.attributes.get("data-row"), undefined, "in any of the three ways");
         assertEquals(one.attributes.get("data-kind"), undefined, "a part row can open");
     }
+});
+
+/** And the same in the section cut by key, whose closing row claims the game stated no kind. */
+Deno.test("a cut by key draws what it could not key, over the row saying none was stated", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = composePanelHost(document, () => {}, () => {});
+    panel.show({
+        ...composeShownScreen(reading),
+        drill: {
+            ...drill,
+            byElement: {
+                rows: drill.byElement.rows.slice(0, 2),
+                rest: { figure: 300, fill: 0.5, shareText: "30%" },
+                unnamed: { figure: 100, fill: 0.2, shareText: "10%" },
+            },
+        },
+    });
+    const host = panel.element as FakeElement;
+
+    const said = getTextsByClass(host, CLASS.rowName);
+    const at = said.indexOf(PANEL_WORDS.restOfKinds);
+    assert(at !== -1, "the sum a fold could not key is drawn");
+    const closing = said.indexOf(PANEL_WORDS.withoutKind);
+    assert(closing > at, "over the row for what the game stated no kind of at all");
 });
 
 Deno.test("a skill that opens asks for itself by name, wherever the press lands on it", () => {

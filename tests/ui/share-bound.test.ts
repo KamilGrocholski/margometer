@@ -26,10 +26,13 @@ const SHARE_FLOOR = "<1%";
 const WIDEST_SECTION = MAXIMUM_SKILLS + MAXIMUM_CUT_PARTS + 2;
 /** What a section costs a draw beyond its rows: the row named for nobody, and its heading. */
 const SECTION_EXTRAS = 2;
-/** And the widest screen: an opened row's three sections, their extras, and the two pinned. */
+/**
+ * And the widest screen: an opened row's three sections, their extras, and the two pinned. The cut
+ * by key carries a third row of its own — a fold there is bounded too (**ADR 0055**).
+ */
 const WIDEST_SCREEN = MAXIMUM_COMBATANTS + SECTION_EXTRAS +
     (WIDEST_SECTION + 1) +
-    (MAXIMUM_CUT_PARTS + SECTION_EXTRAS) + 2;
+    (MAXIMUM_CUT_PARTS + SECTION_EXTRAS + 1) + 2;
 
 function getPointsFromShareText(text: string): number {
     assert(text.length > 0, `a row that was drawn states a share, and this one states "${text}"`);

@@ -468,7 +468,11 @@ Deno.test("every screen opens, and a row belonging to nobody in the fight opens 
     // The one screen with no second cut: the keys the protocol names belong to whoever received
     // the health, so a giver's row is cut by whom and by nothing else.
     const given = composeDrillReading(statistics, roster, "healthGiven", held);
-    assertEquals(given?.byElement, { rows: [], unnamed: null }, "healing given is cut once");
+    assertEquals(
+        given?.byElement,
+        { rows: [], rest: null, unnamed: null },
+        "healing given is cut once",
+    );
 
     // Every row of a ranking opens, including a combatant nothing has named yet: they stand on
     // the list at zero, and a press that drew nothing would read as a press that did not land —

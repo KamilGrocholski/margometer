@@ -937,7 +937,11 @@ function composeSkillSection(
         const mark = getMarkForNamedPart(row.part, row.doesOpenPart);
         list.append(composeRowElement(document, reading, mark, tip));
     }
-    composeRestRow(document, list, cut.rest, { register: stated.register, figure: stated.figure });
+    composeRestRow(document, list, cut.rest, {
+        register: stated.register,
+        figure: stated.figure,
+        key: "skill:rest",
+    });
     if (cut.plain === null) return;
     const tip = { register: stated.register, key: "skill:plain", figure: stated.figure, share };
     const reading = {
@@ -957,19 +961,24 @@ function composeSkillSection(
 function composeRestRow(
     document: PanelDocument,
     list: PanelElement,
-    rest: PlainRow | null,
-    stated: { register: TipRegister; figure: string },
+    rest: PlainRow | UnnamedRow | null,
+    stated: { register: TipRegister; figure: string; key: string },
 ): void {
     if (rest === null) return;
     const tip = {
         register: stated.register,
-        key: "skill:rest",
+        key: stated.key,
         figure: stated.figure,
         share: PANEL_WORDS.shareOfFigure,
         notes: [PANEL_WORDS.restNote],
     };
     const reading = composeUnnamedReading(rest, PANEL_WORDS.restOfKinds);
     list.append(composeRowElement(document, reading, null, tip));
+}
+
+/** How many rows a cut by key costs a level: its keys, and each row that closes it. */
+function getElementCutRows(cut: ElementCut): number {
+    return cut.rows.length + (cut.rest === null ? 0 : 1) + (cut.unnamed === null ? 0 : 1);
 }
 
 function composeSkillRowReading(row: SkillRow, metric: PanelMetric, rank: number): RowReading {
@@ -993,7 +1002,7 @@ function composeElementSection(
     cut: ElementCut,
     stated: { metric: PanelMetric; register: TipRegister; figure: string; total: number },
 ): void {
-    if (cut.rows.length === 0 && cut.unnamed === null) return;
+    if (getElementCutRows(cut) === 0) return;
     list.append(composeSectionElement(document, getWordsForKindCut(stated.metric), stated.total));
     const noun = getNounForMetric(stated.metric);
     const share = PANEL_WORDS.shareOfFigure;
@@ -1014,6 +1023,11 @@ function composeElementSection(
             ),
         );
     }
+    composeRestRow(document, list, cut.rest, {
+        register: stated.register,
+        figure: stated.figure,
+        key: "kind:rest",
+    });
     if (cut.unnamed === null) return;
     const tip = { register: stated.register, key: "kind:nobody", figure: stated.figure, share };
     const reading = composeUnnamedReading(cut.unnamed, PANEL_WORDS.withoutKind);
@@ -1026,13 +1040,13 @@ function composeElementSection(
  * ceiling on the host is what stops either from reaching past the bottom of the screen.
  */
 function getRowsForDrill(drill: DrillReading, floor: number): number {
-    const sections = [drill.byOpponent, drill.byElement];
+    const opponents = drill.byOpponent;
     let needed = 0;
-    for (const cut of sections) {
-        if (cut.rows.length === 0 && cut.unnamed === null) continue;
+    if (opponents.rows.length > 0 || opponents.unnamed !== null) {
         // A section costs its rows, the part named for nobody, and the heading standing over them.
-        needed += cut.rows.length + (cut.unnamed === null ? 0 : 1) + 1;
+        needed += opponents.rows.length + (opponents.unnamed === null ? 0 : 1) + 1;
     }
+    if (getElementCutRows(drill.byElement) > 0) needed += getElementCutRows(drill.byElement) + 1;
     if (drill.bySkill.rows.length > 0 || drill.bySkill.plain !== null) {
         // Three rows can close this one: what the bound would not draw, what no announcement
         // covered, and the heading over the lot.
@@ -1296,7 +1310,7 @@ function composeHalfNamedDrillElement(
         });
         return list;
     }
-    const kinds = drill.kinds.rows.length + (drill.kinds.unnamed === null ? 0 : 1);
+    const kinds = getElementCutRows(drill.kinds);
     const list = composeListElement(document, Math.max(kinds + 1, shown.reading.visibleRows));
     composeElementSection(document, list, drill.kinds, {
         metric: shown.current,
@@ -1331,7 +1345,7 @@ function composeHalfNamedElement(
     translate: TranslateLabel | null,
 ): PanelElement {
     const named = halfNamed.rows.length + (halfNamed.neither === null ? 0 : 1);
-    const kinds = halfNamed.kinds.rows.length + (halfNamed.kinds.unnamed === null ? 0 : 1);
+    const kinds = getElementCutRows(halfNamed.kinds);
     const needed = named + 1 + (kinds === 0 ? 0 : kinds + 1);
     const list = composeListElement(document, Math.max(needed, shown.reading.visibleRows));
     const heading = getWordsForHalfNamedCut(halfNamed.end);

@@ -67,3 +67,6 @@ when it is.
 - **Count the dropped figure as held and draw no row for it.** The remainder would be honest and the
   column would come to less than a hundred, which is the failure `tests/ui/share-column.test.ts`
   exists to catch.
+- **Let each fold keep its own rest and draw its own row.** Two bounds sit on the path from a
+  giver's keys to the section that draws them, so a reader would meet two rows saying the same thing
+  about one figure. The rest travels to whoever draws the section instead.
