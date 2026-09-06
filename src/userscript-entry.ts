@@ -403,10 +403,6 @@ function getOutcomeForFigures(figures: FightFigures): PanelOutcome | null {
     return getOutcomeForSeat(outcome, figures.roster, figures.fight.readerSide);
 }
 
-/**
- * Where a press leaves the panel. False for a press that moves nothing, so a stray attribute in
- * the game's own markup never costs a redraw, let alone puts the panel somewhere it cannot draw.
- */
 function setFightChosen(screen: ScreenState, openedAt: number | null): void {
     screen.openFightId = openedAt;
     screen.isOnShelf = false;
@@ -430,8 +426,14 @@ function setShelfFromPress(shelf: ShelfKeeper, press: PanelPress): boolean {
     return true;
 }
 
+/**
+ * Where a press leaves the panel. False for a press that moves nothing, so a stray attribute in
+ * the game's own markup never costs a redraw, let alone puts the panel somewhere it cannot draw.
+ * ⚠️ **A save asks for a draw though it moves nothing**: the defect it can leave is said on the
+ * panel, and answered false it waited for a payload the shelf between fights never gets (**E11**).
+ */
 function handlePress(screen: ScreenState, press: PanelPress): boolean {
-    if (press.kind === "save") return false;
+    if (press.kind === "save") return true;
     if (press.kind === "pin") return false;
     if (press.kind === "storage") return false;
     if (press.kind === "fold") {

@@ -54,11 +54,13 @@ export interface TipSize {
 }
 
 /**
- * More than any screen can draw and far less than unbounded: twenty combatants, sixty-four kinds,
- * the pinned rows and a shelf of twenty. A key added past it is a screen that has stopped being
- * one of the screens this panel has.
+ * Counted off **an opened row**, the widest screen the panel has: `MAXIMUM_COMBATANTS` (20) plus
+ * `MAXIMUM_SKILLS` (256) plus `MAXIMUM_CUT_PARTS` (64), each with an unnamed row and a heading,
+ * and the two pinned rows — 348. Counted off the ranking it was 128, which a drill reaches: a row
+ * past the bound registers nothing, and `show` then hides the card rather than drawing one. The
+ * figure below is that count with headroom, not a limit any screen meets.
  */
-const MAXIMUM_TIPS = 128;
+const MAXIMUM_TIPS = 384;
 /**
  * How many characters of a note stand on one line of the card, and it is a **floor** rather than
  * a measurement of any one sentence. At 242 pixels of type — the window less its padding — in

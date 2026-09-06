@@ -4,7 +4,7 @@
  */
 
 import { BUILD_VERSION } from "@/src/build-version.ts";
-import { composeDecimalText } from "@/libs/number-text.ts";
+import { composeDecimalText, composeIntegerText } from "@/libs/number-text.ts";
 import { setGuardedListener } from "@/src/ui/panel-listener.ts";
 import type {
     DrillReading,
@@ -88,6 +88,7 @@ import {
 import {
     composeTipHandle,
     composeTipRegister,
+    setTipHidden,
     type TipCompose,
     type TipGroup,
     type TipHandle,
@@ -112,6 +113,8 @@ export interface PanelEvent {
     clientX?: number | undefined;
     pointerId?: number | undefined;
     button?: number | undefined;
+    /** Which buttons are down now, on a move. Zero is a hand that let go; absent is not zero. */
+    buttons?: number | undefined;
     /** The game's own menu, on the gesture that goes back. Absent where nothing can be stopped. */
     preventDefault?: (() => void) | undefined;
 }
@@ -693,7 +696,9 @@ function composeListElement(document: PanelDocument, visibleRows: number): Panel
     if (!Number.isSafeInteger(visibleRows)) visibleRows = ROWS_WAITING;
     if (visibleRows < 1) visibleRows = ROWS_WAITING;
     const list = composeElement(document, "div", CLASS.list);
-    list.setAttribute(STYLE_ATTRIBUTE, `${ROWS_VARIABLE}:${composeFigureText(visibleRows)}`);
+    // ⚠️ Not `composeFigureText`, which is what a reader reads: it groups thousands with a
+    // no-break space, and `--MargoMeter-rows:1 000` stops the `calc` over it being a length.
+    list.setAttribute(STYLE_ATTRIBUTE, `${ROWS_VARIABLE}:${composeIntegerText(visibleRows)}`);
     return list;
 }
 
@@ -1606,6 +1611,28 @@ function composeRegionInPlace(
     return next;
 }
 
+/**
+ * The card, which cannot degrade as a region does. A region's fallback is a sentence standing
+ * where it was; the card is a child of the root and the only thing the sheet places, so that
+ * sentence would be a block under the panel — under a defect naming the list, which was fine.
+ * A card that will not compose is no card: the one standing hides (**E14**).
+ */
+function composeTipInPlace(
+    standing: PanelElement,
+    compose: () => PanelElement,
+    handleFailure: HandlePanelFailure,
+): PanelElement {
+    try {
+        const next = compose();
+        standing.replaceWith(next);
+        return next;
+    } catch (failure) {
+        handleFailure({ kind: "region", region: "tip", failure });
+        setTipHidden(standing, true);
+        return standing;
+    }
+}
+
 interface PanelRegions {
     title: PanelElement;
     header: PanelElement;
@@ -1703,7 +1730,7 @@ export function composePanelHost(
     const tip: TipHandle = composeTipHandle(
         document,
         register,
-        (standing, compose) => redraw(standing, "list", compose),
+        (standing, compose) => composeTipInPlace(standing, compose, handleFailure),
         () =>
             composeTipLeft(
                 drag?.getPosition() ?? null,

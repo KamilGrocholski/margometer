@@ -689,6 +689,8 @@ export const REGION_WORDS = {
     sides: "podsumowania stron",
     suspicions: "ostrzeżenia",
     defects: "spisu usterek",
+    /** The card a row opens. It is not a region of the panel's frame, and it is drawn like one. */
+    tip: "szczegółów wiersza",
 } as const;
 
 export type PanelRegion = keyof typeof REGION_WORDS;

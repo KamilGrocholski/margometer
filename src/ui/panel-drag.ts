@@ -200,13 +200,6 @@ function getPointerFromEvent(event: PanelEvent): PanelPosition | null {
 }
 
 /**
- * The drag, as four listeners at the root and one style attribute on the host.
- *
- * Every one of them catches its own: an add-on that breaks the game's own scripts has done more
- * damage than one that shows a wrong number, and a pointer handler is the one place a throw of
- * ours would reach a page that listens for the same event.
- */
-/**
  * What a press on the bar starts, or null where it starts nothing: a press somewhere else, a
  * pointer the event does not state, or a page that has not said how wide it is — a drag from a
  * guessed origin jumps under the hand.
@@ -216,7 +209,10 @@ function composePanelDragGrab(
     position: PanelPosition | null,
     placement: PanelPlacement,
 ): PanelGrab | null {
-    if (event.target?.getAttribute(GRIP_ATTRIBUTE) === null) return null;
+    // `undefined` is not `null`: as one comparison, a press stating no target fell through and
+    // started a drag from wherever the pointer was.
+    const grip = event.target?.getAttribute(GRIP_ATTRIBUTE) ?? null;
+    if (grip === null) return null;
     const pointer = getPointerFromEvent(event);
     if (pointer === null) return null;
     const from = position ?? composeDefaultPosition(placement.getViewport());
@@ -232,6 +228,18 @@ function composePanelDragGrab(
     };
 }
 
+/**
+ * A release the root never saw. Without capture — the forgiving part of a drag, `setPointerHeld` —
+ * a hand letting go outside the panel reports its `pointerup` elsewhere, and the grab left
+ * standing follows the next pointer to cross the panel. No buttons stated is a document reporting
+ * none, not a hand that let go.
+ */
+function getWasLetGo(event: PanelEvent): boolean {
+    if (event.buttons === undefined) return false;
+    return event.buttons === 0;
+}
+
+/** The drag, as four listeners at the root and one style attribute on the host. */
 export function setPanelDrag(
     root: PanelRoot,
     host: PanelElement,
@@ -274,13 +282,6 @@ export function setPanelDrag(
         grab = started;
         setPointerHeld(getBar(), true, event.pointerId, handleFailure);
     });
-    setGuarded("pointermove", (event) => {
-        const held = grab;
-        if (held === null) return;
-        const pointer = getPointerFromEvent(event);
-        if (pointer === null) return;
-        setHostPosition(composeDraggedPosition(held, pointer, placement.getViewport()));
-    });
     const handleDragEnd = (): void => {
         const held = grab;
         if (held === null) return;
@@ -288,6 +289,17 @@ export function setPanelDrag(
         setPointerHeld(getBar(), false, held.pointerId, handleFailure);
         if (position !== null) placement.handleMoved(position);
     };
+    setGuarded("pointermove", (event) => {
+        const held = grab;
+        if (held === null) return;
+        if (getWasLetGo(event)) {
+            handleDragEnd();
+            return;
+        }
+        const pointer = getPointerFromEvent(event);
+        if (pointer === null) return;
+        setHostPosition(composeDraggedPosition(held, pointer, placement.getViewport()));
+    });
     setGuarded("pointerup", handleDragEnd);
     setGuarded("pointercancel", handleDragEnd);
     return {
