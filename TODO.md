@@ -18,17 +18,17 @@
 
 ## In Progress
 - [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development, now I only know 1-93lvl)
-- [ ] Create a better design for helper
-- [ ] !!!IMPORTANT!!! 256 abilities land silently in "Zwykły cios"
-    - [ ] Ask discord for help
-    - [ ] Add buffs and debuffs tracking - the second version of it is waiting outside the develop branch
-- [ ] Test turns
 
 ## Up Next
-- [ ] Add "ucieczka" as a new fight outcome
 - [ ] Do a manual audit
+- [ ] Create a better design for helper
+    - [ ] Ask discord for help
+    - [ ] Add buffs and debuffs tracking - the second version of it is waiting outside the develop branch
 
 ## Done
+- [x] Test turns
+- [x] Add "ucieczka" as a new fight outcome
+- [x] !!!IMPORTANT!!! 256 abilities land silently in "Zwykły cios"
 - [x] Fix draging, while redrawing - the same problem like clicking had, which has been solved with `press`
 - [x] Prevent crashes in the userspace 
 
