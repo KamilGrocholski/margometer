@@ -42,18 +42,22 @@ parts nobody can list is a level of no figure.
 Easy: a bound can be chosen for what a section should draw rather than for what it must never reach,
 because meeting one now costs a row rather than a wrong sentence.
 
-Paid: `SkillCut` carries a third row and every hand-made one in the tests states it. And the two
-writers' bounds moved again — a section is two closing rows wide now, not one, which
-`tests/ui/share-bound.test.ts` derives rather than restates.
+Paid: `SkillCut` and `ElementCut` each carry a row more, and every hand-made one in the tests states
+it. And the two writers' bounds moved again — the skills section is two closing rows wide now, not
+one, and the cut by key three — which `tests/ui/share-bound.test.ts` derives rather than restates.
 
-Obliges: a fold added later has to answer this question too. The three that exist —
-`composeSkillRowsReceived`, `composeSourceRows` and `getGivenSourceCut` — hand back what they could
-not fit; a fourth that drops instead puts the panel back where it was.
+Obliges: a fold added later has to answer this question too. Three bound a fold and hand back what
+they would not fit — `composeSkillRowsReceived` at `MAXIMUM_SKILLS`, `composeSourceRows` and
+`addFoldedCut` at `MAXIMUM_CUT_PARTS` — and one that drops instead puts the panel back where it was.
+Whoever draws the section owes the row: `composeHalfNamedKinds`, `getGivenSourceCut` and
+`composeSkillRowsStated` bound nothing themselves and carry a rest through, because two bounds on
+one path come to one row.
 
-Not done here: the kind cut's own bound (`addFoldedCut`) drops the same way, and its remainder row
-reads `Bez podanego typu`. The keys there are elements — seventeen of them across the corpus,
-against a bound of 64 — so the fold has never been near it and the shape of the fix is the one above
-when it is.
+The exception is `composeCutParts`, which stops at `MAXIMUM_CUT_PARTS` and drops. It feeds card runs
+— `procsWhenStriking`, `procsWhenStruck`, `damagePreventedByDefence`, `statisticsDestroyed` — and a
+card closes against no remainder row and prints no column of shares that must come to a hundred, so
+a drop there costs a line and turns no true claim into a false one. That, and not its headroom, is
+why it stands.
 
 ## Alternatives
 
