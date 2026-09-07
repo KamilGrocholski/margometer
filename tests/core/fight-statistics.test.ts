@@ -718,6 +718,20 @@ const STEP = "-255967=100.00;0;step";
 const PREPARE_ALONE = "-10124094=21.17;0;prepare=Osobisty rozrachunek(100%)";
 const PREPARE_BLOW = "-10124094=23.21;22914=43.63;+dmg=3275;+acdmg=96;-absorb=136;-dmg=2365";
 const PREPARE_BESIDE = "-10124094=23.21;0;prepare=Osobisty rozrachunek(0%)";
+/**
+ * `2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none.json`, payload 0: an announcement, the
+ * damage it landed on five combatants **by name**, and the two preparations stated after it. The
+ * damage is that same combatant striking — `docs/protocol-keys.md` reads `+oth_dmg`'s cause off
+ * the message actor — so nothing between the announcement and the preparations is anybody else's.
+ */
+const NAMED_BLOW_ANNOUNCEMENT = "-10000544;0;tspell=Szarża zastępcy";
+const NAMED_BLOW = "-10000544=100.00;466475=79.85;+oth_dmg=2581, ,Gracz 1(83.52%);" +
+    "+oth_dmg=3004, ,Gracz 5(76.78%);+oth_dmg=2609, ,Gracz 6(86.06%);" +
+    "+oth_dmg=2750, ,Gracz 7(79.85%);+oth_dmg=3139, ,Gracz 8(74.82%)";
+const NAMED_BLOW_PREPARE = "-10000544=100.00;0;prepare=Osobisty rozrachunek(0%)";
+const NAMED_BLOW_PREPARE_READY = "-10000544=100.00;0;prepare=Osobisty rozrachunek(100%)";
+/** The same recording: health moving on the combatant who struck, which is nobody's action. */
+const STRIKER_POISON = "-10000544=98.62;0;poison=204,20";
 
 function getTurnsTaken(messages: readonly string[], combatantId: number): number {
     const statistics = composeFightStatistics(decodeFightMessages(messages, null), new Map());
@@ -744,6 +758,32 @@ Deno.test("a step is a turn of its own, and a preparation is one where it stands
         1,
         "and one stated beside their own blow rides that blow's turn",
     );
+});
+
+/**
+ * A blow reported against a name ends nobody's turn, so the preparations that follow it ride the
+ * announcement's own — and the second rides the first. Counting them opened a turn the game never
+ * numbered on 16 boundaries across the corpus, 2026-09-07: **ADR 0057**.
+ */
+Deno.test("a preparation after that combatant's own named damage rides its turn", () => {
+    const whole = [
+        NAMED_BLOW_ANNOUNCEMENT,
+        NAMED_BLOW,
+        NAMED_BLOW_PREPARE,
+        NAMED_BLOW_PREPARE_READY,
+    ];
+    assertEquals(getTurnsTaken(whole, -10000544), 1, "the announcement, its damage and both");
+    assertEquals(getTurnsTaken(whole, 466475), 0, "and the end the message was aimed at took none");
+});
+
+/**
+ * The negative space (**A2**), and it is what stops the suppression above from swallowing a turn:
+ * a tick of poison is nobody's action, so the preparation after one opens a turn of its own. The
+ * corpus stands 141 preparations on that shape and 32 on the shape above, 2026-09-07.
+ */
+Deno.test("health moving on the striker ends the turn a preparation after it opens", () => {
+    const ticked = [NAMED_BLOW_ANNOUNCEMENT, NAMED_BLOW, STRIKER_POISON, NAMED_BLOW_PREPARE];
+    assertEquals(getTurnsTaken(ticked, -10000544), 2, "the announcement, and the preparation");
 });
 
 /**
@@ -784,7 +824,7 @@ Deno.test("every recording charges a turn to somebody who was already in the fig
             turns += figures.turnsTaken;
         }
     }
-    assertEquals(turns, 5242, "the turns the recordings hold, 2026-09-06");
+    assertEquals(turns, 5209, "the turns the recordings hold, 2026-09-07");
 });
 
 /**

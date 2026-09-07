@@ -42,21 +42,28 @@ Four steps, and the rule is applied at the third:
 ## Where the standing is decided by something that is not a turn
 
 ⚠️ **An event that is nobody's action clears the standing.** `composeTurnStanding` answers a blow,
-an announcement and a declaration; everything else falls through to a standing of nobody — a tick of
-poison, a figure the protocol half-named, a message that went unread.
+an announcement, the damage a blow reports by name, and a declaration; everything else falls through
+to a standing of nobody — a tick of poison, a figure the protocol half-named, a message that went
+unread.
 
-That is the mechanism the register below exposes, and it turns on a distinction that is about **how
-damage is reported** rather than about turns:
+That is the mechanism the register below exposes, and until **ADR 0057** it turned on a distinction
+that is about **how damage is reported** rather than about turns:
 
-| the message before states | it decodes to                 | the standing after it | a `prepare` next |
-| ------------------------- | ----------------------------- | --------------------- | ---------------- |
-| a `?dmg*` figure          | an attack                     | that combatant acted  | rides its turn   |
-| an `+oth_dmg` figure      | damage to a combatant by name | nobody acted          | opens a turn     |
+| the message before states   | it decodes to                 | the standing after it | a `prepare` next |
+| --------------------------- | ----------------------------- | --------------------- | ---------------- |
+| a `?dmg*` figure            | an attack                     | that combatant acted  | rides its turn   |
+| an `+oth_dmg` figure        | damage to a combatant by name | that combatant acted  | rides its turn   |
+| a `heal` or `poison` figure | health moving on somebody     | nobody acted          | opens a turn     |
 
-Both are one combatant striking. `docs/protocol-keys.md` owns what each key means, and it is the
-protocol's own split: a blow aimed at the message's target carries the first, and damage that landed
-on somebody the message names carries the second. Nothing about that split is a statement about
-turns, and the reading turns on it anyway.
+The first two are one combatant striking. `docs/protocol-keys.md` owns what each key means, and it
+is the protocol's own split: a blow aimed at the message's target carries the first, and damage that
+landed on somebody the message names carries the second — whose cause that register reads off the
+message actor, which is why the two now answer alike. Reading the second as nobody's action opened
+33 turns across the corpus, 16 of them where the game's own numbering could see it.
+
+The third row is where the suppression stops, and it is load-bearing: health moving on a combatant
+is not that combatant acting, so a preparation after one opens a turn. The corpus stands 141
+preparations on that shape, 2026-09-07.
 
 ## The register
 
@@ -67,28 +74,15 @@ match. `from` and `to` are that stretch's ordinals and `counted` is what was cou
 
 **A row is not a proof that this message is the error.** It is the one opener in a disputed stretch
 whose suppression could have gone the other way. Where a stretch is over by one, that is a strong
-claim; where it is short, the opener is contested and is not the shortfall.
+claim; where it is short, the opener is contested and is not the shortfall. **Every row here is the
+second kind**, 2026-09-07: since **ADR 0057** no stretch in the corpus counts over, so no row on
+this table is a claim about the message it names.
 
 | recording                                               | payload | message | combatant | from | to  | counted | key       |
 | ------------------------------------------------------- | ------- | ------- | --------- | ---- | --- | ------- | --------- |
-| 2026-08-06-tempest-grupa-vs-hildur-1785244275300-none   | 25      | 2       | -10000249 | 57   | 59  | 3       | `prepare` |
-| 2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none | 11      | 20      | -10000234 | 45   | 57  | 13      | `prepare` |
-| 2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none | 40      | 9       | -10000252 | 97   | 106 | 10      | `prepare` |
-| 2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none | 17      | 31      | -10000253 | 57   | 73  | 17      | `prepare` |
-| 2026-08-14-tempest-grupa-vs-draugr-1-1786514810315-none | 46      | 15      | -10000631 | 141  | 149 | 9       | `prepare` |
-| 2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none | 15      | 15      | -10000544 | 67   | 77  | 11      | `prepare` |
-| 2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none | 22      | 14      | -10000544 | 126  | 133 | 8       | `prepare` |
-| 2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none | 33      | 21      | -10000544 | 171  | 181 | 11      | `prepare` |
-| 2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none | 10      | 2       | -10000545 | 192  | 194 | 3       | `prepare` |
 | 2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none | 14      | 21      | -10000545 | 205  | 220 | 14      | `prepare` |
 | 2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none | 14      | 22      | -10000545 | 205  | 220 | 14      | `prepare` |
-| 2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none | 10      | 10      | -10000551 | 20   | 27  | 8       | `prepare` |
-| 2026-08-15-tempest-grupa-vs-hildur-4-1786514810315-none | 10      | 10      | -10000551 | 20   | 27  | 8       | `prepare` |
-| 2026-08-17-tempest-grupa-vs-hildur-1786514810315-none   | 5       | 5       | -10006793 | 81   | 87  | 7       | `prepare` |
-| 2026-08-25-luvia-grupa-vs-draugr-none-none              | 34      | 3       | -10124094 | 303  | 305 | 3       | `prepare` |
-| 2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0      | 10      | 4       | -10003924 | 12   | 16  | 5       | `prepare` |
-| 2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0      | 28      | 36      | -10003924 | 65   | 83  | 19      | `prepare` |
-| 2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0      | 41      | 7       | -10003924 | 119  | 123 | 5       | `prepare` |
+| 2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0        | 7       | 11      | -10003615 | 255  | 261 | 5       | `prepare` |
 
 ## What each turn was opened by
 
@@ -101,7 +95,7 @@ event kind and, for a declaration, the key that decided it.
 | --------------------- | ----- |
 | `skill-used`          | 3379  |
 | `attack`              | 1475  |
-| `declaration/prepare` | 211   |
+| `declaration/prepare` | 178   |
 | `declaration/step`    | 177   |
 
 ## The keys a turn was read off
@@ -154,11 +148,11 @@ reduction against each of them. That register counts the occurrences; this one c
 | `+oth_dmg`                    | 471      | 293    | 0    | 0    |
 | `+dmgl`                       | 689      | 233    | 0    | 0    |
 | `-poison_lowdmg_per`          | 485      | 228    | 0    | 0    |
-| `prepare`                     | 316      | 211    | 211  | 0    |
 | `+pierce`                     | 389      | 205    | 0    | 0    |
 | `+dmgf`                       | 501      | 203    | 0    | 0    |
 | `-dmgl`                       | 622      | 196    | 0    | 0    |
 | `-absorb`                     | 625      | 181    | 0    | 0    |
+| `prepare`                     | 316      | 178    | 178  | 0    |
 | `step`                        | 177      | 177    | 177  | 0    |
 | `shout`                       | 158      | 158    | 0    | 0    |
 | `active_block_per`            | 154      | 154    | 0    | 0    |
@@ -236,5 +230,10 @@ reduction against each of them. That register counts the occurrences; this one c
 - **Which key a turn was opened _on_, where several could have.** The tally credits every key on the
   message, because the rule reads events and not keys: by the time it answers, which key produced
   the event it is looking at is gone.
+- **Whether a heal stated by name ends its caster's turn.** That event carries no actor slot to read
+  — the key states who was healed and never who did it (`docs/protocol-keys.md`, `legbon_lastheal`)
+  — so it clears the standing as a tick of poison does, and one preparation in the corpus opens a
+  turn behind one. It sits in `2026-08-23-tempest-grupa-vs-hildur-1786514810315-none`, which agrees
+  with the game's numbering at every boundary it states, so nothing there says the turn is wrong.
 - **Anything about a fight nobody recorded.** Every row is a claim about `captures/` and about
   nothing else (**V4**).

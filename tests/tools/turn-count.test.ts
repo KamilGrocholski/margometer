@@ -174,7 +174,7 @@ Deno.test("a turn the game numbered on its own goes onto the row the game named"
  * with the date they were measured on: a change to what opens a turn moves them, and the register
  * beside this test is where the movement has to be argued for (**W8**).
  */
-Deno.test("the count agrees with the numbering at all but eighteen boundaries", () => {
+Deno.test("the count agrees with the numbering at all but three boundaries", () => {
     const grades = composeTurnGrades(getRecordedFights());
     const total = { bounded: 0, exact: 0, over: 0, under: 0, untold: 0 };
     for (const grade of grades) {
@@ -190,9 +190,9 @@ Deno.test("the count agrees with the numbering at all but eighteen boundaries", 
         );
     }
     assertStrictEquals(total.bounded, 998, "the boundaries the game numbered and told, 2026-09-03");
-    assertStrictEquals(total.exact, 980, "and the ones the count agreed with");
-    assertStrictEquals(total.over, 16, "a turn was opened where the game numbered none");
-    assertStrictEquals(total.under, 2, "and a turn the game numbered opened nothing");
+    assertStrictEquals(total.exact, 995, "and the ones the count agreed with, 2026-09-07");
+    assertStrictEquals(total.over, 0, "no turn is opened where the game numbered none");
+    assertStrictEquals(total.under, 3, "and three the game numbered opened nothing");
     assertStrictEquals(total.untold, 1, "one stretch the game numbered and never narrated");
     assertStrictEquals(TURN_OUTCOMES.length, 3, "the outcomes a count can come to");
     assertStrictEquals(TURN_PLACINGS.length, 2, "and the ones a placing can");

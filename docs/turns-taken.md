@@ -45,8 +45,10 @@ somebody expected:
   skill arrives announced as nothing and would read as a turn of its own. The shape occurs
   throughout the corpus.
 - **A preparation stated beside its own combatant's action.** Where a `prepare` follows an action of
-  the same combatant it is part of that turn; where it stands alone, the turn went on it. Both
-  shapes occur throughout the corpus.
+  the same combatant it is part of that turn; where it stands alone, the turn went on it. Which
+  events are that combatant's action is `docs/reading-a-turn.md`'s to state, and the damage a blow
+  reports **by name** is one of them: reading it as nobody's action opened 16 turns the game never
+  numbered (**ADR 0057**). Both shapes occur throughout the corpus.
 
 Neither suppression is counted here any more. Both were, under a grading that reached one boundary
 in three; the register below reaches all of them, and what stands in place of those two figures is
@@ -105,33 +107,33 @@ and that is written as a dash rather than as a zero (**E10**).
 | recording                                                         | the game agrees | steps | agreed | granted | taken | short | lost |
 | ----------------------------------------------------------------- | --------------- | ----- | ------ | ------- | ----- | ----- | ---- |
 | 2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none            | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-08-06-tempest-grupa-vs-hildur-1785244275300-none             | `sometimes`     | 97    | 96     | 298     | 276   | 22    | 11   |
+| 2026-08-06-tempest-grupa-vs-hildur-1785244275300-none             | `always`        | 97    | 97     | 298     | 275   | 23    | 11   |
 | 2026-08-11-tempest-tancerz-vs-wermont-1786441768914-none          | `in a lump`     | —     | —      | —       | —     | —     | —    |
 | 2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none    | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none           | `sometimes`     | 36    | 35     | 197     | 191   | 6     | 7    |
+| 2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 36    | 36     | 197     | 190   | 7     | 7    |
 | 2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 76    | 76     | 217     | 204   | 13    | 13   |
-| 2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none           | `sometimes`     | 107   | 106    | 281     | 270   | 11    | 12   |
-| 2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none           | `sometimes`     | 50    | 49     | 230     | 227   | 3     | 4    |
-| 2026-08-14-tempest-grupa-vs-draugr-1-1786514810315-none           | `sometimes`     | 58    | 57     | 186     | 179   | 7     | 8    |
+| 2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none           | `always`        | 107   | 107    | 281     | 269   | 12    | 12   |
+| 2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none           | `always`        | 50    | 50     | 230     | 226   | 4     | 4    |
+| 2026-08-14-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 58    | 58     | 186     | 178   | 8     | 8    |
 | 2026-08-14-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 46    | 46     | 218     | 203   | 15    | 15   |
 | 2026-08-14-tempest-grupa-vs-hildur-1786514810315-none             | `always`        | 86    | 86     | 242     | 230   | 12    | 12   |
 | 2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none           | `always`        | 14    | 14     | 59      | 57    | 2     | 2    |
-| 2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none           | `sometimes`     | 40    | 37     | 216     | 204   | 12    | 15   |
-| 2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none           | `sometimes`     | 14    | 12     | 56      | 54    | 2     | 2    |
+| 2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none           | `always`        | 40    | 40     | 216     | 201   | 15    | 15   |
+| 2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none           | `sometimes`     | 14    | 13     | 56      | 53    | 3     | 2    |
 | 2026-08-15-tempest-grupa-vs-hildur-2-1786514810315-none           | `always`        | 80    | 80     | 239     | 226   | 13    | 13   |
-| 2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none           | `sometimes`     | 47    | 46     | 214     | 206   | 8     | 9    |
-| 2026-08-15-tempest-grupa-vs-hildur-4-1786514810315-none           | `sometimes`     | 47    | 46     | 214     | 206   | 8     | 9    |
-| 2026-08-17-tempest-grupa-vs-hildur-1786514810315-none             | `sometimes`     | 30    | 28     | 123     | 115   | 8     | 8    |
+| 2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none           | `always`        | 47    | 47     | 214     | 205   | 9     | 9    |
+| 2026-08-15-tempest-grupa-vs-hildur-4-1786514810315-none           | `always`        | 47    | 47     | 214     | 205   | 9     | 9    |
+| 2026-08-17-tempest-grupa-vs-hildur-1786514810315-none             | `sometimes`     | 30    | 29     | 123     | 114   | 9     | 8    |
 | 2026-08-23-tempest-grupa-vs-hildur-1786514810315-none             | `always`        | 18    | 18     | 186     | 180   | 6     | 6    |
 | 2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none        | `in a lump`     | —     | —      | —       | —     | —     | —    |
 | 2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none        | `in a lump`     | —     | —      | —       | —     | —     | —    |
 | 2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1 | `in a lump`     | —     | —      | —       | —     | —     | —    |
 | 2026-08-25-luvia-grupa-vs-draugr-auto-none-none                   | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-08-25-luvia-grupa-vs-draugr-none-none                        | `sometimes`     | 34    | 33     | 45      | 45    | 0     | 1    |
+| 2026-08-25-luvia-grupa-vs-draugr-none-none                        | `always`        | 34    | 34     | 45      | 44    | 1     | 1    |
 | 2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1                | `in a lump`     | —     | —      | —       | —     | —     | —    |
 | 2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1                   | `in a lump`     | —     | —      | —       | —     | —     | —    |
-| 2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0                | `sometimes`     | 107   | 104    | 305     | 280   | 25    | 28   |
-| 2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0                  | `always`        | 11    | 11     | 26      | 24    | 2     | 2    |
+| 2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0                | `always`        | 107   | 107    | 305     | 277   | 28    | 28   |
+| 2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0                  | `sometimes`     | 11    | 10     | 26      | 23    | 3     | 2    |
 | 2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0         | `in a lump`     | —     | —      | —       | —     | —     | —    |
 
 ## What the register says
@@ -141,16 +143,22 @@ time it can be asked.** No boundary of one turn is placed `elsewhere`, on any re
 sharp test and it is unbeaten; what it is not is most of the evidence, because a boundary of one
 turn is the minority case.
 
-**Where the game numbers several, the count is right far more often than not, and not always.** The
-disagreements are a short list rather than a tendency: every one of them is off by a single turn,
-they are almost all in the same direction, and `deno task fight:turns captures/<file>.json` names
-each by its two ordinals. A recording carrying one is `sometimes`, which is what the verdict is for.
+**Where the game numbers several, the count agrees on all but three boundaries in the corpus.** 995
+of the 998 graded agree, 2026-09-07. The three that do not are a short list rather than a tendency:
+each is short by a single turn, and `deno task fight:turns captures/<file>.json` names each by its
+two ordinals. A recording carrying one is `sometimes`, which is what the verdict is for.
 
-⚠️ **The direction is the finding.** A count that comes out one over the game's own numbering is a
-turn this reading opened where the game did not, and the two shapes standing behind the exceptions
-above — the extra attack of an announcement, the preparation beside its own combatant's action — are
-both suppressions that can fail open. Nothing has been changed in the counting to answer it: the
-list is what a change would have to be measured against, and it did not exist before.
+⚠️ **The direction was the finding, and it has been answered once.** Every disagreement ran one way
+— 16 boundaries counting one **over** the game's own numbering, against 2 under — and the shape
+behind them was a suppression failing open: a preparation stated after the damage its own
+combatant's blow reported by name. Counting that damage as its striker's action costs the corpus 33
+turns and takes the over-count to nothing (**ADR 0057**).
+
+⚠️ **One of the three that remain was `exact` before that change**, on
+`2026-08-27-luvia-grupa-vs-amaimon`: a turn opened where the game numbered none stood against a turn
+the game numbered and this reading opens nothing for, and removing the first exposed the second. Two
+errors cancelling is what a boundary reading `exact` can also be. Nothing has been changed to answer
+the three, and the register is what such a change would have to be measured against.
 
 **`in a lump` is not a failure of the reading.** It is a recording the game numbered once, which is
 the case `a01bf11` withdrew the whole feature over: a fast fight delivers its log in one payload and
@@ -161,7 +169,8 @@ numbering — which is the difference between this and the divisor that was with
 
 **No combatant enters a fight by stepping or preparing alone**, 2026-09-02: counting the two
 declarations adds turns to rows that exist and creates none, so the fights `tools/fight-figures.ts`
-prints hold exactly the rows they held before.
+prints hold exactly the rows they held before. Taking 33 of those turns away deleted none either,
+2026-09-07 — the same tool prints the same rows on both sides of **ADR 0057**.
 
 ## Taken, and lost
 
@@ -181,19 +190,20 @@ nothing missed, nothing else caught.** The three lines about striking a target a
 full stop; loot lines put a colon after the name. **ADR 0049** carries the rest, including why the
 stun keys cannot do this job — 118 applications against 319 announcements.
 
-**The two columns are close and are not held to be equal.** Over the corpus `lost` comes to 177
-where the ordinal says 175 went missing: exact on nine recordings, within three on nine more, and
-one that is not. The gate holds both as numbers rather than forcing them together, because a guard
-that demanded agreement would one day be satisfied by bending one of them.
+**The two columns are close and are not held to be equal.** Over the corpus the ordinal says 192
+turns went missing where the game announces 177: exact on 15 of the 19 recordings that can be asked,
+one turn apart on three more, and one that is not. Before **ADR 0057** they were exact on nine, and
+on nine others the game announced **more** lost turns than the ordinal had room for — which is the
+over-count seen from the other side. The gate holds both as numbers rather than forcing them
+together, because a guard that demanded agreement would one day be satisfied by bending one of them.
 
 ⚠️ **`2026-08-06-tempest-grupa-vs-hildur` is the one that is not, and the boundary grading says
-why.** The ordinal says 22 went missing and the game announces 11, all of them the boss's, on the
-oldest build in the corpus. The other eleven are one stretch: between ordinals 235 and 248 the game
+why.** The ordinal says 23 went missing and the game announces 11, all of them the boss's, on the
+oldest build in the corpus. The other twelve are one stretch: between ordinals 235 and 248 the game
 numbered thirteen turns and sent one message for them, and its own message index skips 26 across the
-same gap — the only break in the whole corpus, 2026-09-03. Twelve turns nobody was told about, less
-the one turn this recording over-counts elsewhere, is the eleven. The register grades that boundary
-by nothing and counts it apart, because a stretch the game did not narrate is silence rather than
-evidence.
+same gap — the only break in the whole corpus, 2026-09-03. Twelve turns nobody was told about is the
+difference exactly. The register grades that boundary by nothing and counts it apart, because a
+stretch the game did not narrate is silence rather than evidence.
 
 **So the figure on the card is turns _taken_, with the turns _lost_ beneath it**, and neither is the
 turns somebody was granted: `Tury wykonane` is the game's own wording for the first — the published

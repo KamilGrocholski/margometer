@@ -423,7 +423,8 @@ export function getTurnOpener(event: BattleEvent, standing: TurnStanding): numbe
 /**
  * The same standing, one event on. A blow keeps the announcement going only while it is that
  * announcement's own — its first blow, or an extra attack of it; anything else ends it, and an
- * event that is nobody's action ends both halves.
+ * event that is nobody's action ends both halves. Damage stated by name is its actor's action as
+ * much as a blow is (`docs/protocol-keys.md`, `+oth_dmg`), so it says who acted and nothing more.
  */
 export function composeTurnStanding(event: BattleEvent, standing: TurnStanding): TurnStanding {
     assert(
@@ -436,6 +437,11 @@ export function composeTurnStanding(event: BattleEvent, standing: TurnStanding):
         return { strikingId: isStriking ? event.actorId : null, actingId: event.actorId };
     }
     if (event.kind === "skill-used") {
+        return { strikingId: null, actingId: event.actorId };
+    }
+    if (event.kind === "damage-to-named-combatant") {
+        if (event.actorId === null) return { strikingId: null, actingId: null };
+        assert(Number.isSafeInteger(event.actorId), "damage reported by name names who struck");
         return { strikingId: null, actingId: event.actorId };
     }
     if (event.kind === "declaration") {

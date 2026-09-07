@@ -160,3 +160,5 @@ edited to agree with the new rule.
   draw. **Accepted**
 - [0056](0056-a-fight-broken-off-is-neither-a-loss-nor-a-draw.md) — A fight broken off is neither a
   loss nor a draw. **Accepted**
+- [0057](0057-damage-stated-by-name-is-still-its-strikers-turn.md) — Damage stated by name is still
+  its striker's turn. **Accepted**

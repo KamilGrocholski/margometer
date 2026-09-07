@@ -181,7 +181,7 @@ Deno.test("a contested opener the game's numbering agrees with is no dispute", (
         disputed += composeDisputedReadings(fight).length;
     }
     assert(contested > disputed, "a stretch counted right leaves its contested openers standing");
-    assertStrictEquals(disputed, 18, "the openers the numbering disputes, 2026-09-03");
+    assertStrictEquals(disputed, 3, "the openers the numbering disputes, 2026-09-07");
 });
 
 /**
@@ -258,7 +258,7 @@ Deno.test("what opened the turns partitions them, and the keys all but the blows
         turns += one.turns;
         if (one.opener === "attack") blows += one.turns;
     }
-    assertStrictEquals(turns, 5242, "every turn the corpus opened, 2026-09-06");
+    assertStrictEquals(turns, 5209, "every turn the corpus opened, 2026-09-07");
     let adds = 0;
     for (const one of composeKeyTally(getRecordedFights())) adds += one.adds;
     assertStrictEquals(adds + blows, turns, "a turn is added by a key or opened by a blow");

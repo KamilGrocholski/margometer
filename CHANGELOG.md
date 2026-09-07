@@ -33,6 +33,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Poprawka** — Licznik tur nie dolicza już tury za przygotowanie ciosu. Kiedy postać uderzała
+  kilku przeciwników naraz, a zaraz potem gra pokazywała, że szykuje umiejętność, panel liczył to
+  jako osobną turę — czasem dwie. Teraz to jedna tura, ta sama, w której padł cios.
 - **Poprawka** — Zapis do pliku bierze tę walkę, którą widzisz. Wcześniej brał tylko tę, którą panel
   czytał na bieżąco, więc po odświeżeniu strony — kiedy panel pokazuje walkę z zapisanych — pobierał
   się plik bez niczego w środku. Teraz pobiera się ta walka, na którą patrzysz.
