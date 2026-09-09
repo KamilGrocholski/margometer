@@ -39,6 +39,22 @@ test("the way back lands exactly where it left, both ways of asking", async ({ p
     );
 });
 
+/**
+ * The window beside the panel shares the panel's root, so the gesture that steps back reached it
+ * too until **ADR 0071**. Held in a browser because the press has to land on a real node under a
+ * real pointer, and nothing on that node says which of the two windows drew it.
+ */
+test("a right press in the window beside the panel leaves the level open", async ({ panel }) => {
+    await panel.at("[data-row]").first().click();
+    await expect(panel.at(".crumb-here"), "a level is open to be taken away").toHaveCount(1);
+    const opened = await readPanelShape(panel.page);
+
+    await panel.at(".MargoMeter-standing .row-name").first().click({ button: "right" });
+
+    expect(await readPanelShape(panel.page), "the panel is drawing what it was").toBe(opened);
+    await expect(panel.at(".crumb-here"), "and the crumb still names the level").toHaveCount(1);
+});
+
 test("the third level is the last, and back pops one rung at a time", async ({ panel }) => {
     const first = await readPanelShape(panel.page);
     await panel.at("[data-row]").first().click();

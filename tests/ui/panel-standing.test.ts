@@ -16,6 +16,7 @@ import {
     composeFakeDocument,
     type FakeElement,
     getElementsWithin,
+    getPanelWithin,
     getTextsByClass,
     pressElement,
 } from "@/tests/fake-document.ts";
@@ -255,6 +256,25 @@ Deno.test("a press opens the casters under a row, and a second press shuts them"
         ["3 z 8 tur", "3 z 8 tur"],
         "each saying what has passed of what the table states, never what is left",
     );
+});
+
+/**
+ * Both halves in one place: the gesture the window must not answer, and the one the panel still
+ * must. Held apart by `contains` at the root, because the caster's name a hand lands on carries no
+ * attribute saying which of the two windows drew it. **ADR 0071.**
+ */
+Deno.test("a right press in the window moves nothing, and one on the panel steps back", () => {
+    const reading = composeStandingReading([composeStanding(11)], [], ROSTER, OURS, null, 264);
+    const { host, pressed } = draw(reading);
+    const names = getElementsWithin(getWindow(host)).filter((one) => one.className === "row-name");
+    // The deepest element under the hand, which is a caster's name inside the opened row.
+    const inside = names.find((one) => one.textContent === "Gracz 1");
+    assertExists(inside, "the caster stands under the row that was opened");
+    pressElement(host, "contextmenu", inside);
+    assertEquals(pressed, [], "a right press in the window beside the panel asks for nothing");
+
+    pressElement(host, "contextmenu", getPanelWithin(host));
+    assertEquals(pressed, [{ kind: "back" }], "and one on the panel is still the way back");
 });
 
 Deno.test("a row nobody opened stays shut, and an id nothing stands under opens nothing", () => {

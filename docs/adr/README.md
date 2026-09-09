@@ -188,3 +188,5 @@ edited to agree with the new rule.
   its own person. **Accepted**
 - [0070](0070-a-warning-says-how-big-it-is-and-whom-it-reaches.md) — A warning says how big it is,
   whom it reaches, and what could not be read. **Accepted**
+- [0071](0071-a-right-press-belongs-to-the-window-it-lands-in.md) — A right press belongs to the
+  window it lands in. **Accepted**

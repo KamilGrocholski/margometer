@@ -33,6 +33,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Poprawka** — Kliknięcie prawym przyciskiem w oknie Pomocnika nie cofa już panelu o poziom. Prawy
+  przycisk na samym panelu dalej jest drogą powrotną; w oknie obok nie robi nic, a menu przeglądarki
+  jak dotąd się nie pokazuje nad żadnym z nich.
+
 - **Nowość** — Każdy wiersz mówi teraz, po której stronie stoi ta postać: przy prawej krawędzi stoi
   wąski pasek, zielony po twojej stronie i czerwony po przeciwnej. Widać go na każdym poziomie i w
   oknie obok, a przy wierszu, za którym nikogo nie ma, nie ma paska. Na walce, na której gra nie

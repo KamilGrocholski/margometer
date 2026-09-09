@@ -119,13 +119,21 @@ export interface PanelDocument {
     createElement(tag: string): PanelElement;
 }
 
+/**
+ * The node under the pointer, as a listener may ask it. Three places state it — what was pressed,
+ * where the pointer went, and which window holds it — and a shape spelled three times drifts.
+ */
+export interface PanelTarget {
+    getAttribute(name: string): string | null;
+}
+
 export interface PanelEvent {
-    target: { getAttribute(name: string): string | null } | null;
+    target: PanelTarget | null;
     /**
      * Where the pointer went, on the event that says it left somewhere. Absent on every other,
      * and null where it left the page.
      */
-    relatedTarget?: { getAttribute(name: string): string | null } | null | undefined;
+    relatedTarget?: PanelTarget | null | undefined;
     clientY: number;
     clientX?: number | undefined;
     pointerId?: number | undefined;
@@ -161,6 +169,13 @@ export interface PanelElement {
      * row in `docs/browser-support.md` either, being older than every floor stated there.
      */
     getAttribute(name: string): string | null;
+    /**
+     * Which of the two windows under this root a press landed in. Asked at one place — the back
+     * listener, which reads the node under the hand and walks no ancestors, so nothing else can
+     * tell a caster row of the window beside the panel from a row of the panel's own list.
+     * **ADR 0071**, and `docs/browser-support.md` carries its row.
+     */
+    contains(other: PanelTarget | null): boolean;
     attachShadow(options: { mode: "open" }): PanelRoot;
     /** A drag keeping the pointer it has. Optional: a document offering neither still drags. */
     setPointerCapture?(pointerId: number): void;
@@ -1881,9 +1896,7 @@ function composePinnedElement(
     return block;
 }
 
-function getPressFromTarget(
-    target: { getAttribute(name: string): string | null },
-): PanelPress | null {
+function getPressFromTarget(target: PanelTarget): PanelPress | null {
     if (typeof target.getAttribute !== "function") return null;
     const screen = target.getAttribute(SCREEN_ATTRIBUTE);
     if (screen !== null) return { kind: "screen", screen };
@@ -1922,7 +1935,8 @@ function getPressFromTarget(
 }
 
 /**
- * The four listeners, all of them at the root and none of them on a row.
+ * The four listeners, all of them at the root and none of them on a row. Two windows sit under
+ * that root — **ADR 0060** — so the second is handed in, to be asked which holds a press.
  *
  * The press and never the click: a browser assembles a click out of two moments and dispatches it
  * only if both resolve to a node still in the tree, so a payload landing between the press and
@@ -1933,6 +1947,7 @@ function setPanelRootListeners(
     handlePress: (press: PanelPress) => void,
     handleHover: (key: string | null, clientY: number) => void,
     handleFailure: (failure: unknown) => void,
+    standing: PanelElement,
 ): void {
     setGuardedListener(root, PRESS_EVENT, (event) => {
         // The primary button alone: without this a right press would open a row and the listener
@@ -1944,9 +1959,13 @@ function setPanelRootListeners(
         if (press !== null) handlePress(press);
     }, handleFailure);
     // One gesture in, one gesture out, and the way out works from anywhere on the panel: a back
-    // control alone would make the cheapest gesture the one that needs aiming.
+    // control alone would make the cheapest gesture the one that needs aiming. The window beside
+    // the panel is not the panel, and a press landing in it moves nothing — **ADR 0071**. The
+    // menu is stopped either way: the panel suppresses it under the whole root.
     setGuardedListener(root, BACK_EVENT, (event) => {
         event.preventDefault?.();
+        // A press stating no target is nobody's window, and keeps the panel's meaning.
+        if (standing.contains(event.target)) return;
         handlePress({ kind: "back" });
     }, handleFailure);
     setGuardedListener(root, MOVE_EVENT, (event) => {
@@ -2205,7 +2224,7 @@ export function composePanelHost(
     let standingBody = standing.body;
     setPanelRootChildren(root, [regions.title, frame, tip.element, standing.element]);
     const showTip = (key: string | null, clientY: number) => tip.show(key, clientY);
-    setPanelRootListeners(root, handlePress, showTip, handleGesture);
+    setPanelRootListeners(root, handlePress, showTip, handleGesture, standing.element);
     // After the listeners that read a press, and on the same root: a drag is four more of them.
     if (placement !== null) {
         drag = setPanelDrag(

@@ -6,7 +6,13 @@
  */
 
 import { assert, assertExists, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
-import type { PanelDocument, PanelElement, PanelEvent, PanelRoot } from "@/src/ui/panel-element.ts";
+import type {
+    PanelDocument,
+    PanelElement,
+    PanelEvent,
+    PanelRoot,
+    PanelTarget,
+} from "@/src/ui/panel-element.ts";
 
 export interface FakeElement extends PanelElement {
     tag: string;
@@ -37,6 +43,10 @@ const SOMEWHERE_DOWN = 100;
  * outside it. This fake once offered a listener on the host as well, handed it the pressed
  * element, and so let a panel that could never work on a page pass every test — found by
  * `deno task preview`.
+ *
+ * A listener is handed the element itself, as a browser hands a node: the back listener asks
+ * the window beside the panel whether it holds what was pressed, and a stand-in carrying
+ * `getAttribute` alone answers that question for nobody.
  */
 export function pointAtElement(
     host: FakeElement,
@@ -46,14 +56,8 @@ export function pointAtElement(
     /** Where the pointer went, on the one event that says it left somewhere. */
     went: FakeElement | null = null,
 ): void {
-    const read = (name: string) => target?.attributes.get(name) ?? null;
-    const readWent = (name: string) => went?.attributes.get(name) ?? null;
     for (const handle of host.rootListeners.get(type) ?? []) {
-        handle({
-            target: target === null ? null : { getAttribute: read },
-            relatedTarget: went === null ? null : { getAttribute: readWent },
-            clientY,
-        });
+        handle({ target, relatedTarget: went, clientY });
     }
 }
 
@@ -68,10 +72,9 @@ export function dragOnElement(
     target: FakeElement | null,
     at: { clientX: number; clientY: number },
 ): void {
-    const read = (name: string) => target?.attributes.get(name) ?? null;
     for (const handle of host.rootListeners.get(type) ?? []) {
         handle({
-            target: target === null ? null : { getAttribute: read },
+            target,
             clientX: at.clientX,
             clientY: at.clientY,
             pointerId: 1,
@@ -126,6 +129,10 @@ export function composeFakeDocument(): PanelDocument & { created: FakeElement[] 
                 },
                 getAttribute(name: string): string | null {
                     return element.attributes.get(name) ?? null;
+                },
+                contains(other: PanelTarget | null): boolean {
+                    if (other === null) return false;
+                    return getElementsWithin(element).some((one) => one === other);
                 },
                 attachShadow(): PanelRoot {
                     assertStrictEquals(element.shadow, null, "a root is attached once");
