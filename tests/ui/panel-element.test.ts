@@ -228,7 +228,11 @@ Deno.test("the panel goes into a shadow root, under a name of ours", () => {
     assertEquals(host.attributes.get("id"), "MargoMeter-Panel", "the host is named as ours");
     assertExists(host.shadow, "and everything else is behind a root of its own");
     assertEquals(host.children.length, 0, "nothing is put beside the root");
-    assertEquals(host.shadow.length, 4, "the look, the bar, the panel, and the detail last");
+    assertEquals(
+        host.shadow.length,
+        5,
+        "the look, the bar, the panel, the detail, and the window beside it",
+    );
 });
 
 Deno.test("every name a reader meets before the panel's contents is ours", () => {
@@ -1081,7 +1085,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         [composeUndrawnText("list")],
         "and the region that failed says so in its own place, naming itself",
     );
-    assertEquals(host.shadow?.length, 4, "while the panel keeps its shape");
+    assertEquals(host.shadow?.length, 5, "while both windows keep their shape");
     const bar = getElementsWithin(host).find((one) => one.className === "MargoMeter-titlebar");
     assert(
         bar?.textContent.endsWith(PANEL_WORDS.title),
@@ -1437,7 +1441,10 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
     // A block body, not an expression: the recursion guard reads a one-line named arrow as
     // opening no brace, and so reads every line after it as this function's body — gap 13.
     const controls = () => {
-        return getElementsWithin(host).filter((one) => one.className.startsWith(CLASS.control));
+        const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
+        return getElementsWithin(bar ?? host).filter((one) =>
+            one.className.startsWith(CLASS.control)
+        );
     };
     assertEquals(
         controls().map((one) => [...one.attributes.keys()].find((key) => key.startsWith("data-"))),
@@ -2020,7 +2027,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
     });
     const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
     assertExists(bar, "the bar is drawn");
-    assertEquals(bar.attributes.get("data-grip"), "", "and it is what a drag is started from");
+    assertEquals(bar.attributes.get("data-grip"), "panel", "and it says which window it drags");
 
     // Nobody has moved this one, so it stands in the middle of the window from the first frame,
     // which is also the place the first grab starts from.
@@ -2061,7 +2068,7 @@ Deno.test("the version label on the bar is a handle, like the bar around it", ()
     panel.showWaiting(false, { defects: [], hasFightToSave: false, isFightUnread: false });
     const version = getElementsWithin(host).find((one) => one.className === CLASS.titleVersion);
     assertExists(version, "the bar states the version it was built at");
-    assertEquals(version.attributes.get("data-grip"), "", "and a drag may start from it");
+    assertEquals(version.attributes.get("data-grip"), "panel", "and a drag may start from it");
 
     dragOnElement(host, "pointerdown", version, { clientX: 100, clientY: 100 });
     dragOnElement(host, "pointermove", version, { clientX: 400, clientY: 300 });

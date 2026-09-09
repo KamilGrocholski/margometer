@@ -131,7 +131,7 @@ function getOccurrences(): Occurrence[] {
 
 Deno.test("the bonus fires under the share of the pool the help documents", () => {
     const occurrences = getOccurrences();
-    assertEquals(occurrences.length, 13, "every occurrence the material carries, 2026-08-30");
+    assertEquals(occurrences.length, 14, "every occurrence the material carries, 2026-09-09");
     let closest = 0;
     for (const one of occurrences) {
         // What they hold after, less what was put back, is what the blow left them on.

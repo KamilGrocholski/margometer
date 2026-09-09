@@ -1,4 +1,8 @@
-/** Where the panel sits, and how a reader moves it. Nothing here measures the document. */
+/**
+ * Where a window sits, and how a reader moves it. Nothing here measures the document.
+ *
+ * **Two windows share this root, and a grip says which.** **ADR 0060.**
+ */
 
 /** A position is two numbers written as JSON; text longer than this is not one. */
 const MAXIMUM_STORED = 4096;
@@ -8,7 +12,7 @@ import { getValueWithin } from "@/libs/number-range.ts";
 import { getNumberFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import type { PanelElement, PanelEvent, PanelRoot } from "@/src/ui/panel-element.ts";
 import { setGuardedListener } from "@/src/ui/panel-listener.ts";
-import { PLACE, SPACE } from "@/src/ui/panel-look.ts";
+import { PLACE, SPACE, STANDING } from "@/src/ui/panel-look.ts";
 
 export interface PanelPosition {
     left: number;
@@ -34,9 +38,18 @@ interface PanelGrab {
  * A title bar's worth stays on screen each way.
  */
 const MINIMUM_VISIBLE = 64;
-const TOP_VARIABLE = "--MargoMeter-panel-top";
 const STYLE_ATTRIBUTE = "style";
 const GRIP_ATTRIBUTE = "data-grip";
+
+export const PANEL_WINDOW = "panel";
+export const STANDING_WINDOW = "standing";
+export type PanelWindowName = typeof PANEL_WINDOW | typeof STANDING_WINDOW;
+
+/** One per window: sharing the panel's had the second rewriting the first one's ceiling. */
+const TOP_VARIABLES: Record<PanelWindowName, string> = {
+    [PANEL_WINDOW]: "--MargoMeter-panel-top",
+    [STANDING_WINDOW]: "--MargoMeter-standing-top",
+};
 
 /**
  * A whole pixel, on the screen, and a number a style can be written from. `getValueWithin` refuses
@@ -141,12 +154,36 @@ export function composeStoredTextFromPosition(position: PanelPosition): string |
  * is the window's height less where its top edge is, and CSS cannot read a `top` back out of an
  * inline style.
  */
-export function composePositionStyle(position: PanelPosition): string | null {
+export function composePositionStyle(
+    position: PanelPosition,
+    windowName: PanelWindowName = PANEL_WINDOW,
+): string | null {
     if (!Number.isSafeInteger(position.left)) return null;
     if (!Number.isSafeInteger(position.top)) return null;
     const left = composeIntegerText(position.left);
     const top = composeIntegerText(position.top);
-    return `left:${left}px;top:${top}px;${TOP_VARIABLE}:${top}px;right:auto`;
+    return `left:${left}px;top:${top}px;${TOP_VARIABLES[windowName]}:${top}px;right:auto`;
+}
+
+/**
+ * Where the second window opens: **beside** the panel and level with it, never centred.
+ * `composeDefaultPosition` centres what it is given, so centring both puts this one exactly under
+ * the panel — where the panel paints over it and a reader sees nothing at all. **ADR 0060.**
+ */
+export function composeStandingPosition(viewport: PanelViewport | null): PanelPosition | null {
+    const panel = composeDefaultPosition(viewport);
+    if (panel === null) return null;
+    const width = getIntegerFromText(STANDING.width.slice(0, -2));
+    const panelWidth = getIntegerFromText(PLACE.width.slice(0, -2));
+    const gap = getIntegerFromText(SPACE.small.slice(0, -2));
+    if (width === null) return null;
+    if (panelWidth === null) return null;
+    if (gap === null) return null;
+    const beside = panel.left - width - gap;
+    if (beside >= 0) return composeClampedPosition({ left: beside, top: panel.top }, viewport);
+    // No room on the left, so the other side — the same answer the card gives (**ADR 0019**).
+    const other = { left: panel.left + panelWidth + gap, top: panel.top };
+    return composeClampedPosition(other, viewport);
 }
 
 export function composeTipLeft(
@@ -188,8 +225,8 @@ export interface PanelPlacement {
     handleMoved(position: PanelPosition): void;
 }
 
-export function setGripMark(grip: PanelElement): void {
-    grip.setAttribute(GRIP_ATTRIBUTE, "");
+export function setGripMark(grip: PanelElement, windowName: PanelWindowName): void {
+    grip.setAttribute(GRIP_ATTRIBUTE, windowName);
 }
 
 function getPointerFromEvent(event: PanelEvent): PanelPosition | null {
@@ -204,15 +241,27 @@ function getPointerFromEvent(event: PanelEvent): PanelPosition | null {
  * pointer the event does not state, or a page that has not said how wide it is — a drag from a
  * guessed origin jumps under the hand.
  */
+/** Where a window nobody has moved opens, which is not the same place for both of them. */
+function composeOpeningPosition(
+    windowName: PanelWindowName,
+    viewport: PanelViewport | null,
+): PanelPosition | null {
+    if (windowName === STANDING_WINDOW) return composeStandingPosition(viewport);
+    return composeDefaultPosition(viewport);
+}
+
 function composePanelDragGrab(
     event: PanelEvent,
     position: PanelPosition | null,
     placement: PanelPlacement,
+    windowName: PanelWindowName,
 ): PanelGrab | null {
     // `undefined` is not `null`: as one comparison, a press stating no target fell through and
     // started a drag from wherever the pointer was.
     const grip = event.target?.getAttribute(GRIP_ATTRIBUTE) ?? null;
     if (grip === null) return null;
+    // A bar belonging to the other window under this root. Both listener sets see every press.
+    if (grip !== windowName) return null;
     const pointer = getPointerFromEvent(event);
     if (pointer === null) return null;
     const from = position ?? composeDefaultPosition(placement.getViewport());
@@ -239,28 +288,29 @@ function getWasLetGo(event: PanelEvent): boolean {
     return event.buttons === 0;
 }
 
-/** The drag, as four listeners at the root and one style attribute on the host. */
+/**
+ * The drag, as four listeners at the root and one style attribute on the host. `getBar` answers
+ * with the bar **as it stands now**: a bar is replaced on every payload, so a captured pointer
+ * would be asked of a node that has left the tree.
+ */
 export function setPanelDrag(
     root: PanelRoot,
     host: PanelElement,
-    /**
-     * The bar as it stands now, rather than the one standing when the drag was wired: the bar is
-     * a region like any other and is replaced on every payload, so a captured pointer would be
-     * asked of a node that has left the tree.
-     */
     getBar: () => PanelElement,
     placement: PanelPlacement,
     handleFailure: (failure: unknown) => void,
+    windowName: PanelWindowName = PANEL_WINDOW,
 ): PanelDragHandle {
     // The reader's place, or the middle of the window: a position from the first frame is what
     // lets the detail window and the card answer the side the panel is on (**ADR 0019**), where a
     // panel left on the sheet's corner has no `left` for either of them to read.
-    let position = placement.position ?? composeDefaultPosition(placement.getViewport());
+    let position = placement.position ??
+        composeOpeningPosition(windowName, placement.getViewport());
     let grab: PanelGrab | null = null;
     // A position that writes no style leaves the host on the sheet's own corner, which is a place
     // — and the panel is still there to be grabbed (**E14**).
     const setHostPosition = (next: PanelPosition): void => {
-        const style = composePositionStyle(next);
+        const style = composePositionStyle(next, windowName);
         if (style === null) return;
         position = next;
         host.setAttribute(STYLE_ATTRIBUTE, style);
@@ -277,7 +327,7 @@ export function setPanelDrag(
         });
     };
     setGuarded("pointerdown", (event) => {
-        const started = composePanelDragGrab(event, position, placement);
+        const started = composePanelDragGrab(event, position, placement, windowName);
         if (started === null) return;
         grab = started;
         setPointerHeld(getBar(), true, event.pointerId, handleFailure);

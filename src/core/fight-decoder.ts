@@ -83,6 +83,9 @@ export const PROC_ENDS: Record<string, ProcEnd> = {
     "-tenacity": "unsettled",
     "-evade": "target",
     "-contra": "target",
+    // Blok strzały: the target nullifies a ranged blow's main-hand damage for a turn, so it is
+    // read on the end that blocked, as `-evade` and `-contra` are.
+    "-arrowblock": "target",
 };
 
 /** The keys a blow carries when it landed critically, whichever weapon threw it. */
@@ -134,7 +137,12 @@ const PERCENT_CLOSER = "%)";
 const OUTCOME_KEYS: Record<string, "won" | "lost"> = { winner: "won", loser: "lost" };
 /** The key a draw arrives on, which is the winners' — `core/battle-event.ts` says what it is. */
 const NO_WINNER = "?";
-const NAME_SEPARATOR = ", ";
+/**
+ * Between the names in a value that carries several. `winner`, `loser` and `shout` all use it —
+ * `docs/protocol-keys.md` has the grammar at `winner`, and the corpus shows a shout naming two
+ * (`captures/2026-09-09-tempest-duet-vs-wojownik-…`).
+ */
+export const NAME_SEPARATOR = ", ";
 /**
  * A fight broken off by an escape, which ends it for everybody and names no side at all.
  *

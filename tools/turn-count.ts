@@ -17,7 +17,7 @@ import { parseArgs } from "@std/cli";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import { MESSAGE_INDEX_KEY } from "@/src/game/fight-underway.ts";
 import type { FightStatistics } from "@/src/core/fight-statistics.ts";
-import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
+import { composeIntegerText } from "@/libs/number-text.ts";
 import { getNumberFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import { TurnCountError } from "@/tools/margometer-tool-error.ts";
 import {
@@ -26,18 +26,8 @@ import {
     type FightReplayStep,
 } from "@/tools/fight-replay.ts";
 import type { RecordedFight } from "@/tools/recorded-fights.ts";
+import { readTurnStatement, type TurnStatement } from "@/src/game/fight-underway.ts";
 
-/**
- * The queue of turns the client draws as its prediction list (published help, article 372 §1.1,
- * read 2026-09-02), spelled here because this is the one file that reads it (**N13**). It is an
- * envelope key and not a message key, which is why `docs/protocol-keys.md` has no entry for it.
- */
-export const TURN_QUEUE_KEY = "turns_warriors";
-/**
- * Whom the game says holds the turn the queue's least ordinal numbers. Read only as a witness:
- * over `captures/` on 2026-09-02 it is the queue's own entry at that ordinal in every payload
- * carrying both, so a disagreement is this reader breaking rather than the game moving.
- */
 export const CURRENT_KEY = "current";
 
 /** A run names a handful of recordings; this is far past that. */
@@ -46,8 +36,6 @@ const MAXIMUM_ARGUMENTS = 256;
 const MAXIMUM_RECORDINGS = 4096;
 /** The longest recording in `captures/` carries 111 payloads, 2026-09-01. */
 const MAXIMUM_PAYLOADS = 100000;
-/** The queue is ten entries wide in all 1022 payloads carrying it, 2026-09-02. */
-const MAXIMUM_QUEUE = 1024;
 /** Past the 715 message indices the longest recording states, 2026-09-03. */
 const MAXIMUM_MESSAGES = 65536;
 
@@ -70,12 +58,6 @@ export type TurnPlacing = (typeof TURN_PLACINGS)[number];
 /** `in a lump` is a recording the game never numbered twice — nothing to grade at all. */
 export const TURN_VERDICTS = ["always", "sometimes", "never", "in a lump"] as const;
 export type TurnVerdict = (typeof TURN_VERDICTS)[number];
-
-/** What the game stated about the turn in progress when a payload arrived. */
-export interface TurnStatement {
-    ordinal: number;
-    combatantId: number;
-}
 
 /**
  * One stretch between two statements of the game's, graded. `counted` is both halves of what was
@@ -131,30 +113,6 @@ export interface TurnStretch {
     short: number;
     /** The turns the game announced as spent on nothing, inside the same stretch (**ADR 0049**). */
     lost: number;
-}
-
-/**
- * The turn in progress, as the payload's envelope states it: the queue's least ordinal, and whose
- * it is. Null where the payload carries no queue — five recordings carry none at all, and the
- * first payload of a fight is one of them everywhere else.
- */
-export function readTurnStatement(payload: unknown): TurnStatement | null {
-    if (!isRecord(payload)) return null;
-    const queue = payload[TURN_QUEUE_KEY];
-    if (!isRecord(queue)) return null;
-    const ordinals = Object.keys(queue);
-    assert(ordinals.length <= MAXIMUM_QUEUE, "a queue stays inside its stated bound");
-    let least: number | null = null;
-    for (const stated of ordinals) {
-        const ordinal = getIntegerFromText(stated);
-        if (ordinal === null) return null;
-        if (least === null) least = ordinal;
-        else if (ordinal < least) least = ordinal;
-    }
-    if (least === null) return null;
-    const combatantId = getNumberFromUnknown(queue[`${least}`]);
-    if (combatantId === null) return null;
-    return { ordinal: least, combatantId };
 }
 
 /** The same payload's own witness, which says who holds that ordinal in a second way. */

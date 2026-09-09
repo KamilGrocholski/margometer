@@ -1,0 +1,360 @@
+{
+    "readAt": "2026-09-08",
+    "recordings": 29,
+    "payloads": 1111,
+    "warriorRecords": 5017,
+    "widestRoster": {
+        "combatants": 11,
+        "recording": "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json"
+    },
+    "fields": {
+        "ac": {
+            "statements": 4960,
+            "recordings": 29
+        },
+        "act": {
+            "statements": 4960,
+            "recordings": 29
+        },
+        "buffs": {
+            "statements": 4960,
+            "recordings": 29
+        },
+        "combo": {
+            "statements": 421,
+            "recordings": 29
+        },
+        "cooldowns": {
+            "statements": 421,
+            "recordings": 29
+        },
+        "doublecastcost": {
+            "statements": 421,
+            "recordings": 29
+        },
+        "energy": {
+            "statements": 4026,
+            "recordings": 29
+        },
+        "fast": {
+            "statements": 4026,
+            "recordings": 29
+        },
+        "focus": {
+            "statements": 4960,
+            "recordings": 29
+        },
+        "hp": {
+            "statements": 5017,
+            "recordings": 29
+        },
+        "lvl": {
+            "statements": 271,
+            "recordings": 29
+        },
+        "mana": {
+            "statements": 4026,
+            "recordings": 29
+        },
+        "name": {
+            "statements": 271,
+            "recordings": 29
+        },
+        "npc": {
+            "statements": 271,
+            "recordings": 29
+        },
+        "poolTime": {
+            "statements": 5017,
+            "recordings": 29
+        },
+        "prof": {
+            "statements": 271,
+            "recordings": 29
+        },
+        "resfire": {
+            "statements": 4960,
+            "recordings": 29
+        },
+        "resfrost": {
+            "statements": 4960,
+            "recordings": 29
+        },
+        "reslight": {
+            "statements": 4960,
+            "recordings": 29
+        },
+        "super_cast": {
+            "statements": 286,
+            "recordings": 20
+        },
+        "team": {
+            "statements": 271,
+            "recordings": 29
+        },
+        "wt": {
+            "statements": 31,
+            "recordings": 28
+        },
+        "y": {
+            "statements": 2663,
+            "recordings": 29
+        }
+    },
+    "statuses": {
+        "masksRead": 4960,
+        "masksAbsent": 57,
+        "distinctValues": [
+            0,
+            1,
+            32,
+            33,
+            34,
+            40,
+            41,
+            42,
+            43,
+            48,
+            56,
+            64,
+            72,
+            296,
+            297,
+            298,
+            299,
+            1056
+        ],
+        "byBit": [
+            {
+                "bit": 0,
+                "name": "deep_wound",
+                "statements": 36,
+                "combatants": 2
+            },
+            {
+                "bit": 1,
+                "name": "wound",
+                "statements": 235,
+                "combatants": 9
+            },
+            {
+                "bit": 3,
+                "name": "poisoned",
+                "statements": 836,
+                "combatants": 31
+            },
+            {
+                "bit": 4,
+                "name": "fire",
+                "statements": 8,
+                "combatants": 3
+            },
+            {
+                "bit": 5,
+                "name": "swow_down",
+                "statements": 1423,
+                "combatants": 103
+            },
+            {
+                "bit": 6,
+                "name": "speed_up",
+                "statements": 2073,
+                "combatants": 140
+            },
+            {
+                "bit": 8,
+                "name": "shock",
+                "statements": 38,
+                "combatants": 3
+            },
+            {
+                "bit": 10,
+                "name": null,
+                "statements": 12,
+                "combatants": 1
+            }
+        ],
+        "widestStanding": {
+            "combatants": 11,
+            "recording": "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json"
+        }
+    },
+    "armour": {
+        "statements": 4960,
+        "destroyedStated": 857,
+        "destroyedAnnounced": 44,
+        "combatantsWhoseArmourFell": 44,
+        "combatantsSeen": 271,
+        "widestFallen": {
+            "combatants": 6,
+            "recording": "captures/2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json"
+        }
+    },
+    "resistances": {
+        "statements": 14880,
+        "combatantsWhoseResistanceFell": 32,
+        "widestFallen": {
+            "combatants": 7,
+            "recording": "captures/2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json"
+        }
+    },
+    "superCast": {
+        "statements": 286,
+        "bySkill": [
+            {
+                "name": "Symfonia żywiołów",
+                "totalTurns": 3,
+                "statements": 76
+            },
+            {
+                "name": "Osobisty rozrachunek",
+                "totalTurns": 1,
+                "statements": 54
+            },
+            {
+                "name": "Tryptyk płonący",
+                "totalTurns": 1,
+                "statements": 40
+            },
+            {
+                "name": "Chorus skamieniałej panny",
+                "totalTurns": 2,
+                "statements": 28
+            },
+            {
+                "name": "Huk powrotu",
+                "totalTurns": 3,
+                "statements": 24
+            },
+            {
+                "name": "Kosa zastępcy",
+                "totalTurns": 2,
+                "statements": 24
+            },
+            {
+                "name": "Chapnięcie",
+                "totalTurns": 1,
+                "statements": 15
+            },
+            {
+                "name": "Lodowe Pandemonium",
+                "totalTurns": 4,
+                "statements": 11
+            },
+            {
+                "name": "Przeszycie do szpiku",
+                "totalTurns": 2,
+                "statements": 7
+            },
+            {
+                "name": "Noc Perseidów",
+                "totalTurns": 2,
+                "statements": 6
+            },
+            {
+                "name": "Gniew Unkulunkulu",
+                "totalTurns": 4,
+                "statements": 1
+            }
+        ],
+        "prepareMessages": 316
+    },
+    "readerOwn": {
+        "cooldownStatements": 311,
+        "warriorsCarryingCooldowns": 421,
+        "distinctSkillIds": [
+            85,
+            89,
+            97,
+            105,
+            222,
+            231,
+            239
+        ],
+        "longestCooldown": 6,
+        "comboStatements": 421,
+        "comboLargest": 3
+    },
+    "queue": {
+        "payloadsStatingQueue": 1022,
+        "payloadsStatingCurrent": 1022,
+        "longestQueue": 10,
+        "poolTimeStatements": 5017,
+        "poolTimeLargest": 180,
+        "poolTimeSmallest": 15,
+        "forecast": [
+            {
+                "step": 1,
+                "graded": 451,
+                "wrong": 11
+            },
+            {
+                "step": 2,
+                "graded": 258,
+                "wrong": 25
+            },
+            {
+                "step": 3,
+                "graded": 227,
+                "wrong": 31
+            },
+            {
+                "step": 4,
+                "graded": 230,
+                "wrong": 37
+            },
+            {
+                "step": 5,
+                "graded": 241,
+                "wrong": 46
+            },
+            {
+                "step": 6,
+                "graded": 248,
+                "wrong": 60
+            },
+            {
+                "step": 7,
+                "graded": 227,
+                "wrong": 64
+            },
+            {
+                "step": 8,
+                "graded": 247,
+                "wrong": 85
+            },
+            {
+                "step": 9,
+                "graded": 277,
+                "wrong": 100
+            }
+        ]
+    },
+    "casts": {
+        "teamWideMessages": 594,
+        "distinctTeamWideSkills": 15,
+        "mostSkillsInOneRecording": {
+            "skills": 9,
+            "recording": "captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json"
+        },
+        "distinctTeamWideKeys": [
+            "+spell-taken_dmg-all",
+            "active_decblock_per-enemies",
+            "alllowdmg",
+            "allslow_per",
+            "aura-ac_per",
+            "aura-adddmg2_per-meele",
+            "aura-resall",
+            "aura-sa_per",
+            "critmval-allies",
+            "critval-allies",
+            "healall_per",
+            "lowheal_per-enemies",
+            "poison_lowdmg_per-enemies",
+            "removedot-allies",
+            "removeslow-allies",
+            "removestun-allies",
+            "shout"
+        ]
+    }
+}

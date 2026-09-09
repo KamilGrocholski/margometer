@@ -1,0 +1,653 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="./support.js"></script>
+    </head>
+    <body>
+        <x-dc>
+            <helmet>
+                <style>
+                @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+                body {
+                    margin: 0;
+                }
+                * {
+                    box-sizing: border-box;
+                }
+                a {
+                    color: #a8600b;
+                }
+                a:hover {
+                    color: #7d4708;
+                }
+
+                /* ---- the sheet the mockups stand on ---- */
+                .sheet {
+                    width: 100%;
+                    min-height: 100%;
+                    background: #f5f3ee;
+                    color: #1b1a17;
+                    font-family: "IBM Plex Sans",system-ui,sans-serif;
+                    padding: 34px 38px 38px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                }
+                .tag {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .16em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    display: flex;
+                    gap: 10px;
+                    align-items: center;
+                }
+                .tag .dot {
+                    width: 5px;
+                    height: 5px;
+                    background: #a8600b;
+                    border-radius: 50%;
+                    flex: none;
+                }
+                .tag .rec {
+                    color: #2c6b4c;
+                }
+                .tag .no {
+                    color: #a8600b;
+                }
+                h1 {
+                    font-size: 25px;
+                    line-height: 1.14;
+                    margin: 8px 0 0;
+                    font-weight: 600;
+                    letter-spacing: -.012em;
+                }
+                .lede {
+                    font-size: 13.5px;
+                    line-height: 1.55;
+                    color: #4a463e;
+                    max-width: 64ch;
+                    margin: 8px 0 0;
+                    text-wrap: pretty;
+                }
+                .stage {
+                    background: #0b0b0e;
+                    border: 1px solid #d9d5cc;
+                    padding: 24px;
+                    display: flex;
+                    gap: 24px;
+                    align-items: flex-start;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                }
+                .stage.tight {
+                    padding: 18px;
+                    gap: 16px;
+                }
+                .stage.left {
+                    justify-content: flex-start;
+                }
+                .cap {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .1em;
+                    text-transform: uppercase;
+                    color: #75705f;
+                    margin-bottom: 8px;
+                }
+                .cap.good {
+                    color: #4f9d76;
+                }
+                .cap.warn {
+                    color: #c98500;
+                }
+                .hold {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
+                }
+                .notes {
+                    display: grid;
+                    grid-template-columns: repeat(2,minmax(0,1fr));
+                    gap: 14px 28px;
+                    border-top: 1px solid #d9d5cc;
+                    padding-top: 16px;
+                }
+                .notes.three {
+                    grid-template-columns: repeat(3,minmax(0,1fr));
+                }
+                .note h3 {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .12em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    margin: 0 0 5px;
+                    font-weight: 500;
+                }
+                .note h3.warn {
+                    color: #a8600b;
+                }
+                .note h3.good {
+                    color: #2c6b4c;
+                }
+                .note p {
+                    margin: 0;
+                    font-size: 12.5px;
+                    line-height: 1.5;
+                    color: #33302a;
+                    text-wrap: pretty;
+                }
+                .m {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 11.5px;
+                    background: #eae7df;
+                    padding: 1px 4px;
+                }
+                .stage .m {
+                    background: #24242a;
+                    color: #e7e7ea;
+                }
+                table.reg {
+                    border-collapse: collapse;
+                    width: 100%;
+                    font-size: 12.5px;
+                }
+                table.reg th {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .1em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    font-weight: 500;
+                    text-align: left;
+                    padding: 0 12px 6px 0;
+                    border-bottom: 1px solid #d9d5cc;
+                }
+                table.reg td {
+                    padding: 6px 12px 6px 0;
+                    border-bottom: 1px solid #e6e2d9;
+                    vertical-align: top;
+                    line-height: 1.45;
+                }
+                table.reg td.n {
+                    text-align: right;
+                    font-variant-numeric: tabular-nums;
+                    padding-right: 16px;
+                }
+                table.reg .mono {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 11.5px;
+                }
+                table.reg .flag {
+                    color: #a8600b;
+                }
+                table.reg .ok {
+                    color: #2c6b4c;
+                }
+                table.reg .none {
+                    color: #8a8478;
+                }
+                .cost {
+                    display: flex;
+                    gap: 18px;
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .08em;
+                    text-transform: uppercase;
+                    color: #75705f;
+                    margin-top: 10px;
+                }
+                .cost b {
+                    color: #c9c9d1;
+                    font-weight: 500;
+                }
+                .stage .cost {
+                    color: #75705f;
+                }
+
+                /* ---- the panel and the window, 1:1, values from src/ui/panel-look.ts ---- */
+                .w-bar {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 4px 8px;
+                    font: 11px/13px system-ui,sans-serif;
+                    letter-spacing: .06em;
+                    color: #9a9aa6;
+                    background: #1f1f26;
+                    border: 1px solid #2c2c35;
+                    border-bottom: none;
+                    border-radius: 8px 8px 0 0;
+                    white-space: nowrap;
+                }
+                .w-bar .ver {
+                    opacity: .7;
+                    font-size: 10px;
+                }
+                .w-bar .ctl {
+                    margin-left: auto;
+                    display: flex;
+                    gap: 4px;
+                }
+                .w-body {
+                    background: #17171c;
+                    border: 1px solid #2c2c35;
+                    border-radius: 0 0 8px 8px;
+                    font: 11px/15px system-ui,sans-serif;
+                    color: #e7e7ea;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .reg {
+                    padding: 5px 7px;
+                }
+                .reg.rows {
+                    padding-bottom: 3px;
+                }
+                .hd {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                }
+                .hd .out {
+                    color: #9a9aa6;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                }
+                .hd .pl {
+                    color: #9a9aa6;
+                    font-size: 10px;
+                }
+                .tabs {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 2px;
+                    padding: 5px 7px 0;
+                }
+                .tabs + .tabs {
+                    padding-top: 3px;
+                }
+                .tabs .gap {
+                    flex: 1;
+                }
+                .tab {
+                    padding: 1px 4px;
+                    border-radius: 3px;
+                    color: #9a9aa6;
+                    white-space: nowrap;
+                }
+                .tab.on {
+                    color: #e7e7ea;
+                    background: #1f1f26;
+                }
+                .sec {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    color: #868691;
+                    letter-spacing: .08em;
+                    font-size: 10px;
+                    text-transform: uppercase;
+                    padding: 4px 2px 2px;
+                }
+                .sec .n {
+                    font-variant-numeric: tabular-nums;
+                    letter-spacing: 0;
+                }
+                .row {
+                    position: relative;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    height: 18px;
+                    padding: 1px 8px 0;
+                    margin-bottom: 2px;
+                    border-radius: 3px;
+                    background: #24242a;
+                    overflow: hidden;
+                }
+                .row.open {
+                    box-shadow: inset 3px 0 0 #e7e7ea;
+                }
+                .bar {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    opacity: .55;
+                }
+                .rest {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                }
+                .cap3 {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 3px;
+                    border-radius: 3px 0 0 3px;
+                }
+                .rk {
+                    position: relative;
+                    flex: none;
+                    width: 22px;
+                    text-align: right;
+                    padding-right: 4px;
+                    color: #9a9aa6;
+                    font-variant-numeric: tabular-nums;
+                }
+                .nm {
+                    position: relative;
+                    flex: 1;
+                    min-width: 0;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                .val {
+                    position: relative;
+                    flex: none;
+                    padding-left: 8px;
+                    font-weight: 600;
+                    font-variant-numeric: tabular-nums;
+                    white-space: nowrap;
+                }
+                .val .of {
+                    color: #9a9aa6;
+                    font-weight: 400;
+                }
+                .sh {
+                    color: #9a9aa6;
+                    padding-left: 4px;
+                    font-weight: 400;
+                }
+                .warn {
+                    position: relative;
+                    flex: none;
+                    color: #c98500;
+                    padding-right: 4px;
+                }
+                .marks {
+                    position: relative;
+                    flex: none;
+                    display: flex;
+                    gap: 3px;
+                    align-items: center;
+                    padding-left: 6px;
+                }
+                .mk {
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 2px;
+                    flex: none;
+                }
+                .mk.hollow {
+                    background: none;
+                    border: 1px solid #3a3a44;
+                }
+                .quiet {
+                    color: #9a9aa6;
+                    padding: 1px 2px 3px;
+                }
+                .off {
+                    color: #6b6b75;
+                }
+                .sides {
+                    padding: 5px 7px;
+                    border-top: 1px solid #2c2c35;
+                }
+                .sl {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    font-variant-numeric: tabular-nums;
+                    font-weight: 600;
+                }
+                .slab {
+                    color: #9a9aa6;
+                    font-weight: 400;
+                    opacity: .8;
+                }
+                .track {
+                    display: flex;
+                    height: 4px;
+                    margin-top: 4px;
+                    border-radius: 3px;
+                    overflow: hidden;
+                    background: #24242a;
+                }
+                .track > * {
+                    background: currentColor;
+                }
+                .ours {
+                    color: #6fbf8b;
+                }
+                .theirs {
+                    color: #e0736f;
+                }
+                .nobody {
+                    color: #8a8a80;
+                }
+                .split {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                }
+
+                /* ---- the legend beside a stage ---- */
+                .leg {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 7px;
+                    width: 206px;
+                    flex: none;
+                }
+                .leg .item {
+                    display: flex;
+                    gap: 9px;
+                    align-items: flex-start;
+                }
+                .leg .sw {
+                    flex: none;
+                    width: 34px;
+                    height: 14px;
+                    border-radius: 3px;
+                    background: #24242a;
+                    position: relative;
+                    overflow: hidden;
+                    margin-top: 1px;
+                }
+                .leg .tx {
+                    font: 12px/1.45 "IBM Plex Sans",system-ui,sans-serif;
+                    color: #c9c9d1;
+                }
+                .leg .tx b {
+                    font-weight: 600;
+                    color: #e7e7ea;
+                }
+                .leg .tx .m {
+                    background: #24242a;
+                    color: #e7e7ea;
+                }
+                </style>
+            </helmet>
+            <div class="sheet">
+                <div
+                    class="tag"><span class="dot"></span>Opcja A &#183; trzy pasma<span class="rec">&mdash; kandydat wiod&#261;cy</span></div>
+                <h1>Jedno okno obok panelu, trzy pasma, dwa kszta&#322;ty wiersza</h1>
+                <p
+                    class="lede">Panel m&#243;wi, co z walki wysz&#322;o. Pomocnik m&#243;wi, co w niej stoi teraz. Pasma odpowiadaj&#261; na trzy pytania w kolejno&#347;ci, w jakiej czytelnik je zadaje: <b>Teraz</b> &mdash; czyja tura i co trzymam w r&#281;ku; <b>Co stoi</b> &mdash; co jest na&#322;o&#380;one na walk&#281; i jak daleko; <b>Kto</b> &mdash; w jakim kto&#347; jest stanie. Pierwsze dwa s&#261; sta&#322;e i kosztuj&#261; sta&#322;&#261; liczb&#281; wierszy. Trzecie jest do w&#322;&#261;czenia, bo idzie na posta&#263; i ro&#347;nie z walk&#261;.</p>
+                <div class="stage">
+                    <div class="hold">
+                        <div class="cap">PANEL &mdash; BEZ ZMIAN</div>
+                        <div style="width:260px">
+                            <div class="w-bar"
+                                style="width:260px">&#10287; MargoMeter <span class='ver'>0.14.0</span><span class="ctl">&#9776; &#8615; &mdash;</span></div>
+                            <div class="w-body" style="width:260px">
+                                <div class="reg">
+                                    <div
+                                        class="hd"><span>10 na 10</span><span class="out">TRWA</span></div>
+                                    <div class="pl">Thuzal (12, 84)</div>
+                                </div>
+                                <div
+                                    class="tabs"><span class="tab on">Obra&#380;enia</span><span class="tab">Leczenie</span></div>
+                                <div
+                                    class="tabs"><span class="tab on">zadane</span><span class="tab">otrzymane</span><span class="gap"></span><span class="tab on">Wszyscy</span><span class="tab">My</span><span class="tab">Oni</span></div>
+                                <div class="reg rows">
+                                    <div
+                                        class="row"><div class="bar" style="width:100%;background:#d95926"></div><div class="cap3" style="background:#d95926"></div><span class="rk">1.</span><span class="nm">Gracz 3</span><span class="val">84 210<span class="sh">(18%)</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:84%;background:#3987e5"></div><div class="cap3" style="background:#3987e5"></div><span class="rk">2.</span><span class="nm">Renegat 4</span><span class="val">71 004<span class="sh">(15%)</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:71%;background:#199e70"></div><div class="cap3" style="background:#199e70"></div><span class="rk">3.</span><span class="nm">Gracz 9</span><span class="val">60 118<span class="sh">(13%)</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:63%;background:#008300"></div><div class="cap3" style="background:#008300"></div><span class="rk">4.</span><span class="nm">Gracz 5</span><span class="val">52 663<span class="sh">(11%)</span></span></div>
+                                </div>
+                                <div class="sides">
+                                    <div
+                                        class="sl"><span class="ours">231 004</span><span class="slab">My / Oni</span><span class="theirs">218 776</span></div>
+                                    <div
+                                        class="track"><span class="ours" style="flex:51"></span><span class="theirs" style="flex:49"></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hold">
+                        <div class="cap good">POMOCNIK &mdash; DOMY&#346;LNIE</div>
+                        <div style="width:210px">
+                            <div class="w-bar"
+                                style="width:210px">&#10287; Pomocnik<span class="ctl">&#8801; &mdash;</span></div>
+                            <div class="w-body" style="width:210px">
+                                <div class="reg rows">
+                                    <div
+                                        class="sec"><span>Teraz</span><span class="n">tura 248</span></div>
+                                    <div
+                                        class="row"><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Gracz 5</span><span class="val">1:52</span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:60%;background:rgb(77 121 95);opacity:1"></div><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Kombinacja</span><span class="val">3<span class="of"> z 3</span></span></div>
+                                    <div
+                                        class="row"><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Furia ostrzy</span><span class="val">za 2 tury</span></div>
+                                </div>
+                                <div class="reg rows" style="border-top:1px solid #2c2c35">
+                                    <div
+                                        class="sec"><span>Co stoi</span><span class="n">7</span></div>
+                                    <div
+                                        class="row open"><div class="bar" style="width:75%;background:#24242a;opacity:1"></div><div class="bar" style="width:50%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:50%;width:25%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Pi&#281;tno bestii</span><span class="val"><span style="color:#6fbf8b">2</span><span class="of"> | </span><span style="color:#e0736f">1</span></span></div>
+                                    <div style="padding:0 0 2px 8px">
+                                        <div
+                                            class="row"><div class="bar" style="width:37.5%;background:rgb(77 121 95);opacity:1"></div><div class="rest" style="left:37.5%;right:0;background:repeating-linear-gradient(-45deg,#6fbf8b38 0 4px,transparent 4px 8px)"></div><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Gracz 3</span><span class="val">3<span class="of"> z 8</span></span></div>
+                                        <div
+                                            class="row"><div class="bar" style="width:75%;background:rgb(77 121 95);opacity:1"></div><div class="rest" style="left:75%;right:0;background:repeating-linear-gradient(-45deg,#6fbf8b38 0 4px,transparent 4px 8px)"></div><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Gracz 7</span><span class="val">6<span class="of"> z 8</span></span></div>
+                                        <div
+                                            class="row"><div class="bar" style="width:12.5%;background:rgb(139 79 80);opacity:1"></div><div class="rest" style="left:12.5%;right:0;background:repeating-linear-gradient(-45deg,#e0736f38 0 4px,transparent 4px 8px)"></div><div class="cap3" style="background:#e0736f"></div><span class="nm">Renegat 4</span><span class="val">1<span class="of"> z 8</span></span></div>
+                                    </div>
+                                    <div
+                                        class="row"><div class="bar" style="width:75%;background:#24242a;opacity:1"></div><div class="bar" style="width:0%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:0%;width:75%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Szad&#378;</span><span class="val"><span style="color:#6fbf8b">0</span><span class="of"> | </span><span style="color:#e0736f">3</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:100%;background:#24242a;opacity:1"></div><div class="bar" style="width:75%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:75%;width:25%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Podw&#243;jny dech</span><span class="val"><span style="color:#6fbf8b">3</span><span class="of"> | </span><span style="color:#e0736f">1</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:50%;background:#24242a;opacity:1"></div><div class="bar" style="width:25%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:25%;width:25%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Aura ochrony</span><span class="val"><span style="color:#6fbf8b">1</span><span class="of"> | </span><span style="color:#e0736f">1</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:25%;background:#24242a;opacity:1"></div><div class="bar" style="width:25%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:25%;width:0%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Wyzywaj&#261;cy okrzyk</span><span class="val"><span style="color:#6fbf8b">1</span><span class="of"> | </span><span style="color:#e0736f">0</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:50%;background:#24242a;opacity:1"></div><div class="bar" style="width:50%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:50%;width:0%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Os&#322;ona tarcz&#261;</span><span class="val"><span style="color:#6fbf8b">2</span><span class="of"> | </span><span style="color:#e0736f">0</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:75%;background:#24242a;opacity:1"></div><div class="bar" style="width:25%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:25%;width:50%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Ostatni Ratunek</span><span class="val"><span style="color:#6fbf8b">1</span><span class="of"> | </span><span style="color:#e0736f">2</span></span></div>
+                                </div>
+                                <div class="reg" style="border-top:1px solid #2c2c35">
+                                    <div
+                                        class="sec"><span class="off">Kto</span><span class="n off">wy&#322;&#261;czone</span></div>
+                                    <div
+                                        class="quiet off">20 wierszy w ustawce. Do w&#322;&#261;czenia na li&#347;cie.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hold">
+                        <div class="cap">Z W&#321;&#260;CZONYM PASMEM KTO</div>
+                        <div style="width:210px">
+                            <div class="w-bar"
+                                style="width:210px">&#10287; Pomocnik<span class="ctl">&#8801; &mdash;</span></div>
+                            <div class="w-body" style="width:210px">
+                                <div class="reg rows">
+                                    <div
+                                        class="sec"><span>Teraz</span><span class="n">tura 248</span></div>
+                                    <div
+                                        class="row"><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Gracz 5</span><span class="val">1:52</span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:60%;background:rgb(77 121 95);opacity:1"></div><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Kombinacja</span><span class="val">3<span class="of"> z 3</span></span></div>
+                                    <div
+                                        class="row"><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Furia ostrzy</span><span class="val">za 2 tury</span></div>
+                                </div>
+                                <div class="reg rows" style="border-top:1px solid #2c2c35">
+                                    <div
+                                        class="sec"><span>Co stoi</span><span class="n">7</span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:75%;background:#24242a;opacity:1"></div><div class="bar" style="width:50%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:50%;width:25%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Pi&#281;tno bestii</span><span class="val"><span style="color:#6fbf8b">2</span><span class="of"> | </span><span style="color:#e0736f">1</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:75%;background:#24242a;opacity:1"></div><div class="bar" style="width:0%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:0%;width:75%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Szad&#378;</span><span class="val"><span style="color:#6fbf8b">0</span><span class="of"> | </span><span style="color:#e0736f">3</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:100%;background:#24242a;opacity:1"></div><div class="bar" style="width:75%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:75%;width:25%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Podw&#243;jny dech</span><span class="val"><span style="color:#6fbf8b">3</span><span class="of"> | </span><span style="color:#e0736f">1</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:50%;background:#24242a;opacity:1"></div><div class="bar" style="width:25%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:25%;width:25%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Aura ochrony</span><span class="val"><span style="color:#6fbf8b">1</span><span class="of"> | </span><span style="color:#e0736f">1</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:25%;background:#24242a;opacity:1"></div><div class="bar" style="width:25%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:25%;width:0%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Wyzywaj&#261;cy okrzyk</span><span class="val"><span style="color:#6fbf8b">1</span><span class="of"> | </span><span style="color:#e0736f">0</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:50%;background:#24242a;opacity:1"></div><div class="bar" style="width:50%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:50%;width:0%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Os&#322;ona tarcz&#261;</span><span class="val"><span style="color:#6fbf8b">2</span><span class="of"> | </span><span style="color:#e0736f">0</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:75%;background:#24242a;opacity:1"></div><div class="bar" style="width:25%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:25%;width:50%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Ostatni Ratunek</span><span class="val"><span style="color:#6fbf8b">1</span><span class="of"> | </span><span style="color:#e0736f">2</span></span></div>
+                                </div>
+                                <div class="reg rows" style="border-top:1px solid #2c2c35">
+                                    <div class="sec"><span>Kto</span><span class="n">11</span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:48.13%;background:rgb(139 79 80);opacity:1"></div><div class="rest" style="left:48.13%;right:0;background:repeating-linear-gradient(-45deg,#c9850055 0 4px,transparent 4px 8px)"></div><div class="cap3" style="background:#e0736f"></div><span class="nm">Renegat 4</span><span class="val">812<span class="of"> z 1 687</span></span></div>
+                                    <div
+                                        class="row"><div class="rest" style="left:0;right:0;background:repeating-linear-gradient(-45deg,#c9850055 0 4px,transparent 4px 8px)"></div><div class="cap3" style="background:#e0736f"></div><span class="nm">Renegat 2</span><span class="warn">&#9888;</span><span class="val" style="font-weight:400;color:#c98500">zniszczony</span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:100%;background:rgb(139 79 80);opacity:1"></div><div class="cap3" style="background:#e0736f"></div><span class="nm">Renegat 9</span><span class="marks"><span class="mk" style="background:#c98500"></span><span class="mk" style="background:#6fbf8b"></span></span><span class="val">1 351<span class="of"> z 1 351</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:81.57%;background:rgb(77 121 95);opacity:1"></div><div class="rest" style="left:81.57%;right:0;background:repeating-linear-gradient(-45deg,#c9850055 0 4px,transparent 4px 8px)"></div><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Gracz 3</span><span class="val">1 102<span class="of"> z 1 351</span></span></div>
+                                    <div class="quiet">&#8230; i 7 dalszych</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div
+                    class="cost"><span>W spoczynku <b>4 wiersze</b></span><span>W ustawce <b>11</b>, z KTO <b>31</b></span><span>Do odpowiedzi <b>0 gest&#243;w</b></span></div>
+                <div class="notes three">
+                    <div class="note">
+                        <h3 class="good">Dwa kszta&#322;ty, bo dwa rodzaje rzeczy</h3>
+                        <p>Rzut nale&#380;y do <em>umiej&#281;tno&#347;ci</em> i l&#261;duje na kilku &mdash; wi&#281;c grupujemy po umiej&#281;tno&#347;ci. Pancerz i stany nale&#380;&#261; do <em>postaci</em> &mdash; wi&#281;c id&#261; wierszem na posta&#263;. To jest ca&#322;a r&#243;&#380;nica mi&#281;dzy 31 wierszami a 60.</p>
+                    </div>
+                    <div class="note">
+                        <h3>Otwarta mo&#380;e by&#263; jedna</h3>
+                        <p>Naci&#347;ni&#281;cie zliczonego wiersza wsuwa pod niego rzucaj&#261;cych i nic powy&#380;ej si&#281; nie przesuwa. Druga otwarta zamyka pierwsz&#261; &mdash; tak jak w panelu poziom drugi zamyka poprzedni.</p>
+                    </div>
+                    <div class="note">
+                        <h3 class="warn">Drugiej po&#322;owy &#8222;z 8&#8221; jeszcze nie ma</h3>
+                        <p>Liczba po <span class="m">z</span> pochodzi z opublikowanej tabeli umiej&#281;tno&#347;ci gry, kt&#243;rej to drzewo dzi&#347; nie niesie. Dop&#243;ki nie stanie si&#281; zamro&#380;onym odczytem, wiersz rysuje sam&#261; liczb&#281; przebytych tur, bez paska i bez &#8222;z&#8221;.</p>
+                    </div>
+                    <div class="note">
+                        <h3>Zegar jest odczytem, nie zegarem</h3>
+                        <p><span class="m">poolTime.left</span> stoi w 5017 wpisach postaci w <span class="m">captures/</span>, od 15 do 180. Rusza si&#281; tylko wtedy, gdy przyjdzie paczka &mdash; nic tu nie tyka samo, bo nad cudz&#261; gr&#261; nic si&#281; nie rusza.</p>
+                    </div>
+                    <div class="note">
+                        <h3>Odliczanie tylko tam, gdzie gra je podaje</h3>
+                        <p><span class="m">cooldowns</span> to jedyne miejsce w ca&#322;ym protokole, gdzie pada <em>reszta</em>: pary <span class="m">[skillId, tury]</span>, 7 r&#243;&#380;nych umiej&#281;tno&#347;ci w korpusie, najd&#322;u&#380;sza 6 tur. Tylko ten wiersz wolno napisa&#263; jako &#8222;za 2 tury&#8221;.</p>
+                    </div>
+                    <div class="note">
+                        <h3
+                            class="warn">Sk&#322;ad jest kszta&#322;tem, g&#281;sto&#347;&#263; nie</h3>
+                        <p>Najszerszy roster w <span class="m">captures/</span> to <b>11</b> postaci na 29 nagra&#324;. Dziesi&#281;ciu na dziesi&#281;ciu nikt tu nie nagra&#322;, wi&#281;c nazwiska s&#261; kszta&#322;tem. Wysoko&#347;&#263; wiersza, szeroko&#347;&#263; okna i wszystkie kolory s&#261; wprost z <span class="m">src/ui/panel-look.ts</span>.</p>
+                    </div>
+                </div>
+            </div>
+        </x-dc>
+    </body>
+</html>

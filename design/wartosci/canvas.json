@@ -1,0 +1,87 @@
+{
+    "artboards": [
+        {
+            "file": "Wartosci.dc.html",
+            "x": 0,
+            "y": 0,
+            "w": 1280,
+            "h": 940,
+            "title": "Co gra podaje"
+        },
+        {
+            "file": "Silniejsza.dc.html",
+            "x": 1400,
+            "y": 0,
+            "w": 1120,
+            "h": 760,
+            "title": "Ile źródeł się liczy"
+        },
+        {
+            "file": "Dodawanie.dc.html",
+            "x": 2620,
+            "y": 0,
+            "w": 1060,
+            "h": 900,
+            "title": "Co się z czym dodaje"
+        },
+        {
+            "file": "Main.dc.html",
+            "x": 0,
+            "y": 1120,
+            "w": 1000,
+            "h": 940,
+            "title": "A · Umiejętność w wierszu"
+        },
+        {
+            "file": "OpcjaB.dc.html",
+            "x": 1100,
+            "y": 1120,
+            "w": 1000,
+            "h": 1000,
+            "title": "B · Statystyka w wierszu"
+        },
+        {
+            "file": "OpcjaC.dc.html",
+            "x": 2200,
+            "y": 1120,
+            "w": 1000,
+            "h": 880,
+            "title": "C · Pasek i lista"
+        },
+        {
+            "file": "Karta.dc.html",
+            "x": 3300,
+            "y": 1120,
+            "w": 1000,
+            "h": 900,
+            "title": "Karta wartości"
+        },
+        {
+            "file": "Prowokacja.dc.html",
+            "x": 0,
+            "y": 2260,
+            "w": 1000,
+            "h": 900,
+            "title": "Prowokacja odwrócona"
+        }
+    ],
+    "annotations": [
+        {
+            "id": "rules",
+            "x": 0,
+            "y": -220,
+            "w": 620,
+            "text": "Najpierw reguły, potem układy.\nGórny rząd: co gra podaje, ile źródeł się liczy, co się z czym dodaje.\nŚrodkowy rząd: trzy układy na to samo pytanie — gdzie postawić liczbę."
+        },
+        {
+            "id": "material",
+            "x": 720,
+            "y": -220,
+            "w": 620,
+            "text": "Liczby z 29 nagrań (design/wartosci/measured.json, 2026-09-09).\nReguły ze słownika efektów w pomocy gry, artykuł 372, czytany 2026-09-03.\nChwila z trzema Szadziami 14/14/12 jest prawdziwa — takich jest 108."
+        }
+    ],
+    "launch": {
+        "view": "canvas"
+    }
+}

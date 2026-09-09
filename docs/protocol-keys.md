@@ -1007,6 +1007,23 @@ trigger, and for the rule that only one of `curse`, `distract` and `glare` may s
 at a time. Production build `1786514810315` composes `msg_-legbon_glare` with no `%val%` hole, which
 is what admits it to the flag family rather than to the declarations.
 
+### `-arrowblock` — decoded
+
+The target blocked a ranged blow, which nullifies the incoming main-hand damage for a turn. Carries
+no figure and sits on the defending side, as `-evade` and `-contra` do: the one occurrence arrives
+beside the blow's own applied figure stated as zero.
+
+_Shape:_ 1 occurrences; on a blow; no value
+
+_Help:_ names `arrowblock`
+
+_Evidence:_ article view,372 (read 2026-09-09) at `Blok strzały ( arrowblock )`, which gives it as a
+chance event triggered while taking damage from a character fighting at range, whose effect is
+_zniwelowanie przychodzących obrażeń od broni głównej na jedną turę, wprowadzając efekt chybienia_.
+The same article names it beside `evade` and `parry` among the events that stop a blow. The one
+occurrence is in `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json`, on a blow
+whose 829 of dark damage landed as zero.
+
 ### `-evade` — decoded
 
 The target evaded this blow. Carries no figure, and sits on the defending side: every occurrence
@@ -1791,6 +1808,26 @@ the 46 occurrences sit beside `mana` (read 2026-08-19).
 A provocation: the announced skill forces those it covers to attack a named combatant. The value is
 that combatant's **name**, so it is read at run time and never stored here — the same footing as
 `tspell` (NOTICE.md).
+
+**The published table states the same key as a count of characters**, which every other key here
+states as a share: `shout=6@3,7@3,7@3,8@3,8@3,9@3,9@3,10@3,10@3,10@3` for both skills carrying it,
+with the table's own comment
+`# shout to ilość przeciwników (randomowych) których zmusza się do
+ataku na siebie` (read
+2026-09-08). So one key has two readings — names on the wire, a count in the table — and only the
+first is drawn: **ADR 0064** removed the arithmetic the count fed. `docs/auras-standing.md` carries
+what follows.
+
+**The value is a list of names**, separated by a comma and a space — the grammar `winner` above
+uses, and the one the panel reads the provoked off (**ADR 0064**).
+`captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json` carries
+`shout=Gracz 3, Gracz 2`, both of the opposing side, and ends with `winner=Gracz 2, Gracz 3` in the
+same shape. Every other recording is N against one and names one.
+
+The client agrees without settling it: it interpolates the value **whole** into `msg_shout %name%` —
+_Uwaga %name2% została skupiona na %name%._ — where the neighbouring `frost` branch splits its own
+on commas first (production build `1785244275300`, read 2026-09-09). So it prints a list unsplit
+rather than refusing one.
 
 _Shape:_ 158 occurrences; on a skill announcement; text
 

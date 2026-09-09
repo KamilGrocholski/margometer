@@ -36,6 +36,7 @@ import {
     composeFakeDocument,
     type FakeElement,
     getElementsWithin,
+    getPanelWithin,
     getTextsByClass,
     pressElement,
 } from "@/tests/fake-document.ts";
@@ -575,7 +576,9 @@ Deno.test("a reader folds the panel away, and it is still folded when they come 
 
     const control = () => getElementsWithin(host).find((one) => one.attributes.has("data-fold"));
     const rows = () =>
-        getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row").length;
+        getElementsWithin(getPanelWithin(host)).filter((one) =>
+            one.className.split(" ")[0] === "row"
+        ).length;
     assert(rows() > 0, "the panel opens drawing the fight");
     assertEquals(first.held.get("MargoMeter-folded"), undefined, "and nothing is stored yet");
 
@@ -595,7 +598,9 @@ Deno.test("a reader folds the panel away, and it is still folded when they come 
     for (const payload of getRecordedEngineUpdates(HILDUR)) next(payload);
     const reopened = second.shown[0] as FakeElement;
     assertEquals(
-        getElementsWithin(reopened).filter((one) => one.className.split(" ")[0] === "row").length,
+        getElementsWithin(getPanelWithin(reopened)).filter((one) =>
+            one.className.split(" ")[0] === "row"
+        ).length,
         0,
         "and the panel comes back folded, because that is what the reader left it",
     );
@@ -604,7 +609,9 @@ Deno.test("a reader folds the panel away, and it is still folded when they come 
     assertExists(unfolding, "the bar still carries its control");
     pressElement(reopened, "pointerdown", unfolding);
     assert(
-        getElementsWithin(reopened).filter((one) => one.className.split(" ")[0] === "row").length >
+        getElementsWithin(getPanelWithin(reopened)).filter((one) =>
+            one.className.split(" ")[0] === "row"
+        ).length >
             0,
         "which brings the fight back",
     );
@@ -826,7 +833,9 @@ Deno.test("the shelf has a screen of its own, and its control toggles", () => {
     // A block body on purpose: the recursion guard reads a one-line named arrow as a function
     // whose body never closes, and then sees every later call to it as a call to itself.
     const rows = (): FakeElement[] => {
-        return getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row");
+        return getElementsWithin(getPanelWithin(host)).filter((one) =>
+            one.className.split(" ")[0] === "row"
+        );
     };
     const figures = rows().length;
     assert(figures > 1, "the panel is on the figures, with a row for each of them");
@@ -928,7 +937,7 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
     // running to the end of the block it sits in (`ARCHITECTURE.md`, known gap 12). The name is
     // not `find` for the same reason — a reader over source cannot tell that call from this one.
     const getRegion = (className: string) => {
-        return getElementsWithin(host).find((one) => one.className === className);
+        return getElementsWithin(getPanelWithin(host)).find((one) => one.className === className);
     };
     const rows = () => {
         const list = getRegion("list");
@@ -937,7 +946,7 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
             .length;
     };
     const rowsThatOpen = () => {
-        return getElementsWithin(host).filter((one) => {
+        return getElementsWithin(getPanelWithin(host)).filter((one) => {
             if (one.className.split(" ")[0] !== "row") return false;
             return one.attributes.get("data-row") !== undefined;
         }).length;
@@ -957,7 +966,7 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
     assert(rows() > 0, "and drawing the parts of one figure rather than the whole screen");
     // A person inside an opened row opens the pair of the two of them, which is the last rung.
     assert(rowsThatOpen() > 0, "some of which open onto what passed between the two of them");
-    const other = getElementsWithin(host).find((one) => {
+    const other = getElementsWithin(getPanelWithin(host)).find((one) => {
         if (one.className !== "row-name") return false;
         return one.attributes.get("data-row") !== undefined;
     });
@@ -995,10 +1004,12 @@ Deno.test("a way back with no rung to leave moves nothing, and redraws nothing",
     for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
     const host = shown[0] as FakeElement;
     const getRegion = (className: string) => {
-        return getElementsWithin(host).find((one) => one.className === className);
+        return getElementsWithin(getPanelWithin(host)).find((one) => one.className === className);
     };
 
-    const bar = getRegion("MargoMeter-titlebar");
+    const getBar = () =>
+        getElementsWithin(host).find((one) => one.className === "MargoMeter-titlebar");
+    const bar = getBar();
     assertExists(bar, "the bar is drawn, and a draw is what replaces it");
     pressElement(host, "contextmenu", host);
     assertStrictEquals(bar.replacedBy, null, "a way back off the ranking leaves the panel alone");
@@ -1007,7 +1018,7 @@ Deno.test("a way back with no rung to leave moves nothing, and redraws nothing",
     assertExists(name, "and there is a row to open");
     pressElement(host, "pointerdown", name);
     assertExists(getRegion("crumb"), "which opens over the screen");
-    const opened = getRegion("MargoMeter-titlebar");
+    const opened = getBar();
     assertExists(opened, "the bar standing after that draw");
     pressElement(host, "contextmenu", host);
     assertExists(opened.replacedBy, "a way back off a rung is a draw");
@@ -1069,7 +1080,7 @@ Deno.test("a reader opens a pinned row, and it does not follow them to the next 
     for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
     const host = shown[0] as FakeElement;
     const getRegion = (className: string) => {
-        return getElementsWithin(host).find((one) => one.className === className);
+        return getElementsWithin(getPanelWithin(host)).find((one) => one.className === className);
     };
     const pinnedName = () => {
         const block = getRegion("pinned-region");
@@ -1144,7 +1155,7 @@ Deno.test("a reader opens what a figure was made of, and the way back is one run
     for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
     const host = shown[0] as FakeElement;
     const getRegion = (className: string) => {
-        return getElementsWithin(host).find((one) => one.className === className);
+        return getElementsWithin(getPanelWithin(host)).find((one) => one.className === className);
     };
     const name = getRegion("row-name");
     assertExists(name, "a reader presses a row of the ranking");
@@ -1165,7 +1176,9 @@ Deno.test("a reader opens what a figure was made of, and the way back is one run
         "and the level over the screen is that announcement",
     );
     assert(
-        getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row").length > 0,
+        getElementsWithin(getPanelWithin(host)).filter((one) =>
+            one.className.split(" ")[0] === "row"
+        ).length > 0,
         "listing whom it reached",
     );
 
@@ -1188,7 +1201,7 @@ Deno.test("a row belonging to nobody in the fight opens nothing", () => {
     for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
     const host = shown[0] as FakeElement;
     const getRegion = (className: string) => {
-        return getElementsWithin(host).find((one) => one.className === className);
+        return getElementsWithin(getPanelWithin(host)).find((one) => one.className === className);
     };
 
     // A stale or foreign attribute where a row's would be: the press reaches the entry, and what
@@ -1227,7 +1240,8 @@ Deno.test("the place a fight is fought reaches the bar, and goes on the shelf wi
     pressElement(host, "pointerdown", strip);
     // Inside the row, not anywhere on the panel: the bar says the same words over the shelf, so
     // a test that asks the whole panel passes with the row saying nothing.
-    const row = getElementsWithin(host).find((one) => one.className.split(" ")[0] === "row");
+    const row = getElementsWithin(getPanelWithin(host))
+        .find((one) => one.className.split(" ")[0] === "row");
     assertExists(row, "the shelf drew the fight that ended");
     assertEquals(getTextsByClass(row, "row-name"), [
         "Mapa Testowa (12, 34)",
@@ -1359,7 +1373,7 @@ Deno.test("a fight that opens puts the reader back on the ranking", () => {
     const host = shown[0] as FakeElement;
     // A block body, and not named `find`, for the reason the row test beside this one gives.
     const getRegion = (className: string) => {
-        return getElementsWithin(host).find((one) => one.className === className);
+        return getElementsWithin(getPanelWithin(host)).find((one) => one.className === className);
     };
     // A player's row and not the first one on the list: the opponent in these two recordings is
     // an NPC, whose id the game states afresh for each fight (`-10000545`, then `-10000547`), so a
@@ -1403,7 +1417,9 @@ Deno.test("a pin is the reader's own answer, and the shelf keeps it", () => {
     };
     assertEquals(pin().textContent, "☆", "which starts saying nothing was pinned");
     const rows = (): number => {
-        return getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row")
+        return getElementsWithin(getPanelWithin(host)).filter((one) =>
+            one.className.split(" ")[0] === "row"
+        )
             .length;
     };
     const before = rows();
@@ -1473,7 +1489,9 @@ Deno.test("where the shelf is kept is the reader's answer, and the fights travel
         "what was there is gone, because that is what the reader answered",
     );
     assertEquals(
-        getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row").length,
+        getElementsWithin(getPanelWithin(host)).filter((one) =>
+            one.className.split(" ")[0] === "row"
+        ).length,
         1,
         "and the fight is still on screen, being the reader's own",
     );
@@ -1526,7 +1544,7 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
     for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
     const host = shown[0] as FakeElement;
     const drawnFigures = (): string[] => {
-        return getTextsByClass(host, "row-value figure");
+        return getTextsByClass(getPanelWithin(host), "row-value figure");
     };
     const live = drawnFigures();
     assert(live.length > 0, "the panel is drawing the fight that just ended");
@@ -1534,7 +1552,9 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
     const strip = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
     assertExists(strip, "the bar carries the way onto the shelf");
     pressElement(host, "pointerdown", strip);
-    const rows = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row");
+    const rows = getElementsWithin(getPanelWithin(host)).filter((one) =>
+        one.className.split(" ")[0] === "row"
+    );
     // One row for one fight: what just ended is the live one and a kept one at once, until the
     // next begins.
     assertEquals(rows.length, 1, "the shelf holds the fight that ended, as the one going on");
@@ -1553,7 +1573,7 @@ Deno.test("a fight off the shelf is read back, and the live one is a press away"
     pressElement(host, "pointerdown", strip);
     // The row itself rather than every part of it: a press lands on the deepest element, so each
     // cell wears the row's mark too.
-    const kepts = getElementsWithin(host).filter((one) => {
+    const kepts = getElementsWithin(getPanelWithin(host)).filter((one) => {
         if (one.className.split(" ")[0] !== "row") return false;
         return one.attributes.get("data-fight") !== "live";
     });
@@ -1590,7 +1610,8 @@ Deno.test("a fight that has ended is handed over whole, snapshots and all", () =
     const strip = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
     assertExists(strip, "the bar carries the way onto the shelf");
     pressElement(host, "pointerdown", strip);
-    const row = getElementsWithin(host).find((one) => one.className.split(" ")[0] === "row");
+    const row = getElementsWithin(getPanelWithin(host))
+        .find((one) => one.className.split(" ")[0] === "row");
     assertExists(row, "the shelf holds the fight that just ended");
     pressElement(host, "pointerdown", row);
 

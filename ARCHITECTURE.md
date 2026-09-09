@@ -50,6 +50,7 @@ libs/              Knows nothing of this project. Imports `@std/` and its own si
   json-text.ts     JSON both ways, each answering whether it worked rather than with `null`.
   number-range.ts  A number held between two ends, and which end wins where there is no room.
   number-text.ts   Numbers read out of text and written back into it, refusing before reading.
+  html-text.ts     Markup read as the words a person would have seen in it, walked by its tags.
   text-walk.ts     Walking text a character at a time, by a predicate the caller hands over.
   unknown-reading.ts   Reading a value nobody typed, answering null rather than throwing.
 project/           Knows this project, belongs to no layer of it. Reads `libs/` only.
@@ -64,6 +65,7 @@ src/
     combatant-roster.ts  Who is in the fight, and which names resolve to one of them.
     fight-decoder.ts     What a key means, and what a key with no meaning leaves unread.
     game-build.ts        The build id the client states in its bundle's own filename.
+    aura-standing.ts     What one skill put on more than one combatant, and how far through.
     fight-statistics.ts  The figures a panel draws, with what nobody can be charged apart.
     margometer-error.ts  The abstract brand every failure that ships to the browser wears.
     protocol-message.ts  One message's grammar: both ends, then its parameters.
@@ -88,6 +90,7 @@ src/
     panel-look.ts        The panel's tokens, the classes its rules select, and the stylesheet.
     panel-reading.ts     One screen's worth of a fight, and one row's worth of a screen.
     panel-screen.ts      Which screen the panel is on, and the strips that say so.
+    panel-standing.ts    What the window beside the panel says: the turn, and what stands.
     panel-scroll.ts      Where a reader left the one region that scrolls, kept by list.
     panel-tip.ts         The window a row opens on hover, and the register it is looked up in.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
@@ -102,6 +105,7 @@ tools/             Never ships. Each arrives with the question it answers.
   fight-figures.ts     What a fight adds up to, per combatant, as a table at a terminal.
   drill-report.ts      Which rows of the panel open, measured level by level over a fight.
   turn-count.ts        What a fight's turns come to, graded against the game's own numbering.
+  aura-standing.ts     What one skill put on a whole side, and how many stood at once.
   turn-reading.ts      How a message becomes a turn, and which message a dispute stands on.
   preview-page.ts      The harness page, whole, as one string. It speaks neither language.
   preview-state.ts     What the harness carries between two pages, in the address and nowhere else.
@@ -110,6 +114,7 @@ tools/             Never ships. Each arrives with the question it answers.
   panel-screenshots.ts The panel photographed, at a frame measured off the panel itself, in
                        whichever browser this machine turns out to have.
   game-client-source.ts  The client fetched and dated, and the cache nothing published leaves.
+  skill-table.ts       The published skill table fetched, dated and frozen: the one duration.
   protocol-key-table.ts  Every key that client branches on, lifted out of its own switch.
   help-article.ts      The published help cached, searched raw, and counted into a reading.
   help-claim-register.ts  What `docs/protocol-keys.md` claims of the help, read out of it.
@@ -119,9 +124,12 @@ tools/             Never ships. Each arrives with the question it answers.
   margometer-tool-error.ts  The abstract brand a terminal failure wears, and the build's own.
 captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
 screenshots/       One set of the panel, with the sidecar naming the commit it was shot at.
+design/            Design rounds: the artboards a canvas is seeded from, and what they stand on.
 frozen/            Dated readings of the game, written by tooling.
   AGENTS.md        Why no hand edits one, and what provenance each carries.
   protocol-keys.ts GENERATED. Every key the client knows, with its build.
+  skill-durations.ts GENERATED. Every skill the game publishes, and the turns each states.
+  aura-turns.ts    GENERATED. The skills reaching a side, which is what the bundle carries.
   help-phrases.ts  GENERATED. How often each cited phrase occurs in the help.
 docs/
   protocol-keys.md   What has been looked into, key by key: verdict, evidence, state.
@@ -129,6 +137,7 @@ docs/
   drill-levels.md    Which kind of row opens onto another level, and which is the last.
   turns-taken.md     What a turn count comes to, and what it does not claim.
   reading-a-turn.md  How a message becomes a turn, and every opener the game disputes.
+  auras-standing.md  What stands on a side, whom it stands on, and how long it was given.
   captured-fights.md What each recording holds, and how much protocol it carries.
   browser-support.md What the shipped file asks of a browser.
   adr/               Decisions costly or surprising to reverse.
@@ -149,6 +158,7 @@ tests/
     combatant-health.test.ts  The arithmetic, against the client's own three figures.
     combatant-roster.test.ts  Two of a name, one of nobody, and every recording.
     fight-decoder.test.ts     The blows, and what is left unread beside them.
+    aura-standing.test.ts     What stands at the end of a fight, and when it stops standing.
     game-build.test.ts        Both names the client serves, and what is not one of them.
     health-witness.test.ts    What was read, against what the protocol says of itself.
     fight-statistics.test.ts  The figures, and the balance every point of damage keeps.
@@ -174,6 +184,8 @@ tests/
     drill-report.test.ts      The register against every level drawn, both ways round.
     fabricated-fight.test.ts  A fight nobody fought, against the register of every key read.
     turn-count.test.ts        The register against every recording graded, both ways round.
+    aura-standing.test.ts     `docs/auras-standing.md` against the corpus, both ways round.
+    skill-table.test.ts       The published table's shape, and a page that is no longer it.
     turn-reading.test.ts      The disputed openers, and this reading against the panel's.
     preview-page.test.ts      The page, read back: the order of its scripts, and its escaping.
     preview-state.test.ts     Both halves of the address, run rather than searched for words.
@@ -198,6 +210,7 @@ tests/
     panel-look.test.ts        Contrast by arithmetic, and a sheet that spends tokens only.
     panel-reading.test.ts     A screen of a real fight, through every layer under it.
     panel-screen.test.ts      The screens there are, against what a reading composes for.
+    panel-standing.test.ts    The window beside the panel: what it counts, opens and folds.
     panel-scroll.test.ts      A place kept by name, and the region a position is read off.
     panel-tip.test.ts         What the window draws, how tall it says it is, and what it drops.
     panel-words.test.ts       What the words must never say, and how Polish counts.
@@ -206,6 +219,7 @@ tests/
     share-column.test.ts      Every column of shares the panel draws, against the hundred.
     shelf-bound.test.ts       A full shelf with a live fight on it, and the two bounds held.
   libs/                    A test sits where its subject sits.
+    html-text.test.ts         Machinery a browser reads as text, and an entity escaped twice.
     json-text.test.ts         Both directions, over the answers `null` used to stand for.
     number-range.test.ts      Every side of two ends, and the range with no room in it.
     number-text.test.ts       Text that looks like a number, against text that is one.
@@ -213,6 +227,8 @@ tests/
   repository/              Guards whose subject is this repository, not a layer of it.
     documents.test.ts      The rule documents and the guard register.
     decisions.test.ts      The decision records: numbering, index, lifecycle.
+    skill-durations.test.ts  The frozen durations, against the corpus and their own rule.
+    skill-durations.test.ts  The frozen durations, against the corpus and their own rule.
     sources.test.ts        S1, S2, S13, C5, C15, C16, S4 and S5 over every TypeScript file.
     type-assertions.test.ts  C13, and the register of crossings that narrow no other way.
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
@@ -241,6 +257,7 @@ tests/
     panel-scroll.spec.ts   The one region that scrolls, and what scrolling it must not do.
     panel-level.spec.ts    A level open while payloads land, and the region it grows in.
     panel-fold.spec.ts     The panel folded away and brought back, and what is remembered.
+    panel-standing.spec.ts Two windows under one root: two grips, two folds, two corners.
     panel-shelf.spec.ts    The fights kept, the one being read, a pin, and the three stores.
     panel-save.spec.ts     The file the browser really takes, and what is inside it.
     panel-reload.spec.ts   What a reader finds waiting, and what they do not.
@@ -506,9 +523,18 @@ commit that opens or closes one.
    nothing divided by either (**ADR 0048**, **ADR 0049**). Two proc keys reach no row — `-tenacity`
    and `+superspell-dispel`, whose end article view,372 does not settle — and they are decoded and
    charged to nobody until material does, though the player's own client names them and five others
-   on the card (**ADR 0024**). Both READMEs are written and show the set `deno task panel:shots`
-   takes, so the release plumbing is whole and has now run at a tag — what is left of it is held by
-   a person, which is what the gap below it is about.
+   on the card (**ADR 0024**). **A second window stands beside the panel**, inside the same shadow
+   root and dragged, folded and remembered apart from it (**ADR 0060**): it says whose turn the game
+   numbers and what is standing on the fight, one counted row per skill reaching a side, and a press
+   opens the casters under it with what has passed of what the published table gives them — never
+   what is left (**ADR 0059**). A cast reaching a whole side says nothing about whom, because there
+   is nothing to say; the two okrzyki stand in a section of their own, held by whoever shouted last
+   (**ADR 0062**). Whom a shout holds is **read off its value**, which names every provoked
+   character separated by a comma and a space, and a name the roster cannot place is dropped rather
+   than guessed at (**ADR 0064**). That table is the third frozen reading (**ADR 0058**), and
+   `docs/auras-standing.md` is its register over `captures/`. Both READMEs are written and show the
+   set `deno task panel:shots` takes, so the release plumbing is whole and has now run at a tag —
+   what is left of it is held by a person, which is what the gap below it is about.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
@@ -653,3 +679,18 @@ commit that opens or closes one.
     `frozen/protocol-keys.ts` went on naming `53XkBRxF`, and every gate in between was green. It
     closes the day CI runs the routine on a schedule, which is a decision about how often this
     repository may be red for somebody else's outage.
+
+16. **One recording carries a fight between players, and the corpus is otherwise N against one.**
+    `captures/2026-09-09-tempest-duet-vs-wojownik-…` is two players against one, written from side 2
+    — the first of both. It settled whom a shout holds (**ADR 0064**) and it is the whole of the
+    evidence for it: a shout naming three or more is still unrecorded, and so is a value naming
+    somebody the roster does not carry. `TODO.md` opens on this, and the register it moved is
+    `docs/captured-fights.md`'s shape census.
+
+17. **What a standing effect comes to is written down and drawn nowhere.** `docs/auras-standing.md`
+    carries the units, the cap at two sources from different Players, the additive sets and the half
+    the caster of `aura-sa_per` gets, all off the published help — and the window still says only
+    what stands and for how long. The register that says the corpus reaches the cap is guarded
+    (`tests/tools/aura-standing.test.ts`); nothing guards the rules themselves, because no code
+    reads them yet. It closes when the figures are drawn, and until then the document is the record
+    rather than a description of the panel (**Target is not proof**).

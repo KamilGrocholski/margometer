@@ -135,6 +135,7 @@ and that is written as a dash rather than as a zero (**E10**).
 | 2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0                | `always`        | 107   | 107    | 305     | 277   | 28    | 28   |
 | 2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0                  | `sometimes`     | 11    | 10     | 26      | 23    | 3     | 2    |
 | 2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0         | `in a lump`     | —     | —      | —       | —     | —     | —    |
+| 2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0               | `always`        | 20    | 20     | 47      | 42    | 5     | 5    |
 
 ## What the register says
 

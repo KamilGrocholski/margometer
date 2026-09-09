@@ -33,6 +33,25 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Okrzyki mają w Pomocniku własną sekcję: „Prowokacja". Stoi w niej wiersz na każdego
+  sprowokowanego, a pod nim — imię tego, kto go trzyma, i którym okrzykiem, razem z tym, ile tur
+  minęło z tych, które podaje gra. Nowy okrzyk przejmuje po poprzednim, obojętne kto go rzucił i
+  który to z dwóch okrzyków.
+
+- **Nowość** — Okrzyk potrafi ściągnąć na rzucającego kilka osób naraz, a gra wymienia je wszystkie
+  po imieniu. Pomocnik wypisuje więc każdą z nich, a nie jedną.
+
+- **Nowość** — Obok panelu stoi drugie, mniejsze okno: „Pomocnik". Widać w nim, czyja jest tura, i
+  co w tej chwili stoi na walce: umiejętności rzucone na całą stronę — twoją albo przeciwnika, na
+  przykład Piętno bestii albo Szadź — z liczbą tych, które trwają, po każdej stronie. Naciśnięcie
+  wiersza pokazuje, kto je rzucił i ile tur minęło z tych, które podaje gra: „3 z 8 tur". Drugie
+  naciśnięcie chowa to z powrotem.
+- **Nowość** — Pomocnik nigdy nie napisze „zostało 5 tur". Gra nie mówi, kiedy taka rzecz schodzi,
+  więc stoi tam to, co minęło, i to, ile ma trwać — odjąć możesz sam. Wiersz znika, gdy minie tyle
+  tur, ile gra podaje dla tej umiejętności.
+- **Nowość** — Pomocnika przesuwasz i zwijasz osobno od panelu, za jego własny pasek. Gdzie go
+  postawisz i czy jest zwinięty, zostaje na następną walkę — niezależnie od tego, gdzie stoi panel.
+  Zwinięty zostaje samym paskiem, a kiedy nic nie stoi, pisze o tym jedną linią.
 - **Poprawka** — Licznik tur nie dolicza już tury za przygotowanie ciosu. Kiedy postać uderzała
   kilku przeciwników naraz, a zaraz potem gra pokazywała, że szykuje umiejętność, panel liczył to
   jako osobną turę — czasem dwie. Teraz to jedna tura, ta sama, w której padł cios.
@@ -45,6 +64,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   tak się nie zmieniają: wzmocnienie widać już w życiu potwora i w jego ciosach.
 - **Zmiana** — Przycisk zapisu pokazuje się tylko wtedy, gdy jest co zapisać. Na świeżo otwartej
   grze, zanim panel zobaczy jakąkolwiek walkę, nie ma go na belce.
+
+- **Poprawka** — Blok strzały nie był wcześniej czytany: cios, który się o niego rozbił, panel
+  oznaczał jako wiadomość, której nie rozumie. Teraz stoi przy nim tak samo jak unik i kontra.
 
 ## [0.14.0] — 2026-09-05
 

@@ -89,9 +89,15 @@ export interface ScreenState {
     /** A fight chosen is read from what was kept of it, never from figures somebody stored. */
     openFightId: number | null;
     isCollapsed: boolean;
+    /** The window beside the panel: its own fold, and which of its rows is open. */
+    isStandingCollapsed: boolean;
+    openStandingId: number | null;
 }
 
-export function composeScreenState(isCollapsed: boolean): ScreenState {
+export function composeScreenState(
+    isCollapsed: boolean,
+    isStandingCollapsed = false,
+): ScreenState {
     const state: ScreenState = {
         current: "damageDealtApplied",
         side: "everyone",
@@ -102,6 +108,8 @@ export function composeScreenState(isCollapsed: boolean): ScreenState {
         openPart: null,
         openFightId: null,
         isCollapsed,
+        isStandingCollapsed,
+        openStandingId: null,
     };
     return state;
 }

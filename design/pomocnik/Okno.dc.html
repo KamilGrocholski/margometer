@@ -1,0 +1,682 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="./support.js"></script>
+    </head>
+    <body>
+        <x-dc>
+            <helmet>
+                <style>
+                @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+                body {
+                    margin: 0;
+                }
+                * {
+                    box-sizing: border-box;
+                }
+                a {
+                    color: #a8600b;
+                }
+                a:hover {
+                    color: #7d4708;
+                }
+
+                /* ---- the sheet the mockups stand on ---- */
+                .sheet {
+                    width: 100%;
+                    min-height: 100%;
+                    background: #f5f3ee;
+                    color: #1b1a17;
+                    font-family: "IBM Plex Sans",system-ui,sans-serif;
+                    padding: 34px 38px 38px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                }
+                .tag {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .16em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    display: flex;
+                    gap: 10px;
+                    align-items: center;
+                }
+                .tag .dot {
+                    width: 5px;
+                    height: 5px;
+                    background: #a8600b;
+                    border-radius: 50%;
+                    flex: none;
+                }
+                .tag .rec {
+                    color: #2c6b4c;
+                }
+                .tag .no {
+                    color: #a8600b;
+                }
+                h1 {
+                    font-size: 25px;
+                    line-height: 1.14;
+                    margin: 8px 0 0;
+                    font-weight: 600;
+                    letter-spacing: -.012em;
+                }
+                .lede {
+                    font-size: 13.5px;
+                    line-height: 1.55;
+                    color: #4a463e;
+                    max-width: 64ch;
+                    margin: 8px 0 0;
+                    text-wrap: pretty;
+                }
+                .stage {
+                    background: #0b0b0e;
+                    border: 1px solid #d9d5cc;
+                    padding: 24px;
+                    display: flex;
+                    gap: 24px;
+                    align-items: flex-start;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                }
+                .stage.tight {
+                    padding: 18px;
+                    gap: 16px;
+                }
+                .stage.left {
+                    justify-content: flex-start;
+                }
+                .cap {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .1em;
+                    text-transform: uppercase;
+                    color: #75705f;
+                    margin-bottom: 8px;
+                }
+                .cap.good {
+                    color: #4f9d76;
+                }
+                .cap.warn {
+                    color: #c98500;
+                }
+                .hold {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
+                }
+                .notes {
+                    display: grid;
+                    grid-template-columns: repeat(2,minmax(0,1fr));
+                    gap: 14px 28px;
+                    border-top: 1px solid #d9d5cc;
+                    padding-top: 16px;
+                }
+                .notes.three {
+                    grid-template-columns: repeat(3,minmax(0,1fr));
+                }
+                .note h3 {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .12em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    margin: 0 0 5px;
+                    font-weight: 500;
+                }
+                .note h3.warn {
+                    color: #a8600b;
+                }
+                .note h3.good {
+                    color: #2c6b4c;
+                }
+                .note p {
+                    margin: 0;
+                    font-size: 12.5px;
+                    line-height: 1.5;
+                    color: #33302a;
+                    text-wrap: pretty;
+                }
+                .m {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 11.5px;
+                    background: #eae7df;
+                    padding: 1px 4px;
+                }
+                .stage .m {
+                    background: #24242a;
+                    color: #e7e7ea;
+                }
+                table.reg {
+                    border-collapse: collapse;
+                    width: 100%;
+                    font-size: 12.5px;
+                }
+                table.reg th {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .1em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    font-weight: 500;
+                    text-align: left;
+                    padding: 0 12px 6px 0;
+                    border-bottom: 1px solid #d9d5cc;
+                }
+                table.reg td {
+                    padding: 6px 12px 6px 0;
+                    border-bottom: 1px solid #e6e2d9;
+                    vertical-align: top;
+                    line-height: 1.45;
+                }
+                table.reg td.n {
+                    text-align: right;
+                    font-variant-numeric: tabular-nums;
+                    padding-right: 16px;
+                }
+                table.reg .mono {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 11.5px;
+                }
+                table.reg .flag {
+                    color: #a8600b;
+                }
+                table.reg .ok {
+                    color: #2c6b4c;
+                }
+                table.reg .none {
+                    color: #8a8478;
+                }
+                .cost {
+                    display: flex;
+                    gap: 18px;
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .08em;
+                    text-transform: uppercase;
+                    color: #75705f;
+                    margin-top: 10px;
+                }
+                .cost b {
+                    color: #c9c9d1;
+                    font-weight: 500;
+                }
+                .stage .cost {
+                    color: #75705f;
+                }
+
+                /* ---- the panel and the window, 1:1, values from src/ui/panel-look.ts ---- */
+                .w-bar {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 4px 8px;
+                    font: 11px/13px system-ui,sans-serif;
+                    letter-spacing: .06em;
+                    color: #9a9aa6;
+                    background: #1f1f26;
+                    border: 1px solid #2c2c35;
+                    border-bottom: none;
+                    border-radius: 8px 8px 0 0;
+                    white-space: nowrap;
+                }
+                .w-bar .ver {
+                    opacity: .7;
+                    font-size: 10px;
+                }
+                .w-bar .ctl {
+                    margin-left: auto;
+                    display: flex;
+                    gap: 4px;
+                }
+                .w-body {
+                    background: #17171c;
+                    border: 1px solid #2c2c35;
+                    border-radius: 0 0 8px 8px;
+                    font: 11px/15px system-ui,sans-serif;
+                    color: #e7e7ea;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .reg {
+                    padding: 5px 7px;
+                }
+                .reg.rows {
+                    padding-bottom: 3px;
+                }
+                .hd {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                }
+                .hd .out {
+                    color: #9a9aa6;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                }
+                .hd .pl {
+                    color: #9a9aa6;
+                    font-size: 10px;
+                }
+                .tabs {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 2px;
+                    padding: 5px 7px 0;
+                }
+                .tabs + .tabs {
+                    padding-top: 3px;
+                }
+                .tabs .gap {
+                    flex: 1;
+                }
+                .tab {
+                    padding: 1px 4px;
+                    border-radius: 3px;
+                    color: #9a9aa6;
+                    white-space: nowrap;
+                }
+                .tab.on {
+                    color: #e7e7ea;
+                    background: #1f1f26;
+                }
+                .sec {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    color: #868691;
+                    letter-spacing: .08em;
+                    font-size: 10px;
+                    text-transform: uppercase;
+                    padding: 4px 2px 2px;
+                }
+                .sec .n {
+                    font-variant-numeric: tabular-nums;
+                    letter-spacing: 0;
+                }
+                .row {
+                    position: relative;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    height: 18px;
+                    padding: 1px 8px 0;
+                    margin-bottom: 2px;
+                    border-radius: 3px;
+                    background: #24242a;
+                    overflow: hidden;
+                }
+                .row.open {
+                    box-shadow: inset 3px 0 0 #e7e7ea;
+                }
+                .bar {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    opacity: .55;
+                }
+                .rest {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                }
+                .cap3 {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 3px;
+                    border-radius: 3px 0 0 3px;
+                }
+                .rk {
+                    position: relative;
+                    flex: none;
+                    width: 22px;
+                    text-align: right;
+                    padding-right: 4px;
+                    color: #9a9aa6;
+                    font-variant-numeric: tabular-nums;
+                }
+                .nm {
+                    position: relative;
+                    flex: 1;
+                    min-width: 0;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                .val {
+                    position: relative;
+                    flex: none;
+                    padding-left: 8px;
+                    font-weight: 600;
+                    font-variant-numeric: tabular-nums;
+                    white-space: nowrap;
+                }
+                .val .of {
+                    color: #9a9aa6;
+                    font-weight: 400;
+                }
+                .sh {
+                    color: #9a9aa6;
+                    padding-left: 4px;
+                    font-weight: 400;
+                }
+                .warn {
+                    position: relative;
+                    flex: none;
+                    color: #c98500;
+                    padding-right: 4px;
+                }
+                .marks {
+                    position: relative;
+                    flex: none;
+                    display: flex;
+                    gap: 3px;
+                    align-items: center;
+                    padding-left: 6px;
+                }
+                .mk {
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 2px;
+                    flex: none;
+                }
+                .mk.hollow {
+                    background: none;
+                    border: 1px solid #3a3a44;
+                }
+                .quiet {
+                    color: #9a9aa6;
+                    padding: 1px 2px 3px;
+                }
+                .off {
+                    color: #6b6b75;
+                }
+                .sides {
+                    padding: 5px 7px;
+                    border-top: 1px solid #2c2c35;
+                }
+                .sl {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    font-variant-numeric: tabular-nums;
+                    font-weight: 600;
+                }
+                .slab {
+                    color: #9a9aa6;
+                    font-weight: 400;
+                    opacity: .8;
+                }
+                .track {
+                    display: flex;
+                    height: 4px;
+                    margin-top: 4px;
+                    border-radius: 3px;
+                    overflow: hidden;
+                    background: #24242a;
+                }
+                .track > * {
+                    background: currentColor;
+                }
+                .ours {
+                    color: #6fbf8b;
+                }
+                .theirs {
+                    color: #e0736f;
+                }
+                .nobody {
+                    color: #8a8a80;
+                }
+                .split {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                }
+
+                /* ---- the legend beside a stage ---- */
+                .leg {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 7px;
+                    width: 206px;
+                    flex: none;
+                }
+                .leg .item {
+                    display: flex;
+                    gap: 9px;
+                    align-items: flex-start;
+                }
+                .leg .sw {
+                    flex: none;
+                    width: 34px;
+                    height: 14px;
+                    border-radius: 3px;
+                    background: #24242a;
+                    position: relative;
+                    overflow: hidden;
+                    margin-top: 1px;
+                }
+                .leg .tx {
+                    font: 12px/1.45 "IBM Plex Sans",system-ui,sans-serif;
+                    color: #c9c9d1;
+                }
+                .leg .tx b {
+                    font-weight: 600;
+                    color: #e7e7ea;
+                }
+                .leg .tx .m {
+                    background: #24242a;
+                    color: #e7e7ea;
+                }
+                </style>
+            </helmet>
+            <div class="sheet">
+                <div
+                    class="tag"><span class="dot"></span>Okno &#183; wymaganie z 2026-09-08<span class="rec">&mdash; wi&#261;&#380;&#261;ce dla ka&#380;dej opcji</span></div>
+                <h1>Osobne okno: w&#322;asny chwyt, w&#322;asne zwini&#281;cie, w&#322;asne miejsce</h1>
+                <p
+                    class="lede">Pomocnik jest oknem, a nie regionem panelu &mdash; przesuwa si&#281; go, minimalizuje i znajduje tam, gdzie si&#281; go zostawi&#322;o, niezale&#380;nie od panelu. To wyklucza opcj&#281; <b>B</b> i dok&#322;ada resztcie cztery rzeczy, kt&#243;re musz&#261; by&#263; w&#322;asne: pasek z chwytem, kontrolka zwijania, zapami&#281;tane po&#322;o&#380;enie i zapami&#281;tany stan zwini&#281;cia. Wszystkie cztery panel ma dzi&#347;, wi&#281;c nic tu nie jest nowym pomys&#322;em &mdash; jest drug&#261; sztuk&#261; tego samego.</p>
+                <div class="stage">
+                    <div class="hold">
+                        <div class="cap good">STOI &mdash; PE&#321;NE</div>
+                        <div style="width:210px">
+                            <div class="w-bar"
+                                style="width:210px">&#10287; Pomocnik<span class="ctl">&#8801; &mdash;</span></div>
+                            <div class="w-body" style="width:210px">
+                                <div class="reg rows">
+                                    <div
+                                        class="sec"><span>Teraz</span><span class="n">tura 248 &#183; 1:52</span></div>
+                                    <div
+                                        class="row"><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Gracz 5</span><span class="val">3<span class="of"> z 3</span></span></div>
+                                    <div
+                                        class="sec"><span>Co stoi</span><span class="n">3</span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:75%;background:#24242a;opacity:1"></div><div class="bar" style="width:50%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:50%;width:25%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Pi&#281;tno bestii</span><span class="val"><span style="color:#6fbf8b">2</span><span class="of"> | </span><span style="color:#e0736f">1</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:75%;background:#24242a;opacity:1"></div><div class="bar" style="width:0%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:0%;width:75%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Szad&#378;</span><span class="val"><span style="color:#6fbf8b">0</span><span class="of"> | </span><span style="color:#e0736f">3</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:75%;background:#24242a;opacity:1"></div><div class="bar" style="width:25%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:25%;width:50%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Ostatni Ratunek</span><span class="val"><span style="color:#6fbf8b">1</span><span class="of"> | </span><span style="color:#e0736f">2</span></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hold">
+                        <div class="cap">STOI &mdash; CISZA W WALCE</div>
+                        <div style="width:210px">
+                            <div class="w-bar"
+                                style="width:210px">&#10287; Pomocnik<span class="ctl">&#8801; &mdash;</span></div>
+                            <div class="w-body" style="width:210px">
+                                <div class="reg rows">
+                                    <div
+                                        class="sec"><span>Teraz</span><span class="n">tura 12 &#183; 2:00</span></div>
+                                    <div
+                                        class="row"><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Gracz 5</span><span class="val">0<span class="of"> z 3</span></span></div>
+                                    <div
+                                        class="sec"><span>Co stoi</span><span class="n">0</span></div>
+                                    <div class="quiet">Nic nie stoi.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hold">
+                        <div class="cap">ZWINI&#280;TE &mdash; SAM PASEK</div>
+                        <div style="width:210px">
+                            <div class="w-bar"
+                                style="width:210px">&#10287; Pomocnik<span class="ctl">&#8801; +</span></div>
+                        </div>
+                    </div>
+                    <div class="leg">
+                        <div class="item">
+                            <div class="sw"
+                                style="background:none;color:#9a9aa6;display:flex;align-items:center;justify-content:center;font:11px system-ui">&#10287;</div>
+                            <div
+                                class="tx"><b>Chwyt m&#243;wi, &#380;e jest chwytem.</b> Ten sam znak co na pasku panelu, i ca&#322;y pasek jest chwytem poza kontrolkami.</div>
+                        </div>
+                        <div class="item">
+                            <div class="sw"
+                                style="background:none;color:#9a9aa6;display:flex;align-items:center;justify-content:center;font:11px system-ui">&mdash; +</div>
+                            <div
+                                class="tx"><b>Ten sam znak zwini&#281;cia co w panelu.</b> <span class="m">&mdash;</span> zwija, <span class="m">+</span> rozwija &mdash; gest, kt&#243;ry okno schowa&#322;, jest gestem, kt&#243;ry je przywraca.</div>
+                        </div>
+                        <div class="item">
+                            <div class="sw"
+                                style="background:none;color:#c98500;display:flex;align-items:center;justify-content:center;font:12px system-ui">&times;</div>
+                            <div
+                                class="tx"><b>Nie ma zamkni&#281;cia.</b> Poprzednia wersja makiet mia&#322;a <span class="m">&times;</span> na pasku i nic nie przywraca&#322;o okna. Zwini&#281;cie tak, zamkni&#281;cie nie.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="cap"
+                    style="margin-top:4px">GDZIE OKNO STAJE, ZANIM KTOKOLWIEK JE PRZESUNIE</div>
+                <div class="stage">
+                    <div class="hold">
+                        <div class="cap">&#378;LE &mdash; OBA WY&#346;RODKOWANE</div>
+                        <div
+                            style="position:relative;width:300px;height:190px;background:#0f0f13;border:1px solid #2c2c35;border-radius:3px">
+                            <div
+                                style="position:absolute;left:106px;top:40px;width:88px;height:110px;border:1px solid #6fbf8b;border-radius:8px;background:#6fbf8b14;font:10px/1.3 ui-monospace,monospace;letter-spacing:.08em;color:#6fbf8b;padding:4px 6px;text-transform:uppercase">panel</div>
+                            <div
+                                style="position:absolute;left:112px;top:46px;width:76px;height:100px;border:1px dashed #e0736f;border-radius:8px;background:#e0736f14;font:10px/1.3 ui-monospace,monospace;letter-spacing:.08em;color:#e0736f;padding:4px 6px;text-transform:uppercase">pomocnik &mdash; pod spodem</div>
+                        </div>
+                    </div>
+                    <div class="hold">
+                        <div class="cap">DOBRZE &mdash; OBOK, R&#211;WNO Z NIM</div>
+                        <div
+                            style="position:relative;width:300px;height:190px;background:#0f0f13;border:1px solid #2c2c35;border-radius:3px">
+                            <div
+                                style="position:absolute;left:190px;top:12px;width:88px;height:110px;border:1px solid #6fbf8b;border-radius:8px;background:#6fbf8b14;font:10px/1.3 ui-monospace,monospace;letter-spacing:.08em;color:#6fbf8b;padding:4px 6px;text-transform:uppercase">panel</div>
+                            <div
+                                style="position:absolute;left:108px;top:12px;width:74px;height:100px;border:1px solid #a8a8ff;border-radius:8px;background:#a8a8ff14;font:10px/1.3 ui-monospace,monospace;letter-spacing:.08em;color:#a8a8ff;padding:4px 6px;text-transform:uppercase">pomocnik</div>
+                        </div>
+                    </div>
+                    <div class="hold">
+                        <div class="cap">KLAMRA &mdash; PASEK ZOSTAJE NA EKRANIE</div>
+                        <div
+                            style="position:relative;width:300px;height:190px;background:#0f0f13;border:1px solid #2c2c35;border-radius:3px">
+                            <div
+                                style="position:absolute;left:190px;top:12px;width:88px;height:110px;border:1px solid #6fbf8b;border-radius:8px;background:#6fbf8b14;font:10px/1.3 ui-monospace,monospace;letter-spacing:.08em;color:#6fbf8b;padding:4px 6px;text-transform:uppercase">panel</div>
+                            <div
+                                style="position:absolute;left:-20px;top:60px;width:84px;height:22px;border:1px dashed #c98500;border-radius:8px;background:#c9850014;font:10px/1.3 ui-monospace,monospace;letter-spacing:.08em;color:#c98500;padding:4px 6px;text-transform:uppercase">64 px</div>
+                            <div
+                                style="position:absolute;left:0;top:0;bottom:0;width:1px;background:#c98500"></div>
+                        </div>
+                    </div>
+                    <div class="leg" style="width:240px">
+                        <div class="item">
+                            <div class="sw" style="background:none;border:1px dashed #e0736f"></div>
+                            <div
+                                class="tx"><b>Pu&#322;apka.</b> <span class="m">composeDefaultPosition</span> &#347;rodkuje to, co dostanie. Wy&#347;rodkowanie obu k&#322;adzie Pomocnika dok&#322;adnie pod panelem &mdash; i czytelnik nie widzi nic.</div>
+                        </div>
+                        <div class="item">
+                            <div class="sw" style="background:none;border:1px solid #a8a8ff"></div>
+                            <div
+                                class="tx"><b>Obok, r&#243;wno z panelem.</b> Panel stoi domy&#347;lnie przy prawej kraw&#281;dzi (<span class="m">right:8px</span>), wi&#281;c Pomocnik staje na lewo od niego, z t&#261; sam&#261; g&#243;rn&#261; kraw&#281;dzi&#261;.</div>
+                        </div>
+                        <div class="item">
+                            <div class="sw"
+                                style="background:none;border-left:1px solid #c98500"></div>
+                            <div
+                                class="tx"><b>64 px zostaje zawsze.</b> Ta sama klamra co w panelu: okno przeci&#261;gni&#281;te za kraw&#281;d&#378; nie da si&#281; przeci&#261;gn&#261;&#263; z powrotem, bo chwyt idzie razem z nim.</div>
+                        </div>
+                    </div>
+                </div>
+                <table class="reg">
+                    <tr>
+                        <th style="width:26%">Rzecz</th>
+                        <th style="width:30%">Panel ma to dzi&#347;</th>
+                        <th>Pomocnik dostaje w&#322;asne</th>
+                    </tr>
+                    <tr>
+                        <td>Chwyt</td>
+                        <td class="mono">data-grip na pasku, znak &#10287;</td>
+                        <td class="mono">to samo, na w&#322;asnym pasku</td>
+                    </tr>
+                    <tr>
+                        <td>Zwini&#281;cie</td>
+                        <td
+                            class="mono">&mdash; / + , region&#243;w nie ukrywa, opr&#243;&#380;nia</td>
+                        <td class="mono">to samo, w&#322;asna kontrolka</td>
+                    </tr>
+                    <tr>
+                        <td>Po&#322;o&#380;enie</td>
+                        <td class="mono">MargoMeter-place</td>
+                        <td class="mono ok">MargoMeter-pomocnik-place</td>
+                    </tr>
+                    <tr>
+                        <td>Stan zwini&#281;cia</td>
+                        <td class="mono">MargoMeter-folded</td>
+                        <td class="mono ok">MargoMeter-pomocnik-folded</td>
+                    </tr>
+                    <tr>
+                        <td>Klamra przy kraw&#281;dzi</td>
+                        <td class="mono">64 px w ka&#380;d&#261; stron&#281;</td>
+                        <td class="mono">ta sama liczba</td>
+                    </tr>
+                    <tr>
+                        <td>Miejsce startu</td>
+                        <td>&#347;rodek okna przegl&#261;darki (<span class="m">ADR 0029</span>)</td>
+                        <td class="flag">obok panelu, nigdy &#347;rodek</td>
+                    </tr>
+                    <tr>
+                        <td>Warstwa</td>
+                        <td class="mono">z-index 9999, position fixed</td>
+                        <td class="flag">pasek i ramka pozycjonowane</td>
+                    </tr>
+                </table>
+                <div class="notes three">
+                    <div class="note">
+                        <h3
+                            class="warn">Dwa okna nachodz&#261; na siebie i jedno musi wygra&#263;</h3>
+                        <p>Element pozycjonowany maluje si&#281; nad statycznym niezale&#380;nie od kolejno&#347;ci w drzewie. Oba okna s&#261; dzie&#263;mi tego samego korzenia, wi&#281;c bez jawnego pozycjonowania Pomocnik potrafi przykry&#263; przycisk panelu i zabra&#263; mu klikni&#281;cie. Obserwacja, kt&#243;ra to &#322;amie: kontrolka panelu, kt&#243;ra nie odpowiada, gdy Pomocnik le&#380;y na niej.</p>
+                    </div>
+                    <div class="note">
+                        <h3 class="warn">Przerysowanie zabiera pasek spod r&#281;ki</h3>
+                        <p>Walka przerysowuje okno co par&#281; sekund, a przerysowanie zast&#281;puje pasek &mdash; razem z uchwytem wska&#378;nika. Panel rozwi&#261;za&#322; to raz (<span class="m">handleDrawn</span>, i to samo <span class="m">TODO.md</span> notuje przy klikni&#281;ciach); drugie okno musi to rozwi&#261;za&#263; tak samo, albo przeci&#261;ganie b&#281;dzie si&#281; urywa&#263; w &#347;rodku ruchu.</p>
+                    </div>
+                    <div class="note">
+                        <h3 class="good">Zwini&#281;cie jest odpowiedzi&#261; czytelnika</h3>
+                        <p><span class="m">CONTEXT.md</span> nazywa to <em>Collapsed</em> i m&#243;wi wprost: to stan, kt&#243;ry czytelnik wybra&#322;, wi&#281;c prze&#380;ywa prze&#322;adowanie. Dwa okna to dwie odpowiedzi i dwa klucze &mdash; zwini&#281;cie panelu nie chowa Pomocnika i odwrotnie.</p>
+                    </div>
+                    <div class="note">
+                        <h3>Zwini&#281;te nie znaczy puste</h3>
+                        <p>Zwini&#281;cie zabiera cia&#322;o i zostawia pasek, tak jak w panelu. Pasek nadal m&#243;wi, &#380;e okno jest &mdash; i to jest r&#243;&#380;nica mi&#281;dzy oknem schowanym a oknem, kt&#243;re si&#281; zepsu&#322;o.</p>
+                    </div>
+                    <div class="note">
+                        <h3>Cisza te&#380; jest odczytem</h3>
+                        <p>Gdy nic nie stoi, cia&#322;o pisze jedn&#261; lini&#281; &mdash; <span class="m">Nic nie stoi</span> &mdash; w najcichszym odcieniu, jaki panel rysuje. Okno nie znika samo; znika tylko wtedy, gdy czytelnik tak ustawi&#322; (arkusz Obserwuj&#281;).</p>
+                    </div>
+                    <div class="note">
+                        <h3>Sze&#347;&#263; kluczy zamiast czterech</h3>
+                        <p>Panel trzyma dzi&#347; cztery: p&#243;&#322;k&#281;, zwini&#281;cie, po&#322;o&#380;enie i wyb&#243;r magazynu. Pomocnik dok&#322;ada dwa w&#322;asne. <span class="m">ARCHITECTURE.md</span> chroni te klucze wprost: warto&#347;&#263;, kt&#243;ra zmienia znaczenie, potrzebuje migracji albo nowego klucza, bo stary jest ju&#380; w przegl&#261;darkach.</p>
+                    </div>
+                </div>
+            </div>
+        </x-dc>
+    </body>
+</html>

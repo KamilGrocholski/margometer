@@ -162,3 +162,17 @@ edited to agree with the new rule.
   loss nor a draw. **Accepted**
 - [0057](0057-damage-stated-by-name-is-still-its-strikers-turn.md) — Damage stated by name is still
   its striker's turn. **Accepted**
+- [0058](0058-the-skill-table-is-a-frozen-reading.md) — The skill table is a frozen reading, and the
+  descriptions stay out. **Accepted**
+- [0059](0059-what-stands-says-what-has-passed-and-never-what-is-left.md) — What stands says what
+  has passed, and never what is left. **Accepted**
+- [0060](0060-a-grip-says-which-window-it-drags.md) — A grip says which window it drags.
+  **Accepted**
+- [0061](0061-a-cast-stands-on-a-side-and-names-only-whom-the-game-names.md) — A cast stands on a
+  side, and names only whom the game names. **Superseded by 0062 in part**
+- [0062](0062-a-shout-holds-one-character-and-the-last-one-wins.md) — A shout holds one character,
+  and the last one wins. **Superseded by 0063 in part**
+- [0063](0063-a-shout-covers-a-count-so-the-panel-names-the-count.md) — A shout covers a count, so
+  the panel names the count. **Superseded by 0064 in part**
+- [0064](0064-a-shout-names-the-provoked-so-the-panel-reads-them.md) — A shout names the provoked,
+  so the panel reads them. **Accepted**

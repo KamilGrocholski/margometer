@@ -32,7 +32,8 @@ import {
 import { CAPTURE_FIELDS, MAXIMUM_CALLS } from "@/src/game/fight-capture.ts";
 import { WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
 import { getDevelopmentVersion } from "@/tools/declared-version.ts";
-import { CURRENT_KEY, TURN_QUEUE_KEY } from "@/tools/turn-count.ts";
+import { CURRENT_KEY } from "@/tools/turn-count.ts";
+import { TURN_QUEUE_KEY } from "@/src/game/fight-underway.ts";
 import { FabricatedFightError } from "@/tools/margometer-tool-error.ts";
 
 /**
@@ -723,6 +724,7 @@ function actEvadedBlow(turn: FabricatedTurn): string[] {
     return [composeBlow(turn, [
         composeValueless("-evade"),
         composeValueless("-contra"),
+        composeValueless("-arrowblock"),
         composeValueless("-tenacity"),
         composeValueless("+superspell-dispel"),
         composeValueless("+fastarrow"),

@@ -28,6 +28,7 @@ export const FROZEN_HELP_PHRASES = {
         "alllowdmg": 1,
         "allslow_per": 8,
         "anguish": 3,
+        "arrowblock": 2,
         "aura-ac_per": 2,
         "aura-resall": 1,
         "aura-sa_per": 8,

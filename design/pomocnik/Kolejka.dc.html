@@ -1,0 +1,634 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="./support.js"></script>
+    </head>
+    <body>
+        <x-dc>
+            <helmet>
+                <style>
+                @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+                body {
+                    margin: 0;
+                }
+                * {
+                    box-sizing: border-box;
+                }
+                a {
+                    color: #a8600b;
+                }
+                a:hover {
+                    color: #7d4708;
+                }
+
+                /* ---- the sheet the mockups stand on ---- */
+                .sheet {
+                    width: 100%;
+                    min-height: 100%;
+                    background: #f5f3ee;
+                    color: #1b1a17;
+                    font-family: "IBM Plex Sans",system-ui,sans-serif;
+                    padding: 34px 38px 38px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                }
+                .tag {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .16em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    display: flex;
+                    gap: 10px;
+                    align-items: center;
+                }
+                .tag .dot {
+                    width: 5px;
+                    height: 5px;
+                    background: #a8600b;
+                    border-radius: 50%;
+                    flex: none;
+                }
+                .tag .rec {
+                    color: #2c6b4c;
+                }
+                .tag .no {
+                    color: #a8600b;
+                }
+                h1 {
+                    font-size: 25px;
+                    line-height: 1.14;
+                    margin: 8px 0 0;
+                    font-weight: 600;
+                    letter-spacing: -.012em;
+                }
+                .lede {
+                    font-size: 13.5px;
+                    line-height: 1.55;
+                    color: #4a463e;
+                    max-width: 64ch;
+                    margin: 8px 0 0;
+                    text-wrap: pretty;
+                }
+                .stage {
+                    background: #0b0b0e;
+                    border: 1px solid #d9d5cc;
+                    padding: 24px;
+                    display: flex;
+                    gap: 24px;
+                    align-items: flex-start;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                }
+                .stage.tight {
+                    padding: 18px;
+                    gap: 16px;
+                }
+                .stage.left {
+                    justify-content: flex-start;
+                }
+                .cap {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .1em;
+                    text-transform: uppercase;
+                    color: #75705f;
+                    margin-bottom: 8px;
+                }
+                .cap.good {
+                    color: #4f9d76;
+                }
+                .cap.warn {
+                    color: #c98500;
+                }
+                .hold {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
+                }
+                .notes {
+                    display: grid;
+                    grid-template-columns: repeat(2,minmax(0,1fr));
+                    gap: 14px 28px;
+                    border-top: 1px solid #d9d5cc;
+                    padding-top: 16px;
+                }
+                .notes.three {
+                    grid-template-columns: repeat(3,minmax(0,1fr));
+                }
+                .note h3 {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .12em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    margin: 0 0 5px;
+                    font-weight: 500;
+                }
+                .note h3.warn {
+                    color: #a8600b;
+                }
+                .note h3.good {
+                    color: #2c6b4c;
+                }
+                .note p {
+                    margin: 0;
+                    font-size: 12.5px;
+                    line-height: 1.5;
+                    color: #33302a;
+                    text-wrap: pretty;
+                }
+                .m {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 11.5px;
+                    background: #eae7df;
+                    padding: 1px 4px;
+                }
+                .stage .m {
+                    background: #24242a;
+                    color: #e7e7ea;
+                }
+                table.reg {
+                    border-collapse: collapse;
+                    width: 100%;
+                    font-size: 12.5px;
+                }
+                table.reg th {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .1em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    font-weight: 500;
+                    text-align: left;
+                    padding: 0 12px 6px 0;
+                    border-bottom: 1px solid #d9d5cc;
+                }
+                table.reg td {
+                    padding: 6px 12px 6px 0;
+                    border-bottom: 1px solid #e6e2d9;
+                    vertical-align: top;
+                    line-height: 1.45;
+                }
+                table.reg td.n {
+                    text-align: right;
+                    font-variant-numeric: tabular-nums;
+                    padding-right: 16px;
+                }
+                table.reg .mono {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 11.5px;
+                }
+                table.reg .flag {
+                    color: #a8600b;
+                }
+                table.reg .ok {
+                    color: #2c6b4c;
+                }
+                table.reg .none {
+                    color: #8a8478;
+                }
+                .cost {
+                    display: flex;
+                    gap: 18px;
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .08em;
+                    text-transform: uppercase;
+                    color: #75705f;
+                    margin-top: 10px;
+                }
+                .cost b {
+                    color: #c9c9d1;
+                    font-weight: 500;
+                }
+                .stage .cost {
+                    color: #75705f;
+                }
+
+                /* ---- the panel and the window, 1:1, values from src/ui/panel-look.ts ---- */
+                .w-bar {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 4px 8px;
+                    font: 11px/13px system-ui,sans-serif;
+                    letter-spacing: .06em;
+                    color: #9a9aa6;
+                    background: #1f1f26;
+                    border: 1px solid #2c2c35;
+                    border-bottom: none;
+                    border-radius: 8px 8px 0 0;
+                    white-space: nowrap;
+                }
+                .w-bar .ver {
+                    opacity: .7;
+                    font-size: 10px;
+                }
+                .w-bar .ctl {
+                    margin-left: auto;
+                    display: flex;
+                    gap: 4px;
+                }
+                .w-body {
+                    background: #17171c;
+                    border: 1px solid #2c2c35;
+                    border-radius: 0 0 8px 8px;
+                    font: 11px/15px system-ui,sans-serif;
+                    color: #e7e7ea;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .reg {
+                    padding: 5px 7px;
+                }
+                .reg.rows {
+                    padding-bottom: 3px;
+                }
+                .hd {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                }
+                .hd .out {
+                    color: #9a9aa6;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                }
+                .hd .pl {
+                    color: #9a9aa6;
+                    font-size: 10px;
+                }
+                .tabs {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 2px;
+                    padding: 5px 7px 0;
+                }
+                .tabs + .tabs {
+                    padding-top: 3px;
+                }
+                .tabs .gap {
+                    flex: 1;
+                }
+                .tab {
+                    padding: 1px 4px;
+                    border-radius: 3px;
+                    color: #9a9aa6;
+                    white-space: nowrap;
+                }
+                .tab.on {
+                    color: #e7e7ea;
+                    background: #1f1f26;
+                }
+                .sec {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    color: #868691;
+                    letter-spacing: .08em;
+                    font-size: 10px;
+                    text-transform: uppercase;
+                    padding: 4px 2px 2px;
+                }
+                .sec .n {
+                    font-variant-numeric: tabular-nums;
+                    letter-spacing: 0;
+                }
+                .row {
+                    position: relative;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    height: 18px;
+                    padding: 1px 8px 0;
+                    margin-bottom: 2px;
+                    border-radius: 3px;
+                    background: #24242a;
+                    overflow: hidden;
+                }
+                .row.open {
+                    box-shadow: inset 3px 0 0 #e7e7ea;
+                }
+                .bar {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    opacity: .55;
+                }
+                .rest {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                }
+                .cap3 {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 3px;
+                    border-radius: 3px 0 0 3px;
+                }
+                .rk {
+                    position: relative;
+                    flex: none;
+                    width: 22px;
+                    text-align: right;
+                    padding-right: 4px;
+                    color: #9a9aa6;
+                    font-variant-numeric: tabular-nums;
+                }
+                .nm {
+                    position: relative;
+                    flex: 1;
+                    min-width: 0;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                .val {
+                    position: relative;
+                    flex: none;
+                    padding-left: 8px;
+                    font-weight: 600;
+                    font-variant-numeric: tabular-nums;
+                    white-space: nowrap;
+                }
+                .val .of {
+                    color: #9a9aa6;
+                    font-weight: 400;
+                }
+                .sh {
+                    color: #9a9aa6;
+                    padding-left: 4px;
+                    font-weight: 400;
+                }
+                .warn {
+                    position: relative;
+                    flex: none;
+                    color: #c98500;
+                    padding-right: 4px;
+                }
+                .marks {
+                    position: relative;
+                    flex: none;
+                    display: flex;
+                    gap: 3px;
+                    align-items: center;
+                    padding-left: 6px;
+                }
+                .mk {
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 2px;
+                    flex: none;
+                }
+                .mk.hollow {
+                    background: none;
+                    border: 1px solid #3a3a44;
+                }
+                .quiet {
+                    color: #9a9aa6;
+                    padding: 1px 2px 3px;
+                }
+                .off {
+                    color: #6b6b75;
+                }
+                .sides {
+                    padding: 5px 7px;
+                    border-top: 1px solid #2c2c35;
+                }
+                .sl {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    font-variant-numeric: tabular-nums;
+                    font-weight: 600;
+                }
+                .slab {
+                    color: #9a9aa6;
+                    font-weight: 400;
+                    opacity: .8;
+                }
+                .track {
+                    display: flex;
+                    height: 4px;
+                    margin-top: 4px;
+                    border-radius: 3px;
+                    overflow: hidden;
+                    background: #24242a;
+                }
+                .track > * {
+                    background: currentColor;
+                }
+                .ours {
+                    color: #6fbf8b;
+                }
+                .theirs {
+                    color: #e0736f;
+                }
+                .nobody {
+                    color: #8a8a80;
+                }
+                .split {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                }
+
+                /* ---- the legend beside a stage ---- */
+                .leg {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 7px;
+                    width: 206px;
+                    flex: none;
+                }
+                .leg .item {
+                    display: flex;
+                    gap: 9px;
+                    align-items: flex-start;
+                }
+                .leg .sw {
+                    flex: none;
+                    width: 34px;
+                    height: 14px;
+                    border-radius: 3px;
+                    background: #24242a;
+                    position: relative;
+                    overflow: hidden;
+                    margin-top: 1px;
+                }
+                .leg .tx {
+                    font: 12px/1.45 "IBM Plex Sans",system-ui,sans-serif;
+                    color: #c9c9d1;
+                }
+                .leg .tx b {
+                    font-weight: 600;
+                    color: #e7e7ea;
+                }
+                .leg .tx .m {
+                    background: #24242a;
+                    color: #e7e7ea;
+                }
+                </style>
+            </helmet>
+            <div class="sheet">
+                <div
+                    class="tag"><span class="dot"></span>Kolejka tur &#183; wsp&#243;lne dla wszystkich opcji</div>
+                <h1>Gra podaje dziesi&#281;&#263; &mdash; rysujemy dwie</h1>
+                <p
+                    class="lede"><span class="m">turns_warriors</span> stoi w <b>1022</b> z <b>1111</b> paczek korpusu, jako mapa &#8222;numer tury &#8594; posta&#263;&#8221;, najcz&#281;&#347;ciej dziesi&#281;ciowpisowa. Nic w <span class="m">src/</span> jej dzi&#347; nie czyta. Najmniejszy wpis to stwierdzenie &mdash; tura w toku, i <span class="m">current</span> nazywa t&#281; sam&#261; posta&#263;. Dziewi&#281;&#263; powy&#380;ej to prognoza, i tyle jest z ni&#261; warte.</p>
+                <div class="stage left">
+                    <div class="hold">
+                        <div class="cap good">POMOCNIK &mdash; KOLEJKA W&#321;&#260;CZONA</div>
+                        <div style="width:210px">
+                            <div class="w-bar"
+                                style="width:210px">&#10287; Pomocnik<span class="ctl">&#8801; &mdash;</span></div>
+                            <div class="w-body" style="width:210px">
+                                <div class="reg rows">
+                                    <div
+                                        class="sec"><span>Teraz</span><span class="n">tura 248</span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:73%;background:rgb(77 121 95);opacity:1"></div><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Gracz 5</span><span class="val">1:52</span></div>
+                                    <div
+                                        class="sec"><span>Potem</span><span class="n">prognoza</span></div>
+                                    <div
+                                        class="row"><div class="rest" style="left:0;right:0;background:repeating-linear-gradient(-45deg,#e0736f38 0 4px,transparent 4px 8px)"></div><div class="cap3" style="background:#e0736f"></div><span class="nm">Renegat 2</span><span class="val" style="font-weight:400;color:#9a9aa6">tura 249</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="leg" style="width:340px">
+                        <div class="item">
+                            <div class="sw">
+                                <div class="bar"
+                                    style="width:73%;background:rgb(77 121 95);opacity:1"></div>
+                                <div class="cap3" style="background:#6fbf8b"></div>
+                            </div>
+                            <div
+                                class="tx"><b>Tura w toku jest stwierdzeniem.</b> Pasek to zegar: <span class="m">poolTime.left</span>, od 15 do 180 w korpusie.</div>
+                        </div>
+                        <div class="item">
+                            <div class="sw">
+                                <div class="rest"
+                                    style="left:0;right:0;background:repeating-linear-gradient(-45deg,#e0736f38 0 4px,transparent 4px 8px)"></div>
+                                <div class="cap3" style="background:#e0736f"></div>
+                            </div>
+                            <div
+                                class="tx"><b>Krok naprz&#243;d jest ca&#322;y kreskowany.</b> Ta sama faktura co niepotwierdzona po&#322;owa wiersza rzutu: <em>zapowiedziane, nie zmierzone</em>.</div>
+                        </div>
+                        <div class="item">
+                            <div class="sw"
+                                style="background:none;color:#6b6b75;display:flex;align-items:center;justify-content:center;font:11px system-ui">&mdash;</div>
+                            <div
+                                class="tx"><b>Ogona nie ma wcale.</b> Nie blakn&#261;cy, nie szary &mdash; nie ma. Blakn&#261;cy wiersz nadal jest wierszem i nadal si&#281; go czyta.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="cap"
+                    style="margin-top:4px">ILE MYLI SI&#280; PROGNOZA &mdash; ZMIERZONE NA 29 NAGRANIACH, <span style="text-transform:none">design/pomocnik/measure.ts</span></div>
+                <table class="reg">
+                    <tr>
+                        <th>Krok naprz&#243;d</th>
+                        <th>Ocenionych</th>
+                        <th>Myli si&#281;</th>
+                        <th>Odsetek</th>
+                        <th>Rysujemy</th>
+                    </tr>
+                    <tr>
+                        <td class="mono">0 &mdash; tura w toku</td>
+                        <td class="n">&mdash;</td>
+                        <td class="n">&mdash;</td>
+                        <td class="n ok">nigdy</td>
+                        <td class="ok">tak, jako stwierdzenie</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">1</td>
+                        <td class="n">451</td>
+                        <td class="n">11</td>
+                        <td class="n ok">2.4%</td>
+                        <td class="ok">tak, oznaczone jako prognoza</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">2</td>
+                        <td class="n">258</td>
+                        <td class="n">25</td>
+                        <td class="n flag">9.7%</td>
+                        <td class="none">nie</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">3</td>
+                        <td class="n">227</td>
+                        <td class="n">31</td>
+                        <td class="n flag">13.7%</td>
+                        <td class="none">nie</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">4</td>
+                        <td class="n">230</td>
+                        <td class="n">37</td>
+                        <td class="n flag">16.1%</td>
+                        <td class="none">nie</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">5</td>
+                        <td class="n">241</td>
+                        <td class="n">46</td>
+                        <td class="n flag">19.1%</td>
+                        <td class="none">nie</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">6</td>
+                        <td class="n">248</td>
+                        <td class="n">60</td>
+                        <td class="n flag">24.2%</td>
+                        <td class="none">nie</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">7</td>
+                        <td class="n">227</td>
+                        <td class="n">64</td>
+                        <td class="n flag">28.2%</td>
+                        <td class="none">nie</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">8</td>
+                        <td class="n">247</td>
+                        <td class="n">85</td>
+                        <td class="n flag">34.4%</td>
+                        <td class="none">nie</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">9</td>
+                        <td class="n">277</td>
+                        <td class="n">100</td>
+                        <td class="n flag">36.1%</td>
+                        <td class="none">nie</td>
+                    </tr>
+                </table>
+                <div class="notes">
+                    <div class="note">
+                        <h3>Jak to zmierzono</h3>
+                        <p>Dla ka&#380;dej paczki bierzemy wpis o numerze o <span class="m">k</span> wi&#281;kszym ni&#380; tura w toku, a potem sprawdzamy, kogo gra sama nazwa&#322;a, gdy ta tura nadesz&#322;a. Ocena istnieje tylko tam, gdzie ta tura w og&#243;le nadesz&#322;a w tym samym nagraniu &mdash; st&#261;d r&#243;&#380;ne mianowniki w kolumnie &#8222;ocenionych&#8221;.</p>
+                    </div>
+                    <div class="note">
+                        <h3 class="warn">Ogon nie jest &#8222;troch&#281; niepewny&#8221;</h3>
+                        <p>Na dziewi&#261;tym kroku myli si&#281; <b>100 z 277</b> wpis&#243;w. Co czwarty do co trzeci jest po prostu nieprawdziwy &mdash; to nie jest odczyt os&#322;abiony, tylko zmy&#347;lenie z gradientem, gdyby narysowa&#263; je blado.</p>
+                    </div>
+                    <div class="note">
+                        <h3 class="good">Co to daje w ustawce</h3>
+                        <p>Jedno pytanie: czy zd&#261;&#380;&#281; przed nim. Dwa wiersze na nie odpowiadaj&#261;; dziesi&#281;&#263; odpowiada gorzej, bo trzeba jeszcze wiedzie&#263;, od kt&#243;rego przesta&#263; wierzy&#263;.</p>
+                    </div>
+                    <div class="note">
+                        <h3>To nie jest domy&#347;lne</h3>
+                        <p>Kolejka stoi na li&#347;cie wy&#322;&#261;czona. Odpowiada na pytanie, na kt&#243;re gra ju&#380; odpowiada w&#322;asnym paskiem inicjatywy &mdash; wi&#281;c wchodzi tylko wtedy, gdy czytelnik jej chce. Wyj&#261;tkiem jest opcja C, gdzie kolejno&#347;&#263; <em>jest</em> kszta&#322;tem okna.</p>
+                    </div>
+                </div>
+            </div>
+        </x-dc>
+    </body>
+</html>

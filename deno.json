@@ -52,6 +52,9 @@
         // `10 vs 1` and no player against a player at all, so this is the only ten-a-side the
         // panel can be looked at on. Never material, and `tools/fabricated-fight.ts` says why.
         "fight:fabricate": "deno run -A tools/fabricated-fight.ts",
+        // What one skill put on a whole side, whom it stood on and how many stood at once —
+        // against the turns the published table states. `docs/auras-standing.md` carries it.
+        "fight:auras": "deno run -A tools/aura-standing.ts",
         // How a recording the add-on wrote becomes material: two redactions, then a file.
         "capture:intake": "deno run -A tools/capture-intake.ts",
         // The client fetched and dated, so a claim about it can name the build it was read on.
@@ -62,6 +65,9 @@
         "game:readings": "deno run -A tools/game-readings.ts",
         // Every key the client branches on, lifted out of that bundle and frozen beside it.
         "game:keys": "deno run -A tools/protocol-key-table.ts",
+        // Every skill the game publishes, and the turns each effect is stated to run for — the
+        // only source that states a duration at all. What `Co stoi` draws its second half from.
+        "game:skills": "deno run -A tools/skill-table.ts",
         // The published help, cached and searched, and the counts a register claim is held to.
         "game:help": "deno run -A tools/help-article.ts",
         // What a release says about itself: the version this tree declares, and the section

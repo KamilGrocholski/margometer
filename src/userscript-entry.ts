@@ -13,6 +13,14 @@ import {
     composeCombatantRoster,
 } from "@/src/core/combatant-roster.ts";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
+import {
+    composeAuraTurnsBySkillId,
+    composeFightStandings,
+    composeShoutsBySkillId,
+    type StatedSkills,
+} from "@/src/core/aura-standing.ts";
+import { FROZEN_AURA_TURNS } from "@/frozen/aura-turns.ts";
+import { composeStandingReading, type StandingReading } from "@/src/ui/panel-standing.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { getNumberFromUnknown, getTextFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
@@ -24,7 +32,12 @@ import {
     type FightUnderway,
     getReadingFromFight,
 } from "@/src/game/fight-underway.ts";
-import { attachToGame, type GameAttachment, type Scheduler } from "@/src/game/engine-attachment.ts";
+import {
+    type AttachmentReport,
+    attachToGame,
+    type GameAttachment,
+    type Scheduler,
+} from "@/src/game/engine-attachment.ts";
 import type { EngineBattle } from "@/src/game/engine-battle-wrap.ts";
 import { type FightPlace, readPlaceFromPage } from "@/src/game/engine-place.ts";
 import { getGameBuildFromScriptName } from "@/src/core/game-build.ts";
@@ -112,6 +125,21 @@ const FOLD_KEY = "MargoMeter-folded";
 /** Anything else reads as unfolded, which is the state a reader who stored nothing is in. */
 const FOLDED = "1";
 const PLACE_KEY = "MargoMeter-place";
+/**
+ * The window beside the panel keeps its own two answers. Two windows, two folds and two corners:
+ * folding the panel over a fight a reader is watching would take the other one with it.
+ */
+/**
+ * The published table, put into the shape `core/` reads once and not per payload: `core` imports
+ * no frozen reading, so whoever holds one hands it over (`ARCHITECTURE.md`).
+ */
+const STATED_SKILLS: StatedSkills = {
+    turnsBySkillId: composeAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills),
+    shoutsBySkillId: composeShoutsBySkillId(FROZEN_AURA_TURNS.shouts),
+};
+
+const STANDING_FOLD_KEY = "MargoMeter-pomocnik-folded";
+const STANDING_PLACE_KEY = "MargoMeter-pomocnik-place";
 /**
  * Where the reader asked for the shelf to be kept, and it is kept beside the panel's own state
  * rather than in the store it names: a choice held where it points would be unreadable the moment
@@ -260,11 +288,12 @@ function readShelfOrNothing(store: BrowserStore, defects: KeptDefects): KeptFigh
 /** The place the reader dragged it to, or none: the sheet's own corner is a place. */
 function readPlaceOrNothing(
     store: BrowserStore | null,
+    key: string,
     defects: KeptDefects,
 ): PanelPosition | null {
     if (store === null) return null;
     try {
-        return getPositionFromStoredText(store.read(PLACE_KEY) ?? "");
+        return getPositionFromStoredText(store.read(key) ?? "");
     } catch (failure) {
         defects.add("kept", null, failure);
         return null;
@@ -472,6 +501,17 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         return true;
     }
     if (press.kind === "side") return handlePressSide(screen, press.side);
+    if (press.kind === "standing-fold") {
+        screen.isStandingCollapsed = !screen.isStandingCollapsed;
+        return true;
+    }
+    if (press.kind === "standing") {
+        const opened = getIntegerFromText(press.stated);
+        // A toggle, unlike a ranking row: what a press opens stays in the window beside what
+        // closed it, so the row that shuts it is still there to be pressed again.
+        screen.openStandingId = screen.openStandingId === opened ? null : opened;
+        return true;
+    }
     return handlePressScreen(screen, press.screen);
 }
 
@@ -628,6 +668,7 @@ function drawFight(
 ): void {
     const said = defects.getSaid();
     const hasFightToSave = getIsFightToSave(liveFight, shelf);
+    drawStanding(underway, screen, panel, defects);
     try {
         if (
             drawFightOnPanel(
@@ -653,6 +694,50 @@ function drawFight(
         defects.add("reading", null, failure);
     }
     drawFightUnread(panel, screen.isCollapsed, hasFightToSave, defects);
+}
+
+/**
+ * The window beside the panel, drawn on its own before the panel is: the two are two windows and
+ * a fight the panel cannot read is not a fight the window has nothing to say about.
+ *
+ * Guarded here rather than inside, because everything under it reaches `core/`, which throws.
+ * A reading that will not compose costs the window its body and nothing else (**ADR 0051**).
+ */
+function drawStanding(
+    underway: FightUnderway,
+    screen: ScreenState,
+    panel: PanelHandle,
+    defects: KeptDefects,
+): void {
+    let reading: StandingReading | null = null;
+    try {
+        reading = composeStandingOrNothing(underway, screen);
+    } catch (failure) {
+        defects.add("reading", null, failure);
+    }
+    try {
+        panel.showStanding(reading, screen.isStandingCollapsed);
+    } catch (failure) {
+        defects.add("region", "standing", failure);
+    }
+}
+
+/** Null where no payload has arrived: a fight nobody has seen has nothing standing on it. */
+function composeStandingOrNothing(
+    underway: FightUnderway,
+    screen: ScreenState,
+): StandingReading | null {
+    const fight = getReadingFromFight(underway);
+    if (fight === null) return null;
+    const held = composeFightStandings(fight.events, STATED_SKILLS, fight.roster);
+    return composeStandingReading(
+        held.standings,
+        held.provocations,
+        fight.roster,
+        fight.readerSide,
+        fight.turnStatement,
+        screen.openStandingId,
+    );
 }
 
 /**
@@ -1320,14 +1405,36 @@ function composeLiveFight(): LiveFight {
     };
 }
 
-/** Where the reader put the panel, and where a drag is allowed to put it. */
+/** Anything but the mark reads as unfolded, which is what a store saying nothing answers. */
+function isFoldedInStore(store: BrowserStore | null, key: string): boolean {
+    if (store === null) return false;
+    return store.read(key) === FOLDED;
+}
+
+/** Each window's fold under its own key: one mark over both would put away the wrong window. */
+function writeFoldFromPress(
+    store: BrowserStore | null,
+    press: PanelPress,
+    screen: ScreenState,
+): void {
+    if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
+    if (press.kind !== "standing-fold") return;
+    store?.write(STANDING_FOLD_KEY, screen.isStandingCollapsed ? FOLDED : "");
+}
+
+/**
+ * Where the reader put a window, and where a drag is allowed to put it. One per window: the two
+ * corners are two answers, and a key whose meaning changes needs a key of its own
+ * (`ARCHITECTURE.md`, stored reader preferences).
+ */
 function composePanelPlacement(
     environment: UserscriptEnvironment,
     store: BrowserStore | null,
     defects: KeptDefects,
+    key: string = PLACE_KEY,
 ): PanelPlacement {
     return {
-        position: readPlaceOrNothing(store, defects),
+        position: readPlaceOrNothing(store, key, defects),
         getViewport: () => environment.readViewport(),
         // Once per drag rather than once per frame. A refusal to write is an answer here as
         // wherever this panel writes: the reader's choice stands, and only the next visit is the
@@ -1335,7 +1442,7 @@ function composePanelPlacement(
         handleMoved: (position: PanelPosition) => {
             const written = composeStoredTextFromPosition(position);
             if (written === null) return;
-            store?.write(PLACE_KEY, written);
+            store?.write(key, written);
         },
     };
 }
@@ -1411,9 +1518,18 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     const underway = composeFightUnderway();
     const defects = composeDefectKeeper((failure) => environment.report(FAILURE_LINE, failure));
     const store = environment.store;
-    const screen = composeScreenState(store !== null && store.read(FOLD_KEY) === FOLDED);
+    const screen = composeScreenState(
+        isFoldedInStore(store, FOLD_KEY),
+        isFoldedInStore(store, STANDING_FOLD_KEY),
+    );
     const shelf = composeShelfKeeper(environment, defects);
     const placement = composePanelPlacement(environment, store, defects);
+    const standingPlacement = composePanelPlacement(
+        environment,
+        store,
+        defects,
+        STANDING_PLACE_KEY,
+    );
     const live = composeLiveFight();
     // The panel goes up when the wrap goes on, and not before: a copy that stood down never gets
     // one, and a page with no game on it is left as it was found.
@@ -1445,7 +1561,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
             }
             const isShelfPress = setShelfFromPress(shelf, press);
             if (!isShelfPress && !handlePress(screen, press)) return;
-            if (press.kind === "fold") store?.write(FOLD_KEY, screen.isCollapsed ? FOLDED : "");
+            writeFoldFromPress(store, press, screen);
             draw();
         },
         (mark) => defects.add(mark.kind, mark.region, mark.failure),
@@ -1453,9 +1569,26 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
         // Once per mount: the dictionary is built with the page and not with the fight, and a page
         // without one never grows one. Null is the panel drawing its own words (ADR 0024).
         readDictionaryFromPage(environment.page),
+        standingPlacement,
     );
 
-    return attachToGame(environment.page, environment.schedule, {
+    return attachToGame(
+        environment.page,
+        environment.schedule,
+        composeGameReader(environment, underway, shelf, live, screen, showAndMount),
+    );
+}
+
+/** What the wrap hands over, payload by payload, and what each one costs the reading. */
+function composeGameReader(
+    environment: UserscriptEnvironment,
+    underway: FightUnderway,
+    shelf: ShelfKeeper,
+    live: LiveFight,
+    screen: ScreenState,
+    showAndMount: () => void,
+): AttachmentReport {
+    return {
         handleAttached: showAndMount,
         handleBeforeCall: (battle) => {
             live.combatantsBefore = composeSnapshotFromBattle(battle);
@@ -1469,5 +1602,5 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
             showAndMount();
         },
         ...composeGameReports(environment),
-    });
+    };
 }

@@ -6,7 +6,7 @@
  * the difference that matters in the last test here.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists, assertNotStrictEquals } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import {
@@ -145,17 +145,27 @@ Deno.test("the reader's own side is kept once seen, and cleared when a fight ope
     assertEquals(getReadingFromFight(underway)?.readerSide, null, "and a new fight starts over");
 });
 
+/**
+ * ⚠️ **Which side, and not that it is the first.** Every recording until 2026-09-09 was written by
+ * somebody on side 1, and this test asserted the `1` rather than the statement — until
+ * `captures/2026-09-09-tempest-duet-vs-wojownik-…`, written from side 2, showed the difference.
+ */
 Deno.test("every recording states its reader's side, on the payload that opens the fight", () => {
+    const sides = new Set<number>();
     for (const path of readRecordingPaths()) {
         const underway = composeFightUnderway();
         const [first] = getRecordedEngineUpdates(path);
         addPayloadToFight(underway, first);
-        assertEquals(
-            getReadingFromFight(underway)?.readerSide,
-            1,
+        const readerSide = getReadingFromFight(underway)?.readerSide ?? null;
+        assertNotStrictEquals(
+            readerSide,
+            null,
             `${path}: the opening payload states the reader's own side`,
         );
+        assert(readerSide === 1 || readerSide === 2, `${path}: and it is one of the two sides`);
+        if (readerSide !== null) sides.add(readerSide);
     }
+    assertEquals([...sides].sort(), [1, 2], "the corpus is written from both sides of a fight");
 });
 
 Deno.test("a session says whether it saw the payload that opened the fight", () => {

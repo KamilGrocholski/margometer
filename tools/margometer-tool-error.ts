@@ -13,6 +13,7 @@ export type MargoMeterToolErrorCode =
     | "GameSource"
     | "GameUnreachable"
     | "ProtocolKeyTable"
+    | "SkillTable"
     | "HelpArticle"
     | "DeclaredVersion"
     | "Changelog"
@@ -97,6 +98,16 @@ export class GameUnreachableError extends MargoMeterToolError {
 export class ProtocolKeyTableError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super("ProtocolKeyTable", reason, options);
+    }
+}
+
+/**
+ * The skill table refused: a page that is no longer the shape this reader takes columns at. Read
+ * off by one it would freeze a description where the effects were, so it stops instead.
+ */
+export class SkillTableError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super("SkillTable", reason, options);
     }
 }
 

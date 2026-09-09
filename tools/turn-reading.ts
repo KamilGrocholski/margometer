@@ -30,7 +30,8 @@ import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { TurnReadingError } from "@/tools/margometer-tool-error.ts";
 import { composeFightReplaySteps, composeRecordedMaterial } from "@/tools/fight-replay.ts";
 import type { RecordedFight } from "@/tools/recorded-fights.ts";
-import { composeBoundaries, readTurnStatement, type TurnBoundary } from "@/tools/turn-count.ts";
+import { composeBoundaries, type TurnBoundary } from "@/tools/turn-count.ts";
+import { readTurnStatement } from "@/src/game/fight-underway.ts";
 
 /** Past every recording a run could name by hand, which is what the arguments are. */
 const MAXIMUM_ARGUMENTS = 256;

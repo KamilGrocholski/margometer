@@ -4,6 +4,13 @@
  */
 
 import { BUILD_VERSION } from "@/src/build-version.ts";
+import {
+    getColourForRow,
+    type StandingCaster,
+    type StandingProvoked,
+    type StandingReading,
+    type StandingRow,
+} from "@/src/ui/panel-standing.ts";
 import { composeDecimalText, composeIntegerText } from "@/libs/number-text.ts";
 import { setGuardedListener } from "@/src/ui/panel-listener.ts";
 import type {
@@ -61,8 +68,12 @@ import {
 import {
     CARD_WORDS,
     composeFigureText,
+    composeProvokedHolderParts,
     composeShelfSizeText,
     composeSideCountsText,
+    composeStandingCountText,
+    composeStandingTurnsText,
+    composeTurnOrdinalText,
     composeUndrawnText,
     composeUsesText,
     DEFECT_MARK,
@@ -81,16 +92,19 @@ import {
     NEITHER_END_WORDS,
     PANEL_WORDS,
     type PanelRegion,
+    STANDING_WORDS,
     SUSPECT_MARK,
     type TranslateLabel,
 } from "@/src/ui/panel-words.ts";
 import {
     composeTipLeft,
+    PANEL_WINDOW,
     type PanelDragHandle,
     type PanelPlacement,
     type PanelPosition,
     setGripMark,
     setPanelDrag,
+    STANDING_WINDOW,
 } from "@/src/ui/panel-drag.ts";
 import {
     composeTipHandle,
@@ -195,6 +209,12 @@ const PIN_ATTRIBUTE = "data-pin";
 /** Which end a pinned row leaves out, which is the whole of what opening it asks for. */
 const UNNAMED_ATTRIBUTE = "data-unnamed";
 const STORAGE_ATTRIBUTE = "data-storage";
+/**
+ * The window beside the panel, and its own two controls. Its fold is not the panel's: one mark
+ * over both would put away the window a reader was watching along with the one they folded.
+ */
+const STANDING_ATTRIBUTE = "data-standing";
+const STANDING_FOLD_ATTRIBUTE = "data-standing-fold";
 const LIVE_FIGHT = "live";
 const TIP_ATTRIBUTE = "data-tip";
 const TITLE_ATTRIBUTE = "title";
@@ -590,13 +610,13 @@ function composeTitleElement(
     // the other order would wipe them.
     bar.textContent = `${GRIP_MARK}${PANEL_WORDS.title}`;
     bar.setAttribute(TITLE_ATTRIBUTE, PANEL_WORDS.drag);
-    setGripMark(bar);
+    setGripMark(bar, PANEL_WINDOW);
     const version = composeElement(document, "span", CLASS.titleVersion);
     version.textContent = BUILD_VERSION;
     // Marked as well as the bar under it. The bar wears `cursor:move` and every child inherits
     // it, so a label that starts no drag is an affordance that lies (`DESIGN.md`) — and this one
     // sits between the name and the controls, where a hand aiming for the bar lands.
-    setGripMark(version);
+    setGripMark(version, PANEL_WINDOW);
     bar.append(version);
     bar.append(composeBarControl(document, {
         className: `${CLASS.control} ${CLASS.controlFights}`,
@@ -614,6 +634,184 @@ function composeTitleElement(
     }
     bar.append(composeFoldControl(document, isCollapsed));
     return bar;
+}
+
+/** The window's own bar: its own grip, its own fold, and no control that would close it. */
+function composeStandingBar(document: PanelDocument, isCollapsed: boolean): PanelElement {
+    const bar = composeElement(document, "div", CLASS.standingBar);
+    bar.textContent = `${GRIP_MARK}${STANDING_WORDS.title}`;
+    bar.setAttribute(TITLE_ATTRIBUTE, STANDING_WORDS.drag);
+    setGripMark(bar, STANDING_WINDOW);
+    const control = composeElement(document, "span", CLASS.control);
+    control.textContent = isCollapsed ? UNFOLD_MARK : FOLD_MARK;
+    control.setAttribute(STANDING_FOLD_ATTRIBUTE, "");
+    control.setAttribute(
+        TITLE_ATTRIBUTE,
+        isCollapsed ? STANDING_WORDS.expand : STANDING_WORDS.collapse,
+    );
+    bar.append(control);
+    return bar;
+}
+
+/** Whose turn it is, as the game numbers it. A payload stating no queue says that instead. */
+function composeStandingNow(document: PanelDocument, reading: StandingReading): PanelElement[] {
+    const said = reading.turnOrdinal === null ? "" : composeTurnOrdinalText(reading.turnOrdinal);
+    const section = composeElement(document, "div", CLASS.section);
+    const words = composeElement(document, "span", CLASS.sectionWords);
+    words.textContent = STANDING_WORDS.now;
+    const figure = composeElement(document, "span", CLASS.figure);
+    figure.textContent = said;
+    section.append(words);
+    section.append(figure);
+    if (reading.turnHolderName === null) {
+        const empty = composeElement(document, "div", CLASS.empty);
+        empty.textContent = STANDING_WORDS.turnUnread;
+        return [section, empty];
+    }
+    const row = composeElement(document, "div", CLASS.row);
+    const name = composeElement(document, "span", CLASS.rowName);
+    name.textContent = reading.turnHolderName;
+    row.append(name);
+    return [section, row];
+}
+
+/**
+ * The line under a provoked character: who is holding them, and with which of the two skills. A
+ * wrapping sentence, one unbreakable span per fact, so a break never falls inside a name.
+ */
+function composeProvokedHolderElement(
+    document: PanelDocument,
+    provoked: StandingProvoked,
+): PanelElement {
+    const line = composeElement(document, "div", CLASS.standingHolder);
+    const cap = composeElement(document, "div", CLASS.barCap);
+    cap.setAttribute(STYLE_ATTRIBUTE, `background:${provoked.casterColour}`);
+    line.append(cap);
+    for (const part of composeProvokedHolderParts(provoked.casterName, provoked.skillName)) {
+        const stated = composeElement(document, "span", CLASS.standingHolderPart);
+        stated.textContent = part;
+        line.append(stated);
+    }
+    return line;
+}
+
+/** A provoked character: their own row, and under it who is holding them. */
+function composeProvokedElements(
+    document: PanelDocument,
+    reading: StandingReading,
+): PanelElement[] {
+    if (reading.provoked.length === 0) return [];
+    const drawn: PanelElement[] = [
+        composeSectionElement(document, STANDING_WORDS.provocation, reading.provoked.length),
+    ];
+    for (const provoked of reading.provoked) {
+        const row = composeElement(document, "div", CLASS.row);
+        const cap = composeElement(document, "div", CLASS.barCap);
+        cap.setAttribute(STYLE_ATTRIBUTE, `background:${provoked.colour}`);
+        const name = composeElement(document, "span", CLASS.rowName);
+        name.textContent = provoked.name;
+        const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
+        value.textContent = composeStandingTurnsText(provoked.turnsElapsed, provoked.turnsStated);
+        row.append(cap);
+        row.append(name);
+        row.append(value);
+        drawn.push(row);
+        drawn.push(composeProvokedHolderElement(document, provoked));
+    }
+    return drawn;
+}
+
+/** A caster under the skill it was cast with: the name, and what has passed of what was stated. */
+function composeStandingCasterElement(
+    document: PanelDocument,
+    caster: StandingCaster,
+    colour: string,
+): PanelElement {
+    const row = composeElement(document, "div", `${CLASS.row} ${CLASS.standingCaster}`);
+    const cap = composeElement(document, "div", CLASS.barCap);
+    cap.setAttribute(STYLE_ATTRIBUTE, `background:${colour}`);
+    const name = composeElement(document, "span", CLASS.rowName);
+    name.textContent = caster.name;
+    const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
+    value.textContent = composeStandingTurnsText(caster.turnsElapsed, caster.turnsStated);
+    row.append(cap);
+    row.append(name);
+    row.append(value);
+    return row;
+}
+
+/**
+ * The two sides' counts, as the strip under the ranking states them: **two figures the colour
+ * tells apart**, not one figure with a mark in it. The separator divides nothing and is drawn in
+ * the quiet ink to say so — `DESIGN.md`'s Colour Never Alone Rule is met by the numbers it stands
+ * between, and a fight the client named no side on gets one plain count instead.
+ */
+function composeStandingCountElement(
+    document: PanelDocument,
+    row: StandingRow,
+): PanelElement {
+    const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
+    if (row.ours === null || row.theirs === null) {
+        value.textContent = composeStandingCountText(row);
+        return value;
+    }
+    const ours = composeElement(document, "span", CLASS.standingOurs);
+    ours.textContent = composeIntegerText(row.ours);
+    const between = composeElement(document, "span", CLASS.rowShare);
+    between.textContent = STANDING_WORDS.sideSeparator;
+    const theirs = composeElement(document, "span", CLASS.standingTheirs);
+    theirs.textContent = composeIntegerText(row.theirs);
+    value.append(ours);
+    value.append(between);
+    value.append(theirs);
+    return value;
+}
+
+/** One counted row per skill, and the casters under whichever one is open. */
+function composeStandingRowElements(
+    document: PanelDocument,
+    reading: StandingReading,
+): PanelElement[] {
+    const drawn: PanelElement[] = [];
+    for (const row of reading.rows) {
+        const element = composeElement(document, "div", `${CLASS.row} ${CLASS.rowDrillable}`);
+        const name = composeElement(document, "span", CLASS.rowName);
+        name.textContent = row.skillName;
+        const value = composeStandingCountElement(document, row);
+        element.append(name);
+        element.append(value);
+        setRowMarks([element, name, value], STANDING_ATTRIBUTE, composeIntegerText(row.skillId));
+        drawn.push(element);
+        if (row.skillId !== reading.openSkillId) continue;
+        for (const caster of row.casters) {
+            drawn.push(
+                composeStandingCasterElement(document, caster, getColourForRow(row, caster)),
+            );
+        }
+    }
+    return drawn;
+}
+
+function composeStandingBody(
+    document: PanelDocument,
+    reading: StandingReading,
+): PanelElement {
+    const body = composeElement(document, "div", CLASS.standingBody);
+    for (const element of composeStandingNow(document, reading)) body.append(element);
+    body.append(composeSectionElement(document, STANDING_WORDS.standing, reading.rows.length));
+    if (reading.rows.length === 0) {
+        if (reading.provoked.length === 0) {
+            const empty = composeElement(document, "div", CLASS.empty);
+            empty.textContent = STANDING_WORDS.nothingStands;
+            body.append(empty);
+            return body;
+        }
+        for (const element of composeProvokedElements(document, reading)) body.append(element);
+        return body;
+    }
+    for (const element of composeStandingRowElements(document, reading)) body.append(element);
+    for (const element of composeProvokedElements(document, reading)) body.append(element);
+    return body;
 }
 
 function composeHeaderElement(document: PanelDocument, shown: ShownScreen): PanelElement {
@@ -1258,7 +1456,9 @@ export type PanelPress =
     | { kind: "back" }
     | { kind: "fold" }
     | { kind: "save" }
-    | { kind: "shelf" };
+    | { kind: "shelf" }
+    | { kind: "standing"; stated: string }
+    | { kind: "standing-fold" };
 
 function composeShownList(
     document: PanelDocument,
@@ -1631,6 +1831,9 @@ function getPressFromTarget(
     if (pinned !== null) return { kind: "pin", stated: pinned };
     const storage = target.getAttribute(STORAGE_ATTRIBUTE);
     if (storage !== null) return { kind: "storage", name: storage };
+    const standing = target.getAttribute(STANDING_ATTRIBUTE);
+    if (standing !== null) return { kind: "standing", stated: standing };
+    if (target.getAttribute(STANDING_FOLD_ATTRIBUTE) !== null) return { kind: "standing-fold" };
     if (target.getAttribute(SAVE_ATTRIBUTE) !== null) return { kind: "save" };
     if (target.getAttribute(SHELF_ATTRIBUTE) !== null) return { kind: "shelf" };
     if (target.getAttribute(FOLD_ATTRIBUTE) !== null) return { kind: "fold" };
@@ -1684,6 +1887,11 @@ export interface PanelHandle {
      * died on the way to the page are the same picture.
      */
     showWaiting(isCollapsed: boolean, waiting: WaitingReading): void;
+    /**
+     * The window beside the panel, drawn on the same call. Null is a fight with nothing standing
+     * and no turn stated, which is a reading and not a failure.
+     */
+    showStanding(reading: StandingReading | null, isCollapsed: boolean): void;
 }
 
 function composeRegionInPlace(
@@ -1806,6 +2014,85 @@ function composeTipPlace(
     };
 }
 
+/**
+ * The window beside the panel, as one element under the same root — `SECURITY.md`'s guest rule
+ * puts everything a reader meets inside one shadow root under one name, so a second host is out.
+ */
+function composeStandingWindow(
+    document: PanelDocument,
+): { element: PanelElement; bar: PanelElement; body: PanelElement } {
+    const element = composeElement(document, "div", CLASS.standing);
+    const bar = composeStandingBar(document, false);
+    const body = composeSlotElement(document);
+    element.append(bar);
+    element.append(body);
+    return { element, bar, body };
+}
+
+/**
+ * The window's own four listeners, on the same root and answering to its own grip. Without a name
+ * on the mark both sets start on either bar: the panel moves by the wrong one and writes its
+ * stored place doing it.
+ */
+function setStandingDrag(
+    root: PanelRoot,
+    element: PanelElement,
+    getBar: () => PanelElement,
+    placement: PanelPlacement | null,
+    handleGesture: (failure: unknown) => void,
+): PanelDragHandle | null {
+    if (placement === null) return null;
+    return setPanelDrag(root, element, getBar, placement, handleGesture, STANDING_WINDOW);
+}
+
+function setStandingBarDrawn(
+    document: PanelDocument,
+    standing: PanelElement,
+    isCollapsed: boolean,
+    redraw: PanelRedraw,
+): PanelElement {
+    return redraw(standing, "standing", () => composeStandingBar(document, isCollapsed));
+}
+
+/**
+ * Folded, the body is composed empty rather than composed and hidden — a fight redraws every few
+ * seconds, and what is not drawn costs nothing to draw.
+ */
+function setStandingBodyDrawn(
+    document: PanelDocument,
+    standing: PanelElement,
+    reading: StandingReading | null,
+    isCollapsed: boolean,
+    redraw: PanelRedraw,
+): PanelElement {
+    if (reading === null) return redraw(standing, "standing", () => composeSlotElement(document));
+    if (isCollapsed) return redraw(standing, "standing", () => composeSlotElement(document));
+    return redraw(standing, "standing", () => composeStandingBody(document, reading));
+}
+
+/** The bar, the frame, the card and the window beside it — in the order they are drawn over. */
+function setPanelRootChildren(root: PanelRoot, children: readonly PanelElement[]): void {
+    for (const child of children) root.append(child);
+}
+
+/** The card, placed against wherever the panel is **now** rather than where it was wired. */
+function composeTipBeside(
+    document: PanelDocument,
+    register: TipRegister,
+    placement: PanelPlacement | null,
+    handleFailure: HandlePanelFailure,
+    getDrag: () => PanelDragHandle | null,
+): TipHandle {
+    const place = composeTipPlace(placement, () => getDrag()?.getPosition() ?? null);
+    return composeTipHandle(
+        document,
+        register,
+        (standing, compose) => composeTipInPlace(standing, compose, handleFailure),
+        place.getLeft,
+        place.getRoom,
+    );
+}
+
 export function composePanelHost(
     document: PanelDocument,
     handlePress: (press: PanelPress) => void,
@@ -1814,6 +2101,8 @@ export function composePanelHost(
     // Null is the panel drawing its own words, which is what every test and every browser
     // without the game sees. Who asks the client, and how often, is the entry's — ADR 0024.
     translate: TranslateLabel | null = null,
+    /** The second window's own corner, kept apart from the panel's: two windows, two answers. */
+    standingPlacement: PanelPlacement | null = null,
 ): PanelHandle {
     const { host, root } = composePanelShadow(document);
     const regions = composePanelRegions(document);
@@ -1830,34 +2119,82 @@ export function composePanelHost(
     const drawing = composeListDrawing(document, regions, handleFailure);
     // Null for good on a panel never made movable, which is every panel a test draws.
     let drag: PanelDragHandle | null = null;
-    const place = composeTipPlace(placement, () => drag?.getPosition() ?? null);
-    const tip: TipHandle = composeTipHandle(
-        document,
-        register,
-        (standing, compose) => composeTipInPlace(standing, compose, handleFailure),
-        place.getLeft,
-        place.getRoom,
-    );
-    root.append(regions.title);
-    root.append(frame);
-    root.append(tip.element);
-    const showTip = (key: string | null, clientY: number): void => tip.show(key, clientY);
+    const tip = composeTipBeside(document, register, placement, handleFailure, () => drag);
+    const standing = composeStandingWindow(document);
+    let standingBar = standing.bar;
+    let standingBody = standing.body;
+    setPanelRootChildren(root, [regions.title, frame, tip.element, standing.element]);
+    const showTip = (key: string | null, clientY: number) => tip.show(key, clientY);
     setPanelRootListeners(root, handlePress, showTip, handleGesture);
-    // After the listeners that read a press, and on the same root: a drag is four more of them,
-    // and the bar is the only thing on the panel that starts one.
+    // After the listeners that read a press, and on the same root: a drag is four more of them.
     if (placement !== null) {
-        drag = setPanelDrag(root, host, () => regions.title, placement, handleGesture);
+        drag = setPanelDrag(
+            root,
+            host,
+            () => regions.title,
+            placement,
+            handleGesture,
+        );
     }
+    const standingDrag = setStandingDrag(
+        root,
+        standing.element,
+        () => standingBar,
+        standingPlacement,
+        handleGesture,
+    );
+    return composePanelDrawing({
+        host,
+        document,
+        regions,
+        frame,
+        redraw,
+        register,
+        drawing,
+        translate,
+        tip,
+        getDrag: () => drag,
+        standingWindow: standing.element,
+        standingDrag,
+        getStandingBar: () => standingBar,
+        setStandingBar: (next: PanelElement) => standingBar = next,
+        getStandingBody: () => standingBody,
+        setStandingBody: (next: PanelElement) => standingBody = next,
+    });
+}
+
+/** What a draw is handed. Gathered rather than closed over, so the entry point stays a page. */
+interface PanelDrawing {
+    host: PanelElement;
+    document: PanelDocument;
+    regions: PanelRegions;
+    frame: PanelElement;
+    redraw: PanelRedraw;
+    register: TipRegister;
+    drawing: ListDrawing;
+    translate: TranslateLabel | null;
+    tip: TipHandle;
+    getDrag(): PanelDragHandle | null;
+    standingWindow: PanelElement;
+    standingDrag: PanelDragHandle | null;
+    getStandingBar(): PanelElement;
+    setStandingBar(next: PanelElement): void;
+    getStandingBody(): PanelElement;
+    setStandingBody(next: PanelElement): void;
+}
+
+function composePanelDrawing(held: PanelDrawing): PanelHandle {
+    const { document, regions, frame, redraw, register, drawing, tip } = held;
     return {
-        element: host,
+        element: held.host,
         show(shown: ShownScreen): void {
             drawing.keep();
             register.reset();
             setFoldDrawn(document, regions, frame, redraw, shown.isCollapsed, shown.hasFightToSave);
             if (shown.isCollapsed) setPanelFolded(document, regions, redraw);
-            else setPanelBody(document, regions, shown, register, translate, redraw, drawing);
+            else setPanelBody(document, regions, shown, register, held.translate, redraw, drawing);
             drawing.settle();
-            drag?.handleDrawn();
+            held.getDrag()?.handleDrawn();
             tip.refresh();
         },
         showWaiting(isCollapsed: boolean, waiting: WaitingReading): void {
@@ -1866,8 +2203,28 @@ export function composePanelHost(
             setFoldDrawn(document, regions, frame, redraw, isCollapsed, waiting.hasFightToSave);
             setPanelWaiting(document, regions, isCollapsed, waiting, redraw, drawing);
             drawing.settle();
-            drag?.handleDrawn();
+            held.getDrag()?.handleDrawn();
             tip.refresh();
+        },
+        showStanding(reading: StandingReading | null, isCollapsed: boolean): void {
+            // The mark on the frame and the body composed empty, both — as the panel's fold does.
+            // The frame is what stays across a draw, so it is what can say the window is away.
+            held.standingWindow.className = isCollapsed
+                ? `${CLASS.standing} ${CLASS.standingFolded}`
+                : CLASS.standing;
+            held.setStandingBar(
+                setStandingBarDrawn(document, held.getStandingBar(), isCollapsed, redraw),
+            );
+            held.setStandingBody(
+                setStandingBodyDrawn(
+                    document,
+                    held.getStandingBody(),
+                    reading,
+                    isCollapsed,
+                    redraw,
+                ),
+            );
+            held.standingDrag?.handleDrawn();
         },
     };
 }

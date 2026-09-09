@@ -5,7 +5,7 @@
  * test drives is the panel's own use of a document rather than a browser's implementation of one.
  */
 
-import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
+import { assert, assertExists, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
 import type { PanelDocument, PanelElement, PanelEvent, PanelRoot } from "@/src/ui/panel-element.ts";
 
 export interface FakeElement extends PanelElement {
@@ -161,6 +161,19 @@ export function getElementsWithin(element: FakeElement): FakeElement[] {
         assert(found.length <= 4096, "the walk stays inside its bound");
     }
     return found;
+}
+
+/**
+ * The panel's own frame under the host, apart from the card and the window beside it. A test that
+ * asks what the panel drew means the panel: three of its four root children draw rows of the same
+ * class, and counting them together says the panel drew what somebody else did.
+ */
+export function getPanelWithin(host: FakeElement): FakeElement {
+    // Folded, the frame wears a second class, and a test asking what it drew still means it.
+    const frame = getElementsWithin(host)
+        .find((one) => one.className.split(" ")[0] === "MargoMeter-body");
+    assertExists(frame, "the host carries the panel's own frame");
+    return frame;
 }
 
 export function getTextsByClass(element: FakeElement, className: string): string[] {

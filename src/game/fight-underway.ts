@@ -1,10 +1,12 @@
 /**
  * One fight, accumulated payload by payload.
  *
- * This file spells four of the client's names and nothing else does: `init`, which opens a
- * fight, `endBattle`, which ends one, `m`, the messages a payload carries, and `myteam`, the side
- * the reader is on. A payload carrying `init` starts a fight over; a payload arriving before one
- * has been seen is read all the same, because the reader may have joined a fight in progress.
+ * This file spells the client's envelope names and nothing else does: `init`, which opens a
+ * fight, `endBattle`, which ends one, `m`, the messages a payload carries, `myteam`, the side
+ * the reader is on, and `turns_warriors`, whose least entry is the turn in hand.
+ *
+ * A payload carrying `init` starts a fight over; a payload arriving before one has been seen is
+ * read all the same, because the reader may have joined a fight in progress.
  */
 
 import { assert } from "@std/assert/assert";
@@ -45,8 +47,50 @@ export const MESSAGE_INDEX_KEY = "mi";
  */
 /** The client's own name for the reader's side, spelled here and read from here — **N13**. */
 export const READER_SIDE_KEY = "myteam";
+/**
+ * The queue of turns the client draws as its prediction list (published help, article 372 §1.1,
+ * read 2026-09-02), spelled here because this is where the envelope is read (**N13**) — it is an
+ * envelope key and not a message key, which is why `docs/protocol-keys.md` has no entry for it.
+ *
+ * ⚠️ **Only its least entry is a statement.** The nine above it are the client's forecast, and
+ * measured over `captures/` on 2026-09-08 the step one ahead is wrong 11 times in 451 and the
+ * ninth 100 times in 277. Nothing here reads past the least.
+ */
+export const TURN_QUEUE_KEY = "turns_warriors";
 /** The longest fight in `captures/` decodes to 811 events, 2026-08-28. */
 const MAXIMUM_EVENTS = 65536;
+/** The queue is ten entries wide in all 1022 payloads carrying it, 2026-09-02. */
+const MAXIMUM_QUEUE = 1024;
+
+/** What the game stated about the turn in progress when a payload arrived. */
+export interface TurnStatement {
+    ordinal: number;
+    combatantId: number;
+}
+
+/**
+ * The turn in progress, as the payload's envelope states it: the queue's least ordinal, and whose
+ * it is. Null where the payload carries no queue — five recordings carry none at all, and the
+ * first payload of a fight is one of them everywhere else.
+ */
+export function readTurnStatement(payload: unknown): TurnStatement | null {
+    if (!isRecord(payload)) return null;
+    const queue = payload[TURN_QUEUE_KEY];
+    if (!isRecord(queue)) return null;
+    const ordinals = Object.keys(queue);
+    assert(ordinals.length <= MAXIMUM_QUEUE, "a queue stays inside its stated bound");
+    let least: number | null = null;
+    for (const stated of ordinals) {
+        const ordinal = getIntegerFromText(stated);
+        if (ordinal === null) return null;
+        if (least === null) least = ordinal;
+        else if (ordinal < least) least = ordinal;
+    }
+    if (least === null) return null;
+    const combatantId = getNumberFromUnknown(queue[`${least}`]);
+    if (combatantId === null) return null;
+    return { ordinal: least, combatantId };
+}
 
 export interface FightReading {
     roster: CombatantRoster;
@@ -60,6 +104,8 @@ export interface FightReading {
     payloads: number;
     /** Null where the client never said, which leaves the panel unable to tell one side apart. */
     readerSide: number | null;
+    /** The turn the newest payload stated, or null where it stated none. */
+    turnStatement: TurnStatement | null;
 }
 
 export interface FightUnderway {
@@ -72,6 +118,7 @@ export interface FightUnderway {
     payloads: number;
     hasFight: boolean;
     readerSide: number | null;
+    turnStatement: TurnStatement | null;
 }
 
 export function composeFightUnderway(): FightUnderway {
@@ -85,6 +132,7 @@ export function composeFightUnderway(): FightUnderway {
         payloads: 0,
         hasFight: false,
         readerSide: null,
+        turnStatement: null,
     };
     return underway;
 }
@@ -119,6 +167,7 @@ function resetFight(underway: FightUnderway): void {
     underway.isOver = false;
     underway.payloads = 0;
     underway.readerSide = null;
+    underway.turnStatement = null;
     assert(underway.events.length === 0, "a fight opens holding nothing");
     assert(underway.combatants.length === 0, "and knowing nobody until its payload states them");
 }
@@ -155,6 +204,9 @@ export function addPayloadToFight(underway: FightUnderway, payload: unknown): vo
     // Kept once seen, because only the opening payload carries it: a fragment saying nothing
     // about the side would otherwise take the reader's own away mid-fight.
     underway.readerSide = readReaderSideFromPayload(payload) ?? underway.readerSide;
+    // Kept for the same reason and on the same terms: a payload stating no queue leaves the turn
+    // the one before it stated standing, rather than taking the reading away mid-fight.
+    underway.turnStatement = readTurnStatement(payload) ?? underway.turnStatement;
     const roster = composeCombatantRoster(underway.combatants);
     const messages = readMessagesFromPayload(payload);
     underway.messagesByPayload.push(messages);
@@ -183,5 +235,6 @@ export function getReadingFromFight(underway: FightUnderway): FightReading | nul
         isOver: underway.isOver,
         payloads: underway.payloads,
         readerSide: underway.readerSide,
+        turnStatement: underway.turnStatement,
     };
 }

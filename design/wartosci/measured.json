@@ -1,0 +1,289 @@
+{
+    "readAt": "2026-09-09",
+    "recordings": 29,
+    "keys": [
+        {
+            "key": "+spell-taken_dmg-all",
+            "words": "otrzymywane obrażenia",
+            "amounts": [],
+            "casts": 59,
+            "skills": [
+                "Piętno bestii"
+            ],
+            "doesStateAmount": false
+        },
+        {
+            "key": "active_decblock_per-enemies",
+            "words": "blok",
+            "amounts": [
+                10,
+                5,
+                9
+            ],
+            "casts": 111,
+            "skills": [
+                "Wyzywający okrzyk"
+            ],
+            "doesStateAmount": true
+        },
+        {
+            "key": "alllowdmg",
+            "words": "obrażenia",
+            "amounts": [
+                5,
+                1,
+                4
+            ],
+            "casts": 111,
+            "skills": [
+                "Wyzywający okrzyk"
+            ],
+            "doesStateAmount": true
+        },
+        {
+            "key": "allslow_per",
+            "words": "szybkość ataku",
+            "amounts": [
+                14,
+                12,
+                10
+            ],
+            "casts": 104,
+            "skills": [
+                "Szadź"
+            ],
+            "doesStateAmount": true
+        },
+        {
+            "key": "aura-ac_per",
+            "words": "pancerz",
+            "amounts": [
+                20,
+                30
+            ],
+            "casts": 41,
+            "skills": [
+                "Aura ochrony",
+                "Przelotne werble ochronne"
+            ],
+            "doesStateAmount": true
+        },
+        {
+            "key": "aura-adddmg2_per-meele",
+            "words": "obrażenia bronią białą",
+            "amounts": [
+                5
+            ],
+            "casts": 47,
+            "skills": [
+                "Prowokujący okrzyk"
+            ],
+            "doesStateAmount": true
+        },
+        {
+            "key": "aura-resall",
+            "words": "odporności",
+            "amounts": [
+                15,
+                20
+            ],
+            "casts": 41,
+            "skills": [
+                "Aura ochrony",
+                "Przelotne werble ochronne"
+            ],
+            "doesStateAmount": true
+        },
+        {
+            "key": "aura-sa_per",
+            "words": "szybkość ataku",
+            "amounts": [
+                20,
+                11
+            ],
+            "casts": 75,
+            "skills": [
+                "Podwójny dech"
+            ],
+            "doesStateAmount": true
+        },
+        {
+            "key": "critmval-allies",
+            "words": "mnożnik krytyka",
+            "amounts": [
+                25
+            ],
+            "casts": 1,
+            "skills": [
+                "Przelotne diabelskie struny"
+            ],
+            "doesStateAmount": true
+        },
+        {
+            "key": "critval-allies",
+            "words": "siła krytyka",
+            "amounts": [
+                25
+            ],
+            "casts": 1,
+            "skills": [
+                "Przelotne diabelskie struny"
+            ],
+            "doesStateAmount": true
+        },
+        {
+            "key": "lowheal_per-enemies",
+            "words": "leczenie",
+            "amounts": [
+                27
+            ],
+            "casts": 4,
+            "skills": [
+                "Jadowity podmuch"
+            ],
+            "doesStateAmount": true
+        },
+        {
+            "key": "removedot-allies",
+            "words": "trucizny i rany zdjęte",
+            "amounts": [],
+            "casts": 2,
+            "skills": [
+                "Melodia wieków",
+                "Przelotna melodia wieków"
+            ],
+            "doesStateAmount": false
+        },
+        {
+            "key": "removeslow-allies",
+            "words": "spowolnienie zdjęte",
+            "amounts": [],
+            "casts": 1,
+            "skills": [
+                "Przelotna pieśń przebudzenia"
+            ],
+            "doesStateAmount": false
+        },
+        {
+            "key": "removestun-allies",
+            "words": "ogłuszenie zdjęte",
+            "amounts": [],
+            "casts": 1,
+            "skills": [
+                "Przelotna pieśń przebudzenia"
+            ],
+            "doesStateAmount": false
+        },
+        {
+            "key": "shout",
+            "words": "prowokacja",
+            "amounts": [],
+            "casts": 158,
+            "skills": [
+                "Wyzywający okrzyk",
+                "Prowokujący okrzyk"
+            ],
+            "doesStateAmount": false
+        }
+    ],
+    "skills": [
+        {
+            "skillId": 25,
+            "skillName": "Prowokujący okrzyk",
+            "keys": [
+                "shout",
+                "aura-adddmg2_per-meele"
+            ],
+            "turnsStated": 3
+        },
+        {
+            "skillId": 76,
+            "skillName": "Aura ochrony",
+            "keys": [
+                "aura-ac_per",
+                "aura-resall"
+            ],
+            "turnsStated": 8
+        },
+        {
+            "skillId": 89,
+            "skillName": "Podwójny dech",
+            "keys": [
+                "aura-sa_per"
+            ],
+            "turnsStated": 8
+        },
+        {
+            "skillId": 123,
+            "skillName": "Szadź",
+            "keys": [
+                "allslow_per"
+            ],
+            "turnsStated": 8
+        },
+        {
+            "skillId": 188,
+            "skillName": "Wyzywający okrzyk",
+            "keys": [
+                "shout",
+                "active_decblock_per-enemies",
+                "alllowdmg"
+            ],
+            "turnsStated": 3
+        },
+        {
+            "skillId": 219,
+            "skillName": "Jadowity podmuch",
+            "keys": [
+                "lowheal_per-enemies"
+            ],
+            "turnsStated": 8
+        },
+        {
+            "skillId": 264,
+            "skillName": "Piętno bestii",
+            "keys": [
+                "+spell-taken_dmg-all"
+            ],
+            "turnsStated": 8
+        }
+    ],
+    "covered": {
+        "moments": 104,
+        "examples": [
+            {
+                "recording": "captures/2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+                "skillName": "Szadź",
+                "amounts": [
+                    12,
+                    14
+                ]
+            },
+            {
+                "recording": "captures/2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+                "skillName": "Szadź",
+                "amounts": [
+                    12,
+                    14,
+                    14
+                ]
+            },
+            {
+                "recording": "captures/2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none.json",
+                "skillName": "Szadź",
+                "amounts": [
+                    12,
+                    14,
+                    14
+                ]
+            }
+        ]
+    },
+    "widest": {
+        "recording": "captures/2026-08-14-tempest-grupa-vs-draugr-2-1786514810315-none.json",
+        "keys": 5,
+        "casts": 5
+    },
+    "longestSkillName": "Prowokujący okrzyk",
+    "longestWords": "obrażenia bronią białą"
+}

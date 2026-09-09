@@ -331,6 +331,7 @@ export const PROC_WORDS: Record<string, string> = {
     "+acdmg_destroyed": "pancerz zniszczony",
     "-evade": "unik",
     "-contra": "kontra",
+    "-arrowblock": "blok strzały",
 };
 
 /**
@@ -502,6 +503,7 @@ export const COUNTED_NOUNS = {
     heals: { one: "uleczenie", few: "uleczenia", many: "uleczeń" },
     fights: { one: "walka", few: "walki", many: "walk" },
     combatants: { one: "postać", few: "postacie", many: "postaci" },
+    turns: { one: "tura", few: "tury", many: "tur" },
 } as const;
 
 /**
@@ -550,6 +552,62 @@ export function composeCountedNoun(count: number, noun: CountedNoun): string {
     if (lastTwo >= TEEN_FLOOR && lastTwo <= TEEN_CEILING) return `${count} ${noun.many}`;
     if (last >= FEW_FLOOR && last <= FEW_CEILING) return `${count} ${noun.few}`;
     return `${count} ${noun.many}`;
+}
+
+/** The window beside the panel. `Co stoi` is what stands now, never what was cast. */
+export const STANDING_WORDS = {
+    title: "Pomocnik",
+    drag: "Przeciągnij, żeby przesunąć",
+    collapse: "Zwiń Pomocnika",
+    expand: "Rozwiń Pomocnika",
+    now: "Teraz",
+    standing: "Co stoi",
+    nothingStands: "Nic nie stoi.",
+    /** Not "no turn": the game states one and this reading is what could not take it. */
+    turnUnread: "Nie wiadomo, czyja tura.",
+    casters: "Rzucający",
+    openRow: "LPM — kto rzucił",
+    /** Never `/`: this panel teaches `z` for *of*, so a slash between figures reads as one. */
+    sideSeparator: "|",
+    /** The two okrzyki share one state, so they share one heading — **ADR 0062**. */
+    provocation: "Prowokacja",
+    /** Who is holding a provoked character, and with which of the two skills. */
+    heldBy: "od",
+    /** Said once under the section, never on a row: it is not a person. **ADR 0062.** */
+    heldByAndSkill: "·",
+} as const;
+
+/** The game's own numbering, and never a count of what this fight has run. */
+export function composeTurnOrdinalText(ordinal: number): string {
+    if (!Number.isSafeInteger(ordinal)) return PANEL_WORDS.unknown;
+    if (ordinal < 0) return PANEL_WORDS.unknown;
+    return `tura ${composeIntegerText(ordinal)}`;
+}
+
+/**
+ * `3 z 8 tur` — what has passed of what the game publishes, and never a countdown. The protocol
+ * announces a cast and never mentions it again, so the subtraction is the reader's.
+ */
+export function composeStandingTurnsText(elapsed: number, stated: number): string {
+    if (!Number.isSafeInteger(elapsed)) return PANEL_WORDS.unknown;
+    if (!Number.isSafeInteger(stated)) return PANEL_WORDS.unknown;
+    if (elapsed < 0) return PANEL_WORDS.unknown;
+    return `${composeIntegerText(elapsed)} z ${composeCountedNoun(stated, COUNTED_NOUNS.turns)}`;
+}
+
+/** A plain count, for a fight the client named no side of the reader's own on. */
+export function composeStandingCountText(row: { casters: readonly unknown[] }): string {
+    return composeIntegerText(row.casters.length);
+}
+
+/** Who is holding a provoked character and with what, one unbreakable fact to a part. */
+export function composeProvokedHolderParts(casterName: string, skillName: string): string[] {
+    // The mark between two facts closes the one before it rather than opening the one after: a
+    // line starting with a lone `·` reads as a list nobody asked for.
+    return [
+        `${STANDING_WORDS.heldBy} ${casterName} ${STANDING_WORDS.heldByAndSkill}`,
+        skillName,
+    ];
 }
 
 export function getWordsForPin(isPinned: boolean): string {
@@ -701,6 +759,8 @@ export const REGION_WORDS = {
     defects: "spisu usterek",
     /** The card a row opens. It is not a region of the panel's frame, and it is drawn like one. */
     tip: "szczegółów wiersza",
+    /** The window beside the panel. Its own region, drawn and undrawn like any other. */
+    standing: "pomocnika",
 } as const;
 
 export type PanelRegion = keyof typeof REGION_WORDS;

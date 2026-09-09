@@ -22,6 +22,13 @@ import {
 import { GameUnreachableError } from "@/tools/margometer-tool-error.ts";
 import { writeFrozenKeyTable } from "@/tools/protocol-key-table.ts";
 import {
+    type CachedSkillTable,
+    getCachedSkillTable,
+    writeFrozenSkillTable,
+    writeSkillTableCache,
+} from "@/tools/skill-table.ts";
+import { FROZEN_SKILL_DURATIONS } from "@/frozen/skill-durations.ts";
+import {
     type CachedHelpArticle,
     composeAgeText,
     getCachedHelpArticle,
@@ -42,6 +49,8 @@ const NOTHING_CACHED = "nothing cached";
 export const EXIT_STALE = 1;
 export const EXIT_UNASKED = 2;
 const NAME_COLUMN = 14;
+/** Every reading this routine reports on, so a row quietly dropped fails rather than hides. */
+export const READINGS_REPORTED = 6;
 const SAYS_COLUMN = 66;
 
 export interface FrozenKeyReading {
@@ -52,6 +61,18 @@ export interface FrozenKeyReading {
 export interface FrozenHelpReading {
     fetchedAt: string;
     count: number;
+}
+
+export interface FrozenSkillReading {
+    fetchedAt: string;
+    count: number;
+}
+
+/** What the frozen modules held when this process started, in the order a refresh writes them. */
+export interface LoadedReadings {
+    keys: FrozenKeyReading;
+    help: FrozenHelpReading;
+    skills: FrozenSkillReading;
 }
 
 /**
@@ -177,20 +198,64 @@ export function composeFrozenHelpState(
 }
 
 /**
+ * The published skill table in `.cache/`, against the same floor the help dump is held to. It is
+ * the only source that states how long an effect runs for, so a reading behind the game here is a
+ * duration drawn beside a figure that moved.
+ */
+export function composeSkillDumpState(cached: CachedSkillTable | null, now: number): ReadingState {
+    assert(now > 0, "a dump's age is measured from an instant");
+    assert(cached === null || cached.url.length > 0, "and a cache admitted names what it fetched");
+    if (cached === null) {
+        return { name: "skill dump", verdict: "stale", says: `skills ${NOTHING_CACHED}` };
+    }
+    return {
+        name: "skill dump",
+        verdict: isDumpStale(cached.fetchedAt, now) ? "stale" : "current",
+        says: composeAgeText(cached.fetchedAt, now),
+    };
+}
+
+/** The frozen durations against the page they were taken off. */
+export function composeFrozenSkillState(
+    frozen: FrozenSkillReading,
+    cached: CachedSkillTable | null,
+): ReadingState {
+    const count = composeIntegerText(frozen.count);
+    assert(frozen.fetchedAt.length > 0, "frozen durations are dated by the page they came off");
+    assert(frozen.count > 0, "and count something");
+    if (cached === null) {
+        return {
+            name: "frozen skills",
+            verdict: "stale",
+            says: `frozen ${frozen.fetchedAt}, ${NOTHING_CACHED}`,
+        };
+    }
+    return {
+        name: "frozen skills",
+        verdict: frozen.fetchedAt === cached.fetchedAt ? "current" : "stale",
+        says: `page ${cached.fetchedAt}  ${count} skills`,
+    };
+}
+
+/**
  * What the frozen modules held when this process started. ⚠️ **A refresh rewrites those files and
  * these bindings do not move with them**, so the routine reports what it has just written instead
  * of asking again: a status composed from here after a refresh calls a current table STALE, which
  * is how this was found on 2026-09-03.
  */
-export function getLoadedReadings(): { keys: FrozenKeyReading; help: FrozenHelpReading } {
+export function getLoadedReadings(): LoadedReadings {
     const keys = { build: FROZEN_PROTOCOL_KEYS.gameBuild, count: FROZEN_PROTOCOL_KEYS.keys.length };
     const help = {
         fetchedAt: FROZEN_HELP_PHRASES.fetchedAt,
         count: Object.keys(FROZEN_HELP_PHRASES.counts).length,
     };
+    const skills = {
+        fetchedAt: FROZEN_SKILL_DURATIONS.fetchedAt,
+        count: FROZEN_SKILL_DURATIONS.skills.length,
+    };
     assert(keys.build.length > 0, "a module that was loaded is dated by a build");
     assert(help.fetchedAt.length > 0, "and the other by the dump it was counted over");
-    return { keys, help };
+    return { keys, help, skills };
 }
 
 /**
@@ -209,17 +274,20 @@ async function readClientState(cached: CachedClientSource | null): Promise<Readi
 /** Every reading, in the order a refresh does them: each one dates the one after it. */
 export async function readReadingStates(
     now: number,
-    frozen: { keys: FrozenKeyReading; help: FrozenHelpReading },
+    frozen: LoadedReadings,
 ): Promise<ReadingState[]> {
     const client = getCachedClientSource(CHANNEL);
     const dump = getCachedHelpArticle(MECHANICS_ARTICLE);
+    const table = getCachedSkillTable();
     const states = [
         await readClientState(client),
         composeFrozenKeyState(frozen.keys, client),
         composeHelpDumpState(dump, now),
         composeFrozenHelpState(frozen.help, dump),
+        composeSkillDumpState(table, now),
+        composeFrozenSkillState(frozen.skills, table),
     ];
-    assertStrictEquals(states.length, 4, "every reading was reported on");
+    assertStrictEquals(states.length, READINGS_REPORTED, "every reading was reported on");
     assert(states.every((one) => one.name.length > 0), "and each names itself");
     return states;
 }
@@ -237,12 +305,11 @@ function writeReadingsReport(
 }
 
 /**
- * The four in the order that makes each meaningful: a table is frozen from the bundle fetched a
- * line above it, and counts from the dump fetched a line above them.
+ * Each in the order that makes it meaningful: a table is frozen from the bundle fetched a line
+ * above it, counts from the dump fetched a line above them, and durations from the page above
+ * those.
  */
-async function writeRefreshedReadings(): Promise<
-    { keys: FrozenKeyReading; help: FrozenHelpReading }
-> {
+async function writeRefreshedReadings(): Promise<LoadedReadings> {
     const client = await writeClientSourceCache(CHANNEL);
     console.log(`client        build ${client.build} → ${client.bundlePath}`);
     const keys = writeFrozenKeyTable();
@@ -255,11 +322,22 @@ async function writeRefreshedReadings(): Promise<
     console.log(
         `frozen help   ${composeIntegerText(help.counts.length)} phrases over ${help.fetchedAt}\n`,
     );
+    const table = await writeSkillTableCache();
+    console.log(
+        `skill dump    ${composeIntegerText(table.pageLength)} characters → ${table.pagePath}`,
+    );
+    const skills = writeFrozenSkillTable();
+    console.log(
+        `frozen skills ${composeIntegerText(skills.skills)} skills, ${
+            composeIntegerText(skills.auras)
+        } reaching a side\n`,
+    );
     assertStrictEquals(client.channel, CHANNEL, "the routine refreshed the channel it decides on");
     assert(help.counts.length > 0, "and froze counts over the dump it had just fetched");
     return {
         keys: { build: keys.build, count: keys.count },
         help: { fetchedAt: help.fetchedAt, count: help.counts.length },
+        skills: { fetchedAt: skills.fetchedAt, count: skills.skills },
     };
 }
 
@@ -268,11 +346,9 @@ async function writeRefreshedReadings(): Promise<
  * behind the game is invisible to the gate, so it is visible here — and a world that did not
  * answer is its own exit, because an outage is not evidence that anything moved.
  */
-async function writeReadingsStatus(
-    frozen: { keys: FrozenKeyReading; help: FrozenHelpReading },
-): Promise<void> {
+async function writeReadingsStatus(frozen: LoadedReadings): Promise<void> {
     const states = await readReadingStates(Date.now(), frozen);
-    assertStrictEquals(states.length, 4, "the report covers every reading");
+    assertStrictEquals(states.length, READINGS_REPORTED, "the report covers every reading");
     assert(states.every((one) => one.says.length > 0), "and each row says what it compared");
     const loud = writeReadingsReport(states);
     if (loud.stale > 0) Deno.exit(EXIT_STALE);

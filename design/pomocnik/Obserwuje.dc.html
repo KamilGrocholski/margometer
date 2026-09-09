@@ -1,0 +1,620 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="./support.js"></script>
+    </head>
+    <body>
+        <x-dc>
+            <helmet>
+                <style>
+                @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+                body {
+                    margin: 0;
+                }
+                * {
+                    box-sizing: border-box;
+                }
+                a {
+                    color: #a8600b;
+                }
+                a:hover {
+                    color: #7d4708;
+                }
+
+                /* ---- the sheet the mockups stand on ---- */
+                .sheet {
+                    width: 100%;
+                    min-height: 100%;
+                    background: #f5f3ee;
+                    color: #1b1a17;
+                    font-family: "IBM Plex Sans",system-ui,sans-serif;
+                    padding: 34px 38px 38px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                }
+                .tag {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .16em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    display: flex;
+                    gap: 10px;
+                    align-items: center;
+                }
+                .tag .dot {
+                    width: 5px;
+                    height: 5px;
+                    background: #a8600b;
+                    border-radius: 50%;
+                    flex: none;
+                }
+                .tag .rec {
+                    color: #2c6b4c;
+                }
+                .tag .no {
+                    color: #a8600b;
+                }
+                h1 {
+                    font-size: 25px;
+                    line-height: 1.14;
+                    margin: 8px 0 0;
+                    font-weight: 600;
+                    letter-spacing: -.012em;
+                }
+                .lede {
+                    font-size: 13.5px;
+                    line-height: 1.55;
+                    color: #4a463e;
+                    max-width: 64ch;
+                    margin: 8px 0 0;
+                    text-wrap: pretty;
+                }
+                .stage {
+                    background: #0b0b0e;
+                    border: 1px solid #d9d5cc;
+                    padding: 24px;
+                    display: flex;
+                    gap: 24px;
+                    align-items: flex-start;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                }
+                .stage.tight {
+                    padding: 18px;
+                    gap: 16px;
+                }
+                .stage.left {
+                    justify-content: flex-start;
+                }
+                .cap {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .1em;
+                    text-transform: uppercase;
+                    color: #75705f;
+                    margin-bottom: 8px;
+                }
+                .cap.good {
+                    color: #4f9d76;
+                }
+                .cap.warn {
+                    color: #c98500;
+                }
+                .hold {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
+                }
+                .notes {
+                    display: grid;
+                    grid-template-columns: repeat(2,minmax(0,1fr));
+                    gap: 14px 28px;
+                    border-top: 1px solid #d9d5cc;
+                    padding-top: 16px;
+                }
+                .notes.three {
+                    grid-template-columns: repeat(3,minmax(0,1fr));
+                }
+                .note h3 {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .12em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    margin: 0 0 5px;
+                    font-weight: 500;
+                }
+                .note h3.warn {
+                    color: #a8600b;
+                }
+                .note h3.good {
+                    color: #2c6b4c;
+                }
+                .note p {
+                    margin: 0;
+                    font-size: 12.5px;
+                    line-height: 1.5;
+                    color: #33302a;
+                    text-wrap: pretty;
+                }
+                .m {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 11.5px;
+                    background: #eae7df;
+                    padding: 1px 4px;
+                }
+                .stage .m {
+                    background: #24242a;
+                    color: #e7e7ea;
+                }
+                table.reg {
+                    border-collapse: collapse;
+                    width: 100%;
+                    font-size: 12.5px;
+                }
+                table.reg th {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .1em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    font-weight: 500;
+                    text-align: left;
+                    padding: 0 12px 6px 0;
+                    border-bottom: 1px solid #d9d5cc;
+                }
+                table.reg td {
+                    padding: 6px 12px 6px 0;
+                    border-bottom: 1px solid #e6e2d9;
+                    vertical-align: top;
+                    line-height: 1.45;
+                }
+                table.reg td.n {
+                    text-align: right;
+                    font-variant-numeric: tabular-nums;
+                    padding-right: 16px;
+                }
+                table.reg .mono {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 11.5px;
+                }
+                table.reg .flag {
+                    color: #a8600b;
+                }
+                table.reg .ok {
+                    color: #2c6b4c;
+                }
+                table.reg .none {
+                    color: #8a8478;
+                }
+                .cost {
+                    display: flex;
+                    gap: 18px;
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .08em;
+                    text-transform: uppercase;
+                    color: #75705f;
+                    margin-top: 10px;
+                }
+                .cost b {
+                    color: #c9c9d1;
+                    font-weight: 500;
+                }
+                .stage .cost {
+                    color: #75705f;
+                }
+
+                /* ---- the panel and the window, 1:1, values from src/ui/panel-look.ts ---- */
+                .w-bar {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 4px 8px;
+                    font: 11px/13px system-ui,sans-serif;
+                    letter-spacing: .06em;
+                    color: #9a9aa6;
+                    background: #1f1f26;
+                    border: 1px solid #2c2c35;
+                    border-bottom: none;
+                    border-radius: 8px 8px 0 0;
+                    white-space: nowrap;
+                }
+                .w-bar .ver {
+                    opacity: .7;
+                    font-size: 10px;
+                }
+                .w-bar .ctl {
+                    margin-left: auto;
+                    display: flex;
+                    gap: 4px;
+                }
+                .w-body {
+                    background: #17171c;
+                    border: 1px solid #2c2c35;
+                    border-radius: 0 0 8px 8px;
+                    font: 11px/15px system-ui,sans-serif;
+                    color: #e7e7ea;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .reg {
+                    padding: 5px 7px;
+                }
+                .reg.rows {
+                    padding-bottom: 3px;
+                }
+                .hd {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                }
+                .hd .out {
+                    color: #9a9aa6;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                }
+                .hd .pl {
+                    color: #9a9aa6;
+                    font-size: 10px;
+                }
+                .tabs {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 2px;
+                    padding: 5px 7px 0;
+                }
+                .tabs + .tabs {
+                    padding-top: 3px;
+                }
+                .tabs .gap {
+                    flex: 1;
+                }
+                .tab {
+                    padding: 1px 4px;
+                    border-radius: 3px;
+                    color: #9a9aa6;
+                    white-space: nowrap;
+                }
+                .tab.on {
+                    color: #e7e7ea;
+                    background: #1f1f26;
+                }
+                .sec {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    color: #868691;
+                    letter-spacing: .08em;
+                    font-size: 10px;
+                    text-transform: uppercase;
+                    padding: 4px 2px 2px;
+                }
+                .sec .n {
+                    font-variant-numeric: tabular-nums;
+                    letter-spacing: 0;
+                }
+                .row {
+                    position: relative;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    height: 18px;
+                    padding: 1px 8px 0;
+                    margin-bottom: 2px;
+                    border-radius: 3px;
+                    background: #24242a;
+                    overflow: hidden;
+                }
+                .row.open {
+                    box-shadow: inset 3px 0 0 #e7e7ea;
+                }
+                .bar {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    opacity: .55;
+                }
+                .rest {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                }
+                .cap3 {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 3px;
+                    border-radius: 3px 0 0 3px;
+                }
+                .rk {
+                    position: relative;
+                    flex: none;
+                    width: 22px;
+                    text-align: right;
+                    padding-right: 4px;
+                    color: #9a9aa6;
+                    font-variant-numeric: tabular-nums;
+                }
+                .nm {
+                    position: relative;
+                    flex: 1;
+                    min-width: 0;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                .val {
+                    position: relative;
+                    flex: none;
+                    padding-left: 8px;
+                    font-weight: 600;
+                    font-variant-numeric: tabular-nums;
+                    white-space: nowrap;
+                }
+                .val .of {
+                    color: #9a9aa6;
+                    font-weight: 400;
+                }
+                .sh {
+                    color: #9a9aa6;
+                    padding-left: 4px;
+                    font-weight: 400;
+                }
+                .warn {
+                    position: relative;
+                    flex: none;
+                    color: #c98500;
+                    padding-right: 4px;
+                }
+                .marks {
+                    position: relative;
+                    flex: none;
+                    display: flex;
+                    gap: 3px;
+                    align-items: center;
+                    padding-left: 6px;
+                }
+                .mk {
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 2px;
+                    flex: none;
+                }
+                .mk.hollow {
+                    background: none;
+                    border: 1px solid #3a3a44;
+                }
+                .quiet {
+                    color: #9a9aa6;
+                    padding: 1px 2px 3px;
+                }
+                .off {
+                    color: #6b6b75;
+                }
+                .sides {
+                    padding: 5px 7px;
+                    border-top: 1px solid #2c2c35;
+                }
+                .sl {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    font-variant-numeric: tabular-nums;
+                    font-weight: 600;
+                }
+                .slab {
+                    color: #9a9aa6;
+                    font-weight: 400;
+                    opacity: .8;
+                }
+                .track {
+                    display: flex;
+                    height: 4px;
+                    margin-top: 4px;
+                    border-radius: 3px;
+                    overflow: hidden;
+                    background: #24242a;
+                }
+                .track > * {
+                    background: currentColor;
+                }
+                .ours {
+                    color: #6fbf8b;
+                }
+                .theirs {
+                    color: #e0736f;
+                }
+                .nobody {
+                    color: #8a8a80;
+                }
+                .split {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                }
+
+                /* ---- the legend beside a stage ---- */
+                .leg {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 7px;
+                    width: 206px;
+                    flex: none;
+                }
+                .leg .item {
+                    display: flex;
+                    gap: 9px;
+                    align-items: flex-start;
+                }
+                .leg .sw {
+                    flex: none;
+                    width: 34px;
+                    height: 14px;
+                    border-radius: 3px;
+                    background: #24242a;
+                    position: relative;
+                    overflow: hidden;
+                    margin-top: 1px;
+                }
+                .leg .tx {
+                    font: 12px/1.45 "IBM Plex Sans",system-ui,sans-serif;
+                    color: #c9c9d1;
+                }
+                .leg .tx b {
+                    font-weight: 600;
+                    color: #e7e7ea;
+                }
+                .leg .tx .m {
+                    background: #24242a;
+                    color: #e7e7ea;
+                }
+                </style>
+            </helmet>
+            <div class="sheet">
+                <div
+                    class="tag"><span class="dot"></span>Sterowanie &#183; wsp&#243;lne dla wszystkich opcji</div>
+                <h1>Lista jest kontrolk&#261; &mdash; bez okna ustawie&#324;</h1>
+                <p
+                    class="lede">Bez modala, bez drugiego okna i bez kradzie&#380;y ogniskowej: <em>The Quiet Panel Rule</em> nie robi wyj&#261;tku dla konfiguracji, a drugie okno na ustawienia drugiego okna by&#322;oby trzecim oknem na cudzej stronie. Kontrolka na pasku zamienia cia&#322;o okna w list&#281; obserwowanych i z powrotem &mdash; tak samo jak p&#243;&#322;ka w panelu przykrywa jego ekrany. Lista m&#243;wi dwie rzeczy naraz: czego pilnujemy i ile z tego stoi w tej chwili.</p>
+                <div class="stage">
+                    <div class="hold">
+                        <div class="cap good">CO STOI</div>
+                        <div style="width:210px">
+                            <div class="w-bar"
+                                style="width:210px">&#10287; Pomocnik<span class="ctl">&#8801; &mdash;</span></div>
+                            <div class="w-body" style="width:210px">
+                                <div class="reg rows">
+                                    <div
+                                        class="sec"><span>Teraz</span><span class="n">tura 248 &#183; 1:52</span></div>
+                                    <div
+                                        class="row"><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Gracz 5</span><span class="val">3<span class="of"> z 3</span></span></div>
+                                    <div
+                                        class="sec"><span>Co stoi</span><span class="n">7</span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:75%;background:#24242a;opacity:1"></div><div class="bar" style="width:50%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:50%;width:25%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Pi&#281;tno bestii</span><span class="val"><span style="color:#6fbf8b">2</span><span class="of"> | </span><span style="color:#e0736f">1</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:75%;background:#24242a;opacity:1"></div><div class="bar" style="width:0%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:0%;width:75%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Szad&#378;</span><span class="val"><span style="color:#6fbf8b">0</span><span class="of"> | </span><span style="color:#e0736f">3</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:100%;background:#24242a;opacity:1"></div><div class="bar" style="width:75%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:75%;width:25%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Podw&#243;jny dech</span><span class="val"><span style="color:#6fbf8b">3</span><span class="of"> | </span><span style="color:#e0736f">1</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:50%;background:#24242a;opacity:1"></div><div class="bar" style="width:25%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:25%;width:25%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Aura ochrony</span><span class="val"><span style="color:#6fbf8b">1</span><span class="of"> | </span><span style="color:#e0736f">1</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:75%;background:#24242a;opacity:1"></div><div class="bar" style="width:25%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:25%;width:50%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Ostatni Ratunek</span><span class="val"><span style="color:#6fbf8b">1</span><span class="of"> | </span><span style="color:#e0736f">2</span></span></div>
+                                </div>
+                                <div class="reg" style="border-top:1px solid #2c2c35">
+                                    <div
+                                        class="sec"><span class="off">Kto</span><span class="n off">wy&#322;&#261;czone</span></div>
+                                    <div class="quiet off">20 wierszy w ustawce.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hold">
+                        <div
+                            class="cap ">LISTA &mdash; TA SAMA RAMKA, TA SAMA SZEROKO&#346;&#262;</div>
+                        <div style="width:210px">
+                            <div class="w-bar"
+                                style="width:210px">&#10287; Pomocnik<span class="ctl">&#8801; &mdash;</span></div>
+                            <div class="w-body" style="width:210px">
+                                <div class="reg rows">
+                                    <div
+                                        class="sec"><span>Obserwuj&#281;</span><span class="n">11 z 15</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk" style="width:11px;height:11px;background:#6fbf8b;margin-right:7px"></span></span><span class="nm">Pi&#281;tno bestii</span><span class="val" style="font-weight:400;color:#e7e7ea">2</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk" style="width:11px;height:11px;background:#6fbf8b;margin-right:7px"></span></span><span class="nm">Szad&#378;</span><span class="val" style="font-weight:400;color:#e7e7ea">3</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk" style="width:11px;height:11px;background:#6fbf8b;margin-right:7px"></span></span><span class="nm">Podw&#243;jny dech</span><span class="val" style="font-weight:400;color:#e7e7ea">4</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk" style="width:11px;height:11px;background:#6fbf8b;margin-right:7px"></span></span><span class="nm">Aura ochrony</span><span class="val" style="font-weight:400;color:#e7e7ea">1</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk" style="width:11px;height:11px;background:#6fbf8b;margin-right:7px"></span></span><span class="nm">Wyzywaj&#261;cy okrzyk</span><span class="val" style="font-weight:400;color:#e7e7ea">1</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk" style="width:11px;height:11px;background:#6fbf8b;margin-right:7px"></span></span><span class="nm">Os&#322;ona tarcz&#261;</span><span class="val" style="font-weight:400;color:#e7e7ea">2</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk" style="width:11px;height:11px;background:#6fbf8b;margin-right:7px"></span></span><span class="nm">Jadowity podmuch</span><span class="val" style="font-weight:400;color:#6b6b75">&mdash;</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk" style="width:11px;height:11px;background:#6fbf8b;margin-right:7px"></span></span><span class="nm">Ostatni Ratunek</span><span class="val" style="font-weight:400;color:#e7e7ea">3</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk" style="width:11px;height:11px;background:#6fbf8b;margin-right:7px"></span></span><span class="nm">Dotyk anio&#322;a</span><span class="val" style="font-weight:400;color:#e7e7ea">1</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk" style="width:11px;height:11px;background:#6fbf8b;margin-right:7px"></span></span><span class="nm">&#321;adowanie przeciwnika</span><span class="val" style="font-weight:400;color:#6b6b75">&mdash;</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk" style="width:11px;height:11px;background:#6fbf8b;margin-right:7px"></span></span><span class="nm">Zegar i kombinacja</span><span class="val" style="font-weight:400;color:#e7e7ea">1</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk hollow" style="width:11px;height:11px;margin-right:7px"></span></span><span class="nm" class="nm off">Stany z maski</span><span class="val" style="font-weight:400;color:#6b6b75">&mdash;</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk hollow" style="width:11px;height:11px;margin-right:7px"></span></span><span class="nm" class="nm off">Pancerz i odporno&#347;ci</span><span class="val" style="font-weight:400;color:#6b6b75">&mdash;</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk hollow" style="width:11px;height:11px;margin-right:7px"></span></span><span class="nm" class="nm off">Kolejka tur</span><span class="val" style="font-weight:400;color:#6b6b75">&mdash;</span></div>
+                                    <div
+                                        class="row"><span class="marks" style="padding-left:0"><span class="mk hollow" style="width:11px;height:11px;margin-right:7px"></span></span><span class="nm" class="nm off">Odnowienia w&#322;asne</span><span class="val" style="font-weight:400;color:#6b6b75">&mdash;</span></div>
+                                </div>
+                                <div class="reg" style="border-top:1px solid #2c2c35">
+                                    <div class="sec"><span>Okno</span></div>
+                                    <div
+                                        class="row"><span class="nm">T&#322;o</span><span class="val" style="font-weight:400"><span class="off">przezroczyste</span> <span style="background:#1f1f26;border-radius:3px;padding:1px 4px">pe&#322;ne</span></span></div>
+                                    <div
+                                        class="row"><span class="nm">Poza walk&#261;</span><span class="val" style="font-weight:400"><span style="background:#1f1f26;border-radius:3px;padding:1px 4px">schowaj</span> <span class="off">zostaw</span></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="leg">
+                        <div class="item">
+                            <div class="sw"
+                                style="background:none;display:flex;align-items:center;padding-left:2px"><span class="mk" style="width:11px;height:11px;background:#6fbf8b"></span></div>
+                            <div
+                                class="tx"><b>Pude&#322;ko, nie znaczek.</b> Ta sama sztuczka co przy pineskach p&#243;&#322;ki: ptaszek nie ma tej samej szeroko&#347;ci na ka&#380;dej platformie, a pude&#322;ko ma.</div>
+                        </div>
+                        <div class="item">
+                            <div class="sw"
+                                style="background:none;color:#6b6b75;display:flex;align-items:center;justify-content:flex-end;padding-right:6px;font:11px system-ui">&mdash;</div>
+                            <div
+                                class="tx"><b>Kreska to zero, nie brak.</b> Rzecz obserwowana, pod kt&#243;r&#261; teraz nikogo nie ma &mdash; i dlatego nie ma jej te&#380; w oknie obok.</div>
+                        </div>
+                        <div class="item">
+                            <div class="sw"
+                                style="background:none;display:flex;align-items:center;padding-left:2px"><span class="mk hollow" style="width:11px;height:11px"></span></div>
+                            <div
+                                class="tx"><b>Wy&#322;&#261;czone zostaje na li&#347;cie.</b> Czytelnik ma widzie&#263;, czego nie pilnuje &mdash; inaczej cisza w oknie jest dwuznaczna.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="notes three">
+                    <div class="note">
+                        <h3>Jedena&#347;cie domy&#347;lnych, cztery do wzi&#281;cia</h3>
+                        <p>Wy&#322;&#261;czone s&#261; dok&#322;adnie te cztery, kt&#243;re kosztuj&#261; wiersz na <em>posta&#263;</em>, a nie na rzut: stany, pancerz, kolejka i odnowienia. To jest ta sama granica, kt&#243;r&#261; opcje A, C i E rozstrzygaj&#261; r&#243;&#380;nie &mdash; lista jest miejscem, gdzie czytelnik mo&#380;e j&#261; przesun&#261;&#263;.</p>
+                    </div>
+                    <div class="note">
+                        <h3>Szeroko&#347;&#263; si&#281; nie zmienia</h3>
+                        <p>Ta sama ramka, to samo miejsce, jedno naci&#347;ni&#281;cie tam i z powrotem &mdash; i nic pod spodem si&#281; nie przesuwa, bo okno nie zmienia szeroko&#347;ci przy prze&#322;&#261;czeniu. To jest warunek, nie skutek uboczny.</p>
+                    </div>
+                    <div class="note">
+                        <h3 class="good">Dwie opcje wzi&#281;te wprost od nich</h3>
+                        <p>Przezroczysto&#347;&#263; t&#322;a i chowanie poza walk&#261; to sensowne ustawienia i nie ma powodu wymy&#347;la&#263; ich inaczej. Stoj&#261; pod kresk&#261;, bo dotycz&#261; okna, a nie tego, co w nim jest.</p>
+                    </div>
+                    <div class="note">
+                        <h3
+                            class="warn">&#8222;Schowaj poza walk&#261;&#8221; kontra &#8222;nie znika samo&#8221;</h3>
+                        <p>Te dwie rzeczy si&#281; nie k&#322;&#243;c&#261; i warto powiedzie&#263; dlaczego: okno, kt&#243;re <em>samo</em> decyduje o znikni&#281;ciu, nie r&#243;&#380;ni si&#281; od zepsutego. Okno, kt&#243;re znika, bo czytelnik tak ustawi&#322;, jest jego odpowiedzi&#261;.</p>
+                    </div>
+                    <div class="note">
+                        <h3>Gdzie to mieszka mi&#281;dzy walkami</h3>
+                        <p>W magazynie przegl&#261;darki, obok czterech kluczy panelu (<span class="m">MargoMeter-place</span>, <span class="m">-folded</span>, <span class="m">-fights</span>, <span class="m">-storage</span>). Odmowa zapisu jest odpowiedzi&#261;, nie awari&#261;: lista wraca do domy&#347;lnej i okno m&#243;wi to raz, w jednym miejscu.</p>
+                    </div>
+                    <div class="note">
+                        <h3>W opcji B lista jest p&#243;&#322;k&#261;</h3>
+                        <p>Pasmo w panelu nie ma w&#322;asnego paska, wi&#281;c kontrolka wchodzi na pasek panelu obok <span class="m">&#9776;</span>. To trzeci przycisk w tym pasku i jedyny powa&#380;ny koszt B poza wysoko&#347;ci&#261;.</p>
+                    </div>
+                </div>
+            </div>
+        </x-dc>
+    </body>
+</html>

@@ -133,10 +133,10 @@ Properties: `align-items` · `align-self` · `all` · `background` · `border` �
 `display` · `flex` · `flex-direction` · `flex-wrap` · `font` · `font-size` · `font-style` ·
 `font-variant-numeric` · `font-weight` · `gap` · `height` · `justify-content` · `left` ·
 `letter-spacing` · `margin` · `margin-bottom` · `margin-left` · `margin-right` · `margin-top` ·
-`max-height` · `min-height` · `min-width` · `opacity` · `overflow` · `overflow-x` · `overflow-y` ·
-`padding` · `padding-bottom` · `padding-left` · `padding-right` · `padding-top` · `pointer-events` ·
-`position` · `right` · `text-align` · `text-overflow` · `text-transform` · `top` · `touch-action` ·
-`white-space` · `width` · `z-index`
+`max-height` · `min-height` · `min-width` · `opacity` · `overflow` · `overflow-wrap` · `overflow-x`
+· `overflow-y` · `padding` · `padding-bottom` · `padding-left` · `padding-right` · `padding-top` ·
+`pointer-events` · `position` · `right` · `text-align` · `text-overflow` · `text-transform` · `top`
+· `touch-action` · `white-space` · `width` · `z-index`
 
 Pairs: `-webkit-user-select: none` · `align-items: baseline` · `align-items: center` ·
 `align-self: center` · `align-self: stretch` · `all: initial` · `background: currentColor` ·
@@ -146,11 +146,11 @@ Pairs: `-webkit-user-select: none` · `align-items: baseline` · `align-items: c
 `display: none` · `flex: auto` · `flex: none` · `flex-direction: column` · `flex-wrap: wrap` ·
 `font: sans-serif` · `font: system-ui` · `font-style: italic` · `font-variant-numeric: tabular-nums`
 · `justify-content: center` · `justify-content: space-between` · `margin-left: auto` ·
-`mask-image: transparent` · `overflow: hidden` · `overflow-x: hidden` · `overflow-y: auto` ·
-`pointer-events: none` · `position: absolute` · `position: fixed` · `position: relative` ·
-`position: sticky` · `scrollbar-width: none` · `text-align: center` · `text-align: right` ·
-`text-overflow: ellipsis` · `text-transform: uppercase` · `touch-action: none` · `user-select: none`
-· `white-space: nowrap`
+`mask-image: transparent` · `overflow: hidden` · `overflow-wrap: break-word` · `overflow-x: hidden`
+· `overflow-y: auto` · `pointer-events: none` · `position: absolute` · `position: fixed` ·
+`position: relative` · `position: sticky` · `scrollbar-width: none` · `text-align: center` ·
+`text-align: right` · `text-overflow: ellipsis` · `text-transform: uppercase` · `touch-action: none`
+· `user-select: none` · `white-space: nowrap`
 
 Functions: `calc` · `clamp` · `min` · `repeating-linear-gradient` · `rgb` · `var`
 

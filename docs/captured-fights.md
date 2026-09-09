@@ -32,6 +32,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `1 vs 1`  | `3`        |
 | `1 vs 2`  | `1`        |
 | `1 vs 3`  | `1`        |
+| `2 vs 1`  | `1`        |
 | `5 vs 1`  | `1`        |
 | `9 vs 1`  | `1`        |
 | `10 vs 1` | `22`       |
@@ -69,6 +70,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`                  | `10 vs 1` | `theirs won` | `10 players · b 1, h 1, p 2, t 3, w 3 · levels 83–100`     | `1 NPC · p 1 · level 83`           | `209110`             |
 | `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json`                | `10 vs 1` | `ours won`   | `10 players · b 2, m 4, t 2, w 2 · levels 83–107`          | `1 NPC · p 1 · level 83`           | `209110`             |
 | `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json`         | `5 vs 1`  | `theirs won` | `5 players · m 2, p 1, t 1, w 1 · levels 23–61`            | `1 NPC · b 1 · level 36`           | `49124`              |
+| `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json`               | `2 vs 1`  | `ours won`   | `2 players · h 1, t 1 · level 70`                          | `1 player · w 1 · level 64`        | `15615`              |
 
 ## The recordings
 
@@ -103,6 +105,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json`                | `luvia`        | `53XkBRxF`      | `0.9.0`       | `111` | `715`    |
 | `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`                  | `luvia`        | `53XkBRxF`      | `0.9.0`       | `15`  | `709`    |
 | `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json`         | `luvia`        | `ne0iTNdg`      | `0.14.0`      | `3`   | `171`    |
+| `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json`               | `tempest`      | `ne0iTNdg`      | `0.14.0`      | `24`  | `124`    |
 
 ## What the material does not hold
 

@@ -1,0 +1,643 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="./support.js"></script>
+    </head>
+    <body>
+        <x-dc>
+            <helmet>
+                <style>
+                @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+                body {
+                    margin: 0;
+                }
+                * {
+                    box-sizing: border-box;
+                }
+                a {
+                    color: #a8600b;
+                }
+                a:hover {
+                    color: #7d4708;
+                }
+
+                /* ---- the sheet the mockups stand on ---- */
+                .sheet {
+                    width: 100%;
+                    min-height: 100%;
+                    background: #f5f3ee;
+                    color: #1b1a17;
+                    font-family: "IBM Plex Sans",system-ui,sans-serif;
+                    padding: 34px 38px 38px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                }
+                .tag {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .16em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    display: flex;
+                    gap: 10px;
+                    align-items: center;
+                }
+                .tag .dot {
+                    width: 5px;
+                    height: 5px;
+                    background: #a8600b;
+                    border-radius: 50%;
+                    flex: none;
+                }
+                .tag .rec {
+                    color: #2c6b4c;
+                }
+                .tag .no {
+                    color: #a8600b;
+                }
+                h1 {
+                    font-size: 25px;
+                    line-height: 1.14;
+                    margin: 8px 0 0;
+                    font-weight: 600;
+                    letter-spacing: -.012em;
+                }
+                .lede {
+                    font-size: 13.5px;
+                    line-height: 1.55;
+                    color: #4a463e;
+                    max-width: 64ch;
+                    margin: 8px 0 0;
+                    text-wrap: pretty;
+                }
+                .stage {
+                    background: #0b0b0e;
+                    border: 1px solid #d9d5cc;
+                    padding: 24px;
+                    display: flex;
+                    gap: 24px;
+                    align-items: flex-start;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                }
+                .stage.tight {
+                    padding: 18px;
+                    gap: 16px;
+                }
+                .stage.left {
+                    justify-content: flex-start;
+                }
+                .cap {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .1em;
+                    text-transform: uppercase;
+                    color: #75705f;
+                    margin-bottom: 8px;
+                }
+                .cap.good {
+                    color: #4f9d76;
+                }
+                .cap.warn {
+                    color: #c98500;
+                }
+                .hold {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
+                }
+                .notes {
+                    display: grid;
+                    grid-template-columns: repeat(2,minmax(0,1fr));
+                    gap: 14px 28px;
+                    border-top: 1px solid #d9d5cc;
+                    padding-top: 16px;
+                }
+                .notes.three {
+                    grid-template-columns: repeat(3,minmax(0,1fr));
+                }
+                .note h3 {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .12em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    margin: 0 0 5px;
+                    font-weight: 500;
+                }
+                .note h3.warn {
+                    color: #a8600b;
+                }
+                .note h3.good {
+                    color: #2c6b4c;
+                }
+                .note p {
+                    margin: 0;
+                    font-size: 12.5px;
+                    line-height: 1.5;
+                    color: #33302a;
+                    text-wrap: pretty;
+                }
+                .m {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 11.5px;
+                    background: #eae7df;
+                    padding: 1px 4px;
+                }
+                .stage .m {
+                    background: #24242a;
+                    color: #e7e7ea;
+                }
+                table.reg {
+                    border-collapse: collapse;
+                    width: 100%;
+                    font-size: 12.5px;
+                }
+                table.reg th {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .1em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    font-weight: 500;
+                    text-align: left;
+                    padding: 0 12px 6px 0;
+                    border-bottom: 1px solid #d9d5cc;
+                }
+                table.reg td {
+                    padding: 6px 12px 6px 0;
+                    border-bottom: 1px solid #e6e2d9;
+                    vertical-align: top;
+                    line-height: 1.45;
+                }
+                table.reg td.n {
+                    text-align: right;
+                    font-variant-numeric: tabular-nums;
+                    padding-right: 16px;
+                }
+                table.reg .mono {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 11.5px;
+                }
+                table.reg .flag {
+                    color: #a8600b;
+                }
+                table.reg .ok {
+                    color: #2c6b4c;
+                }
+                table.reg .none {
+                    color: #8a8478;
+                }
+                .cost {
+                    display: flex;
+                    gap: 18px;
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .08em;
+                    text-transform: uppercase;
+                    color: #75705f;
+                    margin-top: 10px;
+                }
+                .cost b {
+                    color: #c9c9d1;
+                    font-weight: 500;
+                }
+                .stage .cost {
+                    color: #75705f;
+                }
+
+                /* ---- the panel and the window, 1:1, values from src/ui/panel-look.ts ---- */
+                .w-bar {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 4px 8px;
+                    font: 11px/13px system-ui,sans-serif;
+                    letter-spacing: .06em;
+                    color: #9a9aa6;
+                    background: #1f1f26;
+                    border: 1px solid #2c2c35;
+                    border-bottom: none;
+                    border-radius: 8px 8px 0 0;
+                    white-space: nowrap;
+                }
+                .w-bar .ver {
+                    opacity: .7;
+                    font-size: 10px;
+                }
+                .w-bar .ctl {
+                    margin-left: auto;
+                    display: flex;
+                    gap: 4px;
+                }
+                .w-body {
+                    background: #17171c;
+                    border: 1px solid #2c2c35;
+                    border-radius: 0 0 8px 8px;
+                    font: 11px/15px system-ui,sans-serif;
+                    color: #e7e7ea;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .reg {
+                    padding: 5px 7px;
+                }
+                .reg.rows {
+                    padding-bottom: 3px;
+                }
+                .hd {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                }
+                .hd .out {
+                    color: #9a9aa6;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                }
+                .hd .pl {
+                    color: #9a9aa6;
+                    font-size: 10px;
+                }
+                .tabs {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 2px;
+                    padding: 5px 7px 0;
+                }
+                .tabs + .tabs {
+                    padding-top: 3px;
+                }
+                .tabs .gap {
+                    flex: 1;
+                }
+                .tab {
+                    padding: 1px 4px;
+                    border-radius: 3px;
+                    color: #9a9aa6;
+                    white-space: nowrap;
+                }
+                .tab.on {
+                    color: #e7e7ea;
+                    background: #1f1f26;
+                }
+                .sec {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    color: #868691;
+                    letter-spacing: .08em;
+                    font-size: 10px;
+                    text-transform: uppercase;
+                    padding: 4px 2px 2px;
+                }
+                .sec .n {
+                    font-variant-numeric: tabular-nums;
+                    letter-spacing: 0;
+                }
+                .row {
+                    position: relative;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    height: 18px;
+                    padding: 1px 8px 0;
+                    margin-bottom: 2px;
+                    border-radius: 3px;
+                    background: #24242a;
+                    overflow: hidden;
+                }
+                .row.open {
+                    box-shadow: inset 3px 0 0 #e7e7ea;
+                }
+                .bar {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    opacity: .55;
+                }
+                .rest {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                }
+                .cap3 {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 3px;
+                    border-radius: 3px 0 0 3px;
+                }
+                .rk {
+                    position: relative;
+                    flex: none;
+                    width: 22px;
+                    text-align: right;
+                    padding-right: 4px;
+                    color: #9a9aa6;
+                    font-variant-numeric: tabular-nums;
+                }
+                .nm {
+                    position: relative;
+                    flex: 1;
+                    min-width: 0;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                .val {
+                    position: relative;
+                    flex: none;
+                    padding-left: 8px;
+                    font-weight: 600;
+                    font-variant-numeric: tabular-nums;
+                    white-space: nowrap;
+                }
+                .val .of {
+                    color: #9a9aa6;
+                    font-weight: 400;
+                }
+                .sh {
+                    color: #9a9aa6;
+                    padding-left: 4px;
+                    font-weight: 400;
+                }
+                .warn {
+                    position: relative;
+                    flex: none;
+                    color: #c98500;
+                    padding-right: 4px;
+                }
+                .marks {
+                    position: relative;
+                    flex: none;
+                    display: flex;
+                    gap: 3px;
+                    align-items: center;
+                    padding-left: 6px;
+                }
+                .mk {
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 2px;
+                    flex: none;
+                }
+                .mk.hollow {
+                    background: none;
+                    border: 1px solid #3a3a44;
+                }
+                .quiet {
+                    color: #9a9aa6;
+                    padding: 1px 2px 3px;
+                }
+                .off {
+                    color: #6b6b75;
+                }
+                .sides {
+                    padding: 5px 7px;
+                    border-top: 1px solid #2c2c35;
+                }
+                .sl {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    font-variant-numeric: tabular-nums;
+                    font-weight: 600;
+                }
+                .slab {
+                    color: #9a9aa6;
+                    font-weight: 400;
+                    opacity: .8;
+                }
+                .track {
+                    display: flex;
+                    height: 4px;
+                    margin-top: 4px;
+                    border-radius: 3px;
+                    overflow: hidden;
+                    background: #24242a;
+                }
+                .track > * {
+                    background: currentColor;
+                }
+                .ours {
+                    color: #6fbf8b;
+                }
+                .theirs {
+                    color: #e0736f;
+                }
+                .nobody {
+                    color: #8a8a80;
+                }
+                .split {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                }
+
+                /* ---- the legend beside a stage ---- */
+                .leg {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 7px;
+                    width: 206px;
+                    flex: none;
+                }
+                .leg .item {
+                    display: flex;
+                    gap: 9px;
+                    align-items: flex-start;
+                }
+                .leg .sw {
+                    flex: none;
+                    width: 34px;
+                    height: 14px;
+                    border-radius: 3px;
+                    background: #24242a;
+                    position: relative;
+                    overflow: hidden;
+                    margin-top: 1px;
+                }
+                .leg .tx {
+                    font: 12px/1.45 "IBM Plex Sans",system-ui,sans-serif;
+                    color: #c9c9d1;
+                }
+                .leg .tx b {
+                    font-weight: 600;
+                    color: #e7e7ea;
+                }
+                .leg .tx .m {
+                    background: #24242a;
+                    color: #e7e7ea;
+                }
+                </style>
+            </helmet>
+            <div class="sheet">
+                <div
+                    class="tag"><span class="dot"></span>Ci&#347;nienie 1 z 3 &#183; pojedynek</div>
+                <h1>1 na 1 &mdash; prawie nic nie stoi, i to jest odpowied&#378;</h1>
+                <p
+                    class="lede">Najni&#380;sze ci&#347;nienie w zestawie i pierwsza rzecz, kt&#243;ra dzieli opcje: co okno robi, gdy nie ma o czym m&#243;wi&#263;. &#379;adne z nich nie znika samo &mdash; okno, kt&#243;re znika, nie r&#243;&#380;ni si&#281; niczym od okna, kt&#243;re si&#281; zepsu&#322;o. R&#243;&#380;nica jest w tym, ile pustej ramki ka&#380;da opcja zostawia na cudzej grze.</p>
+                <div class="stage tight">
+                    <div class="hold">
+                        <div class="cap good">A &#183; TRZY PASMA</div>
+                        <div style="width:210px">
+                            <div class="w-bar"
+                                style="width:210px">&#10287; Pomocnik<span class="ctl">&#8801; &mdash;</span></div>
+                            <div class="w-body" style="width:210px">
+                                <div class="reg rows">
+                                    <div
+                                        class="sec"><span class="">Teraz</span><span class="n">tura 61 &#183; 0:44</span></div>
+                                    <div
+                                        class="row"><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Gracz 5</span><span class="val">1 z 3<span class="of"> kombinacji</span></span></div>
+                                </div>
+                                <div class="reg rows" style="border-top:1px solid #2c2c35">
+                                    <div
+                                        class="sec"><span class="">Co stoi</span><span class="n">1</span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:100%;background:#24242a;opacity:1"></div><div class="bar" style="width:0%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:0%;width:100%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Szad&#378;</span><span class="val"><span style="color:#6fbf8b">0</span><span class="of"> | </span><span style="color:#e0736f">1</span></span></div>
+                                </div>
+                                <div class="reg" style="border-top:1px solid #2c2c35">
+                                    <div
+                                        class="sec"><span class="off">Kto</span><span class="n off">wy&#322;&#261;czone</span></div>
+                                    <div class="quiet off">2 wiersze. Do w&#322;&#261;czenia.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hold">
+                        <div class="cap ">B &#183; PASMO W PANELU</div>
+                        <div style="width:260px">
+                            <div class="w-bar"
+                                style="width:260px">&#10287; MargoMeter <span class='ver'>0.14.0</span><span class="ctl">&#9776; &#8615; &mdash;</span></div>
+                            <div class="w-body" style="width:260px">
+                                <div class="reg rows">
+                                    <div
+                                        class="sec"><span class="">Pomocnik</span><span class="n">tura 61 &#183; 0:44</span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:100%;background:#24242a;opacity:1"></div><div class="bar" style="width:0%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:0%;width:100%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Szad&#378;</span><span class="val"><span style="color:#6fbf8b">0</span><span class="of"> | </span><span style="color:#e0736f">1</span></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hold">
+                        <div class="cap ">C &#183; LISTWA</div>
+                        <div style="width:320px">
+                            <div class="w-bar"
+                                style="width:320px">&#10287; Pomocnik<span class="ctl">&#8801; &mdash;</span></div>
+                            <div class="w-body" style="width:320px">
+                                <div class="reg rows">
+                                    <div
+                                        class="sec"><span class="">Kolejka i stan</span><span class="n">tura 61 &#183; 0:44</span></div>
+                                    <div
+                                        class="row open"><div class="bar" style="width:100%;background:rgb(77 121 95);opacity:1"></div><div class="rest" style="left:100%;right:0;background:repeating-linear-gradient(-45deg,#c9850055 0 4px,transparent 4px 8px)"></div><div class="cap3" style="background:#6fbf8b"></div><span class="rk">&#9656;</span><span class="nm">Gracz 5</span><span class="val">1 351<span class="of"> z 1 351</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:81%;background:rgb(139 79 80);opacity:1"></div><div class="rest" style="left:81%;right:0;background:repeating-linear-gradient(-45deg,#c9850055 0 4px,transparent 4px 8px)"></div><div class="cap3" style="background:#e0736f"></div><span class="nm">Renegat 2</span><span class="marks"><span class="mk" style="background:#6fbf8b"></span></span><span class="val">980<span class="of"> z 1 204</span></span></div>
+                                </div>
+                                <div class="reg" style="border-top:1px solid #2c2c35">
+                                    <div
+                                        class="sec"><span class="off">Co stoi</span><span class="n off">wy&#322;&#261;czone</span></div>
+                                    <div class="quiet off">1 rzut. Do w&#322;&#261;czenia.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hold">
+                        <div class="cap ">D &#183; KARTA PRZECIWNIKA</div>
+                        <div style="width:190px">
+                            <div class="w-bar"
+                                style="width:190px">&#10287; Pomocnik<span class="ctl">&#8801; &mdash;</span></div>
+                            <div class="w-body" style="width:190px">
+                                <div class="reg rows">
+                                    <div
+                                        class="sec"><span class="">Renegat 2</span><span class="n">58 lvl</span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:81%;background:rgb(139 79 80);opacity:1"></div><div class="rest" style="left:81%;right:0;background:repeating-linear-gradient(-45deg,#c9850055 0 4px,transparent 4px 8px)"></div><div class="cap3" style="background:#e0736f"></div><span class="nm">Pancerz</span><span class="val">980<span class="of"> z 1 204</span></span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:12%;background:rgb(139 79 80);opacity:1"></div><div class="cap3" style="background:#e0736f"></div><span class="nm">Odporno&#347;ci</span><span class="val">12 / 8 / 0</span></div>
+                                    <div
+                                        class="sec"><span class="">Co stoi</span><span class="n">1</span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:100%;background:#24242a;opacity:1"></div><div class="bar" style="width:0%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:0%;width:100%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Szad&#378;</span><span class="val"><span style="color:#6fbf8b">0</span><span class="of"> | </span><span style="color:#e0736f">1</span></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="hold">
+                        <div class="cap ">E &#183; DWA PASMA I KARTA</div>
+                        <div style="width:200px">
+                            <div class="w-bar"
+                                style="width:200px">&#10287; Pomocnik<span class="ctl">&#8801; &mdash;</span></div>
+                            <div class="w-body" style="width:200px">
+                                <div class="reg rows">
+                                    <div
+                                        class="sec"><span class="">Teraz</span><span class="n">tura 61 &#183; 0:44</span></div>
+                                    <div
+                                        class="row"><div class="cap3" style="background:#6fbf8b"></div><span class="nm">Gracz 5</span><span class="val">1<span class="of"> z 3</span></span></div>
+                                    <div
+                                        class="sec"><span class="">Co stoi</span><span class="n">1</span></div>
+                                    <div
+                                        class="row"><div class="bar" style="width:100%;background:#24242a;opacity:1"></div><div class="bar" style="width:0%;background:rgb(77 121 95);opacity:1"></div><div class="split" style="left:0%;width:100%;background:rgb(139 79 80)"></div><div class="cap3" style="background:#8a8a80"></div><span class="nm">Szad&#378;</span><span class="val"><span style="color:#6fbf8b">0</span><span class="of"> | </span><span style="color:#e0736f">1</span></span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <table class="reg">
+                    <tr>
+                        <th>Opcja</th>
+                        <th>Wierszy</th>
+                        <th>Wysoko&#347;&#263; okna</th>
+                        <th>Co m&#243;wi, gdy nic nie stoi</th>
+                    </tr>
+                    <tr>
+                        <td class="mono">A</td>
+                        <td class="n">4</td>
+                        <td class="n">~110 px</td>
+                        <td>Trzy nag&#322;&#243;wki zostaj&#261;, pod ka&#380;dym kreska albo zdanie. Czytelnik widzi, czego pilnuje.</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">B</td>
+                        <td class="n">2</td>
+                        <td class="n">&mdash;</td>
+                        <td
+                            class="ok">Nic nowego na ekranie. Panel ro&#347;nie o dwa wiersze i tyle.</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">C</td>
+                        <td class="n">4</td>
+                        <td class="n">~110 px</td>
+                        <td>Dwa wiersze postaci s&#261; zawsze &mdash; w pojedynku listwa jest pe&#322;na, cho&#380; nic si&#281; nie dzieje.</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">D</td>
+                        <td class="n">5</td>
+                        <td class="n">~125 px</td>
+                        <td
+                            class="ok">Podmiot jest oczywisty: jest jeden przeciwnik. Najlepszy arkusz opcji D.</td>
+                    </tr>
+                    <tr>
+                        <td class="mono">E</td>
+                        <td class="n">3</td>
+                        <td class="n">~95 px</td>
+                        <td>Najmniejsza ramka. Pancerza przeciwnika nie ma nigdzie bez naje&#380;d&#380;enia.</td>
+                    </tr>
+                </table>
+                <div class="notes">
+                    <div class="note">
+                        <h3 class="good">W pojedynku wygrywaj&#261; D i B</h3>
+                        <p>Jeden przeciwnik znosi ca&#322;y zarzut wobec D &mdash; nie trzeba wybiera&#263;, o kim m&#243;wi&#263;. B nie dok&#322;ada &#380;adnej nowej powierzchni. To jest jedyne ci&#347;nienie, przy kt&#243;rym te dwie s&#261; najlepsze, i dlatego nie mo&#380;e decydowa&#263; samo.</p>
+                    </div>
+                    <div class="note">
+                        <h3 class="warn">C p&#322;aci pe&#322;n&#261; cen&#281; za nic</h3>
+                        <p>Listwa 320 px stoi tak samo szeroko przy dw&#243;ch postaciach jak przy dwudziestu. Kszta&#322;t okna nie odpowiada na to, ile jest do powiedzenia.</p>
+                    </div>
+                </div>
+            </div>
+        </x-dc>
+    </body>
+</html>

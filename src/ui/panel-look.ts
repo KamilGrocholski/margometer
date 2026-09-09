@@ -118,6 +118,16 @@ export const CLASS = {
     /** A sentence rather than a column, so the placement counts it as wrapping. */
     tipNote: "tip-note",
     tipSuspect: "tip-suspect",
+    /** The window beside the panel: its own bar, its own body, and the rows under each heading. */
+    standing: "MargoMeter-standing",
+    standingBar: "standing-bar",
+    standingBody: "standing-body",
+    standingFolded: "standing-folded",
+    standingCaster: "standing-caster",
+    standingHolder: "standing-holder",
+    standingHolderPart: "standing-holder-part",
+    standingOurs: "standing-ours",
+    standingTheirs: "standing-theirs",
 } as const;
 
 export const SPACE = {
@@ -138,6 +148,14 @@ export const PLACE = {
 
 export const TIP = {
     width: "250px",
+} as const;
+
+/**
+ * The window beside the panel. Narrower than the panel because it carries a name and a figure
+ * and never a rank or a share, and it is the second thing standing over somebody else's game.
+ */
+export const STANDING = {
+    width: "210px",
 } as const;
 
 export const SHAPE = {
@@ -672,7 +690,73 @@ function composeTipTop(): string {
         `calc(100vh - var(${VARIABLE_PREFIX}tip-height,0px) - ${PLACE.inset}))`;
 }
 
+/**
+ * The second window under the one root. It states its own type and its own ink for the reason the
+ * card does — `:host{all:initial}` reaches it and `.panel`'s rules never do — and it is
+ * `position:fixed` for the same reason too: the host is a flex column 260px wide, and a plain
+ * child of it would stand inside that column and ride the panel's own drag.
+ *
+ * ⚠️ **Positioned, and deliberately so.** A positioned element paints over a static one whatever
+ * the tree order, so a window laid out any other way could cover a control of the panel's and
+ * take its press. The layer is stated rather than left to chance.
+ */
+function composeStandingRules(): string {
+    const top = `clamp(${PLACE.inset},var(${VARIABLE_PREFIX}standing-top,${PLACE.inset}),` +
+        `calc(100vh - ${PLACE.inset}))`;
+    const left = `var(${VARIABLE_PREFIX}standing-left,calc(100vw - ${PLACE.inset} - ` +
+        `${PLACE.width} - ${STANDING.width} - ${SPACE.small}))`;
+    return `.${CLASS.standing}{position:fixed;box-sizing:border-box;` +
+        `left:${left};top:${top};z-index:${PLACE.layer};` +
+        `width:${STANDING.width};display:flex;flex-direction:column;` +
+        `max-height:calc(100vh - ${PLACE.inset} - ${PLACE.inset});` +
+        `font:${FONT_SIZE}/${LINE_HEIGHT} ${FONT_STACK};` +
+        `color:var(${VARIABLE_PREFIX}text);}` +
+        `.${CLASS.standingBar}{flex:none;display:flex;align-items:center;` +
+        `gap:var(${VARIABLE_PREFIX}small);` +
+        `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
+        `font:${FONT_SIZE}/${LINE_HEIGHT_TITLE} ${FONT_STACK};letter-spacing:0.06em;` +
+        `color:var(${VARIABLE_PREFIX}quiet);white-space:nowrap;` +
+        `background:var(${VARIABLE_PREFIX}raised);` +
+        `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
+        `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
+        `cursor:move;-webkit-user-select:none;user-select:none;touch-action:none;}` +
+        // The one control on this bar, and it stands where the panel's outermost one does.
+        `.${CLASS.standingBar} .${CLASS.control}{margin-left:auto;}` +
+        `.${CLASS.standingBody}{min-height:0;overflow-y:auto;overflow-x:hidden;` +
+        `overscroll-behavior:contain;scrollbar-width:none;` +
+        `padding:var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across);` +
+        `padding-bottom:calc(var(${VARIABLE_PREFIX}region-down) - ` +
+        `var(${VARIABLE_PREFIX}half));` +
+        `background:var(${VARIABLE_PREFIX}surface);` +
+        `border:1px solid var(${VARIABLE_PREFIX}border);` +
+        `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);}` +
+        `.${CLASS.standing}.${CLASS.standingFolded} .${CLASS.standingBody}{display:none;}` +
+        // A caster stands under the skill it was cast with, inset so the pair reads as one thing.
+        `.${CLASS.standingCaster}{margin-left:var(${VARIABLE_PREFIX}wide);}` +
+        // Who is holding a provoked character, under their name: a second line in the quiet ink,
+        // because it qualifies the line above rather than adding a figure of its own.
+        // ⚠️ **A sentence, and it wraps.** Written once as a row — cut with an ellipsis — it hid
+        // the name it was drawn to say, and the only way to the rest was a gesture this window
+        // does not have. `DESIGN.md` separates the two: a row is cut because its figure may not
+        // fold, and a sentence wraps. Inset once, because twice threw away 16 of 208 pixels.
+        // The inset is padding rather than margin: the holder's own cap is absolute against this
+        // line, so a margin would leave it outside the box it marks.
+        `.${CLASS.standingHolder}{position:relative;color:var(${VARIABLE_PREFIX}quiet);` +
+        `margin:0 0 var(${VARIABLE_PREFIX}half);` +
+        `padding-left:var(${VARIABLE_PREFIX}wide);overflow-wrap:break-word;}` +
+        // One fact to a span, so the break falls between them rather than inside a name.
+        `.${CLASS.standingHolderPart}{white-space:nowrap;` +
+        `padding-right:var(${VARIABLE_PREFIX}small);}` +
+        // The same two inks the strip under the ranking states its sides in, and for the same
+        // reason: two sides, and the panel takes no view on which one to be pleased about.
+        // Spaced both sides of the mark between them, so the pair reads as two figures rather
+        // than one. The mark's own left inset is the share's, which it borrows.
+        `.${CLASS.standingOurs}{color:var(${VARIABLE_PREFIX}ours);}` +
+        `.${CLASS.standingTheirs}{color:var(${VARIABLE_PREFIX}theirs);` +
+        `padding-left:var(${VARIABLE_PREFIX}small);}`;
+}
+
 export function composeStyleSheet(): string {
     return `${composeFrameRules()}${composeRegionRules()}${composeListRules()}` +
-        `${composeRowRules()}${composeTipRules()}`;
+        `${composeRowRules()}${composeTipRules()}${composeStandingRules()}`;
 }
