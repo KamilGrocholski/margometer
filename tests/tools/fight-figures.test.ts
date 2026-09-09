@@ -58,7 +58,14 @@ Deno.test("the reading block prints at zero, on a fight where nothing went wrong
         lines.some((line) => line.includes("what the reading could not do")),
         "the block is there",
     );
-    for (const caption of ["unread messages", "casts unplaced", "messages lost"]) {
+    const captions = [
+        "unread, key unknown",
+        "unread, no parameter",
+        "unread, grammar refused",
+        "casts unplaced",
+        "messages lost",
+    ];
+    for (const caption of captions) {
         const line = lines.find((one) => one.trim().startsWith(caption));
         assertExists(line, `${caption} is stated`);
         assert(line.trim().endsWith("0"), `${caption} is stated at zero rather than dropped`);

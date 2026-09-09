@@ -690,16 +690,30 @@ const THOUSAND_SEPARATOR = "\u00a0";
 const MAXIMUM_THOUSAND_GROUPS = 5;
 
 /**
- * What a reading could not be sure of, each as one sentence a player can act on.
- *
- * The count sits in an apposition rather than as the subject, so one sentence carries all three
- * Polish forms without the verb having to agree with the number.
+ * What a reading could not be sure of, each as one sentence a player can act on. The count sits
+ * in an apposition, so one sentence carries all three Polish forms without the verb agreeing with
+ * it. Each says **what cannot be known** and never what this reader could not do (**L3**), which
+ * is what keeps the three unread causes apart. **ADR 0070.**
  */
-export function composeUnreadSuspicion(count: number): string {
+export function composeUnknownKeySuspicion(count: number): string {
     if (count <= 0) return "";
     const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
-    return `Nie udało się odczytać wszystkiego — ${said} bez odczytu, ` +
-        "więc liczby mogą być zaniżone.";
+    return "Nie wiadomo, co znaczyła część tego, co powiedziała gra — " +
+        `${said} bez odczytu, więc liczby mogą być zaniżone.`;
+}
+
+export function composeNoParameterSuspicion(count: number): string {
+    if (count <= 0) return "";
+    const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
+    return "Część tego, co powiedziała gra, nie niosła żadnej liczby — " +
+        `${said} bez odczytu, więc liczby mogą być zaniżone.`;
+}
+
+export function composeGrammarRefusedSuspicion(count: number): string {
+    if (count <= 0) return "";
+    const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
+    return "Części tego, co powiedziała gra, nie dało się rozłożyć na słowa — " +
+        `${said} bez odczytu, więc liczby mogą być zaniżone.`;
 }
 
 /** The count sits in an apposition: under *nie dotarło* the verb would have to agree with it. */
@@ -724,15 +738,21 @@ export function composeUnplacedHealSuspicion(count: number): string {
 }
 
 /**
- * The same two suspicions, said about one person rather than about the fight — `DESIGN.md` puts a
- * suspicion where its consequence is. `postać` is feminine, so the possessive is `jej` whoever the
- * row stands for.
+ * The same suspicions about one person — and after **ADR 0069** the only place one naming somebody
+ * is said. `postać` is feminine, so the possessive is `jej` whoever the row is.
  */
-export function composeUnreadRowSuspicion(count: number): string {
+export function composeUnknownKeyRowSuspicion(count: number): string {
     if (count <= 0) return "";
     const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
-    return `Nie udało się odczytać wszystkiego z jej udziałem — ${said} bez odczytu, ` +
-        "więc jej liczby mogą być zaniżone.";
+    return `Nie wiadomo, co znaczyła część tego, co gra powiedziała z jej udziałem — ${said} ` +
+        "bez odczytu, więc jej liczby mogą być zaniżone.";
+}
+
+export function composeNoParameterRowSuspicion(count: number): string {
+    if (count <= 0) return "";
+    const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
+    return `Część tego, co gra powiedziała z jej udziałem, nie niosła żadnej liczby — ${said} ` +
+        "bez odczytu, więc jej liczby mogą być zaniżone.";
 }
 
 export function composeUnplacedHealRowSuspicion(count: number): string {

@@ -5,13 +5,7 @@
  * holds over all of them, which is where a key family that stops being read would show.
  */
 
-import {
-    assert,
-    assertEquals,
-    assertExists,
-    assertStrictEquals,
-    assertStringIncludes,
-} from "@std/assert";
+import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
@@ -111,7 +105,10 @@ Deno.test("a message the grammar refuses is an event, not a silence", () => {
     );
     assertEquals(event.unreadKeys, [], "no key was reached, which is not a claim about keys");
     assertEquals(event.combatantIds, [], "and no end was read either");
-    assertStringIncludes(event.reason, "side", "the reason names the half that failed");
+    assertStrictEquals(event.unreadCause, "grammar-refused", "under the cause that left it so");
+    // The message itself and not the parser's sentence about it: a maintainer chasing this can
+    // put the message back through the parser, which the sentence would not have let them do.
+    assertStrictEquals(event.message, "gracz;0;step", "carrying what was refused, to be looked at");
 });
 
 Deno.test("health moves on the key's own slot, and its sign is the key's", () => {

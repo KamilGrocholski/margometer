@@ -13,7 +13,7 @@ import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 import type { TipGroup } from "@/src/ui/panel-tip.ts";
 import {
     CARD_WORDS,
-    composeUnreadRowSuspicion,
+    composeUnknownKeyRowSuspicion,
     PANEL_WORDS,
     SUSPECT_MARK,
 } from "@/src/ui/panel-words.ts";
@@ -54,7 +54,8 @@ const HILDUR: RowDetail = {
         { key: "acdmg", figure: 940 },
         { key: "resdmg", figure: 26 },
     ],
-    unreadMessages: 0,
+    unreadMessagesUnknownKey: 0,
+    unreadMessagesNoParameter: 0,
     castsUnplaced: 0,
 };
 
@@ -84,7 +85,8 @@ const NOBODY: RowDetail = {
     /** Defences and destroyed statistics are kept under the client's token, procs under the key. */
     damagePreventedByDefence: [],
     statisticsDestroyed: [],
-    unreadMessages: 0,
+    unreadMessagesUnknownKey: 0,
+    unreadMessagesNoParameter: 0,
     castsUnplaced: 0,
 };
 
@@ -394,7 +396,7 @@ Deno.test("a card says the gaps that name its own person, and no others", () => 
         [],
         "a person no gap names carries none, whatever the fight is short of",
     );
-    const charged = readNotes({ ...NOBODY, unreadMessages: 2 })
+    const charged = readNotes({ ...NOBODY, unreadMessagesUnknownKey: 2 })
         .filter((line) => line.kind === "note" && line.isSuspect);
     assertEquals(charged.length, 1, "and the person a gap does name carries that one");
     assert(
@@ -412,7 +414,7 @@ Deno.test("a card states both of the gaps that can name one person, widest first
         name: "Hildur Muza Śmierci",
         profession: "m",
         sidePart: "nobody" as const,
-        detail: { ...HILDUR, unreadMessages: 2, castsUnplaced: 1 },
+        detail: { ...HILDUR, unreadMessagesUnknownKey: 2, castsUnplaced: 1 },
         metric: "healthGiven",
         doesOpen: false,
         isRowNarrower: false,
@@ -538,7 +540,7 @@ Deno.test("a card over a narrower row says its figures are the whole fight's", (
             name: "Gracz 9",
             profession: null,
             sidePart: "nobody" as const,
-            detail: { ...NOBODY, unreadMessages: 1 },
+            detail: { ...NOBODY, unreadMessagesUnknownKey: 1 },
             metric: "damageDealtApplied",
             doesOpen: true,
             isRowNarrower,
@@ -551,7 +553,7 @@ Deno.test("a card over a narrower row says its figures are the whole fight's", (
             "Otrzymane 0",
             "Leczenie dane 0",
             "Leczenie otrzymane 0",
-            `${SUSPECT_MARK}${composeUnreadRowSuspicion(1)}`,
+            `${SUSPECT_MARK}${composeUnknownKeyRowSuspicion(1)}`,
             CARD_WORDS.scope,
             CARD_WORDS.gesture,
         ],

@@ -186,3 +186,5 @@ edited to agree with the new rule.
   beside the panel. **Accepted**
 - [0069](0069-a-card-says-only-what-names-its-own-person.md) — A card says only the gaps that name
   its own person. **Accepted**
+- [0070](0070-a-warning-says-how-big-it-is-and-whom-it-reaches.md) — A warning says how big it is,
+  whom it reaches, and what could not be read. **Accepted**

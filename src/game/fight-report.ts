@@ -62,7 +62,11 @@ export function composeReportFight(subject: ReportSubject): Record<string, unkno
         // the other what the decoder could not make sense of, and which of the two somebody has
         // to go and look at is the difference a single number would lose.
         messagesLost: subject.messagesLost,
-        unreadMessages: subject.statistics.unreadMessages,
+        // And the same argument one step further in: a key with no meaning yet is the game
+        // having moved, and the two beside it are not (**ADR 0070**).
+        unreadMessagesUnknownKey: subject.statistics.unreadMessagesUnknownKey,
+        unreadMessagesNoParameter: subject.statistics.unreadMessagesNoParameter,
+        unreadMessagesGrammarRefused: subject.statistics.unreadMessagesGrammarRefused,
         castsUnplaced: subject.statistics.castsUnplaced,
         dealtByNobody: subject.statistics.dealtByNobody,
         takenByNobody: subject.statistics.takenByNobody,
@@ -94,7 +98,8 @@ function composeReportRow(figures: CombatantFigures): ReportRow {
     assert(figures.damageDealtRaw >= 0, "a figure written into a report is never below nothing");
     assert(figures.healthRestored >= 0, "what was put back included");
     return {
-        unreadMessages: figures.unreadMessages,
+        unreadMessagesUnknownKey: figures.unreadMessagesUnknownKey,
+        unreadMessagesNoParameter: figures.unreadMessagesNoParameter,
         castsUnplaced: figures.castsUnplaced,
         damageDealtRaw: figures.damageDealtRaw,
         damageDealtApplied: figures.damageDealtApplied,

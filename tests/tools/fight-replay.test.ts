@@ -11,7 +11,7 @@ import { assert, assertEquals, assertThrows } from "@std/assert";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
-import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import { composeFightStatistics, getUnreadMessages } from "@/src/core/fight-statistics.ts";
 import { RecordingReadError } from "@/tools/margometer-tool-error.ts";
 import { composeFightReplay, composeReplayedMaterial } from "@/tools/fight-replay.ts";
 import { getRecordedFightAt } from "@/tools/recorded-fights.ts";
@@ -64,7 +64,7 @@ Deno.test("every recording replays, and states what it could not read", () => {
         const replay = composeFightReplay(getRecordedFightAt(path));
         assertEquals(replay.name, path.slice("captures/".length, -".json".length), "named for it");
         assert(replay.reading.payloads > 0, `${path} was built from something`);
-        assertEquals(replay.statistics.unreadMessages, 0, `${path} is read whole`);
+        assertEquals(getUnreadMessages(replay.statistics), 0, `${path} is read whole`);
     }
 });
 

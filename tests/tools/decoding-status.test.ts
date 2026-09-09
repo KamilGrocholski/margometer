@@ -16,6 +16,8 @@ import { composeFightReplay, composeReplayedMaterial } from "@/tools/fight-repla
 const UNREAD = "469657=87.63;469657=87.63;tspell=Zdrowa atmosfera;skillId=79;whatever_per=30";
 /** A message whose grammar fails before any key is reached. */
 const REFUSED = "gracz;0;step";
+/** A message the grammar takes apart whole, which then carries nothing to read. */
+const EMPTY = "1=100.00;0";
 const READ = "482845=100.00;0;heal=99";
 
 function replayOf(messages: readonly string[]) {
@@ -55,6 +57,30 @@ Deno.test("a message the grammar refused is counted apart from a key nobody has 
     assertEquals(status.messagesWithUnread, 2, "both messages carry something unread");
     assertEquals(status.messagesRefused, 1, "and exactly one of them is a refusal");
     assertEquals(status.unreadKeysByFrequency, [["whatever_per", 1]], "a refusal names no key");
+});
+
+/**
+ * ⚠️ **A third failure was being counted as the first.** The refusal count was taken off an empty
+ * key list, and a message the grammar took apart whole that carried nothing to read has an empty
+ * one too — so it was reported as a grammar failure, sending a reader to look at a parser that
+ * never refused anything. Both are zero over `captures/`, so it never showed. **ADR 0070.**
+ */
+Deno.test("a message carrying nothing to read is neither a refusal nor an unread key", () => {
+    const status = composeDecodingStatus([replayOf([EMPTY, REFUSED, UNREAD])]);
+    assertEquals(status.messagesWithUnread, 3, "all three carry something unread");
+    assertEquals(status.messagesRefused, 1, "and only the one the grammar refused is a refusal");
+    assertEquals(status.messagesWithoutParameter, 1, "the empty one is counted as its own thing");
+    assertEquals(status.unreadKeysByFrequency, [["whatever_per", 1]], "and neither names a key");
+
+    const lines = composeStatusReport({ material: "a probe", replays: [replayOf([EMPTY])] });
+    assert(
+        lines.some((line) => line.startsWith("no parameter") && line.trim().endsWith("1")),
+        "which is a line of the report, so a reader is sent to the right place",
+    );
+    assert(
+        lines.some((line) => line.startsWith("grammar refused") && line.trim().endsWith("0")),
+        "and never to the parser, which took this message apart without complaint",
+    );
 });
 
 /** **W5**: zero is a boundary, and a family that stopped being read shows as a nought. */

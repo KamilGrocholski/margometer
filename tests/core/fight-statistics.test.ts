@@ -10,7 +10,7 @@ import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { type CombatantRoster, composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
-import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import { composeFightStatistics, getUnreadMessages } from "@/src/core/fight-statistics.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
@@ -39,7 +39,7 @@ Deno.test("a blow lands on both of its ends, and raw stays apart from applied", 
     const target = statistics.byCombatantId.get(-10000249);
     assertEquals(target?.damageTakenApplied, 1012, "the target lost what landed");
     assertEquals(target?.damagePrevented, 545, "and a defence stopped this much of it");
-    assertEquals(statistics.unreadMessages, 0, "nothing about this blow went unread");
+    assertEquals(getUnreadMessages(statistics), 0, "nothing about this blow went unread");
 });
 
 /**
@@ -264,7 +264,7 @@ Deno.test("the corpus says who gave every point of health it put back", () => {
 Deno.test("a fight nothing was read from states nothing rather than zeroes", () => {
     const statistics = composeFightStatistics([], new Map());
     assertEquals(statistics.byCombatantId.size, 0, "no combatant is invented");
-    assertEquals(statistics.unreadMessages, 0, "and nothing went unread either");
+    assertEquals(getUnreadMessages(statistics), 0, "and nothing went unread either");
 });
 
 Deno.test("every point applied is counted once at each end, in every recording", () => {
@@ -326,9 +326,18 @@ Deno.test("an unread message is charged to both of the ends it named, once each"
         "1=87.63;2=87.63;tspell=Zdrowa atmosfera;skillId=79;whatever_per=30",
     ], null);
     const statistics = composeFightStatistics(events, new Map());
-    assertEquals(statistics.unreadMessages, 1, "one message went unread");
-    assertEquals(statistics.byCombatantId.get(1)?.unreadMessages, 1, "and it names this end");
-    assertEquals(statistics.byCombatantId.get(2)?.unreadMessages, 1, "and this one");
+    assertEquals(statistics.unreadMessagesUnknownKey, 1, "one key had no meaning yet");
+    assertEquals(
+        statistics.byCombatantId.get(1)?.unreadMessagesUnknownKey,
+        1,
+        "and it names this end",
+    );
+    assertEquals(
+        statistics.byCombatantId.get(2)?.unreadMessagesUnknownKey,
+        1,
+        "and this one",
+    );
+    assertEquals(statistics.unreadMessagesGrammarRefused, 0, "and the grammar took it apart");
 });
 
 Deno.test("a message naming one end twice charges that row once", () => {
@@ -336,9 +345,9 @@ Deno.test("a message naming one end twice charges that row once", () => {
         "469657=87.63;469657=87.63;tspell=Zdrowa atmosfera;skillId=79;whatever_per=30",
     ], null);
     const statistics = composeFightStatistics(events, new Map());
-    assertEquals(statistics.unreadMessages, 1, "one message");
+    assertEquals(statistics.unreadMessagesUnknownKey, 1, "one message");
     assertEquals(
-        statistics.byCombatantId.get(469657)?.unreadMessages,
+        statistics.byCombatantId.get(469657)?.unreadMessagesUnknownKey,
         1,
         "and one row's suspicion",
     );
@@ -349,7 +358,13 @@ Deno.test("a message the grammar refuses is charged to nobody, because it named 
         decodeFightMessages(["gracz;0;step"], null),
         new Map(),
     );
-    assertEquals(statistics.unreadMessages, 1, "the fight knows it lost a message");
+    assertEquals(statistics.unreadMessagesGrammarRefused, 1, "the fight knows it lost a message");
+    assertEquals(statistics.unreadMessagesUnknownKey, 0, "and calls it neither of the other two");
+    assertEquals(
+        statistics.unreadMessagesNoParameter,
+        0,
+        "which is a different thing to be short of",
+    );
     assertEquals(statistics.byCombatantId.size, 0, "and no row is marked for it");
 });
 
@@ -630,7 +645,7 @@ Deno.test("a flag the defence fired is the defence's, whichever sign the key wea
 Deno.test("a proc nobody can place is charged to nobody rather than to whoever was handy", () => {
     const statistics = composeFightStatistics(decodeFightMessages([UNSETTLED], null), new Map());
     assertEquals(
-        statistics.unreadMessages,
+        getUnreadMessages(statistics),
         0,
         "the key is read: it is whose it is that is unknown",
     );

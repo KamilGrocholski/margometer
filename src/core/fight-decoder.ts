@@ -277,8 +277,6 @@ const MAXIMUM_MESSAGES = 4096;
 const MAXIMUM_PARAMETERS = 512;
 /** A skill's name is a phrase; the longest in `captures/` is far short of this, 2026-09-01. */
 const MAXIMUM_NAME = 4096;
-const UNREAD_REASON = "keys with no meaning yet";
-const EMPTY_REASON = "a message stating no parameter";
 
 interface HealthChangeReading {
     source: string;
@@ -797,7 +795,7 @@ function decodeOneMessage(
         const refused: BattleEvent = {
             kind: "unknown-message",
             message,
-            reason: failure.message,
+            unreadCause: "grammar-refused",
             unreadKeys: [],
             combatantIds: [],
         };
@@ -841,7 +839,7 @@ function decodeOneMessage(
         events.push({
             kind: "unknown-message",
             message,
-            reason: isUnread ? UNREAD_REASON : EMPTY_REASON,
+            unreadCause: isUnread ? "unknown-key" : "no-parameter",
             unreadKeys: reading.unreadKeys,
             combatantIds: getNamedCombatantIds(parsed),
         });

@@ -12,7 +12,11 @@
 import { assert, assertStrictEquals } from "@std/assert";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
-import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
+import {
+    composeFightStatistics,
+    type FightStatistics,
+    getUnreadMessages,
+} from "@/src/core/fight-statistics.ts";
 import {
     addPayloadToFight,
     composeFightUnderway,
@@ -79,7 +83,7 @@ function composeReplayOfSession(name: string, underway: FightUnderway): FightRep
         composeTeamHeals(reading.events, reading.roster),
     );
     assert(reading.payloads > 0, "a fight that was read was built from something");
-    assert(statistics.unreadMessages >= 0, "and states what it could not read, even as none");
+    assert(getUnreadMessages(statistics) >= 0, "and states what it could not read, even as none");
     assert(reading.events.length === held.events.length, "the copy holds what the session did");
     return { name, reading, roster: reading.roster, statistics };
 }

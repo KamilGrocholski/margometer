@@ -906,7 +906,7 @@ Deno.test("a suspicion about one person is a mark on their row, and on nobody el
         ...reading,
         rows: reading.rows.map((row) =>
             row.combatantId === first.combatantId
-                ? { ...row, detail: { ...row.detail, unreadMessages: 2 } }
+                ? { ...row, detail: { ...row.detail, unreadMessagesUnknownKey: 2 } }
                 : row
         ),
     });

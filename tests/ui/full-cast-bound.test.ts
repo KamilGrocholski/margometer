@@ -12,7 +12,11 @@ import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { type CombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
-import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
+import {
+    composeFightStatistics,
+    type FightStatistics,
+    getUnreadMessages,
+} from "@/src/core/fight-statistics.ts";
 import { composePanelHost, type ShownScreen } from "@/src/ui/panel-element.ts";
 import {
     composePanelReading,
@@ -114,7 +118,7 @@ function drawShownView(shown: ShownScreen): { host: FakeElement; failures: unkno
 Deno.test("the widest fight there is fields a full cast, with both ends left out", () => {
     const { roster, statistics } = composeWidestFight();
     assertStrictEquals(roster.byId.size, MAXIMUM_COMBATANTS, "ten a side is the widest roster");
-    assertStrictEquals(statistics.unreadMessages, 0, "and nothing in it went unread");
+    assertStrictEquals(getUnreadMessages(statistics), 0, "and nothing in it went unread");
     assert(statistics.dealtByNobody > 0, "a blow the protocol gave no striker");
     assert(statistics.takenByNobody > 0, "and one it gave no target");
     assertStrictEquals(statistics.byNeitherEnd, 0, "neither of them left both ends out");

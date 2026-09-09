@@ -11,11 +11,12 @@
 
 import { assert, assertStrictEquals } from "@std/assert";
 import { type CombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
-import type {
-    CombatantFigures,
-    FightStatistics,
-    FigureCut,
-    SkillFigures,
+import {
+    type CombatantFigures,
+    type FightStatistics,
+    type FigureCut,
+    getUnreadMessages,
+    type SkillFigures,
 } from "@/src/core/fight-statistics.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { composeReplayedMaterial, type FightReplay } from "@/tools/fight-replay.ts";
@@ -26,7 +27,8 @@ const MAXIMUM_CUT_PARTS = 64;
 const MAXIMUM_SKILLS = 256;
 const NAME_WIDTH = 26;
 const NUMBER_WIDTH = 10;
-const CAPTION_WIDTH = 20;
+/** Past the longest caption below, so the column of figures is a column. */
+const CAPTION_WIDTH = 24;
 /** What a cut with nothing in it says, so an empty line is never read as a missing one. */
 const NOTHING = "—";
 const HEADINGS = ["raw(blow)", "applied", "taken", "prevented", "restored", "given"];
@@ -184,10 +186,18 @@ function composeSideLines(replay: FightReplay): string[] {
  */
 function composeReadingLines(replay: FightReplay): string[] {
     const statistics = replay.statistics;
-    assert(statistics.unreadMessages >= 0, "a reading states what it could not read, even as none");
+    assert(
+        getUnreadMessages(statistics) >= 0,
+        "a reading states what it could not read, even as none",
+    );
     assert(replay.reading.messagesLost >= 0, "and what never reached it, even as none");
     const counts: [string, number][] = [
-        ["unread messages", statistics.unreadMessages],
+        // Three lines rather than one, for the reason `src/game/fight-report.ts` gives about the
+        // two beside them: which of the causes somebody has to go and look at is what a single
+        // number would lose (**ADR 0070**).
+        ["unread, key unknown", statistics.unreadMessagesUnknownKey],
+        ["unread, no parameter", statistics.unreadMessagesNoParameter],
+        ["unread, grammar refused", statistics.unreadMessagesGrammarRefused],
         ["casts unplaced", statistics.castsUnplaced],
         ["dealt by nobody", statistics.dealtByNobody],
         ["taken by nobody", statistics.takenByNobody],

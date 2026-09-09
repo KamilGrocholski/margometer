@@ -11,13 +11,18 @@ import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import {
     composeCountedNoun,
     composeFigureText,
+    composeGrammarRefusedSuspicion,
     composeJoinedInProgressSuspicion,
     composeLostMessageSuspicion,
+    composeNoParameterRowSuspicion,
+    composeNoParameterSuspicion,
     composePlaceWords,
     composeShareText,
     composeShareTexts,
+    composeUnknownKeyRowSuspicion,
+    composeUnknownKeySuspicion,
+    composeUnplacedHealRowSuspicion,
     composeUnplacedHealSuspicion,
-    composeUnreadSuspicion,
     composeUsesText,
     COUNTED_NOUNS,
     getWordsForHealthSource,
@@ -63,13 +68,19 @@ function getSentences(): string[] {
         found.push(getWordsForPinnedScope(kase));
     }
     found.push(NEITHER_END_WORDS.label, NEITHER_END_WORDS.note);
-    // The four a suspicion is said in. They are composed rather than declared, so a table of the
-    // panel's words does not reach them and the guards below would read past every one.
+    // The sentences a suspicion is said in, the fight's and a row's both. They are composed
+    // rather than declared, so a table of the panel's words does not reach them and the guards
+    // below would read past every one.
     found.push(composeJoinedInProgressSuspicion());
     for (const count of [1, 2, 5]) {
         found.push(composeLostMessageSuspicion(count));
-        found.push(composeUnreadSuspicion(count));
+        found.push(composeUnknownKeySuspicion(count));
+        found.push(composeNoParameterSuspicion(count));
+        found.push(composeGrammarRefusedSuspicion(count));
         found.push(composeUnplacedHealSuspicion(count));
+        found.push(composeUnknownKeyRowSuspicion(count));
+        found.push(composeNoParameterRowSuspicion(count));
+        found.push(composeUnplacedHealRowSuspicion(count));
     }
     return found;
 }
@@ -308,5 +319,5 @@ Deno.test("a suspicion about what never arrived counts in all three Polish forms
     assertStringIncludes(composeLostMessageSuspicion(5), "5 wiadomości", "and five the third");
     // Nothing to warn about is nothing said. The empty sentence is dropped where it is drawn,
     // rather than stopping the draw it arrived in — **E14**, ADR 0051.
-    assertEquals(composeLostMessageSuspicion(0), "", "and nothing lost is nothing to say");
+    assertEquals(composeLostMessageSuspicion(0), "", "nothing lost is nothing to say");
 });

@@ -9,6 +9,7 @@
 
 import { assert, assertEquals, assertExists, assertStrictEquals, assertThrows } from "@std/assert";
 import { composeFightReplay } from "@/tools/fight-replay.ts";
+import { getUnreadMessages } from "@/src/core/fight-statistics.ts";
 import {
     composeFabricatedCaptureText,
     composeFabricatedFight,
@@ -120,7 +121,11 @@ Deno.test("every exemption names a key the register really carries", () => {
 });
 
 Deno.test("the fabricated fight goes through the chain with nothing left unread", () => {
-    assertStrictEquals(REPLAY.statistics.unreadMessages, 0, "a message the panel could not read");
+    assertStrictEquals(
+        getUnreadMessages(REPLAY.statistics),
+        0,
+        "a message the panel could not read",
+    );
     assertStrictEquals(REPLAY.reading.messagesLost, 0, "a message the payload said it carried");
     assert(REPLAY.reading.isOver, "and the fight it composed reached its end");
     assert(!REPLAY.reading.hasJoinedInProgress, "and was read from its own opening");
@@ -204,7 +209,11 @@ Deno.test("a fight at another level is fought at that level's figures", () => {
         name: "duel",
         calls: duel.calls.map((call) => call.payload),
     });
-    assertStrictEquals(replay.statistics.unreadMessages, 0, "a message the panel could not read");
+    assertStrictEquals(
+        getUnreadMessages(replay.statistics),
+        0,
+        "a message the panel could not read",
+    );
     assertStrictEquals(replay.reading.messagesLost, 0, "a message the payload said it carried");
     const figures = [...replay.statistics.byCombatantId.values()];
     assert(figures.every((one) => one.damageDealtApplied > 0), "each of them dealt something");
@@ -222,7 +231,7 @@ Deno.test("a fight the script breaks off states an escape and names no side", ()
         name: "fled",
         calls: fled.calls.map((call) => call.payload),
     });
-    assertStrictEquals(replay.statistics.unreadMessages, 0, "the escape leaves nothing unread");
+    assertStrictEquals(getUnreadMessages(replay.statistics), 0, "the escape leaves nothing unread");
     const outcome = replay.statistics.outcome;
     assertExists(outcome, "a fight broken off still says how it ended");
     assertStrictEquals(outcome.isFled, true, "and what it says is that somebody escaped");

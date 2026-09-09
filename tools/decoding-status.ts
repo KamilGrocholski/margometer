@@ -34,6 +34,8 @@ export interface DecodingStatus {
     messagesWithUnread: number;
     /** Of those, the ones the **grammar** refused — a refusal is no claim about any key. */
     messagesRefused: number;
+    /** And of those, the ones taken apart whole that carried nothing to read. Neither is a key. */
+    messagesWithoutParameter: number;
     eventsByKind: ReadonlyMap<string, number>;
     unreadKeysByFrequency: readonly (readonly [string, number])[];
 }
@@ -80,6 +82,7 @@ export function composeDecodingStatus(replays: readonly FightReplay[]): Decoding
         messagesLost: 0,
         messagesWithUnread: 0,
         messagesRefused: 0,
+        messagesWithoutParameter: 0,
     };
     for (const replay of replays) {
         status.payloads += replay.reading.payloads;
@@ -89,11 +92,16 @@ export function composeDecodingStatus(replays: readonly FightReplay[]): Decoding
             eventsByKind.set(event.kind, (eventsByKind.get(event.kind) ?? 0) + 1);
             if (event.kind !== "unknown-message") continue;
             status.messagesWithUnread += 1;
-            if (event.unreadKeys.length === 0) status.messagesRefused += 1;
+            // Off the cause the decoder stated, not off an empty key list: a message stating no
+            // parameter has an empty one too, and counting it as a refusal sent a reader chasing
+            // a grammar that never failed. Both are zero over `captures/`, so it never showed.
+            if (event.unreadCause === "grammar-refused") status.messagesRefused += 1;
+            if (event.unreadCause === "no-parameter") status.messagesWithoutParameter += 1;
             for (const key of event.unreadKeys) addToTally(unreadKeys, key, 1);
         }
     }
     assert(status.messagesRefused <= status.messagesWithUnread, "a refusal is one of them");
+    assert(status.messagesWithoutParameter <= status.messagesWithUnread, "and so is an empty one");
     assert(status.payloads >= replays.length, "every recording carried at least one payload");
     return {
         ...status,
@@ -135,6 +143,9 @@ export function composeStatusReport(replayed: ReplayedMaterial): string[] {
         // Beside the count above rather than inside it: the grammar refusing a message says
         // nothing about any key, so a reader chasing a key would be sent to the wrong place.
         composeCountLine("grammar refused", status.messagesRefused),
+        // And beside that: a message the grammar took apart which carried nothing to read. It
+        // names no key either, so a reader chasing one would be sent to the wrong place twice.
+        composeCountLine("no parameter", status.messagesWithoutParameter),
         // And beside both: this is what never reached the decoder at all.
         composeCountLine("messages lost", status.messagesLost),
         "",

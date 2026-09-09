@@ -14,6 +14,7 @@ import type {
     DamageFigure,
     DeclarationEvent,
     HealthChangeEvent,
+    UnknownMessageEvent,
 } from "@/src/core/battle-event.ts";
 import type { TeamHeal } from "@/src/core/combatant-health.ts";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
@@ -171,16 +172,17 @@ export interface CombatantFigures {
      */
     statisticsDestroyed: Map<string, number>;
     /**
-     * This combatant's own share of the two suspicions the fight-wide counts below hold: messages
-     * left unread that **named them**, and casts of theirs nobody could size onto a side.
+     * This combatant's own share of the suspicions the fight-wide counts below hold, under each
+     * cause that can name anybody, and casts of theirs nobody could size onto a side.
      *
-     * ⚠️ **Neither sums to the count of the same name on `FightStatistics`, and neither is meant
-     * to.** One unread message may name both ends, so it stands on two rows and is one message;
-     * a cast whose caster went unread stands on no row at all. What these answer is whose figure
-     * a suspicion qualifies, which is a different question from how much of the fight went unread —
-     * so `composeTotals` leaves them out.
+     * ⚠️ **None of these sums to the count of the same name on `FightStatistics`, and none is
+     * meant to.** One unread message may name both ends, so it stands on two rows and is one
+     * message; a cast whose caster went unread stands on no row at all. What these answer is whose
+     * figure a suspicion qualifies, which is a different question from how much of the fight went
+     * unread — so `composeTotals` leaves them out.
      */
-    unreadMessages: number;
+    unreadMessagesUnknownKey: number;
+    unreadMessagesNoParameter: number;
     castsUnplaced: number;
 }
 
@@ -197,7 +199,18 @@ export interface FightOutcome {
     isFled: boolean;
 }
 
-export interface FightStatistics {
+/**
+ * Messages the decoder could not read, which is what makes a total suspect — counted under each
+ * cause (`src/core/battle-event.ts`) rather than together, because which of the three somebody
+ * has to go and look at is what a single number would lose. **ADR 0070.**
+ */
+export interface UnreadMessageCounts {
+    unreadMessagesUnknownKey: number;
+    unreadMessagesNoParameter: number;
+    unreadMessagesGrammarRefused: number;
+}
+
+export interface FightStatistics extends UnreadMessageCounts {
     byCombatantId: ReadonlyMap<number, CombatantFigures>;
     /**
      * The fight's own sums, here because a total across combatants is never the panel's.
@@ -214,12 +227,19 @@ export interface FightStatistics {
     byNeitherEnd: number;
     /** What that figure was made of. Nobody's row holds it, so nobody's row can be cut for it. */
     byNeitherEndByElement: ReadonlyMap<string, number>;
-    /** Messages the decoder could not read, which is what makes a total suspect. */
-    unreadMessages: number;
     /** Casts stated about a side that nobody could size onto its members, whole or in part. */
     castsUnplaced: number;
     /** Null until the game says the fight is over, which it may never do on a fight left early. */
     outcome: FightOutcome | null;
+}
+
+/** How much of a fight went unread, whatever it was that left each message so. */
+export function getUnreadMessages(counted: UnreadMessageCounts): number {
+    const unread = counted.unreadMessagesUnknownKey + counted.unreadMessagesNoParameter +
+        counted.unreadMessagesGrammarRefused;
+    assert(Number.isSafeInteger(unread), "a count of messages stays inside what a number holds");
+    assert(unread >= 0, "and never falls below none");
+    return unread;
 }
 
 export function composeCombatantFigures(): CombatantFigures {
@@ -260,7 +280,8 @@ export function composeCombatantFigures(): CombatantFigures {
         procsWhenStruck: new Map(),
         damagePreventedByDefence: new Map(),
         statisticsDestroyed: new Map(),
-        unreadMessages: 0,
+        unreadMessagesUnknownKey: 0,
+        unreadMessagesNoParameter: 0,
         castsUnplaced: 0,
     };
 }
@@ -523,7 +544,7 @@ export interface TurnStanding {
 /** Where a fight starts: nobody mid-blow and nobody having acted. */
 export const NO_TURN_STANDING: TurnStanding = { strikingId: null, actingId: null };
 
-interface StatisticsBuild {
+interface StatisticsBuild extends UnreadMessageCounts {
     byCombatantId: Map<number, CombatantFigures>;
     woundByVictimId: Map<number, WoundStanding>;
     castsUnplaced: number;
@@ -532,7 +553,6 @@ interface StatisticsBuild {
     givenByNobody: number;
     byNeitherEnd: number;
     byNeitherEndByElement: Map<string, number>;
-    unreadMessages: number;
     turnStanding: TurnStanding;
     outcome: FightOutcome | null;
 }
@@ -974,17 +994,34 @@ function addNamedHealingEvent(build: StatisticsBuild, event: BattleEvent): void 
 }
 
 /**
- * A message left unread, charged to every end its grammar named — which is nobody at all where the
+ * A message left unread, counted for the fight under the cause that left it so.
+ */
+function addUnreadMessage(build: StatisticsBuild, event: UnknownMessageEvent): void {
+    if (event.unreadCause === "unknown-key") build.unreadMessagesUnknownKey += 1;
+    if (event.unreadCause === "no-parameter") build.unreadMessagesNoParameter += 1;
+    if (event.unreadCause === "grammar-refused") build.unreadMessagesGrammarRefused += 1;
+    addUnreadMessageToRows(build, event);
+}
+
+/**
+ * The same message charged to every end its grammar named — which is nobody at all where the
  * grammar itself is what failed. Counted once per row however often a row is named in it: what the
  * mark says is *something about this person went unread*, and twice is not more true than once.
  */
-function addUnreadMessage(build: StatisticsBuild, combatantIds: readonly number[]): void {
+function addUnreadMessageToRows(build: StatisticsBuild, event: UnknownMessageEvent): void {
+    const { unreadCause, combatantIds } = event;
     assert(combatantIds.length <= MAXIMUM_COMBATANTS, "a message names ends inside the bound");
+    if (unreadCause === "grammar-refused") {
+        assert(combatantIds.length === 0, "a grammar nobody could read named nobody either");
+        return;
+    }
     const charged = new Set<number>();
     for (const combatantId of combatantIds) {
         if (charged.has(combatantId)) continue;
         charged.add(combatantId);
-        getFiguresForCombatant(build.byCombatantId, combatantId).unreadMessages += 1;
+        const figures = getFiguresForCombatant(build.byCombatantId, combatantId);
+        if (unreadCause === "unknown-key") figures.unreadMessagesUnknownKey += 1;
+        else figures.unreadMessagesNoParameter += 1;
     }
     assert(charged.size <= combatantIds.length, "a row is charged for it once, or not at all");
 }
@@ -1168,17 +1205,16 @@ export function composeFightStatistics(
         givenByNobody: 0,
         byNeitherEnd: 0,
         byNeitherEndByElement: new Map(),
-        unreadMessages: 0,
+        unreadMessagesUnknownKey: 0,
+        unreadMessagesNoParameter: 0,
+        unreadMessagesGrammarRefused: 0,
         castsUnplaced: 0,
         turnStanding: NO_TURN_STANDING,
         outcome: null,
     };
     assert(build.byCombatantId.size === 0, "a fight is counted up from nobody");
     for (const event of events) {
-        if (event.kind === "unknown-message") {
-            build.unreadMessages += 1;
-            addUnreadMessage(build, event.combatantIds);
-        }
+        if (event.kind === "unknown-message") addUnreadMessage(build, event);
         if (event.kind === "unaccounted-health") {
             addTeamHeal(build, event.announced, heals.get(event));
         }
@@ -1195,7 +1231,7 @@ export function composeFightStatistics(
         addTurnLost(build, event);
     }
     assert(build.byCombatantId.size <= MAXIMUM_COMBATANTS, "a fight stays inside its bound");
-    assert(build.unreadMessages <= events.length, "a message is counted unread once");
+    assert(getUnreadMessages(build) <= events.length, "a message is counted unread once");
     assert(getAppliedBalance(build) === 0, "every point applied is counted once at each end");
     assert(getRestoredBalance(build) === 0, "and every point restored once at each of its own");
     assert(getHalfNamedBalance(build) === 0, "and every half-named point is on the row it named");
@@ -1212,7 +1248,9 @@ export function composeFightStatistics(
         givenByNobody: build.givenByNobody,
         byNeitherEnd: build.byNeitherEnd,
         byNeitherEndByElement: build.byNeitherEndByElement,
-        unreadMessages: build.unreadMessages,
+        unreadMessagesUnknownKey: build.unreadMessagesUnknownKey,
+        unreadMessagesNoParameter: build.unreadMessagesNoParameter,
+        unreadMessagesGrammarRefused: build.unreadMessagesGrammarRefused,
         castsUnplaced: build.castsUnplaced,
         outcome: build.outcome,
     };

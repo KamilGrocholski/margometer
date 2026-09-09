@@ -150,11 +150,14 @@ export interface TurnLostEvent {
     combatantId: number | null;
 }
 
+/** Why a message went unread. `grammar-refused` names nobody, so two of the three reach a row. */
+export type UnreadCause = "unknown-key" | "no-parameter" | "grammar-refused";
+
 /** A message left unread, carrying what it was so nothing about it is invented. */
 export interface UnknownMessageEvent {
     kind: "unknown-message";
     message: string;
-    reason: string;
+    unreadCause: UnreadCause;
     /** One per occurrence. Empty where the grammar failed, never "nothing went unread". */
     unreadKeys: readonly string[];
     /** The ends the message named, read off the grammar and nowhere else. */

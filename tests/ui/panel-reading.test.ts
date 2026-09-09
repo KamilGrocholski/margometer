@@ -12,12 +12,17 @@ import {
     assertExists,
     assertNotStrictEquals,
     assertStrictEquals,
+    assertStringIncludes,
 } from "@std/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
-import { composeCombatantFigures, composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import {
+    composeCombatantFigures,
+    composeFightStatistics,
+    getUnreadMessages,
+} from "@/src/core/fight-statistics.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import type { FightStatistics } from "@/src/core/fight-statistics.ts";
 import type { PanelSideChoice } from "@/src/ui/panel-screen.ts";
@@ -44,7 +49,12 @@ import {
     MAXIMUM_SKILLS,
     NOTHING_SUSPECT,
 } from "@/src/ui/panel-reading.ts";
-import { getWordsForDamageKind, HEALTH_LOSS_WORDS } from "@/src/ui/panel-words.ts";
+import {
+    composeNoParameterRowSuspicion,
+    composeUnknownKeyRowSuspicion,
+    getWordsForDamageKind,
+    HEALTH_LOSS_WORDS,
+} from "@/src/ui/panel-words.ts";
 import {
     getRecordedCombatants,
     getRecordedPayloads,
@@ -252,7 +262,7 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
         null,
         NOTHING_SUSPECT,
     );
-    assertEquals(whole.statistics.unreadMessages, 0, "every key this fight carries is read");
+    assertEquals(getUnreadMessages(whole.statistics), 0, "every key this fight carries is read");
     assertEquals(readable.suspicions, [], "so nothing on the screen is qualified");
 
     // A probe, because no recording carries an unread key any more: the next protocol change is
@@ -289,7 +299,7 @@ Deno.test("a cast nobody could place shortens the healing, and says so only ther
         new Map(),
     );
     assertEquals(
-        unplaced.unreadMessages,
+        getUnreadMessages(unplaced),
         0,
         "nothing here is unread, so the casts are the whole of it",
     );
@@ -1985,7 +1995,7 @@ Deno.test("a reading short of its own start or of a message says so, on every sc
     }
 });
 
-/** Widening to narrowing, and the healing screen is the only one that can say all four. */
+/** Widening to narrowing, and the healing screen is the only one that can say all of them. */
 Deno.test("what shortens a reading is said before what shortens one figure on it", () => {
     const { roster } = readFight(HILDUR);
     const events = decodeFightMessages(["1=100.00;0;whatever_per=30"], roster);
@@ -2000,11 +2010,14 @@ Deno.test("what shortens a reading is said before what shortens one figure on it
     assertEquals(
         reading.suspicions.length,
         3,
-        "three of the four, the fourth needing an unsized cast",
+        "three of them, the rest needing an unsized cast and a message of another shape",
     );
     assert(reading.suspicions[0]?.includes("w trakcie"), "the start nobody saw comes first");
     assert(reading.suspicions[1]?.includes("nie dotarła"), "then what never arrived");
-    assert(reading.suspicions[2]?.includes("odczytać"), "then what arrived and could not be read");
+    assert(
+        reading.suspicions[2]?.includes("Nie wiadomo, co znaczyła"),
+        "then what arrived carrying a key with no meaning yet",
+    );
 });
 
 /**
@@ -2039,6 +2052,88 @@ Deno.test("a suspicion about one person qualifies the screens their figure is on
     assertEquals(said.length, 1, "and the mark opens onto one sentence");
     assert(said[0]?.includes("jej leczenia"), "saying whose leczenie is short, not the fight's");
     assertEquals(composeRowSuspicions(caster.detail, "damageDealtApplied"), [], "and nothing else");
+});
+
+/**
+ * Three sentences and not one: the game having moved past this decoder is the one worth acting on,
+ * and the other two are not. **ADR 0070**, and `tools/decoding-status.ts` counted two of them as
+ * one until it landed.
+ */
+Deno.test("what could not be read is said under the cause that left it so", () => {
+    const { roster } = readFight(HILDUR);
+    const readSuspicions = (message: string) =>
+        composePanelReading(
+            composeFightStatistics(decodeFightMessages([message], roster), new Map()),
+            roster,
+            "damageDealtApplied",
+            "everyone",
+            null,
+            NOTHING_SUSPECT,
+        ).suspicions;
+    const unknownKey = readSuspicions("1=100.00;0;whatever_per=30");
+    assertEquals(unknownKey.length, 1, "a key with no meaning yet is one sentence");
+    assertStringIncludes(
+        unknownKey[0] ?? "",
+        "co znaczyła",
+        "saying the meaning is what is missing",
+    );
+
+    const empty = readSuspicions("1=100.00;0");
+    assertEquals(empty.length, 1, "a message carrying nothing to read is another");
+    assertStringIncludes(empty[0] ?? "", "żadnej liczby", "saying there was no figure in it");
+
+    const refused = readSuspicions("gracz;0");
+    assertEquals(refused.length, 1, "and a grammar nobody could take apart is a third");
+    assertStringIncludes(refused[0] ?? "", "rozłożyć na słowa", "saying the words would not come");
+    assert(
+        !refused[0]?.includes("("),
+        "and naming nobody, because a refused message named no end",
+    );
+});
+
+/**
+ * The row's own half of the same split. A refused message names nobody, so no row ever carries
+ * one, and a row's sentence carries no denominator: what it would be counted out of is the
+ * messages naming that person, which nothing counts.
+ */
+Deno.test("a row says which of the two causes that can name it left its figure short", () => {
+    const { roster } = readFight(HILDUR);
+    const readRow = (message: string) => {
+        const statistics = composeFightStatistics(
+            decodeFightMessages([message], roster),
+            new Map(),
+        );
+        return statistics.byCombatantId.get(1);
+    };
+    const unknownKey = readRow("1=100.00;0;whatever_per=30");
+    assertEquals(
+        unknownKey?.unreadMessagesUnknownKey,
+        1,
+        "the key with no meaning is charged here",
+    );
+    assertEquals(unknownKey?.unreadMessagesNoParameter, 0, "and never to the other count");
+    const empty = readRow("1=100.00;0");
+    assertEquals(empty?.unreadMessagesNoParameter, 1, "and the empty message to its own");
+    assertEquals(empty?.unreadMessagesUnknownKey, 0, "and never to the other one either");
+
+    const both = composePanelReading(
+        composeFightStatistics(
+            decodeFightMessages(["1=100.00;0;whatever_per=30", "1=100.00;0"], roster),
+            new Map(),
+        ),
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    ).rows.find((row) => row.combatantId === 1);
+    assertExists(both, "the row both causes named is on the list");
+    const rows = composeRowSuspicions(both.detail, "damageDealtApplied");
+    assertEquals(rows.length, 2, "a row short under both says both");
+    // The sentences themselves, so what a row says is one function and not two: that neither
+    // carries a denominator is `tests/ui/panel-words.test.ts`, where the words are.
+    assertEquals(rows[0], composeUnknownKeyRowSuspicion(1), "the meaning nobody has first");
+    assertEquals(rows[1], composeNoParameterRowSuspicion(1), "then the one carrying no figure");
 });
 
 Deno.test("a message that went unread marks the rows it named, on every screen", () => {
@@ -2242,7 +2337,9 @@ function composeStatisticsWithSkills(receiverId: number, names: number): FightSt
         givenByNobody: 0,
         byNeitherEnd: 0,
         byNeitherEndByElement: new Map(),
-        unreadMessages: 0,
+        unreadMessagesUnknownKey: 0,
+        unreadMessagesNoParameter: 0,
+        unreadMessagesGrammarRefused: 0,
         castsUnplaced: 0,
         outcome: null,
     };

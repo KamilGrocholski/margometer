@@ -25,14 +25,17 @@ import {
     type PanelSideChoice,
 } from "@/src/ui/panel-screen.ts";
 import {
+    composeGrammarRefusedSuspicion,
     composeJoinedInProgressSuspicion,
     composeLostMessageSuspicion,
+    composeNoParameterRowSuspicion,
+    composeNoParameterSuspicion,
     composeShareText,
     composeShareTexts,
+    composeUnknownKeyRowSuspicion,
+    composeUnknownKeySuspicion,
     composeUnplacedHealRowSuspicion,
     composeUnplacedHealSuspicion,
-    composeUnreadRowSuspicion,
-    composeUnreadSuspicion,
 } from "@/src/ui/panel-words.ts";
 
 /** A fight holds twenty, and a list draws a row for each. */
@@ -118,7 +121,8 @@ export interface RowDetail {
      * rather than under the whole list (`src/core/fight-statistics.ts` says why neither sums to
      * the fight's own count).
      */
-    unreadMessages: number;
+    unreadMessagesUnknownKey: number;
+    unreadMessagesNoParameter: number;
     castsUnplaced: number;
 }
 
@@ -393,13 +397,15 @@ export interface FightSuspicions {
 export const NOTHING_SUSPECT: FightSuspicions = { messagesLost: 0, hasJoinedInProgress: false };
 
 /** The list below is the bound, not anything a fight can do. */
-const MAXIMUM_WARNINGS = 4;
-/** And a row carries the two of the four that can be charged to one person. */
-const ROW_WARNINGS = 2;
+const MAXIMUM_WARNINGS = 6;
+/** And a row carries the three of the six that can be charged to one person. */
+const ROW_WARNINGS = 3;
 
 /**
- * Widening to narrowing. The first three qualify every screen; a cast nobody could place puts back
+ * Widening to narrowing. The first four qualify every screen; a cast nobody could place puts back
  * health, so saying it on a damage screen would put a suspicion on a figure that cannot carry it.
+ * Each of the three unread causes is its own sentence, because each is its own thing to be short
+ * of (**ADR 0070**), and a fight is short of one of them at a time in every case anybody has seen.
  */
 function composeSuspicions(
     statistics: FightStatistics,
@@ -408,32 +414,33 @@ function composeSuspicions(
 ): string[] {
     const said: string[] = [];
     if (suspicions.hasJoinedInProgress) said.push(composeJoinedInProgressSuspicion());
-    if (suspicions.messagesLost > 0) {
-        said.push(composeLostMessageSuspicion(suspicions.messagesLost));
-    }
-    if (statistics.unreadMessages > 0) said.push(composeUnreadSuspicion(statistics.unreadMessages));
-    const isHealing = metric === "healthRestored" || metric === "healthGiven";
-    if (isHealing && statistics.castsUnplaced > 0) {
+    said.push(composeLostMessageSuspicion(suspicions.messagesLost));
+    said.push(composeUnknownKeySuspicion(statistics.unreadMessagesUnknownKey));
+    said.push(composeNoParameterSuspicion(statistics.unreadMessagesNoParameter));
+    said.push(composeGrammarRefusedSuspicion(statistics.unreadMessagesGrammarRefused));
+    if (getNounForMetric(metric) === "healing") {
         said.push(composeUnplacedHealSuspicion(statistics.castsUnplaced));
     }
-    return said.slice(0, MAXIMUM_WARNINGS);
+    return said.filter((one) => one.length > 0).slice(0, MAXIMUM_WARNINGS);
 }
 
 /**
  * What this row's own figure is short of, as sentences a reader can act on.
  *
- * The screen decides which of the two are owed for the same reason it decides the fight's own:
+ * The screen decides which of the three are owed for the same reason it decides the fight's own:
  * a cast nobody could place puts back health, so saying it beside a damage figure would be a
  * suspicion over a figure that cannot carry it. Composed on demand, like a card's other words.
+ * A message the grammar refused named nobody, so no row is ever short of one.
  */
 export function composeRowSuspicions(detail: RowDetail, metric: PanelMetric): string[] {
-    const said: string[] = [];
-    if (detail.unreadMessages > 0) said.push(composeUnreadRowSuspicion(detail.unreadMessages));
-    const isHealing = getNounForMetric(metric) === "healing";
-    if (isHealing && detail.castsUnplaced > 0) {
+    const said = [
+        composeUnknownKeyRowSuspicion(detail.unreadMessagesUnknownKey),
+        composeNoParameterRowSuspicion(detail.unreadMessagesNoParameter),
+    ];
+    if (getNounForMetric(metric) === "healing") {
         said.push(composeUnplacedHealRowSuspicion(detail.castsUnplaced));
     }
-    return said.slice(0, ROW_WARNINGS);
+    return said.filter((one) => one.length > 0).slice(0, ROW_WARNINGS);
 }
 
 /**
@@ -442,7 +449,8 @@ export function composeRowSuspicions(detail: RowDetail, metric: PanelMetric): st
  * stops on one.
  */
 export function getRowIsSuspect(detail: RowDetail, metric: PanelMetric): boolean {
-    if (detail.unreadMessages > 0) return true;
+    if (detail.unreadMessagesUnknownKey > 0) return true;
+    if (detail.unreadMessagesNoParameter > 0) return true;
     if (getNounForMetric(metric) !== "healing") return false;
     return detail.castsUnplaced > 0;
 }
@@ -529,7 +537,8 @@ function composeRowDetail(figures: CombatantFigures, level: number | null): RowD
         procsWhenStruck: composeCutParts(figures.procsWhenStruck),
         damagePreventedByDefence: composeCutParts(figures.damagePreventedByDefence),
         statisticsDestroyed: composeCutParts(figures.statisticsDestroyed),
-        unreadMessages: figures.unreadMessages,
+        unreadMessagesUnknownKey: figures.unreadMessagesUnknownKey,
+        unreadMessagesNoParameter: figures.unreadMessagesNoParameter,
         castsUnplaced: figures.castsUnplaced,
     };
 }

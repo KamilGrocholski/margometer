@@ -385,8 +385,11 @@ One contract is this document's own, because it is about attribution rather than
   short without ever saying by how much. A gap naming nobody stays in the fight's own summary, which
   is the only place it is now said (**ADR 0069**). A cut of a figure never carries one — a shortfall
   cannot be placed onto one opponent or one skill, so the mark rides the combatant's own row at
-  every level. `[ASK]` before a third kind of gap joins the two that exist: a gap placed on a row it
-  was not named for is a guess wearing a suspicion's clothes.
+  every level. `[ASK]` before a gap is placed on a row it was not named for: that is a guess wearing
+  a suspicion's clothes. What went unread is counted under each of the three causes the decoder
+  tells apart, granted by **ADR 0070** against the `[ASK]` this paragraph used to hold, and the rule
+  above binds each of them — a message the grammar refused names nobody, so it reaches no row at
+  all.
 
 Three severities, and a fourth is `[ASK]`: **suspect**, **undrawn** and **defect** (`CONTEXT.md`).
 The first two are claims about the fight and ride what they qualify. The third is a claim about the
