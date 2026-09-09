@@ -9,6 +9,7 @@
 
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import {
+    composeChargedRowsText,
     composeCountedNoun,
     composeFigureText,
     composeGrammarRefusedSuspicion,
@@ -51,6 +52,8 @@ const OUR_VOCABULARY = [
 ];
 /** Keys the game chose. A reader is told what happened, never what it arrived under. */
 const GAME_KEYS = ["dmg", "tspell", "skillid", "healall_per", "legbon", "oth_dmg", "endbattle"];
+/** What a count in these sentences is stated out of. Any figure past the counts below will do. */
+const SAID_OUT_OF = 412;
 
 function getSentences(): string[] {
     const found = Object.values(PANEL_WORDS).map((one) => String(one));
@@ -73,14 +76,17 @@ function getSentences(): string[] {
     // below would read past every one.
     found.push(composeJoinedInProgressSuspicion());
     for (const count of [1, 2, 5]) {
-        found.push(composeLostMessageSuspicion(count));
-        found.push(composeUnknownKeySuspicion(count));
-        found.push(composeNoParameterSuspicion(count));
-        found.push(composeGrammarRefusedSuspicion(count));
-        found.push(composeUnplacedHealSuspicion(count));
+        const whom = composeChargedRowsText(["Gracz 1", "Gracz 2"], 2);
+        found.push(composeLostMessageSuspicion(count, SAID_OUT_OF));
+        found.push(composeUnknownKeySuspicion(count, SAID_OUT_OF, whom));
+        found.push(composeNoParameterSuspicion(count, SAID_OUT_OF, whom));
+        found.push(composeGrammarRefusedSuspicion(count, SAID_OUT_OF));
+        found.push(composeUnplacedHealSuspicion(count, SAID_OUT_OF, whom));
         found.push(composeUnknownKeyRowSuspicion(count));
         found.push(composeNoParameterRowSuspicion(count));
         found.push(composeUnplacedHealRowSuspicion(count));
+        // And the other shape of the same words: a gap reaching more rows than a sentence lists.
+        found.push(composeUnknownKeySuspicion(count, SAID_OUT_OF, composeChargedRowsText([], 7)));
     }
     return found;
 }
@@ -314,10 +320,105 @@ Deno.test("a key health moved under is worded, and one nobody named travels as w
 });
 
 Deno.test("a suspicion about what never arrived counts in all three Polish forms", () => {
-    assertStringIncludes(composeLostMessageSuspicion(1), "1 wiadomość", "one takes the first form");
-    assertStringIncludes(composeLostMessageSuspicion(2), "2 wiadomości", "two takes the second");
-    assertStringIncludes(composeLostMessageSuspicion(5), "5 wiadomości", "and five the third");
+    const lost = (count: number) => composeLostMessageSuspicion(count, count);
+    assertStringIncludes(lost(1), "1 wiadomość", "one takes the first form");
+    assertStringIncludes(lost(2), "2 wiadomości", "two takes the second");
+    assertStringIncludes(lost(5), "5 wiadomości", "and five the third");
     // Nothing to warn about is nothing said. The empty sentence is dropped where it is drawn,
     // rather than stopping the draw it arrived in — **E14**, ADR 0051.
-    assertEquals(composeLostMessageSuspicion(0), "", "nothing lost is nothing to say");
+    assertEquals(composeLostMessageSuspicion(0, SAID_OUT_OF), "", "nothing lost is nothing to say");
+});
+
+/**
+ * A count says whether a reader has to act on it only against what it is out of: two of twelve is
+ * a fight nobody can trust, and two of four hundred is a number in the third decimal place.
+ */
+Deno.test("a suspicion states its count against what that count is out of", () => {
+    assertStringIncludes(
+        composeUnknownKeySuspicion(2, 412, ""),
+        "2 z 412 wiadomości",
+        "the count, then what it is out of",
+    );
+    // A denominator smaller than the count is a reading that disagrees with itself. The sentence
+    // states the count alone rather than a fraction nobody can read (**E14**: it clamps in place).
+    assertStringIncludes(
+        composeUnknownKeySuspicion(2, 1, ""),
+        "2 wiadomości",
+        "and never a share bigger than one",
+    );
+    assert(
+        !composeUnknownKeySuspicion(2, 1, "").includes(" z "),
+        "which is said by leaving the denominator out, not by mending it",
+    );
+});
+
+/**
+ * ⚠️ **`z` and `dotyczy` govern the genitive, and a counted noun's own forms are not it.** Polish
+ * takes a third form after two to four — `3 uleczenia` standing alone, `z 3 uleczeń` under `z` —
+ * and the panel was writing the standing form in both places. The many form is the genitive
+ * plural, and it is what every count past one takes there. **ADR 0070.**
+ */
+Deno.test("a count under a word governing the genitive takes the genitive", () => {
+    assertStringIncludes(
+        composeUnplacedHealSuspicion(1, 3, ""),
+        "1 z 3 uleczeń",
+        "never `3 uleczenia`, which is the form nothing governs",
+    );
+    assertStringIncludes(
+        composeUnplacedHealSuspicion(2, 5, ""),
+        "2 z 5 uleczeń",
+        "and past four the two forms agree, which is what hid this",
+    );
+    // A denominator of one wants the genitive singular, which this vocabulary does not carry —
+    // and says nothing the count has not, so the sentence states the count alone.
+    assertStringIncludes(
+        composeUnplacedHealSuspicion(1, 1, ""),
+        "1 uleczenie bez podziału",
+        "one out of one is one, said once",
+    );
+});
+
+/**
+ * A row's own sentence states its count bare, and that is not an oversight: what it would be
+ * counted out of is the messages naming that person, which nothing counts. **ADR 0070.**
+ */
+Deno.test("a suspicion about one person states its count out of nothing", () => {
+    for (const said of [composeUnknownKeyRowSuspicion(2), composeNoParameterRowSuspicion(2)]) {
+        assertStringIncludes(said, "2 wiadomości bez odczytu", "the count, and straight to what");
+        assert(!said.includes(`z ${SAID_OUT_OF}`), "and never out of the fight's own total");
+    }
+    assertStringIncludes(
+        composeUnplacedHealRowSuspicion(2),
+        "2 uleczenia bez podziału",
+        "and the cast says the same, in its own noun",
+    );
+});
+
+/**
+ * Whom a gap reaches, where the mark on a row cannot be seen without pointing at it. Three names
+ * is what fits; past that the sentence says how many, because a list that grew with the fight
+ * would be a second ranking drawn in a paragraph.
+ */
+Deno.test("a suspicion names whom it reaches while they are few, counting them past that", () => {
+    assertEquals(composeChargedRowsText([], 0), "", "a gap naming nobody names nobody");
+    assertEquals(
+        composeChargedRowsText(["Gracz 1", "Gracz 2"], 2),
+        " (Gracz 1, Gracz 2)",
+        "two are read faster as names than as a number",
+    );
+    assertEquals(
+        composeChargedRowsText(["Gracz 1", "Gracz 2", "Gracz 3"], 3),
+        " (Gracz 1, Gracz 2, Gracz 3)",
+        "and three is what still fits beside a count",
+    );
+    assertStringIncludes(
+        composeChargedRowsText(["Gracz 1", "Gracz 2", "Gracz 3"], 4),
+        "dotyczy 4 postaci",
+        "the fourth turns the list into a count, and the names are dropped whole",
+    );
+    assertEquals(
+        composeChargedRowsText([], 7),
+        " (dotyczy 7 postaci)",
+        "rows the roster could not name are counted, never guessed at",
+    );
 });

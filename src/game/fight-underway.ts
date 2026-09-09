@@ -98,6 +98,8 @@ export interface FightReading {
     messagesByPayload: readonly (readonly string[])[];
     /** Messages a payload said it carried and this reader did not read. Zero is the answer. */
     messagesLost: number;
+    /** And what it did read, which is what a count of what it could not read is out of. */
+    messagesRead: number;
     /** True where the reading began after the fight did, short by an amount nothing states. */
     hasJoinedInProgress: boolean;
     isOver: boolean;
@@ -113,6 +115,7 @@ export interface FightUnderway {
     events: BattleEvent[];
     messagesByPayload: string[][];
     messagesLost: number;
+    messagesRead: number;
     hasJoinedInProgress: boolean;
     isOver: boolean;
     payloads: number;
@@ -127,6 +130,7 @@ export function composeFightUnderway(): FightUnderway {
         events: [],
         messagesByPayload: [],
         messagesLost: 0,
+        messagesRead: 0,
         hasJoinedInProgress: false,
         isOver: false,
         payloads: 0,
@@ -163,6 +167,7 @@ function resetFight(underway: FightUnderway): void {
     underway.events = [];
     underway.messagesByPayload = [];
     underway.messagesLost = 0;
+    underway.messagesRead = 0;
     underway.hasJoinedInProgress = false;
     underway.isOver = false;
     underway.payloads = 0;
@@ -210,9 +215,11 @@ export function addPayloadToFight(underway: FightUnderway, payload: unknown): vo
     const roster = composeCombatantRoster(underway.combatants);
     const messages = readMessagesFromPayload(payload);
     underway.messagesByPayload.push(messages);
+    underway.messagesRead += messages.length;
     const stated = readMessageCountFromPayload(payload);
     if (stated > messages.length) underway.messagesLost += stated - messages.length;
     assert(underway.messagesLost >= 0, "what a payload stated and nobody read is never negative");
+    assert(underway.messagesRead >= messages.length, "and what it did read is counted once");
     for (const event of decodeFightMessages(messages, roster)) underway.events.push(event);
     if (FIGHT_ENDS_KEY in payload) underway.isOver = true;
     assert(underway.events.length <= MAXIMUM_EVENTS, "a fight stays inside its stated bound");
@@ -231,6 +238,7 @@ export function getReadingFromFight(underway: FightUnderway): FightReading | nul
         events: underway.events,
         messagesByPayload: underway.messagesByPayload,
         messagesLost: underway.messagesLost,
+        messagesRead: underway.messagesRead,
         hasJoinedInProgress: underway.hasJoinedInProgress,
         isOver: underway.isOver,
         payloads: underway.payloads,

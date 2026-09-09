@@ -62,6 +62,8 @@ import {
 } from "@/tests/recorded-fight.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
+/** What a count of what could not be read is stated out of. Any figure past it will do here. */
+const MESSAGES_READ = 400;
 /** Every screen there is, so a claim about one of them is checked against the other three. */
 const SCREENS: PanelMetric[] = [
     "damageDealtApplied",
@@ -304,6 +306,25 @@ Deno.test("a cast nobody could place shortens the healing, and says so only ther
         "nothing here is unread, so the casts are the whole of it",
     );
     assert(unplaced.castsUnplaced > 0, "and a cast went unplaced");
+    // Every cast this fight stated is unsized here, so the two counts are the same figure — which
+    // is what makes the sentence say *all of them* rather than a bare number (**ADR 0070**).
+    assertEquals(unplaced.castsStated, unplaced.castsUnplaced, "none of them could be sized");
+    const sized = composePanelReading(
+        unplaced,
+        roster,
+        "healthRestored",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    ).suspicions[0];
+    assertExists(sized, "so the healing screen says so");
+    assertStringIncludes(
+        sized,
+        `${unplaced.castsUnplaced} z ${unplaced.castsStated} uleczeń`,
+        "the casts nobody could size, out of the casts the fight stated",
+    );
+    assert(statistics.castsStated > 0, "and the fight read whole states the same casts");
+    assertEquals(statistics.castsUnplaced, 0, "with every one of them sized");
     for (const metric of SCREENS) {
         const reading = composePanelReading(
             unplaced,
@@ -1978,18 +1999,21 @@ Deno.test("a reading short of its own start or of a message says so, on every sc
         const joined = composePanelReading(statistics, roster, metric, "everyone", null, {
             messagesLost: 0,
             hasJoinedInProgress: true,
+            messagesRead: MESSAGES_READ,
         });
         assertEquals(joined.suspicions.length, 1, `${metric}: a start nobody saw shortens it`);
 
         const lost = composePanelReading(statistics, roster, metric, "everyone", null, {
             messagesLost: 3,
             hasJoinedInProgress: false,
+            messagesRead: MESSAGES_READ,
         });
         assertEquals(lost.suspicions.length, 1, `${metric}: and so does a message that never came`);
 
         const whole = composePanelReading(statistics, roster, metric, "everyone", null, {
             messagesLost: 0,
             hasJoinedInProgress: false,
+            messagesRead: MESSAGES_READ,
         });
         assertEquals(whole.suspicions, [], `${metric}: a reading missing neither says nothing`);
     }
@@ -2005,7 +2029,7 @@ Deno.test("what shortens a reading is said before what shortens one figure on it
         "healthRestored",
         "everyone",
         null,
-        { messagesLost: 2, hasJoinedInProgress: true },
+        { messagesLost: 2, hasJoinedInProgress: true, messagesRead: MESSAGES_READ },
     );
     assertEquals(
         reading.suspicions.length,
@@ -2055,6 +2079,37 @@ Deno.test("a suspicion about one person qualifies the screens their figure is on
 });
 
 /**
+ * A count is worth acting on only against what it is out of, and a fight-wide sentence is worth
+ * reading only if a reader can tell whether it is about anybody they care about. The mark on a
+ * row answers the second question too, and not without a pointer on it. **ADR 0070.**
+ */
+Deno.test("the fight's own sentence says how big the gap is and whom it reaches", () => {
+    const roster = composeCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: 2000 },
+    ]);
+    const events = decodeFightMessages(["1=100.00;2=100.00;whatever_per=30"], roster);
+    const reading = composePanelReading(
+        composeFightStatistics(events, new Map()),
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        null,
+        { messagesLost: 0, hasJoinedInProgress: false, messagesRead: MESSAGES_READ },
+    );
+    const said = reading.suspicions[0];
+    assertExists(said, "one message went unread, so one sentence stands under the list");
+    assertStringIncludes(
+        said,
+        `1 z ${MESSAGES_READ} wiadomości`,
+        "the count, and what it is out of",
+    );
+    for (const name of ["Gracz 1", "Gracz 2"]) {
+        assertStringIncludes(said, name, `${name}: whom the gap reaches, said where it is said`);
+    }
+});
+
+/**
  * Three sentences and not one: the game having moved past this decoder is the one worth acting on,
  * and the other two are not. **ADR 0070**, and `tools/decoding-status.ts` counted two of them as
  * one until it landed.
@@ -2068,7 +2123,7 @@ Deno.test("what could not be read is said under the cause that left it so", () =
             "damageDealtApplied",
             "everyone",
             null,
-            NOTHING_SUSPECT,
+            { messagesLost: 0, hasJoinedInProgress: false, messagesRead: MESSAGES_READ },
         ).suspicions;
     const unknownKey = readSuspicions("1=100.00;0;whatever_per=30");
     assertEquals(unknownKey.length, 1, "a key with no meaning yet is one sentence");
@@ -2341,6 +2396,7 @@ function composeStatisticsWithSkills(receiverId: number, names: number): FightSt
         unreadMessagesNoParameter: 0,
         unreadMessagesGrammarRefused: 0,
         castsUnplaced: 0,
+        castsStated: 0,
         outcome: null,
     };
 }

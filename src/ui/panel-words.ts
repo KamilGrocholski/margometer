@@ -689,57 +689,106 @@ const THOUSAND_SEPARATOR = "\u00a0";
 /** A safe integer is sixteen digits, so five groups is past every figure the protocol states. */
 const MAXIMUM_THOUSAND_GROUPS = 5;
 
+/** Three names is what fits beside a count; past that the sentence says how many instead. */
+export const MAXIMUM_NAMED_ROWS = 3;
+
+/**
+ * Whom a gap reaches, as the sentence puts them: names while they are few, a count past that —
+ * a list growing with the fight would be a second ranking, drawn in a paragraph. **ADR 0070.**
+ */
+export function composeChargedRowsText(names: readonly string[], charged: number): string {
+    if (charged <= 0) return "";
+    if (charged > MAXIMUM_NAMED_ROWS) {
+        return ` (dotyczy ${composeGenitiveNoun(charged, COUNTED_NOUNS.combatants)})`;
+    }
+    if (names.length === 0) return "";
+    return ` (${names.join(", ")})`;
+}
+
+/**
+ * How much a reading could not read, against how much there was: two of twelve is a fight nobody
+ * can trust, two of four hundred is a number in the third decimal place. A denominator of one is
+ * dropped — it adds nothing, and `z 1` wants a genitive singular this vocabulary has not got.
+ */
+function composeOutOfText(count: number, stated: number, noun: CountedNoun): string {
+    if (stated <= 1) return composeCountedNoun(count, noun);
+    if (stated < count) return composeCountedNoun(count, noun);
+    return `${composeIntegerText(count)} z ${composeGenitiveNoun(stated, noun)}`;
+}
+
+/**
+ * A count under a word governing the genitive — `z`, `dotyczy`. The **many** form is the genitive
+ * plural: `1 z 3 uleczeń`, never `3 uleczenia`, which is the form nothing governs.
+ */
+function composeGenitiveNoun(count: number, noun: CountedNoun): string {
+    return `${composeIntegerText(count)} ${noun.many}`;
+}
+
 /**
  * What a reading could not be sure of, each as one sentence a player can act on. The count sits
  * in an apposition, so one sentence carries all three Polish forms without the verb agreeing with
  * it. Each says **what cannot be known** and never what this reader could not do (**L3**), which
  * is what keeps the three unread causes apart. **ADR 0070.**
  */
-export function composeUnknownKeySuspicion(count: number): string {
+export function composeUnknownKeySuspicion(
+    count: number,
+    stated: number,
+    whom: string,
+): string {
     if (count <= 0) return "";
-    const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
+    const said = composeOutOfText(count, stated, COUNTED_NOUNS.messages);
     return "Nie wiadomo, co znaczyła część tego, co powiedziała gra — " +
-        `${said} bez odczytu, więc liczby mogą być zaniżone.`;
+        `${said} bez odczytu${whom}, więc liczby mogą być zaniżone.`;
 }
 
-export function composeNoParameterSuspicion(count: number): string {
+export function composeNoParameterSuspicion(
+    count: number,
+    stated: number,
+    whom: string,
+): string {
     if (count <= 0) return "";
-    const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
+    const said = composeOutOfText(count, stated, COUNTED_NOUNS.messages);
     return "Część tego, co powiedziała gra, nie niosła żadnej liczby — " +
-        `${said} bez odczytu, więc liczby mogą być zaniżone.`;
+        `${said} bez odczytu${whom}, więc liczby mogą być zaniżone.`;
 }
 
-export function composeGrammarRefusedSuspicion(count: number): string {
+/** It names nobody, and takes no `whom`: a message nothing could be read out of named no end. */
+export function composeGrammarRefusedSuspicion(count: number, stated: number): string {
     if (count <= 0) return "";
-    const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
+    const said = composeOutOfText(count, stated, COUNTED_NOUNS.messages);
     return "Części tego, co powiedziała gra, nie dało się rozłożyć na słowa — " +
         `${said} bez odczytu, więc liczby mogą być zaniżone.`;
 }
 
 /** The count sits in an apposition: under *nie dotarło* the verb would have to agree with it. */
-export function composeLostMessageSuspicion(count: number): string {
+export function composeLostMessageSuspicion(count: number, stated: number): string {
     if (count <= 0) return "";
-    const said = composeCountedNoun(count, COUNTED_NOUNS.messages);
+    const said = composeOutOfText(count, stated, COUNTED_NOUNS.messages);
     return `Część walki nie dotarła do panelu — ${said} bez odbioru, ` +
-        "więc liczby mogą być zaniżone.";
+        "więc wszystkie liczby mogą być zaniżone.";
 }
 
 /** No count: what happened before the reading began is stated nowhere. */
 export function composeJoinedInProgressSuspicion(): string {
     return "Panel zaczął czytać tę walkę już w trakcie — nie widział jej początku, " +
-        "więc liczby mogą być zaniżone.";
+        "więc wszystkie liczby mogą być zaniżone.";
 }
 
-export function composeUnplacedHealSuspicion(count: number): string {
+export function composeUnplacedHealSuspicion(
+    count: number,
+    stated: number,
+    whom: string,
+): string {
     if (count <= 0) return "";
-    const said = composeCountedNoun(count, COUNTED_NOUNS.heals);
-    return `Nie da się rozdzielić leczenia drużyny — ${said} bez podziału, ` +
+    const said = composeOutOfText(count, stated, COUNTED_NOUNS.heals);
+    return `Nie da się rozdzielić leczenia drużyny — ${said} bez podziału${whom}, ` +
         "więc leczenie może być zaniżone.";
 }
 
 /**
  * The same suspicions about one person — and after **ADR 0069** the only place one naming somebody
- * is said. `postać` is feminine, so the possessive is `jej` whoever the row is.
+ * is said. No denominator: what a row would be counted out of is the messages naming that person,
+ * which nothing counts. `postać` is feminine, so the possessive is `jej` whoever the row is.
  */
 export function composeUnknownKeyRowSuspicion(count: number): string {
     if (count <= 0) return "";

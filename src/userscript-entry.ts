@@ -79,6 +79,7 @@ import {
     composePanelReading,
     composePartReading,
     type DrillReading,
+    type FightSuspicions,
     getOutcomeForSeat,
     getPinnedCase,
     type HalfNamedDrillReading,
@@ -798,7 +799,7 @@ function drawFightOnPanel(
         screen.current,
         screen.side,
         fight.readerSide,
-        { messagesLost: fight.messagesLost, hasJoinedInProgress: fight.hasJoinedInProgress },
+        getFightSuspicions(fight),
     );
     addFiguresDisagreed(keeper, reading);
     const { drill, pair, part, halfNamed, halfNamedDrill } = composeOpenedReadings(
@@ -845,6 +846,15 @@ function drawFightOnPanel(
         isCollapsed: screen.isCollapsed,
     });
     return true;
+}
+
+/** What is short about the reading itself, which the session states and the statistics cannot. */
+function getFightSuspicions(fight: FightReading): FightSuspicions {
+    return {
+        messagesLost: fight.messagesLost,
+        hasJoinedInProgress: fight.hasJoinedInProgress,
+        messagesRead: fight.messagesRead,
+    };
 }
 
 /**

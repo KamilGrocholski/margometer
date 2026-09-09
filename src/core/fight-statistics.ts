@@ -229,6 +229,11 @@ export interface FightStatistics extends UnreadMessageCounts {
     byNeitherEndByElement: ReadonlyMap<string, number>;
     /** Casts stated about a side that nobody could size onto its members, whole or in part. */
     castsUnplaced: number;
+    /**
+     * Every cast stated about a side, sized or not, which is what the count above is out of. A
+     * share with no denominator says nothing about how much of the healing it reaches.
+     */
+    castsStated: number;
     /** Null until the game says the fight is over, which it may never do on a fight left early. */
     outcome: FightOutcome | null;
 }
@@ -548,6 +553,7 @@ interface StatisticsBuild extends UnreadMessageCounts {
     byCombatantId: Map<number, CombatantFigures>;
     woundByVictimId: Map<number, WoundStanding>;
     castsUnplaced: number;
+    castsStated: number;
     dealtByNobody: number;
     takenByNobody: number;
     givenByNobody: number;
@@ -1044,6 +1050,7 @@ function addTeamHeal(
     announced: AnnouncedSkill | null,
     heal: TeamHeal | undefined,
 ): void {
+    build.castsStated += 1;
     if (heal === undefined) {
         build.castsUnplaced += 1;
         // The announcement is the only place a caster is stated for a cast nobody could size: the
@@ -1071,6 +1078,7 @@ function addTeamHeal(
         addSkillRestored(build, announced, amount, combatantId);
     }
     assert(build.castsUnplaced >= 0, "a count of casts never falls below nothing");
+    assert(build.castsUnplaced <= build.castsStated, "and no more of them than were stated");
 }
 
 function composeTotals(build: StatisticsBuild): CombatantFigures {
@@ -1209,6 +1217,7 @@ export function composeFightStatistics(
         unreadMessagesNoParameter: 0,
         unreadMessagesGrammarRefused: 0,
         castsUnplaced: 0,
+        castsStated: 0,
         turnStanding: NO_TURN_STANDING,
         outcome: null,
     };
@@ -1252,6 +1261,7 @@ export function composeFightStatistics(
         unreadMessagesNoParameter: build.unreadMessagesNoParameter,
         unreadMessagesGrammarRefused: build.unreadMessagesGrammarRefused,
         castsUnplaced: build.castsUnplaced,
+        castsStated: build.castsStated,
         outcome: build.outcome,
     };
 }

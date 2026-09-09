@@ -9,7 +9,11 @@
  */
 
 import { getRankedOrder } from "@/src/ui/ranked-order.ts";
-import { type CombatantRoster, getCombatantIdByName } from "@/src/core/combatant-roster.ts";
+import {
+    type CombatantRoster,
+    getCombatantIdByName,
+    MAXIMUM_COMBATANTS,
+} from "@/src/core/combatant-roster.ts";
 import {
     type CombatantFigures,
     composeCombatantFigures,
@@ -25,6 +29,7 @@ import {
     type PanelSideChoice,
 } from "@/src/ui/panel-screen.ts";
 import {
+    composeChargedRowsText,
     composeGrammarRefusedSuspicion,
     composeJoinedInProgressSuspicion,
     composeLostMessageSuspicion,
@@ -36,6 +41,7 @@ import {
     composeUnknownKeySuspicion,
     composeUnplacedHealRowSuspicion,
     composeUnplacedHealSuspicion,
+    MAXIMUM_NAMED_ROWS,
 } from "@/src/ui/panel-words.ts";
 
 /** A fight holds twenty, and a list draws a row for each. */
@@ -392,14 +398,48 @@ function getFigure(figures: CombatantFigures, metric: PanelMetric): number {
 export interface FightSuspicions {
     messagesLost: number;
     hasJoinedInProgress: boolean;
+    /**
+     * How many messages the reading did take, which is what the two counts above are out of.
+     * The lost ones are not among them, so what the payloads stated is the two added up.
+     */
+    messagesRead: number;
 }
 
-export const NOTHING_SUSPECT: FightSuspicions = { messagesLost: 0, hasJoinedInProgress: false };
+export const NOTHING_SUSPECT: FightSuspicions = {
+    messagesLost: 0,
+    hasJoinedInProgress: false,
+    messagesRead: 0,
+};
 
 /** The list below is the bound, not anything a fight can do. */
 const MAXIMUM_WARNINGS = 6;
 /** And a row carries the three of the six that can be charged to one person. */
 const ROW_WARNINGS = 3;
+
+/**
+ * Whom one gap reaches, worded, off a single walk of the rows. The names stop at what a sentence
+ * can carry and the count does not, because past that the count is what the sentence says instead
+ * of a list. A row the roster cannot name is counted and never guessed at, which is what leaves
+ * the two figures apart.
+ */
+function composeChargedText(
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    getCount: (figures: CombatantFigures) => number,
+): string {
+    const names: string[] = [];
+    let charged = 0;
+    for (const [combatantId, figures] of statistics.byCombatantId) {
+        if (charged >= MAXIMUM_COMBATANTS) break;
+        if (getCount(figures) <= 0) continue;
+        charged += 1;
+        const held = roster.byId.get(combatantId);
+        if (held === undefined) continue;
+        if (names.length >= MAXIMUM_NAMED_ROWS) continue;
+        names.push(held.name);
+    }
+    return composeChargedRowsText(names, charged);
+}
 
 /**
  * Widening to narrowing. The first four qualify every screen; a cast nobody could place puts back
@@ -409,17 +449,34 @@ const ROW_WARNINGS = 3;
  */
 function composeSuspicions(
     statistics: FightStatistics,
+    roster: CombatantRoster,
     metric: PanelMetric,
     suspicions: FightSuspicions,
 ): string[] {
+    const { messagesRead, messagesLost } = suspicions;
     const said: string[] = [];
     if (suspicions.hasJoinedInProgress) said.push(composeJoinedInProgressSuspicion());
-    said.push(composeLostMessageSuspicion(suspicions.messagesLost));
-    said.push(composeUnknownKeySuspicion(statistics.unreadMessagesUnknownKey));
-    said.push(composeNoParameterSuspicion(statistics.unreadMessagesNoParameter));
-    said.push(composeGrammarRefusedSuspicion(statistics.unreadMessagesGrammarRefused));
+    // What never arrived is not among what was read, so the two added up are what was stated.
+    said.push(composeLostMessageSuspicion(messagesLost, messagesRead + messagesLost));
+    said.push(composeUnknownKeySuspicion(
+        statistics.unreadMessagesUnknownKey,
+        messagesRead,
+        composeChargedText(statistics, roster, (one) => one.unreadMessagesUnknownKey),
+    ));
+    said.push(composeNoParameterSuspicion(
+        statistics.unreadMessagesNoParameter,
+        messagesRead,
+        composeChargedText(statistics, roster, (one) => one.unreadMessagesNoParameter),
+    ));
+    said.push(
+        composeGrammarRefusedSuspicion(statistics.unreadMessagesGrammarRefused, messagesRead),
+    );
     if (getNounForMetric(metric) === "healing") {
-        said.push(composeUnplacedHealSuspicion(statistics.castsUnplaced));
+        said.push(composeUnplacedHealSuspicion(
+            statistics.castsUnplaced,
+            statistics.castsStated,
+            composeChargedText(statistics, roster, (one) => one.castsUnplaced),
+        ));
     }
     return said.filter((one) => one.length > 0).slice(0, MAXIMUM_WARNINGS);
 }
@@ -1167,7 +1224,7 @@ export function composePanelReading(
         ...composeHeadcount(statistics, roster, readerSide),
         total,
         pinned: composePinnedRows(pinned, shares.slice(listed.length), whole, largest),
-        suspicions: composeSuspicions(statistics, metric, suspicions),
+        suspicions: composeSuspicions(statistics, roster, metric, suspicions),
         sides,
         // Read off what the list is, and never off what was pressed: with no seat to read from
         // every list is everybody, whatever the strip last answered, and a shorter window would

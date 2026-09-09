@@ -68,6 +68,7 @@ export function composeReportFight(subject: ReportSubject): Record<string, unkno
         unreadMessagesNoParameter: subject.statistics.unreadMessagesNoParameter,
         unreadMessagesGrammarRefused: subject.statistics.unreadMessagesGrammarRefused,
         castsUnplaced: subject.statistics.castsUnplaced,
+        castsStated: subject.statistics.castsStated,
         dealtByNobody: subject.statistics.dealtByNobody,
         takenByNobody: subject.statistics.takenByNobody,
         givenByNobody: subject.statistics.givenByNobody,

@@ -93,6 +93,31 @@ Deno.test("a payload says how many messages it carried, and the count is held to
     );
 });
 
+/**
+ * A count of what could not be read says whether to act on it only against what it is out of, so
+ * the reading counts what it took beside what it lost. Counted as it goes rather than walked for
+ * at draw time: the panel redraws per payload. **ADR 0070.**
+ */
+Deno.test("a reading counts what it took, beside what it never got", () => {
+    const underway = composeFightUnderway();
+    assertEquals(getReadingFromFight(underway), null, "a fight nobody has seen has no count");
+
+    addPayloadToFight(underway, { init: 1, mi: [0, 0, 0], m: ["0;0;txt=a", "0;0;txt=b"] });
+    assertEquals(getReadingFromFight(underway)?.messagesRead, 2, "two arrived and were read");
+    assertEquals(getReadingFromFight(underway)?.messagesLost, 1, "and one was stated and lost");
+
+    addPayloadToFight(underway, { m: ["0;0;txt=c"] });
+    assertEquals(getReadingFromFight(underway)?.messagesRead, 3, "and every call adds to it");
+
+    // **W5**: a payload carrying nothing is a boundary, and it moves neither figure.
+    addPayloadToFight(underway, { m: [] });
+    assertEquals(getReadingFromFight(underway)?.messagesRead, 3, "a payload with none adds none");
+
+    // A fight starting inside the same session counts from nothing again, as the rest does.
+    addPayloadToFight(underway, { init: 1, m: ["0;0;txt=d"] });
+    assertEquals(getReadingFromFight(underway)?.messagesRead, 1, "and a new fight starts over");
+});
+
 Deno.test("every recording is read whole, by the count the payloads themselves state", () => {
     for (const path of readRecordingPaths()) {
         const fight = replay(path);

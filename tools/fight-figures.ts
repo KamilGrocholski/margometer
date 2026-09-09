@@ -199,6 +199,7 @@ function composeReadingLines(replay: FightReplay): string[] {
         ["unread, no parameter", statistics.unreadMessagesNoParameter],
         ["unread, grammar refused", statistics.unreadMessagesGrammarRefused],
         ["casts unplaced", statistics.castsUnplaced],
+        ["casts stated", statistics.castsStated],
         ["dealt by nobody", statistics.dealtByNobody],
         ["taken by nobody", statistics.takenByNobody],
         ["given by nobody", statistics.givenByNobody],
