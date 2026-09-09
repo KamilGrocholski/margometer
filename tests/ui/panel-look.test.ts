@@ -20,7 +20,9 @@ import {
     getColourForProfession,
     getContrastRatio,
     getInkForBar,
+    LAYER,
     PALETTE_COLOURS,
+    PLACE,
     SIGNAL,
     SPACE,
     SURFACE,
@@ -223,6 +225,31 @@ Deno.test("a value is written once, and every rule spends it by name", () => {
     assertStringIncludes(sheet, SURFACE.panel, "and the values it does write are the tokens");
     assertStringIncludes(sheet, "var(--MargoMeter-", "which a rule reaches by our own name");
     assert(sheet.split("var(--MargoMeter-").length > 10, "and reaches by name many times over");
+});
+
+Deno.test("the card stands over the window beside the panel, and both over the frame", () => {
+    // ⚠️ The window carried the host's own layer and the card carried none, so a window dragged
+    // over the panel covered the card a reader had just pointed at. **ADR 0068.**
+    const sheet = composeStyleSheet();
+    const layerOf = (selector: string) => {
+        const at = sheet.indexOf(selector);
+        assert(at >= 0, `the sheet spells ${selector}`);
+        const rule = sheet.slice(at, sheet.indexOf("}", at));
+        const written = rule.split("z-index:")[1] ?? "";
+        return Number(written.split(";")[0]);
+    };
+    const standing = layerOf(`.${CLASS.standing}{`);
+    const tip = layerOf(`.${CLASS.tip}{`);
+    assertStrictEquals(standing, Number(LAYER.standing), "the window takes the layer it is given");
+    assertStrictEquals(tip, Number(LAYER.tip), "and so does the card");
+    assert(tip > standing, "a card is what a reader pointed at, so nothing else covers it");
+    // The frame takes none of its own: it is what both of the others may be dragged over.
+    const frame = sheet.slice(sheet.indexOf(":host{"), sheet.indexOf("}", sheet.indexOf(":host{")));
+    assertStringIncludes(frame, `z-index:${PLACE.layer}`, "the host stands over the game's page");
+    assert(
+        Number(PLACE.layer) > tip,
+        "which is a different question from what stands over what inside the root",
+    );
 });
 
 Deno.test("a folded panel is drawn by the one region the fold hides", () => {

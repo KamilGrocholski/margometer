@@ -1,6 +1,6 @@
 # 0062. A shout holds one character, and the last one wins
 
-- **Status:** Superseded by 0063 in part
+- **Status:** Superseded by 0063 in part, and by 0067 in part
 - **Date:** 2026-09-09
 
 ## Context

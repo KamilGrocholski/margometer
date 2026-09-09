@@ -111,7 +111,7 @@ test("a counted row opens onto its casters, and shuts again", async ({ panel }) 
 
     const opened = await panel.at(".MargoMeter-standing .row").count();
     expect(opened, "the casters stand under the skill they cast").toBeGreaterThan(shut);
-    await expect(panel.at(".MargoMeter-standing .standing-caster"), "each on a row of its own")
+    await expect(panel.at(".MargoMeter-standing .row.standing-under"), "each on a row of its own")
         .not.toHaveCount(0);
 
     await rows.first().click();
@@ -126,29 +126,34 @@ test("a counted row opens onto its casters, and shuts again", async ({ panel }) 
  * named and carries no line about a rest (**ADR 0064**). The fixture fight names one; the corpus
  * test in `tests/core/aura-standing.test.ts` is the one that reads a value naming two.
  */
-test("a provoked character says who holds them, and no rest is claimed", async ({ panel }) => {
-    const holders = panel.at(".MargoMeter-standing .standing-holder");
-    await expect(holders, "the fight leaves somebody provoked").not.toHaveCount(0);
-    for (const said of await holders.allTextContents()) {
-        expect(said, "each naming the caster and the skill holding them").toMatch(/^od /);
-    }
-    // Every line under the section is a holder line: nothing claims a rest the game did not name.
+test("a shout is drawn under whoever holds it, and no rest is claimed", async ({ panel }) => {
+    // The section is the caster and the characters under them, so what is counted is the nested
+    // rows rather than a sentence — the holder line is gone (**ADR 0067**).
+    const under = panel.at(".MargoMeter-standing .row.standing-under");
+    await expect(under, "the fight leaves somebody provoked").not.toHaveCount(0);
+    await expect(
+        panel.at(".MargoMeter-standing .standing-holder"),
+        "and says it in rows, never in a sentence under a name",
+    ).toHaveCount(0);
+    // Every line under the section is a row: nothing claims a rest the game did not name.
     const lines = await panel.at(".MargoMeter-standing .standing-body > div").allTextContents();
     for (const said of lines) {
         expect(said, "no line stands for somebody the game never named").not.toContain("losowo");
     }
 
-    // A whole-team cast says nothing about whom, so opening one adds no line under its casters.
-    const held = await holders.count();
+    // A whole-team cast says nothing about whom, so opening one adds no held character — only its
+    // own casters, which are nested by the same rule and so counted apart from them.
+    const held = await panel.at(".MargoMeter-standing .row-name").count();
     const rows = panel.at(".MargoMeter-standing .row[data-standing]");
     const many = await rows.count();
     for (let at = 0; at < many; at += 1) {
         await rows.nth(at).click();
-        await expect(panel.at(".MargoMeter-standing .standing-caster"), "the casters stand")
-            .not.toHaveCount(0);
-        await expect(holders, "and not one carries a line saying whom the cast reached")
-            .toHaveCount(held);
+        await expect(under, "the casters stand under their skill").not.toHaveCount(0);
         await rows.nth(at).click();
+        await expect(
+            panel.at(".MargoMeter-standing .row-name"),
+            "and shutting it leaves the provocation exactly as it was",
+        ).toHaveCount(held);
     }
 
     // The window grows by a line per caster; the body scrolls, and the frame stays on the page.
@@ -186,4 +191,53 @@ test("no sentence is cut, and a row is the only thing that may be", async ({ pan
         await rows.nth(at).click();
     }
     expect(cut, "a sentence a reader would have to go looking for").toEqual([]);
+});
+
+/**
+ * The stacking order, proved by asking the browser what is actually on top rather than by reading
+ * a number out of the sheet. The window may be dragged over the panel — that is what makes it a
+ * window — and a card is the one thing a reader asked for by pointing. **ADR 0068.**
+ */
+test("a card stands over the window, even where the window covers it", async ({ panel }) => {
+    // ⚠️ Written twice before it measured anything. First as a drag of the window onto the row,
+    // which cannot work — the window takes the pointer, so no card opens. Then as
+    // `elementFromPoint`, which measured nothing either: the card is `pointer-events:none`, so
+    // hit-testing skips it and answers with whatever child of the window was underneath. What
+    // proves paint order is the **stack** at a point, with the card made hit-testable for the
+    // probe — the one property this changes, and never the layer under test.
+    const row = panel.at("#MargoMeter-Panel .list .row").first();
+    await row.hover();
+    const card = panel.at(".MargoMeter-tip");
+    await expect(card, "the card opened").not.toHaveClass(/tip-hidden/);
+    const stack = await panel.page.evaluate(() => {
+        const root = document.getElementById("MargoMeter-Panel")?.shadowRoot ?? null;
+        if (root === null) return null;
+        const tip = root.querySelector(".MargoMeter-tip");
+        const standing = root.querySelector(".MargoMeter-standing");
+        if (tip === null || standing === null) return null;
+        const held = tip.getBoundingClientRect();
+        // Put the window exactly over the card, the way a reader who dragged it there would.
+        const moved = standing as HTMLElement;
+        moved.style.left = `${held.x}px`;
+        moved.style.top = `${held.y}px`;
+        moved.style.width = `${held.width}px`;
+        moved.style.height = `${held.height}px`;
+        (tip as HTMLElement).style.pointerEvents = "auto";
+        const box = tip.getBoundingClientRect();
+        const found = root.elementsFromPoint(box.x + box.width / 2, box.y + box.height / 2);
+        const at = (owner: Element) => found.findIndex((one) => owner.contains(one));
+        return {
+            tipAt: at(tip),
+            standingAt: at(standing),
+            doesCover: standing.getBoundingClientRect().width > 0,
+        };
+    });
+    expect(stack?.doesCover, "the window really is over the card").toBe(true);
+    expect(stack?.tipAt ?? -1, "the card is in the stack at that point").toBeGreaterThanOrEqual(0);
+    expect(stack?.standingAt ?? -1, "and so is the window").toBeGreaterThanOrEqual(0);
+    // Topmost first, so the card standing over the window is the smaller index.
+    expect(
+        stack?.tipAt ?? 1,
+        "and the card is drawn over it, not under it",
+    ).toBeLessThan(stack?.standingAt ?? 0);
 });

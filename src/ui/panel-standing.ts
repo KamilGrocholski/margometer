@@ -33,18 +33,26 @@ export interface StandingCaster {
     turnsStated: number;
 }
 
-/** One character a shout is holding, and who is holding them with what. */
+/** One character a shout is holding. A person, so drawn as one — hue and side, like any row. */
 export interface StandingProvoked {
     provokedId: number;
     name: string;
     colour: string;
-    casterName: string;
-    /** The holder's own profession, drawn as a cap: a player is a player wherever they stand. */
-    casterColour: string;
     sidePart: PanelSidePart;
-    skillName: string;
+}
+
+/**
+ * Whoever is holding somebody, and whom. The turns are the **cast's** and stand here once: over
+ * `captures/` 2026-09-09, 11 casts held two characters and all 11 stated one figure. **ADR 0067.**
+ */
+export interface StandingProvocation {
+    casterId: number;
+    casterName: string;
+    casterColour: string;
+    casterSidePart: PanelSidePart;
     turnsElapsed: number;
     turnsStated: number;
+    provoked: StandingProvoked[];
 }
 
 export interface StandingRow {
@@ -68,8 +76,8 @@ export interface StandingReading {
     /** Null where the payload numbered a turn for nobody the roster holds. */
     holder: StandingHolder | null;
     rows: StandingRow[];
-    /** Whom a shout is holding. Its own section: one row per person, never per cast. */
-    provoked: StandingProvoked[];
+    /** Whom a shout is holding. Its own section: one row per cast, the held under it. */
+    provoked: StandingProvocation[];
     /** Which row is open, or null. One at a time, as a drill level is. */
     openSkillId: number | null;
 }
@@ -97,18 +105,44 @@ function composeStandingProvoked(
     readerSide: number | null,
 ): StandingProvoked {
     const provoked = roster.byId.get(standing.provokedId);
-    const caster = roster.byId.get(standing.casterId);
     return {
         provokedId: standing.provokedId,
         name: provoked?.name ?? PANEL_WORDS.withoutTarget,
         colour: getColourForProfession(provoked?.profession ?? null),
-        casterName: caster?.name ?? PANEL_WORDS.withoutActor,
-        casterColour: getColourForProfession(caster?.profession ?? null),
         sidePart: getPartOfSide(provoked?.side ?? null, readerSide),
-        skillName: standing.skillName,
-        turnsElapsed: standing.turnsElapsed,
-        turnsStated: standing.turnsStated,
     };
+}
+
+/**
+ * The held folded under whoever is holding them, in the order the fight named them — so a group
+ * does not move under the hand as the next cast lands.
+ *
+ * ⚠️ **The fold is the panel's and the keying stays the core's.** `core/aura-standing.ts` keys a
+ * provocation by the character it holds, so every entry handed here is an already-settled pair and
+ * a character cannot arrive twice. That is what keeps this clear of the alternative **ADR 0062**
+ * rejected. **ADR 0067.**
+ */
+function composeStandingProvocations(
+    provocations: readonly ProvocationStanding[],
+    roster: CombatantRoster,
+    readerSide: number | null,
+): StandingProvocation[] {
+    const byCasterId = new Map<number, StandingProvocation>();
+    for (const standing of provocations) {
+        const caster = roster.byId.get(standing.casterId);
+        const held = byCasterId.get(standing.casterId) ?? {
+            casterId: standing.casterId,
+            casterName: caster?.name ?? PANEL_WORDS.withoutActor,
+            casterColour: getColourForProfession(caster?.profession ?? null),
+            casterSidePart: getPartOfSide(caster?.side ?? null, readerSide),
+            turnsElapsed: standing.turnsElapsed,
+            turnsStated: standing.turnsStated,
+            provoked: [],
+        };
+        held.provoked.push(composeStandingProvoked(standing, roster, readerSide));
+        byCasterId.set(standing.casterId, held);
+    }
+    return [...byCasterId.values()];
 }
 
 /** Whose side a cast is on, or null where the client named no side of the reader's own. */
@@ -162,9 +196,10 @@ export function composeStandingReading(
     openSkillId: number | null,
 ): StandingReading {
     const rows = composeStandingRows(standings, roster, readerSide);
-    const provoked = provocations
-        .slice(0, MAXIMUM_PROVOKED)
-        .map((one) => composeStandingProvoked(one, roster, readerSide));
+    // Clamped before the fold, so the whole section stays inside the one stated bound and the
+    // groups are bounded by what is left of it (**S11**).
+    const held = provocations.slice(0, MAXIMUM_PROVOKED);
+    const provoked = composeStandingProvocations(held, roster, readerSide);
     const holder = turn === null ? undefined : roster.byId.get(turn.combatantId);
     const isOpen = rows.some((row) => row.skillId === openSkillId);
     return {

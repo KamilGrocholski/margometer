@@ -11,7 +11,7 @@ import type { AuraStanding, ProvocationStanding } from "@/src/core/aura-standing
 import { composePanelHost, type PanelPress } from "@/src/ui/panel-element.ts";
 import { composeStandingReading, MAXIMUM_PROVOKED } from "@/src/ui/panel-standing.ts";
 import { getColourForProfession, SIGNAL } from "@/src/ui/panel-look.ts";
-import { STANDING_WORDS } from "@/src/ui/panel-words.ts";
+import { PANEL_WORDS, STANDING_WORDS } from "@/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
     type FakeElement,
@@ -315,7 +315,9 @@ Deno.test("the window's fold is its own, and never the panel's", () => {
     assertEquals(pressed, [{ kind: "standing-fold" }], "so the press is the window's own");
 });
 
-Deno.test("a provoked character stands in a section of their own, held by somebody", () => {
+Deno.test("a shout is drawn under whoever is holding it, and the turns are the cast's", () => {
+    // ⚠️ Inverted on 2026-09-09: the held character led and the holder hung under them as a
+    // sentence. **ADR 0067** carries the fold and why it is not the alternative ADR 0062 refused.
     const reading = composeStandingReading(
         [],
         [composeProvocation(21, 11)],
@@ -327,18 +329,121 @@ Deno.test("a provoked character stands in a section of their own, held by somebo
     const { host } = draw(reading);
     assertEquals(
         getTextsByClass(getWindow(host), "row-name"),
-        ["Renegat 1"],
-        "the person a shout is holding, and never the caster",
+        ["Gracz 1", "Renegat 1"],
+        "whoever is holding, and under them whom",
     );
     assertEquals(
         getTextsByClass(getWindow(host), "row-value figure"),
         ["2 z 5 tur"],
-        "with what has passed of what the table gives it",
+        "the turns stand once, on the cast, and never on the character it holds",
+    );
+    const rows = getElementsWithin(getWindow(host)).filter((one) =>
+        one.className.split(" ")[0] === "row"
     );
     assertEquals(
-        getTextsByClass(getWindow(host), "standing-holder-part"),
-        ["od Gracz 1 ·", "Wyzywający okrzyk"],
-        "and under them who is holding them, with which of the two skills",
+        rows.map((one) => one.className.includes("standing-under")),
+        [false, true],
+        "and the held character is the one nested under the row above it",
+    );
+    assertEquals(
+        rows.map((one) =>
+            one.children.find((part) => part.className === "bar-cap")
+                ?.getAttribute("style")
+        ),
+        [
+            `background:${getColourForProfession("m")}`,
+            `background:${getColourForProfession("t")}`,
+        ],
+        "each wearing their own profession, holder and held alike",
+    );
+    assertEquals(
+        rows.map((one) =>
+            one.children.find((part) => part.className === "row-side")
+                ?.getAttribute("style")
+        ),
+        [`color:${SIGNAL.ours}`, `color:${SIGNAL.theirs}`],
+        "and their own side, which is what a shout crosses",
+    );
+});
+
+Deno.test("one cast holding two characters is one row, and states its turns once", () => {
+    // The case the fold exists for. `captures/` holds it once, in the fight written from side 2:
+    // one shout naming two players, measured 2026-09-09.
+    const reading = composeStandingReading(
+        [],
+        [composeProvocation(11, 21), composeProvocation(12, 21)],
+        ROSTER,
+        OURS,
+        null,
+        null,
+    );
+    assertStrictEquals(reading.provoked.length, 1, "one caster, so one group");
+    assertStrictEquals(reading.provoked[0]?.provoked.length, 2, "holding both of them");
+    const { host } = draw(reading);
+    assertEquals(
+        getTextsByClass(getWindow(host), "row-name"),
+        ["Renegat 1", "Gracz 1", "Gracz 2"],
+        "the holder once, and both they hold under them",
+    );
+    assertEquals(
+        getTextsByClass(getWindow(host), "row-value figure"),
+        ["2 z 5 tur"],
+        "one figure and not two: over `captures/` every such cast stated one",
+    );
+    // **ADR 0062**: the heading counts characters held, which the fold does not change.
+    assertEquals(
+        getTextsByClass(getWindow(host), "figure").filter((one) => one === "2").length,
+        1,
+        "and the heading goes on counting the people, never the casts",
+    );
+});
+
+Deno.test("two casters holding apart stand apart, in the order the fight named them", () => {
+    const reading = composeStandingReading(
+        [],
+        [composeProvocation(21, 12), composeProvocation(11, 21)],
+        ROSTER,
+        OURS,
+        null,
+        null,
+    );
+    assertEquals(
+        reading.provoked.map((one) => one.casterName),
+        ["Gracz 2", "Renegat 1"],
+        "a group first named stands higher, so none moves under the hand",
+    );
+    const { host } = draw(reading);
+    assertEquals(
+        getTextsByClass(getWindow(host), "row-name"),
+        ["Gracz 2", "Renegat 1", "Renegat 1", "Gracz 1"],
+        "each holder with their own under them",
+    );
+});
+
+Deno.test("a holder the roster cannot place is still drawn, and says so", () => {
+    const reading = composeStandingReading(
+        [],
+        [composeProvocation(21, -1)],
+        ROSTER,
+        OURS,
+        null,
+        null,
+    );
+    const { host } = draw(reading);
+    // **A11**: this layer asserts nothing, so a caster nobody can place falls back rather than
+    // taking the section down with it.
+    assertEquals(
+        getTextsByClass(getWindow(host), "row-name"),
+        [PANEL_WORDS.withoutActor, "Renegat 1"],
+        "the shout is still holding somebody, whoever threw it",
+    );
+    const rows = getElementsWithin(getWindow(host)).filter((one) =>
+        one.className.split(" ")[0] === "row"
+    );
+    assertEquals(
+        rows[0]?.children.filter((part) => part.className === "row-side").length,
+        0,
+        "and nothing places them on a side, so they wear no rule",
     );
 });
 
@@ -363,8 +468,12 @@ Deno.test("the provoked stop at their stated maximum, and one under it is drawn 
     // what stands in for an assertion here, because this layer asserts nothing (**A11**).
     const many: ProvocationStanding[] = [];
     for (let at = 0; at < MAXIMUM_PROVOKED + 4; at += 1) many.push(composeProvocation(21, 11));
+    // Counted in characters and not in groups: the clamp stands before the fold, so the bound is
+    // on the people the section draws however few casts they arrive under (**ADR 0067**).
+    const countHeld = (reading: ReturnType<typeof composeStandingReading>) =>
+        reading.provoked.reduce((sum, one) => sum + one.provoked.length, 0);
     const over = composeStandingReading([], many, ROSTER, OURS, null, null);
-    assertStrictEquals(over.provoked.length, MAXIMUM_PROVOKED, "past it, the rest are dropped");
+    assertStrictEquals(countHeld(over), MAXIMUM_PROVOKED, "past it, the rest are dropped");
     const under = composeStandingReading(
         [],
         many.slice(0, MAXIMUM_PROVOKED - 1),
@@ -373,14 +482,16 @@ Deno.test("the provoked stop at their stated maximum, and one under it is drawn 
         null,
         null,
     );
-    assertStrictEquals(under.provoked.length, MAXIMUM_PROVOKED - 1, "one below it, all of them");
+    assertStrictEquals(countHeld(under), MAXIMUM_PROVOKED - 1, "one below it, all of them");
 });
 
 Deno.test("a whole-team skill says nothing about whom, because there is nothing to say", () => {
     const reading = composeStandingReading([composeStanding(11)], [], ROSTER, OURS, null, 264);
+    assertStrictEquals(reading.provoked.length, 0, "a cast reaching a whole side holds nobody");
+    const { host } = draw(reading);
     assertEquals(
-        getTextsByClass(getWindow(draw(reading).host), "standing-holder-part"),
-        [],
-        "a cast reaching a whole side carries no line about who is under it",
+        getTextsByClass(getWindow(host), "section-words"),
+        [STANDING_WORDS.now, STANDING_WORDS.standing],
+        "so no section is drawn to name whom it is under",
     );
 });

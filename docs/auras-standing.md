@@ -47,6 +47,11 @@ Both halves are honest on their own: the first is counted in the caster's own tu
 the game's own published figure. The subtraction is the reader's, and it is theirs because the
 protocol never says the effect ended.
 
+**A shout is drawn under whoever threw it**, with the characters it holds as rows under that, and
+its turns stated once — they are the cast's, not each held character's. Which of the two okrzyki it
+was is drawn nowhere: both run three turns and cover six, so the name distinguished nothing a reader
+could act on. **ADR 0067.**
+
 ⚠️ **A skill stating several team-wide effects is dated by the longest of them.**
 `Wyzywający okrzyk` runs one for three turns and two for five, so the register says five — the skill
 is not over while part of it is still standing.

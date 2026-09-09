@@ -578,12 +578,7 @@ export const STANDING_WORDS = {
     /** Never `/`: this panel teaches `z` for *of*, so a slash between figures reads as one. */
     sideSeparator: "|",
     /** The two okrzyki share one state, so they share one heading — **ADR 0062**. */
-    /** The two okrzyki share one state, so they share one heading — **ADR 0062**. */
     provocation: "Prowokacja",
-    /** Who is holding a provoked character, and with which of the two skills. */
-    heldBy: "od",
-    /** Said once under the section, never on a row: it is not a person. **ADR 0062.** */
-    heldByAndSkill: "·",
 } as const;
 
 /** The game's own numbering, and never a count of what this fight has run. */
@@ -607,16 +602,6 @@ export function composeStandingTurnsText(elapsed: number, stated: number): strin
 /** A plain count, for a fight the client named no side of the reader's own on. */
 export function composeStandingCountText(row: { casters: readonly unknown[] }): string {
     return composeIntegerText(row.casters.length);
-}
-
-/** Who is holding a provoked character and with what, one unbreakable fact to a part. */
-export function composeProvokedHolderParts(casterName: string, skillName: string): string[] {
-    // The mark between two facts closes the one before it rather than opening the one after: a
-    // line starting with a lone `·` reads as a list nobody asked for.
-    return [
-        `${STANDING_WORDS.heldBy} ${casterName} ${STANDING_WORDS.heldByAndSkill}`,
-        skillName,
-    ];
 }
 
 export function getWordsForPin(isPinned: boolean): string {

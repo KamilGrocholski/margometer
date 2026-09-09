@@ -532,13 +532,14 @@ commit that opens or closes one.
    opens the casters under it with what has passed of what the published table gives them — never
    what is left (**ADR 0059**) — each wearing their own profession's hue and the same side rule the
    ranking wears (**ADR 0065**). A cast reaching a whole side says nothing about whom, because there
-   is nothing to say; the two okrzyki stand in a section of their own, held by whoever shouted last
-   (**ADR 0062**). Whom a shout holds is **read off its value**, which names every provoked
-   character separated by a comma and a space, and a name the roster cannot place is dropped rather
-   than guessed at (**ADR 0064**). That table is the third frozen reading (**ADR 0058**), and
-   `docs/auras-standing.md` is its register over `captures/`. Both READMEs are written and show the
-   set `deno task panel:shots` takes, so the release plumbing is whole and has now run at a tag —
-   what is left of it is held by a person, which is what the gap below it is about.
+   is nothing to say; the two okrzyki stand in a section of their own, drawn under whoever threw
+   them with the characters they hold as rows beneath, the turns stated once because they are the
+   cast's (**ADR 0062**, **ADR 0067**). Whom a shout holds is **read off its value**, which names
+   every provoked character separated by a comma and a space, and a name the roster cannot place is
+   dropped rather than guessed at (**ADR 0064**). That table is the third frozen reading (**ADR
+   0058**), and `docs/auras-standing.md` is its register over `captures/`. Both READMEs are written
+   and show the set `deno task panel:shots` takes, so the release plumbing is whole and has now run
+   at a tag — what is left of it is held by a person, which is what the gap below it is about.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld

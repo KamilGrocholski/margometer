@@ -46,13 +46,17 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Nowość** — Na liście widać, czyja jest tura: przed imieniem tej jednej postaci stoi „▸". Znika,
   kiedy walka się kończy, i nie pokazuje się przy walkach odczytanych z zapisanych.
 
-- **Nowość** — Okrzyki mają w Pomocniku własną sekcję: „Prowokacja". Stoi w niej wiersz na każdego
-  sprowokowanego, a pod nim — imię tego, kto go trzyma, i którym okrzykiem, razem z tym, ile tur
-  minęło z tych, które podaje gra. Nowy okrzyk przejmuje po poprzednim, obojętne kto go rzucił i
-  który to z dwóch okrzyków.
+- **Nowość** — Okrzyki mają w Pomocniku własną sekcję: „Prowokacja". Stoi w niej wiersz na tego, kto
+  rzucił, z liczbą tur, które minęły z tych, jakie podaje gra — a pod nim, z wcięciem, każdy, kogo
+  ten okrzyk trzyma. Nowy okrzyk przejmuje po poprzednim, obojętne kto go rzucił i który to z dwóch
+  okrzyków.
 
 - **Nowość** — Okrzyk potrafi ściągnąć na rzucającego kilka osób naraz, a gra wymienia je wszystkie
-  po imieniu. Pomocnik wypisuje więc każdą z nich, a nie jedną.
+  po imieniu. Pomocnik wypisuje więc każdą z nich, a nie jedną — wszystkie pod jednym rzucającym, bo
+  to jeden rzut i jedna liczba tur.
+
+- **Zmiana** — Dymek z głównego okna nie chowa się już pod Pomocnikiem. Pomocnika możesz przeciągnąć
+  na panel i przykryć go sobą, ale to, co pokażesz kursorem, zawsze rysuje się na wierzchu.
 
 - **Nowość** — Obok panelu stoi drugie, mniejsze okno: „Pomocnik". Widać w nim, czyja jest tura, i
   co w tej chwili stoi na walce: umiejętności rzucone na całą stronę — twoją albo przeciwnika, na

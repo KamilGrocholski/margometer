@@ -125,9 +125,8 @@ export const CLASS = {
     standingBar: "standing-bar",
     standingBody: "standing-body",
     standingFolded: "standing-folded",
-    standingCaster: "standing-caster",
-    standingHolder: "standing-holder",
-    standingHolderPart: "standing-holder-part",
+    /** A row nested under the one above it, whoever stands in either. */
+    standingUnder: "standing-under",
     standingOurs: "standing-ours",
     standingTheirs: "standing-theirs",
 } as const;
@@ -145,7 +144,19 @@ export const SPACE = {
 export const PLACE = {
     inset: "8px",
     width: "260px",
+    /** The host against the game's own page, and nothing inside the root. */
     layer: "9999",
+} as const;
+
+/**
+ * What stands over what **inside** the root, where three things overlap and the order is a
+ * decision: the window beside the panel may be dragged over the panel, and the card stands over
+ * both. A card is the one thing a reader asked for by pointing, so nothing they did not point at
+ * covers it. The frame takes no layer of its own and sits under both.
+ */
+export const LAYER = {
+    standing: "2",
+    tip: "3",
 } as const;
 
 export const TIP = {
@@ -625,7 +636,7 @@ function composeTipRules(): string {
     const left = `var(${VARIABLE_PREFIX}tip-left,calc(100vw - ${PLACE.inset} - ${PLACE.width} - ` +
         `${TIP.width} - ${SPACE.small}))`;
     return `.${CLASS.tip}{position:fixed;box-sizing:border-box;pointer-events:none;` +
-        `left:${left};top:${composeTipTop()};` +
+        `left:${left};top:${composeTipTop()};z-index:${LAYER.tip};` +
         `width:${TIP.width};` +
         // A card taller than the screen has no position showing all of it, and the clamp keeps
         // the top edge over the bottom.
@@ -717,7 +728,7 @@ function composeStandingRules(): string {
     const left = `var(${VARIABLE_PREFIX}standing-left,calc(100vw - ${PLACE.inset} - ` +
         `${PLACE.width} - ${STANDING.width} - ${SPACE.small}))`;
     return `.${CLASS.standing}{position:fixed;box-sizing:border-box;` +
-        `left:${left};top:${top};z-index:${PLACE.layer};` +
+        `left:${left};top:${top};z-index:${LAYER.standing};` +
         `width:${STANDING.width};display:flex;flex-direction:column;` +
         `max-height:calc(100vh - ${PLACE.inset} - ${PLACE.inset});` +
         `font:${FONT_SIZE}/${LINE_HEIGHT} ${FONT_STACK};` +
@@ -742,22 +753,8 @@ function composeStandingRules(): string {
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);}` +
         `.${CLASS.standing}.${CLASS.standingFolded} .${CLASS.standingBody}{display:none;}` +
-        // A caster stands under the skill it was cast with, inset so the pair reads as one thing.
-        `.${CLASS.standingCaster}{margin-left:var(${VARIABLE_PREFIX}wide);}` +
-        // Who is holding a provoked character, under their name: a second line in the quiet ink,
-        // because it qualifies the line above rather than adding a figure of its own.
-        // ⚠️ **A sentence, and it wraps.** Written once as a row — cut with an ellipsis — it hid
-        // the name it was drawn to say, and the only way to the rest was a gesture this window
-        // does not have. `DESIGN.md` separates the two: a row is cut because its figure may not
-        // fold, and a sentence wraps. Inset once, because twice threw away 16 of 208 pixels.
-        // The inset is padding rather than margin: the holder's own cap is absolute against this
-        // line, so a margin would leave it outside the box it marks.
-        `.${CLASS.standingHolder}{position:relative;color:var(${VARIABLE_PREFIX}quiet);` +
-        `margin:0 0 var(${VARIABLE_PREFIX}half);` +
-        `padding-left:var(${VARIABLE_PREFIX}wide);overflow-wrap:break-word;}` +
-        // One fact to a span, so the break falls between them rather than inside a name.
-        `.${CLASS.standingHolderPart}{white-space:nowrap;` +
-        `padding-right:var(${VARIABLE_PREFIX}small);}` +
+        // What stands under the row above it, inset so the pair reads as one thing.
+        `.${CLASS.standingUnder}{margin-left:var(${VARIABLE_PREFIX}wide);}` +
         // The same two inks the strip under the ranking states its sides in, and for the same
         // reason: two sides, and the panel takes no view on which one to be pleased about.
         // Spaced both sides of the mark between them, so the pair reads as two figures rather

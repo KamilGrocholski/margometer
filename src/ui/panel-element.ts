@@ -4,12 +4,7 @@
  */
 
 import { BUILD_VERSION } from "@/src/build-version.ts";
-import {
-    type StandingCaster,
-    type StandingProvoked,
-    type StandingReading,
-    type StandingRow,
-} from "@/src/ui/panel-standing.ts";
+import { type StandingReading, type StandingRow } from "@/src/ui/panel-standing.ts";
 import { composeDecimalText, composeIntegerText } from "@/libs/number-text.ts";
 import { setGuardedListener } from "@/src/ui/panel-listener.ts";
 import type {
@@ -69,7 +64,6 @@ import {
 import {
     CARD_WORDS,
     composeFigureText,
-    composeProvokedHolderParts,
     composeShelfSizeText,
     composeSideCountsText,
     composeStandingCountText,
@@ -720,82 +714,83 @@ function composeStandingNow(document: PanelDocument, reading: StandingReading): 
         empty.textContent = STANDING_WORDS.turnUnread;
         return [section, empty];
     }
-    // A person is a person wherever they stand: the cap says their profession and the rule on the
-    // edge says their side, the same two answers a row on the ranking gives (**ADR 0065**).
-    const row = composeElement(document, "div", CLASS.row);
-    const cap = composeElement(document, "div", CLASS.barCap);
-    cap.setAttribute(STYLE_ATTRIBUTE, `background:${holder.colour}`);
-    const name = composeElement(document, "span", CLASS.rowName);
-    name.textContent = holder.name;
-    row.append(cap);
-    row.append(name);
-    for (const rule of composeSideRuleElements(document, holder.sidePart)) row.append(rule);
+    const row = composeStandingPersonElement(document, {
+        name: holder.name,
+        colour: holder.colour,
+        sidePart: holder.sidePart,
+        turns: null,
+        isUnder: false,
+    });
     return [section, row];
 }
 
 /**
- * The line under a provoked character: who is holding them, and with which of the two skills. A
- * wrapping sentence, one unbreakable span per fact, so a break never falls inside a name.
+ * One row per person, at both levels: whoever is holding, and under them whom. The turns stand on
+ * the holder's row alone, because they are the cast's and not the held character's. **ADR 0067.**
  */
-function composeProvokedHolderElement(
-    document: PanelDocument,
-    provoked: StandingProvoked,
-): PanelElement {
-    const line = composeElement(document, "div", CLASS.standingHolder);
-    const cap = composeElement(document, "div", CLASS.barCap);
-    cap.setAttribute(STYLE_ATTRIBUTE, `background:${provoked.casterColour}`);
-    line.append(cap);
-    for (const part of composeProvokedHolderParts(provoked.casterName, provoked.skillName)) {
-        const stated = composeElement(document, "span", CLASS.standingHolderPart);
-        stated.textContent = part;
-        line.append(stated);
-    }
-    return line;
-}
-
-/** A provoked character: their own row, and under it who is holding them. */
 function composeProvokedElements(
     document: PanelDocument,
     reading: StandingReading,
 ): PanelElement[] {
     if (reading.provoked.length === 0) return [];
+    // The characters held, and never the casts holding them: **ADR 0062**'s heading counts people.
+    let counted = 0;
+    for (const one of reading.provoked) counted += one.provoked.length;
     const drawn: PanelElement[] = [
-        composeSectionElement(document, STANDING_WORDS.provocation, reading.provoked.length),
+        composeSectionElement(document, STANDING_WORDS.provocation, counted),
     ];
-    for (const provoked of reading.provoked) {
-        const row = composeElement(document, "div", CLASS.row);
-        const cap = composeElement(document, "div", CLASS.barCap);
-        cap.setAttribute(STYLE_ATTRIBUTE, `background:${provoked.colour}`);
-        const name = composeElement(document, "span", CLASS.rowName);
-        name.textContent = provoked.name;
-        const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
-        value.textContent = composeStandingTurnsText(provoked.turnsElapsed, provoked.turnsStated);
-        row.append(cap);
-        row.append(name);
-        row.append(value);
-        for (const rule of composeSideRuleElements(document, provoked.sidePart)) row.append(rule);
-        drawn.push(row);
-        drawn.push(composeProvokedHolderElement(document, provoked));
+    for (const provocation of reading.provoked) {
+        drawn.push(composeStandingPersonElement(document, {
+            name: provocation.casterName,
+            colour: provocation.casterColour,
+            sidePart: provocation.casterSidePart,
+            turns: composeStandingTurnsText(provocation.turnsElapsed, provocation.turnsStated),
+            isUnder: false,
+        }));
+        for (const held of provocation.provoked) {
+            drawn.push(composeStandingPersonElement(document, {
+                name: held.name,
+                colour: held.colour,
+                sidePart: held.sidePart,
+                turns: null,
+                isUnder: true,
+            }));
+        }
     }
     return drawn;
 }
 
-/** A caster under the skill it was cast with: the name, and what has passed of what was stated. */
-function composeStandingCasterElement(
+/**
+ * One person in the window beside the panel, wherever they stand: whose turn it is, who cast a
+ * skill, who is holding somebody, and whom. Their profession is the cap and their side the rule
+ * on the edge (**ADR 0065**); a row nested under the one above wears the indent and no other
+ * difference.
+ */
+function composeStandingPersonElement(
     document: PanelDocument,
-    caster: StandingCaster,
+    person: {
+        name: string;
+        colour: string;
+        sidePart: PanelSidePart;
+        /** Null where the figure belongs to the row above rather than to this one. */
+        turns: string | null;
+        isUnder: boolean;
+    },
 ): PanelElement {
-    const row = composeElement(document, "div", `${CLASS.row} ${CLASS.standingCaster}`);
+    const nested = person.isUnder ? ` ${CLASS.standingUnder}` : "";
+    const row = composeElement(document, "div", `${CLASS.row}${nested}`);
     const cap = composeElement(document, "div", CLASS.barCap);
-    cap.setAttribute(STYLE_ATTRIBUTE, `background:${caster.colour}`);
+    cap.setAttribute(STYLE_ATTRIBUTE, `background:${person.colour}`);
     const name = composeElement(document, "span", CLASS.rowName);
-    name.textContent = caster.name;
-    const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
-    value.textContent = composeStandingTurnsText(caster.turnsElapsed, caster.turnsStated);
+    name.textContent = person.name;
     row.append(cap);
     row.append(name);
-    row.append(value);
-    for (const rule of composeSideRuleElements(document, caster.sidePart)) row.append(rule);
+    if (person.turns !== null) {
+        const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
+        value.textContent = person.turns;
+        row.append(value);
+    }
+    for (const rule of composeSideRuleElements(document, person.sidePart)) row.append(rule);
     return row;
 }
 
@@ -843,7 +838,13 @@ function composeStandingRowElements(
         drawn.push(element);
         if (row.skillId !== reading.openSkillId) continue;
         for (const caster of row.casters) {
-            drawn.push(composeStandingCasterElement(document, caster));
+            drawn.push(composeStandingPersonElement(document, {
+                name: caster.name,
+                colour: caster.colour,
+                sidePart: caster.sidePart,
+                turns: composeStandingTurnsText(caster.turnsElapsed, caster.turnsStated),
+                isUnder: true,
+            }));
         }
     }
     return drawn;

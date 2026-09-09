@@ -180,3 +180,7 @@ edited to agree with the new rule.
   hue goes on saying who it is. **Accepted**
 - [0066](0066-the-ranking-says-whose-turn-it-is.md) — The ranking says whose turn it is.
   **Accepted**
+- [0067](0067-a-shout-is-drawn-under-whoever-is-holding-it.md) — A shout is drawn under whoever is
+  holding it. **Accepted**
+- [0068](0068-a-card-stands-over-the-window-beside-the-panel.md) — A card stands over the window
+  beside the panel. **Accepted**
