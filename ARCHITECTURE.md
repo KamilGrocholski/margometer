@@ -565,11 +565,13 @@ commit that opens or closes one.
    narrowing `lib` to `es2022` still accepts `findLast`, which is ES2023. v1 pinned its sources with
    a `tsconfig.userscript.json`; a tsc of our own is a dependency, and **ADR 0001** is why this tree
    has one toolchain. The document says all of this at the section itself.
-5. **Every key in `captures/` is read, and no recording is short.** `healall_per` was the last, and
-   ADR 0010 carries how a share stated about a whole side is sized onto its members. Measured over
-   `captures/` on 2026-08-29: 115 casts across 22 recordings, every one of them whole, and no
-   message anywhere unread — so the suspect mark never fires on the material this repository holds.
-   It is held by probes only, and the next protocol change is what it exists for.
+5. **Every key in `captures/` is read, and no recording is short.** `flee` was the last to go
+   unread, and **ADR 0056** is where it became a fourth outcome; `healall_per` was the last whose
+   figure had to be sized, and ADR 0010 carries how a share stated about a whole side is put onto
+   its members. Measured over `captures/` on 2026-09-09: 115 casts across 30 recordings, every one
+   of them whole, and no message anywhere unread — so the suspect mark never fires on the material
+   this repository holds. It is held by probes only, and the next protocol change is what it exists
+   for.
 6. **A payload can move health with no message stating it.** Every comparison between the health the
    protocol states about a combatant and the movement decoded from its own messages agrees inside
    the reading's tolerance, bar three kinds: a killing blow landing more than the health that was
@@ -595,6 +597,18 @@ commit that opens or closes one.
    `develop` pushes the release before this one, matches the remote and answers
    `Everything
    up-to-date`. That one cost a takt. The sequence spells both now.
+
+   Two releases have gone out the same way since — `v0.13.0` and `v0.14.0`, both on 2026-09-05 — and
+   `docs/releasing.md` has not been edited for a correction since `c2803d2` on 2026-09-01, which is
+   the observation that the sequence now holds.
+
+   **Opening every picture is what caught the next one**, on 2026-09-09: the drag that takes the
+   panel to the corner it is photographed against had stopped moving anything, because a synthetic
+   `pointermove` states no held button and a move stating none now ends a drag. Six pictures came
+   out of a panel standing where it opened, with the second window cut in half at the frame's edge,
+   and every one of them looked finished. `composeFrameFromReport` refuses that run now — the
+   rightmost edge has to sit at the sheet's own inset — so the standing obligation is one picture
+   shorter than it was.
 
    What is left is what no machine holds: the audits before the number moves, opening every picture,
    and the install afterwards. The table at the end of `docs/releasing.md` is where that split is
