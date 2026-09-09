@@ -64,6 +64,19 @@ export interface StandingRow {
     casters: StandingCaster[];
 }
 
+/**
+ * What the window may say under `Teraz`: the turn the game is numbering, or which of the three
+ * states leaves it with none to say. **ADR 0072.**
+ */
+export type StandingTurnState = "held" | "unread" | "afterFight" | "onAuto";
+
+/** What the fight says about the turn in hand, which is more than the statement itself. */
+export interface StandingTurn {
+    statement: TurnStatement | null;
+    isOver: boolean;
+    isOnAuto: boolean;
+}
+
 /** Whoever the game is numbering a turn for: a person, so drawn as one wherever they stand. */
 export interface StandingHolder {
     name: string;
@@ -72,6 +85,7 @@ export interface StandingHolder {
 }
 
 export interface StandingReading {
+    turnState: StandingTurnState;
     turnOrdinal: number | null;
     /** Null where the payload numbered a turn for nobody the roster holds. */
     holder: StandingHolder | null;
@@ -187,12 +201,35 @@ function composeStandingRows(
     return [...rowBySkillId.values()];
 }
 
+/**
+ * The turn the game is numbering **now**, which is none once it has stopped numbering: a fight
+ * that is over numbers nobody's (**ADR 0066**) and neither does one the game is running itself,
+ * where the statement standing is one from before it started (**ADR 0072**).
+ */
+function getStandingTurnNow(turn: StandingTurn): TurnStatement | null {
+    if (turn.isOnAuto) return null;
+    if (turn.isOver) return null;
+    return turn.statement;
+}
+
+/**
+ * Which sentence the window has to say. A fight the game is running itself outranks one that has
+ * ended, because both are true of every fight fought on the auto key and only the first says why
+ * there is no turn to draw. **ADR 0072.**
+ */
+function getStandingTurnState(turn: StandingTurn, hasHolder: boolean): StandingTurnState {
+    if (turn.isOnAuto) return "onAuto";
+    if (turn.isOver) return "afterFight";
+    if (hasHolder) return "held";
+    return "unread";
+}
+
 export function composeStandingReading(
     standings: readonly AuraStanding[],
     provocations: readonly ProvocationStanding[],
     roster: CombatantRoster,
     readerSide: number | null,
-    turn: TurnStatement | null,
+    turn: StandingTurn,
     openSkillId: number | null,
 ): StandingReading {
     const rows = composeStandingRows(standings, roster, readerSide);
@@ -200,10 +237,12 @@ export function composeStandingReading(
     // groups are bounded by what is left of it (**S11**).
     const held = provocations.slice(0, MAXIMUM_PROVOKED);
     const provoked = composeStandingProvocations(held, roster, readerSide);
-    const holder = turn === null ? undefined : roster.byId.get(turn.combatantId);
+    const now = getStandingTurnNow(turn);
+    const holder = now === null ? undefined : roster.byId.get(now.combatantId);
     const isOpen = rows.some((row) => row.skillId === openSkillId);
     return {
-        turnOrdinal: turn?.ordinal ?? null,
+        turnState: getStandingTurnState(turn, holder !== undefined),
+        turnOrdinal: now?.ordinal ?? null,
         holder: holder === undefined ? null : {
             name: holder.name,
             colour: getColourForProfession(holder.profession),

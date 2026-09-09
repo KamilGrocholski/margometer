@@ -82,6 +82,7 @@ import {
     getWordsForShelfOutcome,
     getWordsForShelfTime,
     getWordsForStorage,
+    getWordsForTurnState,
     getWordsForUnannounced,
     getWordsForUnnamedEnd,
     NEITHER_END_WORDS,
@@ -711,7 +712,7 @@ function composeStandingBar(document: PanelDocument, isCollapsed: boolean): Pane
     return bar;
 }
 
-/** Whose turn it is, as the game numbers it. A payload stating no queue says that instead. */
+/** Whose turn the game numbers, or the sentence naming why it numbers none — **ADR 0072**. */
 function composeStandingNow(document: PanelDocument, reading: StandingReading): PanelElement[] {
     const said = reading.turnOrdinal === null ? "" : composeTurnOrdinalText(reading.turnOrdinal);
     const section = composeElement(document, "div", CLASS.section);
@@ -724,7 +725,7 @@ function composeStandingNow(document: PanelDocument, reading: StandingReading): 
     const holder = reading.holder;
     if (holder === null) {
         const empty = composeElement(document, "div", CLASS.empty);
-        empty.textContent = STANDING_WORDS.turnUnread;
+        empty.textContent = getWordsForTurnState(reading.turnState);
         return [section, empty];
     }
     const row = composeStandingPersonElement(document, {

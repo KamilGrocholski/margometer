@@ -12,6 +12,10 @@ Rule **N12** in `AGENTS.md` binds: use the term this file gives.
 **Fight**: One battle, from the first payload to the last. The unit everything is scoped to.
 _Avoid_: Battle, encounter, session, match
 
+**Auto fight**: A fight the game runs itself, entered or handed over on the auto key — `F` in the
+client's own binding. The game numbers no turn while it is on (**ADR 0072**). A fight delivered in
+one lump is not one by that alone. _Avoid_: Quick fight, autobattle
+
 **Payload**: One update the game engine receives and we read by wrapping its update function. A
 fight is many payloads. _Avoid_: Packet, frame, tick, event
 

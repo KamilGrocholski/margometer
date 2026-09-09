@@ -13,6 +13,7 @@ import {
     addPayloadToFight,
     composeFightUnderway,
     getReadingFromFight,
+    readTurnStatement,
 } from "@/src/game/fight-underway.ts";
 import {
     getRecordedCombatants,
@@ -191,6 +192,92 @@ Deno.test("every recording states its reader's side, on the payload that opens t
         if (readerSide !== null) sides.add(readerSide);
     }
     assertEquals([...sides].sort(), [1, 2], "the corpus is written from both sides of a fight");
+});
+
+Deno.test("a fight the game runs itself is read off the payload, in either spelling", () => {
+    const asText = composeFightUnderway();
+    addPayloadToFight(asText, { init: 1, auto: "1" });
+    assertEquals(getReadingFromFight(asText)?.isOnAuto, true, "stated as text, as the corpus does");
+
+    const asNumber = composeFightUnderway();
+    addPayloadToFight(asNumber, { init: 1, auto: 1 });
+    assertEquals(getReadingFromFight(asNumber)?.isOnAuto, true, "and stated as a number");
+
+    const byHand = composeFightUnderway();
+    addPayloadToFight(byHand, { init: 1, auto: "0" });
+    assertEquals(getReadingFromFight(byHand)?.isOnAuto, false, "a fight the reader is fighting");
+
+    const silent = composeFightUnderway();
+    addPayloadToFight(silent, { init: 1 });
+    assertEquals(getReadingFromFight(silent)?.isOnAuto, false, "and one that says nothing at all");
+});
+
+/** It arrives on the payload that turns it on, so a later one saying nothing must not end it. */
+Deno.test("a fight the game runs itself is kept once seen, and cleared when a fight opens", () => {
+    const underway = composeFightUnderway();
+    addPayloadToFight(underway, { init: 1, auto: "1" });
+    addPayloadToFight(underway, { m: ["0;0;txt=a"] });
+    assertEquals(getReadingFromFight(underway)?.isOnAuto, true, "a later payload takes it away");
+
+    addPayloadToFight(underway, { auto: "0" });
+    assertEquals(getReadingFromFight(underway)?.isOnAuto, false, "but the game's own word does");
+
+    addPayloadToFight(underway, { auto: "1" });
+    addPayloadToFight(underway, { init: 1 });
+    assertEquals(getReadingFromFight(underway)?.isOnAuto, false, "and a new fight starts over");
+});
+
+/**
+ * **ADR 0072.** The game stops numbering while it runs the fight, so the statement standing is one
+ * from before it started — which is what the window drew as `Teraz` until this was read.
+ */
+Deno.test("the turn the game stated does not stand once it runs the fight itself", () => {
+    const underway = composeFightUnderway();
+    addPayloadToFight(underway, { init: 1, auto: "0", turns_warriors: { 7: 11, 8: 12 } });
+    assertEquals(
+        getReadingFromFight(underway)?.turnStatement,
+        { ordinal: 7, combatantId: 11 },
+        "the queue's least ordinal is the turn in hand",
+    );
+
+    addPayloadToFight(underway, { auto: "1" });
+    assertEquals(
+        getReadingFromFight(underway)?.turnStatement,
+        null,
+        "and none of it survives auto",
+    );
+
+    addPayloadToFight(underway, { auto: "0", turns_warriors: { 9: 12 } });
+    assertEquals(
+        getReadingFromFight(underway)?.turnStatement,
+        { ordinal: 9, combatantId: 12 },
+        "a fight handed back numbers turns again",
+    );
+});
+
+/**
+ * The measurement the rule stands on, read both ways so a reader that has stopped finding its
+ * subject fails as loudly as one that finds too much: the corpus carries fights the game ran
+ * itself **and** fights it numbered, and no payload is both.
+ */
+Deno.test("no recording states a fight the game runs itself and a turn at once", () => {
+    let running = 0;
+    let numbered = 0;
+    for (const path of readRecordingPaths()) {
+        for (const update of getRecordedEngineUpdates(path)) {
+            const underway = composeFightUnderway();
+            addPayloadToFight(underway, update);
+            const stated = readTurnStatement(update);
+            if (getReadingFromFight(underway)?.isOnAuto !== true) {
+                if (stated !== null) numbered += 1;
+                continue;
+            }
+            running += 1;
+            assertEquals(stated, null, `${path}: a fight the game runs itself numbers no turn`);
+        }
+    }
+    assert(running > 0, "the corpus carries payloads stating a fight the game ran itself");
+    assert(numbered > 0, "and payloads where it numbered a turn instead");
 });
 
 Deno.test("a session says whether it saw the payload that opened the fight", () => {

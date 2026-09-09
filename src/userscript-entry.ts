@@ -736,7 +736,7 @@ function composeStandingOrNothing(
         held.provocations,
         fight.roster,
         fight.readerSide,
-        fight.turnStatement,
+        { statement: fight.turnStatement, isOver: fight.isOver, isOnAuto: fight.isOnAuto },
         screen.openStandingId,
     );
 }

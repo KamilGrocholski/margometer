@@ -31,6 +31,13 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — W szybkiej walce Pomocnik nie pokazuje już tury sprzed jej włączenia. Gra przestaje
+  numerować tury, kiedy prowadzi walkę za ciebie, więc okno mówi „Szybka walka — gra nie podaje
+  tur.", a po skończonej walce — „Walka się skończyła.". Wcześniej stała tam ostatnia tura, jaką gra
+  zdążyła podać.
+
 ## [0.15.0] — 2026-09-09
 
 - **Nowość** — Obok panelu stoi drugie, mniejsze okno: „Pomocnik". Widać w nim, czyja jest tura, i

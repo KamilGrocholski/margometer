@@ -48,6 +48,12 @@ export const MESSAGE_INDEX_KEY = "mi";
 /** The client's own name for the reader's side, spelled here and read from here — **N13**. */
 export const READER_SIDE_KEY = "myteam";
 /**
+ * Whether the game is running this fight itself, handed over on the auto key — `F` in the client's
+ * own binding, build `Cl9U89Zr`, read 2026-09-09. Read from text and from number both, as the
+ * client does through `parseInt`.
+ */
+export const AUTO_FIGHT_KEY = "auto";
+/**
  * The queue of turns the client draws as its prediction list (published help, article 372 §1.1,
  * read 2026-09-02), spelled here because this is where the envelope is read (**N13**) — it is an
  * envelope key and not a message key, which is why `docs/protocol-keys.md` has no entry for it.
@@ -108,6 +114,8 @@ export interface FightReading {
     readerSide: number | null;
     /** The turn the newest payload stated, or null where it stated none. */
     turnStatement: TurnStatement | null;
+    /** True while the game is running the fight itself, which is a fight it numbers no turn on. */
+    isOnAuto: boolean;
 }
 
 export interface FightUnderway {
@@ -122,6 +130,7 @@ export interface FightUnderway {
     hasFight: boolean;
     readerSide: number | null;
     turnStatement: TurnStatement | null;
+    isOnAuto: boolean;
 }
 
 export function composeFightUnderway(): FightUnderway {
@@ -137,6 +146,7 @@ export function composeFightUnderway(): FightUnderway {
         hasFight: false,
         readerSide: null,
         turnStatement: null,
+        isOnAuto: false,
     };
     return underway;
 }
@@ -173,6 +183,7 @@ function resetFight(underway: FightUnderway): void {
     underway.payloads = 0;
     underway.readerSide = null;
     underway.turnStatement = null;
+    underway.isOnAuto = false;
     assert(underway.events.length === 0, "a fight opens holding nothing");
     assert(underway.combatants.length === 0, "and knowing nobody until its payload states them");
 }
@@ -192,6 +203,18 @@ function readReaderSideFromPayload(payload: Record<string, unknown>): number | n
     return side;
 }
 
+/** Null where it says nothing, which 1086 of `captures/`'s 1135 payloads do, 2026-09-09. */
+function readAutoFightFromPayload(payload: Record<string, unknown>): boolean | null {
+    assert(AUTO_FIGHT_KEY.length > 0, "a fight the game runs itself is stated under a key");
+    const stated = payload[AUTO_FIGHT_KEY];
+    const said = typeof stated === "string"
+        ? getIntegerFromText(stated)
+        : getNumberFromUnknown(stated);
+    if (said === null) return null;
+    assert(Number.isFinite(said), "a fight that stated this stated a number");
+    return said !== 0;
+}
+
 export function isFightStart(payload: unknown): boolean {
     if (!isRecord(payload)) return false;
     assert(FIGHT_OPENS_KEY.length > 0, "a fight is opened by a key with a name");
@@ -209,9 +232,18 @@ export function addPayloadToFight(underway: FightUnderway, payload: unknown): vo
     // Kept once seen, because only the opening payload carries it: a fragment saying nothing
     // about the side would otherwise take the reader's own away mid-fight.
     underway.readerSide = readReaderSideFromPayload(payload) ?? underway.readerSide;
-    // Kept for the same reason and on the same terms: a payload stating no queue leaves the turn
-    // the one before it stated standing, rather than taking the reading away mid-fight.
-    underway.turnStatement = readTurnStatement(payload) ?? underway.turnStatement;
+    // Kept on the same terms: a payload saying nothing about it would otherwise end the auto
+    // fight a reader is watching, and only the game's own word for it takes it away.
+    underway.isOnAuto = readAutoFightFromPayload(payload) ?? underway.isOnAuto;
+    if (underway.isOnAuto) {
+        // No payload states this and a queue at once, `captures/` 2026-09-09, so what the game
+        // stated before it took the fight over is not the turn in hand (**ADR 0072**).
+        underway.turnStatement = null;
+    } else {
+        // A payload stating no queue leaves the turn the one before it stated standing, rather
+        // than taking the reading away mid-fight.
+        underway.turnStatement = readTurnStatement(payload) ?? underway.turnStatement;
+    }
     const roster = composeCombatantRoster(underway.combatants);
     const messages = readMessagesFromPayload(payload);
     underway.messagesByPayload.push(messages);
@@ -244,5 +276,6 @@ export function getReadingFromFight(underway: FightUnderway): FightReading | nul
         payloads: underway.payloads,
         readerSide: underway.readerSide,
         turnStatement: underway.turnStatement,
+        isOnAuto: underway.isOnAuto,
     };
 }

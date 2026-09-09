@@ -65,6 +65,10 @@ entry is the turn in progress, and the payload's `current` names that same comba
 payload carrying both — asserted rather than reported, because a disagreement would be this reader
 breaking rather than the game moving.
 
+⚠️ **The game states nothing at all while it is running the fight itself**, which is what an auto
+fight is. Nothing here is graded differently for it — the grading stands on every statement the game
+ever made — but the panel draws no turn there, and **ADR 0072** carries the measurement.
+
 ⚠️ **Only the least entry is a statement.** The nine above it are a forecast of who will hold turns
 not yet taken, and `a01bf11` measured that forecast contradicted by the game's own later statements
 3% of the time one turn ahead and 28% at nine. Nothing here reads them.

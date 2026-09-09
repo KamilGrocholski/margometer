@@ -16,6 +16,7 @@ import type {
 } from "@/src/ui/panel-reading.ts";
 import type { PanelNoun, PanelSideChoice, PanelStorageChoice } from "@/src/ui/panel-screen.ts";
 import type { PanelSidePart } from "@/src/ui/panel-reading.ts";
+import type { StandingTurnState } from "@/src/ui/panel-standing.ts";
 
 export interface CountedNoun {
     one: string;
@@ -571,8 +572,6 @@ export const STANDING_WORDS = {
     now: "Teraz",
     standing: "Co stoi",
     nothingStands: "Nic nie stoi.",
-    /** Not "no turn": the game states one and this reading is what could not take it. */
-    turnUnread: "Nie wiadomo, czyja tura.",
     casters: "Rzucający",
     openRow: "LPM — kto rzucił",
     /** Never `/`: this panel teaches `z` for *of*, so a slash between figures reads as one. */
@@ -580,6 +579,23 @@ export const STANDING_WORDS = {
     /** The two okrzyki share one state, so they share one heading — **ADR 0062**. */
     provocation: "Prowokacja",
 } as const;
+
+/**
+ * What the window says where it draws no turn, one sentence per state and none where there is a
+ * turn to draw. `unread` is not "no turn": there the game numbers one and this reading is what
+ * could not take it, while the other two are the game numbering none at all. **ADR 0072.**
+ */
+const TURN_STATE_WORDS: Record<StandingTurnState, string> = {
+    held: "",
+    unread: "Nie wiadomo, czyja tura.",
+    afterFight: "Walka się skończyła.",
+    onAuto: "Szybka walka — gra nie podaje tur.",
+};
+
+export function getWordsForTurnState(state: StandingTurnState): string {
+    const words = TURN_STATE_WORDS[state];
+    return words;
+}
 
 /** The game's own numbering, and never a count of what this fight has run. */
 export function composeTurnOrdinalText(ordinal: number): string {

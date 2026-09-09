@@ -190,3 +190,5 @@ edited to agree with the new rule.
   whom it reaches, and what could not be read. **Accepted**
 - [0071](0071-a-right-press-belongs-to-the-window-it-lands-in.md) — A right press belongs to the
   window it lands in. **Accepted**
+- [0072](0072-a-fight-the-game-runs-itself-numbers-no-turn.md) — A fight the game runs itself
+  numbers no turn. **Accepted**

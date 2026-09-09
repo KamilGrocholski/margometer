@@ -30,7 +30,7 @@ import { readKeptFights } from "@/src/game/kept-fights.ts";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import type { PanelElement } from "@/src/ui/panel-element.ts";
-import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
+import { getWordsForTurnState, PANEL_WORDS } from "@/src/ui/panel-words.ts";
 import type { Scheduler } from "@/src/game/engine-attachment.ts";
 import {
     composeFakeDocument,
@@ -418,7 +418,7 @@ Deno.test("a fight the panel cannot read leaves it saying so, not saying nothing
     const panel = shown[0] as FakeElement;
     assertEquals(
         getTextsByClass(panel, "empty"),
-        [PANEL_WORDS.fightUnread],
+        [getWordsForTurnState("afterFight"), PANEL_WORDS.fightUnread],
         "which says this fight cannot be shown, and never that there has not been one",
     );
     const said = getTextsByClass(panel, "defect");
