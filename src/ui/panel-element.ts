@@ -381,7 +381,6 @@ function composeBarElements(document: PanelDocument, reading: RowReading): Panel
  */
 interface CardPlace {
     metric: PanelMetric;
-    suspicions: readonly string[];
     translate: TranslateLabel | null;
     isRowNarrower: boolean;
     /** Null where the client named no side of its own, and the card then names none either. */
@@ -406,7 +405,6 @@ function composePersonCard(
             sidePart: getPartOfSide(row.side, place.readerSide),
             detail: row.detail,
             metric: place.metric,
-            suspicions: place.suspicions,
             doesOpen,
             isRowNarrower: place.isRowNarrower,
             translate: place.translate,
@@ -1004,7 +1002,6 @@ function composeRankingElement(
                 row,
                 {
                     metric,
-                    suspicions: reading.suspicions,
                     translate,
                     isRowNarrower: false,
                     readerSide: shown.readerSide,
@@ -1341,7 +1338,6 @@ function composeDrillElement(
     const figure = getWordsForMetric(shown.current);
     const place: CardPlace = {
         metric: shown.current,
-        suspicions: shown.reading.suspicions,
         translate,
         isRowNarrower: true,
         readerSide: shown.readerSide,
@@ -1675,7 +1671,6 @@ function composeHalfNamedRows(
     // states a cut of them — so it owes the sentence saying so (**ADR 0032**).
     const place: CardPlace = {
         metric: shown.current,
-        suspicions: shown.reading.suspicions,
         translate,
         isRowNarrower: true,
         readerSide: shown.readerSide,
@@ -1724,7 +1719,6 @@ function composePartElement(
     // Nothing on this rung opens, so no card here promises a gesture (`docs/drill-levels.md`).
     const place: CardPlace = {
         metric: shown.current,
-        suspicions: shown.reading.suspicions,
         translate,
         isRowNarrower: true,
         readerSide: shown.readerSide,

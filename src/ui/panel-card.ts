@@ -34,7 +34,6 @@ export interface CardSubject {
     sidePart: PanelSidePart;
     detail: RowDetail;
     metric: PanelMetric;
-    suspicions: readonly string[];
     doesOpen: boolean;
     /**
      * Whether the row the card stands over states a narrower figure than the card does. True
@@ -54,10 +53,6 @@ interface CardFigure {
     halfNamed: { label: string; figure: number } | null;
 }
 
-/** No screen draws more than two, and a card that carried a page of them is not a card. */
-const MAXIMUM_CARD_SUSPICIONS_FROM_FIGHT = 4;
-/** The fight's four, plus the two of them that can be charged to the person the card is about. */
-const MAXIMUM_CARD_SUSPICIONS = 6;
 /** Past the widest cut a card draws: fourteen worded procs, four destroyed, three defences. */
 const MAXIMUM_CARD_PARTS = 64;
 /** Counted in the line above it rather than beside it, so the card never says it twice. */
@@ -321,13 +316,9 @@ function composeCardNoteLines(subject: CardSubject): TipLine[] {
     if (getIsRawStated(subject.detail)) {
         lines.push({ kind: "note", text: CARD_WORDS.damageNote, isSuspect: false });
     }
-    // This person's own first, and the fight's under them: the card is about the person, and the
-    // mark on their row is what a reader followed here to have explained.
-    const said = [
-        ...composeRowSuspicions(subject.detail, subject.metric),
-        ...subject.suspicions.slice(0, MAXIMUM_CARD_SUSPICIONS_FROM_FIGHT),
-    ];
-    for (const suspicion of said.slice(0, MAXIMUM_CARD_SUSPICIONS)) {
+    // This person's own, and nobody else's: a gap naming nobody stays under the list, where it
+    // qualifies every row at once (`ARCHITECTURE.md`). **ADR 0069.**
+    for (const suspicion of composeRowSuspicions(subject.detail, subject.metric)) {
         if (suspicion.length === 0) continue;
         lines.push({ kind: "note", text: `${SUSPECT_MARK}${suspicion}`, isSuspect: true });
     }

@@ -184,3 +184,5 @@ edited to agree with the new rule.
   holding it. **Accepted**
 - [0068](0068-a-card-stands-over-the-window-beside-the-panel.md) — A card stands over the window
   beside the panel. **Accepted**
+- [0069](0069-a-card-says-only-what-names-its-own-person.md) — A card says only the gaps that name
+  its own person. **Accepted**

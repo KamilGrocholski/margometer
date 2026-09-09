@@ -381,12 +381,13 @@ takes no pointer, because a press on it belongs to the row underneath. **ADR 005
 how far along on one line under it — which is where the hue on the bar is finally said in words, and
 the only place it is. Then all four figures rather than the one the screen is showing, with that one
 in bold; under each, the part of it the protocol named only that row's end of; then how they fought
-at each end, and last what qualifies every figure above. A figure stated before reduction carries
-the sentence that says not to subtract it. **A card whose row states a narrower figure says so**, in
-one sentence under the suspicions and over the instruction: the card is about the person and its
-figures are the fight's, while the row it stands over is one cut of them. Nowhere else is it a card,
-because nowhere else is there a person to compose one from: a skill, a kind and a fight on the shelf
-each get the name their own cell had to cut.
+at each end, and last what qualifies every figure above — **the gaps naming this person, and no
+others** (**ADR 0069**): one naming nobody is said under the ranking, once. A figure stated before
+reduction carries the sentence that says not to subtract it. **A card whose row states a narrower
+figure says so**, in one sentence under the suspicions and over the instruction: the card is about
+the person and its figures are the fight's, while the row it stands over is one cut of them. Nowhere
+else is it a card, because nowhere else is there a person to compose one from: a skill, a kind and a
+fight on the shelf each get the name their own cell had to cut.
 
 **A row the protocol left an end of says which end, and where its figure stands.** It is not a card
 and names nobody — that is what the row is — but the two lines every leaf gets are not an answer to
