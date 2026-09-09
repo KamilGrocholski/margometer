@@ -8,24 +8,24 @@ game. SKADA or Details!, for Margonem.
 <table>
 <tr>
 <td valign="top" align="center">
-<img src="screenshots/panel-ranking.png" width="276"
-alt="Combatants ranked by damage taken">
+<img src="screenshots/panel-ranking.png" width="390"
+alt="Combatants ranked by damage taken, with the second window beside the panel">
 <br><sub><b>The ranking</b></sub>
 <br><br>
-<img src="screenshots/panel-deep.png" width="276"
+<img src="screenshots/panel-deep.png" width="390"
 alt="The deepest level: what passed between the two">
 <br><sub><b>The third level</b></sub>
 <br><br>
-<img src="screenshots/panel-shelf.png" width="276"
+<img src="screenshots/panel-shelf.png" width="390"
 alt="The shelf of fights that are still kept">
 <br><sub><b>The shelf</b></sub>
 </td>
 <td valign="top" align="center">
-<img src="screenshots/panel-opened.png" width="276"
+<img src="screenshots/panel-opened.png" width="390"
 alt="An opened row: whom the damage came from">
 <br><sub><b>An opened row</b></sub>
 <br><br>
-<img src="screenshots/panel-half-named.png" width="276"
+<img src="screenshots/panel-half-named.png" width="390"
 alt="The half-named row opened: whom it reached, and what it was dealt with">
 <br><sub><b>A half-named row</b></sub>
 </td>
@@ -47,6 +47,9 @@ A ten-against-one fight, on the damage-taken screen.
   four figures, the turns they took and the ones they lost, criticals, the hardest blow, what a
   defence stopped and what an attack destroyed. The same on every screen.
 - A finished fight goes on a shelf you can go back to, and the panel says where it was fought.
+- A second window stands beside the panel: whose turn it is, and what is standing on the fight —
+  skills cast over a whole side, and the shouts — with how many of the turns the game states have
+  passed. Never how many are left: the game does not say.
 - Totals only, no rate. What the log credits to nobody gets a row and a figure of its own — it is
   never folded into somebody's score. That row says what the game left out, and opens as well: whom
   it reached, and what it was dealt with.

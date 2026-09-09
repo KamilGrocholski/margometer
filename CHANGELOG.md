@@ -31,36 +31,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
-## [Niewydane]
-
-- **Poprawka** — Kliknięcie prawym przyciskiem w oknie Pomocnika nie cofa już panelu o poziom. Prawy
-  przycisk na samym panelu dalej jest drogą powrotną; w oknie obok nie robi nic, a menu przeglądarki
-  jak dotąd się nie pokazuje nad żadnym z nich.
-
-- **Nowość** — Każdy wiersz mówi teraz, po której stronie stoi ta postać: przy prawej krawędzi stoi
-  wąski pasek, zielony po twojej stronie i czerwony po przeciwnej. Widać go na każdym poziomie i w
-  oknie obok, a przy wierszu, za którym nikogo nie ma, nie ma paska. Na walce, na której gra nie
-  powiedziała, która strona jest twoja, nie ma go nigdzie — Pomocnik nie zgaduje.
-
-- **Zmiana** — Kolor po lewej stronie wiersza znowu wszędzie należy do profesji. W oknie obok wiersz
-  rzucającego brał wcześniej kolor strony i profesja przepadała; teraz stronę mówi pasek przy prawej
-  krawędzi, a lewa zostaje przy profesji. Dymek dopisuje stronę słowem, obok profesji i poziomu:
-  „Mag (120) · My".
-
-- **Nowość** — Na liście widać, czyja jest tura: przed imieniem tej jednej postaci stoi „▸". Znika,
-  kiedy walka się kończy, i nie pokazuje się przy walkach odczytanych z zapisanych.
-
-- **Nowość** — Okrzyki mają w Pomocniku własną sekcję: „Prowokacja". Stoi w niej wiersz na tego, kto
-  rzucił, z liczbą tur, które minęły z tych, jakie podaje gra — a pod nim, z wcięciem, każdy, kogo
-  ten okrzyk trzyma. Nowy okrzyk przejmuje po poprzednim, obojętne kto go rzucił i który to z dwóch
-  okrzyków.
-
-- **Nowość** — Okrzyk potrafi ściągnąć na rzucającego kilka osób naraz, a gra wymienia je wszystkie
-  po imieniu. Pomocnik wypisuje więc każdą z nich, a nie jedną — wszystkie pod jednym rzucającym, bo
-  to jeden rzut i jedna liczba tur.
-
-- **Zmiana** — Dymek z głównego okna nie chowa się już pod Pomocnikiem. Pomocnika możesz przeciągnąć
-  na panel i przykryć go sobą, ale to, co pokażesz kursorem, zawsze rysuje się na wierzchu.
+## [0.15.0] — 2026-09-09
 
 - **Nowość** — Obok panelu stoi drugie, mniejsze okno: „Pomocnik". Widać w nim, czyja jest tura, i
   co w tej chwili stoi na walce: umiejętności rzucone na całą stronę — twoją albo przeciwnika, na
@@ -70,9 +41,36 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Nowość** — Pomocnik nigdy nie napisze „zostało 5 tur". Gra nie mówi, kiedy taka rzecz schodzi,
   więc stoi tam to, co minęło, i to, ile ma trwać — odjąć możesz sam. Wiersz znika, gdy minie tyle
   tur, ile gra podaje dla tej umiejętności.
-- **Nowość** — Pomocnika przesuwasz i zwijasz osobno od panelu, za jego własny pasek. Gdzie go
-  postawisz i czy jest zwinięty, zostaje na następną walkę — niezależnie od tego, gdzie stoi panel.
-  Zwinięty zostaje samym paskiem, a kiedy nic nie stoi, pisze o tym jedną linią.
+- **Nowość** — Pomocnika przesuwasz i zwijasz osobno od panelu, za jego własny pasek; możesz go
+  nasunąć na panel, a to, co pokażesz kursorem, i tak narysuje się na wierzchu. Gdzie go postawisz i
+  czy jest zwinięty, zostaje na następną walkę — niezależnie od tego, gdzie stoi panel. Zwinięty
+  zostaje samym paskiem, a kiedy nic nie stoi, pisze o tym jedną linią.
+- **Nowość** — Okrzyki mają w Pomocniku własną sekcję: „Prowokacja". Stoi w niej wiersz na tego, kto
+  rzucił, z liczbą tur, które minęły z tych, jakie podaje gra — a pod nim, z wcięciem, każdy, kogo
+  ten okrzyk trzyma, bo jeden okrzyk potrafi ściągnąć kilka osób naraz. Nowy okrzyk przejmuje po
+  poprzednim, obojętne kto go rzucił i który to z dwóch okrzyków.
+- **Nowość** — Każdy wiersz mówi teraz, po której stronie stoi ta postać: przy prawej krawędzi stoi
+  wąski pasek, zielony po twojej stronie i czerwony po przeciwnej, a dymek dopisuje stronę słowem,
+  obok profesji i poziomu: „Mag (120) · My". Widać go na każdym poziomie i w oknie obok, a przy
+  wierszu, za którym nikogo nie ma, nie ma paska. Na walce, na której gra nie powiedziała, która
+  strona jest twoja, nie ma go nigdzie — dodatek nie zgaduje.
+- **Nowość** — Na liście widać, czyja jest tura: przed imieniem tej jednej postaci stoi „▸". Znika,
+  kiedy walka się kończy, i nie pokazuje się przy walkach odczytanych z zapisanych.
+- **Nowość** — Walka, z której ktoś uciekł, ma teraz swój wynik: obok wygranej, przegranej i remisu
+  panel pisze „ucieczka". Wcześniej takiej walki nie umiał nazwać, a zdanie o ucieczce zaliczał do
+  tego, czego nie odczytał.
+- **Zmiana** — Ostrzeżenie pod listą mówi, jak duże jest i kogo dotyczy: ilu wiadomości z ilu nie
+  udało się odczytać i czyje liczby mogą być przez to zaniżone — do trzech imion, a przy większej
+  liczbie postaci sama ich liczba. Mówi też, czego dokładnie nie wiadomo: czy nie wiadomo, co
+  znaczyła część tego, co powiedziała gra, czy część nie niosła żadnej liczby, czy nie dało się jej
+  rozłożyć na słowa. Wcześniej wszystkie trzy kończyły się tym samym zdaniem, z gołą liczbą bez
+  tego, z ilu.
+- **Zmiana** — Karta postaci pisze tylko o brakach, które dotyczą tej postaci. Wcześniej powtarzała
+  pod nimi ostrzeżenia całej walki — te same, które stoją pod listą — więc w walce dziesięciu na
+  jednego to samo zdanie stało na jedenastu kartach, a na karcie tej postaci, przez którą brak
+  powstał, dwa razy pod rząd.
+- **Zmiana** — Przycisk zapisu pokazuje się tylko wtedy, gdy jest co zapisać. Na świeżo otwartej
+  grze, zanim panel zobaczy jakąkolwiek walkę, nie ma go na belce.
 - **Poprawka** — Licznik tur nie dolicza już tury za przygotowanie ciosu. Kiedy postać uderzała
   kilku przeciwników naraz, a zaraz potem gra pokazywała, że szykuje umiejętność, panel liczył to
   jako osobną turę — czasem dwie. Teraz to jedna tura, ta sama, w której padł cios.
@@ -83,11 +81,35 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   wzmocnienie za to, że staje przeciw małej grupie, gra mówi o tym na początku walki — panel tego
   nie rozumiał i zaliczał to zdanie do rzeczy, których nie odczytał. Teraz je odczytuje, a liczby i
   tak się nie zmieniają: wzmocnienie widać już w życiu potwora i w jego ciosach.
-- **Zmiana** — Przycisk zapisu pokazuje się tylko wtedy, gdy jest co zapisać. Na świeżo otwartej
-  grze, zanim panel zobaczy jakąkolwiek walkę, nie ma go na belce.
-
 - **Poprawka** — Blok strzały nie był wcześniej czytany: cios, który się o niego rozbił, panel
   oznaczał jako wiadomość, której nie rozumie. Teraz stoi przy nim tak samo jak unik i kontra.
+- **Poprawka** — Rozwinięty wiersz nie dopisuje już nadmiaru do „Zwykłego ciosu". Kiedy pozycji było
+  więcej, niż panel rysuje, reszta wpadała do wiersza zamykającego sekcję — a ten mówi o ciosach,
+  których gra nie zapowiedziała, więc panel twierdził coś, co nieprawda. Teraz nadmiar stoi w
+  osobnym wierszu „pozostałe", z kartą mówiącą, że pozycji było za dużo, żeby pokazać każdą — tak
+  samo w cięciu po typie obrażeń, gdzie lądował wcześniej w „Bez podanego typu".
+- **Poprawka** — Karta, która nie mieści się w oknie, oddaje to, co ma najmniej wagi, i mówi o tym
+  jedną linią: „Nie wszystko się mieści w tym oknie." Wcześniej dół karty po prostu ucinało — bez
+  paska, bez znaku i bez sposobu, żeby do niego dojść. Cztery liczby i ostrzeżenia zostają na niej
+  zawsze.
+- **Poprawka** — Rozwinięty poziom rośnie razem z walką. Wcześniej zostawał przy wysokości, jaką
+  miał w chwili otwarcia, więc w trwającej walce sekcja urywała się w połowie.
+- **Poprawka** — Karta pokazuje się też przy dalszych wierszach długich list. Panel liczył, ile kart
+  może być potrzebnych, po samym rankingu, więc w głębi rozwiniętego wiersza dalsze wiersze
+  przestawały ją mieć i nic o tym nie mówiło.
+- **Poprawka** — Półka i lista stoją na własnej wysokości. Półka rysowała się o wiersz krótsza,
+  jeśli ostatnio patrzyłeś na jedną stronę walki — choć na półce stron nie ma — a walka, w której
+  gra stron nie podała, rysowała się na wysokości liczonej dla jednej z nich, jeśli podawała je
+  poprzednia.
+- **Poprawka** — Pasek „My / Oni" mówi, czego dotyczy, także na poziomie otwartym z wiersza
+  „Nieznany sprawca" albo „Nieznany cel": stoi przy nim „Cała walka", bo strony przełączają listę
+  pod spodem, a nie to, co jest otwarte.
+- **Poprawka** — Nieudany zapis mówi o tym od razu. Kiedy panel nie umiał złożyć pliku, przycisk
+  wyglądał na martwy, a wiadomość o tym czekała na kolejną turę walki — więc na półce, między
+  walkami, nie przychodziła wcale.
+- **Poprawka** — Panel nie idzie już za kursorem, kiedy nikt go nie trzyma. Zostały dwie takie
+  drogi: puszczenie przycisku poza panelem tam, gdzie przeglądarka nie mówi o tym panelowi, i
+  naciśnięcie, o którym strona nie powiedziała, gdzie padło.
 
 ## [0.14.0] — 2026-09-05
 

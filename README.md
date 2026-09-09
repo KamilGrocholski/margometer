@@ -8,24 +8,24 @@ grą. SKADA albo Details!, dla Margonem.
 <table>
 <tr>
 <td valign="top" align="center">
-<img src="screenshots/panel-ranking.png" width="276"
-alt="Ranking walczących po otrzymanych obrażeniach">
+<img src="screenshots/panel-ranking.png" width="390"
+alt="Ranking walczących po otrzymanych obrażeniach, a obok okno Pomocnika">
 <br><sub><b>Ranking</b></sub>
 <br><br>
-<img src="screenshots/panel-deep.png" width="276"
+<img src="screenshots/panel-deep.png" width="390"
 alt="Najgłębszy poziom: co przeszło między tą dwójką">
 <br><sub><b>Trzeci poziom</b></sub>
 <br><br>
-<img src="screenshots/panel-shelf.png" width="276"
+<img src="screenshots/panel-shelf.png" width="390"
 alt="Półka z walkami, które są jeszcze zapisane">
 <br><sub><b>Półka walk</b></sub>
 </td>
 <td valign="top" align="center">
-<img src="screenshots/panel-opened.png" width="276"
+<img src="screenshots/panel-opened.png" width="390"
 alt="Rozwinięty wiersz: od kogo padły obrażenia">
 <br><sub><b>Rozwinięty wiersz</b></sub>
 <br><br>
-<img src="screenshots/panel-half-named.png" width="276"
+<img src="screenshots/panel-half-named.png" width="390"
 alt="Rozwinięty „Nieznany sprawca”: kogo dosięgło i czym poszło">
 <br><sub><b>Nieznany sprawca</b></sub>
 </td>
@@ -39,15 +39,18 @@ alt="Karta postaci otwarta obok panelu">
 </tr>
 </table>
 
-Walka dziesięciu na jednego, na zakładce obrażeń otrzymanych.
+Walka dziesięciu na jednego, na ekranie obrażeń otrzymanych.
 
 - Obrażenia i przywracanie życia, zadane i otrzymane, dla każdej postaci, w każdej walce.
 - Wiersz się rozwija, i to trzy poziomy w głąb: kto komu, potem czym — umiejętnością albo typem
   obrażeń.
 - Najedź na wiersz postaci — na liście albo w rozwiniętym wierszu — żeby zobaczyć jej kartę:
   wszystkie cztery liczby, tury wykonane i te utracone, krytyki, największy cios, co zatrzymała
-  obrona i co zniszczył atak. To samo na każdej zakładce.
+  obrona i co zniszczył atak. To samo na każdym ekranie.
 - Skończone walki trafiają na półkę i można do nich wrócić. Panel mówi, gdzie się toczyły.
+- Obok panelu stoi drugie okno: mówi, czyja jest tura i co w tej chwili stoi na walce — umiejętności
+  rzucone na całą stronę i okrzyki — z tym, ile tur minęło z tych, które podaje gra. Nigdy z tym,
+  ile zostało: tego gra nie mówi.
 - Tylko sumy, bez przeliczników. To, czego log nikomu nie przypisuje, dostaje własny wiersz i własną
   liczbę — nigdy nie doklejamy tego do czyjegoś wyniku. Ten wiersz mówi, czego gra nie podała, i też
   się rozwija: widać w nim, kogo to dosięgło i czym poszło.
