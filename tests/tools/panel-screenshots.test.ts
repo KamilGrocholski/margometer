@@ -148,7 +148,15 @@ Deno.test("the panel stands where it is photographed before anything is pressed"
     assert(taken > 0, "the panel is taken to the corner the frame is measured against");
     assert(pressed > 0, "and the state is reached by the presses that were asked for");
     assert(taken < pressed, "in that order: a card opens on the side the panel stood on");
-    assertStringIncludes(script, "[data-grip]", "the panel is moved by its own bar");
+    const beside = script.indexOf("setStandingBeside();");
+    assert(beside > taken, "the window beside it follows the panel it is placed against");
+    assert(beside < pressed, "and both stand before anything is pressed");
+    assertStringIncludes(
+        script,
+        "data-grip=",
+        "each window is moved by the bar that says it is its",
+    );
+    assertStringIncludes(script, "buttons: 1", "by a hand the panel can tell is still holding on");
     assertStringIncludes(
         script,
         `setPointer("pointerup"`,
@@ -196,7 +204,7 @@ Deno.test("every picture in the set is named once, and named as a picture", () =
 
 Deno.test("the frame comes off the viewport the page stood in, not off what was asked for", () => {
     const dom = `<html><body><pre id="preview-report" hidden="">` +
-        `{"viewport":500,"left":232,"bottom":402,"rows":11}</pre></body></html>`;
+        `{"viewport":500,"left":232,"bottom":402,"right":492,"rows":11}</pre></body></html>`;
     const report = getReportFromDom(dom);
     assertEquals(composeFrameFromReport(report), [276, 410], "the panel, and its inset each side");
 
@@ -204,10 +212,29 @@ Deno.test("the frame comes off the viewport the page stood in, not off what was 
     assertEquals(composeFrameFromReport(card), [530, 410], "a card off the panel is made room for");
 
     assertThrows(
-        () => composeFrameFromReport({ left: 0, bottom: 10 }),
+        () => composeFrameFromReport({ left: 0, bottom: 10, right: 10 }),
         PanelShotError,
         undefined,
         "a report that never said where it stood cannot size a frame",
+    );
+});
+
+/**
+ * The sample that has to be refused, and the one beside it that must not be: a set taken off a
+ * panel that never left the middle of the window is six pictures that all look finished.
+ */
+Deno.test("a run whose windows never reached the corner is refused, not photographed", () => {
+    const reached = { viewport: 500, left: 232, bottom: 402, right: 492 };
+    assertEquals(
+        composeFrameFromReport(reached),
+        [276, 410],
+        "the corner the frame is measured to",
+    );
+    assertThrows(
+        () => composeFrameFromReport({ ...reached, right: 395 }),
+        PanelShotError,
+        "the corner was not reached",
+        "a panel left where it opened is the run this catches",
     );
 });
 
