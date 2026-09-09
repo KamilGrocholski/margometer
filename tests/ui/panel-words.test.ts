@@ -20,6 +20,7 @@ import {
     composePlaceWords,
     composeShareText,
     composeShareTexts,
+    composeStandingTurnsText,
     composeUnknownKeyRowSuspicion,
     composeUnknownKeySuspicion,
     composeUnplacedHealRowSuspicion,
@@ -369,6 +370,9 @@ Deno.test("a count under a word governing the genitive takes the genitive", () =
         "2 z 5 uleczeń",
         "and past four the two forms agree, which is what hid this",
     );
+    // The same word one window over, whose own docblock always said `3 z 8 tur`.
+    assertEquals(composeStandingTurnsText(1, 3), "1 z 3 tur", "never `3 tury`");
+    assertEquals(composeStandingTurnsText(3, 8), "3 z 8 tur", "and the form past four is unmoved");
     // A denominator of one wants the genitive singular, which this vocabulary does not carry —
     // and says nothing the count has not, so the sentence states the count alone.
     assertStringIncludes(

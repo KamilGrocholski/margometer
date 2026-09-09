@@ -596,7 +596,7 @@ export function composeStandingTurnsText(elapsed: number, stated: number): strin
     if (!Number.isSafeInteger(elapsed)) return PANEL_WORDS.unknown;
     if (!Number.isSafeInteger(stated)) return PANEL_WORDS.unknown;
     if (elapsed < 0) return PANEL_WORDS.unknown;
-    return `${composeIntegerText(elapsed)} z ${composeCountedNoun(stated, COUNTED_NOUNS.turns)}`;
+    return `${composeIntegerText(elapsed)} z ${composeGenitiveNoun(stated, COUNTED_NOUNS.turns)}`;
 }
 
 /** A plain count, for a fight the client named no side of the reader's own on. */
