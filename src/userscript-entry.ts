@@ -762,6 +762,16 @@ function drawFightUnread(
 }
 
 /**
+ * Whose turn the ranking marks. A fight already over numbers nobody's, and one read off the shelf
+ * is a moment that has passed: the mark says what is happening now, or it says nothing at all.
+ * **ADR 0066.**
+ */
+function getTurnHolderId(fight: FightReading): number | null {
+    if (fight.isOver) return null;
+    return fight.turnStatement?.combatantId ?? null;
+}
+
+/**
  * Puts what the fight holds into the panel that is already on the page. False where there is
  * nothing to put there — no fight and an empty shelf — because a panel of zeroes over a game that
  * has not started is a claim.
@@ -804,9 +814,11 @@ function drawFightOnPanel(
         reading,
         current: screen.current,
         side: screen.side,
-        // A strip that cannot tell one side from the other is not drawn at all: the protocol
-        // never states which side is the reader's own, and the client does not always either.
-        hasReaderSide: fight.readerSide !== null,
+        // A strip that cannot tell one side from the other is not drawn at all, and neither is
+        // the rule on a row: the protocol never states which side is the reader's own, and the
+        // client does not always either.
+        readerSide: fight.readerSide,
+        turnHolderId: getTurnHolderId(fight),
         shelf: composeShelfRows(
             shelf.fights,
             live === null ? null : {

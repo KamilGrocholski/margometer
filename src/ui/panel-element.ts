@@ -5,7 +5,6 @@
 
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import {
-    getColourForRow,
     type StandingCaster,
     type StandingProvoked,
     type StandingReading,
@@ -25,6 +24,7 @@ import type {
     PairReading,
     PanelMetric,
     PanelReading,
+    PanelSidePart,
     PanelSides,
     PanelUnnamedEnd,
     PartReading,
@@ -36,7 +36,7 @@ import type {
     SkillRow,
     UnnamedRow,
 } from "@/src/ui/panel-reading.ts";
-import { getEndForPinned, getRowIsSuspect } from "@/src/ui/panel-reading.ts";
+import { getEndForPinned, getPartOfSide, getRowIsSuspect } from "@/src/ui/panel-reading.ts";
 import {
     composeDirectionStrips,
     composeNounStrips,
@@ -57,6 +57,7 @@ import {
     composeStyleSheet,
     getColourForProfession,
     getTipRoom,
+    SIGNAL,
 } from "@/src/ui/panel-look.ts";
 import type { HandlePanelFailure } from "@/src/ui/panel-defect.ts";
 import {
@@ -95,6 +96,7 @@ import {
     STANDING_WORDS,
     SUSPECT_MARK,
     type TranslateLabel,
+    TURN_MARK,
 } from "@/src/ui/panel-words.ts";
 import {
     composeTipLeft,
@@ -338,6 +340,13 @@ interface RowReading {
     uses?: number | null | undefined;
     /** Whether this row's own figure is short of something. Only a person's row can be. */
     isSuspect?: boolean | undefined;
+    /**
+     * Which side this row stands on. `nobody` is every row with no person behind it and every
+     * fight the client named no side of the reader's own on, and it draws no rule at all.
+     */
+    sidePart?: PanelSidePart | undefined;
+    /** Whether the game is numbering this combatant's turn. The ranking's answer and no other. */
+    isTurnHolder?: boolean | undefined;
 }
 
 /**
@@ -346,6 +355,21 @@ interface RowReading {
  */
 function setRowMarks(parts: readonly PanelElement[], name: string, value: string): void {
     for (const part of parts) part.setAttribute(name, value);
+}
+
+/**
+ * The rule on the row's right edge, or nothing. `nobody` is both a fight nothing could tell the
+ * sides apart on and a row with no person behind it, and neither earns a grey rule: a panel that
+ * cannot place somebody says nothing rather than drawing an answer. **ADR 0065.**
+ */
+function composeSideRuleElements(
+    document: PanelDocument,
+    part: PanelSidePart,
+): PanelElement[] {
+    if (part === "nobody") return [];
+    const rule = composeElement(document, "div", CLASS.rowSide);
+    rule.setAttribute(STYLE_ATTRIBUTE, `color:${part === "ours" ? SIGNAL.ours : SIGNAL.theirs}`);
+    return [rule];
 }
 
 function composeBarElements(document: PanelDocument, reading: RowReading): PanelElement[] {
@@ -366,6 +390,8 @@ interface CardPlace {
     suspicions: readonly string[];
     translate: TranslateLabel | null;
     isRowNarrower: boolean;
+    /** Null where the client named no side of its own, and the card then names none either. */
+    readerSide: number | null;
 }
 
 /**
@@ -383,6 +409,7 @@ function composePersonCard(
         composeCardReading({
             name: row.name ?? PANEL_WORDS.unknown,
             profession: row.profession,
+            sidePart: getPartOfSide(row.side, place.readerSide),
             detail: row.detail,
             metric: place.metric,
             suspicions: place.suspicions,
@@ -461,6 +488,12 @@ function composeRowElement(
         mark.textContent = SUSPECT_MARK;
         parts.push(mark);
     }
+    if (reading.isTurnHolder === true) {
+        const mark = composeElement(document, "span", CLASS.rowTurn);
+        mark.textContent = TURN_MARK;
+        parts.push(mark);
+    }
+    parts.push(...composeSideRuleElements(document, reading.sidePart ?? "nobody"));
     const name = composeElement(document, "span", CLASS.rowName);
     name.textContent = reading.name;
     const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
@@ -486,6 +519,7 @@ function composeCombatantReading(
     row: PersonRow,
     rank: number | null,
     metric: PanelMetric,
+    place: PersonPlace,
 ): RowReading {
     return {
         name: row.name ?? PANEL_WORDS.unknown,
@@ -496,7 +530,24 @@ function composeCombatantReading(
         profession: row.profession,
         rank,
         isSuspect: getRowIsSuspect(row.detail, metric),
+        sidePart: getPartOfSide(row.side, place.readerSide),
+        isTurnHolder: row.combatantId === place.turnHolderId,
     };
+}
+
+/**
+ * What a person's row can say beyond its own figure: which side it stands on, and whether the
+ * game is numbering its turn. Read off the screen rather than off the row, because neither is a
+ * fact about the figure — the same person draws differently on a fight with no seat to read from.
+ */
+interface PersonPlace {
+    readerSide: number | null;
+    /** Null off the ranking: a row inside an opened figure is a cut, not a place in the order. */
+    turnHolderId: number | null;
+}
+
+function composeCutPlace(shown: ShownScreen): PersonPlace {
+    return { readerSide: shown.readerSide, turnHolderId: null };
 }
 
 function composeElementReading(row: ElementRow, noun: PanelNoun, rank: number): RowReading {
@@ -563,7 +614,7 @@ function composeDirectionStripElement(document: PanelDocument, shown: ShownScree
     for (const one of composeDirectionStrips(shown.current)) {
         strips.append(composeStripElement(document, SCREEN_ATTRIBUTE, getShownStrip(one, shown)));
     }
-    if (!shown.hasReaderSide) return strips;
+    if (shown.readerSide === null) return strips;
     strips.append(composeElement(document, "span", CLASS.stripsGap));
     for (const one of composeSideStrips(shown.side)) {
         strips.append(composeStripElement(document, SIDE_ATTRIBUTE, getShownStrip(one, shown)));
@@ -663,15 +714,22 @@ function composeStandingNow(document: PanelDocument, reading: StandingReading): 
     figure.textContent = said;
     section.append(words);
     section.append(figure);
-    if (reading.turnHolderName === null) {
+    const holder = reading.holder;
+    if (holder === null) {
         const empty = composeElement(document, "div", CLASS.empty);
         empty.textContent = STANDING_WORDS.turnUnread;
         return [section, empty];
     }
+    // A person is a person wherever they stand: the cap says their profession and the rule on the
+    // edge says their side, the same two answers a row on the ranking gives (**ADR 0065**).
     const row = composeElement(document, "div", CLASS.row);
+    const cap = composeElement(document, "div", CLASS.barCap);
+    cap.setAttribute(STYLE_ATTRIBUTE, `background:${holder.colour}`);
     const name = composeElement(document, "span", CLASS.rowName);
-    name.textContent = reading.turnHolderName;
+    name.textContent = holder.name;
+    row.append(cap);
     row.append(name);
+    for (const rule of composeSideRuleElements(document, holder.sidePart)) row.append(rule);
     return [section, row];
 }
 
@@ -715,6 +773,7 @@ function composeProvokedElements(
         row.append(cap);
         row.append(name);
         row.append(value);
+        for (const rule of composeSideRuleElements(document, provoked.sidePart)) row.append(rule);
         drawn.push(row);
         drawn.push(composeProvokedHolderElement(document, provoked));
     }
@@ -725,11 +784,10 @@ function composeProvokedElements(
 function composeStandingCasterElement(
     document: PanelDocument,
     caster: StandingCaster,
-    colour: string,
 ): PanelElement {
     const row = composeElement(document, "div", `${CLASS.row} ${CLASS.standingCaster}`);
     const cap = composeElement(document, "div", CLASS.barCap);
-    cap.setAttribute(STYLE_ATTRIBUTE, `background:${colour}`);
+    cap.setAttribute(STYLE_ATTRIBUTE, `background:${caster.colour}`);
     const name = composeElement(document, "span", CLASS.rowName);
     name.textContent = caster.name;
     const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
@@ -737,6 +795,7 @@ function composeStandingCasterElement(
     row.append(cap);
     row.append(name);
     row.append(value);
+    for (const rule of composeSideRuleElements(document, caster.sidePart)) row.append(rule);
     return row;
 }
 
@@ -784,9 +843,7 @@ function composeStandingRowElements(
         drawn.push(element);
         if (row.skillId !== reading.openSkillId) continue;
         for (const caster of row.casters) {
-            drawn.push(
-                composeStandingCasterElement(document, caster, getColourForRow(row, caster)),
-            );
+            drawn.push(composeStandingCasterElement(document, caster));
         }
     }
     return drawn;
@@ -922,11 +979,13 @@ function composeListElement(document: PanelDocument, visibleRows: number): Panel
 
 function composeRankingElement(
     document: PanelDocument,
-    reading: PanelReading,
-    metric: PanelMetric,
+    shown: ShownScreen,
     register: TipRegister,
     translate: TranslateLabel | null,
 ): PanelElement {
+    const reading = shown.reading;
+    const metric = shown.current;
+    const place = { readerSide: shown.readerSide, turnHolderId: shown.turnHolderId };
     const list = composeListElement(document, reading.visibleRows);
     if (reading.rows.length === 0) {
         list.append(composeEmptyElement(document, PANEL_WORDS.nothingYet));
@@ -934,7 +993,7 @@ function composeRankingElement(
     }
     const figure = getWordsForMetric(metric);
     for (const [at, row] of reading.rows.entries()) {
-        const reader = composeCombatantReading(row, at + 1, metric);
+        const reader = composeCombatantReading(row, at + 1, metric, place);
         const tip = {
             register,
             key: `row:${row.combatantId}`,
@@ -942,7 +1001,13 @@ function composeRankingElement(
             share: PANEL_WORDS.share,
             compose: composePersonCard(
                 row,
-                { metric, suspicions: reading.suspicions, translate, isRowNarrower: false },
+                {
+                    metric,
+                    suspicions: reading.suspicions,
+                    translate,
+                    isRowNarrower: false,
+                    readerSide: shown.readerSide,
+                },
                 true,
             ),
         };
@@ -1031,7 +1096,13 @@ function composeOpponentSection(
     document: PanelDocument,
     list: PanelElement,
     drill: DrillReading,
-    stated: { metric: PanelMetric; register: TipRegister; figure: string; place: CardPlace },
+    stated: {
+        metric: PanelMetric;
+        register: TipRegister;
+        figure: string;
+        place: CardPlace;
+        person: PersonPlace;
+    },
 ): void {
     const cut = drill.byOpponent;
     if (cut.rows.length === 0 && cut.unnamed === null) return;
@@ -1054,7 +1125,7 @@ function composeOpponentSection(
         list.append(
             composeRowElement(
                 document,
-                composeCombatantReading(row, at + 1, stated.metric),
+                composeCombatantReading(row, at + 1, stated.metric, stated.person),
                 mark,
                 tip,
             ),
@@ -1272,12 +1343,14 @@ function composeDrillElement(
         suspicions: shown.reading.suspicions,
         translate,
         isRowNarrower: true,
+        readerSide: shown.readerSide,
     };
     composeOpponentSection(document, list, drill, {
         metric: shown.current,
         register,
         figure,
         place,
+        person: composeCutPlace(shown),
     });
     composeSkillSection(document, list, drill, { metric: shown.current, register, figure });
     composeElementSection(document, list, drill.byElement, {
@@ -1421,7 +1494,17 @@ export interface ShownScreen {
     listName: string;
     current: PanelMetric;
     side: PanelSideChoice;
-    hasReaderSide: boolean;
+    /**
+     * Which side the client marks as the reader's own, and null where it named none. It answers
+     * two questions at once: whether the strips that narrow to a side are offered at all, and
+     * which side each person's row stands on — `CONTEXT.md`, *Reader's side*.
+     */
+    readerSide: number | null;
+    /**
+     * Whose turn the game is numbering, or null — a fight already over numbers nobody's, and a
+     * fight read from the shelf is somebody else's moment. The entry decides; this layer draws.
+     */
+    turnHolderId: number | null;
     shelf: readonly ShelfRow[];
     storage: PanelStorageChoice;
     /** Whether the bar draws its save. False leaves no control rather than a dead one. */
@@ -1480,7 +1563,7 @@ function composeShownList(
     if (shown.drill !== null) {
         return composeDrillElement(document, shown, shown.drill, register, translate);
     }
-    return composeRankingElement(document, shown.reading, shown.current, register, translate);
+    return composeRankingElement(document, shown, register, translate);
 }
 
 /**
@@ -1594,6 +1677,7 @@ function composeHalfNamedRows(
         suspicions: shown.reading.suspicions,
         translate,
         isRowNarrower: true,
+        readerSide: shown.readerSide,
     };
     for (const [at, row] of rows.entries()) {
         const tip = {
@@ -1603,7 +1687,7 @@ function composeHalfNamedRows(
             share,
             compose: composePersonCard(row, place, doesOpen),
         };
-        const reading = composeCombatantReading(row, at + 1, shown.current);
+        const reading = composeCombatantReading(row, at + 1, shown.current, composeCutPlace(shown));
         const mark = doesOpen ? { attribute: ROW_ATTRIBUTE, stated: `${row.combatantId}` } : null;
         list.append(composeRowElement(document, reading, mark, tip));
     }
@@ -1642,6 +1726,7 @@ function composePartElement(
         suspicions: shown.reading.suspicions,
         translate,
         isRowNarrower: true,
+        readerSide: shown.readerSide,
     };
     for (const [at, row] of part.byOpponent.rows.entries()) {
         const tip = {
@@ -1654,7 +1739,7 @@ function composePartElement(
         list.append(
             composeRowElement(
                 document,
-                composeCombatantReading(row, at + 1, shown.current),
+                composeCombatantReading(row, at + 1, shown.current, composeCutPlace(shown)),
                 null,
                 tip,
             ),

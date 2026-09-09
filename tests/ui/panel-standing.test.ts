@@ -9,12 +9,8 @@ import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/ass
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import type { AuraStanding, ProvocationStanding } from "@/src/core/aura-standing.ts";
 import { composePanelHost, type PanelPress } from "@/src/ui/panel-element.ts";
-import {
-    composeStandingReading,
-    getColourForRow,
-    MAXIMUM_PROVOKED,
-} from "@/src/ui/panel-standing.ts";
-import { SIGNAL } from "@/src/ui/panel-look.ts";
+import { composeStandingReading, MAXIMUM_PROVOKED } from "@/src/ui/panel-standing.ts";
+import { getColourForProfession, SIGNAL } from "@/src/ui/panel-look.ts";
 import { STANDING_WORDS } from "@/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
@@ -117,6 +113,61 @@ Deno.test("one row per skill, and the sides counted apart where the client named
     );
 });
 
+Deno.test("a caster wears their own profession, and the side is said on the edge", () => {
+    // ⚠️ The row used to be painted `ours`/`theirs` and the caster's profession was lost with it.
+    // A player is a player wherever they stand, so the hue stays theirs and the side takes the
+    // edge opposite the cap. **ADR 0065.**
+    const reading = composeStandingReading(
+        [composeStanding(11), composeStanding(21)],
+        [],
+        ROSTER,
+        OURS,
+        null,
+        264,
+    );
+    const casters = reading.rows[0]?.casters ?? [];
+    assertEquals(casters.map((one) => one.sidePart), ["ours", "theirs"], "one of each side");
+    const { host } = draw(reading);
+    const caps = getElementsWithin(getWindow(host)).filter((one) => one.className === "bar-cap");
+    assertEquals(
+        caps.map((one) => one.getAttribute("style")),
+        [
+            `background:${getColourForProfession("m")}`,
+            `background:${getColourForProfession("t")}`,
+        ],
+        "the cap is the profession's and never the side's",
+    );
+    const rules = getElementsWithin(getWindow(host)).filter((one) => one.className === "row-side");
+    assertEquals(
+        rules.map((one) => one.getAttribute("style")),
+        [`color:${SIGNAL.ours}`, `color:${SIGNAL.theirs}`],
+        "and the rule on the edge is what says whose side they cast from",
+    );
+    // **W5: zero is a boundary.** The same two casters, on a fight the client named no side of
+    // the reader's own on: the caps stand, and no rule does.
+    const seatless = draw(
+        composeStandingReading(
+            [composeStanding(11), composeStanding(21)],
+            [],
+            ROSTER,
+            null,
+            null,
+            264,
+        ),
+    );
+    const window = getWindow(seatless.host);
+    assertEquals(
+        getElementsWithin(window).filter((one) => one.className === "bar-cap").length,
+        2,
+        "both casters are still drawn",
+    );
+    assertEquals(
+        getElementsWithin(window).filter((one) => one.className === "row-side").length,
+        0,
+        "and neither wears a rule, because nothing can place them",
+    );
+});
+
 Deno.test("a fight nothing named a side on counts nobody apart", () => {
     // `CONTEXT.md`: a panel that cannot tell one side from the other lists everybody rather than
     // guessing, so the row says how many and never whose.
@@ -138,10 +189,47 @@ Deno.test("a fight nothing named a side on counts nobody apart", () => {
     const caster = reading.rows[0]?.casters[0];
     assertExists(caster, "and there is somebody it stands on");
     assertStrictEquals(
-        getColourForRow(reading.rows[0], caster) === SIGNAL.ours,
-        false,
-        "whose row wears their profession rather than a side",
+        caster.sidePart,
+        "nobody",
+        "and nobody can be placed on a side, so no row wears a rule",
     );
+});
+
+Deno.test("whoever holds the turn is drawn as a person, hue, side and all", () => {
+    // ⚠️ The `Teraz` row drew a bare name: no cap and no rule, so the one character a reader is
+    // watching hardest was the one the window said least about. A player is a player wherever
+    // they stand (**ADR 0065**).
+    const reading = composeStandingReading(
+        [],
+        [],
+        ROSTER,
+        OURS,
+        { ordinal: 48, combatantId: 21 },
+        null,
+    );
+    assertEquals(reading.holder?.name, "Renegat 1", "the roster places whoever holds it");
+    const { host } = draw(reading);
+    const row = getElementsWithin(getWindow(host)).find((one) => one.className === "row");
+    assertExists(row, "and they are drawn as a row");
+    assertEquals(
+        row.children.find((one) => one.className === "bar-cap")?.getAttribute("style"),
+        `background:${getColourForProfession("t")}`,
+        "wearing their own profession's hue",
+    );
+    assertEquals(
+        row.children.find((one) => one.className === "row-side")?.getAttribute("style"),
+        `color:${SIGNAL.theirs}`,
+        "and the rule saying which side they stand on",
+    );
+    // **W5: zero is a boundary.** The same turn, on a fight with no seat to read from: the hue
+    // stands, because it is theirs, and the rule does not, because nothing can place them.
+    const seatless = composeStandingReading([], [], ROSTER, null, {
+        ordinal: 48,
+        combatantId: 21,
+    }, null);
+    const alone = getElementsWithin(getWindow(draw(seatless).host));
+    assertEquals(alone.filter((one) => one.className === "bar-cap").length, 1, "the cap stands");
+    assertEquals(alone.filter((one) => one.className === "row-side"), [], "and no rule does");
 });
 
 Deno.test("a press opens the casters under a row, and a second press shuts them", () => {

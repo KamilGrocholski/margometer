@@ -198,22 +198,35 @@ text sits. **Its length is the row against the biggest figure on screen**, never
 the top row of a ten-person fight is a full bar, and the share in brackets is what states the
 fraction.
 
-**A ranking row does not say which side is the reader's, and that is a decision.** The strip under
-the list totals both sides and the strips narrow to either, which is where the question is answered.
-The row itself does not answer it, and the two channels that could are both spoken for: the hue says
-a profession, and the lightness of the name cannot — a row's name sits over its own bar, and over
-the worst bar in the palette the plain ink clears the AA floor at 5.09 while the quiet ink reaches
-2.26 against 4.5, with the last neutral grey that clears it indistinguishable from plain (measured
-over the whole palette, 2026-08-30). What is left is a carrier that is neither ink nor hue — the
-edge a bar grows from, which breaks comparing two lengths; a rule under the row spending `ours` and
-`theirs`, which is colour again and the worst pair for it; or a mark before the name, which costs
-the width the profession letter was removed for. None was worth its cost.
+**A row says which side it stands on, on the edge opposite the cap.** The left three pixels are the
+profession's — the bar's cap at full strength — and the open row's inset shadow is on that side too,
+so the side takes the right edge: **left says who somebody is, right says whose side they are on.**
+A two-pixel rule in `ours` or `theirs`, inside the row's own overflow, spending no width the name
+could have had. It is drawn on every level a person stands on and in the window beside the panel,
+never on a row with nobody behind it, and **never at all on a fight the client named no side of the
+reader's own on** — a panel that cannot place somebody says nothing rather than drawing a grey
+answer.
+
+The rule is colour, so it carries a word: the card names the side in full — `Mag (120) · My` — which
+is what _Colour Never Alone_ asks and what the strip under the list already anchors the two inks to.
+The lightness of the name was measured and refused instead: a row's name sits over its own bar, and
+over the worst bar in the palette the plain ink clears the AA floor at 5.09 while the quiet ink
+reaches 2.26 against 4.5, with the last neutral grey that clears it indistinguishable from plain
+(measured over the whole palette, 2026-08-30). **ADR 0065.**
 
 ⚠️ **The row says a profession in its hue and in nothing else, and that is a decision.** Six
 professions cannot be made mutually distinguishable by hue on this background, so the hue is a hint
 and the card a reader opens by pointing is the answer — it names the profession in words. A second
 channel in the row was tried and removed on 2026-08-29: a letter beside every name took width from
 the one cell that has to shorten, to say a thing the card already said. **ADR 0023.**
+
+**The ranking marks whose turn it is**, before the name, on the one row the game is numbering. It
+stands on the same argument as the suspect mark below: a mark that reaches one row is not the second
+channel the paragraph above refuses, which would stand on every row to say a thing the card already
+says. `▸` measures 9.03px in Chrome on 2026-09-09, against 13.36 for the suspect mark the panel
+already carries — and it toggles against nothing, which is what ★/☆ failed at. A fight already over
+numbers nobody's turn and a fight read off the shelf is a moment that has passed, so both draw no
+mark at all. **ADR 0066.**
 
 **A row whose own figure is short wears the suspect mark**, before the name and drawn only there. It
 is not the second channel the paragraph above refuses: that one would stand on every row to say a

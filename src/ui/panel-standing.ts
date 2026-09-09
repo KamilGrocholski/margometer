@@ -9,7 +9,8 @@
 import type { AuraStanding, ProvocationStanding } from "@/src/core/aura-standing.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import type { TurnStatement } from "@/src/game/fight-underway.ts";
-import { getColourForProfession, SIGNAL } from "@/src/ui/panel-look.ts";
+import { getColourForProfession } from "@/src/ui/panel-look.ts";
+import { getPartOfSide, type PanelSidePart } from "@/src/ui/panel-reading.ts";
 import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
 
 /** Past every skill the corpus casts at a side in one fight, and a clamp rather than a bound. */
@@ -26,6 +27,8 @@ export interface StandingCaster {
     casterId: number;
     name: string;
     colour: string;
+    /** Which side they cast from. `nobody` where the client named no side of the reader's own. */
+    sidePart: PanelSidePart;
     turnsElapsed: number;
     turnsStated: number;
 }
@@ -38,6 +41,7 @@ export interface StandingProvoked {
     casterName: string;
     /** The holder's own profession, drawn as a cap: a player is a player wherever they stand. */
     casterColour: string;
+    sidePart: PanelSidePart;
     skillName: string;
     turnsElapsed: number;
     turnsStated: number;
@@ -52,9 +56,17 @@ export interface StandingRow {
     casters: StandingCaster[];
 }
 
+/** Whoever the game is numbering a turn for: a person, so drawn as one wherever they stand. */
+export interface StandingHolder {
+    name: string;
+    colour: string;
+    sidePart: PanelSidePart;
+}
+
 export interface StandingReading {
     turnOrdinal: number | null;
-    turnHolderName: string | null;
+    /** Null where the payload numbered a turn for nobody the roster holds. */
+    holder: StandingHolder | null;
     rows: StandingRow[];
     /** Whom a shout is holding. Its own section: one row per person, never per cast. */
     provoked: StandingProvoked[];
@@ -62,12 +74,17 @@ export interface StandingReading {
     openSkillId: number | null;
 }
 
-function composeStandingCaster(standing: AuraStanding, roster: CombatantRoster): StandingCaster {
+function composeStandingCaster(
+    standing: AuraStanding,
+    roster: CombatantRoster,
+    readerSide: number | null,
+): StandingCaster {
     const combatant = roster.byId.get(standing.casterId);
     return {
         casterId: standing.casterId,
         name: combatant?.name ?? PANEL_WORDS.withoutActor,
         colour: getColourForProfession(combatant?.profession ?? null),
+        sidePart: getPartOfSide(combatant?.side ?? null, readerSide),
         turnsElapsed: standing.turnsElapsed,
         turnsStated: standing.turnsStated,
     };
@@ -77,6 +94,7 @@ function composeStandingCaster(standing: AuraStanding, roster: CombatantRoster):
 function composeStandingProvoked(
     standing: ProvocationStanding,
     roster: CombatantRoster,
+    readerSide: number | null,
 ): StandingProvoked {
     const provoked = roster.byId.get(standing.provokedId);
     const caster = roster.byId.get(standing.casterId);
@@ -86,6 +104,7 @@ function composeStandingProvoked(
         colour: getColourForProfession(provoked?.profession ?? null),
         casterName: caster?.name ?? PANEL_WORDS.withoutActor,
         casterColour: getColourForProfession(caster?.profession ?? null),
+        sidePart: getPartOfSide(provoked?.side ?? null, readerSide),
         skillName: standing.skillName,
         turnsElapsed: standing.turnsElapsed,
         turnsStated: standing.turnsStated,
@@ -124,7 +143,7 @@ function composeStandingRows(
             casters: [],
         };
         if (held.casters.length < MAXIMUM_CASTERS) {
-            held.casters.push(composeStandingCaster(standing, roster));
+            held.casters.push(composeStandingCaster(standing, roster, readerSide));
         }
         const isOurs = getIsOurs(standing, roster, readerSide);
         if (isOurs === true) held.ours = (held.ours ?? 0) + 1;
@@ -132,18 +151,6 @@ function composeStandingRows(
         rowBySkillId.set(standing.skillId, held);
     }
     return [...rowBySkillId.values()];
-}
-
-/**
- * The colour a caster's row wears. Where the client named the reader's side the row says which
- * side cast it and nothing else; where it named none, every row wears its caster's profession —
- * a panel that cannot tell the sides apart lists everybody rather than guessing (`CONTEXT.md`).
- */
-export function getColourForRow(row: StandingRow, caster: StandingCaster): string {
-    if (row.ours === null) return caster.colour;
-    if (row.theirs === null) return caster.colour;
-    const ours = row.casters.slice(0, row.ours).some((one) => one.casterId === caster.casterId);
-    return ours ? SIGNAL.ours : SIGNAL.theirs;
 }
 
 export function composeStandingReading(
@@ -157,12 +164,16 @@ export function composeStandingReading(
     const rows = composeStandingRows(standings, roster, readerSide);
     const provoked = provocations
         .slice(0, MAXIMUM_PROVOKED)
-        .map((one) => composeStandingProvoked(one, roster));
+        .map((one) => composeStandingProvoked(one, roster, readerSide));
     const holder = turn === null ? undefined : roster.byId.get(turn.combatantId);
     const isOpen = rows.some((row) => row.skillId === openSkillId);
     return {
         turnOrdinal: turn?.ordinal ?? null,
-        turnHolderName: holder?.name ?? null,
+        holder: holder === undefined ? null : {
+            name: holder.name,
+            colour: getColourForProfession(holder.profession),
+            sidePart: getPartOfSide(holder.side, readerSide),
+        },
         rows,
         provoked,
         openSkillId: isOpen ? openSkillId : null,

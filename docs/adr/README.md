@@ -176,3 +176,7 @@ edited to agree with the new rule.
   the panel names the count. **Superseded by 0064 in part**
 - [0064](0064-a-shout-names-the-provoked-so-the-panel-reads-them.md) — A shout names the provoked,
   so the panel reads them. **Accepted**
+- [0065](0065-a-row-says-which-side-it-stands-on.md) — A row says which side it stands on, and its
+  hue goes on saying who it is. **Accepted**
+- [0066](0066-the-ranking-says-whose-turn-it-is.md) — The ranking says whose turn it is.
+  **Accepted**

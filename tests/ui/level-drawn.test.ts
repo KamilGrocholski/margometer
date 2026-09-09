@@ -132,14 +132,15 @@ function composeShownScreen(
     reading: PanelReading,
     metric: PanelMetric,
     side: PanelSideChoice,
-    hasReaderSide: boolean,
+    readerSide: number | null,
 ): ShownScreen {
     return {
         listName: "one place",
         reading,
         current: metric,
         side,
-        hasReaderSide,
+        readerSide,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local",
@@ -310,7 +311,7 @@ Deno.test("every level stands as tall as it drew, with one card per row and no t
                     readerSide,
                     NOTHING_SUSPECT,
                 );
-                const base = composeShownScreen(reading, metric, side, readerSide !== null);
+                const base = composeShownScreen(reading, metric, side, readerSide);
                 const walk: LevelWalk = { replay, metric, side, readerSide, base, short };
                 walked += addLevel(walk, "ranking", {});
                 walked += addOpenedRungs(walk, statistics, roster);

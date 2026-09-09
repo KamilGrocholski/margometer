@@ -8,6 +8,7 @@ import {
     composeRowSuspicions,
     type CutPart,
     type PanelMetric,
+    type PanelSidePart,
     type RowDetail,
 } from "@/src/ui/panel-reading.ts";
 import type { TipGroup, TipLine, TipReading } from "@/src/ui/panel-tip.ts";
@@ -29,6 +30,8 @@ import { CRITICAL_PROC_KEYS } from "@/src/core/fight-decoder.ts";
 export interface CardSubject {
     name: string;
     profession: string | null;
+    /** Which side they stand on, worded — the label the row's own rule is drawn against. */
+    sidePart: PanelSidePart;
     detail: RowDetail;
     metric: PanelMetric;
     suspicions: readonly string[];
@@ -351,7 +354,11 @@ export function composeCardReading(subject: CardSubject): TipReading {
     return {
         // A card with nobody behind it says so rather than standing with a blank where a name is.
         name: subject.name.length > 0 ? subject.name : PANEL_WORDS.unknown,
-        subtitle: composeCardSubtitleText(subject.profession, subject.detail.level),
+        subtitle: composeCardSubtitleText(
+            subject.profession,
+            subject.detail.level,
+            subject.sidePart,
+        ),
         groups,
     };
 }

@@ -30,7 +30,7 @@ import {
     type PanelReading,
     type PinnedRow,
 } from "@/src/ui/panel-reading.ts";
-import { CLASS, composeStyleSheet, getColourForProfession } from "@/src/ui/panel-look.ts";
+import { CLASS, composeStyleSheet, getColourForProfession, SIGNAL } from "@/src/ui/panel-look.ts";
 import {
     composeDirectionStrips,
     composeNounStrips,
@@ -57,6 +57,7 @@ import {
     getWordsForUnnamedEnd,
     PANEL_WORDS,
     SUSPECT_MARK,
+    TURN_MARK,
 } from "@/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
@@ -150,7 +151,8 @@ function composeShownScreen(reading: PanelReading, metric: PanelMetric = "damage
         reading,
         current: metric,
         side: "everyone" as PanelSideChoice,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -197,7 +199,14 @@ function readPinnedCard(
     return { pinned, card: readTip(host) };
 }
 
-function draw(reading: PanelReading, defects: readonly string[] = []): FakeElement {
+function draw(
+    reading: PanelReading,
+    defects: readonly string[] = [],
+    place: { readerSide: number | null; turnHolderId: number | null } = {
+        readerSide: null,
+        turnHolderId: null,
+    },
+): FakeElement {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
@@ -205,7 +214,8 @@ function draw(reading: PanelReading, defects: readonly string[] = []): FakeEleme
         reading: reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: place.readerSide,
+        turnHolderId: place.turnHolderId,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -284,7 +294,8 @@ Deno.test("the side strip is drawn where the client said which side is the reade
         reading: readFight(),
         current: "damageDealtApplied",
         side: "reader",
-        hasReaderSide: true,
+        readerSide: 1,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -329,7 +340,8 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
         reading: readFight(),
         current: "damageDealtApplied",
         side: "everyone",
-        hasReaderSide: true,
+        readerSide: 1,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: true,
         storage: "local" as const,
@@ -389,7 +401,13 @@ Deno.test("the shelf stands at its own height, whatever the side strip was last 
         const { reading } = readPinnedFight("damageDealtApplied", side);
         const document = composeFakeDocument();
         const panel = composePanelHost(document, () => {}, () => {});
-        panel.show({ ...composeShownScreen(reading), side, isOnShelf: true, hasReaderSide: true });
+        panel.show({
+            ...composeShownScreen(reading),
+            side,
+            isOnShelf: true,
+            readerSide: 1,
+            turnHolderId: null,
+        });
         const host = panel.element as FakeElement;
         return getElementsWithin(host).find((one) => one.className.startsWith("list"))
             ?.attributes.get("style");
@@ -938,7 +956,8 @@ Deno.test("a press on a strip reaches the panel, and a press on anything else do
         reading: readFight(),
         current: "damageDealtApplied",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -976,7 +995,8 @@ Deno.test("a press on a side asks for that side, and on the shelf for the shelf"
         reading: readFight(),
         current: "damageDealtApplied",
         side: "everyone" as const,
-        hasReaderSide: true,
+        readerSide: 1,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -1063,7 +1083,8 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         reading: broken,
         current: "damageDealtApplied",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -1114,7 +1135,8 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -1169,6 +1191,58 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
     assertEquals(crumb.length, 1, "and one way back");
 });
 
+Deno.test("a ranking row says which side it stands on, on the edge opposite the cap", () => {
+    const reading = readFight();
+    const sides = new Set(reading.rows.map((one) => one.side));
+    assert(sides.size > 1, "this fight has two sides to tell apart");
+    const readerSide = reading.rows[0]?.side ?? null;
+    assertExists(readerSide, "and a side to read it from");
+    const host = draw(reading, [], { readerSide, turnHolderId: null });
+    const rows = getElementsWithin(host).filter((one) =>
+        one.className === "row drillable" && one.attributes.get("data-row") !== undefined
+    );
+    assertEquals(rows.length, reading.rows.length, "a row for each combatant");
+    for (const [at, drawn] of rows.entries()) {
+        const row = reading.rows[at];
+        assertExists(row, "a row drawn is a row the reading holds");
+        const rule = drawn.children.find((one) => one.className === "row-side");
+        assertExists(rule, "every row the roster places wears one");
+        const ink = row.side === readerSide ? SIGNAL.ours : SIGNAL.theirs;
+        assertEquals(rule.attributes.get("style"), `color:${ink}`, "in the ink for that side");
+        // The mark goes on every part of a row and not the row alone: a listener reads what was
+        // pressed off the node under the hand, so a rule that swallowed a press would be a row
+        // that stopped opening at its right edge.
+        assertEquals(
+            rule.attributes.get("data-row"),
+            `${row.combatantId}`,
+            "and carries the row's own press mark",
+        );
+        assertExists(rule.attributes.get("data-tip"), "and the row's card with it");
+    }
+    // ⚠️ **W5: zero is a boundary.** A fight the client named no side of the reader's own on gets
+    // no rule at all — not a grey one. A panel that cannot place somebody says nothing.
+    const seatless = getElementsWithin(draw(reading)).filter((one) => one.className === "row-side");
+    assertEquals(seatless, [], "and a fight with no seat to read from draws none of them");
+});
+
+Deno.test("the ranking marks whose turn it is, and marks nobody else", () => {
+    const reading = readFight();
+    const held = reading.rows[1]?.combatantId;
+    assertExists(held, "somebody past the top row, so the mark is not the first row by accident");
+    const host = draw(reading, [], { readerSide: null, turnHolderId: held });
+    const marks = getElementsWithin(host).filter((one) => one.className === "row-turn");
+    assertEquals(marks.map((one) => one.textContent), [TURN_MARK], "one row wears it");
+    assertEquals(
+        marks[0]?.attributes.get("data-row"),
+        `${held}`,
+        "and it is the row of the combatant the game is numbering",
+    );
+    // A fight already over numbers nobody's turn, which the entry answers by handing null: the
+    // panel then draws no mark, and every name keeps the width the mark would have taken.
+    const none = getElementsWithin(draw(reading)).filter((one) => one.className === "row-turn");
+    assertEquals(none, [], "a fight numbering nobody marks nobody");
+});
+
 Deno.test("a ranking row's bar is its profession's, and colourless without one", () => {
     const reading = readFight();
     const host = draw(reading);
@@ -1221,7 +1295,8 @@ Deno.test("a kind's row carries a bar of its own, measured against its own cut",
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -1274,7 +1349,8 @@ Deno.test("a part of a figure no kind was stated for is drawn last, under the ki
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -1313,7 +1389,8 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -1340,7 +1417,8 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -1376,7 +1454,8 @@ Deno.test("the bar says where the fight is being fought, and stays a bar without
         reading: readFight(),
         current: "damageDealtApplied" as const,
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -1421,7 +1500,8 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
         reading: readFight(),
         current: "damageDealtApplied" as const,
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -1489,7 +1569,8 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
         reading: readFight(),
         current: "damageDealtApplied",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -1804,7 +1885,8 @@ Deno.test("a person under an opened skill opens a card promising no gesture", ()
         reading,
         current: "healthGiven",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -1850,7 +1932,8 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -1896,7 +1979,8 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
         reading: readFight(),
         current: "damageDealtApplied",
         side: "everyone",
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [{
             openedAt: 17,
             at: { hour: 21, minute: 5 },
@@ -2010,7 +2094,8 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
         reading: readFight(),
         current: "damageDealtApplied",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -2163,7 +2248,8 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
             reading,
             current: screen,
             side: "everyone" as const,
-            hasReaderSide: false,
+            readerSide: null,
+            turnHolderId: null,
             shelf: [],
             isOnShelf: false,
             storage: "local" as const,
@@ -2206,7 +2292,8 @@ Deno.test("a row opened on a screen its own figure is nothing on says so, about 
         reading,
         current: "healthGiven",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -2242,7 +2329,8 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
             reading,
             current: "damageDealtApplied",
             side: "everyone" as const,
-            hasReaderSide: false,
+            readerSide: null,
+            turnHolderId: null,
             shelf: [],
             isOnShelf: false,
             storage: "local" as const,
@@ -2368,7 +2456,8 @@ Deno.test("a cut that repeats the figure above it is drawn all the same", () => 
             reading,
             current: "damageTakenApplied",
             side: "everyone" as const,
-            hasReaderSide: false,
+            readerSide: null,
+            turnHolderId: null,
             shelf: [],
             isOnShelf: false,
             storage: "local" as const,
@@ -2434,7 +2523,8 @@ Deno.test("a lone row of a section names what the heading over it never does", (
             reading,
             current: "damageDealtApplied",
             side: "everyone" as const,
-            hasReaderSide: false,
+            readerSide: null,
+            turnHolderId: null,
             shelf: [],
             isOnShelf: false,
             storage: "local" as const,
@@ -2532,7 +2622,8 @@ Deno.test("a heading is its words and a figure, and says only what its level is 
             listName: SHOWN_LIST,
             ...level,
             side: "everyone" as const,
-            hasReaderSide: false,
+            readerSide: null,
+            turnHolderId: null,
             shelf: [],
             isOnShelf: false,
             storage: "local" as const,
@@ -2586,7 +2677,8 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
         reading,
         current: "damageDealtApplied",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -2721,7 +2813,8 @@ Deno.test("a skill that opens asks for itself by name, wherever the press lands 
         reading,
         current: "healthGiven",
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -2785,7 +2878,8 @@ Deno.test("every row in a list draws the same cells before its name", () => {
         reading,
         current: "damageDealtApplied" as const,
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -2846,7 +2940,8 @@ Deno.test("a healing section draws the key the game named, not a row saying it d
         reading,
         current: "healthGiven" as const,
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,
@@ -3028,7 +3123,8 @@ function composeNotesForOpenedRow(
         reading,
         current: metric,
         side: "everyone" as const,
-        hasReaderSide: false,
+        readerSide: null,
+        turnHolderId: null,
         shelf: [],
         isOnShelf: false,
         storage: "local" as const,

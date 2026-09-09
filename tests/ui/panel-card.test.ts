@@ -8,7 +8,7 @@
 
 import { assert, assertArrayIncludes, assertEquals, assertExists } from "@std/assert";
 import { composeCardReading } from "@/src/ui/panel-card.ts";
-import type { PanelMetric, RowDetail } from "@/src/ui/panel-reading.ts";
+import type { PanelMetric, PanelSidePart, RowDetail } from "@/src/ui/panel-reading.ts";
 import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 import type { TipGroup } from "@/src/ui/panel-tip.ts";
 import { CARD_WORDS, PANEL_WORDS, SUSPECT_MARK } from "@/src/ui/panel-words.ts";
@@ -97,6 +97,7 @@ Deno.test("a card states all four figures, and the one on screen is the one in b
     const card = composeCardReading({
         name: "Hildur Muza Śmierci",
         profession: "p",
+        sidePart: "nobody" as const,
         detail: HILDUR,
         metric: "damageTakenApplied",
         suspicions: [],
@@ -154,6 +155,7 @@ Deno.test("a figure before reduction says it is the blows', and owes the sentenc
     const lines = composeCardReading({
         name: "Hildur Muza Śmierci",
         profession: "p",
+        sidePart: "nobody" as const,
         detail: HILDUR,
         metric: "damageTakenApplied",
         suspicions: [],
@@ -179,6 +181,7 @@ Deno.test("a figure before reduction says it is the blows', and owes the sentenc
     const without = composeCardReading({
         name: "Gracz 9",
         profession: null,
+        sidePart: "nobody" as const,
         detail: { ...HILDUR, damageDealtRaw: 0, damageTakenRaw: 0 },
         metric: "damageTakenApplied",
         suspicions: [],
@@ -203,6 +206,7 @@ Deno.test("the card says what they did when they struck, and what held when they
     const card = composeCardReading({
         name: "Hildur Muza Śmierci",
         profession: "p",
+        sidePart: "nobody" as const,
         detail: HILDUR,
         metric: "damageTakenApplied",
         suspicions: [],
@@ -243,21 +247,39 @@ Deno.test("the card says what they did when they struck, and what held when they
 });
 
 Deno.test("what somebody is stands beside how far along they are, or whichever was said", () => {
-    const subtitleOf = (profession: string | null, level: number | null) =>
-        composeCardReading({
-            name: "Gracz 9",
-            profession,
-            detail: { ...NOBODY, level },
-            metric: "damageDealtApplied",
-            suspicions: [],
-            doesOpen: false,
-            isRowNarrower: false,
-            translate: null,
-        }).subtitle;
+    const subtitleOf = (
+        profession: string | null,
+        level: number | null,
+        sidePart: PanelSidePart = "nobody",
+    ) => composeCardReading({
+        name: "Gracz 9",
+        profession,
+        sidePart,
+        detail: { ...NOBODY, level },
+        metric: "damageDealtApplied",
+        suspicions: [],
+        doesOpen: false,
+        isRowNarrower: false,
+        translate: null,
+    }).subtitle;
     assertEquals(subtitleOf("b", 41), "Tancerz ostrzy (41)", "both, in one line and in that order");
     assertEquals(subtitleOf("b", null), "Tancerz ostrzy", "a profession with no level beside it");
     assertEquals(subtitleOf(null, 41), "(41)", "and a level with nothing to say what they are");
     assertEquals(subtitleOf(null, null), null, "neither is no line at all");
+    // The word the row's rule is drawn against: colour never carries a meaning alone, and this
+    // is the label it carries (**ADR 0065**). A fight with no seat to read from says none of it.
+    assertEquals(
+        subtitleOf("b", 41, "ours"),
+        "Tancerz ostrzy (41) · My",
+        "and whose side they stand on, last, because it is the panel's answer and not the game's",
+    );
+    assertEquals(subtitleOf("b", 41, "theirs"), "Tancerz ostrzy (41) · Oni", "either way round");
+    assertEquals(
+        subtitleOf(null, null, "ours"),
+        "My",
+        "the side alone where nothing else was said",
+    );
+    assertEquals(subtitleOf(null, null, "nobody"), null, "and nothing at all where none was");
     // A letter the table does not hold reaches the reader as the game wrote it, rather than as an
     // invented name or as nothing: the panel colours the six the recordings state, and a seventh
     // would arrive from the game and not from here.
@@ -280,6 +302,7 @@ Deno.test("a key nothing here words is drawn as the player's own client names it
         composeCardReading({
             name: "Gracz 9",
             profession: null,
+            sidePart: "nobody" as const,
             detail: struck,
             metric: "damageDealtApplied",
             suspicions: [],
@@ -306,6 +329,7 @@ Deno.test("a combatant the fight never touched states four zeros and nothing els
     const card = composeCardReading({
         name: "Gracz 9",
         profession: null,
+        sidePart: "nobody" as const,
         detail: NOBODY,
         metric: "damageDealtApplied",
         suspicions: [],
@@ -335,6 +359,7 @@ Deno.test("a part of a figure is drawn from the first point of it, and never bel
             composeCardReading({
                 name: "Gracz 9",
                 profession: null,
+                sidePart: "nobody" as const,
                 detail: { ...NOBODY, damageDealtApplied: figure, damageDealtToNobody: figure },
                 metric: "damageDealtApplied",
                 suspicions: [],
@@ -351,6 +376,7 @@ Deno.test("a suspicion about the screen is said again where the figures it reach
     const card = composeCardReading({
         name: "Hildur Muza Śmierci",
         profession: "m",
+        sidePart: "nobody" as const,
         detail: NOBODY,
         metric: "healthRestored",
         suspicions: ["Nie udało się odczytać wszystkiego."],
@@ -379,6 +405,7 @@ Deno.test("a card states this person's own suspicion before the whole fight's", 
     const card = composeCardReading({
         name: "Hildur Muza Śmierci",
         profession: "m",
+        sidePart: "nobody" as const,
         detail: { ...HILDUR, unreadMessages: 2, castsUnplaced: 1 },
         metric: "healthGiven",
         suspicions: ["Nie udało się odczytać wszystkiego."],
@@ -399,6 +426,7 @@ Deno.test("a card on a damage screen says nothing about a cast, which puts back 
     const card = composeCardReading({
         name: "Hildur Muza Śmierci",
         profession: "m",
+        sidePart: "nobody" as const,
         detail: { ...HILDUR, unreadMessages: 0, castsUnplaced: 1 },
         metric: "damageDealtApplied",
         suspicions: [],
@@ -422,6 +450,7 @@ Deno.test("both runs stand on every screen, and the screen moves only the bold f
         composeCardReading({
             name: "Hildur Muza Śmierci",
             profession: "p",
+            sidePart: "nobody" as const,
             detail: HILDUR,
             metric,
             suspicions: [],
@@ -472,6 +501,7 @@ Deno.test("a run that came to nothing is not drawn, and neither is its heading",
         composeCardReading({
             name: "Gracz 9",
             profession: null,
+            sidePart: "nobody" as const,
             detail,
             metric: "damageDealtApplied",
             suspicions: [],
@@ -506,6 +536,7 @@ Deno.test("a card over a narrower row says its figures are the whole fight's", (
         composeCardReading({
             name: "Gracz 9",
             profession: null,
+            sidePart: "nobody" as const,
             detail: NOBODY,
             metric: "damageDealtApplied",
             suspicions: ["Nie udało się odczytać wszystkiego."],
@@ -537,6 +568,7 @@ Deno.test("a rate is taken of blows, and a rate of no blows is no rate at all", 
         composeCardReading({
             name: "Gracz 9",
             profession: null,
+            sidePart: "nobody" as const,
             detail: { ...NOBODY, blowsCritical, blowsStruck },
             metric: "damageDealtApplied",
             suspicions: [],
@@ -570,6 +602,7 @@ Deno.test("a card nobody is named on says so, rather than standing on a blank", 
     const card = composeCardReading({
         name: "",
         profession: null,
+        sidePart: "nobody" as const,
         detail: NOBODY,
         metric: "damageDealtApplied",
         suspicions: [],
@@ -587,6 +620,7 @@ Deno.test("two keys the panel words the same way are one line, not two of one wo
     const card = composeCardReading({
         name: "Amaimon Soploręki",
         profession: "p",
+        sidePart: "nobody" as const,
         detail: {
             ...NOBODY,
             blowsStruck: 20,
@@ -621,6 +655,7 @@ Deno.test("the card says how many turns a combatant took, and only where they to
     const subject = {
         name: "Hildur Muza Śmierci",
         profession: "p",
+        sidePart: "nobody" as const,
         metric: "damageDealtApplied" as const,
         suspicions: [],
         doesOpen: true,

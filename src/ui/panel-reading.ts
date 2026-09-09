@@ -1191,9 +1191,9 @@ export interface PanelSides {
 }
 
 /** Which part of the bar a figure belongs to. `nobody` is a refusal, never a third side. */
-type PanelSidePart = "ours" | "theirs" | "nobody";
+export type PanelSidePart = "ours" | "theirs" | "nobody";
 
-function getPartOfSide(side: number | null, readerSide: number | null): PanelSidePart {
+export function getPartOfSide(side: number | null, readerSide: number | null): PanelSidePart {
     if (side === null) return "nobody";
     if (readerSide === null) return "nobody";
     return side === readerSide ? "ours" : "theirs";

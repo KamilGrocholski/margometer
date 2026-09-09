@@ -15,6 +15,7 @@ import type {
     PinnedCase,
 } from "@/src/ui/panel-reading.ts";
 import type { PanelNoun, PanelSideChoice, PanelStorageChoice } from "@/src/ui/panel-screen.ts";
+import type { PanelSidePart } from "@/src/ui/panel-reading.ts";
 
 export interface CountedNoun {
     one: string;
@@ -25,6 +26,8 @@ export interface CountedNoun {
 export const SUSPECT_MARK = "⚠ ";
 
 export const DEFECT_MARK = "✖ ";
+
+export const TURN_MARK = "▸ ";
 
 export const PANEL_WORDS = {
     title: "MargoMeter",
@@ -442,9 +445,11 @@ export function getWordsForProfession(profession: string): string {
     return words;
 }
 
+/** Who somebody is: profession, level, side — the words the row's rule stands on. **ADR 0065.** */
 export function composeCardSubtitleText(
     profession: string | null,
     level: number | null,
+    sidePart: PanelSidePart = "nobody",
 ): string | null {
     if (level !== null) {
         if (!Number.isSafeInteger(level)) level = null;
@@ -452,10 +457,13 @@ export function composeCardSubtitleText(
     if (level !== null) {
         if (level <= 0) level = null;
     }
-    const stated = profession === null ? null : getWordsForProfession(profession);
-    if (level === null) return stated;
-    const counted = `(${composeIntegerText(level)})`;
-    return stated === null ? counted : `${stated} ${counted}`;
+    const said: string[] = [];
+    if (profession !== null) said.push(getWordsForProfession(profession));
+    if (level !== null) said.push(`(${composeIntegerText(level)})`);
+    const stated = said.join(" ");
+    if (sidePart === "nobody") return stated.length === 0 ? null : stated;
+    const side = sidePart === "ours" ? SIDE_WORDS.reader : SIDE_WORDS.opposing;
+    return stated.length === 0 ? side : `${stated} · ${side}`;
 }
 
 /**
@@ -569,6 +577,7 @@ export const STANDING_WORDS = {
     openRow: "LPM — kto rzucił",
     /** Never `/`: this panel teaches `z` for *of*, so a slash between figures reads as one. */
     sideSeparator: "|",
+    /** The two okrzyki share one state, so they share one heading — **ADR 0062**. */
     /** The two okrzyki share one state, so they share one heading — **ADR 0062**. */
     provocation: "Prowokacja",
     /** Who is holding a provoked character, and with which of the two skills. */

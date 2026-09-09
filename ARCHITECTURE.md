@@ -495,7 +495,10 @@ commit that opens or closes one.
    the newest of them (**ADR 0033**), a pin keeps one out of the rotation's reach, and a strip says
    where the shelf itself is kept — the header and every row on that shelf say where the fight was
    fought, a ranking row wears its place, its profession's hue and a bar measured against the
-   biggest figure on screen, hovering the row of somebody the roster holds — on the ranking, in the
+   biggest figure on screen, a rule on its right edge saying which side it stands on wherever the
+   client named one of the reader's own, and — on the one row the game is numbering, and never on a
+   fight that is over or read off the shelf — a mark before the name saying whose turn it is (**ADR
+   0065**, **ADR 0066**), hovering the row of somebody the roster holds — on the ranking, in the
    ends an opened figure reached, or under an opened part of one — opens the card that states all
    four of a combatant's figures with the screen's own in bold, the part of each the protocol named
    one end of, how they fought at either end and what qualifies the lot, and says so where the row
@@ -527,7 +530,8 @@ commit that opens or closes one.
    root and dragged, folded and remembered apart from it (**ADR 0060**): it says whose turn the game
    numbers and what is standing on the fight, one counted row per skill reaching a side, and a press
    opens the casters under it with what has passed of what the published table gives them — never
-   what is left (**ADR 0059**). A cast reaching a whole side says nothing about whom, because there
+   what is left (**ADR 0059**) — each wearing their own profession's hue and the same side rule the
+   ranking wears (**ADR 0065**). A cast reaching a whole side says nothing about whom, because there
    is nothing to say; the two okrzyki stand in a section of their own, held by whoever shouted last
    (**ADR 0062**). Whom a shout holds is **read off its value**, which names every provoked
    character separated by a comma and a space, and a name the roster cannot place is dropped rather

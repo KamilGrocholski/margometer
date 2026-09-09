@@ -33,6 +33,19 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Każdy wiersz mówi teraz, po której stronie stoi ta postać: przy prawej krawędzi stoi
+  wąski pasek, zielony po twojej stronie i czerwony po przeciwnej. Widać go na każdym poziomie i w
+  oknie obok, a przy wierszu, za którym nikogo nie ma, nie ma paska. Na walce, na której gra nie
+  powiedziała, która strona jest twoja, nie ma go nigdzie — Pomocnik nie zgaduje.
+
+- **Zmiana** — Kolor po lewej stronie wiersza znowu wszędzie należy do profesji. W oknie obok wiersz
+  rzucającego brał wcześniej kolor strony i profesja przepadała; teraz stronę mówi pasek przy prawej
+  krawędzi, a lewa zostaje przy profesji. Dymek dopisuje stronę słowem, obok profesji i poziomu:
+  „Mag (120) · My".
+
+- **Nowość** — Na liście widać, czyja jest tura: przed imieniem tej jednej postaci stoi „▸". Znika,
+  kiedy walka się kończy, i nie pokazuje się przy walkach odczytanych z zapisanych.
+
 - **Nowość** — Okrzyki mają w Pomocniku własną sekcję: „Prowokacja". Stoi w niej wiersz na każdego
   sprowokowanego, a pod nim — imię tego, kto go trzyma, i którym okrzykiem, razem z tym, ile tur
   minęło z tych, które podaje gra. Nowy okrzyk przejmuje po poprzednim, obojętne kto go rzucił i

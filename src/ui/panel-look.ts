@@ -85,6 +85,8 @@ export const CLASS = {
     rowValue: "row-value",
     rowShare: "row-share",
     rowSuspect: "row-suspect",
+    rowTurn: "row-turn",
+    rowSide: "row-side",
     bar: "bar",
     barCap: "bar-cap",
     /** Worn by every cell that carries a figure, wherever in the panel it stands. */
@@ -549,7 +551,8 @@ function composeListRules(): string {
 }
 
 function composeRowRules(): string {
-    const cap = `var(${VARIABLE_PREFIX}radius-small) 0 0 var(${VARIABLE_PREFIX}radius-small)`;
+    const capRight = `var(${VARIABLE_PREFIX}radius-small)`;
+    const cap = `${capRight} 0 0 ${capRight}`;
     return `.${CLASS.row}{position:relative;display:flex;justify-content:space-between;` +
         `align-items:center;box-sizing:border-box;height:var(${VARIABLE_PREFIX}row-height);` +
         `padding:${ROW_INK_DROP} var(${VARIABLE_PREFIX}wide) 0;` +
@@ -577,6 +580,14 @@ function composeRowRules(): string {
         // drawn on the rows a suspicion reaches, which is none of the rows in `captures/`.
         `.${CLASS.rowSuspect}{position:relative;color:var(${VARIABLE_PREFIX}suspect);flex:none;` +
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
+        // Beside the suspect mark and under the same argument: it reaches the one row whose turn
+        // the game is numbering, never every row. `DESIGN.md` owns the rule, **ADR 0066** the cost.
+        `.${CLASS.rowTurn}{position:relative;color:var(${VARIABLE_PREFIX}quiet);flex:none;` +
+        `padding-right:var(${VARIABLE_PREFIX}small);}` +
+        // The edge opposite the cap: the left three pixels are the profession's, and the open
+        // row's inset shadow is on that side too. **ADR 0065.**
+        `.${CLASS.rowSide}{position:absolute;right:0;top:0;bottom:0;width:2px;` +
+        `border-radius:0 ${capRight} ${capRight} 0;background:currentColor;}` +
         `.${CLASS.rowSize}{flex:none;padding-right:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.row}.${CLASS.rowChosen}{box-shadow:inset 3px 0 0 var(${VARIABLE_PREFIX}text);}` +
         // ★ and ☆ measured 13.87px each in Firefox on 2026-08-26, and the row walked sideways

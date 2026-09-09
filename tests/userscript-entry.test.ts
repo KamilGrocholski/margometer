@@ -368,6 +368,31 @@ Deno.test("a recording played through the add-on ends on the panel a reader woul
     assertEquals(battle.updateData, engineOwn, "and detaching puts the game's own method back");
 });
 
+Deno.test("the ranking marks whose turn it is, and stops the moment the fight is over", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the game's method was wrapped");
+    const payloads = getRecordedEngineUpdates(HILDUR);
+    const marksNow = () => {
+        const panel = shown[0] as FakeElement;
+        return getElementsWithin(panel).filter((one) => one.className === "row-turn");
+    };
+    let marked = 0;
+    for (const [at, payload] of payloads.entries()) {
+        update(payload);
+        // The last payload is the one that ends the fight, and a fight over numbers nobody's
+        // turn: the mark says what is happening now, or nothing at all (**ADR 0066**).
+        if (at === payloads.length - 1) continue;
+        const marks = marksNow();
+        assert(marks.length <= 1, "never more than one row at a time is the one taking a turn");
+        marked += marks.length;
+    }
+    assert(marked > 0, "this recording states a turn while it is going on");
+    assertEquals(marksNow(), [], "and the fight ending takes the mark off the ranking");
+});
+
 /**
  * The failure this whole surface was built for. Composing a screen reaches `core/`, which throws,
  * and until ADR 0051 the nearest catch was the engine wrap's: the panel stopped updating for the
