@@ -236,6 +236,7 @@ tests/
     counted-material.test.ts  V5 over the one thing counted most: the recordings.
     reading-boundary.test.ts  Nothing the browser runs reaches for a way out of the page.
     redacted-names.test.ts  Every name a message carries, against its recording's roster.
+    workflows.test.ts      The three CI workflows, pinned to one runtime between them.
     type-assertions.test.ts  C13, and the register of crossings that narrow no other way.
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
     unguarded-paths.test.ts  What standing up reaches, with no `try` anywhere over it.

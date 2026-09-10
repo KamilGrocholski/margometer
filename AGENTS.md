@@ -520,6 +520,7 @@ the same thing a second way.
 | `tests/repository/counted-material.test.ts`   | V5 over the corpus count, both ways              |
 | `tests/repository/reading-boundary.test.ts`   | `SECURITY.md`'s first rule, over the bundle      |
 | `tests/repository/redacted-names.test.ts`     | no name a recording's own roster cannot place    |
+| `tests/repository/workflows.test.ts`          | the three workflows pinned to one runtime        |
 | `tests/repository/names.test.ts`              | N1, N3, N8, N11, N14, N15, N16, with samples     |
 | `tests/repository/type-assertions.test.ts`    | C13, with a register read both ways              |
 | `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts   |
