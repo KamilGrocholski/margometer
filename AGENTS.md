@@ -70,7 +70,7 @@ this language does not have would be**; each states what binds instead.
 - **S1.** Only simple, explicit control flow. No recursion, direct or indirect. **A body is written
   over lines**, because every reader of one here reads it by its lines: a function whose body closes
   on its own line is invisible to this rule, to **S4** and to **S5** at once, and recursion inside
-  one passed the gate until 2026-09-10.
+  one walked past all three.
 - **S2.** Every loop has a fixed upper bound; exceeding it fails an assertion rather than
   continuing.
 - **S3.** The cost of one payload is **measured** over the recordings, never assumed, and a change
@@ -97,10 +97,10 @@ this language does not have would be**; each states what binds instead.
   binds — a retained list, a rendered row count, the messages one payload may carry. **How it binds
   is the layer's**, and the tree writes four: an assertion, where **A11** allows one; a clamp and a
   defect in the layer a reader touches, where an assertion would stop the panel at exactly the
-  moment the bound is reached (**ADR 0051**, which converted 21 of them and moved this rule's verb);
-  a throw in `tools/`, where **E7** says a failure is loud; and a bound another layer already
-  enforces, tied to this one by a test rather than restated. A stated maximum nothing reads is not a
-  bound, and a new unbounded collection is `[ASK]`.
+  moment the bound is reached (**ADR 0051**, which moved this rule's verb); a throw in `tools/`,
+  where **E7** says a failure is loud; and a bound another layer already enforces, tied to this one
+  by a test rather than restated. A stated maximum nothing reads is not a bound, and a new unbounded
+  collection is `[ASK]`.
 - **S12.** Split compound conditions into nested branches rather than `&&` chains, and state
   invariants positively: `if (index < count)`, not `if (index >= count)`.
 - **S13. What the bundle carries is synchronous.** No `async`, `await`, `Promise` or `.then` in
@@ -146,11 +146,11 @@ this language does not have would be**; each states what binds instead.
   there does. Two releases were spent on one at a stated bound. **ADR 0051.**
 - **A12. An assertion the compiler already guarantees is not one.** It states nothing a caller could
   break, and it takes a place in the numerator of a safety measure while reading to the next person
-  as a check somebody thought about. The observation is mechanical and it is what found the six this
-  rule arrived with: delete the line and run `deno check` — where the tree still type-checks and no
-  narrowing was lost, the assertion was never holding anything. A value crossing one of **E5**'s
-  boundaries is the case this does **not** name: there a type is a claim about somebody else's
-  object, and the check is the only thing making it true. **ADR 0074.**
+  as a check somebody thought about. The observation is mechanical: delete the line and run
+  `deno check` — where the tree still type-checks and no narrowing was lost, the assertion was never
+  holding anything. A value crossing one of **E5**'s boundaries is the case this does **not** name:
+  there a type is a claim about somebody else's object, and the check is the only thing making it
+  true. **ADR 0074.**
 
 ## Errors
 
@@ -321,8 +321,8 @@ TypeScript idiom, with the naming rules stated here.
 - **C4.** A file's docblock says what the file is for, in **at most eight lines of prose**. Longer
   than that is not a docblock, it is an ADR that has not been written yet. **The lines showing how a
   tool is run do not count**, and the exception is stated because the bound was written for `src/`,
-  where no file carries one: measured 2026-09-10, five `tools/` docblocks sat over eight and four to
-  six lines under it once the command listing was taken out.
+  where no file carries one. `tests/repository/sources.test.ts` holds it, and carries the
+  measurement.
 - **C5.** Comment share of a file stays under 25%. **ADR 0005.**
 - **C6.** Comments are sentences — a space after the slashes, a capital letter, a full stop, or a
   colon when they introduce what follows. An end-of-line comment may be a phrase.
@@ -408,9 +408,8 @@ TypeScript idiom, with the naming rules stated here.
 - **W3.** Prove a new test can fail: break what it covers, watch it go red, restore **from a copy**
   — never `git checkout`, because the file may carry uncommitted work. **A mutation is a scripted
   edit, so W7 binds it first**: confirm the break landed before reading the verdict, because a
-  pattern that matched nothing leaves the tree green and looks exactly like a guard that held. Three
-  did that in one round on 2026-09-11, and one of them was nearly reported as a finding. Report it
-  under **G3**. _(`by-reading` whether the mutation lit what it claims to have lit)_
+  pattern that matched nothing leaves the tree green and looks exactly like a guard that held.
+  Report it under **G3**. _(`by-reading` whether the mutation lit what it claims to have lit)_
 - **W4.** A mutation that lights nothing is a finding — a missing test or an inert line, and often
   the answer is to delete something. _(`by-reading` whether nothing lighting up was investigated)_
 - **W5.** Test the boundary from both sides, and zero is a boundary. Zero is the neutral element of
