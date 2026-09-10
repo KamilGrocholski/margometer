@@ -42,6 +42,9 @@ Deno.test("no recording carries a name its own roster cannot place", () => {
             for (const event of decodeFightMessages(payload, roster)) {
                 const said: string[] = [];
                 if (event.kind === "fight-outcome") said.push(...event.combatantNames);
+                // The decoder keeps the raw name beside the id, and answers null where no
+                // roster places it — so without this a leak is dropped rather than found.
+                if ("targetName" in event) said.push(event.targetName);
                 if ("declared" in event) {
                     for (const one of event.declared) {
                         if (!NAME_KEYS.includes(one.effect)) continue;

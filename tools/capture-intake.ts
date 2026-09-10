@@ -4,9 +4,12 @@
  *
  *     deno task capture:intake <recording.json> --name <slug>
  *
- * ⚠️ **Neither redaction is complete, and no test can make one so.** Each knows one place — names
- * tied to a combatant id, and `payload.skills` — so a nickname belonging to nobody in the roster
- * walks through untouched, which is why this ends by naming the step that is a person's.
+ * ⚠️ **Neither redaction is complete.** Each knows one place — names tied to a combatant id, and
+ * `payload.skills` — so a nickname belonging to nobody in the roster walks through untouched, which
+ * is why this ends by naming the step that is a person's. What that leak looks like on the way out
+ * is now caught: `tests/repository/redacted-names.test.ts` refuses a name a recording's own roster
+ * cannot place, over every key a message carries one in. A nickname somewhere else in the payload
+ * is still a person's to see.
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
