@@ -20,6 +20,8 @@ import { getSourcePaths } from "@/tests/source-paths.ts";
 import { CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 
 const RULE_PREFIXES = "SAENCLVWG";
+const MARKER = "`by-reading`";
+const REGISTER_HEADING = "## Guard register";
 const GUARD_DIRECTORY = "tests/repository";
 /** What a test names when it reads a document of this repository rather than its code. */
 const DOCUMENT_ENDING = '.md"';
@@ -393,21 +395,66 @@ function getRulesHeldByReading(text: string): Set<string> {
     return found;
 }
 
-Deno.test("no rule is both machine-held and marked as needing a reader", () => {
+/** Each rule of `AGENTS.md`, as one run of words: `deno fmt` wraps a marker across lines. */
+export function getRuleBlocks(text: string): Map<string, string> {
+    const found = new Map<string, string>();
+    let name = "";
+    let held: string[] = [];
+    for (const line of text.slice(0, text.indexOf(REGISTER_HEADING)).split("\n")) {
+        const opened = getRuleDefinedOnLine(line);
+        if (opened !== null) {
+            if (name !== "") found.set(name, held.join(" "));
+            name = opened;
+            held = [];
+        } else if (line.startsWith("## ")) {
+            // ⚠️ A rule ends at the next rule **or at the next heading**. Without the heading the
+            // last rule of a section swallowed the rest of the document, and a bare marker on it
+            // read as scoped because a page of prose stood behind the marker.
+            if (name !== "") found.set(name, held.join(" "));
+            name = "";
+            held = [];
+        }
+        if (name === "") continue;
+        held.push(line.trim());
+    }
+    if (name !== "") found.set(name, held.join(" "));
+    assert(found.size > 0, "the rule document defines rules");
+    return found;
+}
+
+/**
+ * ⚠️ **This stood as "a rule cannot be both counted and uncountable" and could not fail.** It
+ * compared rule identifiers against the register's *guard* column, which holds paths, so nothing
+ * ever matched. Measured 2026-09-10 by marking S13 — a rule the register names — `by-reading`:
+ * the check stayed green. **W4.**
+ *
+ * The absolute was false as well. C15 forbids restating a document and forbids a comment block
+ * standing twice; the first is a reader's and the second is counted, and its own marker says so.
+ * What binds is that **the marker names the observation** — which is what makes a split rule
+ * readable rather than a contradiction. `AGENTS.md` states the two states of a rule *outside* the
+ * register; nothing there ever forbade one inside it being both.
+ */
+Deno.test("every rule a reader holds says what the reader judges", () => {
     const marked = "- **G3.** A rule. _(`by-reading` a reason)_\n";
     assertEquals([...getRulesHeldByReading(marked)], ["G3"], "the reader works");
     const afterRegister = "- **G3.** A rule.\n## Guard register\n\nThe `by-reading` marker means…";
     assertEquals([...getRulesHeldByReading(afterRegister)], [], "the register is not a rule");
 
-    const registered = getRegisteredGuards(AGENTS).join(" ");
-    const contradictory = [...getRulesHeldByReading(AGENTS)].filter((rule) =>
-        registered.includes(rule)
-    );
+    const bare: string[] = [];
+    let scoped = 0;
+    for (const [name, text] of getRuleBlocks(AGENTS)) {
+        const at = text.indexOf(MARKER);
+        if (at === -1) continue;
+        const after = text.slice(at + MARKER.length).split(")").join("").split("_").join("").trim();
+        if (after.length === 0) bare.push(name);
+        else scoped += 1;
+    }
+    assert(scoped > 0, "some rule is held by a reader");
     assert(
         getDefinedRules().size > getRulesHeldByReading(AGENTS).size,
         "not every rule needs a reader",
     );
-    assertEquals(contradictory, [], "a rule cannot be both counted and uncountable");
+    assertEquals(bare, [], "a marker that names no observation asks a reader to guess at one");
 });
 
 /** The fenced block under ARCHITECTURE.md's current state, which claims to mirror the tree. */
