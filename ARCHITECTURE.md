@@ -653,6 +653,13 @@ commit that opens or closes one.
    base is ever thrown, which **E2** owns. Each is editorial work — which copy survives, and whether
    the second should cite instead — so the band closes a few at a time rather than in one round.
 
+   **The measurement above leaves out `tests/`, and that is where the largest repetition is.** Two
+   sentences `AGENTS.md` owns stand in fourteen guard files and in eight — a reader proved by a
+   sample it must flag and one it must not, and a reader that has stopped finding its subject.
+   Whether a guard reporting that it did what the register asks is citing the register or restating
+   it is the judgement C15's marker names, so this is the same band and not a new one; what is new
+   is that the widest copy in the tree is outside the scope the figures above were taken over.
+
 9. **`tools/` still `get`s across a boundary.** **N16** binds everywhere, and `src/` was converted
    in the commit that stated it (**ADR 0042**), `project/` in the one that found it. The names in
    `tools/` that reach a file, a subprocess or the network still say `get` and `set`, and each needs
