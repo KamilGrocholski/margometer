@@ -65,6 +65,10 @@
         "game:readings": "deno run -A tools/game-readings.ts",
         // Every key the client branches on, lifted out of that bundle and frozen beside it.
         "game:keys": "deno run -A tools/protocol-key-table.ts",
+        // What every key in captures/ states about itself — how often, where it sits, and what it
+        // carries. The `_Shape:_` lines in `docs/protocol-keys.md` are this written down, and the
+        // last column says which of them the recordings no longer agree with.
+        "game:shape": "deno run -A tools/protocol-key-shape.ts",
         // Every skill the game publishes, and the turns each effect is stated to run for — the
         // only source that states a duration at all. What `Co stoi` draws its second half from.
         "game:skills": "deno run -A tools/skill-table.ts",

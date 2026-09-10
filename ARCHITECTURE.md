@@ -116,6 +116,7 @@ tools/             Never ships. Each arrives with the question it answers.
   game-client-source.ts  The client fetched and dated, and the cache nothing published leaves.
   skill-table.ts       The published skill table fetched, dated and frozen: the one duration.
   protocol-key-table.ts  Every key that client branches on, lifted out of its own switch.
+  protocol-key-shape.ts  What every key states about itself, over the recordings.
   help-article.ts      The published help cached, searched raw, and counted into a reading.
   help-claim-register.ts  What `docs/protocol-keys.md` claims of the help, read out of it.
   game-readings.ts     Whether each dated reading is still the game's, and the refresh.
@@ -187,6 +188,7 @@ tests/
     aura-standing.test.ts     `docs/auras-standing.md` against the corpus, both ways round.
     skill-table.test.ts       The published table's shape, and a page that is no longer it.
     turn-reading.test.ts      The disputed openers, and this reading against the panel's.
+    protocol-key-shape.test.ts  Every `_Shape:_` line against the corpus, both ways round.
     preview-page.test.ts      The page, read back: the order of its scripts, and its escaping.
     preview-state.test.ts     Both halves of the address, run rather than searched for words.
     preview-server.test.ts    Every route, against a bundle handed in rather than built.

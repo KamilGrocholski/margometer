@@ -13,6 +13,7 @@ export type MargoMeterToolErrorCode =
     | "GameSource"
     | "GameUnreachable"
     | "ProtocolKeyTable"
+    | "ProtocolKeyShape"
     | "SkillTable"
     | "HelpArticle"
     | "DeclaredVersion"
@@ -98,6 +99,13 @@ export class GameUnreachableError extends MargoMeterToolError {
 export class ProtocolKeyTableError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super("ProtocolKeyTable", reason, options);
+    }
+}
+
+/** The shape register refused: a claim written in a vocabulary this reader does not hold. */
+export class ProtocolKeyShapeError extends MargoMeterToolError {
+    constructor(reason: string) {
+        super("ProtocolKeyShape", reason);
     }
 }
 

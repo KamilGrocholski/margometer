@@ -123,8 +123,12 @@ const MEMBER_SEPARATOR = ",";
  * Damage stated against a name: `amount,element,name(percent%)`. The middle member is what the
  * client writes into a class attribute after `dmg`, so a blank one is the plain element and not
  * an element of its own — 314 of the 1131 occurrences in `captures/` write it blank, 2026-08-28.
+ *
+ * Exported so the files that spell it spell it once (**N13**): it is damage a message reports
+ * without a blow of its own carrying it, which is what `tools/protocol-key-shape.ts` needs to
+ * tell the two placements apart.
  */
-const NAMED_DAMAGE_KEY = "+oth_dmg";
+export const NAMED_DAMAGE_KEY = "+oth_dmg";
 const NAMED_DAMAGE_MEMBERS = 3;
 const MESSAGE_ENDS = 2;
 const PERCENT_OPENER = "(";
@@ -182,6 +186,16 @@ const SKILL_NAME_KEY = "tspell";
  */
 const CUSTOM_SKILL_NAME_KEY = "tcustom";
 const SKILL_ID_KEY = "skillId";
+/**
+ * The three a message announcing a skill is recognised by, in one place because a reader
+ * outside this file needs the same set and **N13** gives it one spelling. `tcustom` belongs
+ * here as much as the other two: it is the announcement's own name in the target slot.
+ */
+export const ANNOUNCEMENT_KEYS: readonly string[] = [
+    SKILL_NAME_KEY,
+    CUSTOM_SKILL_NAME_KEY,
+    SKILL_ID_KEY,
+];
 /**
  * A combatant moving, which the published help calls one of the two default actions a turn can
  * go on — article 372 §2.3, read 2026-09-02. Exported so the files that spell it spell it once;
@@ -335,7 +349,8 @@ export function getProcEnd(key: string): ProcEnd | null {
     return end;
 }
 
-function isDamageKey(key: string): boolean {
+/** The family rule itself, exported so nobody restates it in another file (**C15**). */
+export function isDamageKey(key: string): boolean {
     assert(key.length > 0, "a key is never empty");
     if (DAMAGE_KEYS.includes(key)) return true;
     return key.slice(DAMAGE_MARKER_AT, DAMAGE_MARKER_AT + DAMAGE_MARKER.length) === DAMAGE_MARKER;
