@@ -444,7 +444,10 @@ figure it concerns, and a defect concerns none.
 
 ## Accessibility
 
-- WCAG AA contrast on every text-over-colour pairing, held by a test.
+- WCAG AA contrast on every text-over-colour pairing, held by a test that reads the shipped sheet:
+  every ink it prints words in, over each ground it is drawn on. A rule filling a bar segment spells
+  `color:` too, and those are held at the graphical floor instead — named, never exempted. The
+  thinnest pairing is `defect` over `raised`, measured 2026-09-10.
 - Colour is never the only signal — _The Colour Never Alone Rule_.
 - The panel is keyboard-reachable and does not trap focus.
 - A reader who has asked for reduced motion loses nothing, because there is no motion.

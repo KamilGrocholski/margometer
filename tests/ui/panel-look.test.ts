@@ -7,6 +7,7 @@
 
 import {
     assert,
+    assertArrayIncludes,
     assertEquals,
     assertExists,
     assertNotStrictEquals,
@@ -53,6 +54,121 @@ Deno.test("a ratio is read from the colours, and refuses what it cannot read", (
         getContrastRatio("#000000", "#ffffff") > getContrastRatio("#17171c", "#1f1f26"),
         "order",
     );
+});
+
+const VARIABLE_OPENER = "--MargoMeter-";
+const AA_GRAPHIC_RATIO = 3;
+
+/** Every `--MargoMeter-x:y;` the sheet declares, as the name and the value it ships. */
+function readSheetVariables(sheet: string): Map<string, string> {
+    const found = new Map<string, string>();
+    let at = sheet.indexOf(VARIABLE_OPENER);
+    for (let held = 0; held < sheet.length; held += 1) {
+        if (at === -1) break;
+        const colon = sheet.indexOf(":", at);
+        const shut = sheet.indexOf(";", at);
+        const name = sheet.slice(at + VARIABLE_OPENER.length, colon);
+        at = sheet.indexOf(VARIABLE_OPENER, at + VARIABLE_OPENER.length);
+        if (colon === -1) continue;
+        if (shut === -1) continue;
+        if (shut < colon) continue;
+        if (name.includes(")")) continue;
+        found.set(name, sheet.slice(colon + 1, shut).trim());
+    }
+    return found;
+}
+
+/** The variables named after one property, so `color:` and `background:` are asked apart. */
+function readNamesUsedBy(sheet: string, property: string): Set<string> {
+    const found = new Set<string>();
+    const opener = `${property}:var(${VARIABLE_OPENER}`;
+    let at = sheet.indexOf(opener);
+    for (let held = 0; held < sheet.length; held += 1) {
+        if (at === -1) break;
+        const shut = sheet.indexOf(")", at);
+        if (shut !== -1) found.add(sheet.slice(at + opener.length, shut));
+        at = sheet.indexOf(opener, at + opener.length);
+    }
+    return found;
+}
+
+/**
+ * ⚠️ **`DESIGN.md` says AA holds on every text-over-colour pairing, and the checks above reach
+ * three of them.** The sheet prints words in five inks and the signal ones were in none: measured
+ * 2026-09-10, `defect` sits at 4.60 over `raised` — ten hundredths above the floor — and at 4.34
+ * over `track`, which is why the ground each ink is drawn on is named rather than assumed.
+ */
+const INK_GROUNDS: Record<string, readonly string[]> = {
+    text: ["surface", "raised", "track"],
+    quiet: ["surface", "raised", "track"],
+    suspect: ["surface", "raised", "track"],
+    heading: ["surface"],
+    // The defects block stands in the panel body under a rule of its own, and on no row.
+    defect: ["surface", "raised"],
+};
+
+/**
+ * ⚠️ **The sheet spells `color:` for two jobs, and the property cannot tell them apart.** A
+ * segment of the sides bar takes its ink from `currentColor`, so the rule filling it looks exactly
+ * like a rule printing words. These three are that — held at the graphical floor rather than
+ * exempted, because an exemption says nothing on the day one of them prints a word.
+ */
+const FILL_GROUNDS: Record<string, readonly string[]> = {
+    ours: ["track"],
+    theirs: ["track"],
+    nobody: ["track"],
+};
+
+/** Each ink-over-ground pairing held to its floor, and how many were asked. */
+function countPairingsClearing(
+    values: ReadonlyMap<string, string>,
+    name: string,
+    grounds: readonly string[],
+    floor: number,
+): number {
+    const ink = values.get(name);
+    assertExists(ink, `${name}: painted with, and never declared`);
+    let counted = 0;
+    for (const where of grounds) {
+        const ground = values.get(where);
+        assertExists(ground, `${where}: drawn on, and never declared`);
+        const ratio = getContrastRatio(ink, ground);
+        assert(ratio >= floor, `${name} on ${where}: ${ratio.toFixed(2)} under ${floor}`);
+        counted += 1;
+    }
+    return counted;
+}
+
+Deno.test("every ink the sheet paints with clears its floor over the ground it is drawn on", () => {
+    const sheet = composeStyleSheet();
+    const values = readSheetVariables(sheet);
+    assertEquals(
+        values.get("surface"),
+        SURFACE.panel,
+        "the sheet ships the surface it is read for",
+    );
+
+    const painted = readNamesUsedBy(sheet, "color");
+    const grounds = readNamesUsedBy(sheet, "background");
+    assert(painted.size > 0, "the sheet paints with something");
+    let checked = 0;
+    for (const name of painted) {
+        const fills = FILL_GROUNDS[name];
+        if (fills !== undefined) {
+            checked += countPairingsClearing(values, name, fills, AA_GRAPHIC_RATIO);
+            continue;
+        }
+        const over = INK_GROUNDS[name];
+        assertExists(over, `${name}: the sheet paints with it and the register omits it`);
+        checked += countPairingsClearing(values, name, over, AA_TEXT_RATIO);
+        for (const where of over) {
+            assertArrayIncludes([...grounds], [where], `${where}: a ground nothing paints`);
+        }
+    }
+    assert(checked > 0, "some pairing was asked");
+    for (const name of Object.keys({ ...INK_GROUNDS, ...FILL_GROUNDS })) {
+        assertArrayIncludes([...painted], [name], `${name}: registered, and painted with never`);
+    }
 });
 
 Deno.test("text over every surface clears AA", () => {
