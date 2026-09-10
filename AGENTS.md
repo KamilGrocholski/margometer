@@ -86,9 +86,14 @@ this language does not have would be**; each states what binds instead.
 - **S9.** Never alias a mutable structure. A caller that must not mutate receives a reading, not the
   map.
 - **S10.** Zero warnings, from the first day. A warning fails the gate.
-- **S11.** Every collection that grows with input carries a **stated maximum** and an assertion at
-  it — a retained list, a rendered row count, the messages one payload may carry. A new unbounded
-  collection is `[ASK]`.
+- **S11.** Every collection that grows with input carries a **stated maximum**, and the maximum
+  binds — a retained list, a rendered row count, the messages one payload may carry. **How it binds
+  is the layer's**, and the tree writes four: an assertion, where **A11** allows one; a clamp and a
+  defect in the layer a reader touches, where an assertion would stop the panel at exactly the
+  moment the bound is reached (**ADR 0051**, which converted 21 of them and moved this rule's verb);
+  a throw in `tools/`, where **E7** says a failure is loud; and a bound another layer already
+  enforces, tied to this one by a test rather than restated. A stated maximum nothing reads is not a
+  bound, and a new unbounded collection is `[ASK]`.
 - **S12.** Split compound conditions into nested branches rather than `&&` chains, and state
   invariants positively: `if (index < count)`, not `if (index >= count)`.
 - **S13. What the bundle carries is synchronous.** No `async`, `await`, `Promise` or `.then` in
@@ -511,7 +516,7 @@ the same thing a second way.
 | `deno test`                                   | every guard below                                |
 | `tests/repository/documents.test.ts`          | the rule documents and this register             |
 | `tests/repository/decisions.test.ts`          | the decision records                             |
-| `tests/repository/sources.test.ts`            | S1, S2, S4, S5, S13, A10–A11, C4–C5, C8, C15–C16 |
+| `tests/repository/sources.test.ts`            | S1–S2, S4–S5, S11, S13, A10–11, C4–5, C8, C15–16 |
 | `tests/repository/errors.test.ts`             | E1, E2, E11–E13, E14 part, each with a sample    |
 | `tests/repository/unguarded-paths.test.ts`    | E14's paths, and the methods they step over      |
 | `tests/source-graph.ts`                       | the reader both of those stand on, S1 included   |

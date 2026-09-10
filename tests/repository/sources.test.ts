@@ -210,6 +210,63 @@ export function countDocblockProse(text: string): number {
     return counted;
 }
 
+/** Every `MAXIMUM_…` a file states, which is the shape S11 asks a bound to be written in. */
+export function getStatedMaxima(text: string): string[] {
+    const found: string[] = [];
+    for (const line of text.split("\n")) {
+        if (isCommentLine(line)) continue;
+        const code = getCodeOutsideStrings(line).trimStart();
+        for (const opener of ["const ", "export const "]) {
+            if (!code.startsWith(opener)) continue;
+            const rest = code.slice(opener.length);
+            if (!rest.startsWith("MAXIMUM_")) continue;
+            const at = rest.indexOf(" ");
+            found.push(at === -1 ? rest : rest.slice(0, at));
+        }
+    }
+    return found;
+}
+
+/**
+ * ⚠️ **S11's half a machine can count is that the bound is read, not that it is asserted.** How it
+ * binds is the layer's — an assertion, a clamp and a defect where **A11** forbids one, a throw in
+ * `tools/`, or a bound another layer enforces and a test ties to this one. What none of them can
+ * be is a number written down and looked at by nobody. Measured 2026-09-10: 76 stated maxima in
+ * the program, every one of them read.
+ */
+Deno.test("a stated maximum is read by something, or it bounds nothing", () => {
+    assertEquals(getStatedMaxima("const MAXIMUM_ROWS = 20;"), ["MAXIMUM_ROWS"], "a bound is found");
+    assertEquals(getStatedMaxima("const ROWS_MAXIMUM = 20;"), [], "N3 puts the bound first");
+    assertEquals(getStatedMaxima(" * MAXIMUM_ROWS is stated"), [], "and prose states none");
+
+    const stated: string[] = [];
+    const code: string[] = [];
+    for (const path of getSourcePaths()) {
+        const text = Deno.readTextFileSync(path);
+        for (const line of text.split("\n")) {
+            if (isCommentLine(line)) continue;
+            code.push(getCodeOutsideStrings(line));
+        }
+        if (path.startsWith("tests/")) continue;
+        for (const name of getStatedMaxima(text)) stated.push(`${path}: ${name}`);
+    }
+    assert(stated.length > 0, "the program states maxima");
+
+    const counted = new Map<string, number>();
+    for (const line of code) {
+        for (const one of stated) {
+            const name = one.slice(one.indexOf(": ") + 2);
+            if (!hasWordOutsideStrings(line, name)) continue;
+            counted.set(name, (counted.get(name) ?? 0) + 1);
+        }
+    }
+    const unread = stated.filter((one) => {
+        const name = one.slice(one.indexOf(": ") + 2);
+        return (counted.get(name) ?? 0) <= 1;
+    });
+    assertEquals(unread, [], "S11: a stated maximum nothing reads is not a bound");
+});
+
 Deno.test("no docblock runs past eight lines of prose", () => {
     assertStrictEquals(
         countDocblockProse("const held = 1;\n"),
