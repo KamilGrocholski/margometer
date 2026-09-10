@@ -468,25 +468,26 @@ export function composeCardSubtitleText(
 }
 
 /**
- * The letter in a damage key, in the player's words. Ours, and not the client's own
- * `stat-damage-…` family, which words seven of the ten for a character sheet in a grammar this
- * column cannot take. **ADR 0011.**
+ * The letter in a damage key, in the player's words — **the game's own, every one of them.**
+ * Not the client's `stat-damage-…` family, which words them for a character sheet in a grammar
+ * this column cannot take (**ADR 0011**); the published help's `Typ obrażeń` table and its
+ * `dmgmul…` bonus list, which name the types themselves. **ADR 0073.**
  *
- * `dmga` is the one word here that is not ours. The published help names that damage type itself
- * and `docs/protocol-keys.md` carries the citation, so changing it is a claim about the game
- * rather than a matter of taste.
+ * A word here is therefore a claim about the game and not a matter of taste, and
+ * `tests/ui/panel-words.test.ts` holds each to the frozen counts. A kind the help does not name
+ * is left out rather than invented: it reaches a reader as the game's own token, which is what
+ * **ADR 0011** asks for and is visible where an invention is not.
  */
 export const ELEMENT_WORDS: Record<string, string> = {
     dmg: "fizyczne",
     dmgd: "dystansowe",
-    dmgo: "broń pomocnicza",
+    dmgo: "pomocnicze",
     dmgf: "ogień",
     dmgc: "zimno",
-    dmgl: "błyskawica",
+    dmgl: "błyskawice",
     dmga: "nieuchronne",
     dmgp: "trucizna",
-    dmgg: "globalne",
-    thirdatt: "trzeci atak",
+    thirdatt: "trzeci cios",
 };
 
 /**

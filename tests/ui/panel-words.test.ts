@@ -8,6 +8,7 @@
  */
 
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
 import {
     composeChargedRowsText,
     composeCountedNoun,
@@ -27,6 +28,8 @@ import {
     composeUnplacedHealSuspicion,
     composeUsesText,
     COUNTED_NOUNS,
+    ELEMENT_WORDS,
+    getWordsForDamageKind,
     getWordsForHealthSource,
     getWordsForOutcome,
     getWordsForPinnedScope,
@@ -425,4 +428,31 @@ Deno.test("a suspicion names whom it reaches while they are few, counting them p
         " (dotyczy 7 postaci)",
         "rows the roster could not name are counted, never guessed at",
     );
+});
+
+/**
+ * Every word the element column draws is one the published help prints, re-earned against the
+ * frozen counts. The client has no case label for any of these keys, so the article is the only
+ * source a name can come from and an invention here is indistinguishable from a reading.
+ *
+ * ⚠️ **A count proves the article carries the word, not that it carries it as this type's name.**
+ * That half is a person's reading, the way **V1**'s citation rule is — `globalne` occurred once
+ * in the article while naming a chat setting, and a reader that stopped at the count would have
+ * blessed it. The register's own header draws the same line: the line states an occurrence, the
+ * prose states what it means.
+ */
+Deno.test("every word the element column draws is one the game prints", () => {
+    const counts: Record<string, number> = FROZEN_HELP_PHRASES.counts;
+    const words = Object.values(ELEMENT_WORDS);
+    assert(words.length > 0, "the column words something");
+    for (const word of words) {
+        const carried = counts[word];
+        assert(carried !== undefined, `the frozen reading was never asked about "${word}"`);
+        assert(carried > 0, `the article does not print "${word}"`);
+    }
+});
+
+Deno.test("a kind the help does not name is left out rather than invented", () => {
+    assertEquals(ELEMENT_WORDS.dmgg, undefined, "the one kind no source names carries no word");
+    assertEquals(getWordsForDamageKind("dmgg"), "dmgg", "and reaches a reader as the game's token");
 });

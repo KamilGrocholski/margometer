@@ -438,7 +438,24 @@ Deno.test("the same figure is cut a second time, by the kind of damage each blow
     }
 });
 
-Deno.test("every kind every recording states is one the panel has a word for", () => {
+/**
+ * Kinds the recordings state that **no source names**, and which therefore reach a reader as the
+ * game's own token. One place rather than the same reason wherever somebody trips over it.
+ *
+ * ⚠️ **This register is why the guard below is not "every kind has a word".** That is what it used
+ * to say, and a rule demanding a word for every kind, in a repository whose rule is that a guessed
+ * name is a claim about the protocol, produces exactly one thing: a guessed name. `globalne` was
+ * it — `dmgg` is real and drawn, and no source has ever named it, so somebody made a word up to
+ * get this green. **ADR 0073.**
+ *
+ * `dmgg` reaches the panel through `+oth_dmg`'s middle member, which the client appends to `dmg`
+ * to build a class attribute, and the corpus produces it from one skill only — `Śpiew zagłady`,
+ * which article view,372 does not carry and the frozen skill table does not hold (read
+ * 2026-09-10). An entry leaves here the day a source names it.
+ */
+const UNNAMED_KINDS: readonly string[] = ["dmgg"];
+
+Deno.test("every kind is worded from a source, or registered as one nobody names", () => {
     const kinds = new Set<string>();
     for (const path of readRecordingPaths()) {
         const { roster, statistics } = readFight(path);
@@ -452,10 +469,20 @@ Deno.test("every kind every recording states is one the panel has a word for", (
     }
     assert(kinds.size > 0, "the recordings state kinds of damage");
     for (const kind of kinds) {
+        if (UNNAMED_KINDS.includes(kind)) continue;
         assertNotStrictEquals(
             getWordsForDamageKind(kind),
             kind,
-            `${kind} reaches a reader as a bare token`,
+            `${kind} reaches a reader as a bare token and no register says it may`,
+        );
+    }
+    // Read the other way, so an entry that has since earned a word stops being excused.
+    for (const kind of UNNAMED_KINDS) {
+        assert(kinds.has(kind), `${kind} is registered as unnamed and no recording states it`);
+        assertStrictEquals(
+            getWordsForDamageKind(kind),
+            kind,
+            `${kind} has a word now and belongs in the table rather than the register`,
         );
     }
 });

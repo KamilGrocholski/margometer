@@ -192,3 +192,5 @@ edited to agree with the new rule.
   window it lands in. **Accepted**
 - [0072](0072-a-fight-the-game-runs-itself-numbers-no-turn.md) — A fight the game runs itself
   numbers no turn. **Accepted**
+- [0073](0073-the-element-column-speaks-the-games-own-words.md) — The element column speaks the
+  game's own words. **Accepted**

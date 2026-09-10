@@ -706,9 +706,17 @@ _Health:_ moves health
 
 _Cause:_ the message actor
 
+_Help:_ names `fizyczne`, `dystansowe`, `pomocnicze`, `ogień`, `zimno`, `błyskawice`, `trucizna`
+
 _Evidence:_ the default branch of the battle switch, production build `1785244275300`, identical in
 the development build. Which sign is the damage that landed was measured rather than read: health
 drop matched the sum of `-dmg*` in 22 of 26 comparisons and the sum of `+dmg*` in **none**.
+
+**The panel's word for each of these is the game's, and the line above is where it is held.** The
+client has no case label to read a name off, so the article is the only source there is: its
+`Typ obrażeń` table names the types and its `dmgmul…` bonus list names them again beside the engine
+name of the bonus raising each. `ELEMENT_WORDS` in `src/ui/panel-words.ts` carries them and
+`tests/ui/panel-words.test.ts` re-earns every one against the frozen counts. **ADR 0073.**
 
 ### `-dmga` — decoded
 
@@ -748,7 +756,7 @@ names this pair instead, which is the one exception the family rule has.
 
 _Shape:_ 28 occurrences; on a blow; a whole number
 
-_Help:_ names `thirdatt`
+_Help:_ names `thirdatt`, `trzeci cios`
 
 _Evidence:_ article view,372 at the engine name `of-thirdatt` (read 2026-08-09) describes the event
 as an additional auxiliary attack rolled between the main weapon's minimum and maximum damage, and
@@ -773,7 +781,7 @@ _Cause:_ the message actor
 
 _Shape:_ 28 occurrences; on a blow; a whole number
 
-_Help:_ names `thirdatt`
+_Help:_ names `thirdatt`, `trzeci cios`
 
 _Evidence:_ ⚠️ **earned on the health arithmetic, not on the help.** While both halves went unread,
 `tests/core/health-witness.test.ts` disagreed eight times in
