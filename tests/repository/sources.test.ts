@@ -21,6 +21,7 @@ import {
 import { getSourcePaths } from "@/tests/source-paths.ts";
 import {
     composeCallGraph,
+    countOutside,
     getBlockOpenedAt,
     getDeclaredName,
     getFunctionBodies,
@@ -46,6 +47,8 @@ const ASSERTION_CALLS = [
     "assertArrayIncludes",
 ];
 const MAXIMUM_FUNCTION_LINES = 70;
+/** What a `{` sits behind when it answers a value rather than opening a body. */
+const OPENS_NO_BODY = ["(", ",", "=", ":"];
 const MAXIMUM_DOCBLOCK_LINES = 8;
 const MAXIMUM_COMMENT_SHARE = 25;
 const MAXIMUM_DIRECTORY_SHARE = 22;
@@ -466,6 +469,103 @@ Deno.test("a comment block written twice is a finding", () => {
     }
     assert(found.length > 0, "there is comment in the program to read");
     assertEquals(getRepeatedBlocks(found), [], "C15: a comment block standing in two places");
+});
+
+/**
+ * Whether a `{` on this line opens a **body**. ⚠️ `=> ({ x: n })` is an arrow answering an object
+ * and opens none, while `): number {` opens one with a return type standing between the bracket
+ * and the brace — which is why the brace is read by what precedes it and not by a fixed pair.
+ */
+function hasBlockBrace(code: string): boolean {
+    for (let at = 0; at < code.length; at += 1) {
+        if (code.charAt(at) !== "{") continue;
+        const before = getCharacterBefore(code, at);
+        if (before === "") continue;
+        if (OPENS_NO_BODY.includes(before)) continue;
+        return true;
+    }
+    return false;
+}
+
+/** What stands before `at`, spaces skipped. The empty string where nothing does. */
+function getCharacterBefore(code: string, at: number): string {
+    for (let back = at - 1; back >= 0; back -= 1) {
+        const held = code.charAt(back);
+        if (held !== " ") return held;
+    }
+    return "";
+}
+
+/**
+ * A body written on one line, which three rules read by its lines and none of them can see.
+ *
+ * ⚠️ **S1 misses recursion in one.** Measured 2026-09-10 by planting
+ * `function loops(at: number) { return at <= 0 ? 0 : loops(at - 1); }` in `src/core/`: the same
+ * function spread over three lines reddens S1 at once, and on one line the gate stays green.
+ * `getBlockOpenedAt` answers null for a declaration whose line ends in neither `;` nor `{`, so
+ * `getFunctionBodies` stores nothing, S4 measures no length and S5 counts no function either.
+ *
+ * The tree writes none — both shapes measured at zero the same day — so this is the bound holding
+ * a blind spot shut rather than a reader being taught a fourth shape. That reader has been wrong
+ * four times and its own docblock says a false positive is worse than a blind spot.
+ */
+export function getBodiesOnOneLine(text: string): number[] {
+    const found: number[] = [];
+    const lines = text.split("\n");
+    for (const [offset, line] of lines.entries()) {
+        if (isCommentLine(line)) continue;
+        if (!isDeclarationOpener(line)) continue;
+        if (getBlockOpenedAt(lines, offset) !== null) continue;
+        const code = getCodeOutsideStrings(line);
+        if (!hasBlockBrace(code)) continue;
+        const opened = countOutside(line, "{");
+        if (opened === 0) continue;
+        if (opened !== countOutside(line, "}")) continue;
+        found.push(offset + 1);
+    }
+    return found;
+}
+
+Deno.test("no body is written on one line, where no reader of them can see it", () => {
+    assertEquals(
+        getBodiesOnOneLine("function a(n: number) { return a(n); }\n"),
+        [1],
+        "a function closing on its own line is one",
+    );
+    assertEquals(
+        getBodiesOnOneLine("const a = (n: number) => { return a(n); };\n"),
+        [1],
+        "and so is an arrow that does",
+    );
+    assertEquals(
+        getBodiesOnOneLine("function a(n: number) {\n    return n;\n}\n"),
+        [],
+        "a body over lines is what every reader here wants",
+    );
+    assertEquals(
+        getBodiesOnOneLine("const a = (n: number) => ({ x: n });\n"),
+        [],
+        "an arrow answering an object opens no block",
+    );
+    assertEquals(
+        getBodiesOnOneLine("const a = (n: number): { x: number } => ({ x: n });\n"),
+        [],
+        "and neither does the brace of a return type",
+    );
+    assertEquals(
+        getBodiesOnOneLine(" * function a() { return a(); }\n"),
+        [],
+        "and prose is not code",
+    );
+
+    const found: string[] = [];
+    for (const path of getSourcePaths()) {
+        if (path.startsWith("tests/")) continue;
+        for (const line of getBodiesOnOneLine(Deno.readTextFileSync(path))) {
+            found.push(`${path}:${line}`);
+        }
+    }
+    assertEquals(found, [], "S1, S4 and S5 all read a body by its lines, and see none of this one");
 });
 
 Deno.test("no function runs past seventy lines", () => {

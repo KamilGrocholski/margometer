@@ -63,7 +63,10 @@ measurement, the rejected alternatives and the cost are.
 The shapes every function here keeps, whatever it is doing. **S3, S8 and S9 stand where a hazard
 this language does not have would be**; each states what binds instead.
 
-- **S1.** Only simple, explicit control flow. No recursion, direct or indirect.
+- **S1.** Only simple, explicit control flow. No recursion, direct or indirect. **A body is written
+  over lines**, because every reader of one here reads it by its lines: a function whose body closes
+  on its own line is invisible to this rule, to **S4** and to **S5** at once, and recursion inside
+  one passed the gate until 2026-09-10.
 - **S2.** Every loop has a fixed upper bound; exceeding it fails an assertion rather than
   continuing.
 - **S3.** The cost of one payload is **measured** over the recordings, never assumed, and a change
