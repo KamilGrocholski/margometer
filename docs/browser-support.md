@@ -2,8 +2,9 @@
 
 What the shipped userscript needs from a browser, measured off the tree rather than assumed.
 `tests/tools/browser-support.test.ts` holds the CSS half to the stylesheet, both halves' rows to the
-files they name, and the floor to the arithmetic over them. What it cannot hold is a **new**
-construct reaching past the floor in JavaScript, which the section on it states.
+files they name, and the floor to the arithmetic over them. A **new** construct is held by something
+else and more coarsely — the bundle is type-checked a second time as a browser program, and the
+section on it says how far that reaches.
 
 The register exists because nothing else could notice. `tools/build-userscript.ts` bundles with
 `minify: false` and no `target`, so **the ES level of the source is the ES level a player's browser
@@ -236,9 +237,30 @@ refuses it — `error TS1501`. Dropped to `ES2017` for the same probe, the compi
 `/(?<name>x)/` by name and accepts both `/(?<=x)y/` and `/\p{L}/u` without a word.
 
 This tree states no `target`, so none of that check is in force here — and **C7** is what stands
-instead: there is no pattern in `src/` or `tools/` to check. So of the pattern constructs above this
-floor a compiler that had a target would catch the `v` flag and miss two. First release with
-support, from `browser-compat-data`, read 2026-08-27:
+instead: there is no pattern in `src/` or `tools/` to check.
+
+⚠️ **The rest of the language is held by an ES level, and `deno.ns` is why it was thought not to
+be.** `project/browser-lib.json` type-checks the bundle with `lib` of `dom`, `dom.iterable` and
+`es2022`, and the gate runs it. The obvious version of this was tried on 2026-08-30 and reported as
+not working, because narrowing `lib` while `deno.ns` stands beside it changes nothing: that library
+carries the current TypeScript definitions whatever ES level is named. Measured 2026-09-10, on
+`Array.prototype.findLast`, ES2023:
+
+| `lib`                                      | `findLast` |
+| ------------------------------------------ | ---------- |
+| `deno.ns`, `dom`, `dom.iterable`, `esnext` | accepted   |
+| `deno.ns`, `es2021`                        | accepted   |
+| `es2021`                                   | refused    |
+| `dom`, `dom.iterable`, `es2021`            | refused    |
+
+**An ES level is not the floor.** It refuses a whole year's language and nothing finer, so a 2022
+construct an engine shipped after the floor still passes and still has to be caught by reading. What
+it does hold is the drift that costs nothing to write: a construct from a later year, spelled
+without noticing. The bundle sits at exactly ES2022, and at `es2021` the compiler refuses three
+things and only three — `ErrorOptions`, `new Error(…, { cause })` and `Array.prototype.at`, which
+are the constructs the floor is built on. So of the pattern constructs above this floor a compiler
+that had a target would catch the `v` flag and miss two. First release with support, from
+`browser-compat-data`, read 2026-08-27:
 
 - **lookbehind**, `(?<=…)` — Chrome 62, Firefox 78, Safari 16.4. This is the cheap mistake: a couple
   of characters, and the other two engines have had it since long before the floor, so only Safari

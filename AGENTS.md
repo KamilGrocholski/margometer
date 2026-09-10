@@ -510,6 +510,7 @@ the same thing a second way.
 | Guard                                         | Holds                                            |
 | --------------------------------------------- | ------------------------------------------------ |
 | `deno check`                                  | S7, S10, C12 in part                             |
+| `project/browser-lib.json`                    | a construct past the browser floor, coarsely     |
 | `deno lint`                                   | S10, S12 in part                                 |
 | `deno fmt --check`                            | C6 indentation and prose wrapping                |
 | `deno.json` fmt exclusion                     | `TODO.md` against the formatter                  |

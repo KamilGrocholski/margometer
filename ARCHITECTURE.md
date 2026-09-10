@@ -55,6 +55,7 @@ libs/              Knows nothing of this project. Imports `@std/` and its own si
   unknown-reading.ts   Reading a value nobody typed, answering null rather than throwing.
 project/           Knows this project, belongs to no layer of it. Reads `libs/` only.
   repository-layout.ts  Where this repository keeps things: the root files, and the recordings.
+  browser-lib.json      The bundle type-checked as a browser program, at the floor's ES level.
 src/
   build-version.ts     Which build this is. The one constant a build writes over — ADR 0012.
   userscript-boot.ts   What runs when the browser loads the built file, and the one cast.
@@ -564,15 +565,27 @@ commit that opens or closes one.
    quietly, and the counts are its to state rather than this file's (**V5**); rewrapping is a large
    diff, on carried material or on a generated register, and waits until each is next edited for its
    own reasons.
-4. **A JavaScript construct past the floor still passes the gate.**
+4. **A JavaScript construct past the floor is caught by an ES level, not by the floor itself.**
    `tests/tools/browser-support.test.ts` holds `docs/browser-support.md`'s CSS half against the one
    string the stylesheet is, holds both halves' rows to the files they name, and re-earns both tiers
-   as the maximum over the rows under them. What it cannot do is notice a **new** construct: the
-   sources are not enumerable the way the sheet is, and neither compiler option that would stand in
-   works here — measured 2026-08-30, `deno check` ignores `target` in `deno.json` and says so, and
-   narrowing `lib` to `es2022` still accepts `findLast`, which is ES2023. v1 pinned its sources with
-   a `tsconfig.userscript.json`; a tsc of our own is a dependency, and **ADR 0001** is why this tree
-   has one toolchain. The document says all of this at the section itself.
+   as the maximum over the rows under them. It cannot notice a **new** construct, because the
+   sources are not enumerable the way the sheet is.
+
+   What stands in its place is the bundle type-checked a second time as a browser program:
+   `project/browser-lib.json`, `lib` of `dom`, `dom.iterable` and `es2022`, in the gate. **The
+   reading this gap carried until 2026-09-10 was right about what was tried and wrong about what
+   follows from it.** It reported that narrowing `lib` to `es2022` still accepts `findLast`; it
+   does, while `deno.ns` stands beside it, because that library carries the current TypeScript
+   definitions whatever ES level is named. Measured 2026-09-10: `["es2021"]` alone refuses
+   `findLast`, `["deno.ns", "es2021"]` accepts it, `["dom", "dom.iterable", "es2021"]` refuses it.
+   So the option does work, and it needs no `tsc` of our own — the alternative this gap rejected on
+   **ADR 0001**'s grounds was never the only one.
+
+   What is still open is the coarseness. An ES level is not the floor: the floor is per construct
+   and `es2022` passes anything in that year's language whatever engine shipped it when. The bundle
+   sits at exactly ES2022 today, and `ErrorOptions`, `new Error(…, { cause })` and
+   `Array.prototype.at` are what put it there — at `es2021` those three are the whole of what the
+   compiler refuses.
 5. **Every key in `captures/` is read, and no recording is short.** `flee` was the last to go
    unread, and **ADR 0056** is where it became a fourth outcome; `healall_per` was the last whose
    figure had to be sized, and ADR 0010 carries how a share stated about a whole side is put onto

@@ -13,7 +13,14 @@
         // that is a behaviour of the no-argument form and not a promise it makes: a spec is
         // imported by nothing, so naming the directory is what keeps it checked whatever a later
         // Deno decides the bare command means.
-        "check": "deno fmt --check && deno lint && deno check && deno check tests/e2e && deno test -A && deno task build",
+        //
+        // ⚠️ **The bundle is checked a second time, as a browser program.** `deno.ns` in the `lib`
+        // above carries the current TypeScript library whatever ES level stands beside it, so a
+        // construct past the browser floor type-checks here and ships. Measured 2026-09-10:
+        // `["deno.ns", "es2021"]` accepts `Array.prototype.findLast`, ES2023, and
+        // `["dom", "dom.iterable", "es2021"]` refuses it. `project/browser-lib.json` is that
+        // second reading — `docs/browser-support.md` says what it holds and what it does not.
+        "check": "deno fmt --check && deno lint && deno check && deno check tests/e2e && deno check --config project/browser-lib.json src/userscript-boot.ts && deno test -A && deno task build",
         // The same tree in a real browser: the built file, driven in the Chrome this machine has.
         // Kept out of the gate on purpose — ADR 0047 — and run by CI and before a release.
         "e2e": "npx playwright test",
