@@ -123,7 +123,7 @@ tools/             Never ships. Each arrives with the question it answers.
   declared-version.ts  The one place a version is written down, and what a dev build says.
   changelog.ts         What a release says about the version this tree declares.
   margometer-tool-error.ts  The abstract brand a terminal failure wears, and the build's own.
-captures/          28 recordings of real fights. Evidence — see its own AGENTS.md.
+captures/          Recordings of real fights. Evidence — see its own AGENTS.md.
 screenshots/       One set of the panel, with the sidecar naming the commit it was shot at.
 design/            Design rounds: the artboards a canvas is seeded from, and what they stand on.
 frozen/            Dated readings of the game, written by tooling.
@@ -233,6 +233,7 @@ tests/
     sources.test.ts        S1, S2, S13, C5, C15, C16, S4 and S5 over every TypeScript file.
     source-line.test.ts    The line reader every guard beside it stands on, on both samples.
     source-readers.test.ts  Those readers held to a parse of the same tree, and S4 on it.
+    counted-material.test.ts  V5 over the one thing counted most: the recordings.
     type-assertions.test.ts  C13, and the register of crossings that narrow no other way.
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
     unguarded-paths.test.ts  What standing up reaches, with no `try` anywhere over it.
@@ -572,7 +573,7 @@ commit that opens or closes one.
 5. **Every key in `captures/` is read, and no recording is short.** `flee` was the last to go
    unread, and **ADR 0056** is where it became a fourth outcome; `healall_per` was the last whose
    figure had to be sized, and ADR 0010 carries how a share stated about a whole side is put onto
-   its members. Measured over `captures/` on 2026-09-09: 115 casts across 30 recordings, every one
+   its members. Measured over `captures/` on 2026-09-09: 115 casts across every recording, every one
    of them whole, and no message anywhere unread — so the suspect mark never fires on the material
    this repository holds. It is held by probes only, and the next protocol change is what it exists
    for.

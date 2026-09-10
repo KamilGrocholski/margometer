@@ -301,6 +301,68 @@ Deno.test("no recording counts a turn the game did not grant", () => {
 });
 
 /**
+ * The document as one line. **A sentence is the unit, and `deno fmt` owns where it breaks**: it
+ * wraps this register's prose at a hundred columns, so a claim read as a substring of a line is a
+ * claim that stops being findable the day a word ahead of it changes length. AGENTS.md names the
+ * same trap for the markers a guard searches for.
+ */
+function getUnwrapped(text: string): string {
+    const words: string[] = [];
+    for (const line of text.split("\n")) {
+        for (const word of line.split(" ")) {
+            if (word.length === 0) continue;
+            words.push(word);
+        }
+    }
+    assert(words.length > 0, "a document being read says something");
+    return words.join(" ");
+}
+
+/**
+ * ⚠️ **The register's prose carried the same measurement as the guard, and the two drifted.** The
+ * table is re-earned row by row and was current; the sentences summing it said `995 of the 998`
+ * dated 2026-09-07 while this file already asserted 1018 and 1015 dated 2026-09-09, and the lost
+ * totals beside them were nobody's to check at all. One recording had arrived between the two.
+ *
+ * So the figures are composed here and the document is asked to carry them word for word. A number
+ * a machine can compute never sits in prose unheld (**V5**), and this register says so of itself
+ * in its own second section.
+ */
+Deno.test("the sentences summing the register carry the figures the tree produces", () => {
+    const grades = composeTurnGrades(getRecordedFights());
+    const total = { bounded: 0, exact: 0, short: 0, lost: 0, asked: 0, level: 0 };
+    for (const grade of grades) {
+        total.bounded += grade.bounded;
+        total.exact += grade.exact;
+        const stretch = grade.stretch;
+        if (stretch === null) continue;
+        total.asked += 1;
+        total.short += stretch.short;
+        total.lost += stretch.lost;
+        if (stretch.short === stretch.lost) total.level += 1;
+    }
+    assert(total.asked > 0, "there are recordings the whole-fight reading can be asked of");
+    assert(total.level <= total.asked, "no more agree than were asked");
+
+    const register = getUnwrapped(Deno.readTextFileSync(REGISTER_PATH));
+    assertStringIncludes(
+        register,
+        `${total.exact} of the ${total.bounded} graded agree`,
+        `${REGISTER_PATH}: the boundaries that agree, as the tree counts them`,
+    );
+    assertStringIncludes(
+        register,
+        `the ordinal says ${total.short} turns went missing where the game announces ${total.lost}`,
+        `${REGISTER_PATH}: the two columns, summed`,
+    );
+    assertStringIncludes(
+        register,
+        `exact on ${total.level} of the ${total.asked} recordings that can be asked`,
+        `${REGISTER_PATH}: how many of them meet`,
+    );
+});
+
+/**
  * The label is the whole of what tells a reader **which** turns are counted, and it was free to
  * change without a test noticing — the goldens beside it read the word out of the module that
  * wrote it. So it is held against the document that argues for it, which is a second place and not

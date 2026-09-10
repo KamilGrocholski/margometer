@@ -157,6 +157,79 @@ Deno.test("rule numbering runs without a gap", () => {
     }
 });
 
+/** The numbers a rule spells out. `deno fmt` wraps prose, so the run of words is the unit. */
+const SPELLED = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"];
+
+export function getSpelledNumbers(text: string): number[] {
+    const found: number[] = [];
+    for (const word of text.split("\n").join(" ").split(" ")) {
+        const bare = word.split("*").join("").split("`").join("").split(".").join("");
+        const at = SPELLED.indexOf(bare.toLowerCase());
+        if (at === -1) continue;
+        found.push(at + 1);
+    }
+    return found;
+}
+
+/**
+ * The rows of the **first** table standing after `from`, and of no table after that one. Counting
+ * to the end of the document instead summed every table below, which is a number no sentence
+ * anywhere is making a claim about.
+ */
+export function countFirstTableRows(text: string, from: number): number {
+    let rows = 0;
+    let isPastRule = false;
+    for (const line of text.slice(from).split("\n")) {
+        const bare = line.trim();
+        if (!bare.startsWith("|")) {
+            if (isPastRule) break;
+            continue;
+        }
+        if (!isPastRule) {
+            if (bare.split("-").length > 3) isPastRule = true;
+            continue;
+        }
+        rows += 1;
+    }
+    return rows;
+}
+
+/**
+ * ⚠️ **E4 said `five below` of E5's table, which held six.** The sixth boundary arrived with
+ * **ADR 0043**: E5's own sentence moved to six, the sentence under its table went on arguing that
+ * no sixth row was earned, and E4 next door was left counting five. Nothing looked wrong, because
+ * a number spelled in words looks the same whatever it says — and the rule counting a table need
+ * not be the rule carrying it, so reading each rule against its own table finds none of this.
+ * Found 2026-09-10.
+ */
+Deno.test("a sentence counting what stands below it agrees with the table that does", () => {
+    assertEquals(getSpelledNumbers("one of the six below"), [1, 6], "every one of them is read");
+    assertEquals(getSpelledNumbers("a boundary and a mark"), [], "prose carrying none reads none");
+    const sample =
+        "said five below\n\n| a | b |\n| --- | --- |\n| 1 | 2 |\n\n| c |\n| --- |\n| 3 |\n";
+    assertStrictEquals(countFirstTableRows(sample, 0), 1, "the table below, and not the one after");
+
+    const marker = " below";
+    let checked = 0;
+    let at = AGENTS.indexOf(marker);
+    for (let held = 0; held < AGENTS.length; held += 1) {
+        if (at === -1) break;
+        const opening = AGENTS.lastIndexOf(" ", at - 1);
+        const spelled = getSpelledNumbers(AGENTS.slice(opening + 1, at));
+        at = AGENTS.indexOf(marker, at + marker.length);
+        if (spelled.length !== 1) continue;
+        const stated = spelled[0];
+        if (stated === undefined) continue;
+        checked += 1;
+        assertStrictEquals(
+            countFirstTableRows(AGENTS, opening),
+            stated,
+            `a sentence says ${stated} stand below it, and the table below it holds otherwise`,
+        );
+    }
+    assert(checked > 0, "some sentence counts what stands below it");
+});
+
 Deno.test("every rule reference resolves to a rule that exists", () => {
     const defined = getDefinedRules();
     const dangling: string[] = [];

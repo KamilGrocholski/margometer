@@ -164,7 +164,7 @@ this language does not have would be**; each states what binds instead.
 - **E4. Catch narrowly — exactly the error you expect.** The one exception is a **kind of place**,
   and the test is mechanical: **a broad catch is legal exactly where its `try` contains a call this
   project did not author.** Anywhere else it is a bug, and most of the `catch` clauses in shipped
-  code sit at one of the five below.
+  code sit at one of the six below.
 - **E5. There are six boundaries in the add-on, and they are enumerable.** A new one is `[ASK]`,
   because an unlisted broad catch is indistinguishable from a swallowed bug.
 
@@ -178,7 +178,7 @@ this language does not have would be**; each states what binds instead.
   | a callback somebody else calls | inbound   | that gesture dropped, and marked once |
 
   Composing the reading a region draws is part of drawing it, so the render region's `try` covers
-  both and no sixth row is earned by widening it. In `tools/` the same test applies and the
+  both and no seventh row is earned by widening it. In `tools/` the same test applies and the
   boundaries are the network and a subprocess.
 - **E6.** Pass the original in `cause` when wrapping.
 - **E7.** An expected failure in `src/` is **data** — an explicit unknown the panel can show. In
@@ -517,6 +517,7 @@ the same thing a second way.
 | `tests/source-graph.ts`                       | the reader both of those stand on, S1 included   |
 | `tests/repository/source-line.test.ts`        | the line reader under all of them, both ways     |
 | `tests/repository/source-readers.test.ts`     | those readers against a parse of the same tree   |
+| `tests/repository/counted-material.test.ts`   | V5 over the corpus count, both ways              |
 | `tests/repository/names.test.ts`              | N1, N3, N8, N11, N14, N15, N16, with samples     |
 | `tests/repository/type-assertions.test.ts`    | C13, with a register read both ways              |
 | `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts   |

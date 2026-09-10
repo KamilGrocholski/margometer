@@ -126,10 +126,10 @@ figure that kind, read by turning the cut of a cut round: it opens where the pro
 other end of at least one blow that carried it, and stays shut where it named none.
 
 The shut ones are the bare movement, and nothing else — 58 rows over `captures/` on 2026-08-31,
-across all 28 recordings: `poison` 32, `heal` 9, `fire` 6, `light` 4, `anguish` 4, `wound` 3. Each
-is a key the game states against the combatant it happened to, with nobody at the other end of it,
-so `damageTakenByOpponentAndKind` holds nothing under that name while `damageTakenByElement` holds
-the figure. The dealing screen has no such row, because a figure this combatant dealt was dealt to
+across every recording: `poison` 32, `heal` 9, `fire` 6, `light` 4, `anguish` 4, `wound` 3. Each is
+a key the game states against the combatant it happened to, with nobody at the other end of it, so
+`damageTakenByOpponentAndKind` holds nothing under that name while `damageTakenByElement` holds the
+figure. The dealing screen has no such row, because a figure this combatant dealt was dealt to
 somebody: `damageDealtApplied` opens all 602 of its kind rows.
 
 ## What opens, in numbers
@@ -147,7 +147,7 @@ the sum of.
 
 The kinds are the second cut of that same figure, and they are what a reader came for: over
 `captures/` on 2026-09-01 the 609,078 points nobody was named for striking are 89.2% `poison`, then
-`anguish`, `wound`, `heal`, `fire` and `light` — six keys, in 51 rows across the 28 recordings.
+`anguish`, `wound`, `heal`, `fire` and `light` — six keys, in 51 rows across every recording.
 Composed through the panel and tallied straight off the events, the two agree to the point.
 
 Both of those sections open, onto **116 rows on each damage screen** — 58 keys reached from a person

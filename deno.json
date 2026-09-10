@@ -48,9 +48,10 @@
         // disagreement stands on. `docs/reading-a-turn.md` carries the disputed openers and, with
         // `--keys`, what opened every turn and what each protocol key adds.
         "fight:openers": "deno run -A tools/turn-reading.ts",
-        // A fight nobody fought, written where git does not look. The corpus is 22 recordings of
-        // `10 vs 1` and no player against a player at all, so this is the only ten-a-side the
-        // panel can be looked at on. Never material, and `tools/fabricated-fight.ts` says why.
+        // A fight nobody fought, written where git does not look. No recording holds ten on both
+        // sides — `docs/captured-fights.md` carries the shape census, and two of them do carry a
+        // player on the opposing side — so this is the only ten-a-side the panel can be looked at
+        // on. Never material, and `tools/fabricated-fight.ts` says why.
         "fight:fabricate": "deno run -A tools/fabricated-fight.ts",
         // What one skill put on a whole side, whom it stood on and how many stood at once —
         // against the turns the published table states. `docs/auras-standing.md` carries it.

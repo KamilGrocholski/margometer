@@ -216,7 +216,7 @@ classes the line `txt` — not the `win` and `lose` that `winner` and `loser` se
 as those two keys; the same branch is in cached production build `1785244275300`, so it is not new.
 The published help view,372 (read 2026-09-06) documents the item that sends it: an escape is a
 consumable carrying `action=flee`, and it interrupts the fight for every participant with health and
-position kept. Measured over `captures/` on 2026-09-06: **0 occurrences across all 29 recordings**,
+position kept. Measured over `captures/` on 2026-09-06: **0 occurrences across every recording**,
 which `tests/core/fight-decoder.test.ts` re-earns on every run.
 
 ### `+oth_dmg` — decoded
@@ -844,7 +844,7 @@ _Help:_ names `crit`
 
 _Evidence:_ article view,372 at the engine name `crit` (read 2026-08-09) lists it among the events
 an attack can produce. Production build `1785244275300`: this branch is one of the two in the family
-that interpolates nothing. All 52 occurrences arrive with no value, which is why a value would make
+that interpolates nothing. Every occurrence arrives with no value, which is why a value would make
 it unread again rather than a flag with a number dropped beside it.
 
 ### `+of_crit` — decoded
@@ -1602,7 +1602,7 @@ _Help:_ names `critred`
 _Evidence:_ article view,372 at the engine name `critred` (read 2026-08-09) —
 `Krytyczna osłona ( critred )`, stated as reducing all of the opponent's weapon damage by a share
 when the character takes a critical hit, at the same moment as resistance reduces it, and only after
-a critical. The material agrees: all 6 occurrences state 25 and every one rides a message carrying
+a critical. The material agrees: every occurrence states 25, and every one rides a message carrying
 `+crit`. Production build `1786514810315` composes `msg_-legbon_critred %val%`.
 
 ### `+legbon_puncture` — decoded
@@ -1844,8 +1844,8 @@ _Help:_ names `mana`
 
 _Evidence:_ article view,372 (read 2026-08-09) documents mana as a resource some skills consume. On
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 15 occurrences, all negative,
-10 of them beside `energy`. Every occurrence in every recording is negative; 22 of them sit beside
-`energy` (read 2026-08-19).
+10 of them beside `energy`. Every occurrence in every recording is negative; 34 of them sit beside
+`energy` (measured 2026-09-10).
 
 ### `energy` — decoded
 
@@ -1892,7 +1892,7 @@ _Shape:_ 160 occurrences; on a skill announcement; text
 _Help:_ names `shout`
 
 _Evidence:_ article view,372 (read 2026-08-09) at the engine name `shout`, described as forcing
-covered characters to attack a chosen target. 11 occurrences, every one on an announcement that also
+covered characters to attack a chosen target. Every occurrence sits on an announcement that also
 carries `active_decblock_per-enemies` and `alllowdmg`.
 
 ### `surpass_bonus_total` — decoded

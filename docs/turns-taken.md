@@ -148,8 +148,8 @@ time it can be asked.** No boundary of one turn is placed `elsewhere`, on any re
 sharp test and it is unbeaten; what it is not is most of the evidence, because a boundary of one
 turn is the minority case.
 
-**Where the game numbers several, the count agrees on all but three boundaries in the corpus.** 995
-of the 998 graded agree, 2026-09-07. The three that do not are a short list rather than a tendency:
+**Where the game numbers several, the count agrees on all but three boundaries in the corpus.** 1015
+of the 1018 graded agree, 2026-09-10. The three that do not are a short list rather than a tendency:
 each is short by a single turn, and `deno task fight:turns captures/<file>.json` names each by its
 two ordinals. A recording carrying one is `sometimes`, which is what the verdict is for.
 
@@ -195,8 +195,8 @@ nothing missed, nothing else caught.** The three lines about striking a target a
 full stop; loot lines put a colon after the name. **ADR 0049** carries the rest, including why the
 stun keys cannot do this job — 118 applications against 319 announcements.
 
-**The two columns are close and are not held to be equal.** Over the corpus the ordinal says 192
-turns went missing where the game announces 177: exact on 15 of the 19 recordings that can be asked,
+**The two columns are close and are not held to be equal.** Over the corpus the ordinal says 197
+turns went missing where the game announces 182: exact on 16 of the 20 recordings that can be asked,
 one turn apart on three more, and one that is not. Before **ADR 0057** they were exact on nine, and
 on nine others the game announced **more** lost turns than the ordinal had room for — which is the
 over-count seen from the other side. The gate holds both as numbers rather than forcing them
