@@ -61,7 +61,6 @@ function composeDirectives(version: string): [string, string][] {
 }
 
 export function composeUserscriptBanner(version: string): string {
-    assert(typeof version === "string", "a version is stated as text");
     if (version.length === 0) {
         throw new UserscriptBuildError("a build states the version it is");
     }

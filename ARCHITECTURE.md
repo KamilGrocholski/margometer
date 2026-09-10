@@ -723,3 +723,12 @@ commit that opens or closes one.
     (`tests/tools/aura-standing.test.ts`); nothing guards the rules themselves, because no code
     reads them yet. It closes when the figures are drawn, and until then the document is the record
     rather than a description of the panel (**Target is not proof**).
+
+18. **A12 is held by a hand, not by the gate.** An assertion the compiler already guarantees is
+    detectable mechanically — delete the line, run `deno check`, and see whether the tree still
+    type-checks with no narrowing lost — and that is how the six **ADR 0074** deletes were found.
+    Nothing runs it. A type-check per assertion is seconds a line against a gate that finishes in
+    about a minute, and the walk would answer only for the spellings it can find: `typeof` is one
+    shape of a tautology and `Array.isArray` over a typed array is another. Until something runs it,
+    the rule is read rather than held, and the figure **S5** reports carries whatever noise has
+    accumulated since. The margin **ADR 0074** put under the floor is what buys the time.

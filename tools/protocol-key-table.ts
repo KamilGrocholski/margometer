@@ -331,7 +331,6 @@ function requireWrittenText(value: unknown): string {
         });
     }
     assert(writing.text.length > 0, "a value that was written says something");
-    assert(typeof writing.text === "string", "and is text by the time it is read back");
     return writing.text;
 }
 

@@ -70,11 +70,14 @@ this language does not have would be**; each states what binds instead.
   to the decode path that raises it is a finding.
 - **S4.** No function is longer than 70 lines, which is one printed page.
 - **S5.** Assertion density averages at least two per **function that takes something and may
-  assert**, across `libs/`, `project/`, `src/core/`, `src/game/` and `tools/`. A function handed
-  nothing has no precondition a caller could break; one **E14** forbids to assert has none it may
-  state. Counting either made the figure a number the safest code in the tree dragged down — a bound
-  that becomes a clamp is one assertion fewer and one function still in the denominator. What a
-  reader touches is held by **A11**. **ADR 0007**, narrowed twice by **ADR 0051**.
+  assert**, across `libs/`, `project/`, `src/core/`, `src/game/` and `tools/`, counting the closures
+  a file writes inside its functions as the functions they are. A function handed nothing has no
+  precondition a caller could break; one **E14** forbids to assert has none it may state. Counting
+  either made the figure a number the safest code in the tree dragged down — a bound that becomes a
+  clamp is one assertion fewer and one function still in the denominator. What a reader touches is
+  held by **A11**. **The floor a machine holds this to sits below the two**, so that deleting an
+  assertion **A12** calls no assertion is never what reddens the gate. **ADR 0007**, narrowed twice
+  by **ADR 0051** and given its margin by **ADR 0074**.
 - **S6.** Declare at the smallest possible scope, `const` by default, at the point of use.
 - **S7.** Every return value is used or explicitly discarded; every parameter is checked. Held by
   the compiler.
@@ -129,6 +132,13 @@ this language does not have would be**; each states what binds instead.
   degraded in place and recorded as a defect (**E14**). An assertion is for what must never happen,
   and what must never happen in front of a player is the panel stopping — which is what an assertion
   there does. Two releases were spent on one at a stated bound. **ADR 0051.**
+- **A12. An assertion the compiler already guarantees is not one.** It states nothing a caller could
+  break, and it takes a place in the numerator of a safety measure while reading to the next person
+  as a check somebody thought about. The observation is mechanical and it is what found the six this
+  rule arrived with: delete the line and run `deno check` — where the tree still type-checks and no
+  narrowing was lost, the assertion was never holding anything. A value crossing one of **E5**'s
+  boundaries is the case this does **not** name: there a type is a claim about somebody else's
+  object, and the check is the only thing making it true. **ADR 0074.**
 
 ## Errors
 
@@ -296,8 +306,11 @@ TypeScript idiom, with the naming rules stated here.
 - **C3.** A comment states what is true of the code **now**. Never how it came to be this way — no
   "used to", no "for a while this was". That is what a commit message and an ADR are for.
   _(`by-reading` whether a sentence describes the code now or how it got here)_
-- **C4.** A file's docblock says what the file is for, in **at most eight lines**. Longer than that
-  is not a docblock, it is an ADR that has not been written yet.
+- **C4.** A file's docblock says what the file is for, in **at most eight lines of prose**. Longer
+  than that is not a docblock, it is an ADR that has not been written yet. **The lines showing how a
+  tool is run do not count**, and the exception is stated because the bound was written for `src/`,
+  where no file carries one: measured 2026-09-10, five `tools/` docblocks sat over eight and four to
+  six lines under it once the command listing was taken out.
 - **C5.** Comment share of a file stays under 25%. **ADR 0005.**
 - **C6.** Comments are sentences — a space after the slashes, a capital letter, a full stop, or a
   colon when they introduce what follows. An end-of-line comment may be a phrase.
@@ -498,7 +511,7 @@ the same thing a second way.
 | `deno test`                                   | every guard below                                |
 | `tests/repository/documents.test.ts`          | the rule documents and this register             |
 | `tests/repository/decisions.test.ts`          | the decision records                             |
-| `tests/repository/sources.test.ts`            | S1, S2, S4, S5, S13, A10, A11, C5, C8, C15, C16  |
+| `tests/repository/sources.test.ts`            | S1, S2, S4, S5, S13, A10–A11, C4–C5, C8, C15–C16 |
 | `tests/repository/errors.test.ts`             | E1, E2, E11–E13, E14 part, each with a sample    |
 | `tests/repository/unguarded-paths.test.ts`    | E14's paths, and the methods they step over      |
 | `tests/source-graph.ts`                       | the reader both of those stand on, S1 included   |

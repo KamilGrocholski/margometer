@@ -194,3 +194,5 @@ edited to agree with the new rule.
   numbers no turn. **Accepted**
 - [0073](0073-the-element-column-speaks-the-games-own-words.md) — The element column speaks the
   game's own words. **Accepted**
+- [0074](0074-an-assertion-the-compiler-guarantees-is-not-one.md) — An assertion the compiler
+  guarantees is not one, so the floor moves under it. **Accepted**

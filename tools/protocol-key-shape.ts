@@ -117,7 +117,6 @@ function composePlacementsOfMessage(carried: ReadonlySet<string>, key: string): 
 /** The most specific of the four one occurrence states. `null` is no value, never empty text. */
 function getValueOfOccurrence(value: string | null): KeyValue {
     if (value === null) return "no value";
-    assert(typeof value === "string", "an occurrence states its value as the text it was written");
     if (isIntegerText(value)) return "a whole number";
     if (getDecimalFromText(value) !== null) return "a number";
     return "text";
@@ -217,7 +216,6 @@ export function composeKeyShapes(paths: readonly string[]): KeyShape[] {
 
 /** The key a `### ` heading names, or null where the line is not one. Walked, never matched. */
 function getHeadingKey(line: string): string | null {
-    assert(typeof line === "string", "a line read for a heading is text");
     assert(HEADING_OPENER.length > 0, "and a heading opens with something");
     if (!line.startsWith(HEADING_OPENER)) return null;
     const rest = line.slice(HEADING_OPENER.length);

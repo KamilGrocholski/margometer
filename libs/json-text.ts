@@ -18,7 +18,6 @@ export type JsonWriting =
     | { isOk: false; error: "nothing" | "unwritable"; cause: unknown };
 
 export function getJsonReading(text: string): JsonReading {
-    assert(typeof text === "string", "text to read is text");
     try {
         const value: unknown = JSON.parse(text);
         return { isOk: true, value };
