@@ -12,7 +12,7 @@ import {
     assertNotStrictEquals,
     assertStrictEquals,
 } from "@std/assert";
-import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { composeCombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import type { AuraStanding, ProvocationStanding } from "@/src/core/aura-standing.ts";
 import type { TurnStatement } from "@/src/game/fight-underway.ts";
 import { composePanelHost, type PanelPress } from "@/src/ui/panel-element.ts";
@@ -600,6 +600,21 @@ Deno.test("a fight holding only a provocation is not a fight where nothing stand
         getTextsByClass(getWindow(draw(reading).host), "empty"),
         [getWordsForTurnState("unread")],
         "the turn is unread, and the standing section says nothing of the sort",
+    );
+});
+
+/**
+ * ⚠️ **The clamp below is tested with a fixture built out of the bound, so it moves with it.**
+ * Lowering `MAXIMUM_PROVOKED` from 12 to 2 drops ten of twelve provoked characters out of the
+ * window and reddens nothing — measured 2026-09-11. What the clamp working cannot say is that the
+ * bound is the right one, so the bound is tied to what a shout can hold: a whole opposing side,
+ * and `src/core/combatant-roster.ts` states a side at half a fight. **S11**'s fourth shape.
+ */
+Deno.test("the provoked bound covers a whole side, which is what a shout can hold", () => {
+    assert(
+        MAXIMUM_PROVOKED * 2 >= MAXIMUM_COMBATANTS,
+        `a shout holds an opposing side, and ${MAXIMUM_PROVOKED} does not cover half of ` +
+            `${MAXIMUM_COMBATANTS}`,
     );
 });
 
