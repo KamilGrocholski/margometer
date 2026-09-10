@@ -440,6 +440,30 @@ Deno.test("no recording carries an escape, which is why the register cites the c
     assertEquals(fled, 0, "and not one of them is an escape");
 });
 
+/**
+ * The claim `docs/protocol-keys.md` files `-dmga` under, and the one the panel's word rests on:
+ * the published help says the ordinary reductions do not reach this damage, and a protocol that
+ * reports no reduction has no raw side to report either. A `+dmga` is therefore a finding rather
+ * than a gap — it would mean something reduces the key after all, and the word would be wrong.
+ * The applied count stands beside it so a walk that has stopped finding the element reddens too.
+ */
+Deno.test("the one element with no raw half still has an applied one", () => {
+    let raw = 0;
+    let applied = 0;
+    for (const path of readRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        for (const payload of getRecordedPayloads(path)) {
+            for (const event of decodeFightMessages(payload, roster)) {
+                if (event.kind !== "attack") continue;
+                raw += event.raw.filter((one) => one.element === "dmga").length;
+                applied += event.applied.filter((one) => one.element === "dmga").length;
+            }
+        }
+    }
+    assert(applied > 0, "the corpus states this element at all");
+    assertEquals(raw, 0, "and never states a raw side for it");
+});
+
 interface CorpusTally {
     attacks: number;
     moved: number;

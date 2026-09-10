@@ -124,12 +124,16 @@ Deno.test("the family entry is what documents the keys the client has no case la
     const named = new Set(REGISTERED.map((one) => one.key));
     assert(named.has(DAMAGE_FAMILY_HEADING), "the register opens the family it stands on");
     assert(
-        isDocumentedByFamily("-dmga", named),
+        isDocumentedByFamily("-dmgc", named),
         "a damage key with no entry of its own is documented by it",
     );
     assert(
+        !isDocumentedByFamily("-dmga", named),
+        "and the member that earned an entry of its own is not",
+    );
+    assert(
         !isDocumentedByFamily("+thirdatt", named),
-        "and the pair the family rule reaches that does carry an entry is not",
+        "nor is the pair the family rule reaches that carries one",
     );
     assert(!isDocumentedByFamily("+crit", named), "nor is a key the family rule never reached");
 });

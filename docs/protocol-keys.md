@@ -710,6 +710,36 @@ _Evidence:_ the default branch of the battle switch, production build `178524427
 the development build. Which sign is the damage that landed was measured rather than read: health
 drop matched the sum of `-dmg*` in 22 of 26 comparisons and the sum of `+dmg*` in **none**.
 
+### `-dmga` — decoded
+
+The one member of the family above with an entry of its own, because it is the one the published
+help names. **Obrażenia nieuchronne**: applied damage the ordinary defences do not reach, which is
+the word the panel draws it under — the game's own here, and not this repository's, where **ADR
+0011** words the other nine.
+
+_Shape:_ 1260 occurrences; on a blow; a whole number
+
+_Help:_ names `nieuchronne`, `dmgmulcombo`
+
+_Evidence:_ article view,372 (read 2026-09-10) gives this damage a section under that name and the
+engine name of the item bonus raising it, `dmgmulcombo`. It states which effects deal it — one
+scaling with combination points, one reflecting damage back at the attacker — that it reaches the
+log in the attack, the skill and the over-time sections alike, and that two named effects reduce it
+and nothing else does: neither armour nor resistance is among them. The key's own spelling is absent
+from the article, which is `+crit`'s case rather than a silence — documented effect, undocumented
+name.
+
+⚠️ **No recording states a raw half, and the help is why.** Every other element in `captures/` pairs
+`+` and `-` inside one message; this one is applied-only in all of them, measured 2026-09-10. There
+is nothing for a raw side to be raw against when the reductions the protocol reports do not apply,
+so the element has one entry here and not two. A `+dmga` arriving is a finding, not a gap: it would
+mean the key is reduced by something after all.
+
+⚠️ **It rides the reflected-damage key and is not the same figure.** Measured 2026-09-10, 1237 of
+the 1260 messages carrying this key carry `+taken_dmg` as well, and the two figures agree on 1095 of
+those — leaving 142 where they differ and 23 where this key arrives alone. Which is the raw side of
+which is settled against `+taken_dmg` below, and against this key not at all.
+
 ### `+thirdatt` — decoded
 
 The **Third Blow** rolled: an extra auxiliary attack fired alongside the ordinary one, stated raw.
@@ -1470,8 +1500,8 @@ this name — article view,372 (read 2026-08-09).
 
 ### `+taken_dmg` — decoded
 
-⚠️ **The key that looks like damage and is not.** It rides nearly every blow carrying `-dmga` — 733
-of the 742, read 2026-08-19, with nine carrying `-dmga` alone — and the tempting reading is that it
+⚠️ **The key that looks like damage and is not.** It rides nearly every blow carrying `-dmga` — 1237
+of the 1260, read 2026-09-10, with 23 carrying `-dmga` alone — and the tempting reading is that it
 is the raw half of that applied figure — the help documents `taken_dmg_per` as damage added to what
 the target takes, reduced by armour, which is exactly a raw/applied pair.
 

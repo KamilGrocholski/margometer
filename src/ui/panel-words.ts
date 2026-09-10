@@ -471,6 +471,10 @@ export function composeCardSubtitleText(
  * The letter in a damage key, in the player's words. Ours, and not the client's own
  * `stat-damage-…` family, which words seven of the ten for a character sheet in a grammar this
  * column cannot take. **ADR 0011.**
+ *
+ * `dmga` is the one word here that is not ours. The published help names that damage type itself
+ * and `docs/protocol-keys.md` carries the citation, so changing it is a claim about the game
+ * rather than a matter of taste.
  */
 export const ELEMENT_WORDS: Record<string, string> = {
     dmg: "fizyczne",
