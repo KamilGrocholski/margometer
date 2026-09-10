@@ -64,10 +64,11 @@ deno task panel:shots --release                          # a release, and only a
 nobody tagged wears (ADR 0037). It belongs to a release and nowhere else — `docs/releasing.md` is
 where it sits in the sequence.
 
-Five pictures into `screenshots/`, with `taken-at.json` beside them naming the commit, the recording
-and the moment. It **refuses to shoot while `src/` carries anything no commit holds** — `DESIGN.md`
-owns that rule — and a failed run leaves the previous set alone, because nothing moves in until
-every picture exists.
+The set into `screenshots/`, with `taken-at.json` beside them naming the commit, the recording and
+the moment — and naming the shots themselves, which is why no count is written here. It said five
+while the set held six, and nothing reads this file for a number. It **refuses to shoot while `src/`
+carries anything no commit holds** — `DESIGN.md` owns that rule — and a failed run leaves the
+previous set alone, because nothing moves in until every picture exists.
 
 Each shot is measured before it is taken: the page writes the panel's own edges into a hidden
 `<pre>`, and the frame comes off that, so the picture is the panel and the air around it rather than
