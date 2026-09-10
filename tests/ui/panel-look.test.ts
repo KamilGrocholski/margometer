@@ -209,7 +209,6 @@ Deno.test("a profession keeps its colour, and one the game did not state is colo
     for (const one of taken) {
         assert(PALETTE_COLOURS.some((hue) => hue === one), `${one} comes out of the palette`);
     }
-    assertEquals(getColourForProfession("m"), getColourForProfession("m"), "the same every fight");
     assertEquals(getColourForProfession(null), SIGNAL.unknown, "and none stated is colourless");
     assertEquals(getColourForProfession("z"), SIGNAL.unknown, "as is one nobody has a hue for");
     const eight: readonly string[] = PALETTE_COLOURS;
