@@ -502,6 +502,8 @@ the same thing a second way.
 | `tests/repository/errors.test.ts`             | E1, E2, E11–E13, E14 part, each with a sample    |
 | `tests/repository/unguarded-paths.test.ts`    | E14's paths, and the methods they step over      |
 | `tests/source-graph.ts`                       | the reader both of those stand on, S1 included   |
+| `tests/repository/source-line.test.ts`        | the line reader under all of them, both ways     |
+| `tests/repository/source-readers.test.ts`     | those readers against a parse of the same tree   |
 | `tests/repository/names.test.ts`              | N1, N3, N8, N11, N14, N15, N16, with samples     |
 | `tests/repository/type-assertions.test.ts`    | C13, with a register read both ways              |
 | `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts   |

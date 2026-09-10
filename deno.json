@@ -94,6 +94,12 @@
             // Fights nobody fought. Formatting one is harmless; the gate going red over a file
             // git does not carry is not.
             "fabricated/",
+            // A design canvas writes these files itself, header and layout included — an artboard
+            // and the `canvas.json` placing it. Formatting them starts a fight the canvas wins on
+            // its next save and the gate loses on every run in between. `design/pomocnik/` is in
+            // a commit already reformatted and stays as it is: the exclusion binds from here on,
+            // and rewriting it back would be the same fight in the other direction.
+            "design/",
             // The maintainer's list. `.claude/settings.json` denies the three tools that edit a
             // file, and a formatter is not one of them — it rewrote this file once, which is
             // exactly the trap AGENTS.md warns about: the wall is narrower than the rule.

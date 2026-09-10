@@ -18,15 +18,20 @@ export function isCommentLine(line: string): boolean {
     return COMMENT_OPENERS.some((opener) => trimmed.startsWith(opener));
 }
 
-/** Code only: comments dropped, string bodies blanked, quotes kept so offsets survive. */
+/**
+ * Code only: comments dropped, string bodies blanked, quotes kept so offsets survive.
+ *
+ * ⚠️ **A comment is found on the same walk as the quotes, never before it.** Cutting the line at
+ * its first `//` first read `"https://…"` as a comment opening inside a literal: the quote never
+ * closed, and every call, assertion and construct written after it was blanked for the seven
+ * guards standing on this reader. Measured 2026-09-10, 22 lines in the tree carry one.
+ */
 export function getCodeOutsideStrings(line: string): string {
-    const commentAt = line.indexOf("//");
-    const source = commentAt === -1 ? line : line.slice(0, commentAt);
     let code = "";
     let quote = "";
     let index = 0;
-    while (index < source.length) {
-        const character = source.charAt(index);
+    while (index < line.length) {
+        const character = line.charAt(index);
         if (character === "\\") {
             code += quote === "" ? "\\" : " ";
             code += " ";
@@ -39,12 +44,15 @@ export function getCodeOutsideStrings(line: string): string {
             index += 1;
             continue;
         }
+        if (character === "/") {
+            if (line.charAt(index + 1) === "/") break;
+        }
         if (QUOTES.includes(character)) quote = character;
         code += character;
         index += 1;
     }
-    assert(code.length <= source.length + 1, "blanking never grows a line");
-    assert(!code.includes("//"), "a comment is dropped before quotes are read");
+    assert(code.length <= line.length + 1, "blanking never grows a line");
+    assert(!code.includes("//"), "no comment survives into the code a guard reads");
     return code;
 }
 

@@ -230,8 +230,9 @@ tests/
     documents.test.ts      The rule documents and the guard register.
     decisions.test.ts      The decision records: numbering, index, lifecycle.
     skill-durations.test.ts  The frozen durations, against the corpus and their own rule.
-    skill-durations.test.ts  The frozen durations, against the corpus and their own rule.
     sources.test.ts        S1, S2, S13, C5, C15, C16, S4 and S5 over every TypeScript file.
+    source-line.test.ts    The line reader every guard beside it stands on, on both samples.
+    source-readers.test.ts  Those readers held to a parse of the same tree, and S4 on it.
     type-assertions.test.ts  C13, and the register of crossings that narrow no other way.
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
     unguarded-paths.test.ts  What standing up reaches, with no `try` anywhere over it.
