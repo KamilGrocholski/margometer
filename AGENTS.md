@@ -47,8 +47,12 @@ constraints, not evidence that a feature exists. Do not describe target behaviou
 until code and verification agree.
 
 **Every rule here is meant to be held by a machine.** The register at the end says which guard holds
-which rule and which guards do not exist yet. A rule with no guard is held by reading alone, and
-`ARCHITECTURE.md` lists it under known gaps until a guard arrives.
+which rule, and **only guards that exist are in it** — nothing joins before it runs, which is that
+section's own rule and `tests/repository/documents.test.ts`'s. What does not exist yet is
+`ARCHITECTURE.md`'s: a rule with no guard is held by reading alone, and its known gaps carry that,
+by class rather than by name, because a second list of rule numbers would go stale against the
+register. This sentence promised the register would name them and sent a reader looking for a
+classification the document does not make — 2026-09-11.
 
 **A rule names the observation that breaks it.** A rule nobody can be shown to have violated is a
 wish, and wishes accumulate. Where the observation cannot be named, the honest form is a measurement
