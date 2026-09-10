@@ -234,6 +234,7 @@ tests/
     source-line.test.ts    The line reader every guard beside it stands on, on both samples.
     source-readers.test.ts  Those readers held to a parse of the same tree, and S4 on it.
     counted-material.test.ts  V5 over the one thing counted most: the recordings.
+    reading-boundary.test.ts  Nothing the browser runs reaches for a way out of the page.
     type-assertions.test.ts  C13, and the register of crossings that narrow no other way.
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
     unguarded-paths.test.ts  What standing up reaches, with no `try` anywhere over it.

@@ -31,8 +31,9 @@ The add-on **reads**. This is the whole security model, and everything else is a
 - **The engine's own call runs first and its return value comes back untouched.** We wrap the update
   function; we do not replace it. One wrap, and a detach that removes only ours.
 - **No exception of ours escapes into the page.** Every call crossing into somebody else's program,
-  or arriving from one, is wrapped — four such boundaries exist and they are listed (`AGENTS.md`
-  **E4**, **E5**). A bug of ours degrades to a missing panel section.
+  or arriving from one, is wrapped — every such boundary is enumerated, and **E5** is where the list
+  lives (`AGENTS.md`). How many there are is that table's to say and drifted twice here. A bug of
+  ours degrades to a missing panel section.
 - **Where another MargoMeter already holds the engine, we stand down** rather than wrap a second
   time.
 
