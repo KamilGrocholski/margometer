@@ -757,6 +757,12 @@ applied pair the protocol sends. Measured here: 932 → 507, 1130 → 694, 968 �
 in all three. Production build `1786514810315` renders it into the same column the default damage
 branch writes to.
 
+**Alongside is the load-bearing word, and it is guarded rather than read.** A granted attack
+arriving as a message of its own would make `blowsWithoutSkill` — the count `Zwykły cios` draws —
+report one swing as two, and this pair is the only granted-attack effect that reaches the protocol
+at all. Every occurrence in `captures/` states an ordinary damage figure in the same message, which
+`tests/core/fight-decoder.test.ts` re-earns; a recording where one arrives alone fails the gate.
+
 ### `-thirdatt` — decoded
 
 The same blow, applied. This is the half that moves health.

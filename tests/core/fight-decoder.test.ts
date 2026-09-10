@@ -464,6 +464,33 @@ Deno.test("the one element with no raw half still has an applied one", () => {
     assertEquals(raw, 0, "and never states a raw side for it");
 });
 
+/**
+ * What `9f039ab` left open: `Zwykły cios` counts a blow the game announced nothing over, and the
+ * one granted-attack effect that reaches the protocol at all is this pair. If it arrived as a blow
+ * of its own the count would report one swing as two, so the claim the register makes of it —
+ * fired **alongside** the ordinary attack — is the claim that keeps the figure honest, and this is
+ * where it is re-earned rather than read.
+ */
+Deno.test("the extra attack rides an ordinary blow and never arrives as one", () => {
+    let carried = 0;
+    for (const path of readRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        for (const payload of getRecordedPayloads(path)) {
+            for (const event of decodeFightMessages(payload, roster)) {
+                if (event.kind !== "attack") continue;
+                const elements = [...event.raw, ...event.applied].map((one) => one.element);
+                if (!elements.includes("thirdatt")) continue;
+                carried += 1;
+                assert(
+                    elements.some((one) => one !== "thirdatt"),
+                    "a blow rolling the extra attack states the ordinary one too",
+                );
+            }
+        }
+    }
+    assert(carried > 0, "the corpus rolls the extra attack at all");
+});
+
 interface CorpusTally {
     attacks: number;
     moved: number;
