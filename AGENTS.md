@@ -402,8 +402,11 @@ TypeScript idiom, with the naming rules stated here.
 - **W2.** `git add` before the gate. Part of it lists what it reads with `git ls-files`, so a file
   written straight to disk is invisible to it.
 - **W3.** Prove a new test can fail: break what it covers, watch it go red, restore **from a copy**
-  — never `git checkout`, because the file may carry uncommitted work. Report it under **G3**.
-  _(`by-reading` whether the mutation lit what it claims to have lit)_
+  — never `git checkout`, because the file may carry uncommitted work. **A mutation is a scripted
+  edit, so W7 binds it first**: confirm the break landed before reading the verdict, because a
+  pattern that matched nothing leaves the tree green and looks exactly like a guard that held. Three
+  did that in one round on 2026-09-11, and one of them was nearly reported as a finding. Report it
+  under **G3**. _(`by-reading` whether the mutation lit what it claims to have lit)_
 - **W4.** A mutation that lights nothing is a finding — a missing test or an inert line, and often
   the answer is to delete something. _(`by-reading` whether nothing lighting up was investigated)_
 - **W5.** Test the boundary from both sides, and zero is a boundary. Zero is the neutral element of

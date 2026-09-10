@@ -183,7 +183,7 @@ Deno.test("the picture reader finds a tag's source, and nothing that is only bes
     assertEquals(beside, ["a.png"], "a source belonging to the tag after it is not a picture");
 });
 
-Deno.test("the two run the same headings, at the same depth, in the same order", () => {
+Deno.test("the two run headings of one shape, at the same depth, in the same order", () => {
     assertEquals(
         getHeadingLevels(getSource(ENGLISH)),
         getHeadingLevels(getSource(POLISH)),
