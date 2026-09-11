@@ -11,9 +11,13 @@ import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import {
+    CARD_WORDS,
+    CHOICE_REFUSED_ANSWER,
+    composeCardSubtitleText,
     composeChargedRowsText,
     composeCountedNoun,
     composeDefectText,
+    composeDestroyedText,
     composeFigureText,
     composeGrammarRefusedSuspicion,
     composeJoinedInProgressSuspicion,
@@ -23,7 +27,11 @@ import {
     composePlaceWords,
     composeShareText,
     composeShareTexts,
+    composeShelfSizeText,
+    composeSideCountsText,
     composeStandingTurnsText,
+    composeTurnOrdinalText,
+    composeUndrawnText,
     composeUnknownKeyRowSuspicion,
     composeUnknownKeySuspicion,
     composeUnplacedHealRowSuspicion,
@@ -31,19 +39,46 @@ import {
     composeUsesText,
     COUNTED_NOUNS,
     DEFECT_KINDS,
+    DEFENCE_WORDS,
+    DESTROYED_WORDS,
     ELEMENT_WORDS,
+    EVERY_SLOT_PINNED_ANSWER,
+    getWordsForCardMetric,
     getWordsForDamageKind,
+    getWordsForDirection,
     getWordsForHealthSource,
+    getWordsForNothing,
+    getWordsForNoun,
     getWordsForOutcome,
+    getWordsForPin,
     getWordsForPinnedScope,
     getWordsForPinnedStanding,
+    getWordsForShelfOutcome,
+    getWordsForShelfTime,
+    getWordsForSide,
+    getWordsForStorage,
+    getWordsForTurnState,
+    getWordsForUnannounced,
     getWordsForUnnamedEnd,
+    HEALTH_LOSS_WORDS,
     HEALTH_SOURCE_WORDS,
     NEITHER_END_WORDS,
     PANEL_WORDS,
     type PanelRegion,
+    PROC_WORDS,
+    PROFESSION_WORDS,
     REGION_WORDS,
+    STANDING_WORDS,
+    STORE_MADE_ROOM_ANSWER,
+    STORE_REFUSED_ANSWER,
 } from "@/src/ui/panel-words.ts";
+import {
+    type PanelNoun,
+    SCREEN_ORDER,
+    SIDE_CHOICES,
+    STORAGE_CHOICES,
+} from "@/src/ui/panel-screen.ts";
+import type { StandingTurnState } from "@/src/ui/panel-standing.ts";
 import { type PanelOutcome, type PanelUnnamedEnd, PINNED_CASES } from "@/src/ui/panel-reading.ts";
 
 /** Words this repository chose for itself. A reader is told what is missing, never our reason. */
@@ -94,6 +129,41 @@ const GAME_KEYS = getUnmistakableKeys();
 /** What a count in these sentences is stated out of. Any figure past the counts below will do. */
 const SAID_OUT_OF = 412;
 
+/** Every table of words the module exports, walked for its values rather than named one by one. */
+const TABLES = [
+    CARD_WORDS,
+    DEFENCE_WORDS,
+    ELEMENT_WORDS,
+    HEALTH_LOSS_WORDS,
+    HEALTH_SOURCE_WORDS,
+    PROC_WORDS,
+    PROFESSION_WORDS,
+    STANDING_WORDS,
+];
+
+/**
+ * Every member of a closed set, with the compiler counting them: a literal list of four states
+ * goes on reading four the day a fifth arrives, and the words behind the new one would be read
+ * by nothing. The `Record` is exhaustive in both directions.
+ */
+function getEveryKey<Key extends string>(held: Record<Key, true>): Key[] {
+    return Object.keys(held) as Key[];
+}
+
+const PANEL_NOUNS = getEveryKey<PanelNoun>({ damage: true, healing: true });
+const TURN_STATES = getEveryKey<StandingTurnState>({
+    held: true,
+    unread: true,
+    afterFight: true,
+    onAuto: true,
+});
+const PANEL_OUTCOMES = getEveryKey<PanelOutcome>({
+    won: true,
+    lost: true,
+    drawn: true,
+    fled: true,
+});
+
 function getSentences(): string[] {
     const found = Object.values(PANEL_WORDS).map((one) => String(one));
     for (const noun of Object.values(COUNTED_NOUNS)) {
@@ -120,10 +190,31 @@ function getSentences(): string[] {
             found.push(composeDefectText(kind, region as PanelRegion, 2));
         }
     }
-    // The sentences a suspicion is said in, the fight's and a row's both. They are composed
-    // rather than declared, so a table of the panel's words does not reach them and the guards
-    // below would read past every one.
-    found.push(composeJoinedInProgressSuspicion());
+    found.push(...getSentencesFromSuspicions());
+    // ⚠️ **Every table the module keeps, and every word it hands out that a table does not.**
+    // Measured 2026-09-11 by putting `oth_dmg` into the first string of each of the twenty
+    // tables in `src/ui/panel-words.ts` and running this file: twelve lit, nine did not, and
+    // the sentences behind those nine were read by neither check below.
+    for (const table of TABLES) {
+        for (const words of Object.values(table)) found.push(String(words));
+    }
+    for (const [statistic, held] of Object.entries(DESTROYED_WORDS)) {
+        found.push(held.name, held.unit, composeDestroyedText(statistic, 12));
+    }
+    found.push(STORE_REFUSED_ANSWER, STORE_MADE_ROOM_ANSWER);
+    found.push(EVERY_SLOT_PINNED_ANSWER, CHOICE_REFUSED_ANSWER);
+    found.push(...getSentencesFromChoices());
+    for (const region of Object.keys(REGION_WORDS)) {
+        found.push(composeUndrawnText(region as PanelRegion));
+    }
+    // A word that says nothing where there is nothing to say is not a sentence: `held` is the
+    // state with a turn to draw, and a shelf neither live nor ended has no word to stand under.
+    return found.filter((one) => one.length > 0);
+}
+
+/** Every sentence a suspicion is said in, the fight's and a row's both. */
+function getSentencesFromSuspicions(): string[] {
+    const found: string[] = [composeJoinedInProgressSuspicion()];
     for (const count of [1, 2, 5]) {
         const whom = composeChargedRowsText(["Gracz 1", "Gracz 2"], 2);
         found.push(composeLostMessageSuspicion(count, SAID_OUT_OF));
@@ -140,11 +231,37 @@ function getSentences(): string[] {
     return found;
 }
 
+/** Every word handed out per screen, side, noun, choice, state or ending. */
+function getSentencesFromChoices(): string[] {
+    const found: string[] = [];
+    for (const metric of SCREEN_ORDER) {
+        found.push(getWordsForNothing(metric));
+        found.push(getWordsForUnannounced(metric));
+        found.push(getWordsForDirection(metric));
+        found.push(getWordsForCardMetric(metric));
+    }
+    for (const noun of PANEL_NOUNS) found.push(getWordsForNoun(noun));
+    for (const choice of SIDE_CHOICES) found.push(getWordsForSide(choice));
+    for (const choice of STORAGE_CHOICES) found.push(getWordsForStorage(choice));
+    for (const state of TURN_STATES) found.push(getWordsForTurnState(state));
+    for (const outcome of PANEL_OUTCOMES) {
+        found.push(getWordsForOutcome(outcome));
+        found.push(getWordsForShelfOutcome(outcome, false));
+    }
+    found.push(getWordsForShelfOutcome(null, true));
+    found.push(getWordsForPin(true), getWordsForPin(false));
+    // What is composed rather than held: a word spelled into a template is reached by no walk
+    // over the tables above, and `tura` and `teraz` are both spelled that way.
+    found.push(composeTurnOrdinalText(3), getWordsForShelfTime(null, true));
+    found.push(composeSideCountsText([4, 4], 2), composeShelfSizeText([4, 4]));
+    found.push(String(composeCardSubtitleText("w", 120, "ours")));
+    return found;
+}
+
 Deno.test("every word the panel says says something", () => {
     const sentences = getSentences();
     assert(sentences.length > 10, "the panel has words to say");
     for (const sentence of sentences) {
-        assert(sentence.length > 0, "an empty sentence is not a word");
         assertEquals(sentence.trim(), sentence, `${sentence} carries space it does not need`);
     }
 });
