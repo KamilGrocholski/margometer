@@ -210,25 +210,10 @@ function draw(
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
-        listName: SHOWN_LIST,
-        reading: reading,
-        current: "damageDealtApplied",
-        side: "everyone" as const,
+        ...composeShownScreen(reading),
         readerSide: place.readerSide,
         turnHolderId: place.turnHolderId,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
         defects,
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
     });
     return panel.element as FakeElement;
 }
@@ -289,27 +274,7 @@ Deno.test("the strips say which screen the panel is on, and mark it as more than
 Deno.test("the side strip is drawn where the client said which side is the reader's own", () => {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({
-        listName: SHOWN_LIST,
-        reading: readFight(),
-        current: "damageDealtApplied",
-        side: "reader",
-        readerSide: 1,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show({ ...composeShownScreen(readFight()), side: "reader", readerSide: 1 });
     const host = panel.element as FakeElement;
     const strips = getElementsWithin(host).filter((one) => one.className === "strips");
     assertEquals(strips.length, 2, "two rows, and whose rows shares the lower one");
@@ -336,25 +301,10 @@ Deno.test("the shelf is a screen of its own, with the way back and no strips at 
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
-        listName: SHOWN_LIST,
-        reading: readFight(),
-        current: "damageDealtApplied",
-        side: "everyone",
+        ...composeShownScreen(readFight()),
         readerSide: 1,
-        turnHolderId: null,
-        shelf: [],
         isOnShelf: true,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
         place: "Mapa (1, 2)",
-        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     // A header saying how this fight went, over a list of other fights, answers a question
@@ -951,27 +901,7 @@ Deno.test("a press on a strip reaches the panel, and a press on anything else do
     const document = composeFakeDocument();
     const pressed: PanelPress[] = [];
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
-    panel.show({
-        listName: SHOWN_LIST,
-        reading: readFight(),
-        current: "damageDealtApplied",
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show(composeShownScreen(readFight()));
     const host = panel.element as FakeElement;
     const strips = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "strip");
     const other = strips.find((one) => one.attributes.get("data-screen") === "damageTakenApplied");
@@ -990,27 +920,7 @@ Deno.test("a press on a side asks for that side, and on the shelf for the shelf"
     const document = composeFakeDocument();
     const pressed: PanelPress[] = [];
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
-    panel.show({
-        listName: SHOWN_LIST,
-        reading: readFight(),
-        current: "damageDealtApplied",
-        side: "everyone" as const,
-        readerSide: 1,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show({ ...composeShownScreen(readFight()), readerSide: 1 });
     const host = panel.element as FakeElement;
     const opposing = getElementsWithin(host).find(
         (one) => one.attributes.get("data-side") === "opposing",
@@ -1078,27 +988,7 @@ Deno.test("a region that cannot be drawn is replaced by itself, and the rest sta
         },
     };
     const panel = composePanelHost(document, () => {}, (failure) => failures.push(failure));
-    panel.show({
-        listName: SHOWN_LIST,
-        reading: broken,
-        current: "damageDealtApplied",
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show(composeShownScreen(broken));
     const host = panel.element as FakeElement;
     assertEquals(failures.length, 1, "the failure is reported once");
     assertEquals(
@@ -1130,27 +1020,7 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
     const { reading, drill, opened } = openFirstRow();
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({
-        listName: SHOWN_LIST,
-        reading,
-        current: "damageDealtApplied",
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show({ ...composeShownScreen(reading), drill });
     const host = panel.element as FakeElement;
     const within = getElementsWithin(host);
     const crumbs = getTextsByClass(host, "crumb-here");
@@ -1290,27 +1160,7 @@ Deno.test("a kind's row carries a bar of its own, measured against its own cut",
     const { reading, drill } = openFirstRow();
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({
-        listName: SHOWN_LIST,
-        reading,
-        current: "damageDealtApplied",
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show({ ...composeShownScreen(reading), drill });
     const host = panel.element as FakeElement;
     const bars = getElementsWithin(host).filter((one) => one.className === "bar");
     assertEquals(
@@ -1345,18 +1195,7 @@ Deno.test("a part of a figure no kind was stated for is drawn last, under the ki
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
-        listName: SHOWN_LIST,
-        reading,
-        current: "damageDealtApplied",
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
+        ...composeShownScreen(reading),
         // Health that went down outside a blow, which the protocol states carrying no kind.
         drill: {
             ...drill,
@@ -1365,12 +1204,6 @@ Deno.test("a part of a figure no kind was stated for is drawn last, under the ki
                 unnamed: { figure: 140, fill: 0.1, shareText: "<1%" },
             },
         },
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     const named = getTextsByClass(host, "row-name");
@@ -1384,27 +1217,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
     const pressed: PanelPress[] = [];
     const document = composeFakeDocument();
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
-    panel.show({
-        listName: SHOWN_LIST,
-        reading,
-        current: "damageDealtApplied",
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show(composeShownScreen(reading));
     const host = panel.element as FakeElement;
     // The press lands on the deepest element under the pointer, which is the name inside the row.
     const name = getElementsWithin(host).find((one) => one.className === "row-name");
@@ -1412,27 +1225,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
     pressElement(host, "pointerdown", name);
     assertEquals(pressed, [{ kind: "row", stated: `${reading.rows[0]?.combatantId}` }], "that row");
 
-    panel.show({
-        listName: SHOWN_LIST,
-        reading,
-        current: "damageDealtApplied",
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show({ ...composeShownScreen(reading), drill });
     const back = getElementsWithin(host).find((one) => one.className === "crumb-back");
     assertExists(back, "an opened row has a way back");
     pressElement(host, "pointerdown", back);
@@ -1449,26 +1242,7 @@ Deno.test("pressing a row asks to open it, and the way back asks to close it", (
 Deno.test("the bar says where the fight is being fought, and stays a bar without it", () => {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    const shown = {
-        listName: SHOWN_LIST,
-        reading: readFight(),
-        current: "damageDealtApplied" as const,
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        isCollapsed: false,
-    };
+    const shown = composeShownScreen(readFight());
     panel.show({ ...shown, place: "Mapa (12, 34)" });
     const host = panel.element as FakeElement;
     // A line of its own under the headcount, because it is the one thing on the header whose
@@ -1495,27 +1269,7 @@ Deno.test("a folded panel is its bar and nothing else, and offers the way back",
     const pressed: PanelPress[] = [];
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
     const host = panel.element as FakeElement;
-    const shown = {
-        listName: SHOWN_LIST,
-        reading: readFight(),
-        current: "damageDealtApplied" as const,
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    };
+    const shown = composeShownScreen(readFight());
 
     panel.show(shown);
     // A block body, not an expression: the recursion guard reads a one-line named arrow as
@@ -1564,27 +1318,7 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
         BUILD_VERSION,
         "the host states it where anything outside the root can read it",
     );
-    panel.show({
-        listName: SHOWN_LIST,
-        reading: readFight(),
-        current: "damageDealtApplied",
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        isCollapsed: false,
-        place: "Mapa (12, 34)",
-    });
+    panel.show({ ...composeShownScreen(readFight()), place: "Mapa (12, 34)" });
     assertEquals(
         getTextsByClass(host, "titlebar-version"),
         [BUILD_VERSION],
@@ -1880,27 +1614,7 @@ Deno.test("a person under an opened skill opens a card promising no gesture", ()
     assertExists(skill, "which opens onto the people it reached");
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({
-        listName: SHOWN_LIST,
-        reading,
-        current: "healthGiven",
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill,
-        pair: null,
-        part: skill,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show({ ...composeShownScreen(reading, "healthGiven"), drill, part: skill });
     const host = panel.element as FakeElement;
     const reached = skill.byOpponent.rows[0];
     assertExists(reached, "somebody it reached");
@@ -1927,27 +1641,7 @@ Deno.test("a share inside an opened row is of that row, never of the fight", () 
     const { reading, drill } = openFirstRow();
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({
-        listName: SHOWN_LIST,
-        reading,
-        current: "damageDealtApplied",
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show({ ...composeShownScreen(reading), drill });
     const host = panel.element as FakeElement;
     const kind = drill.byElement.rows[0];
     assertExists(kind, "the opened row is cut by kind");
@@ -1975,12 +1669,7 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
-        listName: SHOWN_LIST,
-        reading: readFight(),
-        current: "damageDealtApplied",
-        side: "everyone",
-        readerSide: null,
-        turnHolderId: null,
+        ...composeShownScreen(readFight()),
         shelf: [{
             openedAt: 17,
             at: { hour: 21, minute: 5 },
@@ -1993,17 +1682,6 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
             isPinnable: true,
         }],
         isOnShelf: true,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     const row = getElementsWithin(host).find((one) =>
@@ -2089,27 +1767,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
         handleMoved: (position) => moved.push(position),
     });
     const host = panel.element as FakeElement;
-    panel.show({
-        listName: SHOWN_LIST,
-        reading: readFight(),
-        current: "damageDealtApplied",
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show(composeShownScreen(readFight()));
     const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
     assertExists(bar, "the bar is drawn");
     assertEquals(bar.attributes.get("data-grip"), "panel", "and it says which window it drags");
@@ -2243,27 +1901,7 @@ Deno.test("a healing row opens, and says whose the health was and what put it ba
         assertExists(drill, `${screen}: and it opens`);
         const document = composeFakeDocument();
         const panel = composePanelHost(document, () => {}, () => {});
-        panel.show({
-            listName: SHOWN_LIST,
-            reading,
-            current: screen,
-            side: "everyone" as const,
-            readerSide: null,
-            turnHolderId: null,
-            shelf: [],
-            isOnShelf: false,
-            storage: "local" as const,
-            hasFightToSave: true,
-            shelfAnswers: [],
-            defects: [],
-            drill,
-            pair: null,
-            part: null,
-            halfNamed: null,
-            halfNamedDrill: null,
-            place: null,
-            isCollapsed: false,
-        });
+        panel.show({ ...composeShownScreen(reading, screen), drill });
         const host = panel.element as FakeElement;
         return getElementsWithin(host)
             .filter((one) => one.className === "section-heading")
@@ -2288,27 +1926,10 @@ Deno.test("a row opened on a screen its own figure is nothing on says so, about 
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
-        listName: SHOWN_LIST,
-        reading,
-        current: "healthGiven",
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
+        ...composeShownScreen(reading, "healthGiven"),
         // The same person, carried onto a screen they did nothing on: one press of a strip away,
         // because the strips carry an opened row from screen to screen.
         drill: { ...drill, total: 0, byOpponent: { rows: [], unnamed: null } },
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     assertEquals(
@@ -2324,27 +1945,7 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
     const drawOpened = (open: typeof drill | null) => {
         const document = composeFakeDocument();
         const panel = composePanelHost(document, () => {}, () => {});
-        panel.show({
-            listName: SHOWN_LIST,
-            reading,
-            current: "damageDealtApplied",
-            side: "everyone" as const,
-            readerSide: null,
-            turnHolderId: null,
-            shelf: [],
-            isOnShelf: false,
-            storage: "local" as const,
-            hasFightToSave: true,
-            shelfAnswers: [],
-            defects: [],
-            drill: open,
-            pair: null,
-            part: null,
-            halfNamed: null,
-            halfNamedDrill: null,
-            place: null,
-            isCollapsed: false,
-        });
+        panel.show({ ...composeShownScreen(reading), drill: open });
         const host = panel.element as FakeElement;
         const list = getElementsWithin(host).find((one) => one.className.startsWith("list"));
         return list?.attributes.get("style");
@@ -2451,27 +2052,7 @@ Deno.test("a cut that repeats the figure above it is drawn all the same", () => 
     const headings = (open: typeof drill) => {
         const document = composeFakeDocument();
         const panel = composePanelHost(document, () => {}, () => {});
-        panel.show({
-            listName: SHOWN_LIST,
-            reading,
-            current: "damageTakenApplied",
-            side: "everyone" as const,
-            readerSide: null,
-            turnHolderId: null,
-            shelf: [],
-            isOnShelf: false,
-            storage: "local" as const,
-            hasFightToSave: true,
-            shelfAnswers: [],
-            defects: [],
-            drill: open,
-            pair: null,
-            part: null,
-            halfNamed: null,
-            halfNamedDrill: null,
-            place: null,
-            isCollapsed: false,
-        });
+        panel.show({ ...composeShownScreen(reading, "damageTakenApplied"), drill: open });
         const host = panel.element as FakeElement;
         return getElementsWithin(host)
             .filter((one) => one.className === "section-heading")
@@ -2518,27 +2099,7 @@ Deno.test("a lone row of a section names what the heading over it never does", (
     const headings = (open: typeof drill) => {
         const document = composeFakeDocument();
         const panel = composePanelHost(document, () => {}, () => {});
-        panel.show({
-            listName: SHOWN_LIST,
-            reading,
-            current: "damageDealtApplied",
-            side: "everyone" as const,
-            readerSide: null,
-            turnHolderId: null,
-            shelf: [],
-            isOnShelf: false,
-            storage: "local" as const,
-            hasFightToSave: true,
-            shelfAnswers: [],
-            defects: [],
-            drill: open,
-            pair: null,
-            part: null,
-            halfNamed: null,
-            halfNamedDrill: null,
-            place: null,
-            isCollapsed: false,
-        });
+        panel.show({ ...composeShownScreen(reading), drill: open });
         return getElementsWithin(panel.element as FakeElement)
             .filter((one) => one.className === "section-heading")
             .map((one) => one.children[0]?.textContent);
@@ -2618,23 +2179,7 @@ Deno.test("a heading is its words and a figure, and says only what its level is 
     for (const level of levels) {
         const document = composeFakeDocument();
         const panel = composePanelHost(document, () => {}, () => {});
-        panel.show({
-            listName: SHOWN_LIST,
-            ...level,
-            side: "everyone" as const,
-            readerSide: null,
-            turnHolderId: null,
-            shelf: [],
-            isOnShelf: false,
-            storage: "local" as const,
-            hasFightToSave: true,
-            shelfAnswers: [],
-            defects: [],
-            halfNamed: null,
-            halfNamedDrill: null,
-            place: null,
-            isCollapsed: false,
-        });
+        panel.show({ ...composeShownScreen(reading), ...level });
         const cells = getHeadingCells(panel.element as FakeElement);
         assert(cells.length > 0, "a level that cuts a figure draws a heading over each cut");
         counted += cells.length;
@@ -2673,18 +2218,7 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
     panel.show({
-        listName: SHOWN_LIST,
-        reading,
-        current: "damageDealtApplied",
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
+        ...composeShownScreen(reading),
         // Three blows that were all blocked are three blows: the row is drawn at nothing, and a
         // section that skipped it would say the combatant never swung.
         drill: {
@@ -2695,12 +2229,6 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
                 plain: { blows: 3, figure: 0, fill: 0, shareText: "0%" },
             },
         },
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     const named = getTextsByClass(host, "row-name");
@@ -2809,25 +2337,8 @@ Deno.test("a skill that opens asks for itself by name, wherever the press lands 
         },
     ];
     panel.show({
-        listName: SHOWN_LIST,
-        reading,
-        current: "healthGiven",
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
+        ...composeShownScreen(reading, "healthGiven"),
         drill: { ...drill, total: 1000, bySkill: { rows, rest: null, plain: null } },
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
     });
     const host = panel.element as FakeElement;
     const named = getElementsWithin(host).filter((one) => one.className === "row-name");
@@ -2873,26 +2384,7 @@ Deno.test("every row in a list draws the same cells before its name", () => {
     const { reading, drill } = openFirstRow();
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    const shown = {
-        listName: SHOWN_LIST,
-        reading,
-        current: "damageDealtApplied" as const,
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    };
+    const shown = composeShownScreen(reading);
     const shapes = new Map<string, string[]>();
     for (const [screen, opened] of [["ranking", null], ["drilled", drill]] as const) {
         panel.show({ ...shown, drill: opened });
@@ -2935,27 +2427,7 @@ Deno.test("a healing section draws the key the game named, not a row saying it d
     assertEquals(drill.bySkill.plain, null, "onto a section closing against nothing");
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({
-        listName: SHOWN_LIST,
-        reading,
-        current: "healthGiven" as const,
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show({ ...composeShownScreen(reading, "healthGiven"), drill });
     const named = getTextsByClass(panel.element as FakeElement, "row-name");
     assert(
         named.includes(getWordsForHealthSource("heal")),
@@ -3118,27 +2590,7 @@ function composeNotesForOpenedRow(
     assertExists(drill, "the row opens");
     const document = composeFakeDocument();
     const panel = composePanelHost(document, () => {}, () => {});
-    panel.show({
-        listName: SHOWN_LIST,
-        reading,
-        current: metric,
-        side: "everyone" as const,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    });
+    panel.show({ ...composeShownScreen(reading, metric), drill });
     const host = panel.element as FakeElement;
     const found = new Map<string, string[]>();
     for (const row of getElementsWithin(host).filter((one) => one.className === "row-name")) {
