@@ -6,9 +6,17 @@
  * the difference that matters in the last test here.
  */
 
-import { assert, assertEquals, assertExists, assertNotStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertFalse,
+    assertNotStrictEquals,
+    assertThrows,
+} from "@std/assert";
+import { AssertionError } from "@std/assert/assertion-error";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import { decodeFightMessages, MAXIMUM_MESSAGES } from "@/src/core/fight-decoder.ts";
 import {
     addPayloadToFight,
     composeFightUnderway,
@@ -324,4 +332,31 @@ Deno.test("no recording is a fight joined in progress, and each says so", () => 
             `${path}: a recording carries the payload that opened its fight`,
         );
     }
+});
+
+/**
+ * A payload lands whole or not at all. The reads run first, so a bound tripped anywhere in them
+ * leaves the fight exactly as it stood — rather than counting a payload whose events never
+ * arrived, and leaving an `endBattle` that never closed the fight.
+ */
+Deno.test("a payload past the bound moves nothing, and closes no fight", () => {
+    const underway = composeFightUnderway();
+    addPayloadToFight(underway, { init: 1, m: ["0;0;txt=a", "0;0;txt=b"] });
+    const stood = getReadingFromFight(underway);
+    assertExists(stood, "a fight stands before the oversized payload arrives");
+
+    const over = new Array(MAXIMUM_MESSAGES + 1).fill("0;0;txt=c");
+    assertThrows(
+        () => addPayloadToFight(underway, { endBattle: 1, m: over }),
+        AssertionError,
+        "a payload stays inside its stated bound",
+    );
+
+    const after = getReadingFromFight(underway);
+    assertExists(after, "and the fight is still there afterwards");
+    assertEquals(after.payloads, stood.payloads, "the payload that failed was not counted");
+    assertEquals(after.messagesRead, stood.messagesRead, "nor were its messages read");
+    assertEquals(after.messagesByPayload.length, 1, "nor kept");
+    assertEquals(after.events.length, stood.events.length, "and it left no events behind");
+    assertFalse(after.isOver, "and the `endBattle` it carried closed nothing");
 });

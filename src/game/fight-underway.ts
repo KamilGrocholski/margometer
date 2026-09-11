@@ -16,7 +16,7 @@ import {
     type CombatantRoster,
     composeCombatantRoster,
 } from "@/src/core/combatant-roster.ts";
-import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import { decodeFightMessages, MAXIMUM_MESSAGES } from "@/src/core/fight-decoder.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import {
     getNumberFromUnknown,
@@ -180,7 +180,7 @@ function readMessagesFromPayload(payload: Record<string, unknown>): string[] {
 function readMessageCountFromPayload(payload: Record<string, unknown>): number {
     const stated = payload[MESSAGE_INDEX_KEY];
     if (!Array.isArray(stated)) return 0;
-    assert(stated.length <= MAXIMUM_EVENTS, "a payload states no more messages than a fight holds");
+    assert(stated.length <= MAXIMUM_MESSAGES, "a payload states no more messages than one carries");
     return stated.length;
 }
 
@@ -237,47 +237,54 @@ export function isFightStart(payload: unknown): boolean {
 export function addPayloadToFight(underway: FightUnderway, payload: unknown): void {
     if (!isRecord(payload)) return;
     if (isFightStart(payload)) resetFight(underway);
+    // ⚠️ **Everything that can throw is read before anything is written**, so a payload lands
+    // whole or not at all. A bound tripped part way through leaves a fight counting a payload
+    // whose events never arrived, and an `endBattle` that never closed it — a fight that decodes
+    // wrong, where this boundary promises one that decodes no further (**E5**, **A7**).
+    const arriving = readCombatantsFromPayload(payload);
+    const roster = composeCombatantRoster([...underway.combatants, ...arriving]);
+    const messages = readMessagesFromPayload(payload);
+    const stated = readMessageCountFromPayload(payload);
+    const decoded = decodeFightMessages(messages, roster);
+    // Kept once seen: a payload saying nothing about it would otherwise end the auto fight a
+    // reader is watching, and only the game's own word for it takes it away.
+    const isOnAuto = readAutoFightFromPayload(payload) ?? underway.isOnAuto;
+    // No payload states an auto fight and a queue at once, `captures/` 2026-09-09, so what the
+    // game stated before it took the fight over is not the turn in hand (**ADR 0072**). Off auto,
+    // a payload stating no queue leaves the turn the one before it stated standing, rather than
+    // taking the reading away mid-fight.
+    const turnStatement = isOnAuto ? null : (readTurnStatement(payload) ?? underway.turnStatement);
+    // The charge is stated in the envelope and its ending is in this payload's own messages, so
+    // both halves are read here, where the two are together for the only time.
+    const chargedSkills = composeChargedSkills(
+        underway.chargedSkills,
+        readChargedSkillStatements(payload),
+        decoded,
+        turnStatement?.ordinal ?? null,
+    );
+    assert(
+        underway.events.length + decoded.length <= MAXIMUM_EVENTS,
+        "a fight stays inside its bound",
+    );
+    assert(underway.messagesByPayload.length < MAXIMUM_EVENTS, "and so does what it kept");
     // `init` arrives once, so only the first payload of a fight can answer this.
     if (underway.payloads === 0) underway.hasJoinedInProgress = !isFightStart(payload);
     underway.hasFight = true;
     underway.payloads += 1;
-    for (const combatant of readCombatantsFromPayload(payload)) underway.combatants.push(combatant);
+    for (const combatant of arriving) underway.combatants.push(combatant);
     // Kept once seen, because only the opening payload carries it: a fragment saying nothing
     // about the side would otherwise take the reader's own away mid-fight.
     underway.readerSide = readReaderSideFromPayload(payload) ?? underway.readerSide;
-    // Kept on the same terms: a payload saying nothing about it would otherwise end the auto
-    // fight a reader is watching, and only the game's own word for it takes it away.
-    underway.isOnAuto = readAutoFightFromPayload(payload) ?? underway.isOnAuto;
-    if (underway.isOnAuto) {
-        // No payload states this and a queue at once, `captures/` 2026-09-09, so what the game
-        // stated before it took the fight over is not the turn in hand (**ADR 0072**).
-        underway.turnStatement = null;
-    } else {
-        // A payload stating no queue leaves the turn the one before it stated standing, rather
-        // than taking the reading away mid-fight.
-        underway.turnStatement = readTurnStatement(payload) ?? underway.turnStatement;
-    }
-    const roster = composeCombatantRoster(underway.combatants);
-    const messages = readMessagesFromPayload(payload);
+    underway.isOnAuto = isOnAuto;
+    underway.turnStatement = turnStatement;
+    underway.chargedSkills = chargedSkills;
     underway.messagesByPayload.push(messages);
     underway.messagesRead += messages.length;
-    const stated = readMessageCountFromPayload(payload);
     if (stated > messages.length) underway.messagesLost += stated - messages.length;
-    assert(underway.messagesLost >= 0, "what a payload stated and nobody read is never negative");
-    assert(underway.messagesRead >= messages.length, "and what it did read is counted once");
-    const decoded = decodeFightMessages(messages, roster);
-    // The charge is stated in the envelope and its ending is in this payload's own messages, so
-    // both halves are read here, where the two are together for the only time.
-    underway.chargedSkills = composeChargedSkills(
-        underway.chargedSkills,
-        readChargedSkillStatements(payload),
-        decoded,
-        underway.turnStatement?.ordinal ?? null,
-    );
     for (const event of decoded) underway.events.push(event);
     if (FIGHT_ENDS_KEY in payload) underway.isOver = true;
-    assert(underway.events.length <= MAXIMUM_EVENTS, "a fight stays inside its stated bound");
-    assert(underway.messagesByPayload.length <= MAXIMUM_EVENTS, "and so does what it kept");
+    assert(underway.messagesLost >= 0, "what a payload stated and nobody read is never negative");
+    assert(underway.messagesRead >= messages.length, "and what it did read is counted once");
     assert(underway.payloads > 0, "a payload that was read is counted");
     assert(underway.hasFight, "and leaves a fight behind it, however little it stated");
 }

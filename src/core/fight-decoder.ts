@@ -286,8 +286,19 @@ const VALUELESS_DECLARATION_KEYS = [
     "removestun-allies",
     STEP_KEY,
 ];
-/** The longest message list in one payload of `captures/` holds 627, 2026-08-28. */
-const MAXIMUM_MESSAGES = 4096;
+/**
+ * ⚠️ **One payload can carry a whole fight**, so this is not a bound on a fraction of one: a fight
+ * joined underway or run by the game itself delivers its log in the opening call. What sizes it is
+ * the cost, which is paid inside the game's own `updateData` and so blocks it (**S13**): a little
+ * over two microseconds a message, best of 20 over the 627-message payload of
+ * `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`, 2026-09-11 — about 70
+ * milliseconds at this bound. `tests/core/fight-decoder.test.ts` measures the headroom over the
+ * corpus rather than stating a figure here.
+ *
+ * **Below `game/fight-underway.ts`'s bound on a fight's events**, because every message leaves at
+ * least one event behind: a bound equal to that one could never be the one that fires.
+ */
+export const MAXIMUM_MESSAGES = 32768;
 /** The longest message in `captures/` carries 40 parameters, 2026-08-28. */
 const MAXIMUM_PARAMETERS = 512;
 /** A skill's name is a phrase; the longest in `captures/` is far short of this, 2026-09-01. */

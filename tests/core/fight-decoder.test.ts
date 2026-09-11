@@ -5,9 +5,17 @@
  * holds over all of them, which is where a key family that stops being read would show.
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertLess,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
+import { AssertionError } from "@std/assert/assertion-error";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
-import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import { decodeFightMessages, MAXIMUM_MESSAGES } from "@/src/core/fight-decoder.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import {
     getRecordedCombatants,
@@ -646,4 +654,37 @@ Deno.test("every message in every recording decodes, and the pairs hold", () => 
         readRecordingPaths().length * 2,
         "each fight ends once, twice over",
     );
+});
+
+/**
+ * The bound both ways, which nothing drove until the constant was exported. A payload carrying a
+ * whole fight is the shape it exists for, so the sample is one message repeated: what is measured
+ * here is the length the decoder accepts, not what the messages say.
+ */
+Deno.test("a payload is decoded up to the stated bound, and refused past it", () => {
+    const one = "0;0;txt=a";
+    const full = new Array(MAXIMUM_MESSAGES).fill(one);
+    const events = decodeFightMessages(full, null);
+    assertEquals(events.length, MAXIMUM_MESSAGES, "a payload at the bound decodes whole");
+    assertThrows(
+        () => decodeFightMessages([...full, one], null),
+        AssertionError,
+        "a payload stays inside its stated bound",
+    );
+});
+
+/**
+ * The headroom, measured rather than written into the bound's own comment (**V5**). A recording
+ * arriving whose opening call is nearer the bound than this reddens here, which is the moment the
+ * figure would otherwise have to be re-earned by hand.
+ */
+Deno.test("no recording carries a payload anywhere near the bound", () => {
+    let longest = 0;
+    for (const path of readRecordingPaths()) {
+        for (const payload of getRecordedPayloads(path)) {
+            if (payload.length > longest) longest = payload.length;
+        }
+    }
+    assert(longest > 0, "the recordings carry messages at all");
+    assertLess(longest * 8, MAXIMUM_MESSAGES, "and the widest of them is far inside the bound");
 });
