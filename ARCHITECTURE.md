@@ -756,3 +756,22 @@ commit that opens or closes one.
     shape of a tautology and `Array.isArray` over a typed array is another. Until something runs it,
     the rule is read rather than held, and the figure **S5** reports carries whatever noise has
     accumulated since. The margin **ADR 0074** put under the floor is what buys the time.
+
+19. **Nothing that reads the figures is independent of the decoder.** Every tool that states a
+    number — `fight:figures`, `fight:turns`, `fight:decoding`, `panel:drill`, `fight:auras` — goes
+    through `tools/fight-replay.ts` into `src/core/`, which is deliberate and is what lets
+    `docs/turns-taken.md` say a tool and the panel cannot disagree about a fight. What it means is
+    that every one of them agrees by construction, and none of them is evidence that the reading
+    matches the protocol rather than matching itself.
+
+    **Measured by hand once, 2026-09-11**, by summing damage straight out of `captures/` in a
+    program that shares no line with this tree. On `2026-08-11-tempest-tancerz-vs-wermont-…`, one
+    against one: raw, applied and taken agree for both combatants exactly. On
+    `2026-08-25-luvia-grupa-vs-draugr-none-none`, ten against one: raw agrees for all ten, and
+    applied for all ten once `+oth_dmg` is allowed for — the hand reading did not implement it, and
+    the two combatants it differed on are the boss, who spreads damage by name, and the one player
+    carrying three of that key.
+
+    It closes when something stands the second reading up as a guard rather than a hand. That is a
+    second decoder to maintain and to get wrong, which is why the measurement is here and the
+    machinery is not.
