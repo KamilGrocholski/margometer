@@ -181,6 +181,21 @@ function removeMember(page: Record<string, unknown>, path: string): void {
  * `Window` claimed rather than checked — and a page missing one of the members the add-on calls
  * threw a raw failure into the game's console with nothing to catch it. **ADR 0051.**
  */
+
+/**
+ * The add-on stood up on a page of its own, with a recording replayed through the wrap it put on
+ * the game's method. Nine tests opened on these seven lines before this stood here.
+ */
+function replayRecordedFight(path: string = HILDUR) {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(path)) update(payload);
+    return { environment, update, host: shown[0] as FakeElement };
+}
+
 Deno.test("a page stating what the add-on calls is taken up, and one that does not is left", () => {
     const battle: Record<string, unknown> = { updateData: () => "the engine's own answer" };
     const engineOwn = battle.updateData;
@@ -461,13 +476,7 @@ Deno.test("a page answering with no size and no clock still draws its fight", ()
 });
 
 Deno.test("a reader presses a screen and the panel goes there, and nowhere else", () => {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
-    const { environment, shown } = composeEnvironment({ Engine: { battle } });
-    startMargoMeter(environment);
-    const update = battle.updateData;
-    assert(typeof update === "function", "the wrap went on");
-    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
-    const host = shown[0] as FakeElement;
+    const { environment, host } = replayRecordedFight();
 
     const current = () =>
         getElementsWithin(host)
@@ -843,13 +852,7 @@ Deno.test("the fight handed over is the one on screen, kept ones included", () =
 });
 
 Deno.test("the shelf has a screen of its own, and its control toggles", () => {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
-    const { environment, shown } = composeEnvironment({ Engine: { battle } });
-    startMargoMeter(environment);
-    const update = battle.updateData;
-    assert(typeof update === "function", "the wrap went on");
-    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
-    const host = shown[0] as FakeElement;
+    const { host } = replayRecordedFight();
 
     // On the bar, not on a strip: what it changes is which fight is being read, and the strips
     // are about which figure of the one fight.
@@ -951,13 +954,7 @@ Deno.test("every recording plays through without a word of failure", () => {
 });
 
 Deno.test("a reader opens a row, and every way out of it leads back to the screen", () => {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
-    const { environment, shown } = composeEnvironment({ Engine: { battle } });
-    startMargoMeter(environment);
-    const update = battle.updateData;
-    assert(typeof update === "function", "the wrap went on");
-    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
-    const host = shown[0] as FakeElement;
+    const { host } = replayRecordedFight();
     // A block body, not a one-line arrow: the recursion guard reads a one-line named arrow as
     // running to the end of the block it sits in (`ARCHITECTURE.md`, known gap 12). The name is
     // not `find` for the same reason — a reader over source cannot tell that call from this one.
@@ -1021,13 +1018,7 @@ Deno.test("a reader opens a row, and every way out of it leads back to the scree
  * nothing. Read off the bar, which is the one region every draw replaces.
  */
 Deno.test("a way back with no rung to leave moves nothing, and redraws nothing", () => {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
-    const { environment, shown } = composeEnvironment({ Engine: { battle } });
-    startMargoMeter(environment);
-    const update = battle.updateData;
-    assert(typeof update === "function", "the wrap went on");
-    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
-    const host = shown[0] as FakeElement;
+    const { host } = replayRecordedFight();
     const getRegion = (className: string) => {
         return getElementsWithin(getPanelWithin(host)).find((one) => one.className === className);
     };
@@ -1097,13 +1088,7 @@ function setScreenKept(
  * of that name on the next screen is not this one. **ADR 0038**, **ADR 0039**.
  */
 Deno.test("a reader opens a pinned row, and it does not follow them to the next screen", () => {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
-    const { environment, shown } = composeEnvironment({ Engine: { battle } });
-    startMargoMeter(environment);
-    const update = battle.updateData;
-    assert(typeof update === "function", "the wrap went on");
-    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
-    const host = shown[0] as FakeElement;
+    const { host } = replayRecordedFight();
     const getRegion = (className: string) => {
         return getElementsWithin(getPanelWithin(host)).find((one) => one.className === className);
     };
@@ -1172,13 +1157,7 @@ Deno.test("a reader opens a pinned row, and it does not follow them to the next 
  * to the ranking while the crumb beside it named the person they had opened.
  */
 Deno.test("a reader opens what a figure was made of, and the way back is one rung", () => {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
-    const { environment, shown } = composeEnvironment({ Engine: { battle } });
-    startMargoMeter(environment);
-    const update = battle.updateData;
-    assert(typeof update === "function", "the wrap went on");
-    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
-    const host = shown[0] as FakeElement;
+    const { host } = replayRecordedFight();
     const getRegion = (className: string) => {
         return getElementsWithin(getPanelWithin(host)).find((one) => one.className === className);
     };
@@ -1218,13 +1197,7 @@ Deno.test("a reader opens what a figure was made of, and the way back is one run
 });
 
 Deno.test("a row belonging to nobody in the fight opens nothing", () => {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
-    const { environment, shown } = composeEnvironment({ Engine: { battle } });
-    startMargoMeter(environment);
-    const update = battle.updateData;
-    assert(typeof update === "function", "the wrap went on");
-    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
-    const host = shown[0] as FakeElement;
+    const { environment, host } = replayRecordedFight();
     const getRegion = (className: string) => {
         return getElementsWithin(getPanelWithin(host)).find((one) => one.className === className);
     };
@@ -1274,13 +1247,7 @@ Deno.test("the place a fight is fought reaches the bar, and goes on the shelf wi
 });
 
 Deno.test("a client that says nothing about the place leaves the bar saying nothing", () => {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
-    const { environment, shown } = composeEnvironment({ Engine: { battle } });
-    startMargoMeter(environment);
-    const update = battle.updateData;
-    assert(typeof update === "function", "the wrap went on");
-    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
-    const host = shown[0] as FakeElement;
+    const { host } = replayRecordedFight();
     assertEquals(
         getTextsByClass(host, "header-place"),
         [],
@@ -1561,13 +1528,7 @@ Deno.test("a browser that will not keep the answer moves nothing, and says so", 
 });
 
 Deno.test("a fight off the shelf is read back, and the live one is a press away", () => {
-    const battle: Record<string, unknown> = { updateData: () => 1 };
-    const { environment, shown } = composeEnvironment({ Engine: { battle } });
-    startMargoMeter(environment);
-    const update = battle.updateData;
-    assert(typeof update === "function", "the wrap went on");
-    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
-    const host = shown[0] as FakeElement;
+    const { update, host } = replayRecordedFight();
     const drawnFigures = (): string[] => {
         return getTextsByClass(getPanelWithin(host), "row-value figure");
     };

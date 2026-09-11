@@ -273,6 +273,7 @@ tests/
     panel-crawl.spec.ts    Every control on every screen, opened, walked and closed behind.
   recorded-fight.ts        The recordings, read through the constant that spells their fields.
   fake-document.ts         A document small enough to read, for a panel handed one.
+  shown-screen.ts          A whole view around one reading, for a test changing one field.
   userscript-entry.test.ts  Every layer at once, driven the way a browser drives them.
   source-line.ts           A line of TypeScript with its string literals taken out.
   style-sheet.ts           The panel's stylesheet read back, for the guards that read it.

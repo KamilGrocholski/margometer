@@ -22,6 +22,7 @@ import {
 import { composeFightReplay, composeReplayedMaterial } from "@/tools/fight-replay.ts";
 import { getRecordedFightAt } from "@/tools/recorded-fights.ts";
 import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
+import { composeShownScreen } from "@/tests/shown-screen.ts";
 
 const REGISTER_PATH = "docs/drill-levels.md";
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
@@ -30,7 +31,6 @@ const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.j
  * The place these views stand in. Every test here reads what was drawn rather than where the
  * region was left, so one name says they are all the same place; the scroll tests name their own.
  */
-const SHOWN_LIST = "shown";
 
 /**
  * One row of the register, as the document writes it. The heading is not a row and neither is the
@@ -166,27 +166,7 @@ Deno.test("every row of every ranking carries the mark that opens it", () => {
         );
         const document = composeFakeDocument();
         const panel = composePanelHost(document, () => {}, () => {});
-        panel.show({
-            listName: SHOWN_LIST,
-            reading,
-            current: screen,
-            side: "everyone" as const,
-            readerSide: null,
-            turnHolderId: null,
-            shelf: [],
-            isOnShelf: false,
-            storage: "local" as const,
-            hasFightToSave: true,
-            shelfAnswers: [],
-            defects: [],
-            drill: null,
-            pair: null,
-            part: null,
-            halfNamed: null,
-            halfNamedDrill: null,
-            place: null,
-            isCollapsed: false,
-        });
+        panel.show(composeShownScreen(reading, screen));
         const drawn = getElementsWithin(panel.element as FakeElement)
             .filter((one) => one.className.split(" ")[0] === "row");
         const opening = drawn.filter((one) => one.attributes.get("data-row") !== undefined);

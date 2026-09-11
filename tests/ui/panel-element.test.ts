@@ -19,6 +19,7 @@ import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import { composePanelHost, type PanelPress, type ShownScreen } from "@/src/ui/panel-element.ts";
+import { composeShownScreen, SHOWN_LIST } from "@/tests/shown-screen.ts";
 import {
     composeDrillReading,
     composeHalfNamedReading,
@@ -75,7 +76,6 @@ import { getDeclaration, getRuleBody } from "@/tests/style-sheet.ts";
  * The place these views stand in. Every test here reads what was drawn rather than where the
  * region was left, so one name says they are all the same place; the scroll tests name their own.
  */
-const SHOWN_LIST = "shown";
 /** Somewhere down a list, for a test that cares that the number came back rather than which. */
 const SOMEWHERE_DOWN = 240;
 
@@ -142,31 +142,6 @@ function readPinnedFight(
         NOTHING_SUSPECT,
     );
     return { reading, statistics, roster, readerSide };
-}
-
-/** A whole view around one reading, so a test says only what it is changing about the panel. */
-function composeShownScreen(reading: PanelReading, metric: PanelMetric = "damageDealtApplied") {
-    return {
-        listName: SHOWN_LIST,
-        reading,
-        current: metric,
-        side: "everyone" as PanelSideChoice,
-        readerSide: null,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local" as const,
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    };
 }
 
 /** A pinned row on one screen and one choice of side, with the card a pointer opens on it. */

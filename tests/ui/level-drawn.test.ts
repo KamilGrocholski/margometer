@@ -41,6 +41,7 @@ import { CLASS } from "@/src/ui/panel-look.ts";
 import { composeReplayedMaterial, type FightReplay } from "@/tools/fight-replay.ts";
 import { readRecordingPaths } from "@/tests/recorded-fight.ts";
 import { composeFakeDocument, type FakeElement, getElementsWithin } from "@/tests/fake-document.ts";
+import { composeShownScreen } from "@/tests/shown-screen.ts";
 
 /** The property a list states its height in, and the whole of what a list writes on its style. */
 const ROWS_VARIABLE = "--MargoMeter-rows";
@@ -128,33 +129,13 @@ function readRowKeys(host: FakeElement): Map<string, Set<string>> {
 }
 
 /** One screen of one recording, with nothing open — the view every level is reached from. */
-function composeShownScreen(
+function composeLevelScreen(
     reading: PanelReading,
     metric: PanelMetric,
     side: PanelSideChoice,
     readerSide: number | null,
 ): ShownScreen {
-    return {
-        listName: "one place",
-        reading,
-        current: metric,
-        side,
-        readerSide,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local",
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    };
+    return { ...composeShownScreen(reading, metric), listName: "one place", side, readerSide };
 }
 
 /**
@@ -311,7 +292,7 @@ Deno.test("every level stands as tall as it drew, with one card per row and no t
                     readerSide,
                     NOTHING_SUSPECT,
                 );
-                const base = composeShownScreen(reading, metric, side, readerSide);
+                const base = composeLevelScreen(reading, metric, side, readerSide);
                 const walk: LevelWalk = { replay, metric, side, readerSide, base, short };
                 walked += addLevel(walk, "ranking", {});
                 walked += addOpenedRungs(walk, statistics, roster);

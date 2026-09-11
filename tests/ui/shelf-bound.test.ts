@@ -14,6 +14,7 @@ import { composePanelReading, NOTHING_SUSPECT, type ShelfRow } from "@/src/ui/pa
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { composeFakeDocument } from "@/tests/fake-document.ts";
+import { composeShownScreen } from "@/tests/shown-screen.ts";
 
 /** One row of the shelf, with only the fields a list reads off it. */
 function composeShelfRow(openedAt: number, isLive: boolean): ShelfRow {
@@ -75,25 +76,10 @@ Deno.test("a full shelf with a fight still running draws, rather than going undr
         NOTHING_SUSPECT,
     );
     panel.show({
+        ...composeShownScreen(reading),
         listName: "shelf",
-        reading,
-        current: "damageDealtApplied",
-        side: "everyone",
-        readerSide: null,
-        turnHolderId: null,
         shelf: rows,
         isOnShelf: true,
-        storage: "local",
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
     });
 
     assertEquals(failures, [], "a full shelf with a live fight on it costs the reader no region");

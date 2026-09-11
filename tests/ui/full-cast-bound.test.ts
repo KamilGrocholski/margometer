@@ -28,6 +28,7 @@ import type { PanelSideChoice } from "@/src/ui/panel-screen.ts";
 import { composeFakeDocument, type FakeElement, getTextsByClass } from "@/tests/fake-document.ts";
 import { composeFabricatedFight } from "@/tools/fabricated-fight.ts";
 import { composeFightReplay } from "@/tools/fight-replay.ts";
+import { composeShownScreen } from "@/tests/shown-screen.ts";
 
 /** The screen that pins two figures at once, which is what puts two unnamed rows on one list. */
 const BOTH_ENDS_SCREEN: PanelMetric = "damageTakenApplied";
@@ -47,7 +48,6 @@ const WITHOUT_TARGET = "Nieznany cel";
 const UNKNOWN_TARGET_BLOW = 700;
 /** An id no combatant in the fabricated fight answers to, so the roster names nobody for it. */
 const ONE_TOO_MANY = 999999;
-const SHOWN_LIST = "shown";
 
 /**
  * The fabricated fight already states a blow with no striker; it states none with no target, so
@@ -78,29 +78,8 @@ function composeWidestFight(): {
     };
 }
 
-/** The view the drawing tests stand in, so each of them says only what it is changing. */
-function composeShownScreen(reading: PanelReading, metric: PanelMetric, side: PanelSideChoice) {
-    return {
-        listName: SHOWN_LIST,
-        reading,
-        current: metric,
-        side,
-        readerSide: 1,
-        turnHolderId: null,
-        shelf: [],
-        isOnShelf: false,
-        storage: "local",
-        hasFightToSave: true,
-        shelfAnswers: [],
-        defects: [],
-        drill: null,
-        pair: null,
-        part: null,
-        halfNamed: null,
-        halfNamedDrill: null,
-        place: null,
-        isCollapsed: false,
-    } satisfies ShownScreen;
+function composeFullCastScreen(reading: PanelReading, metric: PanelMetric, side: PanelSideChoice) {
+    return { ...composeShownScreen(reading, metric), side, readerSide: 1 };
 }
 
 /** The panel with that view on it, and whatever a region refused to draw while it went up. */
@@ -170,7 +149,7 @@ Deno.test("a full cast with both ends unknown draws its rows and both unnamed on
     assert(reading.rows.every((one) => one.shareText.length > 0), "every row states its share");
 
     const { host, failures } = drawShownView(
-        composeShownScreen(reading, BOTH_ENDS_SCREEN, "everyone"),
+        composeFullCastScreen(reading, BOTH_ENDS_SCREEN, "everyone"),
     );
     assertEquals(failures, [], "the widest screen there is costs the reader no region");
     assertEquals(getTextsByClass(host, "undrawn"), [], "and leaves no region standing undrawn");
@@ -200,7 +179,7 @@ Deno.test("no screen and no side of the widest fight costs the reader a region",
                 NOTHING_SUSPECT,
             );
             assert(reading.rows.length <= MAXIMUM_COMBATANTS, `${metric} ${side}: inside the cast`);
-            const { host, failures } = drawShownView(composeShownScreen(reading, metric, side));
+            const { host, failures } = drawShownView(composeFullCastScreen(reading, metric, side));
             assertEquals(failures, [], `${metric} ${side}: a region the reader was not shown`);
             assertEquals(getTextsByClass(host, "undrawn"), [], `${metric} ${side}: undrawn`);
             assertStrictEquals(
