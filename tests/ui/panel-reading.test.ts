@@ -25,7 +25,8 @@ import {
 } from "@/src/core/fight-statistics.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import type { FightStatistics } from "@/src/core/fight-statistics.ts";
-import type { PanelSideChoice } from "@/src/ui/panel-screen.ts";
+import { type PanelSideChoice, SCREEN_ORDER, SIDE_CHOICES } from "@/src/ui/panel-screen.ts";
+import { composeReplayedMaterial } from "@/tools/fight-replay.ts";
 import type {
     ElementRow,
     HalfNamedOpened,
@@ -105,6 +106,41 @@ function readFight(path: string) {
     // because a share nobody placed is exactly what that mark is for.
     return { roster, statistics: composeFightStatistics(events, composeTeamHeals(events, roster)) };
 }
+
+/**
+ * The panel's own cross-check, over the material rather than over one fight.
+ *
+ * `hasFiguresDisagreed` is raised where a side's total and the whole come out different, which is
+ * a drawn figure that is **wrong** rather than short — the entry turns it into a defect a reader
+ * sees (**ADR 0051**). It was proved reachable on one hand-built fight and false on one recording;
+ * nothing asked the corpus. Measured 2026-09-11: 360 readings, thirty recordings against four
+ * screens and three side choices, and not one of them contradicts itself.
+ */
+Deno.test("no recording makes the panel contradict itself, on any screen or side", () => {
+    const { replays } = composeReplayedMaterial(readRecordingPaths());
+    assert(replays.length > 0, "there is material to read");
+    const contradicted: string[] = [];
+    let read = 0;
+    for (const replay of replays) {
+        for (const metric of SCREEN_ORDER) {
+            for (const choice of SIDE_CHOICES) {
+                const reading = composePanelReading(
+                    replay.statistics,
+                    replay.roster,
+                    metric,
+                    choice,
+                    replay.reading.readerSide,
+                    NOTHING_SUSPECT,
+                );
+                read += 1;
+                if (!reading.hasFiguresDisagreed) continue;
+                contradicted.push(`${replay.name}: ${metric}, ${choice}`);
+            }
+        }
+    }
+    assert(read > replays.length, "each recording was read on more than one screen");
+    assertEquals(contradicted, [], "two counts of one figure came out different on real material");
+});
 
 Deno.test("a screen shows every combatant, in the order the figures put them", () => {
     const { roster, statistics } = readFight(HILDUR);
