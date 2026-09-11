@@ -14,7 +14,7 @@ import {
     assertNotStrictEquals,
     assertStrictEquals,
 } from "@std/assert";
-import { existsSync } from "@std/fs";
+import { existsSync, walkSync } from "@std/fs";
 import { isCommentLine } from "@/tests/source-line.ts";
 import { getSourcePaths } from "@/tests/source-paths.ts";
 import { CONFIGURATION_FILE } from "@/project/repository-layout.ts";
@@ -42,7 +42,26 @@ const CANONICAL = [
     "tests/AGENTS.md",
 ];
 
-const NESTED_AGENTS = ["captures/AGENTS.md", "frozen/AGENTS.md", "tests/AGENTS.md"];
+/** Where a document of this repository sits, beside the root's own. */
+const DOCUMENT_DIRECTORIES = [".agents", "captures", "docs", "frozen", "tests"];
+
+/**
+ * ⚠️ **What `deno fmt` aligns and never wraps, named rather than walked past.** Read both ways:
+ * a document here whose long line is gone has outlived its excuse, and one that grows a long
+ * line must be named. Until 2026-09-11 this list stood in `ARCHITECTURE.md` and the guard
+ * reached none of the documents on it — every one of them was skipped quietly.
+ */
+const UNWRAPPED_LINES: Record<string, string> = {
+    "docs/auras-standing.md": "a table",
+    "docs/browser-support.md": "a table",
+    "docs/captured-fights.md": "a table",
+    "docs/drill-levels.md": "a table",
+    "docs/protocol-keys.md": "a table",
+    "docs/reading-a-turn.md": "a table",
+    "docs/turns-taken.md": "a table",
+    ".agents/skills/verify/SKILL.md": "front matter, which is one line by the format's own rule",
+    "TODO.md": "the maintainer's list, which nothing here reads and no tool here writes",
+};
 
 function isDigitCode(code: number): boolean {
     return code >= 48 && code <= 57;
@@ -130,15 +149,32 @@ function getWordRuns(text: string, length: number): Set<string> {
  * run past 100 columns and rewrapping them would be a large diff on material this tree carries
  * rather than authors. ARCHITECTURE.md lists that under known gaps.
  */
-function getWrittenPaths(): string[] {
-    // The two READMEs are outside the canonical list because they are a front page rather than a
-    // rule, and inside this one because the column is about what a reader scrolls, not about rank.
-    const found = [...CANONICAL, ...getSourcePaths(), "README.md", "README.en.md"];
-    for (const entry of Deno.readDirSync("docs/adr")) {
-        if (entry.isFile && entry.name.endsWith(".md")) found.push(`docs/adr/${entry.name}`);
+/** Every document this repository writes, wherever it sits, the root's own included. */
+function getWrittenDocuments(): string[] {
+    const found: string[] = [];
+    for (const entry of walkSync(".", { exts: [".md"], includeDirs: false, maxDepth: 1 })) {
+        found.push(entry.path);
     }
-    const generated = "frozen/";
-    const written = found.filter((path) => !path.startsWith(generated));
+    for (const directory of DOCUMENT_DIRECTORIES) {
+        for (const entry of walkSync(directory, { exts: [".md"], includeDirs: false })) {
+            found.push(entry.path);
+        }
+    }
+    assert(found.length > CANONICAL.length, "the walk reaches past the canonical documents");
+    assertStrictEquals(new Set(found).size, found.length, "a document is walked once");
+    return found;
+}
+
+/** Every `AGENTS.md` below the root, which is what the root is read against. */
+function getNestedAgents(): string[] {
+    return getWrittenDocuments().filter((path) => {
+        if (path === "AGENTS.md") return false;
+        return path.endsWith("AGENTS.md");
+    });
+}
+
+function getWrittenPaths(): string[] {
+    const written = [...getWrittenDocuments(), ...getSourcePaths()];
     assert(written.length > CANONICAL.length, "the walk reaches past the canonical documents");
     assertStrictEquals(new Set(written).size, written.length, "a path is listed once");
     return written;
@@ -260,7 +296,7 @@ Deno.test("the formatter is walled off from the maintainer's list", () => {
 Deno.test("a nested AGENTS.md never restates the root", () => {
     const root = getWordRuns(AGENTS, 7);
     assert(root.size > 100, "the root carries enough prose to compare against");
-    for (const path of NESTED_AGENTS) {
+    for (const path of getNestedAgents()) {
         const shared = [...getWordRuns(Deno.readTextFileSync(path), 7)].filter((run) =>
             root.has(run)
         );
@@ -268,15 +304,26 @@ Deno.test("a nested AGENTS.md never restates the root", () => {
     }
 });
 
-Deno.test("no line runs past a hundred columns", () => {
+Deno.test("no line runs past a hundred columns, and every exception is named", () => {
     const overlong: string[] = [];
-    for (const path of getWrittenPaths()) {
+    const excused: string[] = [];
+    const walked = getWrittenPaths();
+    for (const path of walked) {
+        const long: string[] = [];
         for (const [offset, line] of Deno.readTextFileSync(path).split("\n").entries()) {
-            if (line.length > 100) overlong.push(`${path}:${offset + 1} at ${line.length}`);
+            if (line.length > 100) long.push(`${path}:${offset + 1} at ${line.length}`);
         }
+        if (UNWRAPPED_LINES[path] !== undefined) {
+            if (long.length === 0) excused.push(path);
+            continue;
+        }
+        overlong.push(...long);
     }
     assert(CANONICAL.length > 0, "there are documents to measure");
     assertEquals(overlong, [], "deno fmt aligns a table but never wraps one");
+    assertEquals(excused, [], "a document excused above no longer carries the line it is excused");
+    const unreached = Object.keys(UNWRAPPED_LINES).filter((path) => !walked.includes(path));
+    assertEquals(unreached, [], "a document excused above is not one this walk reaches");
 });
 
 Deno.test("the canonical list covers every document at the root", () => {

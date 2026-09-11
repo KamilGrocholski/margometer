@@ -559,12 +559,14 @@ commit that opens or closes one.
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
    rules here would be a second list going stale against the first.
-3. **Some documents run past 100 columns.** `docs/protocol-keys.md`, `docs/captured-fights.md`,
-   `docs/browser-support.md`, `docs/drill-levels.md` and the `verify` skill hold tables `deno fmt`
-   aligns but never wraps. The line-length guard names them as excluded rather than skipping them
-   quietly, and the counts are its to state rather than this file's (**V5**); rewrapping is a large
-   diff, on carried material or on a generated register, and waits until each is next edited for its
-   own reasons.
+3. **Some documents run past 100 columns.** They hold tables `deno fmt` aligns but never wraps.
+   `tests/repository/documents.test.ts` names each and why, and reads the list both ways — a
+   document excused for a line it no longer has fails, and so does one excused that the walk does
+   not reach. Which documents those are is its to state rather than this file's (**V5**), and this
+   entry listed five of them while the walk reached none: the guard read the root's documents, the
+   two READMEs and the decision records, and nothing else under `docs/` or `.agents/` at all.
+   Rewrapping is a large diff, on carried material or on a generated register, and waits until each
+   is next edited for its own reasons.
 4. **A JavaScript construct past the floor is caught by an ES level, not by the floor itself.**
    `tests/tools/browser-support.test.ts` holds `docs/browser-support.md`'s CSS half against the one
    string the stylesheet is, holds both halves' rows to the files they name, and re-earns both tiers
