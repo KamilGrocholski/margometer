@@ -41,6 +41,7 @@ export const FROZEN_HELP_PHRASES = {
         "crit": 98,
         "critmval": 14,
         "critmval-allies": 2,
+        "critpierce_per": 1,
         "critpoison_per": 8,
         "critred": 1,
         "critsa": 7,
@@ -111,6 +112,7 @@ export const FROZEN_HELP_PHRASES = {
         "verycrit": 2,
         "wound": 17,
         "wound1": 2,
+        "woundpoison": 0,
         "zimno": 34,
     },
 } as const;

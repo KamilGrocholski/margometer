@@ -32,7 +32,7 @@ const SIDE_SEGMENTS = 2;
 /** Past the heading count of the register, so the walk carries a stated bound. */
 const MAXIMUM_HEADINGS = 1024;
 /** What the script holds, read off the fight that reaches all of it rather than stated here. */
-const ACTS_SCRIPTED = 34;
+const ACTS_SCRIPTED = 36;
 
 /**
  * A key the register calls `decoded` that no message can state, each with why. The list is the

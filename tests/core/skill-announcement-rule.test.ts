@@ -38,7 +38,7 @@ Deno.test("what a skill spends stands on its announcement and nowhere else", () 
             assert(isAnnouncement(keys), `${path}: a count on a message announcing no skill`);
         }
     }
-    assertEquals(stated, 439, "every count the material carries, 2026-09-09");
+    assertEquals(stated, 451, "every count the material carries, 2026-09-11");
 });
 
 /**
@@ -113,8 +113,8 @@ Deno.test("three keys state their figure on the announcement itself, and name an
             }
         }
     }
-    assertEquals(counted.get("heal_target"), 118, "every occurrence the material carries");
-    assertEquals(counted.get("healall_per"), 115, "for each of the three, 2026-08-30");
+    assertEquals(counted.get("heal_target"), 124, "every occurrence the material carries");
+    assertEquals(counted.get("healall_per"), 117, "for each of the three, 2026-09-11");
     assertEquals(counted.get("bandage"), 1, "the last of them stated once");
 });
 

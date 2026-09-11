@@ -18,14 +18,16 @@ deno task fight:auras captures/<one>  # the same over one recording
 
 ## On whom, and why the panel says nobody
 
-**A cast is announced once, and never says who it landed on.** Measured over `captures/` on
-2026-09-09: every cast names exactly one end, and no cast enumerates bearers. The register below
-still reads the **side** a cast reaches — the published help states it key by key — because that is
-what tells a shout from a whole-team cast. The window draws none of it (**ADR 0062**).
+**A cast is announced once, and never says who it landed on.** Every cast names exactly one end and
+no cast enumerates bearers. **ADR 0061** carries that and the three measurements below it, each with
+the material it was taken over on 2026-09-09 — the figures are that reading's and are not restated
+here, because the corpus has grown since and nothing recomputes them. The register below still reads
+the **side** a cast reaches — the published help states it key by key — because that is what tells a
+shout from a whole-team cast. The window draws none of it (**ADR 0062**).
 
-⚠️ **Listing the side's members would be wrong about one cast in seven.** After a `Podwójny dech`,
-the caster's whole side carries the matching status bit in 56 of 65 casts. **ADR 0049** rejected an
-attribution measured at 84.6% in the words that bind here.
+⚠️ **Listing the side's members would be wrong about one cast in seven**, which is what that reading
+found after a `Podwójny dech`: the caster's whole side carries the matching status bit on most casts
+and not all. **ADR 0049** rejected an attribution measured at 84.6% in the words that bind here.
 
 ⚠️ **The target slot is not read**, except beside `shout`. On a cast reaching a side it names one
 end that is not the bearer, and **ADR 0010** measured what reading it costs: eight of 115 name a
@@ -34,7 +36,7 @@ combatant other than the caster.
 **`shout` names a target, not a bearer.** The published help gives it as _forcing covered characters
 to attack a chosen target_, so the character it names is who the caster's own side is pointed at,
 and it is the one cast the target slot is read beside. It resolves against the roster and agrees
-with that slot in **158 of 158** occurrences.
+with that slot in every occurrence that reading covered (**ADR 0061**).
 
 ⚠️ **`allslow_per` is the one key the register does not settle** — it lists it among the effects
 changing attack speed and never says whose. Measured instead: after a `Szadź`, the combatant on the
@@ -68,9 +70,10 @@ measured rather than written down (**V5**).
 ⚠️ **The window draws none of this yet.** It says what stands and for how long, and never a figure.
 What follows is what the game does, written down so the reading is not taken twice.
 
-**Almost every key carries its figure on the wire.** Measured over `captures/` 2026-09-09: every key
-below states an amount on the announcement except `+spell-taken_dmg-all`, which states none in 59
-casts of 59 — and the client's own branch for it is `end-game-without-percent`, so the game shows no
+**Almost every key carries its figure on the wire.** Measured over `captures/` 2026-09-11: every key
+below states an amount on the announcement except `+spell-taken_dmg-all`, which states none on any
+occurrence there is — the count is its `_Shape:_` line in `docs/protocol-keys.md`, re-earned on
+every run. The client's own branch for it is `end-game-without-percent`, so the game shows no
 percentage there either (**ADR 0063**).
 
 **Three different units, and they are not interchangeable.** The help's effect dictionary gives each
@@ -124,11 +127,11 @@ one combatant held it twice. `at once` is the most that ever stood together.
 
 | key                    | two | past two | one twice | at once |
 | ---------------------- | --: | -------: | --------: | ------: |
-| `+spell-taken_dmg-all` | 145 |        0 |         0 |       2 |
-| `allslow_per`          | 449 |       64 |         0 |       3 |
+| `+spell-taken_dmg-all` | 177 |        0 |         0 |       2 |
+| `allslow_per`          | 541 |       64 |         0 |       3 |
 | `aura-ac_per`          | 115 |        0 |         0 |       2 |
 | `aura-resall`          | 115 |        0 |         0 |       2 |
-| `aura-sa_per`          | 208 |       44 |         0 |       4 |
+| `aura-sa_per`          | 305 |       44 |         0 |       4 |
 
 **The cap is reachable on the material this repository holds**, which is unusual for anything in
 this document: `Szadź` and `Podwójny dech` both stand past two sources, so a panel that summed every
@@ -154,11 +157,11 @@ a register of their own below.
 
 |  id | skill            | on | fights | at once | stated | reaches  |
 | --: | ---------------- | -: | -----: | ------: | -----: | -------- |
-|  76 | Aura ochrony     |  9 |     13 |       2 |      8 | caster's |
-|  89 | Podwójny dech    | 15 |     16 |       4 |      8 | caster's |
-| 123 | Szadź            | 15 |     20 |       3 |      8 | other    |
+|  76 | Aura ochrony     | 10 |     14 |       2 |      8 | caster's |
+|  89 | Podwójny dech    | 16 |     17 |       4 |      8 | caster's |
+| 123 | Szadź            | 17 |     21 |       3 |      8 | other    |
 | 219 | Jadowity podmuch |  1 |      1 |       1 |      8 | other    |
-| 264 | Piętno bestii    | 11 |     15 |       2 |      8 | other    |
+| 264 | Piętno bestii    | 13 |     16 |       2 |      8 | other    |
 
 **The published table dates more skills than the corpus has ever cast**, and the ones missing here
 are missing for want of a recording rather than by a verdict. That is the thin corpus `TODO.md`
@@ -201,7 +204,7 @@ announcement of it was ever seen to list.
 |  id | skill              | casters | fights | at once | stated | covers | names |
 | --: | ------------------ | ------: | -----: | ------: | -----: | -----: | ----: |
 |  25 | Prowokujący okrzyk |       3 |      5 |       1 |      3 |      6 |     1 |
-| 188 | Wyzywający okrzyk  |       8 |     15 |       2 |      3 |      6 |     2 |
+| 188 | Wyzywający okrzyk  |       9 |     16 |       2 |      3 |      6 |     2 |
 
 ⚠️ **`covers` is reported and drawn nowhere.** It was the input to the expansion **ADR 0064**
 removed; it stays here because it is a true reading of the published table and

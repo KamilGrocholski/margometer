@@ -877,8 +877,8 @@ function addBlowWithNoTarget(
 /**
  * The wound a blow announced, kept against whoever carries it. Only a blow naming both ends and a
  * figure is kept: a wound whose attacker the protocol left out has nobody to charge its ticks to,
- * and one announcing no figure cannot be told from the next wound against that victim. All 76 in
- * `captures/` name both ends and state a figure, 2026-08-30. **ADR 0022.**
+ * and one announcing no figure cannot be told from the next wound against that victim. All 84 in
+ * `captures/` name both ends and state a figure, 2026-09-11. **ADR 0022.**
  */
 function addWoundAnnouncement(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== "attack") return;

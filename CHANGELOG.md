@@ -37,6 +37,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   numerować tury, kiedy prowadzi walkę za ciebie, więc okno mówi „Szybka walka — gra nie podaje
   tur.", a po skończonej walce — „Walka się skończyła.". Wcześniej stała tam ostatnia tura, jaką gra
   zdążyła podać.
+- **Poprawka** — Dwie rzeczy z logu walki były dla panelu nieczytelne i stawiał przy nich
+  wątpliwość: głęboka rana osłabiona trucizną oraz dodatkowe zniszczenie pancerza, kiedy w jednej
+  turze wypadnie i cios krytyczny, i przebicie. Teraz panel czyta jedno i drugie, a ten dodatkowy
+  pancerz stoi w karcie osobno — jako „pancerz z przebicia".
 
 ## [0.15.0] — 2026-09-09
 

@@ -407,6 +407,9 @@ function getClientWordsForKey(key: string, translate: TranslateLabel | null): st
  */
 export const DESTROYED_WORDS: Record<string, { name: string; unit: string }> = {
     acdmg: { name: "pancerz", unit: "pkt" },
+    // The one pair here that empties the same pool in the same unit, so the names say which
+    // took it rather than what it was (`docs/protocol-keys.md`).
+    critpierce: { name: "pancerz z przebicia", unit: "pkt" },
     resdmg: { name: "odporność", unit: "p.p." },
     abdest_per: { name: "wchłanianie", unit: "pkt" },
     abmdest_per: { name: "wchłanianie magiczne", unit: "pkt" },

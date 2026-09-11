@@ -35,7 +35,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `2 vs 1`  | `1`        |
 | `5 vs 1`  | `1`        |
 | `9 vs 1`  | `1`        |
-| `10 vs 1` | `22`       |
+| `10 vs 1` | `23`       |
 
 ## The fights
 
@@ -71,6 +71,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json`                | `10 vs 1` | `ours won`   | `10 players · b 2, m 4, t 2, w 2 · levels 83–107`          | `1 NPC · p 1 · level 83`           | `209110`             |
 | `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json`         | `5 vs 1`  | `theirs won` | `5 players · m 2, p 1, t 1, w 1 · levels 23–61`            | `1 NPC · b 1 · level 36`           | `49124`              |
 | `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json`               | `2 vs 1`  | `ours won`   | `2 players · h 1, t 1 · level 70`                          | `1 player · w 1 · level 64`        | `15615`              |
+| `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`                 | `10 vs 1` | `ours won`   | `10 players · h 2, m 2, p 1, t 3, w 2 · levels 83–99`      | `1 NPC · p 1 · level 83`           | `209110`             |
 
 ## The recordings
 
@@ -106,6 +107,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`                  | `luvia`        | `53XkBRxF`      | `0.9.0`       | `15`  | `709`    |
 | `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json`         | `luvia`        | `ne0iTNdg`      | `0.14.0`      | `3`   | `171`    |
 | `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json`               | `tempest`      | `ne0iTNdg`      | `0.14.0`      | `24`  | `124`    |
+| `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`                 | `luvia`        | `Cl9U89Zr`      | `0.15.0`      | `99`  | `475`    |
 
 ## What the material does not hold
 
@@ -122,7 +124,7 @@ than a defect.
 - **No fight broken off by an escape.** The same again, and for a key the corpus has never carried:
   `flee` is read off the client's own branch and the published help, and the panel's `ucieczka` is
   drawn from a fight the fabricator writes (`docs/protocol-keys.md`).
-- **Three worlds, and one of them once.** Everything but the duel and the seven recordings from
+- **Three worlds, and one of them once.** Everything but the duel and the eight recordings from
   `luvia` comes from `tempest`; the duel is the one that happened once.
 
 A loss **is** held, in more than one recording — which is what the outcome column is for, since
@@ -267,6 +269,20 @@ evidence.
   say the value is a percentage over the monster's pool rather than a figure of its own
   (`docs/protocol-keys.md`). Nothing else here is fought by fewer than nine, which is why no earlier
   recording could carry it.
+
+- `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json` — the first recording on build
+  `Cl9U89Zr`, and the first to carry a key the decoder could not read since the corpus last read
+  whole. Two of them: `+woundpoison`, which is `+wound`'s announcement with a share stated on it,
+  and `+critpierce`, armour destroyed beside `+acdmg` rather than inside it
+  (`docs/protocol-keys.md`).
+
+  ⚠️ **`+critpierce` is why this one recording was worth more than its size.** 102 blows in
+  `captures/` carry `+crit` and `+pierce` together and this is the only one of them carrying the
+  key, so what it reports is somebody holding the effect rather than the two procs meeting — a claim
+  no single recording could have made.
+
+  It is also the third fight against this monster, and the third carrying `+stun2-c`. The entry for
+  that key had written down what a third would settle: nothing. It did not.
 
 - `captures/2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none.json`,
   `captures/2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none.json` and

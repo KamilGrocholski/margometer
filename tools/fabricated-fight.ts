@@ -194,6 +194,10 @@ const SMALL_PLACES = 7;
 const REDUCTION_BASE = 120;
 const REDUCTION_PER_PLACE = 13;
 const ARMOUR_DAMAGE = 5;
+/** More armour, on the blow where a critical hit and a pierce fall together. */
+const ARMOUR_DAMAGE_PIERCED = 2;
+/** A percentage rather than health: the share a wound was weakened by. */
+const WOUND_WEAKENED_PERCENT = 50;
 /** What a choice of opponent or ally moves by from one round to the next — see `getOpponentFor`. */
 const CHOICE_PER_ROUND = 3;
 /** How long a status the script put on somebody stands before the round clears it. */
@@ -664,6 +668,21 @@ function actPiercingBlow(turn: FabricatedTurn): string[] {
     return [composeBlow(turn, [composeValueless("+pierce"), composeValueless("-pierceb")])];
 }
 
+/**
+ * The armour boost fires only where a critical hit and a pierce fall on the same blow, which is
+ * why this act carries both. 102 blows in `captures/` carry the pair and one carries the key
+ * (`docs/protocol-keys.md`).
+ */
+function actCriticalPierce(turn: FabricatedTurn): string[] {
+    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
+    assert(turn.target.side !== turn.actor.side, "and never at its own side");
+    return [composeBlow(turn, [
+        composeValueless("+crit"),
+        composeValueless("+pierce"),
+        composeFigureParameter("+critpierce", composeScaled(turn.shape, ARMOUR_DAMAGE_PIERCED)),
+    ])];
+}
+
 function actAbsorbedBlow(turn: FabricatedTurn): string[] {
     assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
     assert(turn.target.side !== turn.actor.side, "and never at its own side");
@@ -739,6 +758,20 @@ function actWoundingBlow(turn: FabricatedTurn): string[] {
     return [composeBlow(turn, [
         composeValueless("+wound"),
         composeFigureParameter("+injure", composeSmallHealth(turn, 120)),
+    ])];
+}
+
+/**
+ * The same announcement with a share stated on it, which is the form a wound something weakened
+ * arrives in. `+wound` is not beside it: the client composes one sentence or the other, never
+ * both (`docs/protocol-keys.md`).
+ */
+function actWeakenedWound(turn: FabricatedTurn): string[] {
+    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
+    assert(turn.target.side !== turn.actor.side, "and never at its own side");
+    setStatusBit(turn.target, 0, turn.round);
+    return [composeBlow(turn, [
+        composeFigureParameter("+woundpoison", WOUND_WEAKENED_PERCENT),
     ])];
 }
 
@@ -997,6 +1030,7 @@ const ACTS: FabricatedAct[] = [
     { name: "a critical blow", doesOpenTurn: true, compose: actCriticalBlow },
     { name: "an off-hand critical", doesOpenTurn: true, compose: actOffhandBlow },
     { name: "a piercing blow", doesOpenTurn: true, compose: actPiercingBlow },
+    { name: "a critical pierce", doesOpenTurn: true, compose: actCriticalPierce },
     { name: "a blow against absorption", doesOpenTurn: true, compose: actAbsorbedBlow },
     { name: "a blow breaking armour", doesOpenTurn: true, compose: actArmourBreakingBlow },
     { name: "a third attack", doesOpenTurn: true, compose: actThirdAttack },
@@ -1004,6 +1038,7 @@ const ACTS: FabricatedAct[] = [
     { name: "a cursed blow", doesOpenTurn: true, compose: actCursedBlow },
     { name: "a blow evaded", doesOpenTurn: true, compose: actEvadedBlow },
     { name: "a wounding blow", doesOpenTurn: true, compose: actWoundingBlow },
+    { name: "a wound weakened", doesOpenTurn: true, compose: actWeakenedWound },
     { name: "a wound ticking", doesOpenTurn: false, compose: actWoundTick },
     { name: "poison and fire ticking", doesOpenTurn: false, compose: actPoisonTick },
     { name: "light and anguish ticking", doesOpenTurn: false, compose: actLightTick },

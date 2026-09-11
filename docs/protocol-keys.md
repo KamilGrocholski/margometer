@@ -181,7 +181,7 @@ it is written down per key instead of derived from the grammar.
 The combatants on the winning side, as a single string, names separated by a comma and a space.
 Appears in a message that names no combatant at all: it is about the fight, not about anyone in it.
 
-_Shape:_ 30 occurrences; alone in its message; text
+_Shape:_ 31 occurrences; alone in its message; text
 
 _Help:_ names `max_moves`
 
@@ -196,7 +196,7 @@ The same, for the losing side — with the one exception the entry above states:
 spends on a fight nobody won is not a value this one carries, and it is left unread here rather than
 read as a side of that name.
 
-_Shape:_ 30 occurrences; alone in its message; text
+_Shape:_ 31 occurrences; alone in its message; text
 
 ### `flee` — decoded
 
@@ -237,7 +237,7 @@ makes no distinction there. Read literally it made `dmg` a second element beside
 107 952 points of physical damage into two rows nothing on screen could tell apart. Held by
 `tests/core/fight-decoder.test.ts`.
 
-_Shape:_ 1145 occurrences; on a message reporting damage; text
+_Shape:_ 1175 occurrences; on a message reporting damage; text
 
 _Evidence:_ in every call where a target lost more health than the attack accounted for, the
 shortfall equalled this amount exactly — 110, 247 and 123 in three separate calls. Three independent
@@ -333,7 +333,7 @@ _Help:_ names `( heal )`
 value and no direction. This entry is why §7.6 says production decides: read there, the member looks
 like a plain number, and the half that makes it legible is missing.
 
-_Shape:_ 2251 occurrences; alone in its message; text
+_Shape:_ 2346 occurrences; alone in its message; text
 
 _Evidence:_ of the four ways to sign `heal` and `poison`, only healing added and poison subtracted
 closes the stated percentages — the other three leave hundreds of comparisons disagreeing. Applying
@@ -357,7 +357,7 @@ _Health:_ moves health
 
 _Cause:_ nobody
 
-_Shape:_ 835 occurrences; anywhere; text
+_Shape:_ 874 occurrences; anywhere; text
 
 _Help:_ names `poison`
 
@@ -392,7 +392,7 @@ _Health:_ moves health
 
 _Cause:_ nobody
 
-_Shape:_ 43 occurrences; alone in its message; text
+_Shape:_ 59 occurrences; alone in its message; text
 
 _Help:_ names `( fire )`
 
@@ -499,7 +499,7 @@ _Health:_ moves health
 
 _Cause:_ the announcement's actor
 
-_Shape:_ 118 occurrences; on a skill announcement; a whole number
+_Shape:_ 124 occurrences; on a skill announcement; a whole number
 
 _Evidence:_ reading it on the target closed every comparison in the calls that carry it, first try
 and with no adjustment. Read on the actor instead, the same calls disagree.
@@ -569,7 +569,7 @@ _Health:_ moves health
 
 _Cause:_ the wound's attacker
 
-_Shape:_ 184 occurrences; alone in its message; a whole number
+_Shape:_ 199 occurrences; alone in its message; a whole number
 
 _Evidence:_ it could not be settled at all until `heal` and `poison` were read, because every call
 containing it also contains one of those and the witness declined them all. Once they were read, the
@@ -648,7 +648,7 @@ _Health:_ moves health
 
 _Cause:_ the message actor
 
-_Shape:_ 115 occurrences; on a skill announcement; a number
+_Shape:_ 117 occurrences; on a skill announcement; a number
 
 _Help:_ names `healall_per`, `lowheal_per-enemies`, `heal_per-enemies`
 
@@ -725,7 +725,7 @@ help names. **Obrażenia nieuchronne**: applied damage the ordinary defences do 
 the word the panel draws it under — the game's own here, and not this repository's, where **ADR
 0011** words the other nine.
 
-_Shape:_ 1260 occurrences; on a blow; a whole number
+_Shape:_ 1355 occurrences; on a blow; a whole number
 
 _Help:_ names `nieuchronne`, `dmgmulcombo`
 
@@ -794,7 +794,7 @@ a key that moves health.
 
 Damage physical absorption stopped before it reached the target.
 
-_Shape:_ 625 occurrences; on a blow; a whole number
+_Shape:_ 627 occurrences; on a blow; a whole number
 
 _Help:_ names `absorb`
 
@@ -811,7 +811,7 @@ reads as an integer — which the `*Shape:*` line above re-earns over every reco
 The same for magical absorption, which the help documents against fire, cold and lightning rather
 than physical damage, with a higher cap.
 
-_Shape:_ 301 occurrences; on a blow; a whole number
+_Shape:_ 302 occurrences; on a blow; a whole number
 
 _Help:_ names `absorbm`
 
@@ -824,7 +824,7 @@ shape in production build `1785244275300`. 27 occurrences on
 Damage a block stopped. The help ties the event to defending and to carrying a shield, so unlike the
 two above it can be absent from a combatant entirely.
 
-_Shape:_ 181 occurrences; on a blow; a whole number
+_Shape:_ 210 occurrences; on a blow; a whole number
 
 _Help:_ names `blok`
 
@@ -838,7 +838,7 @@ which is why it is grouped with them.
 A critical hit fired on this blow. **Carries no figure at all**: the protocol states the key and
 stops, and the client's branch composes its sentence without reading a value.
 
-_Shape:_ 911 occurrences; on a blow; no value
+_Shape:_ 948 occurrences; on a blow; no value
 
 _Help:_ names `crit`
 
@@ -875,7 +875,7 @@ corroborates the meaning outside the battle log — `this.of_crit` writes the ch
 Armour piercing fired on this blow — the help states that within such a blow the target's armour
 does not reduce the damage. No figure, like `+crit`.
 
-_Shape:_ 398 occurrences; on a blow; no value
+_Shape:_ 415 occurrences; on a blow; no value
 
 _Help:_ names `pierce`
 
@@ -913,7 +913,7 @@ by the stem (read 2026-08-09), the help answers to all four and describes each i
 The target's turn was blocked by this blow. The help documents the event, and notes it also appears
 under several other display names — which is why the key, not the sentence, is what identifies it.
 
-_Shape:_ 101 occurrences; on a blow; no value
+_Shape:_ 104 occurrences; on a blow; no value
 
 _Help:_ names `stun`
 
@@ -965,16 +965,18 @@ The same Ogłuszenie as the two above and off the same statistic, in the frost-s
 variants the client spells (`+stun2`, `-c`, `-d`, `-f`, `-l`). A proc: it states no figure and the
 blow it rides already reports its damage.
 
-⚠️ **The material cannot say which variant this is, and the production bundle cannot either.** The
-two recordings carrying the key are the two against the same monster, and every one of that
-monster's blows carries `+dmgc` in both — 23 of 23 on
+⚠️ **The material cannot say which variant this is, and the production bundle cannot either.** Every
+recording carrying the key is against the same monster, and every one of that monster's blows
+carries `+dmgc` in all of them — 23 of 23 on
 `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`, 20 of 20 on
-`captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json` — so nothing there distinguishes
-a frost-shaped stun from any other, and production states only that the key composes a sentence. A
-second recording did not settle it and a third against this monster would not either. The variant is
-the development build's answer — see the evidence below.
+`captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json`, 11 of 11 on
+`captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json` — so nothing there distinguishes a
+frost-shaped stun from any other, and production states only that the key composes a sentence. A
+second recording did not settle it, and this entry said a third against this monster would not
+either; the third arrived on 2026-09-11 and did not. The variant is the development build's answer —
+see the evidence below.
 
-_Shape:_ 9 occurrences; on a blow; no value
+_Shape:_ 11 occurrences; on a blow; no value
 
 _Help:_ names `stun2`
 
@@ -1094,7 +1096,7 @@ anybody checks. Measured over every recording as the set stood 2026-08-25: ten a
 `-dmg=0` and thirteen beside `-dmgd=0`, none beside a non-zero one, and none beside no applied
 figure at all.
 
-_Shape:_ 40 occurrences; on a blow; no value
+_Shape:_ 43 occurrences; on a blow; no value
 
 _Help:_ names `evade`
 
@@ -1113,7 +1115,7 @@ The Fast Arrow fired on this blow: a chance event that shortens the attack's dur
 figure, and says nothing about how hard the blow landed — what it changes is time, which no total
 here keeps.
 
-_Shape:_ 55 occurrences; on a blow; no value
+_Shape:_ 59 occurrences; on a blow; no value
 
 _Help:_ names `fastarrow`
 
@@ -1174,7 +1176,7 @@ carries neither it nor `superspell`.
 The target's armour was destroyed outright by this blow — the floor `+acdmg` counts down to. **Not a
 figure**, unlike `+acdmg`: this key states that the armour is gone and no amount.
 
-_Shape:_ 44 occurrences; on a blow; no value
+_Shape:_ 45 occurrences; on a blow; no value
 
 _Help:_ names nothing of `acdmg_destroyed`, `destroyed`
 
@@ -1191,7 +1193,7 @@ pedantic: the help describes it as lowering a statistic before the blow's reduct
 with a floor below which it cannot go. Summed together with `dealt` it would be a total of two
 different things.
 
-_Shape:_ 995 occurrences; on a blow; a whole number
+_Shape:_ 1022 occurrences; on a blow; a whole number
 
 _Help:_ names `acdmg`
 
@@ -1204,13 +1206,42 @@ into a log slot and assigns nothing. 41 occurrences across the two recordings he
 does not reach it — characters 1 to 3 are `acd`, not `dmg` — so nothing was reading it as a figure
 before.
 
+### `+critpierce` — decoded
+
+More of the target's armour destroyed by this blow, in the **points `+acdmg` uses** and beside that
+figure rather than inside it. The client's own sentence for it names the effect and the unit at
+once: _Destrukcyjna strzała_, and a destruction of so many points of armour.
+
+⚠️ **It is not the coincidence the help describes, and the corpus is what says so.** The help
+documents `critpierce_per` as an active effect raising a character's armour destruction by a share
+of itself for one turn, where a critical hit and an armour pierce both fall in the same turn. 102
+blows in `captures/` carry `+crit` and `+pierce` together and exactly one of them carries this key
+(read 2026-09-11) — so what it reports is somebody **holding** that effect, not the two procs
+meeting.
+
+⚠️ **One pool, two labels, and the second is the client's.** `acdmg` and `critpierce` empty the same
+armour, and a row drawing both states them apart because the protocol does: the token is the key
+with its sign taken off (`src/core/fight-decoder.ts`). Folding one into the other would put a name
+this repository chose on somebody else's figure (**N13**).
+
+_Shape:_ 1 occurrences; on a blow; a whole number
+
+_Help:_ names `critpierce_per`
+
+_Evidence:_ article view,372 at the engine name `critpierce_per` (read 2026-09-09) for the effect
+and its trigger. Production build `Cl9U89Zr` composes it on the branch that composes `+taken_dmg`,
+interpolating the value into a log slot and assigning nothing; build `1785244275300` fills that slot
+with a sentence counting points of armour. The one occurrence states `7` and rides a blow carrying
+`+crit`, `+pierce` and `+acdmg=18`; that attacker's `+acdmg` is `18` on the blow before it and on
+both blows after, so the seven points are additional and are stated nowhere else.
+
 ### `+resdmg` — decoded
 
 Elemental resistance of the target destroyed by this blow, which the help states in **percentage
 points** rather than in the points `+acdmg` uses. The two are kept in one shape here because the
 protocol gives no unit either way; what the figure means is the entry's job, not the type's.
 
-_Shape:_ 1186 occurrences; on a blow; a whole number
+_Shape:_ 1264 occurrences; on a blow; a whole number
 
 _Help:_ names `resdmg`
 
@@ -1250,7 +1281,7 @@ measured over every recording on 2026-08-19, not one announcement of the 2 108 c
 that is narrower than it sounds, and an earlier version of this entry said "no damage at all" and
 was wrong.
 
-_Shape:_ 3392 occurrences; on a skill announcement; text
+_Shape:_ 3493 occurrences; on a skill announcement; text
 
 _Help:_ names nothing of `tspell`, `( tspell )`, `skillId`, `( skillId )`
 
@@ -1267,7 +1298,7 @@ message is assembled.
 The game's own identifier for that skill, attached to the same announcement. Read as part of it
 rather than on its own: an id with no name is a skill nothing can put on screen.
 
-_Shape:_ 3039 occurrences; on a skill announcement; a whole number
+_Shape:_ 3129 occurrences; on a skill announcement; a whole number
 
 _Evidence:_ production build `1785244275300` for the empty branch. Measured on the captures: present
 on 182 of the 197 announcements, absent from 15, and never once on a message that does not also
@@ -1317,7 +1348,7 @@ The deep wound an attack has just applied, announced inside that attack's own me
 health where it appears: the wound arrives on later calls as its own `injure` message, which is the
 entry above.
 
-_Shape:_ 76 occurrences; on a blow; a whole number
+_Shape:_ 84 occurrences; on a blow; a whole number
 
 _Help:_ names `injure`
 
@@ -1385,7 +1416,7 @@ How many accumulated combination points the announced skill will spend. A **coun
 — the captures state 1, 2 and 3 — and like the share above it qualifies the skill rather than
 reporting anything that happened.
 
-_Shape:_ 439 occurrences; on a skill announcement; a whole number
+_Shape:_ 451 occurrences; on a skill announcement; a whole number
 
 _Help:_ names `combo-max`
 
@@ -1412,7 +1443,7 @@ this entry's own two did, twice over, which is why they now name what they were 
 does a universal beside it, and nothing here re-measures a claim about which keys a key arrives
 _with_.
 
-_Shape:_ 347 occurrences; on a blow; a whole number
+_Shape:_ 350 occurrences; on a blow; a whole number
 
 _Help:_ names `engback`
 
@@ -1519,7 +1550,7 @@ of the 1260, read 2026-09-10, with 23 carrying `-dmga` alone — and the temptin
 is the raw half of that applied figure — the help documents `taken_dmg_per` as damage added to what
 the target takes, reduced by armour, which is exactly a raw/applied pair.
 
-_Shape:_ 1237 occurrences; on a blow; a whole number
+_Shape:_ 1332 occurrences; on a blow; a whole number
 
 _Help:_ names `taken_dmg`
 
@@ -1573,7 +1604,7 @@ has no entry.
 Attack speed granted on a critical hit. A unit no total here keeps, which is the same reason
 `+critslow_per` above is read and never added to anything.
 
-_Shape:_ 38 occurrences; on a blow; a number
+_Shape:_ 42 occurrences; on a blow; a number
 
 _Help:_ names `critsa`
 
@@ -1696,7 +1727,7 @@ occurrences ride a blow whose actor deals magical damage, one in each of the two
 
 A reduction of the target's chance to block, granted by the announced skill.
 
-_Shape:_ 305 occurrences; on a skill announcement; a whole number
+_Shape:_ 306 occurrences; on a skill announcement; a whole number
 
 _Help:_ names `active_decblock_per`
 
@@ -1710,20 +1741,21 @@ in the battle switch, beside `active_absorbdest_per`.
 The same reduction, aimed at the opposing side rather than at one target — the `-enemies` suffix the
 protocol uses elsewhere for the same distinction.
 
-_Shape:_ 113 occurrences; on a skill announcement; a whole number
+_Shape:_ 117 occurrences; on a skill announcement; a whole number
 
 _Help:_ names `active_decblock_per-enemies`
 
 _Evidence:_ article view,372 (read 2026-08-09), which lists it beside `decblock_per` and
 `active_decblock_per`. On `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 11
-occurrences, every value `10`. One recording since states `5`, one value per fight (read
-2026-09-06).
+occurrences, every value `10`. Three values stand over the material now: `10` in eleven recordings,
+`5` in five and `9` in one — `captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json`, which
+is also the only fight stating two of them, so a value is no longer one per fight (read 2026-09-11).
 
 ### `active_block_per` — decoded
 
 An increase to the announcer's own chance to block.
 
-_Shape:_ 155 occurrences; on a skill announcement; a whole number
+_Shape:_ 159 occurrences; on a skill announcement; a whole number
 
 _Help:_ names `active_block_per`
 
@@ -1736,63 +1768,69 @@ raising block chance and applied at the initiation layer. On
 
 A reduction to the damage dealt by everyone on the opposing side.
 
-_Shape:_ 113 occurrences; on a skill announcement; a whole number
+_Shape:_ 117 occurrences; on a skill announcement; a whole number
 
 _Help:_ names `alllowdmg`
 
 _Evidence:_ article view,372 (read 2026-08-09) at the engine name `alllowdmg`, described as lowering
 the damage of all characters in the opposing team by the share the parameter sets. On
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 11 occurrences, every value
-`5`. One recording since states `1`, one value per fight (read 2026-09-06).
+`5`. Two more stand over the material now — `1` in five recordings and `4` in one — and that one,
+`captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json`, states both, so a value is no
+longer one per fight (read 2026-09-11). The key moves with `active_decblock_per-enemies` above: the
+same sixteen recordings carry both, and every fight stating two of one states two of the other.
 
 ### `allslow_per` — decoded
 
 An attack-speed reduction applied across the opposing side.
 
-_Shape:_ 104 occurrences; on a skill announcement; a whole number
+_Shape:_ 114 occurrences; on a skill announcement; a whole number
 
 _Help:_ names `allslow_per`
 
 _Evidence:_ article view,372 (read 2026-08-09), which lists it among the effects combining
 additively to change attack speed. On
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 5 occurrences, every value
-`14`. Three recordings since state `12` as well (read 2026-08-19).
+`14`. Three recordings since state `12` as well, and one states `10` (read 2026-09-11).
 
 ### `aura-ac_per` — decoded
 
 An aura raising armour, granted to the announcer's team.
 
-_Shape:_ 41 occurrences; on a skill announcement; a whole number
+_Shape:_ 43 occurrences; on a skill announcement; a whole number
 
 _Help:_ names `aura-ac_per`
 
 _Evidence:_ article view,372 (read 2026-08-09), which lists it among the effects that raise armour.
 On `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 4 occurrences, every value
-`20` — and `20` is the only value any recording states (read 2026-08-19).
+`20`, which every recording carrying the key states but one:
+`captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json` states `30` (read 2026-09-11).
 
 ### `aura-resall` — decoded
 
 An aura raising the team's resistances to fire, cold and lightning, in percentage points.
 
-_Shape:_ 41 occurrences; on a skill announcement; a whole number
+_Shape:_ 43 occurrences; on a skill announcement; a whole number
 
 _Help:_ names `aura-resall`
 
 _Evidence:_ article view,372 (read 2026-08-09) at the engine name `aura-resall`. On
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 4 occurrences, every value
-`15` — and `15` is the only value any recording states (read 2026-08-19).
+`15`, which every recording carrying the key states but one:
+`captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json` states `20` (read 2026-09-11).
 
 ### `aura-sa_per` — decoded
 
 An aura raising the team's attack speed.
 
-_Shape:_ 78 occurrences; on a skill announcement; a whole number
+_Shape:_ 85 occurrences; on a skill announcement; a whole number
 
 _Help:_ names `aura-sa_per`
 
 _Evidence:_ article view,372 (read 2026-08-09), which lists it among the attack-speed effects. On
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 4 occurrences, every value
-`20` — and `20` is the only value any recording states (read 2026-08-19).
+`20`, which every recording carrying the key states; two of them state `11` beside it, the pair
+recorded against Draugr on 2026-08-25 (read 2026-09-11).
 
 ### `lowheal_per-enemies` — decoded
 
@@ -1838,7 +1876,7 @@ by `tests/core/skill-announcement-rule.test.ts` for the placement.
 Mana the announced skill costs. **Signed, and negative in every occurrence** — the protocol states
 the change, not the price as a positive number.
 
-_Shape:_ 128 occurrences; on a skill announcement; a whole number
+_Shape:_ 131 occurrences; on a skill announcement; a whole number
 
 _Help:_ names `mana`
 
@@ -1852,7 +1890,7 @@ _Evidence:_ article view,372 (read 2026-08-09) documents mana as a resource some
 Energy the announced skill costs, the same shape as `mana`. Every occurrence in the captures states
 `0`, which is why nothing here claims it is ever otherwise.
 
-_Shape:_ 72 occurrences; on a skill announcement; a whole number
+_Shape:_ 75 occurrences; on a skill announcement; a whole number
 
 _Help:_ names `energy`
 
@@ -1887,7 +1925,7 @@ _Uwaga %name2% została skupiona na %name%._ — where the neighbouring `frost` 
 on commas first (production build `1785244275300`, read 2026-09-09). So it prints a list unsplit
 rather than refusing one.
 
-_Shape:_ 160 occurrences; on a skill announcement; text
+_Shape:_ 164 occurrences; on a skill announcement; text
 
 _Help:_ names `shout`
 
@@ -1979,7 +2017,7 @@ That the announced skill applies the added-damage effect to **everyone**, rather
 Carries no figure: it names which variant of the effect the skill is, and the share it applies is
 not on this message at all.
 
-_Shape:_ 61 occurrences; on a skill announcement; no value
+_Shape:_ 64 occurrences; on a skill announcement; no value
 
 _Help:_ names `taken_dmg`
 
@@ -2093,7 +2131,7 @@ acted in the message before it, the preparation rides that turn rather than bein
 documents no such mechanic, so unlike `step` this is measured and not cited — `docs/turns-taken.md`
 carries both shapes and what each costs (**ADR 0048**).
 
-_Shape:_ 316 occurrences; alone in its message; text
+_Shape:_ 324 occurrences; alone in its message; text
 
 _Help:_ names nothing of `prepare`
 
@@ -2113,7 +2151,7 @@ name and the separator the game puts after it, and the game's other lines about 
 full stop. The decoder resolves the name against the roster and passes on an id (**ADR 0049**);
 `docs/turns-taken.md` carries what that comes to.
 
-_Shape:_ 372 occurrences; alone in its message; text
+_Shape:_ 389 occurrences; alone in its message; text
 
 _Help:_ names nothing of `txt`
 
@@ -2257,7 +2295,7 @@ what stands above is the fight it was read off and not the whole of the material
 line below counts every occurrence there is, which is how the two came to disagree — the placement
 was `alone in its message` until a recording arrived stating the key beside `-poison_lowdmg_per`.
 
-_Shape:_ 49 occurrences; anywhere; a whole number
+_Shape:_ 67 occurrences; anywhere; a whole number
 
 _Help:_ names `wound`, `wound1`
 
@@ -2266,9 +2304,9 @@ _Evidence:_ as above, and production build `1786514810315` composes `msg_wound %
 `poison` take as well; no occurrence here carries the second member. The published help documents
 the damage at article `view,372` (read 2026-08-19): the weapon attribute under the engine names
 `wound1, of_wound1`, applied for five turns after a hit doing non-zero damage, and the type's
-behaviour in the table of damage over time. Carried by one recording,
-`captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json`, and by no other as the
-set stood 2026-08-24.
+behaviour in the table of damage over time. Carried by
+`captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json`, the fight the rule above
+was read off, and by four recordings admitted since (read 2026-09-11).
 
 ### `+wound` — decoded
 
@@ -2287,6 +2325,40 @@ article `view,372` (read 2026-08-19) — and prints no separate entry for either
 it prints none for `+injure` or `+critwound`. Every occurrence rides a blow of the monster's in
 `captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json`, the one recording
 carrying either half of this pair as the set stood 2026-08-24.
+
+### `+woundpoison` — decoded
+
+The event a blow announces when a weapon's deep wound is applied **and something weakened it** —
+`+wound`'s announcement carrying a figure where that one carries none. The figure is a percentage:
+the client writes it into a hole the sentence closes with a `%`, and the same switch composes
+`+woundfrost` and `+woundmagic` for the two other things that weaken a wound. Two of the three have
+an `+of_` twin for the auxiliary weapon; `+woundfrost` has none.
+
+Read as a declaration, for the reason `+critslow_per` is: a percentage is a unit no total here
+keeps, and what the wound does to health arrives separately as the `wound` ticks the entry above
+reads.
+
+⚠️ **What the percentage is taken off is not settled by this material.** All six occurrences state
+`50` while the ticks following them state 177, 265, 353, 177, 265 and 177, and the blows they ride
+carry `+dmgd` of 1139, 1284, 1205, 1952, 1292 and 1201 — the figure moves with neither
+(`captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`, read 2026-09-11). A share quoted
+against a wound would be a guess, so none is quoted.
+
+⚠️ **The same announcement is read two ways, and only because one of them carries a figure.**
+`+wound` is a proc on the actor's end and reaches the panel's procs; this one carries a value, and
+the proc reader takes valueless keys only (`src/core/fight-decoder.ts`). So a wound nothing weakened
+is drawn as a proc and a weakened one is not. `[ASK]` before widening that reader.
+
+_Shape:_ 6 occurrences; on a blow; a whole number
+
+_Help:_ names nothing of `woundpoison`
+
+_Evidence:_ production build `Cl9U89Zr` composes `msg_woundpoison %val%` on the switch that composes
+`msg_+wound` and `msg_+critwound` without one; build `1785244275300` fills that slot with the deep
+wound's own name and a share taken off it. The published help names nothing of the key — article
+view,372, read 2026-09-09 — which is the whole of what it settles. Every occurrence rides a blow of
+one combatant in `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`, the one
+recording carrying it as the set stood 2026-09-11.
 
 ### `+legbon_anguish` — decoded
 

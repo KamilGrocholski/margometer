@@ -48,8 +48,8 @@ Deno.test("every tick lands on a victim already wounded, stating what that wound
             assertEquals(tick.value, wound, `${path}: a tick stating what no wound announced`);
         }
     }
-    assertEquals(ticks, 184, "every tick the material carries, 2026-08-30");
-    assertEquals(wounds, 76, "and every wound announced before one, 2026-08-30");
+    assertEquals(ticks, 199, "every tick the material carries, 2026-09-11");
+    assertEquals(wounds, 84, "and every wound announced before one, 2026-09-11");
 });
 
 Deno.test("a victim carries one wound at a time, however many attackers wounded them", () => {
