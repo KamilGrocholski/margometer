@@ -83,24 +83,50 @@ const MAXIMUM_FRAME_SIDE = 4000;
 /** What the page is told the picture will be taken at; the preview reads its own keys, not this. */
 export const FRAME_PARAMETER = "frame";
 
-/** One picture, and the presses that reach the state it is of. */
+/**
+ * How far into the fight a picture is taken. A fight that has ended numbers nobody's turn (**ADR
+ * 0066**) and holds no charge, so the window beside the panel says only that it is over; a fight
+ * still going has nothing on the shelf, because a fight is kept where it reaches its end. Neither
+ * moment draws both, which is why the set is taken at two.
+ */
+export type ShotMoment = "underway" | "over";
+
+/**
+ * The payload the underway pictures are taken after. Measured over the recording
+ * `getPreviewRecordedFight` hands back — the material is named there, and named once —
+ * replayed payload by payload on 2026-09-11: the fight is still going, the turn stated is one of
+ * ours, and the far side is three turns into the four the game states for `Lodowe Pandemonium` —
+ * so the second window draws a turn, a charge with a turn still to run, and both sides' hues at
+ * once. Eleven payloads of fifteen, holding 349548 of the 385970 the whole fight comes to.
+ */
+export const UNDERWAY_ENTRY = 11;
+
+/** One picture, when it is taken, and the presses that reach the state it is of. */
 export interface PanelShot {
     name: string;
+    moment: ShotMoment;
     steps: string;
+}
+
+/** One picture of a set, beside how much of the fight the panel in it had been handed. */
+export interface TakenShot {
+    name: string;
+    entry: number;
 }
 
 /**
  * What the set names, so the sidecar and the directory can be held to each other.
  *
- * The commit and the version are written because a picture cannot say which build drew it, and
- * the recording because a figure in a picture means nothing without the fight it was counted over.
+ * The commit and the version are written because a picture cannot say which build drew it, the
+ * recording because a figure in a picture means nothing without the fight it was counted over, and
+ * the entry because two of these pictures are of the same fight at different moments of it.
  */
 export interface PanelShotRecord {
     commit: string;
     version: string;
     fight: string;
     takenAt: string;
-    shots: string[];
+    shots: TakenShot[];
 }
 
 /**
@@ -113,14 +139,20 @@ const TAB_DAMAGE_TAKEN = 3;
 
 export function composePanelShots(): PanelShot[] {
     const shots: PanelShot[] = [
-        { name: "panel-ranking.png", steps: `setPressed("[data-screen]", ${TAB_DAMAGE_TAKEN});` },
+        {
+            name: "panel-ranking.png",
+            moment: "underway",
+            steps: `setPressed("[data-screen]", ${TAB_DAMAGE_TAKEN});`,
+        },
         {
             name: "panel-opened.png",
+            moment: "underway",
             steps:
                 `setPressed("[data-screen]", ${TAB_DAMAGE_TAKEN});\nsetPressed("[data-row]", 0);`,
         },
         {
             name: "panel-deep.png",
+            moment: "underway",
             steps: `setPressed("[data-screen]", ${TAB_DAMAGE_TAKEN});\n` +
                 `setPressed("[data-row]", 0);\nsetPressed("[data-row]", 0);`,
         },
@@ -129,15 +161,19 @@ export function composePanelShots(): PanelShot[] {
             // a pinned row stands apart from the ranking and is marked by the end it leaves
             // out, which is the whole of what opening it asks for.
             name: "panel-half-named.png",
+            moment: "underway",
             steps: `setPressed("[data-screen]", ${TAB_DAMAGE_TAKEN});\n` +
                 `setPressed("[data-unnamed]", 0);`,
         },
         {
             name: "panel-card.png",
+            moment: "underway",
             steps:
                 `setPressed("[data-screen]", ${TAB_DAMAGE_TAKEN});\nsetHovered("[data-tip]", 0);`,
         },
-        { name: "panel-shelf.png", steps: `setPressed("[data-shelf]", 0);` },
+        // The shelf is the one picture of a fight that ended: a fight is kept where it reaches
+        // its end, so an underway shelf holds the live row and nothing to go back to.
+        { name: "panel-shelf.png", moment: "over", steps: `setPressed("[data-shelf]", 0);` },
     ];
     assert(shots.length > 1, "a set is more than one picture");
     assertStrictEquals(
@@ -145,7 +181,18 @@ export function composePanelShots(): PanelShot[] {
         shots.length,
         "each named once",
     );
+    assert(shots.some((shot) => shot.moment === "over"), "a set holds the fight that ended");
+    assert(shots.some((shot) => shot.moment === "underway"), "and the one still going");
     return shots;
+}
+
+/** Where a moment stands in a fight the game made this many calls over. */
+export function getEntryForMoment(moment: ShotMoment, calls: number): number {
+    assert(calls > UNDERWAY_ENTRY, "a fight photographed twice runs past the first moment");
+    const entry = moment === "over" ? calls : UNDERWAY_ENTRY;
+    assert(entry > 0, "a picture is of a fight something has been read of");
+    assert(entry <= calls, "and of one this recording reaches");
+    return entry;
 }
 
 /**
@@ -489,13 +536,13 @@ async function getCommitForShots(): Promise<string> {
 async function setShotsMovedIn(staging: string, record: PanelShotRecord): Promise<void> {
     assert(record.shots.length > 0, "a set that is moved in has pictures in it");
     await Deno.mkdir(SHOT_DIRECTORY, { recursive: true });
-    const kept = new Set<string>([...record.shots, SIDECAR_NAME]);
-    for (const entry of Deno.readDirSync(SHOT_DIRECTORY)) {
-        if (kept.has(entry.name)) continue;
-        await Deno.remove(`${SHOT_DIRECTORY}/${entry.name}`);
+    const kept = new Set<string>([...record.shots.map((shot) => shot.name), SIDECAR_NAME]);
+    for (const held of Deno.readDirSync(SHOT_DIRECTORY)) {
+        if (kept.has(held.name)) continue;
+        await Deno.remove(`${SHOT_DIRECTORY}/${held.name}`);
     }
-    for (const name of record.shots) {
-        await Deno.copyFile(`${staging}/${name}`, `${SHOT_DIRECTORY}/${name}`);
+    for (const shot of record.shots) {
+        await Deno.copyFile(`${staging}/${shot.name}`, `${SHOT_DIRECTORY}/${shot.name}`);
     }
     const writing = composeJsonWriting(record, SIDECAR_INDENT_SPACES);
     if (!writing.isOk) {
@@ -523,8 +570,10 @@ export async function writePanelShots(browser: string, version: string): Promise
     const shots = composePanelShots();
     const built = await composeUserscriptFiles(version);
     const staging = await Deno.makeTempDir({ prefix: "margometer-shots-" });
+    const taken: TakenShot[] = [];
     try {
         for (const shot of shots) {
+            const entry = getEntryForMoment(shot.moment, fight.calls.length);
             const preview = setPreviewServer({
                 port: 0,
                 shouldWatch: false,
@@ -532,7 +581,7 @@ export async function writePanelShots(browser: string, version: string): Promise
                 appendedScript: composeShotScript(shot.steps),
             });
             try {
-                const at = `entry=${fight.calls.length}`;
+                const at = `entry=${entry}`;
                 const named = `fight=${encodeURIComponent(fight.name)}`;
                 await writeShotOfAddress(
                     browser,
@@ -542,14 +591,15 @@ export async function writePanelShots(browser: string, version: string): Promise
             } finally {
                 await preview.stop();
             }
+            taken.push({ name: shot.name, entry });
         }
-        for (const shot of shots) await Deno.stat(`${staging}/${shot.name}`);
+        for (const shot of taken) await Deno.stat(`${staging}/${shot.name}`);
         const record: PanelShotRecord = {
             commit,
             version,
             fight: fight.name,
             takenAt: new Date().toISOString(),
-            shots: shots.map((shot) => shot.name),
+            shots: taken,
         };
         await setShotsMovedIn(staging, record);
         assertStrictEquals(

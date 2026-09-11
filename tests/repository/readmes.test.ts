@@ -230,7 +230,10 @@ Deno.test("the pictures a README shows are the set the sidecar names, both ways"
     assert(isRecord(reading.value), "and is an object with the set in it");
     const shots = reading.value["shots"];
     assert(Array.isArray(shots), "which names the pictures it was taken as");
-    const named = shots.map((one) => `${SHOT_DIRECTORY}/${one}`).sort();
+    const named = shots.map((one) => {
+        assert(isRecord(one), "each of which says what it is");
+        return `${SHOT_DIRECTORY}/${one["name"]}`;
+    }).sort();
     const shown = [...new Set(getPicturePaths(getSource(POLISH)))].sort();
     assertEquals(shown, named, "a README shows exactly the set that was shot");
 });

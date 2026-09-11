@@ -11,7 +11,9 @@ import {
     assert,
     assertArrayIncludes,
     assertEquals,
+    assertNotEquals,
     assertRejects,
+    assertStrictEquals,
     assertStringIncludes,
     assertThrows,
 } from "@std/assert";
@@ -22,6 +24,9 @@ import { PLACE, SPACE, TIP } from "@/src/ui/panel-look.ts";
 import { CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 import { getDeclaredVersion, isVersionOfTree } from "@/tools/declared-version.ts";
 import { PanelShotError } from "@/tools/margometer-tool-error.ts";
+import type { FightReading } from "@/src/game/fight-underway.ts";
+import { composeFightReplaySteps } from "@/tools/fight-replay.ts";
+import { getRecordedFightCalls, PREVIEW_FIGHT_NAME } from "@/tools/recorded-fights.ts";
 import {
     BROWSER_VARIABLE,
     composeFrameFromReport,
@@ -30,11 +35,13 @@ import {
     composeShotScript,
     FRAME_PARAMETER,
     getBrowserAsked,
+    getEntryForMoment,
     getReportFromDom,
     MEASURING_WIDTH,
     readInstalledBrowser,
     SHOT_DIRECTORY,
     SIDECAR_NAME,
+    UNDERWAY_ENTRY,
 } from "@/tools/panel-screenshots.ts";
 
 /** A name nothing on any machine answers to, for the refusal that has to be reachable. */
@@ -94,9 +101,21 @@ Deno.test("whatever is in the directory agrees with the sidecar standing beside 
     assert(reading.isOk, "and the sidecar is JSON");
     const written = reading.value;
     assert(isRecord(written), "and the sidecar is a record");
-    const named = written.shots;
-    assert(Array.isArray(named), "naming the pictures it stands beside");
-    assertEquals(getSetDisagreements(held, named as string[]), [], "DESIGN.md: the set is the set");
+    const taken = written.shots;
+    assert(Array.isArray(taken), "naming the pictures it stands beside");
+    const calls = getRecordedFightCalls(PREVIEW_FIGHT_NAME).length;
+    const named: string[] = [];
+    for (const one of taken) {
+        assert(isRecord(one), "each of which says what it is and where it stood");
+        const name = one["name"];
+        assert(typeof name === "string", "a picture in a set is named");
+        const entry = one["entry"];
+        assert(typeof entry === "number", "and says how much of the fight it was handed");
+        assert(entry > 0, "which is more than none of it");
+        assert(entry <= calls, "and no more than the recording carries");
+        named.push(name);
+    }
+    assertEquals(getSetDisagreements(held, named), [], "DESIGN.md: the set is the set");
 });
 
 /**
@@ -309,4 +328,74 @@ Deno.test("both runs that drive a browser name the same variable", () => {
         BROWSER_CONFIGURATION,
     );
     assertEquals(configured, BROWSER_VARIABLE, "the suite names the variable this tool reads");
+});
+
+/**
+ * Why a moment is not one the underway pictures may be taken at. Collected rather than thrown at
+ * the first objection: an entry that fails two says both, and each clause is then a line that a
+ * moved `UNDERWAY_ENTRY` can light on its own — asserted in order, the first would shadow the rest.
+ */
+function composeUnderwayObjections(reading: FightReading): string[] {
+    const found: string[] = [];
+    if (reading.isOver) found.push("the fight had already ended");
+    if (reading.turnStatement === null) found.push("no turn was stated");
+    const charging = reading.chargedSkills.filter((one) => one.state === "charging");
+    if (charging.length !== 1) found.push(`${charging.length} charges stood, and one is wanted`);
+    for (const one of charging) {
+        if (one.turnsStated < 2) {
+            found.push(`${one.skillName} states one turn, so it draws one pip`);
+        }
+        if (one.turnsElapsed >= one.turnsStated) found.push(`${one.skillName} has no turn left`);
+    }
+    return found;
+}
+
+/**
+ * The moment the five underway pictures are taken at, re-earned over the recording they are taken
+ * over. Five of the set stand on a fight going on — the turn, what stands, a charge with pips left
+ * to light (**ADR 0066**) — and the shelf on one that ended, because a fight is kept where it
+ * reaches its end. The reader is proved both ways: the entry that must pass, and the end of the
+ * same fight, which must not.
+ */
+Deno.test("the moment the underway pictures are taken at is one a fight is going at", () => {
+    const calls = getRecordedFightCalls(PREVIEW_FIGHT_NAME);
+    const steps = composeFightReplaySteps({ name: PREVIEW_FIGHT_NAME, calls });
+    assertStrictEquals(steps.length, calls.length, "every payload leaves a fight to read");
+    assertEquals(
+        composeUnderwayObjections(steps[UNDERWAY_ENTRY - 1]!.replay.reading),
+        [],
+        `entry ${UNDERWAY_ENTRY} of ${PREVIEW_FIGHT_NAME} is not a fight going on`,
+    );
+    assertNotEquals(
+        composeUnderwayObjections(steps[calls.length - 1]!.replay.reading),
+        [],
+        "and the end of the same fight is not, which is the moment the shelf is photographed at",
+    );
+});
+
+Deno.test("a moment is where in the fight the picture is taken", () => {
+    const calls = UNDERWAY_ENTRY + 1;
+    assertStrictEquals(getEntryForMoment("over", calls), calls, "the whole fight, played out");
+    assertStrictEquals(
+        getEntryForMoment("underway", calls),
+        UNDERWAY_ENTRY,
+        "and the payload the fight is still going after",
+    );
+    assertThrows(
+        () => getEntryForMoment("underway", UNDERWAY_ENTRY),
+        Error,
+        undefined,
+        "a fight that ends before the first moment is not one to photograph twice",
+    );
+});
+
+Deno.test("the set is taken at both moments, and the shelf at only one", () => {
+    const shots = composePanelShots();
+    const over = shots.filter((shot) => shot.moment === "over");
+    assertStrictEquals(over.length, 1, "one picture is of the fight that ended");
+    assertStrictEquals(over[0]!.name, "panel-shelf.png", "and it is the one with a shelf in it");
+    assert(
+        shots.filter((shot) => shot.moment === "underway").length > 1,
+        "the rest are of the fight going on",
+    );
 });
