@@ -17,6 +17,8 @@ export const FROZEN_HELP_PHRASES = {
         "absagain_per": 4,
         "absorb": 19,
         "absorbm": 3,
+        "absorpcja": 43,
+        "absorpcja magiczna": 16,
         "acdmg": 11,
         "acdmg_destroyed": 0,
         "active_absorbdest_per": 1,

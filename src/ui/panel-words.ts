@@ -293,9 +293,14 @@ export const CARD_WORDS = {
 } as const;
 
 /**
- * The defence that stopped part of a blow, in the player's words. Drawn as sub-lines under
- * `Zatrzymane`, so each names the defence rather than describing what it did — the line above
- * already said that.
+ * The defence that stopped part of a blow — **the game's own word for it, every one of them**
+ * (**ADR 0077**). Drawn as sub-lines under `Zatrzymane`, so each names the defence rather than
+ * describing what it did: the line above already said that.
+ *
+ * A word here is therefore a claim about the game and not a matter of taste, and
+ * `tests/ui/panel-words.test.ts` holds each to the frozen counts the way it holds the elements.
+ * The physical absorption is bare where the magical one carries its kind, which is the article's
+ * own asymmetry rather than ours — `docs/protocol-keys.md` carries the measurement.
  *
  * **Keyed by the client's own token, with no sign**, the way an element is: a figure carries the
  * token and the sign says which half of the blow it was, not which defence. The procs below are
@@ -304,8 +309,8 @@ export const CARD_WORDS = {
  */
 export const DEFENCE_WORDS: Record<string, string> = {
     blok: "blok",
-    absorb: "wchłonięcie",
-    absorbm: "wchłonięcie magiczne",
+    absorb: "absorpcja",
+    absorbm: "absorpcja magiczna",
 };
 
 /**

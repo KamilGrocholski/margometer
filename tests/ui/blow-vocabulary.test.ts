@@ -211,7 +211,7 @@ Deno.test("no label a card draws is longer than the column it is drawn in", () =
     // The sample that must flag, so the reader is known to be looking: the bound is real and a
     // word one character over it is over it.
     assert(
-        "wchłonięcie magiczne!!!".length > MAXIMUM_LABEL_CHARACTERS,
+        "absorpcja magiczna!!!!!".length > MAXIMUM_LABEL_CHARACTERS,
         "and the measure is the characters, not the entry",
     );
 });

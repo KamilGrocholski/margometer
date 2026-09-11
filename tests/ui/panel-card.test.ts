@@ -239,7 +239,7 @@ Deno.test("the card says what they did when they struck, and what held when they
         [
             `[${CARD_WORDS.struck}]`,
             `${CARD_WORDS.prevented} 10\u00a0413`,
-            "  wchłonięcie 8\u00a0000",
+            "  absorpcja 8\u00a0000",
             "  blok 2\u00a0413",
             "unik 3",
             "-legbon_cleanse 1",

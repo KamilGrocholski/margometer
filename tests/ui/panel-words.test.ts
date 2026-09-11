@@ -719,25 +719,70 @@ Deno.test("a suspicion names whom it reaches while they are few, counting them p
 });
 
 /**
- * Every word the element column draws is one the published help prints, re-earned against the
- * frozen counts. The client has no case label for any of these keys, so the article is the only
- * source a name can come from and an invention here is indistinguishable from a reading.
+ * The two tables the published help words, re-earned against the frozen counts: the kinds of
+ * damage (**ADR 0073**) and the defences (**ADR 0077**). The client has no case label for either
+ * family's keys, so the article is the only source a name could come from and an invention is
+ * indistinguishable from a reading.
  *
- * ⚠️ **A count proves the article carries the word, not that it carries it as this type's name.**
+ * ⚠️ **A count proves the article carries the word, not that it carries it as this thing's name.**
  * That half is a person's reading, the way **V1**'s citation rule is — `globalne` occurred once
  * in the article while naming a chat setting, and a reader that stopped at the count would have
  * blessed it. The register's own header draws the same line: the line states an occurrence, the
  * prose states what it means.
  */
-Deno.test("every word the element column draws is one the game prints", () => {
+function getWordsTheArticleDoesNotPrint(worded: Record<string, string>): string[] {
     const counts: Record<string, number> = FROZEN_HELP_PHRASES.counts;
-    const words = Object.values(ELEMENT_WORDS);
-    assert(words.length > 0, "the column words something");
-    for (const word of words) {
+    const unprinted: string[] = [];
+    for (const word of Object.values(worded)) {
         const carried = counts[word];
-        assert(carried !== undefined, `the frozen reading was never asked about "${word}"`);
-        assert(carried > 0, `the article does not print "${word}"`);
+        if (carried === undefined) {
+            unprinted.push(`"${word}" was never asked about`);
+            continue;
+        }
+        if (carried > 0) continue;
+        unprinted.push(`"${word}" is printed nowhere`);
     }
+    return unprinted;
+}
+
+Deno.test("the reader knows a word the article prints from one it does not", () => {
+    // The sample that must flag, so the reader is known to be looking, and the one that must not,
+    // so it is known not to find too much. Both words are real: `blok` the frozen table counts,
+    // `wchłonięcie` the word this repository drew until ADR 0077 and the article carries not once.
+    assertEquals(
+        getWordsTheArticleDoesNotPrint({ blok: "blok" }),
+        [],
+        "a word the frozen reading counted is one this reader passes",
+    );
+    assertEquals(
+        getWordsTheArticleDoesNotPrint({ absorb: "wchłonięcie" }),
+        ['"wchłonięcie" was never asked about'],
+        "and a word nothing counted is one it flags",
+    );
+});
+
+Deno.test("every word the element column draws is one the game prints", () => {
+    assert(Object.values(ELEMENT_WORDS).length > 0, "the column words something");
+    assertEquals(
+        getWordsTheArticleDoesNotPrint(ELEMENT_WORDS),
+        [],
+        "a kind is drawn under the article's word for it, or under the game's own token",
+    );
+});
+
+/**
+ * The same for the defences, and for the same reason: the card draws these under `Zatrzymane`
+ * where a player is reading the game's own vocabulary everywhere around them. **ADR 0077**
+ * extends **ADR 0073**'s decision to this table; `docs/protocol-keys.md` carries the measurement
+ * key by key, and `blok` is both the client's token and a word the article prints.
+ */
+Deno.test("every word a defence is drawn under is one the game prints", () => {
+    assert(Object.values(DEFENCE_WORDS).length > 0, "the card words something");
+    assertEquals(
+        getWordsTheArticleDoesNotPrint(DEFENCE_WORDS),
+        [],
+        "a defence is drawn under the article's word for it, and never an invented one",
+    );
 });
 
 Deno.test("a kind the help does not name is left out rather than invented", () => {

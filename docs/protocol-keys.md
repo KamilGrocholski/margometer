@@ -796,15 +796,19 @@ Damage physical absorption stopped before it reached the target.
 
 _Shape:_ 627 occurrences; on a blow; a whole number
 
-_Help:_ names `absorb`
+_Help:_ names `absorb`, `absorpcja`
 
 _Evidence:_ the game's published help, article view,372, at the engine name `absorb` (read
 2026-08-09), describes it as a reduction of the physical damage a character is taking at that
 moment, capped at a share of the blow and drawn from a pool that runs out — which is why the figure
-is sometimes far below that cap. Production build `1785244275300`: the branch appends to a log slot
-and assigns nothing. 45 occurrences on
-`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, every one with a value that
-reads as an integer — which the `*Shape:*` line above re-earns over every recording since.
+is sometimes far below that cap. `absorpcja` is the article's own word for it and is what the panel
+draws it under (**ADR 0077**). **Bare, without the kind**: over the dump fetched 2026-09-09, read
+2026-09-11, the nominative `absorpcja fizyczna` occurs **not once** — the article qualifies the kind
+only in the oblique cases, where it is contrasting this absorption with the other two it names.
+Production build `1785244275300`: the branch appends to a log slot and assigns nothing. 45
+occurrences on `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, every one with
+a value that reads as an integer — which the `*Shape:*` line above re-earns over every recording
+since.
 
 ### `-absorbm` — decoded
 
@@ -813,11 +817,13 @@ than physical damage, with a higher cap.
 
 _Shape:_ 302 occurrences; on a blow; a whole number
 
-_Help:_ names `absorbm`
+_Help:_ names `absorbm`, `absorpcja magiczna`
 
 _Evidence:_ article view,372 at the engine name `absorbm` (read 2026-08-09), and the same branch
 shape in production build `1785244275300`. 27 occurrences on
-`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`.
+`captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`. Unlike the physical one
+above, this kind is named in full wherever the article names it, which is why the panel's word for
+it carries the kind and the physical one does not (**ADR 0077**).
 
 ### `-blok` — decoded
 

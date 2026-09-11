@@ -200,3 +200,5 @@ edited to agree with the new rule.
   lines it is written over. **Accepted**
 - [0076](0076-the-way-out-is-held-by-the-object-not-by-the-method.md) — The way out is held by the
   object, not by the method. **Accepted**
+- [0077](0077-the-defence-line-speaks-the-games-own-words.md) — The defence line speaks the game's
+  own words. **Accepted**
