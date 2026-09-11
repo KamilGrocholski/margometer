@@ -17,12 +17,11 @@ import { getRecordedCombatants, getRecordedPayloads } from "@/tests/recorded-fig
 const NAME_KEYS = [PROVOCATION_KEY];
 
 /**
- * ⚠️ **One recording states a fight its own roster does not hold, and it is the only one.** The
- * add-on snapshots the combatants beside each engine call; for this fight it wrote none, on a
- * fight the game was already running itself that arrived in a single call. The census in
- * `docs/captured-fights.md` reads the payload and reports `1 vs 2`; a reader going through the
- * snapshot sees nobody, and
- * the panel is that second kind. Registered rather than skipped, so a second one reddens the gate.
+ * ⚠️ **One recording snapshots no combatants, and it is the only one** — a fight the game was
+ * already running itself, arriving in a single call. It costs the tools nothing:
+ * `tools/fight-replay.ts` takes its roster off the payloads and draws all three rows. What the
+ * panel held while the fight was on is not settled by this, and the empty snapshot is the only
+ * record of it. Registered rather than skipped, so a second one reddens the gate.
  */
 const NO_ROSTER_RECORDED = "2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1.json";
 
