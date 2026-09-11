@@ -408,8 +408,10 @@ TypeScript idiom, with the naming rules stated here.
 - **W3.** Prove a new test can fail: break what it covers, watch it go red, restore **from a copy**
   — never `git checkout`, because the file may carry uncommitted work. **A mutation is a scripted
   edit, so W7 binds it first**: confirm the break landed before reading the verdict, because a
-  pattern that matched nothing leaves the tree green and looks exactly like a guard that held.
-  Report it under **G3**. _(`by-reading` whether the mutation lit what it claims to have lit)_
+  pattern that matched nothing leaves the tree green and looks exactly like a guard that held. **And
+  a break that landed may still not bite** — an edit no material exercises changes no outcome, and
+  reads as the same green. A mutation is proved by what it moved, not by what it matched. Report it
+  under **G3**. _(`by-reading` whether the mutation lit what it claims to have lit)_
 - **W4.** A mutation that lights nothing is a finding — a missing test or an inert line, and often
   the answer is to delete something. _(`by-reading` whether nothing lighting up was investigated)_
 - **W5.** Test the boundary from both sides, and zero is a boundary. Zero is the neutral element of

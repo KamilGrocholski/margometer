@@ -116,6 +116,50 @@ function readFight(path: string) {
  * nothing asked the corpus. Measured 2026-09-11: 360 readings, thirty recordings against four
  * screens and three side choices, and not one of them contradicts itself.
  */
+/**
+ * **ADR 0055**: a bound that drops a part makes the panel lie. The cut by kind is asserted above
+ * to account for its whole figure, on one combatant of one fight; the cut by the other end is
+ * asked of the corpus a level down, where a part opens. Nothing asked the kinds of the material.
+ *
+ * On unmutated code the sum is arithmetic — the remainder is `total` less what was counted — so
+ * what this holds is the day a part is counted and not drawn. It reddens on exactly that.
+ */
+Deno.test("the kinds a row is cut into come to the figure, on every recording", () => {
+    const { replays } = composeReplayedMaterial(readRecordingPaths());
+    const short: string[] = [];
+    let opened = 0;
+    for (const replay of replays) {
+        for (const metric of SCREEN_ORDER) {
+            const reading = composePanelReading(
+                replay.statistics,
+                replay.roster,
+                metric,
+                "everyone",
+                replay.reading.readerSide,
+                NOTHING_SUSPECT,
+            );
+            for (const row of reading.rows) {
+                const drill = composeDrillReading(
+                    replay.statistics,
+                    replay.roster,
+                    metric,
+                    row.combatantId,
+                );
+                if (drill === null) continue;
+                const kinds = drill.byElement.rows.reduce((sum, one) => sum + one.figure, 0);
+                const held = kinds + (drill.byElement.rest?.figure ?? 0) +
+                    (drill.byElement.unnamed?.figure ?? 0);
+                if (held === 0) continue;
+                opened += 1;
+                if (held === drill.total) continue;
+                short.push(`${replay.name} ${metric}: ${held} of ${drill.total}`);
+            }
+        }
+    }
+    assert(opened > 0, "some row was cut by kind");
+    assertEquals(short, [], "a kind counted and not drawn is a panel that lies");
+});
+
 Deno.test("no recording makes the panel contradict itself, on any screen or side", () => {
     const { replays } = composeReplayedMaterial(readRecordingPaths());
     assert(replays.length > 0, "there is material to read");
