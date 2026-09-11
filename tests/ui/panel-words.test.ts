@@ -9,9 +9,11 @@
 
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
+import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import {
     composeChargedRowsText,
     composeCountedNoun,
+    composeDefectText,
     composeFigureText,
     composeGrammarRefusedSuspicion,
     composeJoinedInProgressSuspicion,
@@ -28,6 +30,7 @@ import {
     composeUnplacedHealSuspicion,
     composeUsesText,
     COUNTED_NOUNS,
+    DEFECT_KINDS,
     ELEMENT_WORDS,
     getWordsForDamageKind,
     getWordsForHealthSource,
@@ -38,6 +41,8 @@ import {
     HEALTH_SOURCE_WORDS,
     NEITHER_END_WORDS,
     PANEL_WORDS,
+    type PanelRegion,
+    REGION_WORDS,
 } from "@/src/ui/panel-words.ts";
 import { type PanelOutcome, type PanelUnnamedEnd, PINNED_CASES } from "@/src/ui/panel-reading.ts";
 
@@ -54,8 +59,38 @@ const OUR_VOCABULARY = [
     "combatant",
     "protocol",
 ];
-/** Keys the game chose. A reader is told what happened, never what it arrived under. */
-const GAME_KEYS = ["dmg", "tspell", "skillid", "healall_per", "legbon", "oth_dmg", "endbattle"];
+/**
+ * Keys the game chose. A reader is told what happened, never what it arrived under.
+ *
+ * ⚠️ **Seven of these were kept by hand against a table that grows.** `frozen/protocol-keys.ts` is
+ * every key the client branches on, re-lifted by `deno task game:keys`, and a sentence naming one
+ * of them would have gone unread unless somebody had thought to add it here. What is taken from
+ * that table is every key **whose shape Polish does not have** — an underscore, a digit, a capital
+ * — because these are matched as substrings and `blok` is a word a Polish sentence may say.
+ */
+const HAND_KEPT_KEYS = [
+    "dmg",
+    "tspell",
+    "skillid",
+    "healall_per",
+    "legbon",
+    "oth_dmg",
+    "endbattle",
+];
+
+function getUnmistakableKeys(): string[] {
+    const found = new Set<string>(HAND_KEPT_KEYS);
+    for (const stated of FROZEN_PROTOCOL_KEYS.keys) {
+        const key = stated.replace("+", "").replace("-", "");
+        if (key.length < 4) continue;
+        const isShaped = key.includes("_") || key !== key.toLowerCase() ||
+            [...key].some((one) => one >= "0" && one <= "9");
+        if (!isShaped) continue;
+        found.add(key.toLowerCase());
+    }
+    return [...found];
+}
+const GAME_KEYS = getUnmistakableKeys();
 /** What a count in these sentences is stated out of. Any figure past the counts below will do. */
 const SAID_OUT_OF = 412;
 
@@ -75,6 +110,16 @@ function getSentences(): string[] {
         found.push(getWordsForPinnedScope(kase));
     }
     found.push(NEITHER_END_WORDS.label, NEITHER_END_WORDS.note);
+    // ⚠️ **What the panel says it could not do**, which `DEFECT_WORDS` carries and its own
+    // docblock cites **L3** for. `PANEL_WORDS` does not hold them and a walk over it reached
+    // none: measured 2026-09-11 by putting `oth_dmg` into one, which the checks below read past.
+    // The region kind takes a region, so every one of those is asked as well.
+    for (const kind of DEFECT_KINDS) {
+        found.push(composeDefectText(kind, null, 1));
+        for (const region of Object.keys(REGION_WORDS)) {
+            found.push(composeDefectText(kind, region as PanelRegion, 2));
+        }
+    }
     // The sentences a suspicion is said in, the fight's and a row's both. They are composed
     // rather than declared, so a table of the panel's words does not reach them and the guards
     // below would read past every one.
@@ -140,6 +185,10 @@ Deno.test("no sentence carries our vocabulary", () => {
 });
 
 Deno.test("no sentence carries a key of the game's", () => {
+    assert(
+        GAME_KEYS.length > HAND_KEPT_KEYS.length * 3,
+        `the frozen table widens the seven kept by hand, and gave ${GAME_KEYS.length}`,
+    );
     const wrong: string[] = [];
     for (const sentence of getSentences()) {
         for (const key of GAME_KEYS) {
