@@ -323,7 +323,9 @@ TypeScript idiom, with the naming rules stated here.
   tool is run do not count**, and the exception is stated because the bound was written for `src/`,
   where no file carries one. `tests/repository/sources.test.ts` holds it, and carries the
   measurement.
-- **C5.** Comment share of a file stays under 25%. **ADR 0005.**
+- **C5.** Comment share of a file stays under 25%, counting the comment lines that carry a word — a
+  docblock's opening and closing lines and the blank continuation between its paragraphs are
+  punctuation. **ADR 0005**, narrowed by **ADR 0075**.
 - **C6.** Comments are sentences — a space after the slashes, a capital letter, a full stop, or a
   colon when they introduce what follows. An end-of-line comment may be a phrase.
 - **C7. No regular expressions.** Text is read by walking it. One exception, and it is somebody
@@ -361,7 +363,7 @@ TypeScript idiom, with the naming rules stated here.
   restates a document, as opposed to repeating one word for word)_
 - **C16.** Comment share of a directory under `src/` or `tools/` stays under 22%. A file may sit
   near C5's ceiling; a directory may not, because a per-file bound cannot see a directory walking to
-  it. **ADR 0016.**
+  it. **ADR 0016**, counted as **ADR 0075** counts one.
 - **C17. The standard library is asked before a function is written.** `@std` is carried already
   (**ADR 0001**), so a walk written here is a walk somebody else has tested. Where its edge case
   differs from the one needed, keep your own and **name the difference where the code stands** — an

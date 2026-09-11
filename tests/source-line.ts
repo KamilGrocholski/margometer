@@ -19,6 +19,29 @@ export function isCommentLine(line: string): boolean {
 }
 
 /**
+ * Whether a comment line carries a word, as opposed to the frame around one.
+ *
+ * ⚠️ **A docblock's opening and closing lines, and the blank continuation between its
+ * paragraphs, are punctuation.** Counting them charged a share to the shape of a comment rather
+ * than to its text, and the tree pressed against C5 on lines carrying no word. **ADR 0075.**
+ */
+export function hasCommentWord(line: string): boolean {
+    if (!isCommentLine(line)) return false;
+    let held = line.trimStart();
+    for (const opener of COMMENT_OPENERS) {
+        if (!held.startsWith(opener)) continue;
+        held = held.slice(opener.length);
+        break;
+    }
+    for (const one of held) {
+        if (one >= "a" && one <= "z") return true;
+        if (one >= "A" && one <= "Z") return true;
+        if (one >= "0" && one <= "9") return true;
+    }
+    return false;
+}
+
+/**
  * Code only: comments dropped, string bodies blanked, quotes kept so offsets survive.
  *
  * ⚠️ **A comment is found on the same walk as the quotes, never before it.** Cutting the line at

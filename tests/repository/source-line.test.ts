@@ -8,6 +8,7 @@ import { assertEquals, assertStringIncludes } from "@std/assert";
 import {
     countCallsOutsideStrings,
     getCodeOutsideStrings,
+    hasCommentWord,
     hasOutsideStrings,
     isCommentLine,
 } from "@/tests/source-line.ts";
@@ -31,6 +32,25 @@ Deno.test("a comment is dropped, and what stands before it is kept", () => {
  * unclosed quote and everything after it — calls, assertions, constructs — was blanked for every
  * guard standing on this. Measured 2026-09-10: 22 lines in the tree carry a `://` in a literal.
  */
+
+/**
+ * ⚠️ **A comment is counted by the words in it, not by the lines it is written over.** A share
+ * charged for a docblock's opening and closing lines and for the blank continuation between its
+ * paragraphs is a share charged for punctuation. **ADR 0075.**
+ */
+Deno.test("a comment line is counted where it carries a word, and not where it is frame", () => {
+    assertEquals(hasCommentWord(" * a sentence of the docblock"), true, "a sentence counts");
+    assertEquals(hasCommentWord("// a note of its own"), true, "and so does a note");
+    assertEquals(hasCommentWord(" * 0007"), true, "and a rule number is a word here");
+    assertEquals(hasCommentWord("/**"), false, "what opens a docblock carries nothing");
+    assertEquals(hasCommentWord(" */"), false, "and neither does what closes it");
+    assertEquals(hasCommentWord(" *"), false, "nor the blank line between two paragraphs");
+    assertEquals(hasCommentWord("//"), false, "nor a note with nothing in it");
+    // The other half of the reader: code is not comment, whatever words it carries.
+    assertEquals(hasCommentWord("const held = read();"), false, "a line of code is not comment");
+    assertEquals(hasCommentWord(""), false, "and an empty line is neither");
+});
+
 Deno.test("a protocol inside a literal is not read as a comment", () => {
     const read = getCodeOutsideStrings('const host = "https://example.com"; readIt(host);');
     assertStringIncludes(read, "readIt(", "what stands after the literal is still code");

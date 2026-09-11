@@ -4,8 +4,7 @@ import { assert, assertEquals } from "@std/assert";
 import { getTextFromHtml } from "@/libs/html-text.ts";
 
 Deno.test("what a browser reads as machinery never reaches the search", () => {
-    // Strip the tags before the script bodies and the page's own code stays in the result, where
-    // a search hits it and reports machinery as documentation.
+    // Strip tags before script bodies and the page's own code reaches a search as documentation.
     const text = getTextFromHtml("<p>Blok</p><script>var evade = 1;</script><p>Unik</p>");
     assertEquals(text, "Blok Unik", "the script's body came out with its tag");
     assert(!text.includes("evade"), "and took the name inside it along");

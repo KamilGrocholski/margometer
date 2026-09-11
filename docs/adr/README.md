@@ -196,3 +196,5 @@ edited to agree with the new rule.
   game's own words. **Accepted**
 - [0074](0074-an-assertion-the-compiler-guarantees-is-not-one.md) — An assertion the compiler
   guarantees is not one, so the floor moves under it. **Accepted**
+- [0075](0075-a-comment-is-counted-by-its-words.md) — A comment is counted by its words, not by the
+  lines it is written over. **Accepted**

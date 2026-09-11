@@ -16,6 +16,7 @@ import {
 import {
     countCallsOutsideStrings,
     getCodeOutsideStrings,
+    hasCommentWord,
     isCommentLine,
 } from "@/tests/source-line.ts";
 import { getSourcePaths } from "@/tests/source-paths.ts";
@@ -75,7 +76,7 @@ const MAXIMUM_COMMENT_BLOCKS = 4096;
 
 interface SourceReading {
     lines: number;
-    commentLines: number;
+    commentLinesWorded: number;
     functions: number;
     assertions: number;
     longestFunctionLines: number;
@@ -140,7 +141,7 @@ function getSourceReading(path: string): SourceReading {
     const lines = Deno.readTextFileSync(path).split("\n");
     const reading: SourceReading = {
         lines: getHeldLines(lines),
-        commentLines: 0,
+        commentLinesWorded: 0,
         functions: 0,
         assertions: 0,
         longestFunctionLines: 0,
@@ -149,7 +150,7 @@ function getSourceReading(path: string): SourceReading {
     let openedAt = -1;
     let closing = "";
     for (const [offset, line] of lines.entries()) {
-        if (isCommentLine(line)) reading.commentLines += 1;
+        if (hasCommentWord(line)) reading.commentLinesWorded += 1;
         reading.assertions += countCallsOutsideStrings(line, ASSERTION_CALLS);
         // The declaration is measured from the line that names it, and it counts only where a
         // block opens: the brace is what says there is a body to measure.
@@ -175,7 +176,7 @@ function getSourceReading(path: string): SourceReading {
             openedAt = -1;
         }
     }
-    assert(reading.commentLines <= reading.lines, "a comment line is a line");
+    assert(reading.commentLinesWorded <= reading.lines, "a comment line is a line");
     assert(reading.longestFunctionLines <= reading.lines, "a function fits inside its file");
     assert(reading.functions <= reading.lines, "a function opener is a line");
     assertStrictEquals(openedAt, -1, "every function opened is closed");
@@ -297,14 +298,22 @@ Deno.test("no docblock runs past eight lines of prose", () => {
     assertEquals(over, [], "C4: a docblock this long is an ADR that has not been written yet");
 });
 
+/**
+ * ⚠️ **What is counted is a comment line carrying a word.** A docblock's opening and closing
+ * lines and the blank continuation between its paragraphs are punctuation, and the share was
+ * being charged for them; the comparison floored the figure on top of that, granting a point the
+ * rule does not. **ADR 0075.**
+ */
 Deno.test("no file is more than a quarter comment", () => {
     assertEquals(getHeldLines("one\ntwo\n".split("\n")), 2, "a closing newline ends a line");
     assertEquals(getHeldLines("one\ntwo".split("\n")), 2, "a file without one holds them too");
 
     const over: string[] = [];
     for (const [path, reading] of getReadings()) {
-        const share = Math.floor((reading.commentLines * 100) / reading.lines);
-        if (share > MAXIMUM_COMMENT_SHARE) over.push(`${path} at ${share}%`);
+        const worded = reading.commentLinesWorded;
+        if (worded * 100 >= MAXIMUM_COMMENT_SHARE * reading.lines) {
+            over.push(`${path} at ${worded} of ${reading.lines}`);
+        }
     }
     assert(MAXIMUM_COMMENT_SHARE > 0, "the ceiling is a real bound");
     assertEquals(over, [], "C5: a file past a quarter comment is an ADR that was not written");
@@ -346,13 +355,15 @@ Deno.test("no directory of the program is past its own share of comment", () => 
         if (!isShippedPath(path)) continue;
         const directory = getDirectoryOfPath(path);
         lines.set(directory, (lines.get(directory) ?? 0) + reading.lines);
-        comment.set(directory, (comment.get(directory) ?? 0) + reading.commentLines);
+        comment.set(directory, (comment.get(directory) ?? 0) + reading.commentLinesWorded);
     }
     assert(lines.size > 0, "there are directories to measure");
     const over: string[] = [];
     for (const [directory, held] of lines) {
-        const share = Math.floor(((comment.get(directory) ?? 0) * 100) / held);
-        if (share > MAXIMUM_DIRECTORY_SHARE) over.push(`${directory} at ${share}%`);
+        const worded = comment.get(directory) ?? 0;
+        if (worded * 100 >= MAXIMUM_DIRECTORY_SHARE * held) {
+            over.push(`${directory} at ${worded} of ${held}`);
+        }
     }
     assert(MAXIMUM_DIRECTORY_SHARE < MAXIMUM_COMMENT_SHARE, "a directory is bound below a file");
     assertEquals(over, [], "C16: a directory writing comment up to the ceiling C5 leaves it");
