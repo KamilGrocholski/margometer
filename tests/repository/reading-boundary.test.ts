@@ -21,6 +21,12 @@ const BUNDLED_ROOTS = ["libs/", "src/"];
  * ours", and `createElement` is how one would be made.
  */
 const WAYS_OUT = [
+    // Reached through an object rather than through a name of their own: a redirect goes through
+    // the ambient `location`, a beacon through the ambient `navigator`. Forbidding the object is
+    // what makes either findable — `sendBeacon` alone never appears except behind a dot, so a
+    // reader that skips a dotted name could never fire on it (`SECURITY.md`).
+    "location",
+    "navigator",
     "fetch",
     "XMLHttpRequest",
     "WebSocket",
@@ -56,6 +62,35 @@ export function hasAmbientName(code: string, name: string): boolean {
     return false;
 }
 
+/**
+ * A member of an interface, which is a name this program declares and not the ambient one. Two
+ * exist — the `location` and the `navigator` the entry says a page must state — and reading those
+ * off the page it was handed is how the add-on knows which world it is in.
+ */
+export function isPropertyDeclaration(code: string, name: string): boolean {
+    const trimmed = code.trimStart();
+    if (!trimmed.startsWith(name)) return false;
+    const after = trimmed.slice(name.length);
+    if (after.startsWith("?:")) return true;
+    return after.startsWith(":");
+}
+
+/** The tags this add-on builds. One that fetches when it is appended is not among them. */
+const TAGS_BUILT = ["a", "div", "span", "style"];
+const TAG_CALL = 'createElement("';
+
+/** A tag name outside the four, read off the line itself because the name is a string. */
+export function getTagsCreated(line: string): string[] {
+    const found: string[] = [];
+    for (let at = line.indexOf(TAG_CALL); at !== -1; at = line.indexOf(TAG_CALL, at + 1)) {
+        const opens = at + TAG_CALL.length;
+        const closes = line.indexOf('"', opens);
+        if (closes === -1) continue;
+        found.push(line.slice(opens, closes));
+    }
+    return found;
+}
+
 function isWordLetter(character: string): boolean {
     if (character >= "a" && character <= "z") return true;
     if (character >= "A" && character <= "Z") return true;
@@ -76,6 +111,10 @@ Deno.test("the reader finds an ambient name, and finds none behind a dot", () =>
 
 Deno.test("nothing the browser runs reaches for a way out of the page", () => {
     assert(WAYS_OUT.length > 0, "there are ways out to look for");
+    assert(isPropertyDeclaration("    location: { hostname?: string };", "location"), "a member");
+    assert(!isPropertyDeclaration("    location.href = one;", "location"), "and not a use of one");
+    assertEquals(getTagsCreated('createElement("img")'), ["img"], "a tag name is read back");
+    assertEquals(getTagsCreated("createElement(name)"), [], "and a name nobody wrote here is not");
     const reaching: string[] = [];
     let read = 0;
     for (const path of getSourcePaths()) {
@@ -86,7 +125,12 @@ Deno.test("nothing the browser runs reaches for a way out of the page", () => {
             const code = getCodeOutsideStrings(line);
             for (const way of WAYS_OUT) {
                 if (!hasAmbientName(code, way)) continue;
+                if (isPropertyDeclaration(code, way)) continue;
                 reaching.push(`${path}:${offset + 1} → ${way}`);
+            }
+            for (const tag of getTagsCreated(line)) {
+                if (TAGS_BUILT.includes(tag)) continue;
+                reaching.push(`${path}:${offset + 1} → a <${tag}> of ours`);
             }
         }
     }

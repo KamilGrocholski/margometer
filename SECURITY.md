@@ -26,6 +26,14 @@ The add-on **reads**. This is the whole security model, and everything else is a
 - **Nothing leaves the browser.** No `fetch`, no `XMLHttpRequest`, no `WebSocket`, no `sendBeacon`,
   no image or stylesheet request of ours, no redirect. A change adding an outbound call is not a
   feature to be reviewed; it is out of scope for this project.
+
+  ⚠️ **The last two are reached through an object, not through a name of their own**, and that is
+  why they are held that way: a redirect goes through the ambient `location` and a beacon through
+  the ambient `navigator`, while a tag that fetches is made by `createElement` with a tag name this
+  add-on does not otherwise use. The page the entry is handed carries `location` and `navigator` of
+  its own and reading those is how the add-on knows which world it is in — so what is forbidden is
+  the **ambient** one, and a tag is held by its name against the four this add-on builds. **ADR
+  0076**, which carries the measurement.
 - **Nothing is automated.** The add-on never sends an action, never chooses a target, never presses
   anything on the reader's behalf.
 - **The engine's own call runs first and its return value comes back untouched.** We wrap the update

@@ -198,3 +198,5 @@ edited to agree with the new rule.
   guarantees is not one, so the floor moves under it. **Accepted**
 - [0075](0075-a-comment-is-counted-by-its-words.md) — A comment is counted by its words, not by the
   lines it is written over. **Accepted**
+- [0076](0076-the-way-out-is-held-by-the-object-not-by-the-method.md) — The way out is held by the
+  object, not by the method. **Accepted**
