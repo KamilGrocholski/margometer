@@ -4,7 +4,11 @@
  */
 
 import { BUILD_VERSION } from "@/src/build-version.ts";
-import { type StandingReading, type StandingRow } from "@/src/ui/panel-standing.ts";
+import {
+    type StandingChargedSkill,
+    type StandingReading,
+    type StandingRow,
+} from "@/src/ui/panel-standing.ts";
 import { composeDecimalText, composeIntegerText } from "@/libs/number-text.ts";
 import { setGuardedListener } from "@/src/ui/panel-listener.ts";
 import type {
@@ -63,6 +67,7 @@ import {
 } from "@/src/ui/panel-scroll.ts";
 import {
     CARD_WORDS,
+    composeChargedSkillTurnsText,
     composeFigureText,
     composeShelfSizeText,
     composeSideCountsText,
@@ -72,6 +77,7 @@ import {
     composeUndrawnText,
     composeUsesText,
     DEFECT_MARK,
+    getWordsForChargedSkill,
     getWordsForDamageKind,
     getWordsForHealthSource,
     getWordsForNothing,
@@ -225,6 +231,8 @@ const STORAGE_ATTRIBUTE = "data-storage";
  * The window beside the panel, and its own two controls. Its fold is not the panel's: one mark
  * over both would put away the window a reader was watching along with the one they folded.
  */
+/** Four is every charge length the corpus states, and a clamp on a figure the game hands us. */
+const MAXIMUM_CHARGED_PIPS = 8;
 const STANDING_ATTRIBUTE = "data-standing";
 const STANDING_FOLD_ATTRIBUTE = "data-standing-fold";
 const LIVE_FIGHT = "live";
@@ -739,6 +747,64 @@ function composeStandingNow(document: PanelDocument, reading: StandingReading): 
 }
 
 /**
+ * One dot per turn of the charge, lit up to what has passed. The game's own bar is cut the same
+ * way and nothing else in this panel is round, so the shape says this and only this.
+ */
+function composeChargedSkillPips(
+    document: PanelDocument,
+    charged: StandingChargedSkill,
+): PanelElement {
+    const pips = composeElement(document, "div", CLASS.standingPips);
+    pips.setAttribute(STYLE_ATTRIBUTE, `color:${charged.colour}`);
+    const stated = Math.min(Math.max(charged.turnsStated, 0), MAXIMUM_CHARGED_PIPS);
+    for (let turn = 0; turn < stated; turn += 1) {
+        const lit = turn < charged.turnsElapsed ? ` ${CLASS.standingPipLit}` : "";
+        pips.append(composeElement(document, "div", `${CLASS.standingPip}${lit}`));
+    }
+    return pips;
+}
+
+/**
+ * The band itself: a heading whose right-hand side says what became of the charge, and one row
+ * per charge. Drawn only where there is one — a fight where nothing is being made ready looks
+ * exactly as it did before this band existed.
+ */
+function composeChargedSkillElements(
+    document: PanelDocument,
+    reading: StandingReading,
+): PanelElement[] {
+    if (reading.chargedSkills.length === 0) return [];
+    const first = reading.chargedSkills[0];
+    const section = composeElement(document, "div", CLASS.section);
+    const words = composeElement(document, "span", CLASS.sectionWords);
+    words.textContent = STANDING_WORDS.chargedSkill;
+    const state = composeElement(document, "span", CLASS.figure);
+    state.textContent = first === undefined ? "" : getWordsForChargedSkill(first.state);
+    section.append(words);
+    section.append(state);
+    const drawn: PanelElement[] = [section];
+    for (const charged of reading.chargedSkills) {
+        const row = composeElement(document, "div", CLASS.row);
+        const cap = composeElement(document, "div", CLASS.barCap);
+        cap.setAttribute(STYLE_ATTRIBUTE, `background:${charged.colour}`);
+        const name = composeElement(document, "span", CLASS.rowName);
+        name.textContent = charged.skillName;
+        const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
+        value.textContent = composeChargedSkillTurnsText(
+            charged.turnsElapsed,
+            charged.turnsStated,
+        );
+        row.append(cap);
+        row.append(name);
+        row.append(composeChargedSkillPips(document, charged));
+        row.append(value);
+        for (const rule of composeSideRuleElements(document, charged.sidePart)) row.append(rule);
+        drawn.push(row);
+    }
+    return drawn;
+}
+
+/**
  * One row per person, at both levels: whoever is holding, and under them whom. The turns stand on
  * the holder's row alone, because they are the cast's and not the held character's. **ADR 0067.**
  */
@@ -870,6 +936,7 @@ function composeStandingBody(
 ): PanelElement {
     const body = composeElement(document, "div", CLASS.standingBody);
     for (const element of composeStandingNow(document, reading)) body.append(element);
+    for (const element of composeChargedSkillElements(document, reading)) body.append(element);
     body.append(composeSectionElement(document, STANDING_WORDS.standing, reading.rows.length));
     if (reading.rows.length === 0) {
         if (reading.provoked.length === 0) {

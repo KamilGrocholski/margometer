@@ -7,9 +7,10 @@
  */
 
 import type { AuraStanding, ProvocationStanding } from "@/src/core/aura-standing.ts";
+import type { ChargedSkillStanding, ChargedSkillState } from "@/src/core/charged-skill.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import type { TurnStatement } from "@/src/game/fight-underway.ts";
-import { getColourForProfession } from "@/src/ui/panel-look.ts";
+import { getColourForProfession, SIGNAL } from "@/src/ui/panel-look.ts";
 import { getPartOfSide, type PanelSidePart } from "@/src/ui/panel-reading.ts";
 import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
 
@@ -22,6 +23,11 @@ export const MAXIMUM_CASTERS = 12;
  * corpus has never held more than one, because every recording in it is ten against one.
  */
 export const MAXIMUM_PROVOKED = 12;
+/**
+ * Past every charge the corpus has ever held at once, which is one — and past the bound
+ * `core/charged-skill.ts` already clamps to, so this one only ever repeats that answer.
+ */
+export const MAXIMUM_CHARGED_ROWS = 4;
 
 export interface StandingCaster {
     casterId: number;
@@ -53,6 +59,21 @@ export interface StandingProvocation {
     turnsElapsed: number;
     turnsStated: number;
     provoked: StandingProvoked[];
+}
+
+/**
+ * One special blow being made ready, or the mark one left behind. A charge wears the hue of
+ * whoever is making it; a charge that is over wears none, because it is no longer anybody doing
+ * something — the word beside it is what says which of the two ends it came to.
+ */
+export interface StandingChargedSkill {
+    combatantId: number;
+    skillName: string;
+    turnsElapsed: number;
+    turnsStated: number;
+    state: ChargedSkillState;
+    colour: string;
+    sidePart: PanelSidePart;
 }
 
 export interface StandingRow {
@@ -92,6 +113,8 @@ export interface StandingReading {
     rows: StandingRow[];
     /** Whom a shout is holding. Its own section: one row per cast, the held under it. */
     provoked: StandingProvocation[];
+    /** What is being made ready, and what became of it. Empty draws no section at all. */
+    chargedSkills: StandingChargedSkill[];
     /** Which row is open, or null. One at a time, as a drill level is. */
     openSkillId: number | null;
 }
@@ -160,6 +183,47 @@ function composeStandingProvocations(
 }
 
 /** Whose side a cast is on, or null where the client named no side of the reader's own. */
+/**
+ * The hue a charge is drawn in. Only one that is still running wears a profession: the two ends
+ * are drawn quiet, so the row reads as something that has stopped happening without the colour
+ * having to carry that by itself (**The Colour Never Alone Rule**).
+ */
+function getColourForCharge(state: ChargedSkillState, profession: string | null): string {
+    if (state !== "charging") return SIGNAL.unknown;
+    return getColourForProfession(profession);
+}
+
+function composeStandingChargedSkill(
+    standing: ChargedSkillStanding,
+    roster: CombatantRoster,
+    readerSide: number | null,
+): StandingChargedSkill {
+    const combatant = roster.byId.get(standing.combatantId);
+    return {
+        combatantId: standing.combatantId,
+        skillName: standing.skillName,
+        turnsElapsed: standing.turnsElapsed,
+        turnsStated: standing.turnsStated,
+        state: standing.state,
+        colour: getColourForCharge(standing.state, combatant?.profession ?? null),
+        sidePart: getPartOfSide(combatant?.side ?? null, readerSide),
+    };
+}
+
+function composeStandingChargedSkills(
+    standings: readonly ChargedSkillStanding[],
+    roster: CombatantRoster,
+    readerSide: number | null,
+): StandingChargedSkill[] {
+    const composed: StandingChargedSkill[] = [];
+    for (const standing of standings) {
+        if (composed.length >= MAXIMUM_CHARGED_ROWS) break;
+        if (standing.skillName.length === 0) continue;
+        composed.push(composeStandingChargedSkill(standing, roster, readerSide));
+    }
+    return composed;
+}
+
 function getIsOurs(
     standing: AuraStanding,
     roster: CombatantRoster,
@@ -227,6 +291,7 @@ function getStandingTurnState(turn: StandingTurn, hasHolder: boolean): StandingT
 export function composeStandingReading(
     standings: readonly AuraStanding[],
     provocations: readonly ProvocationStanding[],
+    chargedSkills: readonly ChargedSkillStanding[],
     roster: CombatantRoster,
     readerSide: number | null,
     turn: StandingTurn,
@@ -250,6 +315,7 @@ export function composeStandingReading(
         },
         rows,
         provoked,
+        chargedSkills: composeStandingChargedSkills(chargedSkills, roster, readerSide),
         openSkillId: isOpen ? openSkillId : null,
     };
 }

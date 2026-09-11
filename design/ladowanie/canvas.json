@@ -1,0 +1,178 @@
+{
+    "artboards": [
+        {
+            "file": "Main.dc.html",
+            "x": 0,
+            "y": 0,
+            "w": 1480,
+            "h": 1360,
+            "title": "Pasmo — wybrane",
+            "page": "page-1"
+        },
+        {
+            "file": "Pomoc.dc.html",
+            "x": 1580,
+            "y": 0,
+            "w": 1300,
+            "h": 1560,
+            "title": "Co mówi pomoc",
+            "page": "page-1"
+        },
+        {
+            "file": "Pojedynek.dc.html",
+            "x": 0,
+            "y": 1700,
+            "w": 1440,
+            "h": 900,
+            "title": "Ciśnienie 1 · 1 na 1",
+            "page": "page-1"
+        },
+        {
+            "file": "Kolos.dc.html",
+            "x": 1540,
+            "y": 1700,
+            "w": 1440,
+            "h": 1060,
+            "title": "Ciśnienie 2 · 10 na 1",
+            "page": "page-1"
+        },
+        {
+            "file": "Ustawka.dc.html",
+            "x": 3080,
+            "y": 1700,
+            "w": 1300,
+            "h": 1180,
+            "title": "Ciśnienie 3 · 10 na 10",
+            "page": "page-1"
+        },
+        {
+            "file": "Postep.dc.html",
+            "x": 0,
+            "y": 3020,
+            "w": 1240,
+            "h": 1760,
+            "title": "Anatomia postępu",
+            "page": "page-1"
+        },
+        {
+            "file": "Przerwanie.dc.html",
+            "x": 1340,
+            "y": 3020,
+            "w": 1240,
+            "h": 1500,
+            "title": "Cztery końce ładowania",
+            "page": "page-1"
+        },
+        {
+            "file": "Ktoprzerwal.dc.html",
+            "x": 2680,
+            "y": 3020,
+            "w": 1180,
+            "h": 1240,
+            "title": "Kto przerwał — nierysowane",
+            "page": "page-1"
+        },
+        {
+            "file": "Jednatura.dc.html",
+            "x": 3960,
+            "y": 3020,
+            "w": 1240,
+            "h": 1400,
+            "title": "Jedna tura i znika",
+            "page": "page-1"
+        },
+        {
+            "file": "Slowa.dc.html",
+            "x": 5300,
+            "y": 3020,
+            "w": 1180,
+            "h": 1340,
+            "title": "Słowa",
+            "page": "page-1"
+        },
+        {
+            "file": "Odmowy.dc.html",
+            "x": 6580,
+            "y": 3020,
+            "w": 1300,
+            "h": 1560,
+            "title": "Czego nie powiemy",
+            "page": "page-1"
+        },
+        {
+            "file": "OpcjaB.dc.html",
+            "x": 0,
+            "y": 0,
+            "w": 1060,
+            "h": 1000,
+            "title": "B · Pod „Teraz”",
+            "page": "page-2"
+        },
+        {
+            "file": "OpcjaC.dc.html",
+            "x": 1160,
+            "y": 0,
+            "w": 1060,
+            "h": 1020,
+            "title": "C · Wiersz w „Co stoi”",
+            "page": "page-2"
+        },
+        {
+            "file": "OpcjaD.dc.html",
+            "x": 2320,
+            "y": 0,
+            "w": 1000,
+            "h": 940,
+            "title": "D · Na pasku — odrzucona",
+            "page": "page-2"
+        }
+    ],
+    "annotations": [
+        {
+            "id": "brief",
+            "x": -1060,
+            "y": 0,
+            "w": 900,
+            "text": "CIOS SPECJALNY W POMOCNIKU — RUNDA ROZSTRZYGNIĘTA\n\nGra rysuje pod potworem pasek ładowania, pocięty na tyle części, ile tur to\ntrwa, i kasuje go w chwili, w której cios pada albo przepada. Powtórzenie\npaska nic nie wnosi. Czego gra nie mówi nigdzie: czym się to skończyło.\n\nWYBRANE I ZBUDOWANE (2026-09-11): OPCJA A. Własne pasmo, jeden wiersz, trzy stany.\n  ładuje się — barwa profesji, kropki po jednej na turę, „2 z 4”\n  wykonane   — wygaszone, wszystkie kropki, przez JEDNĄ TURĘ\n  przerwane  — wygaszone, kropki tam gdzie stanęły, przez JEDNĄ TURĘ\nPotem pasma nie ma. Bez historii, bez licznika, bez nazwiska sprawcy —\nten odczyt jest zapisany na osobnym arkuszu, ale nie jest rysowany.\n\nJedna tura jest mierzalna i wynosi dokładnie jedną paczkę, 24 razy na 24.\nArkusz „Jedna tura i znika” pokazuje, co stoi obok niej w tej samej cenie.\n\nPomoc gry („umiejętności ostateczne”, odczyt 2026-09-11) zamknęła w tej\nrundzie trzy pytania: dlaczego cios da się przerwać, czemu bywa bez\nładowania i czemu jego start jedzie na zwykłym ataku potwora.\n\nPasmo stoi w src/: core/charged-skill.ts trzyma stan, ui/panel-standing.ts\nskłada odczyt, a ui/panel-element.ts rysuje. Liczba, ile stoi znacznik, jest\nodczytem z gotowego pasma przepuszczonego przez cały korpus.\n\nLiczby o korpusie są odczytem z captures/ przez design/ladowanie/measure.ts\n— 31 nagrań, 1234 paczki, odczyt 2026-09-11. Liczby o kliencie: build\nCl9U89Zr, odczyt 2026-09-09. Strona druga trzyma trzy odrzucone opcje.",
+            "page": "page-1"
+        },
+        {
+            "id": "rzad-opcje",
+            "x": 3420,
+            "y": 0,
+            "w": 300,
+            "text": "ODRZUCONE — WYBRANA JEST OPCJA A\n\nTrzy odpowiedzi na to samo pytanie: gdzie ląduje stan ciosu.\n\nB doczepia wiersz do tury i przez to twierdzi, że ładuje ten, czyja tura.\nC wpuszcza go do „Co stoi” i psuje tam kolumnę wartości i liczbę nagłówka.\nD nosi postęp na pasku tytułu, który jest chwytem do przeciągania okna.\n\nWszystkim trzem brakuje tego samego: miejsca na słowo stanu. Prawą stronę\nnagłówka mają już zajętą — B numerem tury, C liczbą rzutów, D niczym, bo\nnagłówka nie ma. Opcja A zakłada własny i dlatego wygrywa.",
+            "page": "page-2"
+        },
+        {
+            "id": "rzad-cisnienie",
+            "x": 4380,
+            "y": 1700,
+            "w": 300,
+            "text": "TRZY CIŚNIENIA\n\n1 na 1 — nie ładuje się nic i to jest odpowiedź: pasmo musi umieć zniknąć.\n\n10 na 1 — jedyny kształt, który korpus naprawdę ma. Sześć przerwań w najgorszym nagraniu, i ani jednego wiersza więcej. Arkusz rozstrzygający.\n\n10 na 10 — kształt, nie odczyt. Dwa ładowania naraz nie zdarzyły się ani razu w 1234 paczkach.",
+            "page": "page-1"
+        },
+        {
+            "id": "rzad-wspolne",
+            "x": 7480,
+            "y": 3020,
+            "w": 300,
+            "text": "WSPÓLNE\n\nNic w tym rzędzie nie zależy od wyboru opcji.\n\nAnatomia postępu — kropki, pasek czy procent, i co zostaje po końcu.\nCztery końce — 74 zakończenia; pasmo nazywa dwa z nich.\nKto przerwał — odczyt mocny, 43 z 43, i świadoma decyzja, żeby go nie rysować.\nJedna tura i znika — ile ta reguła kosztuje i co stoi obok niej w tej samej cenie.\nSłowa — „Cios specjalny” jest nazwą gry, „wykonane” jest nasze.\nOdmowy — dwanaście, każda z powodem i terminem ważności.",
+            "page": "page-1"
+        }
+    ],
+    "launch": {
+        "view": "canvas",
+        "page": "page-1"
+    },
+    "pages": [
+        {
+            "id": "page-1",
+            "name": "Pasmo"
+        },
+        {
+            "id": "page-2",
+            "name": "Odrzucone opcje"
+        }
+    ]
+}

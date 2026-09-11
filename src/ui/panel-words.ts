@@ -17,6 +17,7 @@ import type {
 import type { PanelNoun, PanelSideChoice, PanelStorageChoice } from "@/src/ui/panel-screen.ts";
 import type { PanelSidePart } from "@/src/ui/panel-reading.ts";
 import type { StandingTurnState } from "@/src/ui/panel-standing.ts";
+import type { ChargedSkillState } from "@/src/core/charged-skill.ts";
 
 export interface CountedNoun {
     one: string;
@@ -586,7 +587,40 @@ export const STANDING_WORDS = {
     sideSeparator: "|",
     /** The two okrzyki share one state, so they share one heading — **ADR 0062**. */
     provocation: "Prowokacja",
+    /** The game's own name for it, taken from the client's own label — **N13**, **L2**. */
+    chargedSkill: "Cios specjalny",
 } as const;
+
+/**
+ * What the heading says about a charge, and nothing where it is still running: there the row is
+ * the whole statement. Both ends stand for one turn and then the section is gone.
+ *
+ * ⚠️ **One of these two words is ours.** The game has a sentence for the break — `msg_+dispel`,
+ * „Przerwanie ciosu specjalnego." — and none at all for a blow that simply landed, so `wykonane`
+ * is this panel's word and is deliberately the plainest one available (**L3**).
+ */
+const CHARGED_SKILL_WORDS: Record<ChargedSkillState, string> = {
+    charging: "",
+    struck: "wykonane",
+    broken: "przerwane",
+};
+
+export function getWordsForChargedSkill(state: ChargedSkillState): string {
+    const words = CHARGED_SKILL_WORDS[state];
+    return words;
+}
+
+/**
+ * `2 z 4` — what has passed of what the game states. Both halves are the client's own figures
+ * and the division between them is the client's too, so nothing here computes a percentage.
+ */
+export function composeChargedSkillTurnsText(elapsed: number, stated: number): string {
+    if (!Number.isSafeInteger(elapsed)) return PANEL_WORDS.unknown;
+    if (!Number.isSafeInteger(stated)) return PANEL_WORDS.unknown;
+    if (elapsed < 0) return PANEL_WORDS.unknown;
+    if (stated < elapsed) return PANEL_WORDS.unknown;
+    return `${composeIntegerText(elapsed)} z ${composeIntegerText(stated)}`;
+}
 
 /**
  * What the window says where it draws no turn, one sentence per state and none where there is a

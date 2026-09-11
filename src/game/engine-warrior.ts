@@ -9,6 +9,7 @@
 import { assert } from "@std/assert/assert";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import type { Combatant } from "@/src/core/combatant-roster.ts";
+import type { ChargedSkillStatement } from "@/src/core/charged-skill.ts";
 import {
     getNumberFromUnknown,
     getStatedTextFromUnknown,
@@ -178,4 +179,57 @@ export function composeSnapshotFromBattle(battle: Record<string, unknown>): Capt
     }
     assert(WARRIOR_COLLECTIONS.length > 0, "there is a collection to look in");
     return [];
+}
+
+/**
+ * The charge a warrior record carries, under the client's own name for it. Spelled here and
+ * nowhere else (**N13**); `docs/protocol-keys.md` covers message keys and this is an envelope
+ * field, so what it means is `src/core/charged-skill.ts`'s docblock.
+ */
+const CHARGE_KEY = "super_cast";
+const CHARGE_FIELDS = {
+    name: "name",
+    turnsElapsed: "turn",
+    turnsStated: "total_turns",
+} as const;
+
+/**
+ * A charge refused rather than defaulted, on the same terms a combatant is: the pair of figures
+ * is the whole of what the panel draws, so half of it is nothing worth drawing. A record stating
+ * no charge is a **statement** and not a refusal — that is how the game says one has ended.
+ */
+function readChargeFromWarrior(value: Record<string, unknown>) {
+    const stated = value[CHARGE_KEY];
+    if (!isRecord(stated)) return null;
+    const skillName = getStatedTextFromUnknown(stated[CHARGE_FIELDS.name]);
+    if (skillName === null) return null;
+    const turnsElapsed = getNumberFromUnknown(stated[CHARGE_FIELDS.turnsElapsed]);
+    if (turnsElapsed === null) return null;
+    const turnsStated = getNumberFromUnknown(stated[CHARGE_FIELDS.turnsStated]);
+    if (turnsStated === null) return null;
+    if (turnsElapsed < 0) return null;
+    if (turnsStated < turnsElapsed) return null;
+    assert(skillName.length > 0, "a charge that was read names the blow it is making ready");
+    assert(Number.isFinite(turnsStated), "and states how long the whole of it runs");
+    return { skillName, turnsElapsed, turnsStated };
+}
+
+/**
+ * Every combatant this payload stated, with the charge they carry or the absence of one. Both
+ * halves matter: a payload states only what moved, so a combatant it says nothing about is
+ * charging what they were charging, and only a record carrying no charge ends one.
+ */
+export function readChargedSkillStatements(payload: unknown): ChargedSkillStatement[] {
+    if (!isRecord(payload)) return [];
+    const found: ChargedSkillStatement[] = [];
+    for (const value of readWarriorsFromValue(payload[WARRIORS_KEY])) {
+        if (!isRecord(value)) continue;
+        // The roster is keyed by `id`, so a charge is keyed by `id` too: reading the other
+        // spelling here would hand the panel a combatant its own roster cannot place.
+        const combatantId = getNumberFromUnknown(value[WARRIOR_FIELDS.identity]);
+        if (combatantId === null) continue;
+        found.push({ combatantId, charge: readChargeFromWarrior(value) });
+    }
+    assert(found.length <= MAXIMUM_COMBATANTS, "a payload stays inside the fight's stated bound");
+    return found;
 }

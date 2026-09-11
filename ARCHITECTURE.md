@@ -68,6 +68,7 @@ src/
     fight-decoder.ts     What a key means, and what a key with no meaning leaves unread.
     game-build.ts        The build id the client states in its bundle's own filename.
     aura-standing.ts     What one skill put on more than one combatant, and how far through.
+    charged-skill.ts     The special blow being made ready, and the two ends of it a key names.
     fight-statistics.ts  The figures a panel draws, with what nobody can be charged apart.
     margometer-error.ts  The abstract brand every failure that ships to the browser wears.
     protocol-message.ts  One message's grammar: both ends, then its parameters.
@@ -162,6 +163,7 @@ tests/
     combatant-roster.test.ts  Two of a name, one of nobody, and every recording.
     fight-decoder.test.ts     The blows, and what is left unread beside them.
     aura-standing.test.ts     What stands at the end of a fight, and when it stops standing.
+    charged-skill.test.ts     A charge, the end it came to, and the turn its mark outlives.
     game-build.test.ts        Both names the client serves, and what is not one of them.
     health-witness.test.ts    What was read, against what the protocol says of itself.
     fight-statistics.test.ts  The figures, and the balance every point of damage keeps.
@@ -553,12 +555,18 @@ commit that opens or closes one.
    0065**). A cast reaching a whole side says nothing about whom, because there is nothing to say;
    the two okrzyki stand in a section of their own, drawn under whoever threw them with the
    characters they hold as rows beneath, the turns stated once because they are the cast's (**ADR
-   0062**, **ADR 0067**). Whom a shout holds is **read off its value**, which names every provoked
-   character separated by a comma and a space, and a name the roster cannot place is dropped rather
-   than guessed at (**ADR 0064**). That table is the third frozen reading (**ADR 0058**), and
-   `docs/auras-standing.md` is its register over `captures/`. Both READMEs are written and show the
-   set `deno task panel:shots` takes, so the release plumbing is whole and has now run at a tag —
-   what is left of it is held by a person, which is what the gap below it is about.
+   0062**, **ADR 0067**). It draws a third band above them where a combatant is making a **charged
+   skill** ready: one row, the game's own name for the blow, one dot per turn of the charge lit to
+   what has passed, and the pair of figures the client itself divides — never the percentage that
+   division comes to. The two ends the protocol names stand for one turn after the fact and then the
+   band is gone, which is one payload: the game's own turn number moves by one on the very next one,
+   24 times out of 24 over `captures/` 2026-09-11. Whom a shout holds is **read off its value**,
+   which names every provoked character separated by a comma and a space, and a name the roster
+   cannot place is dropped rather than guessed at (**ADR 0064**). That table is the third frozen
+   reading (**ADR 0058**), and `docs/auras-standing.md` is its register over `captures/`. Both
+   READMEs are written and show the set `deno task panel:shots` takes, so the release plumbing is
+   whole and has now run at a tag — what is left of it is held by a person, which is what the gap
+   below it is about.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld

@@ -85,6 +85,13 @@ type, damage type
 **Skill**: A named ability a combatant used. Its announcement carries no key of the damage family,
 but damage aimed at a name and healing ride the announcement itself. _Avoid_: Ability, spell, move
 
+**Charged skill**: A special blow a combatant is making ready over a stated number of turns. The
+game states it in the payload's **envelope** rather than in a message, and clears it the moment the
+blow lands or is taken away — so it has exactly two ends anything can name: **struck**, where the
+blow's own announcement stands in that payload, and **broken**, where a key says it was taken away.
+Every other way it can go is silence, and silence is what the panel says about it. _Avoid_:
+Ultimate, super, cast, channel, windup
+
 **Proc**: An effect that fired alongside an attack. Carries no figure. _Avoid_: Trigger, on-hit
 
 **Dot**: Damage over time, ticking outside a direct attack. _Avoid_: Damage over time, tick damage,

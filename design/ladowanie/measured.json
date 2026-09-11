@@ -1,0 +1,258 @@
+{
+    "readAt": "2026-09-11",
+    "recordings": 31,
+    "payloads": 1234,
+    "charge": {
+        "statements": 317,
+        "recordings": 21,
+        "runs": 77,
+        "runsOpeningAtNothing": 63,
+        "bySkill": [
+            {
+                "name": "Symfonia żywiołów",
+                "totalTurns": 3,
+                "statements": 76
+            },
+            {
+                "name": "Osobisty rozrachunek",
+                "totalTurns": 1,
+                "statements": 54
+            },
+            {
+                "name": "Tryptyk płonący",
+                "totalTurns": 1,
+                "statements": 40
+            },
+            {
+                "name": "Chorus skamieniałej panny",
+                "totalTurns": 2,
+                "statements": 28
+            },
+            {
+                "name": "Huk powrotu",
+                "totalTurns": 3,
+                "statements": 24
+            },
+            {
+                "name": "Kosa zastępcy",
+                "totalTurns": 2,
+                "statements": 24
+            },
+            {
+                "name": "Chapnięcie",
+                "totalTurns": 1,
+                "statements": 22
+            },
+            {
+                "name": "Noc Perseidów",
+                "totalTurns": 2,
+                "statements": 20
+            },
+            {
+                "name": "Przeszycie do szpiku",
+                "totalTurns": 2,
+                "statements": 17
+            },
+            {
+                "name": "Lodowe Pandemonium",
+                "totalTurns": 4,
+                "statements": 11
+            },
+            {
+                "name": "Gniew Unkulunkulu",
+                "totalTurns": 4,
+                "statements": 1
+            }
+        ],
+        "totalTurnsStated": [
+            1,
+            2,
+            3,
+            4
+        ],
+        "mostAtOnce": {
+            "charges": 1,
+            "recording": "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json"
+        },
+        "onCombatantsTheGameCallsNpc": 317,
+        "onEverybodyElse": 0,
+        "longestName": {
+            "name": "Chorus skamieniałej panny",
+            "letters": 25
+        }
+    },
+    "prepare": {
+        "messages": 324,
+        "recordings": 25,
+        "fromNpc": 324,
+        "fromEverybodyElse": 0,
+        "byPercent": [
+            {
+                "percent": 0,
+                "messages": 136
+            },
+            {
+                "percent": 25,
+                "messages": 5
+            },
+            {
+                "percent": 33,
+                "messages": 31
+            },
+            {
+                "percent": 50,
+                "messages": 31
+            },
+            {
+                "percent": 67,
+                "messages": 27
+            },
+            {
+                "percent": 75,
+                "messages": 4
+            },
+            {
+                "percent": 100,
+                "messages": 90
+            }
+        ],
+        "agreeingWithTheCharge": 149,
+        "differingByOneStep": 19,
+        "differingByMore": 22
+    },
+    "ending": {
+        "endings": 74,
+        "fired": 45,
+        "interrupted": 23,
+        "firedAndInterrupted": 1,
+        "casterFell": 4,
+        "fightEnded": 0,
+        "unexplained": 1,
+        "lostAt": [
+            {
+                "turn": 0,
+                "totalTurns": 3,
+                "endings": 6
+            },
+            {
+                "turn": 0,
+                "totalTurns": 1,
+                "endings": 5
+            },
+            {
+                "turn": 0,
+                "totalTurns": 2,
+                "endings": 4
+            },
+            {
+                "turn": 2,
+                "totalTurns": 3,
+                "endings": 4
+            },
+            {
+                "turn": 1,
+                "totalTurns": 3,
+                "endings": 2
+            },
+            {
+                "turn": 1,
+                "totalTurns": 2,
+                "endings": 1
+            },
+            {
+                "turn": 1,
+                "totalTurns": 4,
+                "endings": 1
+            }
+        ]
+    },
+    "dispel": {
+        "occurrences": 43,
+        "recordings": 19,
+        "endingACharge": 24,
+        "whileAChargeStood": 0,
+        "withNoChargeInFlight": 10,
+        "inTheOpeningPayload": 9,
+        "namingAnActor": 43,
+        "actorIsTheTarget": 0,
+        "alsoStunningOrFreezing": 41,
+        "alsoCursing": 2,
+        "ridingNeither": 0,
+        "stunsAndFreezesOnACharge": 46,
+        "distinctActors": 22,
+        "mostByOneActor": 6,
+        "recordingsCarryingOne": 19,
+        "mostInOneRecording": 6
+    },
+    "afterwards": {
+        "gapsMeasured": 20,
+        "smallestGap": 3,
+        "middleGap": 10.5,
+        "largestGap": 23,
+        "gaps": [
+            3,
+            4,
+            4,
+            5,
+            5,
+            7,
+            8,
+            8,
+            9,
+            10,
+            11,
+            12,
+            12,
+            12,
+            13,
+            14,
+            14,
+            14,
+            18,
+            23
+        ],
+        "turnAdvance": [
+            {
+                "turns": 1,
+                "measured": 24,
+                "smallest": 1,
+                "middle": 1,
+                "largest": 1
+            },
+            {
+                "turns": 2,
+                "measured": 24,
+                "smallest": 1,
+                "middle": 1,
+                "largest": 2
+            },
+            {
+                "turns": 5,
+                "measured": 24,
+                "smallest": 1,
+                "middle": 2,
+                "largest": 5
+            },
+            {
+                "turns": 10,
+                "measured": 24,
+                "smallest": 1,
+                "middle": 3,
+                "largest": 8
+            }
+        ],
+        "markStood": [
+            {
+                "payloads": 1,
+                "marks": 66
+            },
+            {
+                "payloads": 3,
+                "marks": 3
+            }
+        ]
+    },
+    "prevented": {
+        "occurrences": 0
+    }
+}

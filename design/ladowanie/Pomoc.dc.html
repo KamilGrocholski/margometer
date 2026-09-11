@@ -1,0 +1,601 @@
+<!doctype html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <script src="./support.js"></script>
+    </head>
+    <body>
+        <x-dc>
+            <helmet>
+                <style>
+                @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap');
+                body {
+                    margin: 0;
+                }
+                * {
+                    box-sizing: border-box;
+                }
+                a {
+                    color: #a8600b;
+                }
+                a:hover {
+                    color: #7d4708;
+                }
+
+                /* ---- the sheet the mockups stand on ---- */
+                .sheet {
+                    width: 100%;
+                    min-height: 100%;
+                    background: #f5f3ee;
+                    color: #1b1a17;
+                    font-family: "IBM Plex Sans",system-ui,sans-serif;
+                    padding: 34px 38px 38px;
+                    display: flex;
+                    flex-direction: column;
+                    gap: 20px;
+                }
+                .tag {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .16em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    display: flex;
+                    gap: 10px;
+                    align-items: center;
+                }
+                .tag .dot {
+                    width: 5px;
+                    height: 5px;
+                    background: #a8600b;
+                    border-radius: 50%;
+                    flex: none;
+                }
+                .tag .rec {
+                    color: #2c6b4c;
+                }
+                .tag .no {
+                    color: #a8600b;
+                }
+                h1 {
+                    font-size: 25px;
+                    line-height: 1.14;
+                    margin: 8px 0 0;
+                    font-weight: 600;
+                    letter-spacing: -.012em;
+                }
+                .lede {
+                    font-size: 13.5px;
+                    line-height: 1.55;
+                    color: #4a463e;
+                    max-width: 64ch;
+                    margin: 8px 0 0;
+                    text-wrap: pretty;
+                }
+                .stage {
+                    background: #0b0b0e;
+                    border: 1px solid #d9d5cc;
+                    padding: 24px;
+                    display: flex;
+                    gap: 24px;
+                    align-items: flex-start;
+                    justify-content: center;
+                    flex-wrap: wrap;
+                }
+                .stage.tight {
+                    padding: 18px;
+                    gap: 16px;
+                }
+                .stage.left {
+                    justify-content: flex-start;
+                }
+                .cap {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .1em;
+                    text-transform: uppercase;
+                    color: #75705f;
+                    margin-bottom: 8px;
+                }
+                .cap.good {
+                    color: #4f9d76;
+                }
+                .cap.warn {
+                    color: #c98500;
+                }
+                .hold {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
+                }
+                .notes {
+                    display: grid;
+                    grid-template-columns: repeat(2,minmax(0,1fr));
+                    gap: 14px 28px;
+                    border-top: 1px solid #d9d5cc;
+                    padding-top: 16px;
+                }
+                .notes.three {
+                    grid-template-columns: repeat(3,minmax(0,1fr));
+                }
+                .note h3 {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .12em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    margin: 0 0 5px;
+                    font-weight: 500;
+                }
+                .note h3.warn {
+                    color: #a8600b;
+                }
+                .note h3.good {
+                    color: #2c6b4c;
+                }
+                .note p {
+                    margin: 0;
+                    font-size: 12.5px;
+                    line-height: 1.5;
+                    color: #33302a;
+                    text-wrap: pretty;
+                }
+                .m {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 11.5px;
+                    background: #eae7df;
+                    padding: 1px 4px;
+                }
+                .stage .m {
+                    background: #24242a;
+                    color: #e7e7ea;
+                }
+                table.reg {
+                    border-collapse: collapse;
+                    width: 100%;
+                    font-size: 12.5px;
+                }
+                table.reg th {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .1em;
+                    text-transform: uppercase;
+                    color: #8a8478;
+                    font-weight: 500;
+                    text-align: left;
+                    padding: 0 12px 6px 0;
+                    border-bottom: 1px solid #d9d5cc;
+                }
+                table.reg td {
+                    padding: 6px 12px 6px 0;
+                    border-bottom: 1px solid #e6e2d9;
+                    vertical-align: top;
+                    line-height: 1.45;
+                }
+                table.reg td.n {
+                    text-align: right;
+                    font-variant-numeric: tabular-nums;
+                    padding-right: 16px;
+                }
+                table.reg .mono {
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 11.5px;
+                }
+                table.reg .flag {
+                    color: #a8600b;
+                }
+                table.reg .ok {
+                    color: #2c6b4c;
+                }
+                table.reg .none {
+                    color: #8a8478;
+                }
+                .cost {
+                    display: flex;
+                    gap: 18px;
+                    font-family: "IBM Plex Mono",ui-monospace,monospace;
+                    font-size: 10px;
+                    letter-spacing: .08em;
+                    text-transform: uppercase;
+                    color: #75705f;
+                    margin-top: 10px;
+                }
+                .cost b {
+                    color: #c9c9d1;
+                    font-weight: 500;
+                }
+                .stage .cost {
+                    color: #75705f;
+                }
+
+                /* ---- the panel and the window, 1:1, values from src/ui/panel-look.ts ---- */
+                .w-bar {
+                    display: flex;
+                    align-items: center;
+                    gap: 4px;
+                    padding: 4px 8px;
+                    font: 11px/13px system-ui,sans-serif;
+                    letter-spacing: .06em;
+                    color: #9a9aa6;
+                    background: #1f1f26;
+                    border: 1px solid #2c2c35;
+                    border-bottom: none;
+                    border-radius: 8px 8px 0 0;
+                    white-space: nowrap;
+                }
+                .w-bar .ver {
+                    opacity: .7;
+                    font-size: 10px;
+                }
+                .w-bar .ctl {
+                    margin-left: auto;
+                    display: flex;
+                    gap: 4px;
+                }
+                .w-body {
+                    background: #17171c;
+                    border: 1px solid #2c2c35;
+                    border-radius: 0 0 8px 8px;
+                    font: 11px/15px system-ui,sans-serif;
+                    color: #e7e7ea;
+                    display: flex;
+                    flex-direction: column;
+                }
+                .reg {
+                    padding: 5px 7px;
+                }
+                .reg.rows {
+                    padding-bottom: 3px;
+                }
+                .hd {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                }
+                .hd .out {
+                    color: #9a9aa6;
+                    text-transform: uppercase;
+                    font-size: 10px;
+                }
+                .hd .pl {
+                    color: #9a9aa6;
+                    font-size: 10px;
+                }
+                .tabs {
+                    display: flex;
+                    flex-wrap: wrap;
+                    gap: 2px;
+                    padding: 5px 7px 0;
+                }
+                .tabs + .tabs {
+                    padding-top: 3px;
+                }
+                .tabs .gap {
+                    flex: 1;
+                }
+                .tab {
+                    padding: 1px 4px;
+                    border-radius: 3px;
+                    color: #9a9aa6;
+                    white-space: nowrap;
+                }
+                .tab.on {
+                    color: #e7e7ea;
+                    background: #1f1f26;
+                }
+                .sec {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    color: #868691;
+                    letter-spacing: .08em;
+                    font-size: 10px;
+                    text-transform: uppercase;
+                    padding: 4px 2px 2px;
+                }
+                .sec .n {
+                    font-variant-numeric: tabular-nums;
+                    letter-spacing: 0;
+                }
+                .row {
+                    position: relative;
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    height: 18px;
+                    padding: 1px 8px 0;
+                    margin-bottom: 2px;
+                    border-radius: 3px;
+                    background: #24242a;
+                    overflow: hidden;
+                }
+                .row.open {
+                    box-shadow: inset 3px 0 0 #e7e7ea;
+                }
+                .bar {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    opacity: .55;
+                }
+                .rest {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                }
+                .cap3 {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 3px;
+                    border-radius: 3px 0 0 3px;
+                }
+                .rk {
+                    position: relative;
+                    flex: none;
+                    width: 22px;
+                    text-align: right;
+                    padding-right: 4px;
+                    color: #9a9aa6;
+                    font-variant-numeric: tabular-nums;
+                }
+                .nm {
+                    position: relative;
+                    flex: 1;
+                    min-width: 0;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+                .val {
+                    position: relative;
+                    flex: none;
+                    padding-left: 8px;
+                    font-weight: 600;
+                    font-variant-numeric: tabular-nums;
+                    white-space: nowrap;
+                }
+                .val .of {
+                    color: #9a9aa6;
+                    font-weight: 400;
+                }
+                .sh {
+                    color: #9a9aa6;
+                    padding-left: 4px;
+                    font-weight: 400;
+                }
+                .warn {
+                    position: relative;
+                    flex: none;
+                    color: #c98500;
+                    padding-right: 4px;
+                }
+                .marks {
+                    position: relative;
+                    flex: none;
+                    display: flex;
+                    gap: 3px;
+                    align-items: center;
+                    padding-left: 6px;
+                }
+                .mk {
+                    width: 7px;
+                    height: 7px;
+                    border-radius: 2px;
+                    flex: none;
+                }
+                .mk.hollow {
+                    background: none;
+                    border: 1px solid #3a3a44;
+                }
+                .quiet {
+                    color: #9a9aa6;
+                    padding: 1px 2px 3px;
+                }
+                .off {
+                    color: #6b6b75;
+                }
+                .sides {
+                    padding: 5px 7px;
+                    border-top: 1px solid #2c2c35;
+                }
+                .sl {
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: baseline;
+                    font-variant-numeric: tabular-nums;
+                    font-weight: 600;
+                }
+                .slab {
+                    color: #9a9aa6;
+                    font-weight: 400;
+                    opacity: .8;
+                }
+                .track {
+                    display: flex;
+                    height: 4px;
+                    margin-top: 4px;
+                    border-radius: 3px;
+                    overflow: hidden;
+                    background: #24242a;
+                }
+                .track > * {
+                    background: currentColor;
+                }
+                .ours {
+                    color: #6fbf8b;
+                }
+                .theirs {
+                    color: #e0736f;
+                }
+                .nobody {
+                    color: #8a8a80;
+                }
+                .split {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                }
+
+                /* ---- the legend beside a stage ---- */
+                .leg {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 7px;
+                    width: 206px;
+                    flex: none;
+                }
+                .leg .item {
+                    display: flex;
+                    gap: 9px;
+                    align-items: flex-start;
+                }
+                .leg .sw {
+                    flex: none;
+                    width: 34px;
+                    height: 14px;
+                    border-radius: 3px;
+                    background: #24242a;
+                    position: relative;
+                    overflow: hidden;
+                    margin-top: 1px;
+                }
+                .leg .tx {
+                    font: 12px/1.45 "IBM Plex Sans",system-ui,sans-serif;
+                    color: #c9c9d1;
+                }
+                .leg .tx b {
+                    font-weight: 600;
+                    color: #e7e7ea;
+                }
+                .leg .tx .m {
+                    background: #24242a;
+                    color: #e7e7ea;
+                }
+
+                /* ---- this round: the charge, its pips, and the mark a stopped one leaves ---- */
+                .pips {
+                    position: relative;
+                    flex: none;
+                    display: flex;
+                    gap: 2px;
+                    align-items: center;
+                    padding-left: 6px;
+                }
+                .pip {
+                    width: 5px;
+                    height: 5px;
+                    border-radius: 50%;
+                    flex: none;
+                    background: #3a3a44;
+                }
+                .pip.on {
+                    background: currentColor;
+                }
+                .under {
+                    margin-left: 8px;
+                }
+                .cross {
+                    position: relative;
+                    flex: none;
+                    padding-right: 5px;
+                    color: #9a9aa6;
+                }
+                /* The game's own widget, redrawn from build Cl9U89Zr for the comparison sheet. */
+                .gbar {
+                    position: relative;
+                    width: 120px;
+                    height: 9px;
+                    background: #1b1b20;
+                    border: 1px solid #3a3a44;
+                    border-radius: 2px;
+                    overflow: hidden;
+                }
+                .gbar .inner {
+                    position: absolute;
+                    left: 0;
+                    top: 0;
+                    bottom: 0;
+                    background: #9a6ad0;
+                }
+                .gbar .divider {
+                    position: absolute;
+                    top: 0;
+                    bottom: 0;
+                    width: 1px;
+                    background: #0b0b0e;
+                }
+                .spec {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 6px;
+                    align-items: flex-start;
+                }
+                .swg {
+                    display: grid;
+                    grid-template-columns: 16px 1fr;
+                    gap: 4px 8px;
+                    font: 10px/1.4 ui-monospace,monospace;
+                    letter-spacing: .08em;
+                    color: #9a9aa6;
+                    align-items: center;
+                }
+                /* The 2px rule the shipped person row wears on its right edge — which side. */
+                .rsd {
+                    position: absolute;
+                    right: 0;
+                    top: 0;
+                    bottom: 0;
+                    width: 2px;
+                    border-radius: 0 3px 3px 0;
+                    background: currentColor;
+                }
+                </style>
+            </helmet>
+            <div class="sheet">
+                <div class="tag"><span class="dot"></span>Co mówi pomoc<span class="rec">— pomoc.margonem.pl, odczyt 2026-09-11</span></div>
+                <h1>Cztery zdania operatora, i co każde z nich rozstrzyga</h1>
+                <p class="lede">Do tej rundy pomoc milczała: <span class="m">docs/protocol-keys.md</span> notuje przy kluczu <span class="m">prepare</span> „<i>Help: names nothing of prepare</i>”, i to jest prawda — o samym kluczu nie mówi nic. Ale o <b>mechanice</b> mówi wszystko, pod własną nazwą „umiejętności ostateczne”. Cztery zdania niżej zamykają trzy rzeczy, które arkusze trzymały jako otwarte, i otwierają jedną nową.</p>
+                <table class="reg">
+                    <tr><th>Co mówi pomoc</th><th>Co to rozstrzyga</th><th>Co na to korpus</th></tr>
+                    <tr><td><b>„Do momentu naładowania na 100% może zostać przerwana na skutek przyjęcia efektów: Ogłuszenia/Zamrożenia, Klątwy, Oślepienia, Wytrącenia z równowagi.”</b></td><td class="ok">Odmowa „nie wiadomo, dlaczego akurat to zdjęcie padło” <b>znika</b>. Przerwanie nie jest przypadkiem klucza — jest skutkiem czterech nazwanych efektów.</td><td><b>43 z 43</b> zdjęć jedzie na jednym z dwóch pierwszych: <b>41</b> na ogłuszeniu albo zamrożeniu, <b>2</b> na klątwie. Pozostałe dwa efekty nie wystąpiły w korpusie ani razu.</td></tr>
+                    <tr><td><b>„Umiejętność wyzwala się zawsze w określonej turze i powtarza co określoną liczbę tur.”</b></td><td>Cios ma <b>rozkład jazdy</b>. Gdyby protokół go podawał, pasmo mogłoby mówić „następny za N tur”.</td><td class="none">Protokół nie podaje ani tury wyzwolenia, ani okresu. Zostaje odmową — i teraz wiadomo, że odmawiamy czegoś, co w grze istnieje.</td></tr>
+                    <tr><td><b>„Czas ładowania może wynieść również zero tur (umiejętność od razu naładowana na 100%).”</b></td><td class="ok">Wyjaśnia, czemu nie każdy cios specjalny ma pasek: przy zerze <b>nie ma czego ładować</b>.</td><td>Korpus zna cztery długości: <b>1, 2, 3 i 4</b> tury. Zera nie widział — i teraz wiadomo, że to brak materiału, a nie brak takiego przypadku.</td></tr>
+                    <tr><td><b>„Rozpoczęcie ładowania dłuższego niż 0 tur zawsze idzie w parze z wykonaniem przez NPC zwykłego ataku lub umiejętności specjalnej, który poprzedza pierwszą turę ładującą.”</b></td><td class="ok">Potwierdza regułę, którą <span class="m">docs/turns-taken.md</span> <b>zmierzył</b>, nie mogąc jej zacytować: <span class="m">prepare</span> stojący obok akcji własnej postaci <b>jedzie na tamtej turze</b>, a nie otwiera własnej.</td><td>Reguła stoi w drzewie od <b>ADR 0048</b> i jest trzymana przez strażnika. Pomoc mówi dokładnie to samo innymi słowami.</td></tr>
+                </table>
+                <div class="cap" style="margin-top:4px">CZTERY EFEKTY, KTÓRE MOGĄ PRZERWAĆ — I POD JAKIMI KLUCZAMI WIDAĆ JE U NAS</div>
+                <table class="reg">
+                    <tr><th>Efekt, słowami pomocy</th><th>Klucz protokołu</th><th>Zdjęć na nim</th><th>Wystąpień klucza</th></tr>
+                    <tr><td>Ogłuszenie / Zamrożenie</td><td class="mono">+stun, +stun2, +freeze</td><td class="n ok">41</td><td class="n">181</td></tr>
+                    <tr><td>Klątwa</td><td class="mono">+legbon_curse</td><td class="n ok">2</td><td class="n">28</td></tr>
+                    <tr><td class="none">Oślepienie</td><td class="mono none">nieustalony</td><td class="n none">0</td><td class="n none">0</td></tr>
+                    <tr><td class="none">Wytrącenie z równowagi</td><td class="mono none">nieustalony</td><td class="n none">0</td><td class="n none">0</td></tr>
+                </table>
+                <div class="cap" style="margin-top:4px">I DRUGA STRONA TEGO SAMEGO ODCZYTU</div>
+                <div class="stage left">
+                    <div class="hold">
+                        <div class="cap warn">OGŁUSZENIE NIE ZNACZY PRZERWANIA</div>
+                        <div class="spec">
+                            <div style="width:320px">
+                                <div style="display:flex;height:14px;border-radius:3px;overflow:hidden;background:#24242a"><span style="flex:24;background:#c25ce0"></span><span style="flex:22;background:#24242a"></span></div>
+                                <div class="swg" style="margin-top:8px"><span style="color:#c25ce0">&#9608;</span><span>24 — ZDJĘŁO ŁADOWANIE</span><span style="color:#3a3a44">&#9608;</span><span>22 — NIE ZDJĘŁO NIC</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="leg">
+                        <div class="item"><span class="sw" style="background:none;color:#c25ce0"><span style="position:absolute;left:0;top:5px;width:18px;height:4px;background:#c25ce0"></span><span style="position:absolute;left:18px;top:5px;width:16px;height:4px;background:#3a3a44"></span></span><div class="tx"><b>Trafienie w ładowanie to jeszcze nie przerwanie.</b> Ogłuszeń i zamrożeń, które trafiły w stojące ładowanie, było <b>46</b>; zdjęły <b>24</b>. Pomoc mówi „<i>może zostać przerwana</i>” i to „może” jest mierzalne.</div></div>
+                        <div class="item"><span class="sw"></span><div class="tx"><b>Dlatego pasmo notuje zdjęcia, nigdy prób.</b> „Uderzył i nie zdjął” nie jest stanem, o którym protokół cokolwiek mówi, a policzone z ogłuszeń byłoby liczbą o naszym czytniku, nie o walce.</div></div>
+                        <div class="item"><span class="sw" style="background:none;color:#c98500"><span style="position:absolute;left:0;right:0;top:5px;height:4px;background:repeating-linear-gradient(-45deg,#c9850055 0 4px,transparent 4px 8px)"></span></span><div class="tx"><b>Dwa efekty z czterech są nienagrane.</b> Oślepienia i wytrącenia z równowagi korpus nie ma ani razu, więc nie wiadomo nawet, pod jakim kluczem przychodzą. Pasmo tego nie potrzebuje — zdjęcie ogłasza się osobnym kluczem — ale rejestr kluczy tak.</div></div>
+                    </div>
+                </div>
+                <div class="notes three">
+                    <div class="note"><h3>CO Z TEGO IDZIE DO REJESTRU KLUCZY</h3><p>Przy <span class="m">prepare</span> linia „<i>Help: names nothing of prepare</i>” jest prawdziwa co do klucza i myląca co do mechaniki. Artykuł opisuje ją w całości pod nazwą „umiejętności ostateczne” — łącznie z regułą, którą <span class="m">docs/turns-taken.md</span> musiał zmierzyć sam. To jest wpis do poprawienia niezależnie od tego, czy pasmo powstanie.</p></div>
+                    <div class="note"><h3>CO Z TEGO IDZIE DO PASMA</h3><p>Nic. Pasmo mówi dokładnie to samo co przed tym odczytem — ładuje się, wykonane, przerwane. Zmieniło się to, że <b>wiadomo, czego pasmo nie mówi i dlaczego</b>: rozkładu jazdy, bo protokół go nie niesie, i zerowego ładowania, bo nie ma czego rysować.</p></div>
+                    <div class="note warn"><h3>CZEGO TEN ARKUSZ NIE SPRAWDZA</h3><p>Filmu, do którego pomoc odsyła. Nie jest tekstem, więc nie jest źródłem, które to repozytorium umie zacytować z datą i treścią — a claim z filmu byłby claimem, którego nikt nie odtworzy bez obejrzenia go drugi raz.</p></div>
+                </div>
+            </div>
+        </x-dc>
+    </body>
+</html>

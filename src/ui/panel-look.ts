@@ -128,6 +128,9 @@ export const CLASS = {
     /** A row nested under the one above it, whoever stands in either. */
     standingUnder: "standing-under",
     standingOurs: "standing-ours",
+    standingPips: "standing-pips",
+    standingPip: "standing-pip",
+    standingPipLit: "standing-pip-lit",
     standingTheirs: "standing-theirs",
 } as const;
 
@@ -170,6 +173,9 @@ export const TIP = {
 export const STANDING = {
     width: "210px",
 } as const;
+
+/** A dot small enough that four of them and a figure fit the window's own width. */
+const PIP_SIZE = "5px";
 
 export const SHAPE = {
     radius: "8px",
@@ -755,6 +761,14 @@ function composeStandingRules(): string {
         `.${CLASS.standing}.${CLASS.standingFolded} .${CLASS.standingBody}{display:none;}` +
         // What stands under the row above it, inset so the pair reads as one thing.
         `.${CLASS.standingUnder}{margin-left:var(${VARIABLE_PREFIX}wide);}` +
+        // One dot per turn of the charge, which is how the game's own bar is cut: it draws
+        // `total_turns - 1` dividers across it (build `Cl9U89Zr`, read 2026-09-09). Nothing
+        // else in the panel is round, so the shape means this and nothing else.
+        `.${CLASS.standingPips}{position:relative;flex:none;display:flex;align-items:center;` +
+        `gap:var(${VARIABLE_PREFIX}half);padding-left:var(${VARIABLE_PREFIX}small);}` +
+        `.${CLASS.standingPip}{width:${PIP_SIZE};height:${PIP_SIZE};border-radius:50%;` +
+        `flex:none;background:var(${VARIABLE_PREFIX}border);}` +
+        `.${CLASS.standingPip}.${CLASS.standingPipLit}{background:currentColor;}` +
         // The same two inks the strip under the ranking states its sides in, and for the same
         // reason: two sides, and the panel takes no view on which one to be pleased about.
         // Spaced both sides of the mark between them, so the pair reads as two figures rather

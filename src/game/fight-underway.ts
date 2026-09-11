@@ -23,7 +23,15 @@ import {
     getStatedTextFromUnknown,
     isRecord,
 } from "@/libs/unknown-reading.ts";
-import { readCombatantsFromPayload } from "@/src/game/engine-warrior.ts";
+import {
+    readChargedSkillStatements,
+    readCombatantsFromPayload,
+} from "@/src/game/engine-warrior.ts";
+import {
+    type ChargedSkillStanding,
+    composeChargedSkills,
+    MAXIMUM_CHARGED_SKILLS,
+} from "@/src/core/charged-skill.ts";
 
 export const FIGHT_OPENS_KEY = "init";
 export const FIGHT_ENDS_KEY = "endBattle";
@@ -116,6 +124,8 @@ export interface FightReading {
     turnStatement: TurnStatement | null;
     /** True while the game is running the fight itself, which is a fight it numbers no turn on. */
     isOnAuto: boolean;
+    /** What a combatant is making ready, and the two ends of it the protocol names. */
+    chargedSkills: readonly ChargedSkillStanding[];
 }
 
 export interface FightUnderway {
@@ -131,6 +141,7 @@ export interface FightUnderway {
     readerSide: number | null;
     turnStatement: TurnStatement | null;
     isOnAuto: boolean;
+    chargedSkills: ChargedSkillStanding[];
 }
 
 export function composeFightUnderway(): FightUnderway {
@@ -147,6 +158,7 @@ export function composeFightUnderway(): FightUnderway {
         readerSide: null,
         turnStatement: null,
         isOnAuto: false,
+        chargedSkills: [],
     };
     return underway;
 }
@@ -184,6 +196,7 @@ function resetFight(underway: FightUnderway): void {
     underway.readerSide = null;
     underway.turnStatement = null;
     underway.isOnAuto = false;
+    underway.chargedSkills = [];
     assert(underway.events.length === 0, "a fight opens holding nothing");
     assert(underway.combatants.length === 0, "and knowing nobody until its payload states them");
 }
@@ -252,7 +265,16 @@ export function addPayloadToFight(underway: FightUnderway, payload: unknown): vo
     if (stated > messages.length) underway.messagesLost += stated - messages.length;
     assert(underway.messagesLost >= 0, "what a payload stated and nobody read is never negative");
     assert(underway.messagesRead >= messages.length, "and what it did read is counted once");
-    for (const event of decodeFightMessages(messages, roster)) underway.events.push(event);
+    const decoded = decodeFightMessages(messages, roster);
+    // The charge is stated in the envelope and its ending is in this payload's own messages, so
+    // both halves are read here, where the two are together for the only time.
+    underway.chargedSkills = composeChargedSkills(
+        underway.chargedSkills,
+        readChargedSkillStatements(payload),
+        decoded,
+        underway.turnStatement?.ordinal ?? null,
+    );
+    for (const event of decoded) underway.events.push(event);
     if (FIGHT_ENDS_KEY in payload) underway.isOver = true;
     assert(underway.events.length <= MAXIMUM_EVENTS, "a fight stays inside its stated bound");
     assert(underway.messagesByPayload.length <= MAXIMUM_EVENTS, "and so does what it kept");
@@ -265,6 +287,7 @@ export function getReadingFromFight(underway: FightUnderway): FightReading | nul
     if (!underway.hasFight) return null;
     assert(underway.payloads > 0, "a fight that exists was built from something");
     assert(underway.events.length <= MAXIMUM_EVENTS, "a fight stays inside its stated bound");
+    assert(underway.chargedSkills.length <= MAXIMUM_CHARGED_SKILLS, "and so does what it charges");
     return {
         roster: composeCombatantRoster(underway.combatants),
         events: underway.events,
@@ -277,5 +300,6 @@ export function getReadingFromFight(underway: FightUnderway): FightReading | nul
         readerSide: underway.readerSide,
         turnStatement: underway.turnStatement,
         isOnAuto: underway.isOnAuto,
+        chargedSkills: underway.chargedSkills,
     };
 }
