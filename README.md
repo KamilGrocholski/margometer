@@ -50,7 +50,8 @@ Walka dziesięciu na jednego, na ekranie obrażeń otrzymanych.
 - Skończone walki trafiają na półkę i można do nich wrócić. Panel mówi, gdzie się toczyły.
 - Obok panelu stoi drugie okno: mówi, czyja jest tura i co w tej chwili stoi na walce — umiejętności
   rzucone na całą stronę i okrzyki — z tym, ile tur minęło z tych, które podaje gra. Nigdy z tym,
-  ile zostało: tego gra nie mówi.
+  ile zostało: tego gra nie mówi. Kiedy ktoś szykuje cios specjalny, stoi tam osobno — z tym, ile
+  tur ładowania minęło, i czym się skończyło.
 - Tylko sumy, bez przeliczników. To, czego log nikomu nie przypisuje, dostaje własny wiersz i własną
   liczbę — nigdy nie doklejamy tego do czyjegoś wyniku. Ten wiersz mówi, czego gra nie podała, i też
   się rozwija: widać w nim, kogo to dosięgło i czym poszło.

@@ -31,8 +31,21 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
-## [Niewydane]
+## [0.16.0] — 2026-09-11
 
+- **Nowość** — Pomocnik pokazuje, kto szykuje cios specjalny. Nad tym, co stoi na walce, staje wtedy
+  jeden wiersz: nazwa ciosu tak, jak nazywa go gra, kropka na każdą turę ładowania — zapalona do
+  tego, ile już minęło — i dwie liczby, które rozdziela sam klient gry. Kiedy nikt nic nie szykuje,
+  wiersza nie ma wcale.
+- **Nowość** — Po fakcie ten sam wiersz stoi jeszcze jedną turę i mówi, czym się skończyło:
+  „wykonane" albo „przerwane". Nigdy nie napisze, ile tur ładowania zostało — to wynika z dwóch
+  liczb obok, a gra sama tego nie podaje.
+- **Zmiana** — Typy obrażeń nazywają się teraz słowami z poradnika gry, nie naszymi: „pomocnicze"
+  zamiast „broń pomocnicza", „błyskawice" zamiast „błyskawica" i „trzeci cios" zamiast „trzeci
+  atak". Jednego typu poradnik nie nazywa wcale — ten stoi w panelu surowym słowem gry, tak jak ona
+  je zapisuje, zamiast dawnego „globalne".
+- **Zmiana** — To, co zatrzymało część ciosu, też mówi słowami gry: „absorpcja" i „absorpcja
+  magiczna" zamiast „wchłonięcie" i „wchłonięcie magiczne". „Blok" zostaje bez zmiany.
 - **Poprawka** — W szybkiej walce Pomocnik nie pokazuje już tury sprzed jej włączenia. Gra przestaje
   numerować tury, kiedy prowadzi walkę za ciebie, więc okno mówi „Szybka walka — gra nie podaje
   tur.", a po skończonej walce — „Walka się skończyła.". Wcześniej stała tam ostatnia tura, jaką gra
@@ -41,6 +54,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   wątpliwość: głęboka rana osłabiona trucizną oraz dodatkowe zniszczenie pancerza, kiedy w jednej
   turze wypadnie i cios krytyczny, i przebicie. Teraz panel czyta jedno i drugie, a ten dodatkowy
   pancerz stoi w karcie osobno — jako „pancerz z przebicia".
+- **Poprawka** — Długa walka, którą gra oddaje w jednym kawałku — dołączona w trakcie albo
+  prowadzona za ciebie — czyta się teraz w całości. Wcześniej, powyżej pewnej długości, panel
+  przestawał ją czytać w połowie i liczby stawały w miejscu, nic o tym nie mówiąc.
 
 ## [0.15.0] — 2026-09-09
 

@@ -49,7 +49,8 @@ A ten-against-one fight, on the damage-taken screen.
 - A finished fight goes on a shelf you can go back to, and the panel says where it was fought.
 - A second window stands beside the panel: whose turn it is, and what is standing on the fight —
   skills cast over a whole side, and the shouts — with how many of the turns the game states have
-  passed. Never how many are left: the game does not say.
+  passed. Never how many are left: the game does not say. A special blow being made ready stands
+  there on its own, with how much of the charge has passed and which end it came to.
 - Totals only, no rate. What the log credits to nobody gets a row and a figure of its own — it is
   never folded into somebody's score. That row says what the game left out, and opens as well: whom
   it reached, and what it was dealt with.

@@ -633,9 +633,9 @@ commit that opens or closes one.
    `Everything
    up-to-date`. That one cost a takt. The sequence spells both now.
 
-   Two releases have gone out the same way since — `v0.13.0` and `v0.14.0`, both on 2026-09-05 — and
-   `docs/releasing.md` has not been edited for a correction since `c2803d2` on 2026-09-01, which is
-   the observation that the sequence now holds.
+   Three releases have gone out the same way since — `v0.13.0` and `v0.14.0` on 2026-09-05, and
+   `v0.15.0` on 2026-09-09 — and `docs/releasing.md` has not been edited for a correction since
+   `c2803d2` on 2026-09-01, which is the observation that the sequence now holds.
 
    **Opening every picture is what caught the next one**, on 2026-09-09: the drag that takes the
    panel to the corner it is photographed against had stopped moving anything, because a synthetic
