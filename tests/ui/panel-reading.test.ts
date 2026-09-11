@@ -57,6 +57,7 @@ import {
     HEALTH_LOSS_WORDS,
 } from "@/src/ui/panel-words.ts";
 import {
+    composeRecordedReading,
     getRecordedCombatants,
     getRecordedPayloads,
     readRecordingPaths,
@@ -97,15 +98,6 @@ const BLOCKED = [
     "114881=95.35;195782=96.83;tspell=Błyskawiczny cios;skillId=209",
     "114881=95.35;195782=96.83;+dmg=1259;+dmgo=839;+acdmg=17;-blok=378;-dmg=0",
 ];
-
-function readFight(path: string) {
-    const combatants = getRecordedCombatants(path);
-    const roster = composeCombatantRoster(combatants);
-    const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
-    // With the casts sized, as the add-on does it: without them the fight reads as suspect,
-    // because a share nobody placed is exactly what that mark is for.
-    return { roster, statistics: composeFightStatistics(events, composeTeamHeals(events, roster)) };
-}
 
 /**
  * The panel's own cross-check, over the material rather than over one fight.
@@ -187,7 +179,7 @@ Deno.test("no recording makes the panel contradict itself, on any screen or side
 });
 
 Deno.test("a screen shows every combatant, in the order the figures put them", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const reading = composePanelReading(
         statistics,
         roster,
@@ -213,7 +205,7 @@ Deno.test("a screen shows every combatant, in the order the figures put them", (
  * until ADR 0051 and cost the whole panel; the reading answers instead, and the entry states it.
  */
 Deno.test("two counts of one figure agreeing is what the reading says, and it says so", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const agreed = composePanelReading(
         statistics,
         roster,
@@ -238,7 +230,7 @@ Deno.test("two counts of one figure agreeing is what the reading says, and it sa
 });
 
 Deno.test("a share is the row against the fight, and the shares come to one", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const reading = composePanelReading(
         statistics,
         roster,
@@ -259,7 +251,7 @@ Deno.test("a share is the row against the fight, and the shares come to one", ()
 });
 
 Deno.test("a combatant who did nothing is drawn at nothing, not left out", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     // Not a received screen: everybody in this fight is struck and everybody is healed, so the
     // zero this test is about lives on one of the two the fight leaves somebody off.
     const reading = composePanelReading(
@@ -303,7 +295,7 @@ Deno.test("a fight that has just opened draws its whole cast at nothing", () => 
 });
 
 Deno.test("a figure nobody can be charged with stands apart from the rows", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const dealt = composePanelReading(
         statistics,
         roster,
@@ -335,7 +327,7 @@ Deno.test("a figure nobody can be charged with stands apart from the rows", () =
 });
 
 Deno.test("a fight with an unread key says every figure on it may be short", () => {
-    const whole = readFight(HILDUR);
+    const whole = composeRecordedReading(HILDUR);
     const readable = composePanelReading(
         whole.statistics,
         whole.roster,
@@ -373,7 +365,7 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
 });
 
 Deno.test("a cast nobody could place shortens the healing, and says so only there", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     // The same fight with none of its casts sized, which is how a cast nobody could place reaches
     // the figures: the event is there and the map has no answer for it.
     const unplaced = composeFightStatistics(
@@ -434,7 +426,7 @@ Deno.test("a cast nobody could place shortens the healing, and says so only ther
 
 Deno.test("every recording composes every screen without inventing a row", () => {
     for (const path of readRecordingPaths()) {
-        const { roster, statistics } = readFight(path);
+        const { roster, statistics } = composeRecordedReading(path);
         for (const metric of SCREENS) {
             const reading = composePanelReading(
                 statistics,
@@ -456,7 +448,7 @@ Deno.test("every recording composes every screen without inventing a row", () =>
 });
 
 Deno.test("an opened row states the same figure, cut by whom each blow reached", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const reading = composePanelReading(
         statistics,
         roster,
@@ -484,7 +476,7 @@ Deno.test("an opened row states the same figure, cut by whom each blow reached",
 });
 
 Deno.test("the same figure is cut a second time, by the kind of damage each blow carried", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const reading = composePanelReading(
         statistics,
         roster,
@@ -538,7 +530,7 @@ const UNNAMED_KINDS: readonly string[] = ["dmgg"];
 Deno.test("every kind is worded from a source, or registered as one nobody names", () => {
     const kinds = new Set<string>();
     for (const path of readRecordingPaths()) {
-        const { roster, statistics } = readFight(path);
+        const { roster, statistics } = composeRecordedReading(path);
         for (const metric of ["damageDealtApplied", "damageTakenApplied"] as const) {
             for (const combatantId of statistics.byCombatantId.keys()) {
                 const drill = composeDrillReading(statistics, roster, metric, combatantId);
@@ -568,7 +560,7 @@ Deno.test("every kind is worded from a source, or registered as one nobody names
 });
 
 Deno.test("a screen that cuts by nobody still cuts by what the blows carried", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     // A blow the protocol tied to no actor: the target's own cut by whom cannot hold it, and its
     // cut by kind can, which is the pair failing apart rather than together.
     const events = decodeFightMessages(["0;-10000249=99.69;+dmgf=100;-dmgf=40"], roster);
@@ -584,7 +576,7 @@ Deno.test("a screen that cuts by nobody still cuts by what the blows carried", (
 });
 
 Deno.test("every screen opens, and a row belonging to nobody in the fight opens nothing", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const held = [...statistics.byCombatantId.keys()][0];
     assertExists(held, "the fight holds somebody");
     for (const screen of SCREENS) {
@@ -636,7 +628,7 @@ Deno.test("every screen opens, and a row belonging to nobody in the fight opens 
 });
 
 Deno.test("health that went down outside a blow is a kind of its own, named by its key", () => {
-    const { roster } = readFight(POISONED);
+    const { roster } = composeRecordedReading(POISONED);
     // A movement the protocol states on its own: no blow carried it and nobody is named for it,
     // but the key says what it was, so the cut by kind can hold what the cut by whom cannot.
     const events = decodeFightMessages([POISON], roster);
@@ -653,7 +645,7 @@ Deno.test("health that went down outside a blow is a kind of its own, named by i
 Deno.test("every point of damage taken states what it was made of, on every recording", () => {
     let byKey = 0;
     for (const path of readRecordingPaths()) {
-        const { roster, statistics } = readFight(path);
+        const { roster, statistics } = composeRecordedReading(path);
         for (const combatantId of statistics.byCombatantId.keys()) {
             const open = (metric: PanelMetric) => {
                 return composeDrillReading(statistics, roster, metric, combatantId);
@@ -682,7 +674,7 @@ Deno.test("every point of damage taken states what it was made of, on every reco
  * reader's own side is what the client says and the protocol never does, so it is handed in.
  */
 Deno.test("a side lists that side alone, and the two sides together are everybody", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const sides = new Set([...roster.byId.values()].map((one) => one.side));
     assert(sides.size > 1, "this fight is fought between two sides");
     const [readerSide] = [...sides];
@@ -719,7 +711,7 @@ Deno.test("a side lists that side alone, and the two sides together are everybod
 });
 
 Deno.test("a share on one side's list is a share of that side, and the shares come to one", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const [readerSide] = [...new Set([...roster.byId.values()].map((one) => one.side))];
     assertExists(readerSide, "the fight states a side");
     const ours = composePanelReading(
@@ -747,7 +739,7 @@ Deno.test("a share on one side's list is a share of that side, and the shares co
  * dealt nothing, and never a list scaled against a total of zero into shares nobody can read.
  */
 Deno.test("a side that did nothing on this screen is drawn, at nothing", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const empty = composePanelReading(
         composeFightStatistics([], new Map()),
         roster,
@@ -766,7 +758,7 @@ Deno.test("a side that did nothing on this screen is drawn, at nothing", () => {
 });
 
 Deno.test("a reader whose own side nobody stated is shown everybody, whatever was pressed", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const everyone = composePanelReading(
         statistics,
         roster,
@@ -802,7 +794,7 @@ Deno.test("a reader whose own side nobody stated is shown everybody, whatever wa
 
 /** And where there is a seat, a side chosen is a shorter list and says so. */
 Deno.test("a list narrowed to one side stands at the height of one", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const [readerSide] = [...new Set([...roster.byId.values()].map((one) => one.side))];
     assertExists(readerSide, "the fight states a side to sit on");
     const readRows = (choice: PanelSideChoice) =>
@@ -827,7 +819,7 @@ Deno.test("a list narrowed to one side stands at the height of one", () => {
  * which is what makes it a refusal rather than a third side.
  */
 Deno.test("a figure nobody can be charged with is shown under everybody and nowhere else", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const [readerSide] = [...new Set([...roster.byId.values()].map((one) => one.side))];
     assertExists(readerSide, "the fight states a side");
     const events = decodeFightMessages([NEITHER_END], roster);
@@ -907,7 +899,7 @@ Deno.test("a pinned row is the whole of what stands under it, on every list", ()
     let people = 0;
     let kinds = 0;
     for (const path of readRecordingPaths()) {
-        const { roster, statistics } = readFight(path);
+        const { roster, statistics } = composeRecordedReading(path);
         const sides = [...new Set([...roster.byId.values()].map((one) => one.side))];
         for (const readerSide of [...sides, null]) {
             for (const metric of SCREENS) {
@@ -963,7 +955,7 @@ Deno.test("a pinned row is the whole of what stands under it, on every list", ()
  * corpus, because what is checked here is which people, not that the arithmetic closes.
  */
 Deno.test("a pinned row opens onto the end the game did name, and never onto a guess", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const kase = getPinnedCase("damageDealtApplied", "actor");
     assertExists(kase, "damage dealt pins the striker the game left out");
     const held = composeHalfNamedReading(statistics, roster, kase, "everyone", null);
@@ -988,7 +980,7 @@ Deno.test("a pinned row opens onto the end the game did name, and never onto a g
  * nothing is not pinned, so there is nothing to open. One point is.
  */
 Deno.test("a half-named point opens a level, and none at all opens nothing", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const kase = getPinnedCase("damageDealtApplied", "actor");
     assertExists(kase, "damage dealt pins the striker the game left out");
     const struck = [...roster.byId.values()][0];
@@ -1020,7 +1012,7 @@ Deno.test("a half-named point opens a level, and none at all opens nothing", () 
  * ours. **ADR 0039.**
  */
 Deno.test("a pinned row says what its figure was dealt with, key by key", () => {
-    const { roster, statistics } = readFight(FOUR_KINDS);
+    const { roster, statistics } = composeRecordedReading(FOUR_KINDS);
     const kase = getPinnedCase("damageDealtApplied", "actor");
     assertExists(kase, "damage dealt pins the striker the game left out");
     const held = composeHalfNamedReading(statistics, roster, kase, "everyone", null);
@@ -1054,7 +1046,7 @@ Deno.test("a pinned row says what its figure was dealt with, key by key", () => 
 Deno.test("a pinned row carries the cut the level under it draws, on every recording", () => {
     let read = 0;
     for (const path of readRecordingPaths()) {
-        const { roster, statistics } = readFight(path);
+        const { roster, statistics } = composeRecordedReading(path);
         for (const metric of ["damageDealtApplied", "damageTakenApplied"] as const) {
             const reading = composePanelReading(
                 statistics,
@@ -1094,7 +1086,7 @@ Deno.test("a pinned row carries the cut the level under it draws, on every recor
  * key would silently come to less than the key above it.
  */
 Deno.test("a key opened carries the part of it nobody's row holds", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const struck = [...roster.byId.values()][0];
     assertExists(struck, "the fight has somebody to strike");
     const events = decodeFightMessages([`0;${struck.id}=50.00;+dmg=1;-dmg=1`, NEITHER_END], roster);
@@ -1126,7 +1118,7 @@ Deno.test("a key opened carries the part of it nobody's row holds", () => {
  * `takenByNobody` is zero over the corpus — so the fight is built here.
  */
 Deno.test("a blow with nobody at the far end opens onto whoever struck it", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const [striker] = [...roster.byId.values()];
     assertExists(striker, "the fight holds somebody to swing");
     const events = decodeFightMessages([`${striker.id}=90.00;0;+dmg=500;-dmg=500`], roster);
@@ -1154,7 +1146,7 @@ Deno.test("a blow with nobody at the far end opens onto whoever struck it", () =
  * is built here — `docs/drill-levels.md` says as much under what the recordings do not carry.
  */
 Deno.test("what named neither end closes the level it is inside", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const [readerSide] = [...new Set([...roster.byId.values()].map((one) => one.side))];
     assertExists(readerSide, "the fight states a side");
     const events = decodeFightMessages([NEITHER_END], roster);
@@ -1191,7 +1183,7 @@ Deno.test("a one-side list divides by the figure the strip states for that side"
     let checked = 0;
     let charged = 0;
     for (const path of readRecordingPaths()) {
-        const { roster, statistics } = readFight(path);
+        const { roster, statistics } = composeRecordedReading(path);
         for (const side of new Set([...roster.byId.values()].map((one) => one.side))) {
             if (side === null) continue;
             for (const metric of SCREENS) {
@@ -1234,7 +1226,7 @@ Deno.test("what one side dealt with no striker named is what the other took from
     let seats = 0;
     let together = 0;
     for (const path of readRecordingPaths()) {
-        const { roster, statistics } = readFight(path);
+        const { roster, statistics } = composeRecordedReading(path);
         for (const side of new Set([...roster.byId.values()].map((one) => one.side))) {
             if (side === null) continue;
             const dealt = composePanelReading(
@@ -1330,7 +1322,7 @@ Deno.test("a giver the protocol left out is charged to the side the health reach
 
 /** The screen that did not exist while healing was a noun with no direction. */
 Deno.test("healing given is a screen of its own, and the two halves come to one figure", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const given = composePanelReading(
         statistics,
         roster,
@@ -1366,7 +1358,7 @@ Deno.test("healing given is a screen of its own, and the two halves come to one 
  * on the giving side, where no row holds it, and as a cut on the receiving side, where they do.
  */
 Deno.test("healing no giver can be read for is apart on one screen and a cut on the other", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const [healed] = [...roster.byId.keys()];
     assertExists(healed, "the fight holds somebody to heal");
     const statistics = composeFightStatistics([{
@@ -1412,7 +1404,7 @@ Deno.test("healing no giver can be read for is apart on one screen and a cut on 
  * two rows under one name would be two figures a reader cannot tell apart.
  */
 Deno.test("what reached somebody is cut by the skill's name, whoever announced it", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const received = composePanelReading(
         statistics,
         roster,
@@ -1441,7 +1433,7 @@ Deno.test("what reached somebody is cut by the skill's name, whoever announced i
 Deno.test("a skill under damage dealt states damage, or a swing that landed none", () => {
     let drawn = 0;
     for (const path of readRecordingPaths()) {
-        const { roster, statistics } = readFight(path);
+        const { roster, statistics } = composeRecordedReading(path);
         for (const combatantId of roster.byId.keys()) {
             const drill = composeDrillReading(
                 statistics,
@@ -1486,7 +1478,7 @@ Deno.test("a skill whose swings all landed nothing still stands, at nothing", ()
 
 Deno.test("healing given and received come to one figure in every recording", () => {
     for (const path of readRecordingPaths()) {
-        const { roster, statistics } = readFight(path);
+        const { roster, statistics } = composeRecordedReading(path);
         const given = composePanelReading(
             statistics,
             roster,
@@ -1516,7 +1508,7 @@ Deno.test("healing given and received come to one figure in every recording", ()
  * than from the protocol, which names both sides and says nothing about which is the reader's.
  */
 Deno.test("a fight that ended says so from a seat, and says nothing without one", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const outcome = statistics.outcome;
     assertExists(outcome, "this fight states how it ended");
     assert(outcome.wonNames.length > 0, "naming the side that won");
@@ -1549,7 +1541,7 @@ Deno.test("every recording states how it ended, and every seat in it reads a wor
     let stated = 0;
     let seats = 0;
     for (const path of readRecordingPaths()) {
-        const { roster, statistics } = readFight(path);
+        const { roster, statistics } = composeRecordedReading(path);
         if (statistics.outcome !== null) stated += 1;
         for (const side of new Set([...roster.byId.values()].map((one) => one.side))) {
             const reading = composePanelReading(
@@ -1574,7 +1566,7 @@ Deno.test("every recording states how it ended, and every seat in it reads a wor
  * that tells them apart: a cut is already inside the rows, so it takes no part of the hundred.
  */
 Deno.test("a figure the rows already hold is a cut of them, not another part of the whole", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const taken = composePanelReading(
         statistics,
         roster,
@@ -1612,7 +1604,7 @@ Deno.test("a figure the rows already hold is a cut of them, not another part of 
 
 /** The last rung: what passed between two of them, and what the protocol says about it. */
 Deno.test("a pair states what passed between the two, and nothing that did not", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const reading = composePanelReading(
         statistics,
         roster,
@@ -1683,7 +1675,7 @@ Deno.test("a pair states what passed between the two, and nothing that did not",
  * blows alone left this combatant a row counting nought blows with a third of their damage in it.
  */
 Deno.test("what a skill dealt holds the figures stated against a name, not only the blows", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const combatantId = 475890;
     const drill = composeDrillReading(statistics, roster, "damageDealtApplied", combatantId);
     assertExists(drill, "the row opens");
@@ -1702,7 +1694,7 @@ Deno.test("what a skill dealt holds the figures stated against a name, not only 
  * had never been lifted.
  */
 Deno.test("every person row inside an opened row opens onto the pair under it", () => {
-    const { roster, statistics } = readFight(BOTH_KINDS_OF_PAIR);
+    const { roster, statistics } = composeRecordedReading(BOTH_KINDS_OF_PAIR);
     const reading = composePanelReading(
         statistics,
         roster,
@@ -1757,7 +1749,7 @@ Deno.test("a part opened states the figure of the row that opened it, self-casts
     const levels = new Map<string, number>();
     let withSelf = 0;
     for (const path of readRecordingPaths()) {
-        const { roster, statistics } = readFight(path);
+        const { roster, statistics } = composeRecordedReading(path);
         for (const metric of SCREENS) {
             for (const combatantId of statistics.byCombatantId.keys()) {
                 const drill = composeDrillReading(statistics, roster, metric, combatantId);
@@ -1834,7 +1826,7 @@ Deno.test("a healing section names the keys the game stated, and closes against 
     let announced = 0;
     let stated = 0;
     for (const path of readRecordingPaths()) {
-        const { roster, statistics } = readFight(path);
+        const { roster, statistics } = composeRecordedReading(path);
         for (const metric of ["healthGiven", "healthRestored"] as const) {
             for (const combatantId of statistics.byCombatantId.keys()) {
                 const drill = composeDrillReading(statistics, roster, metric, combatantId);
@@ -1876,7 +1868,7 @@ Deno.test("a healing section names the keys the game stated, and closes against 
  * the same section — which is what the transpose here holds. What one gave the other is one fact.
  */
 Deno.test("a healing pair says what passed between the two, and says it from both ends", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     let announced = 0;
     let stated = 0;
     let pairs = 0;
@@ -1940,7 +1932,7 @@ Deno.test("a healing pair opens whatever its level holds, one key included", () 
     let opened = 0;
     let keys = 0;
     for (const path of readRecordingPaths()) {
-        const { roster, statistics } = readFight(path);
+        const { roster, statistics } = composeRecordedReading(path);
         for (const metric of ["healthGiven", "healthRestored"] as const) {
             for (const combatantId of statistics.byCombatantId.keys()) {
                 const drill = composeDrillReading(statistics, roster, metric, combatantId);
@@ -1993,9 +1985,10 @@ function composeAnnouncedHeal(
 }
 
 Deno.test("a skill opens onto whom it reached, a self-cast onto whoever announced it", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const [healer, healed] = [...roster.byId.keys()];
-    assert(healer !== undefined && healed !== undefined, "the fight holds two people");
+    assert(healer !== undefined, "the fight holds somebody healing");
+    assert(healed !== undefined, "and somebody healed");
     const announced = { skillName: "Dotyk anioła", skillId: 77, actorId: healer };
     const statistics = composeFightStatistics([
         {
@@ -2049,9 +2042,10 @@ Deno.test("a skill opens onto whom it reached, a self-cast onto whoever announce
  * than against its own rows is written out here.
  */
 Deno.test("a kind opened states the whole of the row, nobody's share included", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const [striker, struck] = [...roster.byId.keys()];
-    assert(striker !== undefined && struck !== undefined, "the fight holds two people");
+    assert(striker !== undefined, "the fight holds somebody striking");
+    assert(struck !== undefined, "and somebody struck");
     const statistics = composeFightStatistics([
         {
             kind: "attack",
@@ -2101,7 +2095,7 @@ Deno.test("a kind opened states the whole of the row, nobody's share included", 
 });
 
 Deno.test("a reading short of its own start or of a message says so, on every screen", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     for (const metric of SCREENS) {
         const joined = composePanelReading(statistics, roster, metric, "everyone", null, {
             messagesLost: 0,
@@ -2128,7 +2122,7 @@ Deno.test("a reading short of its own start or of a message says so, on every sc
 
 /** Widening to narrowing, and the healing screen is the only one that can say all of them. */
 Deno.test("what shortens a reading is said before what shortens one figure on it", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const events = decodeFightMessages(["1=100.00;0;whatever_per=30"], roster);
     const reading = composePanelReading(
         composeFightStatistics(events, composeTeamHeals(events, roster)),
@@ -2157,7 +2151,7 @@ Deno.test("what shortens a reading is said before what shortens one figure on it
  * carry it — which is the rule the fight's own suspicions follow one level up.
  */
 Deno.test("a suspicion about one person qualifies the screens their figure is on", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const events = decodeFightMessages([
         "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
     ], roster);
@@ -2222,7 +2216,7 @@ Deno.test("the fight's own sentence says how big the gap is and whom it reaches"
  * one until it landed.
  */
 Deno.test("what could not be read is said under the cause that left it so", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const readSuspicions = (message: string) =>
         composePanelReading(
             composeFightStatistics(decodeFightMessages([message], roster), new Map()),
@@ -2259,7 +2253,7 @@ Deno.test("what could not be read is said under the cause that left it so", () =
  * messages naming that person, which nothing counts.
  */
 Deno.test("a row says which of the two causes that can name it left its figure short", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const readRow = (message: string) => {
         const statistics = composeFightStatistics(
             decodeFightMessages([message], roster),
@@ -2299,7 +2293,7 @@ Deno.test("a row says which of the two causes that can name it left its figure s
 });
 
 Deno.test("a message that went unread marks the rows it named, on every screen", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const events = decodeFightMessages(["1=100.00;2=100.00;whatever_per=30"], roster);
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     for (const metric of SCREENS) {
@@ -2325,7 +2319,7 @@ Deno.test("a message that went unread marks the rows it named, on every screen",
  * the outcome is the same from either side, which is what separates it from the two above.
  */
 Deno.test("a drawn fight reads the same from every seat, and from none", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const events = decodeFightMessages(["0;0;winner=?"], roster);
     const drawn = composeFightStatistics(events, new Map());
     assertEquals(drawn.outcome?.isDrawn, true, "the fight the decoder read is a draw");
@@ -2349,7 +2343,7 @@ Deno.test("a drawn fight reads the same from every seat, and from none", () => {
  * everybody, so there is no seat it reads differently from. No recording carries one either.
  */
 Deno.test("a fight an escape broke off reads the same from every seat, and from none", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const events = decodeFightMessages(["500001=94.75;0;flee"], roster);
     const fled = composeFightStatistics(events, new Map());
     assertEquals(fled.outcome?.isFled, true, "the fight the decoder read was broken off");
@@ -2375,7 +2369,7 @@ Deno.test("a fight an escape broke off reads the same from every seat, and from 
  * than the game: the interruption is what the fight came to, from either seat.
  */
 Deno.test("an escape outranks a side the protocol named, from either seat", () => {
-    const { roster } = readFight(HILDUR);
+    const { roster } = composeRecordedReading(HILDUR);
     const named = [...roster.byId.values()][0];
     assertExists(named, "the fight fields somebody to name as the winner");
     const events = decodeFightMessages(
@@ -2402,7 +2396,7 @@ Deno.test("an escape outranks a side the protocol named, from either seat", () =
  * **W4**, and this is the test that answer asks for.
  */
 Deno.test("a row's card states the turns the figures hold, and not a count beside them", () => {
-    const { roster, statistics } = readFight(HILDUR);
+    const { roster, statistics } = composeRecordedReading(HILDUR);
     const reading = composePanelReading(
         statistics,
         roster,

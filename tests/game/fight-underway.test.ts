@@ -59,13 +59,15 @@ Deno.test("a recording replayed call by call reads as the whole of itself", () =
 
 Deno.test("a fight that opens replaces the one standing before it", () => {
     const [first, second] = readRecordingPaths();
-    assert(first !== undefined && second !== undefined, "two recordings to run together");
+    assert(first !== undefined, "a first recording to run");
+    assert(second !== undefined, "and a second to run after it");
     const underway = composeFightUnderway();
     for (const update of getRecordedEngineUpdates(first)) addPayloadToFight(underway, update);
     const opened = getReadingFromFight(underway);
     for (const update of getRecordedEngineUpdates(second)) addPayloadToFight(underway, update);
     const replaced = getReadingFromFight(underway);
-    assert(opened !== null && replaced !== null, "both fights were read");
+    assert(opened !== null, "the fight that opened was read");
+    assert(replaced !== null, "and so was the one that replaced it");
     assertEquals(replaced.payloads, getRecordedEngineUpdates(second).length, "only the second");
     const alone = replay(second);
     assertEquals(replaced.events.length, alone?.events.length, "and it reads as it would alone");

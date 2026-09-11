@@ -8,6 +8,7 @@
  */
 
 import { assert, assertArrayIncludes, assertEquals } from "@std/assert";
+import { getBareCell, getCellsFromLine } from "@/tests/markdown-document.ts";
 import { composeFakeDocument, type FakeElement, getElementsWithin } from "@/tests/fake-document.ts";
 import { composePanelHost } from "@/src/ui/panel-element.ts";
 import { composePanelReading, NOTHING_SUSPECT } from "@/src/ui/panel-reading.ts";
@@ -42,30 +43,6 @@ interface RegisterRow {
     rung: string;
     row: string;
     verdict: string;
-}
-
-function getCellsFromLine(line: string): string[] {
-    const cells: string[] = [];
-    let at = line.indexOf("|");
-    assert(at >= 0, "a table line opens with a bar");
-    let next = line.indexOf("|", at + 1);
-    // The bound is the line's own length: a table row holds fewer cells than it holds characters.
-    for (let held = 0; held < line.length; held += 1) {
-        if (next === -1) break;
-        cells.push(line.slice(at + 1, next).trim());
-        at = next;
-        next = line.indexOf("|", at + 1);
-    }
-    return cells;
-}
-
-/** The backticks are the document's, not the vocabulary's, so they come off before comparing. */
-function getBareCell(cell: string): string {
-    const open = cell.indexOf("`");
-    if (open === -1) return cell;
-    const close = cell.indexOf("`", open + 1);
-    if (close === -1) return cell;
-    return cell.slice(open + 1, close);
 }
 
 /**

@@ -19,6 +19,7 @@ import {
     type SkillFigures,
 } from "@/src/core/fight-statistics.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
+import { getTallyOrder } from "@/libs/tally-order.ts";
 import { composeReplayedMaterial, type FightReplay } from "@/tools/fight-replay.ts";
 
 /** As many members as the widest cut a card draws: the kinds, the defences, the procs. */
@@ -34,13 +35,6 @@ const NOTHING = "—";
 const HEADINGS = ["raw(blow)", "applied", "taken", "prevented", "restored", "given"];
 
 /** Descending by amount, then by the name, so two runs over one recording read alike. */
-function getCutOrder(one: readonly [string, number], other: readonly [string, number]): number {
-    if (one[1] !== other[1]) return other[1] - one[1];
-    if (one[0] < other[0]) return -1;
-    if (one[0] > other[0]) return 1;
-    return 0;
-}
-
 /**
  * A cut on one line. The keys of the two cuts taken by the other end of a blow are combatant ids,
  * so they are put back through the roster — an id in a table nobody can read is a figure nobody
@@ -49,7 +43,7 @@ function getCutOrder(one: readonly [string, number], other: readonly [string, nu
 function composeCutText(cut: FigureCut, roster: CombatantRoster | null): string {
     assert(cut.size <= MAXIMUM_CUT_PARTS, "a cut stays inside the parts a card draws");
     if (cut.size === 0) return NOTHING;
-    const written = [...cut].sort(getCutOrder).map(([key, amount]) => {
+    const written = [...cut].sort(getTallyOrder).map(([key, amount]) => {
         // Through the owner rather than through `Number`: a key that is not an id — an element,
         // a protocol key — reads as nothing rather than as `NaN` asking the roster a question.
         const id = getIntegerFromText(key);

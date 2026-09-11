@@ -319,7 +319,6 @@ function writeProvocationReport(rows: readonly ProvocationRow[]): void {
                 ` ${composeIntegerText(row.namedAtOnce).padStart(9)}`,
         );
     }
-    assert(rows.length >= 0, "a report states the rows it was handed");
     assert(NAME_COLUMN > 0, "and each has a column to stand in");
 }
 
@@ -337,7 +336,6 @@ function writeSourceReport(rows: readonly SourceRow[]): void {
                 ` ${composeIntegerText(row.sourcesAtOnce).padStart(7)}`,
         );
     }
-    assert(rows.length >= 0, "a report states the rows it was handed");
 }
 
 function writeAuraReport(rows: readonly AuraRow[], material: string): void {
@@ -357,7 +355,6 @@ function writeAuraReport(rows: readonly AuraRow[], material: string): void {
                 ` ${(row.reach === null ? "—" : REACH_WORDS[row.reach] ?? "—").padStart(8)}`,
         );
     }
-    assert(rows.length >= 0, "a report states the rows it was handed");
     assert(material.length > 0, "and names the material it was taken over");
 }
 

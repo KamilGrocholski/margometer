@@ -328,8 +328,10 @@ TypeScript idiom, with the naming rules stated here.
   punctuation. **ADR 0005**, narrowed by **ADR 0075**.
 - **C6.** Comments are sentences — a space after the slashes, a capital letter, a full stop, or a
   colon when they introduce what follows. An end-of-line comment may be a phrase.
-- **C7. No regular expressions.** Text is read by walking it. One exception, and it is somebody
-  else's API: a bundler plugin's `onResolve({ filter })` takes nothing else. **ADR 0006.**
+- **C7. No regular expressions**, in either spelling — a literal or the constructor. Text is read by
+  walking it. **ADR 0006** granted one exception, a bundler plugin's `onResolve({ filter })`, which
+  takes nothing else; the tree carries none, because the bundle is built by a subprocess. A new one
+  is `[ASK]`.
 - **C8. Every import is written from the repository root**, with `@/` and the file's extension:
   `@/core/fight-decoder.ts`, never `../core/fight-decoder.ts` — not at any depth, not even for a
   sibling. `deno.json` maps `@/` to the repository root and nothing else, so one prefix is the whole
@@ -520,48 +522,48 @@ that has stopped finding its subject; only the second catches one that finds too
 counted one mark more than the document carried, stayed green for a round, and was found by counting
 the same thing a second way.
 
-| Guard                                         | Holds                                            |
-| --------------------------------------------- | ------------------------------------------------ |
-| `deno check`                                  | S7, S10, C12 in part                             |
-| `project/browser-lib.json`                    | a construct past the browser floor, coarsely     |
-| `deno lint`                                   | S10, S12 in part                                 |
-| `deno fmt --check`                            | C6 indentation and prose wrapping                |
-| `deno.json` fmt exclusion                     | `TODO.md` against the formatter                  |
-| `deno test`                                   | every guard below                                |
-| `tests/repository/documents.test.ts`          | the rule documents and this register             |
-| `tests/repository/decisions.test.ts`          | the decision records                             |
-| `tests/repository/sources.test.ts`            | S1–S2, S4–S5, S11, S13, A10–11, C4–5, C8, C15–16 |
-| `tests/repository/errors.test.ts`             | E1, E2, E11–E13, E14 part, each with a sample    |
-| `tests/repository/unguarded-paths.test.ts`    | E14's paths, and the methods they step over      |
-| `tests/source-graph.ts`                       | the reader both of those stand on, S1 included   |
-| `tests/repository/source-line.test.ts`        | the line reader under all of them, both ways     |
-| `tests/repository/source-readers.test.ts`     | those readers against a parse of the same tree   |
-| `tests/repository/counted-material.test.ts`   | V5 over the corpus count, both ways              |
-| `tests/repository/reading-boundary.test.ts`   | `SECURITY.md`'s first rule, over the bundle      |
-| `tests/repository/redacted-names.test.ts`     | no name a recording's own roster cannot place    |
-| `tests/repository/workflows.test.ts`          | the three workflows pinned to one runtime        |
-| `tests/repository/names.test.ts`              | N1, N3, N8, N11, N14, N15, N16, with samples     |
-| `tests/repository/type-assertions.test.ts`    | C13, with a register read both ways              |
-| `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts   |
-| `tests/tools/protocol-key-shape.test.ts`      | every `_Shape:_` line against `captures/`        |
-| `tests/repository/skill-durations.test.ts`    | the frozen durations, and the rule behind them   |
-| `tests/repository/readmes.test.ts`            | the two READMEs, and both against the shot set   |
-| `tests/repository/cited-paths.test.ts`        | every rooted path a document cites               |
-| `tests/repository/constructs.test.ts`         | the construct register, both ways                |
-| `tests/repository/game-vocabulary.test.ts`    | N13 for the two pages standing a game up         |
-| `tests/repository/fabricated-fights.test.ts`  | the wall between evidence and what was made up   |
-| `tests/repository/libraries.test.ts`          | `libs/` and `project/` reaching into no layer    |
-| `tests/tools/fabricated-fight.test.ts`        | the fabricated fight against the key register    |
-| `tests/tools/turn-count.test.ts`              | `docs/turns-taken.md` against every recording    |
-| `tests/tools/aura-standing.test.ts`           | `docs/auras-standing.md` against every recording |
-| `tests/tools/turn-reading.test.ts`            | `docs/reading-a-turn.md`, and it on the panel    |
-| `tests/tools/browser-support.test.ts`         | `docs/browser-support.md` against the stylesheet |
-| `tests/tools/captured-fight-register.test.ts` | `docs/captured-fights.md` against `captures/`    |
-| `tests/tools/drill-report.test.ts`            | `docs/drill-levels.md` against every level drawn |
-| `tests/ui/blow-vocabulary.test.ts`            | N13 for what a blow carried, against `captures/` |
-| `tests/ui/panel-words.test.ts`                | L3, over every word the panel module holds       |
-| `tests/ui/share-bound.test.ts`                | both bounded writers against the widest screen   |
-| `tests/ui/level-drawn.test.ts`                | every level drawn: its height, and its cards     |
+| Guard                                         | Holds                                                |
+| --------------------------------------------- | ---------------------------------------------------- |
+| `deno check`                                  | S7, S10, C12 in part                                 |
+| `project/browser-lib.json`                    | a construct past the browser floor, coarsely         |
+| `deno lint`                                   | S10, S12 in part                                     |
+| `deno fmt --check`                            | C6 indentation and prose wrapping                    |
+| `deno.json` fmt exclusion                     | `TODO.md` against the formatter                      |
+| `deno test`                                   | every guard below                                    |
+| `tests/repository/documents.test.ts`          | the rule documents and this register                 |
+| `tests/repository/decisions.test.ts`          | the decision records                                 |
+| `tests/repository/sources.test.ts`            | S1–2, S4–5, S11, S13, A3, A10–11, C4–5, C7–8, C15–16 |
+| `tests/repository/errors.test.ts`             | E1, E2, E11–E13, E14 part, each with a sample        |
+| `tests/repository/unguarded-paths.test.ts`    | E14's paths, and the methods they step over          |
+| `tests/source-graph.ts`                       | the reader both of those stand on, S1 included       |
+| `tests/repository/source-line.test.ts`        | the line reader under all of them, both ways         |
+| `tests/repository/source-readers.test.ts`     | those readers against a parse of the same tree       |
+| `tests/repository/counted-material.test.ts`   | V5 over the corpus count, both ways                  |
+| `tests/repository/reading-boundary.test.ts`   | `SECURITY.md`'s first rule, over the bundle          |
+| `tests/repository/redacted-names.test.ts`     | no name a recording's own roster cannot place        |
+| `tests/repository/workflows.test.ts`          | the three workflows pinned to one runtime            |
+| `tests/repository/names.test.ts`              | N1, N3, N8, N11, N14, N15, N16, with samples         |
+| `tests/repository/type-assertions.test.ts`    | C13, with a register read both ways                  |
+| `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts       |
+| `tests/tools/protocol-key-shape.test.ts`      | every `_Shape:_` line against `captures/`            |
+| `tests/repository/skill-durations.test.ts`    | the frozen durations, and the rule behind them       |
+| `tests/repository/readmes.test.ts`            | the two READMEs, and both against the shot set       |
+| `tests/repository/cited-paths.test.ts`        | every rooted path a document cites                   |
+| `tests/repository/constructs.test.ts`         | the construct register, both ways                    |
+| `tests/repository/game-vocabulary.test.ts`    | N13 for the two pages standing a game up             |
+| `tests/repository/fabricated-fights.test.ts`  | the wall between evidence and what was made up       |
+| `tests/repository/libraries.test.ts`          | `libs/` and `project/` reaching into no layer        |
+| `tests/tools/fabricated-fight.test.ts`        | the fabricated fight against the key register        |
+| `tests/tools/turn-count.test.ts`              | `docs/turns-taken.md` against every recording        |
+| `tests/tools/aura-standing.test.ts`           | `docs/auras-standing.md` against every recording     |
+| `tests/tools/turn-reading.test.ts`            | `docs/reading-a-turn.md`, and it on the panel        |
+| `tests/tools/browser-support.test.ts`         | `docs/browser-support.md` against the stylesheet     |
+| `tests/tools/captured-fight-register.test.ts` | `docs/captured-fights.md` against `captures/`        |
+| `tests/tools/drill-report.test.ts`            | `docs/drill-levels.md` against every level drawn     |
+| `tests/ui/blow-vocabulary.test.ts`            | N13 for what a blow carried, against `captures/`     |
+| `tests/ui/panel-words.test.ts`                | L3, over every word the panel module holds           |
+| `tests/ui/share-bound.test.ts`                | both bounded writers against the widest screen       |
+| `tests/ui/level-drawn.test.ts`                | every level drawn: its height, and its cards         |
 
 A guard joins this table in the commit that makes it pass, and the known-gaps list shrinks by the
 same rules in that commit.

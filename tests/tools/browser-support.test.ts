@@ -16,6 +16,7 @@ import {
     assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
+import { getSection } from "@/tests/markdown-document.ts";
 import { getDecimalFromText } from "@/libs/number-text.ts";
 import { composeStyleSheet } from "@/src/ui/panel-look.ts";
 
@@ -392,14 +393,6 @@ function getFloorRows(section: string): FloorRow[] {
     }
     assert(rows.length > 0, "a floor table names constructs");
     return rows;
-}
-
-function getSection(document: string, from: string, to: string): string {
-    const start = document.indexOf(from);
-    assertNotStrictEquals(start, -1, `${from} is a section of the register`);
-    const end = document.indexOf(to, start);
-    assert(end > start, `${from} ends where ${to} starts`);
-    return document.slice(start, end);
 }
 
 function getStyleFloorRows(document: string): FloorRow[] {

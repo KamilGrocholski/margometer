@@ -49,6 +49,7 @@ playwright.config.ts  Where the browser suite looks, which engine it drives, wha
 libs/              Knows nothing of this project. Imports `@std/` and its own siblings.
   json-text.ts     JSON both ways, each answering whether it worked rather than with `null`.
   number-range.ts  A number held between two ends, and which end wins where there is no room.
+  tally-order.ts   A counted name against another: the largest first, and ties by name.
   number-text.ts   Numbers read out of text and written back into it, refusing before reading.
   html-text.ts     Markup read as the words a person would have seen in it, walked by its tags.
   text-walk.ts     Walking text a character at a time, by a predicate the caller hands over.
@@ -274,6 +275,8 @@ tests/
   recorded-fight.ts        The recordings, read through the constant that spells their fields.
   fake-document.ts         A document small enough to read, for a panel handed one.
   shown-screen.ts          A whole view around one reading, for a test changing one field.
+  markdown-document.ts     A section, a table row and a quoted cell, for the guards over one.
+  share-text.ts            A share the panel drew, read back into the points it states.
   userscript-entry.test.ts  Every layer at once, driven the way a browser drives them.
   source-line.ts           A line of TypeScript with its string literals taken out.
   style-sheet.ts           The panel's stylesheet read back, for the guards that read it.

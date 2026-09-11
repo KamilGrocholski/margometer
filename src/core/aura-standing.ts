@@ -131,7 +131,6 @@ export function getReachFromEffects(effects: readonly { effect: string }[]): Aur
         if (found === null) found = reach;
         else if (found !== reach) found = "both-sides";
     }
-    assert(effects.length >= 0, "a reach is read off the keys a cast carried");
     assert(found === null || found.length > 0, "and is one of the three, or nothing");
     return found;
 }
@@ -160,7 +159,6 @@ export function getStatedTurnsFromEffects(effects: readonly SkillEffectTurns[]):
         }
     }
     assert(longest >= 0, "a duration that was read is not below nothing");
-    assert(effects.length >= 0, "and was read off the effects a skill states");
     if (longest === 0) return null;
     return longest;
 }

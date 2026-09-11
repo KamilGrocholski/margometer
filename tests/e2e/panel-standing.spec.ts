@@ -208,7 +208,10 @@ test("a card stands over the window, even where the window covers it", async ({ 
     const row = panel.at("#MargoMeter-Panel .list .row").first();
     await row.hover();
     const card = panel.at(".MargoMeter-tip");
-    await expect(card, "the card opened").not.toHaveClass(/tip-hidden/);
+    // Walked rather than matched (**C7**), and the class list rather than the whole attribute:
+    // `toHaveClass` with text compares the list entire, so it would pass on a hidden card too.
+    const classes = (await card.getAttribute("class") ?? "").split(" ");
+    expect(classes, "the card opened").not.toContain("tip-hidden");
     const stack = await panel.page.evaluate(() => {
         const root = document.getElementById("MargoMeter-Panel")?.shadowRoot ?? null;
         if (root === null) return null;

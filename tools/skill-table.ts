@@ -115,7 +115,6 @@ function readEffectFromText(text: string): SkillEffectReading | null {
         if (amount !== null) amounts.push(amount);
     }
     assert(key.length > 0, "an effect that was read is named");
-    assert(turns.length >= 0, "and states a duration at each level or at none");
     assert(amounts.length <= turns.length, "an amount is read only beside a duration");
     return { key, turns, amounts };
 }

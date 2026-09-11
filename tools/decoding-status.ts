@@ -12,6 +12,7 @@
 import { assert, assertStrictEquals } from "@std/assert";
 import { BATTLE_EVENT_KINDS } from "@/src/core/battle-event.ts";
 import { composeIntegerText } from "@/libs/number-text.ts";
+import { getTallyOrder } from "@/libs/tally-order.ts";
 import {
     composeReplayedMaterial,
     type FightReplay,
@@ -41,13 +42,6 @@ export interface DecodingStatus {
 }
 
 /** Descending by count, then by the key itself, so two runs of the same material read alike. */
-function getTallyOrder(one: readonly [string, number], other: readonly [string, number]): number {
-    if (one[1] !== other[1]) return other[1] - one[1];
-    if (one[0] < other[0]) return -1;
-    if (one[0] > other[0]) return 1;
-    return 0;
-}
-
 function addToTally(tally: Map<string, number>, key: string, amount: number): void {
     assert(key.length > 0, "a tally is kept under a name");
     assert(amount > 0, "and counts something that happened");

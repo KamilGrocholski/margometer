@@ -931,7 +931,12 @@ export function composeFigureText(value: number): string {
     return `${sign}${body.slice(0, start)}${spaced}`;
 }
 
-const SHARE_FLOOR = "<1%";
+/**
+ * What the panel draws where a share is owed and rounds to nothing. Exported because two
+ * guards read a drawn share back into points and both spelled this string themselves, so a
+ * floor changed here would have left them measuring a string the panel no longer draws.
+ */
+export const SHARE_FLOOR = "<1%";
 /** More shares than the widest section draws rows — `tests/ui/share-bound.test.ts` holds it so. */
 export const MAXIMUM_SHARES = 384;
 

@@ -1,5 +1,5 @@
 /**
- * The recordings, read once for every test whose subject needs one.
+ * The recordings, read once for every test whose subject needs one, and the figures one comes to.
  *
  * Their field names are the recordings' own and Polish, and are taken from the constant the
  * file that writes them spells — **N13**. A recording arrives as `unknown` and is walked rather
@@ -8,7 +8,10 @@
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
-import type { Combatant } from "@/src/core/combatant-roster.ts";
+import { type Combatant, composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { composeTeamHeals } from "@/src/core/combatant-health.ts";
+import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import { readCombatantFromWarrior } from "@/src/game/engine-warrior.ts";
@@ -143,4 +146,14 @@ export function getRecordedCombatants(path: string): Combatant[] {
         }
     }
     return [...byId.values()];
+}
+
+/**
+ * A recording decoded the way the add-on decodes one, with the casts sized: without sizing the
+ * fight reads as suspect, because a share nobody placed is exactly what that mark is for.
+ */
+export function composeRecordedReading(path: string) {
+    const roster = composeCombatantRoster(getRecordedCombatants(path));
+    const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+    return { roster, statistics: composeFightStatistics(events, composeTeamHeals(events, roster)) };
 }

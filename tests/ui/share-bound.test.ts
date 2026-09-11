@@ -9,6 +9,7 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import { getPointsFromShareText } from "@/tests/share-text.ts";
 import { MAXIMUM_CUT_PARTS, MAXIMUM_SKILLS } from "@/src/ui/panel-reading.ts";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import { MAXIMUM_TIPS } from "@/src/ui/panel-tip.ts";
@@ -16,7 +17,6 @@ import { composeShareTexts, MAXIMUM_SHARES } from "@/src/ui/panel-words.ts";
 
 const HUNDRED = 100;
 /** What a row holding something too small to state a point prints, in place of a share. */
-const SHARE_FLOOR = "<1%";
 
 /**
  * The widest section, which is the skills section on a healing screen: every caster's names at
@@ -33,15 +33,6 @@ const SECTION_EXTRAS = 2;
 const WIDEST_SCREEN = MAXIMUM_COMBATANTS + SECTION_EXTRAS +
     (WIDEST_SECTION + 1) +
     (MAXIMUM_CUT_PARTS + SECTION_EXTRAS + 1) + 2;
-
-function getPointsFromShareText(text: string): number {
-    assert(text.length > 0, `a row that was drawn states a share, and this one states "${text}"`);
-    if (text === SHARE_FLOOR) return 0;
-    assert(text.endsWith("%"), `a share is written in points of a hundred, not as "${text}"`);
-    const points = Number(text.slice(0, -1).split(" ").join(""));
-    assert(Number.isSafeInteger(points), `a share reading ${text} is not a whole number of points`);
-    return points;
-}
 
 Deno.test("the share writer holds every row the widest section can draw", () => {
     assert(

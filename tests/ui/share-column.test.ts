@@ -14,10 +14,8 @@ import {
     assertNotStrictEquals,
     assertThrows,
 } from "@std/assert";
-import { composeTeamHeals } from "@/src/core/combatant-health.ts";
-import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
-import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
+import { SHARE_FLOOR } from "@/src/ui/panel-words.ts";
+import { getPointsFromShareText } from "@/tests/share-text.ts";
 import {
     composeDrillReading,
     composePairReading,
@@ -27,15 +25,10 @@ import {
     type PanelMetric,
 } from "@/src/ui/panel-reading.ts";
 import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
-import {
-    getRecordedCombatants,
-    getRecordedPayloads,
-    readRecordingPaths,
-} from "@/tests/recorded-fight.ts";
+import { composeRecordedReading, readRecordingPaths } from "@/tests/recorded-fight.ts";
 
 const HUNDRED = 100;
 /** What a row holding something too small to state a point prints, in place of a share. */
-const SHARE_FLOOR = "<1%";
 const NO_SHARE = "0%";
 
 /** As a row is drawn: what it holds, beside the share it printed for it. */
@@ -48,15 +41,6 @@ interface Section {
     where: string;
     rows: ShareRow[];
     total: number;
-}
-
-function getPointsFromShareText(text: string): number {
-    assert(text.length > 0, "a row that was drawn states a share");
-    if (text === SHARE_FLOOR) return 0;
-    assert(text.endsWith("%"), "and a share is written in points of a hundred");
-    const points = Number(text.slice(0, -1).split(" ").join(""));
-    assert(Number.isSafeInteger(points), `a share reading ${text} is not a whole number of points`);
-    return points;
 }
 
 /** Null where the column is not drawn at all: a section nobody sees makes no claim. */
@@ -87,19 +71,12 @@ function expectShareTellsNothingFromSomething(where: string, row: ShareRow): voi
     assert(getPointsFromShareText(row.shareText) > 0, `${where}: a share of nought is not a share`);
 }
 
-function readFight(path: string) {
-    const combatants = getRecordedCombatants(path);
-    const roster = composeCombatantRoster(combatants);
-    const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
-    return { roster, statistics: composeFightStatistics(events, composeTeamHeals(events, roster)) };
-}
-
 /**
  * Every rung under one row. The closing row of each cut is part of its column: it is what the
  * rows above do not hold, so a column read without it is the shortfall itself.
  */
 function composeSectionsForScreenRow(
-    fight: ReturnType<typeof readFight>,
+    fight: ReturnType<typeof composeRecordedReading>,
     metric: PanelMetric,
     combatantId: number,
 ): Section[] {
@@ -158,7 +135,7 @@ function composeSectionsForScreenRow(
 
 /** The ranking of one screen for one seat, and every rung the rows on it open onto. */
 function composeSectionsForScreen(
-    fight: ReturnType<typeof readFight>,
+    fight: ReturnType<typeof composeRecordedReading>,
     metric: PanelMetric,
     side: "everyone" | "reader" | "opposing",
     readerSide: number | null,
@@ -200,7 +177,7 @@ function composeCutShares(
 Deno.test("every column of shares the panel draws comes to a hundred", () => {
     let drawn = 0;
     for (const path of readRecordingPaths()) {
-        const fight = readFight(path);
+        const fight = composeRecordedReading(path);
         const seats = [...new Set([...fight.roster.byId.values()].map((one) => one.side))];
         for (const readerSide of [null, ...seats]) {
             for (const side of ["everyone", "reader", "opposing"] as const) {

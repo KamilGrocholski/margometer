@@ -1140,3 +1140,85 @@ Deno.test("what the bundle carries is synchronous", () => {
     }
     assertEquals(found, [], "S13: a promise where the engine call is taken from the game's stack");
 });
+
+/** The two ways to write one, so a reader looking for the construct looks for both. */
+const REGEXP_CONSTRUCTOR = "new RegExp(";
+/**
+ * What stands before a slash that opens a pattern rather than divides. A division is preceded by
+ * something that has a value — a name, a digit, a closing bracket — and a pattern never is.
+ */
+const BEFORE_A_PATTERN = ["=", "(", ",", "[", ":", "!", "&", "|", "?", "{", ";", "return"];
+
+/** Whether a line of code, its strings already taken out, opens a regular-expression literal. */
+export function hasPatternLiteral(code: string): boolean {
+    for (let at = code.indexOf("/"); at !== -1; at = code.indexOf("/", at + 1)) {
+        const next = code.charAt(at + 1);
+        if (next === "/") break;
+        if (next === "*") break;
+        if (next === "") continue;
+        if (next === " ") continue;
+        const before = code.slice(0, at).trimEnd();
+        if (before.length === 0) continue;
+        if (BEFORE_A_PATTERN.some((one) => before.endsWith(one))) return true;
+    }
+    return false;
+}
+
+/**
+ * **C7**, held over the construct rather than over a word. `ADR 0006` states one exception — a
+ * bundler plugin's `onResolve({ filter })` — and the tree carries none: the bundle is built by a
+ * subprocess, so nothing here writes a pattern and this guard is absolute until one does.
+ */
+Deno.test("no file writes a regular expression, in either of the two spellings", () => {
+    assert(hasPatternLiteral("const found = /a+/;"), "an assigned pattern is one");
+    assert(hasPatternLiteral("text.replace(/a/, one);"), "and one handed to a call");
+    assert(!hasPatternLiteral("const share = counted / total;"), "a division is not");
+    assert(!hasPatternLiteral("// a comment about a/b"), "and neither is a comment");
+    assert(!hasPatternLiteral('const path = one + "/" + other;'), "nor a separator in text");
+
+    const found: string[] = [];
+    for (const path of getSourcePaths()) {
+        for (const [offset, line] of Deno.readTextFileSync(path).split("\n").entries()) {
+            if (isCommentLine(line)) continue;
+            const code = getCodeOutsideStrings(line);
+            if (code.includes(REGEXP_CONSTRUCTOR)) found.push(`${path}:${offset + 1} constructor`);
+            if (hasPatternLiteral(code)) found.push(`${path}:${offset + 1} literal`);
+        }
+    }
+    assertEquals(found, [], "C7: text is read by walking it");
+});
+
+/** Where a compound assertion would hide: inside the call, never inside its message. */
+export function hasCompoundAssertion(code: string): boolean {
+    const opens = code.indexOf("assert(");
+    if (opens === -1) return false;
+    const inside = code.slice(opens + "assert(".length);
+    let depth = 0;
+    for (let at = 0; at < inside.length; at += 1) {
+        const character = inside.charAt(at);
+        if (character === "(") depth += 1;
+        if (character === ")" && depth === 0) return false;
+        if (character === ")") depth -= 1;
+        if (depth === 0 && inside.startsWith("&&", at)) return true;
+    }
+    return false;
+}
+
+/** **A3**, over the call and not the line: a split assertion says which half broke. */
+Deno.test("no assertion is two assertions joined", () => {
+    assert(hasCompoundAssertion('assert(a && b, "x");'), "a joined pair is one");
+    assert(!hasCompoundAssertion('assert(a, "one and another");'), "a message is not");
+    assert(!hasCompoundAssertion("assert(isThere(a && b));"), "and neither is a nested call");
+    assert(!hasCompoundAssertion("if (a && b) return;"), "nor a branch beside one");
+
+    const found: string[] = [];
+    for (const path of getSourcePaths()) {
+        for (const [offset, line] of Deno.readTextFileSync(path).split("\n").entries()) {
+            if (isCommentLine(line)) continue;
+            if (hasCompoundAssertion(getCodeOutsideStrings(line))) {
+                found.push(`${path}:${offset + 1}`);
+            }
+        }
+    }
+    assertEquals(found, [], "A3: assert(a); assert(b); never assert(a && b)");
+});

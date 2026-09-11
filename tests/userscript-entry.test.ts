@@ -368,7 +368,8 @@ Deno.test("a recording played through the add-on ends on the panel a reader woul
                 .split("\u00a0").join(""),
         )
     );
-    assert(figures[0] !== undefined && figures[0] > 0, "the largest figure is drawn first");
+    assert(figures[0] !== undefined, "a figure is drawn first");
+    assert(figures[0] > 0, "and the largest one is above nothing");
     const names = rows.map((row) =>
         row.children.find((one) => one.className === "row-name")?.textContent
     );
@@ -377,7 +378,8 @@ Deno.test("a recording played through the add-on ends on the panel a reader woul
     for (const [at, figure] of figures.entries()) {
         if (at === 0) continue;
         const above = figures[at - 1];
-        assert(above !== undefined && above >= figure, "and the rest fall away from it");
+        assert(above !== undefined, "each row after the first has one above it");
+        assert(above >= figure, "and the rest fall away from it");
     }
     attachment.detach();
     assertEquals(battle.updateData, engineOwn, "and detaching puts the game's own method back");
@@ -771,7 +773,8 @@ Deno.test("a reader asks for the fight, and gets the recording the intake tool r
     ], "in the shape every admitted recording carries");
     const before = first.combatantsBefore;
     const after = first.combatantsAfter;
-    assert(Array.isArray(before) && Array.isArray(after), "with a snapshot on either side");
+    assert(Array.isArray(before), "with a snapshot before the call");
+    assert(Array.isArray(after), "and one after it");
     assertEquals(
         [isRecord(before[0]) ? before[0].hp : null, isRecord(after[0]) ? after[0].hp : null],
         [{ max: 100, value: 100 }, { max: 100, value: 90 }],

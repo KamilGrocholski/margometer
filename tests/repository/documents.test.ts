@@ -45,20 +45,18 @@ const CANONICAL = [
 /** Where a document of this repository sits, beside the root's own. */
 const DOCUMENT_DIRECTORIES = [".agents", "captures", "docs", "frozen", "tests"];
 
+/** What `deno fmt` aligns and never wraps. A row opens with one, so a row is what is excused. */
+const TABLE_OPENER = "|";
+
 /**
- * ⚠️ **What `deno fmt` aligns and never wraps, named rather than walked past.** Read both ways:
- * a document here whose long line is gone has outlived its excuse, and one that grows a long
- * line must be named. Until 2026-09-11 this list stood in `ARCHITECTURE.md` and the guard
- * reached none of the documents on it — every one of them was skipped quietly.
+ * ⚠️ **What is excused is a line, not a document.** Seven documents were named here for carrying
+ * "a table", and naming the file excused its prose along with it. Measured 2026-09-11: of the
+ * overlong lines in those seven, **every one is a table row and none is prose** — so the whole-file
+ * excuse bought nothing and cost the column rule over four thousand lines of prose. The two
+ * entries left are the ones a table rule cannot reach. Read both ways: a document here whose long
+ * line is gone has outlived its excuse, and one that grows a long line of prose must be named.
  */
 const UNWRAPPED_LINES: Record<string, string> = {
-    "docs/auras-standing.md": "a table",
-    "docs/browser-support.md": "a table",
-    "docs/captured-fights.md": "a table",
-    "docs/drill-levels.md": "a table",
-    "docs/protocol-keys.md": "a table",
-    "docs/reading-a-turn.md": "a table",
-    "docs/turns-taken.md": "a table",
     ".agents/skills/verify/SKILL.md": "front matter, which is one line by the format's own rule",
     "TODO.md": "the maintainer's list, which nothing here reads and no tool here writes",
 };
@@ -305,13 +303,19 @@ Deno.test("a nested AGENTS.md never restates the root", () => {
 });
 
 Deno.test("no line runs past a hundred columns, and every exception is named", () => {
+    const row = `| ${"x".repeat(120)} |`;
+    assert(row.startsWith(TABLE_OPENER), "the sample it must not flag is a table row");
+    assert(!"x".repeat(120).startsWith(TABLE_OPENER), "and the one it must is prose");
+
     const overlong: string[] = [];
     const excused: string[] = [];
     const walked = getWrittenPaths();
     for (const path of walked) {
         const long: string[] = [];
         for (const [offset, line] of Deno.readTextFileSync(path).split("\n").entries()) {
-            if (line.length > 100) long.push(`${path}:${offset + 1} at ${line.length}`);
+            if (line.length <= 100) continue;
+            if (line.startsWith(TABLE_OPENER)) continue;
+            long.push(`${path}:${offset + 1} at ${line.length}`);
         }
         if (UNWRAPPED_LINES[path] !== undefined) {
             if (long.length === 0) excused.push(path);
