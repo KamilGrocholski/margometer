@@ -7,7 +7,7 @@
  * (`docs/protocol-keys.md`).
  */
 
-import { assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import {
     decodeFightMessages,
@@ -32,14 +32,20 @@ Deno.test("every tick lands on a victim already wounded, stating what that wound
         const freshestByVictim = new Map<number, string>();
         for (const message of getRecordedMessages(path)) {
             const parsed = parseProtocolMessage(message);
-            const applied = parsed.parameters.find((one) => one.key === WOUND_ANNOUNCEMENT_KEY);
+            const announced = parsed.parameters.filter((one) => one.key === WOUND_ANNOUNCEMENT_KEY);
+            // The walk below takes the first and would drop a second without a word, which is
+            // what the counts pinned here used to protect by accident.
+            assert(announced.length <= 1, `${path}: two wounds announced in one message`);
+            const applied = announced[0];
             if (applied !== undefined) {
                 assertExists(parsed.target, `${path}: a wound naming nobody to carry it`);
                 assertExists(applied.value, `${path}: a wound announcing no figure`);
                 freshestByVictim.set(parsed.target.combatantId, applied.value);
                 wounds += 1;
             }
-            const tick = parsed.parameters.find((one) => one.key === TICK_KEY);
+            const ticked = parsed.parameters.filter((one) => one.key === TICK_KEY);
+            assert(ticked.length <= 1, `${path}: two wounds ticking in one message`);
+            const tick = ticked[0];
             if (tick === undefined) continue;
             assertExists(parsed.actor, `${path}: a tick naming nobody`);
             ticks += 1;
@@ -48,8 +54,11 @@ Deno.test("every tick lands on a victim already wounded, stating what that wound
             assertEquals(tick.value, wound, `${path}: a tick stating what no wound announced`);
         }
     }
-    assertEquals(ticks, 199, "every tick the material carries, 2026-09-11");
-    assertEquals(wounds, 84, "and every wound announced before one, 2026-09-11");
+    // How many there are is `injure`'s and `+injure`'s `_Shape:_` lines, re-earned from
+    // `captures/` on every run by `tests/tools/protocol-key-shape.test.ts`. Pinned here as well it
+    // moved a hand on every intake and held nothing those lines do not.
+    assert(ticks > 0, "an empty reading of the material is a finding, not a pass");
+    assert(wounds > 0, "and a walk finding no wound to tick against is another");
 });
 
 Deno.test("a victim carries one wound at a time, however many attackers wounded them", () => {

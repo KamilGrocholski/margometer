@@ -41,7 +41,9 @@ Deno.test("the share stands on a skill announcement and never on a blow", () => 
             assert(announced, `${path}: a share on a message announcing no skill`);
         }
     }
-    assertEquals(reports, 477, "every report the material carries, 2026-09-06");
+    // How many there are is `active_absorbdest_per`'s `_Shape:_` line, re-earned from `captures/`
+    // on every run by `tests/tools/protocol-key-shape.test.ts`.
+    assert(reports > 0, "an empty reading of the material is a finding, not a pass");
 });
 
 Deno.test("a caster never reports two different shares, in a fight or across them", () => {

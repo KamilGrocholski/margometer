@@ -38,7 +38,9 @@ Deno.test("what a skill spends stands on its announcement and nowhere else", () 
             assert(isAnnouncement(keys), `${path}: a count on a message announcing no skill`);
         }
     }
-    assertEquals(stated, 451, "every count the material carries, 2026-09-11");
+    // How many there are is `combo-max`'s `_Shape:_` line, re-earned from `captures/` on every
+    // run by `tests/tools/protocol-key-shape.test.ts`.
+    assert(stated > 0, "an empty reading of the material is a finding, not a pass");
 });
 
 /**
@@ -113,8 +115,10 @@ Deno.test("three keys state their figure on the announcement itself, and name an
             }
         }
     }
-    assertEquals(counted.get("heal_target"), 124, "every occurrence the material carries");
-    assertEquals(counted.get("healall_per"), 117, "for each of the three, 2026-09-11");
+    // The first two are their own `_Shape:_` lines, re-earned on every run. `bandage` is pinned
+    // because one occurrence is the claim: it is the rarest key the register holds.
+    assert((counted.get("heal_target") ?? 0) > 0, "the material states healing at a target");
+    assert((counted.get("healall_per") ?? 0) > 0, "and healing across a side");
     assertEquals(counted.get("bandage"), 1, "the last of them stated once");
 });
 

@@ -1222,3 +1222,34 @@ Deno.test("no assertion is two assertions joined", () => {
     }
     assertEquals(found, [], "A3: assert(a); assert(b); never assert(a && b)");
 });
+
+/** Every letter Polish adds to the Latin alphabet, in both cases. */
+const POLISH_LETTERS = "ąćęłńóśźżĄĆĘŁŃÓŚŹŻ";
+
+/** Whether a stretch of code, its strings already taken out, carries one. */
+export function hasPolishLetter(code: string): boolean {
+    for (const character of code) {
+        if (POLISH_LETTERS.includes(character)) return true;
+    }
+    return false;
+}
+
+/**
+ * **L1**, over the half a machine can see. What a player reads is Polish wherever it is composed
+ * (**L2**), and it lives in thirty files — so the rule cannot be held over a file. What can be
+ * held is the identifier beside it, which **L2** says stays English.
+ */
+Deno.test("no identifier carries a letter only Polish has", () => {
+    assert(getCodeOutsideStrings('const x = "Głęboka rana";').length > 0, "a line reads back");
+    assert(!hasPolishLetter(getCodeOutsideStrings('const one = "Szadź";')), "text is not code");
+    assert(hasPolishLetter(getCodeOutsideStrings("const szerokość = 1;")), "an identifier is");
+
+    const found: string[] = [];
+    for (const path of getSourcePaths()) {
+        for (const [offset, line] of Deno.readTextFileSync(path).split("\n").entries()) {
+            if (isCommentLine(line)) continue;
+            if (hasPolishLetter(getCodeOutsideStrings(line))) found.push(`${path}:${offset + 1}`);
+        }
+    }
+    assertEquals(found, [], "L1: an identifier around a Polish string stays English");
+});
