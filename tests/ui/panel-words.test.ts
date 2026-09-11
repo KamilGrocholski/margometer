@@ -8,6 +8,7 @@
  */
 
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import { isCommentLine } from "@/tests/source-line.ts";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import {
@@ -313,6 +314,127 @@ Deno.test("no sentence carries a key of the game's", () => {
         }
     }
     assertEquals(wrong, [], "a key is how a message was assembled, not what happened in a fight");
+});
+
+/**
+ * ⚠️ **A hand-kept list of sentences falls behind the module it lists, and this one had.** Nine
+ * of the twenty word tables in `src/ui/panel-words.ts` stood outside both checks above, measured
+ * 2026-09-11 — about forty sentences, the card's whole vocabulary among them. So the module is
+ * read for every declaration holding text, and each is held to putting one of its own words into
+ * `getSentences`. What is registered below holds text no reader reads.
+ */
+const HOLDS_NO_WORD: Record<string, string> = {
+    CLIENT_IDS_FOR_UNWORDED_KEYS: "ids the running client answers to, spelled by it",
+    THOUSAND_SEPARATOR: "the space a figure groups on, written as its escape",
+    DEFECT_KINDS: "what the defects are called here, which the panel never says",
+    composeDefectText: "the branch a region takes, and a branch is not a word",
+    composeCardSubtitleText: "the default for a card nobody is a side of",
+};
+
+const QUOTES = "\"'`";
+const HOLDER_OPENERS = ["export const ", "const ", "export function ", "function "];
+const HOLDER_CLOSERS = ["type ", "export type ", "interface ", "export interface "];
+
+/** The name a module-level declaration opens, or empty where the line opens none. */
+function getHolderName(line: string): string {
+    for (const opener of HOLDER_OPENERS) {
+        if (!line.startsWith(opener)) continue;
+        let name = "";
+        for (const one of line.slice(opener.length)) {
+            const isName = one === "_" || (one >= "0" && one <= "9") ||
+                (one >= "a" && one <= "z") || (one >= "A" && one <= "Z");
+            if (!isName) break;
+            name += one;
+        }
+        return name;
+    }
+    return "";
+}
+
+/**
+ * Every text a line holds. A comment is found on the same walk as the quotes — `source-line.ts`.
+ */
+function getLineTexts(line: string): string[] {
+    const found: string[] = [];
+    let quote = "";
+    let held = "";
+    let index = 0;
+    while (index < line.length) {
+        const character = line.charAt(index);
+        if (character === "\\") {
+            index += 2;
+            continue;
+        }
+        if (quote !== "") {
+            if (character === quote) {
+                found.push(held);
+                held = "";
+                quote = "";
+            } else {
+                held += character;
+            }
+            index += 1;
+            continue;
+        }
+        if (character === "/") {
+            if (line.charAt(index + 1) === "/") break;
+        }
+        if (QUOTES.includes(character)) quote = character;
+        index += 1;
+    }
+    return found;
+}
+
+/** A text somebody could read: two characters with a letter among them, and no hole in it. */
+function isReadableText(text: string): boolean {
+    if (text.length < 2) return false;
+    if (text.includes("${")) return false;
+    for (const one of text) {
+        if (one >= "a" && one <= "z") return true;
+        if (one >= "A" && one <= "Z") return true;
+    }
+    return false;
+}
+
+/** Every module-level declaration holding text, and the texts it holds. */
+function getWordHolders(source: string): Map<string, string[]> {
+    const found = new Map<string, string[]>();
+    let holder = "";
+    for (const line of source.split("\n")) {
+        if (HOLDER_CLOSERS.some((closer) => line.startsWith(closer))) holder = "";
+        const opened = getHolderName(line);
+        if (opened !== "") {
+            holder = opened;
+            if (!found.has(holder)) found.set(holder, []);
+        }
+        const held = found.get(holder);
+        if (held === undefined) continue;
+        if (isCommentLine(line)) continue;
+        for (const text of getLineTexts(line)) {
+            if (isReadableText(text)) held.push(text);
+        }
+    }
+    return found;
+}
+
+Deno.test("every word the module holds reaches the checks above, or says why it does not", () => {
+    const holders = getWordHolders(Deno.readTextFileSync("src/ui/panel-words.ts"));
+    const said = getSentences().join("\n");
+    const unread: string[] = [];
+    let holding = 0;
+    for (const [name, texts] of holders) {
+        if (texts.length === 0) continue;
+        holding += 1;
+        if (name in HOLDS_NO_WORD) continue;
+        if (texts.some((text) => said.includes(text))) continue;
+        unread.push(name);
+    }
+    assert(holding > 40, `the module holds words, and this found ${holding} declarations of them`);
+    assertEquals(unread, [], "a word neither check reads is a word neither check holds");
+    // The other way round: a register that outlives what it excuses goes on excusing something.
+    for (const name of Object.keys(HOLDS_NO_WORD)) {
+        assert(holders.has(name), `${name} is excused above and the module no longer has it`);
+    }
 });
 
 Deno.test("a count is spelled the three ways Polish spells one", () => {

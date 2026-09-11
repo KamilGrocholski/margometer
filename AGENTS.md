@@ -557,6 +557,7 @@ the same thing a second way.
 | `tests/tools/captured-fight-register.test.ts` | `docs/captured-fights.md` against `captures/`    |
 | `tests/tools/drill-report.test.ts`            | `docs/drill-levels.md` against every level drawn |
 | `tests/ui/blow-vocabulary.test.ts`            | N13 for what a blow carried, against `captures/` |
+| `tests/ui/panel-words.test.ts`                | L3, over every word the panel module holds       |
 | `tests/ui/share-bound.test.ts`                | both bounded writers against the widest screen   |
 | `tests/ui/level-drawn.test.ts`                | every level drawn: its height, and its cards     |
 
