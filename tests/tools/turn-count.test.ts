@@ -14,7 +14,7 @@ import {
     assertStrictEquals,
     assertStringIncludes,
 } from "@std/assert";
-import { getBareCell, getCellsFromLine } from "@/tests/markdown-document.ts";
+import { getBareCell, getCellsFromLine, getUnwrapped } from "@/tests/markdown-document.ts";
 import {
     composeBoundaries,
     composeCaseReport,
@@ -276,24 +276,6 @@ Deno.test("no recording counts a turn the game did not grant", () => {
     }
     assert(stretches > 0, "the corpus states a stretch to measure over");
 });
-
-/**
- * The document as one line. **A sentence is the unit, and `deno fmt` owns where it breaks**: it
- * wraps this register's prose at a hundred columns, so a claim read as a substring of a line is a
- * claim that stops being findable the day a word ahead of it changes length. AGENTS.md names the
- * same trap for the markers a guard searches for.
- */
-function getUnwrapped(text: string): string {
-    const words: string[] = [];
-    for (const line of text.split("\n")) {
-        for (const word of line.split(" ")) {
-            if (word.length === 0) continue;
-            words.push(word);
-        }
-    }
-    assert(words.length > 0, "a document being read says something");
-    return words.join(" ");
-}
 
 /**
  * ⚠️ **The register's prose carried the same measurement as the guard, and the two drifted.** The

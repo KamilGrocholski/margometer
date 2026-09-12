@@ -864,12 +864,12 @@ Deno.test("a movement standing behind a reach takes no skill from it", () => {
  * `MAXIMUM_BLOWS_GRANTED` and only a payload written by hand can show it binding at all.
  */
 Deno.test("a reach the table could not bound still stops where the bound says", () => {
-    const nine = Array.from({ length: 9 }, () => BLOW_AFTER);
-    const events = decodeFightMessages([ANNOUNCEMENT, ...nine], null, BLOWS_GRANTED);
+    const five = Array.from({ length: 5 }, () => BLOW_AFTER);
+    const events = decodeFightMessages([ANNOUNCEMENT, ...five], null, BLOWS_GRANTED);
     const attacks = events.filter((event) => event.kind === "attack");
-    assertEquals(attacks.length, 9, "every blow is read");
-    assertEquals(attacks[7]?.announced?.skillName, "Struna płomienna", "the eighth still rides it");
-    assertEquals(attacks[8]?.announced, null, "and the ninth is past what the bound allows");
+    assertEquals(attacks.length, 5, "every blow is read");
+    assertEquals(attacks[3]?.announced?.skillName, "Struna płomienna", "the fourth still rides it");
+    assertEquals(attacks[4]?.announced, null, "and the fifth is past what the bound allows");
 });
 
 /**

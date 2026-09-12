@@ -302,11 +302,18 @@ export const MAXIMUM_MESSAGES = 32768;
 /**
  * Past every count the published table states — 2 at its highest, `frozen/blows-granted.ts`, read
  * 2026-09-09 — and how far an announcement carrying no id reaches, because there the table has
- * nothing to say. The longest run of an announcer's own consecutive blows over `captures/` is 2,
- * 2026-09-12, so no recording meets this; `tests/core/fight-decoder.test.ts` writes a run of nine,
- * because a bound nothing ever reaches is a number rather than a bound. **ADR 0078.**
+ * nothing to say.
+ *
+ * ⚠️ **Four rather than eight, because the two ways of being wrong here do not cost the same.**
+ * Too low and a blow falls back to the row that closes its section, which is where it stood before
+ * **ADR 0078**; too high and a combatant's plain blows are charged to whatever it announced before
+ * them. The longest run of an announcer's own consecutive blows over `captures/` is 2 and the
+ * longest of anybody's is 3, 2026-09-13, so no recording reaches this either way — the material
+ * falsifies neither number and the asymmetry is what picks one. `docs/unannounced-damage.md`
+ * carries the measurement; `tests/core/fight-decoder.test.ts` writes a run past it, because a
+ * bound nothing ever reaches is a number rather than a bound.
  */
-const MAXIMUM_BLOWS_GRANTED = 8;
+const MAXIMUM_BLOWS_GRANTED = 4;
 /** The longest message in `captures/` carries 40 parameters, 2026-08-28. */
 const MAXIMUM_PARAMETERS = 512;
 /** A skill's name is a phrase; the longest in `captures/` is far short of this, 2026-09-01. */

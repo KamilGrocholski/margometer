@@ -41,6 +41,8 @@ Read the documents relevant to the change:
   message a disagreement stands on.
 - [`docs/auras-standing.md`](docs/auras-standing.md) — what stands on a side, and what the panel
   refuses to say about its end.
+- [`docs/unannounced-damage.md`](docs/unannounced-damage.md) — what reaches the row a damage section
+  closes against, and what of it was never a blow.
 
 **Target is not proof.** `PRODUCT.md` and the target sections of `ARCHITECTURE.md` are design
 constraints, not evidence that a feature exists. Do not describe target behaviour as implemented
@@ -561,6 +563,7 @@ the same thing a second way.
 | `tests/tools/fabricated-fight.test.ts`        | the fabricated fight against the key register                    |
 | `tests/tools/turn-count.test.ts`              | `docs/turns-taken.md` against every recording                    |
 | `tests/tools/aura-standing.test.ts`           | `docs/auras-standing.md` against every recording                 |
+| `tests/tools/unannounced-damage.test.ts`      | `docs/unannounced-damage.md` against every recording             |
 | `tests/tools/turn-reading.test.ts`            | `docs/reading-a-turn.md`, and it on the panel                    |
 | `tests/tools/browser-support.test.ts`         | `docs/browser-support.md` against the stylesheet                 |
 | `tests/tools/captured-fight-register.test.ts` | `docs/captured-fights.md` against `captures/`                    |

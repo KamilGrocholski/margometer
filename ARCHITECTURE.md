@@ -143,6 +143,7 @@ docs/
   turns-taken.md     What a turn count comes to, and what it does not claim.
   reading-a-turn.md  How a message becomes a turn, and every opener the game disputes.
   auras-standing.md  What stands on a side, whom it stands on, and how long it was given.
+  unannounced-damage.md  What reaches the row a damage section closes against, and how.
   captured-fights.md What each recording holds, and how much protocol it carries.
   browser-support.md What the shipped file asks of a browser.
   adr/               Decisions costly or surprising to reverse.
@@ -192,6 +193,7 @@ tests/
     fabricated-fight.test.ts  A fight nobody fought, against the register of every key read.
     turn-count.test.ts        The register against every recording graded, both ways round.
     aura-standing.test.ts     `docs/auras-standing.md` against the corpus, both ways round.
+    unannounced-damage.test.ts  `docs/unannounced-damage.md` against every recording.
     skill-table.test.ts       The published table's shape, and a page that is no longer it.
     turn-reading.test.ts      The disputed openers, and this reading against the panel's.
     protocol-key-shape.test.ts  Every `_Shape:_` line against the corpus, both ways round.
