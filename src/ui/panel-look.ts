@@ -80,6 +80,7 @@ export const CLASS = {
     rowName: "row-name",
     rowSize: "row-size",
     rowChosen: "chosen",
+    rowApart: "apart",
     rowPin: "row-pin",
     rowPinSet: "pinned",
     rowValue: "row-value",
@@ -623,9 +624,14 @@ function composeRowRules(): string {
         `padding:var(${VARIABLE_PREFIX}region-down) 0 ` +
         `${composeInsetUnderRows(VARIABLE_PREFIX + "region-down")};` +
         `border-top:1px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;}` +
-        `.${CLASS.pinned} .${CLASS.bar}{opacity:0.4;mask-image:repeating-linear-gradient(` +
+        // Worn by the row and not by the region under the list, because the rows that earn it
+        // stand inside a section too: a closing row is the biggest figure in its own cut often
+        // enough — 54% of `CZYM` on the opened shot — and a solid bar there reads as the top of
+        // an order it has no place in. `DESIGN.md` owns which rows those are.
+        `.${CLASS.row}.${CLASS.rowApart} .${CLASS.bar}{opacity:0.4;` +
+        `mask-image:repeating-linear-gradient(` +
         `-45deg,var(${VARIABLE_PREFIX}mask) 0 4px,transparent 4px 8px);}` +
-        `.${CLASS.pinned} .${CLASS.barCap}{opacity:0.7;}`;
+        `.${CLASS.row}.${CLASS.rowApart} .${CLASS.barCap}{opacity:0.7;}`;
 }
 
 /**

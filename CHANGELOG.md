@@ -31,6 +31,13 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [Niewydane]
+
+- **Zmiana** — Wiersze, które nie mają swojego miejsca w kolejności, mają teraz skośne kreskowanie
+  na pasku. Wcześniej wyglądały dokładnie jak wiersze z numerem — a „Zwykły cios" bywa największą
+  liczbą w swojej sekcji, więc czytało się go jako pierwsze miejsce. Kreskowanie znał już wiersz
+  stojący pod listą; teraz noszą je wszystkie wiersze o tym samym znaczeniu, gdziekolwiek stoją.
+
 ## [0.16.0] — 2026-09-11
 
 - **Nowość** — Pomocnik pokazuje, kto szykuje cios specjalny. Nad tym, co stoi na walce, staje wtedy

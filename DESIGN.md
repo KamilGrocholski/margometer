@@ -237,8 +237,20 @@ them had no way to ask whether it meant theirs. _Put a suspicion where its conse
 
 **Pinned row.** Stands apart from the ranking, below it and outside the list, for figures that
 belong to no combatant. It is a row, not a footnote: same height, same shape — with a dashed rule
-cutting it off the ranking and a hatched bar, because it is not a combatant and must not look like
-one at a glance.
+cutting it off the ranking, which is the region's own and says it stands outside the list.
+
+**A row with no place in the ranking wears a hatched bar, wherever it stands.** The pinned row is
+one of them and not the only one: a section closes against what the game named nothing for, and that
+row stands _inside_ the list with a number cell left blank. A blank cell is not an accent. It is
+read as the next place in the order, and the figure is often the largest in its own cut — 54% of
+`CZYM` on the opened shot, under thirteen numbered rows. So the hatch follows the claim rather than
+the region: `person`, `skill`, `source` and `kind` rows take a place and keep a solid bar;
+`half-named`, `closing`, `no kind` and `neither end` take none and are hatched, as is the row
+summing what a bound left out. `docs/drill-levels.md` owns which kinds those are.
+
+It spends nothing to say it — no height, no width, no hue, and no second glyph the row would have to
+shorten a name for (**ADR 0023**). It is a shape, so _Colour Never Alone_ is satisfied twice over:
+every one of these rows is already labelled in words.
 
 **Shelf row.** A fight already fought, as a row of the same height as a ranking's: when it was, how
 big it was, where, and how it went, in that order — the place is the only cell allowed to shorten,

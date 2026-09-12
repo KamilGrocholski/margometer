@@ -87,14 +87,14 @@ reason the tier column is not enough on its own:
   page. The versions above are its first support; the engines mark that support partial, and the
   excluded case — a scroll container with no scrollable overflow — is not the panel's, whose list
   overflows whenever the rule matters.
-- **`mask-image`** (on `.pinned .bar`). The unattributed row's bar loses its diagonal hatch and
-  renders solid. Cosmetic rather than a §9.7 failure, and the distinction is worth stating: the
-  hatch is a second channel on a row that is **already labelled in words**, so colour is not left
-  carrying the meaning alone. Chrome's number is high because it is the **unprefixed** property;
-  Chrome had `-webkit-mask-image` from 1 and Safari from 4, and the prefix is deliberately not
-  spelled. That is where the line sits: below its floor this property degrades and the row still
-  reads, so a prefix would buy back a hatch — while the one property that is prefixed buys back a
-  defect.
+- **`mask-image`** (on `.row.apart .bar`). The bar of a row with no place in the ranking loses its
+  diagonal hatch and renders solid. Cosmetic rather than a §9.7 failure, and the distinction is
+  worth stating: the hatch is a second channel on a row that is **already labelled in words**, so
+  colour is not left carrying the meaning alone. Chrome's number is high because it is the
+  **unprefixed** property; Chrome had `-webkit-mask-image` from 1 and Safari from 4, and the prefix
+  is deliberately not spelled. That is where the line sits: below its floor this property degrades
+  and the row still reads, so a prefix would buy back a hatch — while the one property that is
+  prefixed buys back a defect.
 - **`scrollbar-width: none`** (on `.list`). The platform scrollbar is drawn, and it takes its width
   out of the rows: 15px in Chrome 152, 12px in Firefox 140.13.0esr, both read on 2026-08-31. It is
   taken only while the list overflows, so a payload that fills the list and one that does not walk

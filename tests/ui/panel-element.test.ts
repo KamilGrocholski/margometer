@@ -346,10 +346,12 @@ Deno.test("the shelf stands at its own height, whatever the side strip was last 
 Deno.test("a fight draws a row for everybody in it, named", () => {
     const reading = readFight();
     const host = draw(reading);
-    // A pinned row is a row of the same shape and opens like one, so neither the class nor the
-    // cursor separates the two: what does is the mark, and a person's names them by id.
+    // A pinned row is a row of the same shape and opens like one, so the cursor separates neither
+    // of them: what does is the mark, and a person's names them by id. It wears `apart` as well,
+    // which is why this reads the mark rather than matching the class list whole.
     const rows = getElementsWithin(host).filter((one) =>
-        one.className === "row drillable" && one.attributes.get("data-row") !== undefined
+        one.className.split(" ").includes(CLASS.rowDrillable) &&
+        one.attributes.get("data-row") !== undefined
     );
     assertEquals(rows.length, reading.rows.length, "one row for each of them");
     for (const row of rows) {
@@ -1026,11 +1028,15 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
     // The kinds this fight's top dealer carries, and none of them the physical one.
     assertArrayIncludes(named, ["ogień"], "and a kind is drawn in the reader's words");
     assert(!named.includes("dmgf"), "never under the token the protocol stated it on");
-    const kinds = rows.filter((one) => one.className === "row leaf");
-    assert(kinds.length > 0, "a kind and a skill are leaves");
+    // ⚠️ **The one row that stays shut on this level is the row closing a cut**, not a kind and
+    // not a skill: this fight's cuts all hold something a level under them would say, so every
+    // named part of them opens. Matching `row leaf` whole read as a claim about kinds for as long
+    // as the closing row wore nothing else — found when it started wearing `apart`.
+    const leaves = rows.filter((one) => one.className.split(" ").includes(CLASS.rowLeaf));
+    assert(leaves.length > 0, "a cut closes against something, and that row opens nothing");
     assert(
-        kinds.every((one) => one.attributes.get("data-row") === undefined),
-        "and neither of them opens any further",
+        leaves.every((one) => one.attributes.get("data-row") === undefined),
+        "so it carries no person to open onto",
     );
     const crumb = within.filter((one) => one.className === "crumb");
     assertEquals(crumb.length, 1, "and one way back");
@@ -1420,7 +1426,12 @@ Deno.test("a region hanging off the root states its own type and its own ink", (
 
 Deno.test("every row a reader can point at says which detail is its own", () => {
     const host = draw(readFight());
-    const rows = getElementsWithin(host).filter((one) => one.className === "row drillable");
+    // Read by the class it carries rather than by its whole list: the pinned row opens like the
+    // rest and states a detail like the rest, and matching `row drillable` whole dropped it off
+    // this walk the moment a row standing apart from the ranking started saying so.
+    const rows = getElementsWithin(host).filter((one) =>
+        one.className.split(" ").includes(CLASS.rowDrillable)
+    );
     assert(rows.length > 0, "a fight draws rows");
     for (const row of rows) {
         const key = row.attributes.get("data-tip");

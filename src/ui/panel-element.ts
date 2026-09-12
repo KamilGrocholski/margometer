@@ -492,7 +492,11 @@ function composeRowElement(
     // press resolves to are one question asked once.
     const doesOpen = mark !== null;
     const kind = doesOpen ? CLASS.rowDrillable : CLASS.rowLeaf;
-    const element = composeElement(document, "div", `${CLASS.row} ${kind}`);
+    // No place in the ranking is the whole of what the sheet needs, and the rank cell already
+    // answers it: every other reading is handed its position, and only an unnamed one is handed
+    // none.
+    const place = reading.rank === null ? ` ${CLASS.rowApart}` : "";
+    const element = composeElement(document, "div", `${CLASS.row} ${kind}${place}`);
     const parts = composeBarElements(document, reading);
     const rank = composeElement(document, "span", CLASS.rowRank);
     rank.textContent = reading.rank === null ? "" : `${composeFigureText(reading.rank)}.`;

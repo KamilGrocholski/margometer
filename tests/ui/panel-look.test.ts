@@ -678,3 +678,25 @@ Deno.test("the reader adds up a rule rather than matching one", () => {
     assertEquals(getPixels("0"), 0, "and a bare nought is a length like any other");
     assertEquals(getTokenSpelling("regionDown"), "region-down", "a token crosses spellings once");
 });
+
+Deno.test("the hatch is worn by the row standing apart, and spelled once", () => {
+    const sheet = composeStyleSheet();
+    const bar = getRuleBody(sheet, `.${CLASS.row}.${CLASS.rowApart} .${CLASS.bar}`);
+    const hatch = getDeclaration(bar, "mask-image");
+    assertExists(hatch, "a row with no place in the ranking hatches its bar");
+    assertStringIncludes(hatch, "repeating-linear-gradient", "and the hatch is the gradient");
+    assertExists(getDeclaration(bar, "opacity"), "which is drawn back from the ranking's strength");
+    // The region is where a pinned row stands, never what draws its bar: the rows that earn the
+    // hatch stand inside the list too, and a second copy of the gradient is a second thing to
+    // move. `.bar` itself keeps a solid one, which is what a named row draws.
+    assertEquals(
+        sheet.split("repeating-linear-gradient").length - 1,
+        1,
+        "the gradient is written once, whatever wears it",
+    );
+    assertEquals(
+        getDeclaration(getRuleBody(sheet, `.${CLASS.bar}`), "mask-image"),
+        null,
+        "and a row that holds a place in the ranking draws its bar solid",
+    );
+});

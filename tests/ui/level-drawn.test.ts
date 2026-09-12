@@ -69,6 +69,14 @@ interface RegionDrawn {
     /** Every figure on the screen as a reader reads it, and every bar's own declaration. */
     figures: string[];
     widths: string[];
+    /** Every row that has a place to state, and whether it says it holds none. */
+    places: RowPlace[];
+}
+
+/** One row's place in the ranking as it was drawn: the cell a reader reads, and the class. */
+interface RowPlace {
+    stated: string;
+    isApart: boolean;
 }
 
 function readRegionDrawn(shown: ShownScreen): RegionDrawn {
@@ -89,8 +97,28 @@ function readRegionDrawn(shown: ShownScreen): RegionDrawn {
         drawn: list.children.length,
         failures,
         saidByKey: readRowKeys(host),
+        places: readRowPlaces(host),
         ...readFiguresDrawn(host),
     };
+}
+
+/**
+ * Every row carrying a rank cell, with what that cell says and whether the row says it stands
+ * apart from the ranking. Keyed on the cell and not on `.row`: the window beside the panel draws
+ * rows of the same class with no rank to state, and they are not in this question.
+ */
+function readRowPlaces(host: FakeElement): RowPlace[] {
+    const places: RowPlace[] = [];
+    for (const one of getElementsWithin(host)) {
+        if (one.className.split(" ")[0] !== CLASS.row) continue;
+        const cell = one.children.find((part) => part.className === CLASS.rowRank);
+        if (cell === undefined) continue;
+        places.push({
+            stated: cell.textContent,
+            isApart: one.className.split(" ").includes(CLASS.rowApart),
+        });
+    }
+    return places;
 }
 
 /**
@@ -174,10 +202,34 @@ function getFiguresUnreadable(seen: RegionDrawn): string[] {
     return found;
 }
 
+/**
+ * A row whose bar and whose number disagree about the same thing. The blank cell and the hatch
+ * are one claim said twice — no place in the ranking — so a row stating a number while drawn
+ * apart is a hatch over an order, and one stating nothing while drawn in the order is the row
+ * `DESIGN.md` says must not look like a place it does not hold.
+ */
+function getPlacesMismarked(seen: RegionDrawn): string[] {
+    const found: string[] = [];
+    for (const one of seen.places) {
+        const doesState = one.stated.length > 0;
+        if (doesState) {
+            if (one.isApart) found.push(`a row at "${one.stated}" drawn apart from the ranking`);
+        }
+        if (!doesState) {
+            if (!one.isApart) found.push("a row holding no place drawn as though it held one");
+        }
+    }
+    return found;
+}
+
 /** What a level was found wrong in, or nothing. Named, so a failure says which rung it was. */
 function getRegionShortfall(where: string, shown: ShownScreen): string | null {
     const seen = readRegionDrawn(shown);
-    const shared = [...getKeysShared(seen), ...getFiguresUnreadable(seen)];
+    const shared = [
+        ...getKeysShared(seen),
+        ...getFiguresUnreadable(seen),
+        ...getPlacesMismarked(seen),
+    ];
     if (shared.length > 0) return `${where}: ${shared.join(", ")}`;
     if (!getIsRegionShort(seen)) return null;
     return `${where}: promised ${seen.promised}, drew ${seen.drawn}, ${seen.failures} undrawn`;
@@ -324,6 +376,7 @@ const NOTHING_DRAWN: RegionDrawn = {
     saidByKey: new Map(),
     figures: [],
     widths: [],
+    places: [],
 };
 
 Deno.test("a region shorter than what it drew is read as short, and a whole one is not", () => {
@@ -388,5 +441,32 @@ Deno.test("a key stated by two rows is read as shared, and one stated by one is 
         }),
         ["row:7 on 2 rows"],
         "and one key over two different rows is the second row wearing the first one's card",
+    );
+});
+
+/**
+ * And both ways again for the place a row holds. The walk over the corpus proves nothing on its
+ * own here: every recording draws both kinds of row, so a reader that answered "nothing wrong" to
+ * everything would agree with all of them, and one that flagged every row would too if the tree
+ * ever stopped drawing one of the two.
+ */
+Deno.test("a row stating no place is read as apart, and one stating a place is not", () => {
+    assertEquals(
+        getPlacesMismarked({
+            ...NOTHING_DRAWN,
+            places: [{ stated: "7.", isApart: false }, { stated: "", isApart: true }],
+        }),
+        [],
+        "a numbered row in the order and a blank one drawn apart are the two shapes drawn right",
+    );
+    assertEquals(
+        getPlacesMismarked({ ...NOTHING_DRAWN, places: [{ stated: "", isApart: false }] }).length,
+        1,
+        "a row holding no place and not saying so is the row this was written for",
+    );
+    assertEquals(
+        getPlacesMismarked({ ...NOTHING_DRAWN, places: [{ stated: "7.", isApart: true }] }).length,
+        1,
+        "and a hatch over a place in the ranking is the same disagreement the other way round",
     );
 });
