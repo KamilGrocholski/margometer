@@ -2228,7 +2228,7 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
             bySkill: {
                 rows: [],
                 rest: null,
-                plain: { blows: 3, figure: 0, fill: 0, shareText: "0%" },
+                plain: { blows: 3, place: 1, figure: 0, fill: 0, shareText: "0%" },
             },
         },
     });
@@ -2268,7 +2268,7 @@ Deno.test("what a section could not draw is a row of its own, over the one that 
             bySkill: {
                 rows,
                 rest: { blows: null, figure: 300, fill: 0.5, shareText: "30%" },
-                plain: { blows: 4, figure: 100, fill: 0.2, shareText: "10%" },
+                plain: { blows: 4, place: 3, figure: 100, fill: 0.2, shareText: "10%" },
             },
         },
     });
@@ -2278,7 +2278,12 @@ Deno.test("what a section could not draw is a row of its own, over the one that 
     const at = said.indexOf(PANEL_WORDS.restOfKinds);
     assert(at !== -1, "the sum is drawn as a row a reader can see and add up");
     const closing = said.indexOf(getWordsForUnannounced("damageDealtApplied"));
-    assert(closing > at, "and it stands over the row that closes the section, never inside it");
+    // ⚠️ **It stands last, and until 2026-09-12 it stood over the closing row.** **ADR 0055** put
+    // it between the named rows and the closing one while both held no place; the closing row has
+    // taken one since (**ADR 0079**) and this has not, so the sum is the only row of the section
+    // left outside the order. What ADR 0055 settled is unmoved: it is never folded into the row
+    // it now stands under.
+    assert(at > closing, "and it stands outside the order, under the rows that hold a place");
 
     const marked = getElementsWithin(host).filter((one) =>
         one.textContent === PANEL_WORDS.restOfKinds

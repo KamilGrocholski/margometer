@@ -625,9 +625,10 @@ function composeRowRules(): string {
         `${composeInsetUnderRows(VARIABLE_PREFIX + "region-down")};` +
         `border-top:1px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;}` +
         // Worn by the row and not by the region under the list, because the rows that earn it
-        // stand inside a section too: a closing row is the biggest figure in its own cut often
-        // enough — 54% of `CZYM` on the opened shot — and a solid bar there reads as the top of
-        // an order it has no place in. `DESIGN.md` owns which rows those are.
+        // stand inside a section too: a sum a bound left undrawn stands there, and a solid bar on
+        // it would read as a place in an order it holds none of. Which rows those are, and the
+        // figure that earned them the accent, are `DESIGN.md`'s — spelled there and not again
+        // here, because the two copies of that figure had already drifted apart once (**C15**).
         `.${CLASS.row}.${CLASS.rowApart} .${CLASS.bar}{opacity:0.4;` +
         `mask-image:repeating-linear-gradient(` +
         `-45deg,var(${VARIABLE_PREFIX}mask) 0 4px,transparent 4px 8px);}` +

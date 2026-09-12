@@ -35,7 +35,12 @@ import type {
     SkillRow,
     UnnamedRow,
 } from "@/src/ui/panel-reading.ts";
-import { getEndForPinned, getPartOfSide, getRowIsSuspect } from "@/src/ui/panel-reading.ts";
+import {
+    type ClosingRow,
+    getEndForPinned,
+    getPartOfSide,
+    getRowIsSuspect,
+} from "@/src/ui/panel-reading.ts";
 import {
     composeDirectionStrips,
     composeNounStrips,
@@ -1280,29 +1285,63 @@ function composeSkillSection(
     if (cut.rows.length === 0 && cut.plain === null) return;
     list.append(composeSectionElement(document, PANEL_WORDS.skills, drill.total));
     const share = PANEL_WORDS.shareOfFigure;
-    for (const [at, row] of cut.rows.entries()) {
+    let drawn = 0;
+    for (const row of cut.rows) {
+        drawn = composeSkillSectionPlain(document, list, cut.plain, stated, drawn, false);
+        drawn += 1;
         const tip = {
             register: stated.register,
             key: getKeyForNamedPart("skill", row.part),
             figure: stated.figure,
             share,
         };
-        const reading = composeSkillRowReading(row, stated.metric, at + 1);
+        const reading = composeSkillRowReading(row, stated.metric, drawn);
         const mark = getMarkForNamedPart(row.part, row.doesOpenPart);
         list.append(composeRowElement(document, reading, mark, tip));
     }
+    composeSkillSectionPlain(document, list, cut.plain, stated, drawn, true);
     composeRestRow(document, list, cut.rest, {
         register: stated.register,
         figure: stated.figure,
         key: "skill:rest",
     });
-    if (cut.plain === null) return;
-    const tip = { register: stated.register, key: "skill:plain", figure: stated.figure, share };
+}
+
+/**
+ * The closing row, drawn where its figure puts it rather than after the lot (**ADR 0079**). It is
+ * asked before every row and once more after the last, so the place the reading composed is the
+ * place it is drawn at whether that is the top of the section or the bottom of it.
+ */
+function composeSkillSectionPlain(
+    document: PanelDocument,
+    list: PanelElement,
+    plain: ClosingRow | null,
+    stated: { metric: PanelMetric; register: TipRegister; figure: string },
+    drawn: number,
+    isLast: boolean,
+): number {
+    if (plain === null) return drawn;
+    // ⚠️ **Asked once per row and once after the last, so a place past the rows still draws.** A
+    // section answering a place it did not reach by drawing nothing would take a figure off the
+    // column and leave the shares adding to ninety-something, which is the one thing `DESIGN.md`
+    // says a reader must never be handed.
+    if (plain.place !== drawn + 1) {
+        if (!isLast) return drawn;
+        if (plain.place <= drawn) return drawn;
+    }
+    const tip = {
+        register: stated.register,
+        key: "skill:plain",
+        figure: stated.figure,
+        share: PANEL_WORDS.shareOfFigure,
+    };
     const reading = {
-        ...composeUnnamedReading(cut.plain, getWordsForUnannounced(stated.metric)),
-        uses: cut.plain.blows,
+        ...composeUnnamedReading(plain, getWordsForUnannounced(stated.metric)),
+        rank: plain.place,
+        uses: plain.blows,
     };
     list.append(composeRowElement(document, reading, null, tip));
+    return drawn + 1;
 }
 
 /**

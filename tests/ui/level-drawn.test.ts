@@ -34,12 +34,14 @@ import {
     type PanelReading,
     PINNED_CASES,
 } from "@/src/ui/panel-reading.ts";
+import { getWordsForUnannounced, NEITHER_END_WORDS, PANEL_WORDS } from "@/src/ui/panel-words.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import type { FightStatistics } from "@/src/core/fight-statistics.ts";
 import { type PanelSideChoice, SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 import { CLASS } from "@/src/ui/panel-look.ts";
 import { composeReplayedMaterial, type FightReplay } from "@/tools/fight-replay.ts";
-import { readRecordingPaths } from "@/tests/recorded-fight.ts";
+import { composeRecordedReading, readRecordingPaths } from "@/tests/recorded-fight.ts";
+import { getIntegerFromText } from "@/libs/number-text.ts";
 import { composeFakeDocument, type FakeElement, getElementsWithin } from "@/tests/fake-document.ts";
 import { composeShownScreen } from "@/tests/shown-screen.ts";
 
@@ -77,6 +79,10 @@ interface RegionDrawn {
 interface RowPlace {
     stated: string;
     isApart: boolean;
+    /** What the row is called, so a check can ask which kind of row took which shape. */
+    name: string;
+    /** Not a row at all: the heading a section opens with, where the numbering starts again. */
+    isSectionOpened: boolean;
 }
 
 function readRegionDrawn(shown: ShownScreen): RegionDrawn {
@@ -110,12 +116,22 @@ function readRegionDrawn(shown: ShownScreen): RegionDrawn {
 function readRowPlaces(host: FakeElement): RowPlace[] {
     const places: RowPlace[] = [];
     for (const one of getElementsWithin(host)) {
+        // A heading opens a section, so the numbers under it start again from one. Recorded as a
+        // place of its own rather than by grouping: the walk is flat, and a section it did not
+        // see would read the next section's first number as a jump backwards.
+        if (one.className.split(" ").includes(CLASS.section)) {
+            places.push({ stated: "", isApart: false, name: "", isSectionOpened: true });
+            continue;
+        }
         if (one.className.split(" ")[0] !== CLASS.row) continue;
         const cell = one.children.find((part) => part.className === CLASS.rowRank);
         if (cell === undefined) continue;
+        const named = one.children.find((part) => part.className === CLASS.rowName);
         places.push({
             stated: cell.textContent,
             isApart: one.className.split(" ").includes(CLASS.rowApart),
+            name: named?.textContent ?? "",
+            isSectionOpened: false,
         });
     }
     return places;
@@ -211,6 +227,7 @@ function getFiguresUnreadable(seen: RegionDrawn): string[] {
 function getPlacesMismarked(seen: RegionDrawn): string[] {
     const found: string[] = [];
     for (const one of seen.places) {
+        if (one.isSectionOpened) continue;
         const doesState = one.stated.length > 0;
         if (doesState) {
             if (one.isApart) found.push(`a row at "${one.stated}" drawn apart from the ranking`);
@@ -222,6 +239,64 @@ function getPlacesMismarked(seen: RegionDrawn): string[] {
     return found;
 }
 
+/**
+ * The rows that hold no place, by the words a reader sees on them. Read by name because that is
+ * what the panel draws: the reading's own kinds never reach the sheet, and a check standing on
+ * them would be asking the same layer twice. `DESIGN.md` owns which kinds these are.
+ */
+const WORDS_HOLDING_NO_PLACE: readonly string[] = [
+    PANEL_WORDS.restOfKinds,
+    PANEL_WORDS.withoutActor,
+    PANEL_WORDS.withoutTarget,
+    PANEL_WORDS.withoutKind,
+    NEITHER_END_WORDS.label,
+];
+
+/**
+ * A row that took the wrong shape for what it claims. ⚠️ **This is the half
+ * `getPlacesMismarked` cannot see**: that one asks whether a row's number and its bar agree with
+ * each other, and both come from one branch, so it passes whichever kinds the panel places. This
+ * asks **which** kinds, which is the rule itself (**ADR 0079**).
+ */
+function getPlacesWrongfullyHeld(seen: RegionDrawn, closing: string): string[] {
+    const found: string[] = [];
+    for (const one of seen.places) {
+        if (one.isSectionOpened) continue;
+        if (one.name === closing) {
+            if (one.stated.length === 0) found.push(`"${closing}" drawn holding no place`);
+            continue;
+        }
+        if (!WORDS_HOLDING_NO_PLACE.includes(one.name)) continue;
+        if (one.stated.length > 0) found.push(`"${one.name}" drawn at "${one.stated}"`);
+    }
+    return found;
+}
+
+/**
+ * A section whose numbers do not run. ⚠️ **A number is a claim about position, so the two have to
+ * be read together**: a row carrying `1.` drawn under a row carrying `5.` is a bar at the bottom
+ * of a column saying it is the top of it, which is the one thing a list of bars says without
+ * being read (`src/ui/panel-reading.ts`, `composePairParts`). Numbering and ordering come from
+ * two layers here — the reading says which place, the sheet says where — and this is the only
+ * thing that asks whether they agree. **ADR 0079.**
+ */
+function getPlacesOutOfOrder(seen: RegionDrawn): string[] {
+    const found: string[] = [];
+    let last = 0;
+    for (const one of seen.places) {
+        if (one.isSectionOpened) {
+            last = 0;
+            continue;
+        }
+        if (one.stated.length === 0) continue;
+        const stated = getIntegerFromText(one.stated.replace(".", ""));
+        if (stated === null) continue;
+        if (stated !== last + 1) found.push(`"${one.name}" stated ${stated} after ${last}`);
+        last = stated;
+    }
+    return found;
+}
+
 /** What a level was found wrong in, or nothing. Named, so a failure says which rung it was. */
 function getRegionShortfall(where: string, shown: ShownScreen): string | null {
     const seen = readRegionDrawn(shown);
@@ -229,6 +304,8 @@ function getRegionShortfall(where: string, shown: ShownScreen): string | null {
         ...getKeysShared(seen),
         ...getFiguresUnreadable(seen),
         ...getPlacesMismarked(seen),
+        ...getPlacesWrongfullyHeld(seen, getWordsForUnannounced(shown.current)),
+        ...getPlacesOutOfOrder(seen),
     ];
     if (shared.length > 0) return `${where}: ${shared.join(", ")}`;
     if (!getIsRegionShort(seen)) return null;
@@ -454,19 +531,156 @@ Deno.test("a row stating no place is read as apart, and one stating a place is n
     assertEquals(
         getPlacesMismarked({
             ...NOTHING_DRAWN,
-            places: [{ stated: "7.", isApart: false }, { stated: "", isApart: true }],
+            places: [
+                { stated: "7.", isApart: false, name: "", isSectionOpened: false },
+                { stated: "", isApart: true, name: "", isSectionOpened: false },
+            ],
         }),
         [],
         "a numbered row in the order and a blank one drawn apart are the two shapes drawn right",
     );
     assertEquals(
-        getPlacesMismarked({ ...NOTHING_DRAWN, places: [{ stated: "", isApart: false }] }).length,
+        getPlacesMismarked({
+            ...NOTHING_DRAWN,
+            places: [{ stated: "", isApart: false, name: "", isSectionOpened: false }],
+        }).length,
         1,
         "a row holding no place and not saying so is the row this was written for",
     );
     assertEquals(
-        getPlacesMismarked({ ...NOTHING_DRAWN, places: [{ stated: "7.", isApart: true }] }).length,
+        getPlacesMismarked({
+            ...NOTHING_DRAWN,
+            places: [{ stated: "7.", isApart: true, name: "", isSectionOpened: false }],
+        }).length,
         1,
         "and a hatch over a place in the ranking is the same disagreement the other way round",
     );
+});
+
+/**
+ * ⚠️ **The reader proved by a sample it must flag and one it must not**, and the second is the
+ * one that matters here: `getPlacesMismarked` beside it passes whichever kinds the panel places,
+ * because a row's number and its bar come from one branch. This is the check that says **which**
+ * kinds, so a reader finding nothing would agree with a panel that placed every row and with one
+ * that placed none. **ADR 0079.**
+ */
+Deno.test("the closing row is read as holding a place, and the row summing a bound is not", () => {
+    const closing = getWordsForUnannounced("damageDealtApplied");
+    assertEquals(
+        getPlacesWrongfullyHeld({
+            ...NOTHING_DRAWN,
+            places: [
+                { stated: "1.", isApart: false, name: closing, isSectionOpened: false },
+                {
+                    stated: "",
+                    isApart: true,
+                    name: PANEL_WORDS.restOfKinds,
+                    isSectionOpened: false,
+                },
+                {
+                    stated: "",
+                    isApart: true,
+                    name: PANEL_WORDS.withoutActor,
+                    isSectionOpened: false,
+                },
+                {
+                    stated: "4.",
+                    isApart: false,
+                    name: "Podwójne trafienie",
+                    isSectionOpened: false,
+                },
+            ],
+        }, closing),
+        [],
+        "the two shapes this decision settled, and a named row beside them",
+    );
+    assertEquals(
+        getPlacesWrongfullyHeld({
+            ...NOTHING_DRAWN,
+            places: [{ stated: "", isApart: true, name: closing, isSectionOpened: false }],
+        }, closing).length,
+        1,
+        "the closing row back outside the order is what this was written for",
+    );
+    assertEquals(
+        getPlacesWrongfullyHeld({
+            ...NOTHING_DRAWN,
+            places: [{
+                stated: "2.",
+                isApart: false,
+                name: PANEL_WORDS.restOfKinds,
+                isSectionOpened: false,
+            }],
+        }, closing).length,
+        1,
+        "and a sum of several rows taking one place is the same mistake the other way",
+    );
+});
+
+/**
+ * The figures the decision moves, read off the panel rather than off the rule. Half the sections
+ * the corpus draws put the closing row first — which is the whole of what a reader sees change,
+ * and the reason it is written down rather than left to the screenshot.
+ */
+Deno.test("the closing row stands where its figure puts it, first in half the sections", () => {
+    const places = new Map<number, number>();
+    for (const path of readRecordingPaths()) {
+        const { statistics, roster } = composeRecordedReading(path);
+        for (const [combatantId] of statistics.byCombatantId) {
+            for (const metric of ["damageDealtApplied", "damageTakenApplied"] as const) {
+                const drill = composeDrillReading(statistics, roster, metric, combatantId);
+                if (drill === null) continue;
+                const plain = drill.bySkill.plain;
+                if (plain === null) continue;
+                if (plain.figure === 0) continue;
+                assertExists(plain.place, "the closing row of a damage section holds a place");
+                const bigger = drill.bySkill.rows.filter((one) => one.figure > plain.figure);
+                assertEquals(plain.place, bigger.length + 1, `${path}: its figure decides`);
+                places.set(plain.place, (places.get(plain.place) ?? 0) + 1);
+            }
+        }
+    }
+    assertEquals(
+        [...places.entries()].sort((one, other) => one[0] - other[0]),
+        [[1, 145], [2, 66], [3, 53], [4, 19], [5, 5], [6, 1]],
+        "every section the corpus draws one in, 2026-09-12",
+    );
+});
+
+/**
+ * ⚠️ **The order a pair is drawn in, held where the numbers cannot hold it.** Every part of a
+ * pair is handed `at + 1`, so the numbers run whatever the list holds and
+ * `getPlacesOutOfOrder` sees nothing wrong — what is wrong is the list. Appending the closing row
+ * after the sort put the largest bar of the column at the bottom of it with a number on it, which
+ * is the defect `composePairParts`' own comment warns about and did not hold. **ADR 0079.**
+ */
+Deno.test("a pair states its parts largest first, the closing row among them", () => {
+    let closing = 0;
+    for (const path of readRecordingPaths()) {
+        const { statistics, roster } = composeRecordedReading(path);
+        for (const [combatantId] of statistics.byCombatantId) {
+            for (const metric of ["damageDealtApplied", "damageTakenApplied"] as const) {
+                const drill = composeDrillReading(statistics, roster, metric, combatantId);
+                if (drill === null) continue;
+                for (const other of drill.byOpponent.rows) {
+                    const pair = composePairReading(
+                        statistics,
+                        roster,
+                        metric,
+                        combatantId,
+                        other.combatantId,
+                    );
+                    if (pair === null) continue;
+                    if (pair.parts.some((one) => one.part.kind === "plain")) closing += 1;
+                    const figures = pair.parts.map((one) => one.figure);
+                    assertEquals(
+                        [...figures].sort((one, another) => another - one),
+                        figures,
+                        `${path}: a pair drawn out of order puts a large bar under a small one`,
+                    );
+                }
+            }
+        }
+    }
+    assertEquals(closing, 416, "and the pairs a closing row stands in, 2026-09-12");
 });

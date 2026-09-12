@@ -39,9 +39,13 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   Przy kilku postaciach wiersz „Zwykły cios" znika teraz zupełnie, bo nie została pod nim ani jedna
   liczba.
 
-- **Zmiana** — Wiersze, które nie mają swojego miejsca w kolejności, mają teraz skośne kreskowanie
-  na pasku. Wcześniej wyglądały dokładnie jak wiersze z numerem — a „Zwykły cios" bywa największą
-  liczbą w swojej sekcji, więc czytało się go jako pierwsze miejsce. Kreskowanie znał już wiersz
+- **Zmiana** — „Zwykły cios" stoi teraz w kolejności jak każdy inny wiersz — z numerem i pełnym
+  paskiem, na miejscu, które daje mu jego liczba. Bardzo często jest to miejsce pierwsze, bo zwykłe
+  ciosy bywają większą częścią obrażeń niż którakolwiek umiejętność.
+
+- **Zmiana** — Wiersze, które naprawdę nie mają swojego miejsca w kolejności — te, o których gra nie
+  powiedziała, kto albo komu — mają teraz skośne kreskowanie na pasku. Wcześniej wyglądały dokładnie
+  jak wiersze z numerem, więc czytało się je jako kolejne miejsce. Kreskowanie znał już wiersz
   stojący pod listą; teraz noszą je wszystkie wiersze o tym samym znaczeniu, gdziekolwiek stoją.
 
 ## [0.16.0] — 2026-09-11

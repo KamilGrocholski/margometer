@@ -204,3 +204,5 @@ edited to agree with the new rule.
   own words. **Accepted**
 - [0078](0078-a-granted-blow-is-still-its-announcements.md) — A granted blow is still its
   announcement's. **Accepted**
+- [0079](0079-a-row-naming-what-the-game-named-takes-a-place.md) — A row naming what the game named
+  takes a place. **Accepted**

@@ -1370,6 +1370,17 @@ export interface PlainRow {
     shareText: string;
 }
 
+/**
+ * The row a section closes against, which takes a place among the rows above it — and the reason
+ * it is a type of its own is that the row summing a bound must not. A shared shape with a nullable
+ * place left the null on the wrong row unreadable and the wrong number on it unwritable only by
+ * agreement; here the compiler holds both. **ADR 0079.**
+ */
+export interface ClosingRow extends PlainRow {
+    /** Where its figure puts it among the rows that take one. */
+    place: number;
+}
+
 export interface SkillCut {
     rows: SkillRow[];
     /**
@@ -1379,7 +1390,7 @@ export interface SkillCut {
      * figure moved from a true claim to a false one by a display bound. **ADR 0055.**
      */
     rest: PlainRow | null;
-    plain: PlainRow | null;
+    plain: ClosingRow | null;
 }
 
 /**
@@ -1814,6 +1825,20 @@ function getGivenSourceCut(figures: CombatantFigures): { cut: FigureCut; rest: n
  * screens it is health that moved under a key naming no skill, which is not a number of
  * anything.
  */
+/**
+ * Where the closing row stands among the rows that take a place. Its figure decides, as every
+ * other row's does — and on a tie it goes first, because `getTextForNamedPart` answers the empty
+ * text for it and the order's tie-break is lexical (**ADR 0079**).
+ */
+function getPlaceForPlain(stated: readonly { figure: number }[], figure: number): number {
+    let bigger = 0;
+    for (const row of stated) {
+        if (row.figure <= figure) continue;
+        bigger += 1;
+    }
+    return bigger + 1;
+}
+
 function composeSkillCut(
     statistics: FightStatistics,
     figures: CombatantFigures,
@@ -1857,8 +1882,11 @@ function composeSkillCut(
             fill: getFill(one.figure, largest),
             shareText: shares[at] ?? "",
         })),
-        // Between the rows and the closing one, which is where its figure belongs: it is named
-        // like the rows above it and unnamed like the row below, and it is neither.
+        // ⚠️ **Last, because it is the only row of the section left holding no place.** **ADR
+        // 0055** put it between the named rows and the closing one while both stood outside the
+        // order; the closing row has taken a place since (**ADR 0079**) and this has not, so
+        // "between the two" no longer names a position. What that decision settled is unmoved:
+        // what a bound would not draw is never folded into the row below it.
         rest: hasRest
             ? {
                 blows: null,
@@ -1870,6 +1898,7 @@ function composeSkillCut(
         plain: hasPlain
             ? {
                 blows: isCounted ? figures.blowsWithoutSkill : null,
+                place: getPlaceForPlain(stated, Math.max(plain, 0)),
                 figure: Math.max(plain, 0),
                 fill: getFill(Math.max(plain, 0), largest),
                 shareText: shares[stated.length + (hasRest ? 1 : 0)] ?? "",
@@ -2204,14 +2233,17 @@ function composePairParts(
         fill: getFill(one.figure, largest),
         shareText: shares[at] ?? "",
     }));
-    if (plain > 0) {
-        rows.push({
-            part: { kind: "plain" },
-            figure: plain,
-            fill: getFill(plain, largest),
-            shareText: shares[stated.length] ?? "",
-        });
-    }
+    if (plain === 0) return rows;
+    // Where its figure puts it, and not after the lot — the warning above is about a key larger
+    // than every skill sitting at the bottom of a column, and the closing row is the one that
+    // most often is (**ADR 0079**). Its share is read by the index it was composed under, so the
+    // figure it carries is unmoved by where it is drawn.
+    rows.splice(getPlaceForPlain(stated, plain) - 1, 0, {
+        part: { kind: "plain" },
+        figure: plain,
+        fill: getFill(plain, largest),
+        shareText: shares[stated.length] ?? "",
+    });
     return rows;
 }
 
