@@ -10,6 +10,7 @@ import { BATTLE_EVENT_KINDS } from "@/src/core/battle-event.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import {
+    BLOWS_GRANTED,
     getRecordedCombatants,
     getRecordedPayloads,
     readRecordingPaths,
@@ -20,13 +21,15 @@ Deno.test("every variant the union holds is produced by the recordings", () => {
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         for (const payload of getRecordedPayloads(path)) {
-            for (const event of decodeFightMessages(payload, roster)) produced.add(event.kind);
+            for (const event of decodeFightMessages(payload, roster, BLOWS_GRANTED)) {
+                produced.add(event.kind);
+            }
         }
     }
     // An unknown message is what the decoder makes of a key nobody has read, so no recording can
     // be expected to carry one: every key `captures/` holds is read. The probe stands in for the
     // protocol change this variant exists for.
-    for (const event of decodeFightMessages(["0;0;whatever_per=30"], null)) {
+    for (const event of decodeFightMessages(["0;0;whatever_per=30"], null, BLOWS_GRANTED)) {
         produced.add(event.kind);
     }
     const listed: readonly string[] = BATTLE_EVENT_KINDS;

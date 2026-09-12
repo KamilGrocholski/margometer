@@ -17,6 +17,7 @@ import {
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import {
+    BLOWS_GRANTED,
     getRecordedCombatants,
     getRecordedPayloads,
     readRecordingPaths,
@@ -102,7 +103,7 @@ function witnessRecording(path: string, reading: WitnessReading): void {
     // Every message decoded once, kept in order, so a cast stated about a side can be sized over
     // the whole fight and still applied at the message it landed on.
     const byMessage = payloads.flatMap((one) => one.map((message) => [message, one] as const))
-        .map(([message]) => decodeFightMessages([message], roster));
+        .map(([message]) => decodeFightMessages([message], roster, BLOWS_GRANTED));
     const heals = composeTeamHeals(byMessage.flat(), roster);
     for (const events of byMessage) {
         {

@@ -17,6 +17,7 @@ import {
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import {
+    BLOWS_GRANTED,
     getRecordedCombatants,
     getRecordedMessages,
     readRecordingPaths,
@@ -116,7 +117,7 @@ Deno.test("every tick stands against the attacker whose wound was ticking", () =
         "charged to the three attackers who wounded, and to nobody else",
     );
 
-    const events = decodeFightMessages(messages, roster);
+    const events = decodeFightMessages(messages, roster, BLOWS_GRANTED);
     const statistics = composeFightStatistics(events, new Map());
     for (const [attackerId, amount] of expected) {
         const figures = statistics.byCombatantId.get(attackerId);
@@ -140,7 +141,11 @@ const WOUND =
     `${ATTACKER}=100.00;${VICTIM}=99.41;+dmgd=1553;${WOUND_ANNOUNCEMENT_KEY}=98;-dmgd=658`;
 
 function getFightWithTick(tick: string) {
-    const events = decodeFightMessages([WOUND, `${VICTIM}=99.00;0;${TICK_KEY}=${tick}`], null);
+    const events = decodeFightMessages(
+        [WOUND, `${VICTIM}=99.00;0;${TICK_KEY}=${tick}`],
+        null,
+        BLOWS_GRANTED,
+    );
     return composeFightStatistics(events, new Map());
 }
 

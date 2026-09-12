@@ -8,7 +8,12 @@
  */
 
 import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
-import { composeAuraSkills, composeShoutSkills, readSkillsFromPage } from "@/tools/skill-table.ts";
+import {
+    composeAuraSkills,
+    composeGrantedBlows,
+    composeShoutSkills,
+    readSkillsFromPage,
+} from "@/tools/skill-table.ts";
 import { SkillTableError } from "@/tools/margometer-tool-error.ts";
 
 /** Eight cells, which is what the page serves: id, tags, name, description, prof, levels, … */
@@ -23,8 +28,8 @@ Deno.test("a duration is read off the level it is stated on, and none where none
     );
     assertStrictEquals(read.length, 1, "one row, one skill");
     assertEquals(read[0]?.effects, [
-        { key: "taken_dmg_per-all", turns: [8, 8], amounts: [6, 7] },
-        { key: "cooldown", turns: [], amounts: [] },
+        { key: "taken_dmg_per-all", turns: [8, 8], amounts: [6, 7], values: [6, 7] },
+        { key: "cooldown", turns: [], amounts: [], values: [8] },
     ], "the marked half is the turns, the half in front of it the value, and none is none");
 });
 
@@ -33,8 +38,8 @@ Deno.test("a level stating no duration is passed over rather than read as nothin
         composeRow("7", "critmval_l=1,2,3;<br>slowfreeze_per=45@2,50@3"),
     );
     assertEquals(read[0]?.effects, [
-        { key: "critmval_l", turns: [], amounts: [] },
-        { key: "slowfreeze_per", turns: [2, 3], amounts: [45, 50] },
+        { key: "critmval_l", turns: [], amounts: [], values: [1, 2, 3] },
+        { key: "slowfreeze_per", turns: [2, 3], amounts: [45, 50], values: [45, 50] },
     ], "a run of plain values is a duration nowhere, not a duration of zero");
 });
 
@@ -43,8 +48,8 @@ Deno.test("a value the page writes as arithmetic is read as no duration at all",
     const read = readSkillsFromPage(composeRow("8", "mana=0.3*cplvl,0.32*cplvl"));
     assertEquals(
         read[0]?.effects,
-        [{ key: "mana", turns: [], amounts: [] }],
-        "nothing marked, nothing read",
+        [{ key: "mana", turns: [], amounts: [], values: [] }],
+        "nothing marked, and no figure a reading could use",
     );
 });
 
@@ -111,4 +116,35 @@ Deno.test("only the skills reaching a side are carried, at the longest they stat
         composeAuraSkills(read).length < read.length,
         "a side's table is the smaller of the two",
     );
+});
+
+/**
+ * ⚠️ **This key is stated with no `@` anywhere on the page.** A walk that reads a value only
+ * beside a duration reads the key and throws away the one figure it carries — which is what the
+ * reader did until **ADR 0078**.
+ */
+Deno.test("a granted blow is read where the page states no duration beside it", () => {
+    const read = readSkillsFromPage(
+        composeRow("239", "energy=10;<br>add_attacks=1;<br>cooldown=2") +
+            composeRow("89", "aura-sa_per=11@8"),
+    );
+    assertEquals(
+        composeGrantedBlows(read),
+        [{ id: 239, blowsGrantedMinimum: 1 }],
+        "the skill granting one is carried, and the one granting none is left behind",
+    );
+});
+
+Deno.test("a grant stated per level is carried at the fewest the page states", () => {
+    const read = readSkillsFromPage(composeRow("283", "add_attacks=2,2,3;<br>cooldown=4"));
+    assertEquals(
+        composeGrantedBlows(read),
+        [{ id: 283, blowsGrantedMinimum: 2 }],
+        "the panel does not know the caster's level, so it relies on what holds at every one",
+    );
+});
+
+Deno.test("a grant the page writes as arithmetic is carried nowhere", () => {
+    const read = readSkillsFromPage(composeRow("283", "add_attacks=0.5*cplvl"));
+    assertEquals(composeGrantedBlows(read), [], "a figure nothing could read is not a grant");
 });

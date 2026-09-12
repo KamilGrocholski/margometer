@@ -27,8 +27,11 @@ message itself is one file away, in `captures/`, where it already lives.
 
 Four steps, and the rule is applied at the third:
 
-1. **The payload's messages are decoded in order.** An announcement is glued to the message after it
-   and no further, so what a message decodes to depends on the one before it — and on nothing else.
+1. **The payload's messages are decoded in order.** An announcement is glued to the message after
+   it, and then to that announcer's own blow messages: as many further as the published table says
+   that skill grants, or, where the announcement names no id the table could be asked by, as far as
+   a stated bound allows (**ADR 0078**). Past the glued message it reaches a blow and nothing else.
+   So what a message decodes to depends on the ones before it, and on nothing else.
    `src/core/fight-decoder.ts` owns the gluing.
 2. **One message becomes one or more events.** A blow, the health it moved, the damage it dealt to
    somebody it named, the announcement it rode — each is an event of its own, and nothing on any of

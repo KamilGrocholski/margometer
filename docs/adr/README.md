@@ -202,3 +202,5 @@ edited to agree with the new rule.
   object, not by the method. **Accepted**
 - [0077](0077-the-defence-line-speaks-the-games-own-words.md) — The defence line speaks the game's
   own words. **Accepted**
+- [0078](0078-a-granted-blow-is-still-its-announcements.md) — A granted blow is still its
+  announcement's. **Accepted**

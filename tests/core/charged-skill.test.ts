@@ -16,7 +16,11 @@ import {
     MAXIMUM_CHARGED_SKILLS,
 } from "@/src/core/charged-skill.ts";
 import { addPayloadToFight, composeFightUnderway } from "@/src/game/fight-underway.ts";
-import { getRecordedEngineUpdates, readRecordingPaths } from "@/tests/recorded-fight.ts";
+import {
+    BLOWS_GRANTED,
+    getRecordedEngineUpdates,
+    readRecordingPaths,
+} from "@/tests/recorded-fight.ts";
 
 const MONSTER = -10000249;
 const PLAYER = 441419;
@@ -169,7 +173,7 @@ Deno.test("every recording states charges the panel can hold", () => {
     for (const path of paths) {
         const underway = composeFightUnderway();
         for (const payload of getRecordedEngineUpdates(path)) {
-            addPayloadToFight(underway, payload);
+            addPayloadToFight(underway, payload, BLOWS_GRANTED);
             const ordinal = underway.turnStatement?.ordinal ?? null;
             for (const held of underway.chargedSkills) {
                 assert(held.turnsElapsed >= 0, `${path}: a charge runs no fewer than nothing`);

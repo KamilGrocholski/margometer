@@ -21,6 +21,7 @@ import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { type Combatant, composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { FROZEN_AURA_TURNS } from "@/frozen/aura-turns.ts";
 import {
+    BLOWS_GRANTED,
     getRecordedCombatants,
     getRecordedPayloads,
     readRecordingPaths,
@@ -191,7 +192,7 @@ Deno.test("every recording answers, and nothing stands longer than the table giv
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const events: BattleEvent[] = [];
         for (const messages of getRecordedPayloads(path)) {
-            events.push(...decodeFightMessages(messages, roster));
+            events.push(...decodeFightMessages(messages, roster, BLOWS_GRANTED));
         }
         for (const one of composeFightStandings(events, DATED, ROSTER).standings) {
             stood += 1;
@@ -401,7 +402,7 @@ Deno.test(`${AGAINST_TWO}: one shout holds both players it named`, () => {
     const roster = composeCombatantRoster(getRecordedCombatants(path));
     const events: BattleEvent[] = [];
     for (const messages of getRecordedPayloads(path)) {
-        events.push(...decodeFightMessages(messages, roster));
+        events.push(...decodeFightMessages(messages, roster, BLOWS_GRANTED));
     }
     const held = composeFightStandings(events, DATED, roster).provocations;
     assertStrictEquals(held.length, 2, "the value named two characters, so two are held");
@@ -421,7 +422,7 @@ Deno.test(`${BOTH_OKRZYKI}: two casters at one monster leave one provocation sta
     const roster = composeCombatantRoster(getRecordedCombatants(path));
     const events: BattleEvent[] = [];
     for (const messages of getRecordedPayloads(path)) {
-        events.push(...decodeFightMessages(messages, roster));
+        events.push(...decodeFightMessages(messages, roster, BLOWS_GRANTED));
     }
     const held = composeFightStandings(events, DATED, roster).provocations;
     assertStrictEquals(held.length, 1, "a Wojownik and a Paladyn shouting at one monster is one");

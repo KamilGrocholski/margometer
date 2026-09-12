@@ -18,10 +18,16 @@ import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { decodeFightMessages, MAXIMUM_MESSAGES } from "@/src/core/fight-decoder.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import {
+    BLOWS_GRANTED,
     getRecordedCombatants,
     getRecordedPayloads,
     readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
+import {
+    composeTurnStanding,
+    getTurnOpener,
+    NO_TURN_STANDING,
+} from "@/src/core/fight-statistics.ts";
 
 /**
  * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: a blow absorption stood in front
@@ -70,7 +76,7 @@ function getOnlyAttack(events: readonly BattleEvent[]): BattleEvent {
 }
 
 Deno.test("a blow reads as raw, applied, and what a defence stopped", () => {
-    const event = getOnlyAttack(decodeFightMessages([ABSORBED], null));
+    const event = getOnlyAttack(decodeFightMessages([ABSORBED], null, BLOWS_GRANTED));
     if (event.kind !== "attack") return;
     assertEquals(event.actorId, 467968, "the actor is the message's own");
     assertEquals(event.targetHealthPercent, 99.69, "the target's health rides the blow");
@@ -82,7 +88,7 @@ Deno.test("a blow reads as raw, applied, and what a defence stopped", () => {
 });
 
 Deno.test("the third blow is read by name, and a zero is a reading", () => {
-    const event = getOnlyAttack(decodeFightMessages([THIRD_BLOW], null));
+    const event = getOnlyAttack(decodeFightMessages([THIRD_BLOW], null, BLOWS_GRANTED));
     if (event.kind !== "attack") return;
     assertEquals(event.raw.length, 3, "two damage keys and the pair with no marker");
     assertEquals(event.raw[2], { element: "thirdatt", amount: 1168 }, "raw, by name");
@@ -92,7 +98,7 @@ Deno.test("the third blow is read by name, and a zero is a reading", () => {
 });
 
 Deno.test("a key with no meaning yet leaves the rest of the message read", () => {
-    const events = decodeFightMessages([UNREAD], null);
+    const events = decodeFightMessages([UNREAD], null, BLOWS_GRANTED);
     assertEquals(events.length, 2, "what was read, and what could not be");
     const [used, unread] = events;
     assertStrictEquals(used?.kind, "skill-used", "the announcement is still an event");
@@ -103,7 +109,7 @@ Deno.test("a key with no meaning yet leaves the rest of the message read", () =>
 });
 
 Deno.test("a message the grammar refuses is an event, not a silence", () => {
-    const events = decodeFightMessages(["gracz;0;step"], null);
+    const events = decodeFightMessages(["gracz;0;step"], null, BLOWS_GRANTED);
     assertEquals(events.length, 1, "one event");
     const event = events[0];
     assertStrictEquals(
@@ -120,27 +126,27 @@ Deno.test("a message the grammar refuses is an event, not a silence", () => {
 });
 
 Deno.test("health moves on the key's own slot, and its sign is the key's", () => {
-    const restored = decodeFightMessages([HEAL], null);
+    const restored = decodeFightMessages([HEAL], null, BLOWS_GRANTED);
     assertEquals(restored.length, 1, "a heal alone in its message is one event");
     assertStrictEquals(restored[0]?.kind, "health-change", "and it is health moving");
     assertEquals(restored[0].combatantId, 482845, "on the actor, where the key states it");
     assertEquals(restored[0].amount, 99, "restored, so positive");
     assertEquals(restored[0].healthPercent, 100, "with where they stand once it is in");
 
-    const lost = decodeFightMessages([POISON], null);
+    const lost = decodeFightMessages([POISON], null, BLOWS_GRANTED);
     assertStrictEquals(lost[0]?.kind, "health-change", "poison moves health too");
     assertEquals(lost[0].amount, -140, "and takes it, which is the key's own sign");
     assertEquals(lost[0].declared, [{ effect: "poison", amount: 14, text: "14" }], "not health");
 });
 
 Deno.test("a heal the client states as a loss is read as one", () => {
-    const events = decodeFightMessages([NEGATIVE_HEAL], null);
+    const events = decodeFightMessages([NEGATIVE_HEAL], null, BLOWS_GRANTED);
     assertStrictEquals(events[0]?.kind, "health-change", "the key is still a health movement");
     assertEquals(events[0].amount, -92, "the sign the protocol wrote survives the key's own");
 });
 
 Deno.test("the one key of the family that means the target", () => {
-    const events = decodeFightMessages([HEAL_TARGET], null);
+    const events = decodeFightMessages([HEAL_TARGET], null, BLOWS_GRANTED);
     const restored = events.filter((event) => event.kind === "health-change");
     assertEquals(restored.length, 1, "one figure moved health");
     assertStrictEquals(restored[0]?.kind, "health-change", "and it is the healing");
@@ -158,7 +164,7 @@ Deno.test("the one key of the family that means the target", () => {
  * announcement nothing picks up leaves the health with no giver and no name.
  */
 Deno.test("a figure stated on an announcement rides that announcement, not the one before", () => {
-    const events = decodeFightMessages([HEAL_TARGET], null);
+    const events = decodeFightMessages([HEAL_TARGET], null, BLOWS_GRANTED);
     const restored = events.find((event) => event.kind === "health-change");
     assertStrictEquals(restored?.kind, "health-change", "the healing is read");
     assertExists(restored.announced, "and it carries the announcement it was stated on");
@@ -170,7 +176,7 @@ Deno.test("a figure stated on an announcement rides that announcement, not the o
 
 /** The other side of it: a message announcing nothing carries no announcement of its own. */
 Deno.test("a figure on a message that announces nothing rides nothing", () => {
-    const events = decodeFightMessages([HEAL], null);
+    const events = decodeFightMessages([HEAL], null, BLOWS_GRANTED);
     const restored = events.find((event) => event.kind === "health-change");
     assertStrictEquals(restored?.kind, "health-change", "the healing is read all the same");
     assertEquals(restored.announced, null, "and states no skill, because the message states none");
@@ -192,9 +198,35 @@ const BLOW_BY_ANOTHER = "467968=100.00;-10000249=99.41;+dmgd=1553;-absorb=354;+i
  * table.
  */
 const CUSTOM = "47010=100.00;47010=100.00;tcustom=Przelotna elfia kołysanka;healall_per=10";
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: the announcement of a skill the
+ * published table grants an attack to, and the two blows it sent.
+ */
+const GRANTED_ANNOUNCEMENT = "441390=100.00;-10000249=99.60;tspell=Podwójne trafienie;skillId=239";
+const GRANTED_FIRST = "441390=100.00;-10000249=99.57;+dmgd=926;+dmgf=138;+dmgc=799;+resdmg=2;" +
+    "-absorb=44;-absorbm=294;-dmgd=81;-dmgc=8";
+const GRANTED_SECOND = "441390=100.00;-10000249=99.40;+pierce;+dmgd=809;+dmgf=105;+dmgc=799;" +
+    "+resdmg=2;-absorb=283;-absorbm=814;-dmgd=526;-dmgf=7;-dmgc=21";
+/** The same recording: the message the game sent straight after the pair, which is not a blow. */
+const STEP_AFTER = "459132=98.49;0;step";
+/**
+ * ⚠️ **No recording carries the one skill the table grants two attacks to.** Its announcement is
+ * written out here because only a grant of two puts a blow this decoder must refuse *inside* what
+ * a standing still has left to spend — at a grant of one the budget runs out first, and the
+ * condition being probed is never reached. The id is `frozen/blows-granted.ts`'s.
+ */
+const GRANTED_TWICE = "441390=100.00;-10000249=99.60;tspell=Demoniczne cięcie;skillId=283";
+/**
+ * `2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none.json`: an announcement the table cannot
+ * be asked about, its one blow, and the announcer's own poison ticking straight after it.
+ */
+const UNBOUNDED_ANNOUNCEMENT = "-10000243;0;tspell=Kosa zastępcy";
+const UNBOUNDED_BLOW = "-10000243=25.19;439807=69.90;-poison_lowdmg_per=13;+dmg=2385;" +
+    "-blok=716;-dmg=1111";
+const TICK_ON_THE_ANNOUNCER = "-10000243=25.11;0;poison=136,20";
 
 Deno.test("an announcement is an event, and its id may be missing", () => {
-    const events = decodeFightMessages([ANNOUNCEMENT], null);
+    const events = decodeFightMessages([ANNOUNCEMENT], null, BLOWS_GRANTED);
     const used = events.filter((event) => event.kind === "skill-used");
     assertEquals(used.length, 1, "the announcement is read");
     assertStrictEquals(used[0]?.kind, "skill-used", "and it is a skill being used");
@@ -204,29 +236,62 @@ Deno.test("an announcement is an event, and its id may be missing", () => {
 });
 
 Deno.test("the glue is the client's, and the same actor is our condition", () => {
-    const glued = decodeFightMessages([ANNOUNCEMENT, BLOW_AFTER], null);
+    const glued = decodeFightMessages([ANNOUNCEMENT, BLOW_AFTER], null, BLOWS_GRANTED);
     const attack = glued.find((event) => event.kind === "attack");
     assertStrictEquals(attack?.kind, "attack", "the blow after the announcement is read");
     assertEquals(attack.announced?.skillName, "Struna płomienna", "and carries what announced it");
     assertEquals(attack.announced?.actorId, -10000249, "with the announcer named");
 
-    const apart = decodeFightMessages([ANNOUNCEMENT_ELSEWHERE, BLOW_BY_ANOTHER], null);
+    const apart = decodeFightMessages(
+        [ANNOUNCEMENT_ELSEWHERE, BLOW_BY_ANOTHER],
+        null,
+        BLOWS_GRANTED,
+    );
     const other = apart.find((event) => event.kind === "attack");
     assertStrictEquals(other?.kind, "attack", "somebody else's blow is read too");
     assertEquals(other.announced, null, "and takes no skill that was never theirs");
 });
 
-Deno.test("an announcement reaches only the message straight after it", () => {
-    const events = decodeFightMessages([ANNOUNCEMENT, BLOW_AFTER, BLOW_AFTER], null);
+/**
+ * ⚠️ **This read the opposite until 2026-09-12, and the sample is why.** `Struna płomienna`
+ * announces with no id, and the published table is the **player's**, keyed by one — so there the
+ * table cannot say how many blows the skill strikes, and the reach is the announcer's own run.
+ * The corpus caught this skill striking twice three times over. **ADR 0078.**
+ */
+Deno.test("an announcement the table cannot be asked about reaches its own run", () => {
+    const events = decodeFightMessages([ANNOUNCEMENT, BLOW_AFTER, BLOW_AFTER], null, BLOWS_GRANTED);
     const attacks = events.filter((event) => event.kind === "attack");
     assertEquals(attacks.length, 2, "both blows are read");
-    assertStrictEquals(attacks[0]?.kind, "attack", "the first rides the announcement");
-    assertStrictEquals(attacks[1]?.kind, "attack", "the second is its own");
-    assertEquals(attacks[1].announced, null, "the glue does not carry past one message");
+    assertEquals(attacks[0]?.announced?.skillName, "Struna płomienna", "the first rides it");
+    assertEquals(attacks[1]?.announced?.skillName, "Struna płomienna", "and so does the second");
+});
+
+Deno.test("a message that is no blow ends a reach the table could not bound", () => {
+    const events = decodeFightMessages(
+        [ANNOUNCEMENT, BLOW_AFTER, STEP_AFTER, BLOW_AFTER],
+        null,
+        BLOWS_GRANTED,
+    );
+    const attacks = events.filter((event) => event.kind === "attack");
+    assertEquals(attacks.length, 2, "both blows are read");
+    assertEquals(attacks[0]?.announced?.skillName, "Struna płomienna", "the first rides it");
+    assertEquals(attacks[1]?.announced, null, "and a step between the two ends the standing");
+});
+
+Deno.test("another combatant's blow ends a reach the table could not bound", () => {
+    const events = decodeFightMessages(
+        [ANNOUNCEMENT, BLOW_AFTER, BLOW_BY_ANOTHER, BLOW_AFTER],
+        null,
+        BLOWS_GRANTED,
+    );
+    const attacks = events.filter((event) => event.kind === "attack");
+    assertEquals(attacks.length, 3, "all three blows are read");
+    assertEquals(attacks[1]?.announced, null, "the blow that is not the announcer's takes none");
+    assertEquals(attacks[2]?.announced, null, "and the standing does not step over it to reach on");
 });
 
 Deno.test("a name the game did not take from its table is read where one is named", () => {
-    const events = decodeFightMessages([CUSTOM], null);
+    const events = decodeFightMessages([CUSTOM], null, BLOWS_GRANTED);
     const used = events.filter((event) => event.kind === "skill-used");
     assertStrictEquals(
         used[0]?.kind,
@@ -236,7 +301,11 @@ Deno.test("a name the game did not take from its table is read where one is name
     assertEquals(used[0].skillName, "Przelotna elfia kołysanka", "read like any other name");
 
     // No recording carries this shape; it probes the rule the register states for the key.
-    const twoEnds = decodeFightMessages(["47010=100.00;38205=100.00;tcustom=Kołysanka"], null);
+    const twoEnds = decodeFightMessages(
+        ["47010=100.00;38205=100.00;tcustom=Kołysanka"],
+        null,
+        BLOWS_GRANTED,
+    );
     assertEquals(twoEnds.filter((event) => event.kind === "skill-used").length, 0, "not read");
     const unread = twoEnds.find((event) => event.kind === "unknown-message");
     assertStrictEquals(unread?.kind, "unknown-message", "it goes back to unread instead");
@@ -258,7 +327,7 @@ const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.j
 
 Deno.test("damage stated against a name reaches the person it names", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
-    const events = decodeFightMessages([AGAINST_NAMES], roster);
+    const events = decodeFightMessages([AGAINST_NAMES], roster, BLOWS_GRANTED);
     const hits = events.filter((event) => event.kind === "damage-to-named-combatant");
     assertEquals(hits.length, 2, "each name carries its own figure");
     assertStrictEquals(
@@ -279,7 +348,7 @@ Deno.test("damage stated against a name reaches the person it names", () => {
 });
 
 Deno.test("a name nothing can resolve keeps its figure and says whose it is not", () => {
-    const events = decodeFightMessages([AGAINST_NAMES], null);
+    const events = decodeFightMessages([AGAINST_NAMES], null, BLOWS_GRANTED);
     const hits = events.filter((event) => event.kind === "damage-to-named-combatant");
     assertStrictEquals(
         hits[0]?.kind,
@@ -291,7 +360,7 @@ Deno.test("a name nothing can resolve keeps its figure and says whose it is not"
 });
 
 Deno.test("a blank element is the plain one, not an element of its own", () => {
-    const events = decodeFightMessages([BLANK_ELEMENT], null);
+    const events = decodeFightMessages([BLANK_ELEMENT], null, BLOWS_GRANTED);
     const hits = events.filter((event) => event.kind === "damage-to-named-combatant");
     assertStrictEquals(hits[0]?.kind, "damage-to-named-combatant", "the figure is read");
     assertEquals(hits[0].damage.element, "dmg", "the same element the family's own keys carry");
@@ -317,7 +386,7 @@ const LOG_LINE = "0;0;txt=Locha: zdobyto Skóra z dzika";
 const STEP_TAKEN = "-255967=100.00;0;step";
 
 Deno.test("what no total counts rides the blow it was stated on", () => {
-    const events = decodeFightMessages([DECLARED_ON_BLOW], null);
+    const events = decodeFightMessages([DECLARED_ON_BLOW], null, BLOWS_GRANTED);
     assertEquals(events.length, 1, "nothing was left unread");
     assertStrictEquals(events[0]?.kind, "attack", "the blow is the event");
     assertEquals(events[0].declared, [{ effect: "+taken_dmg", amount: 254, text: "254" }], "read");
@@ -325,7 +394,7 @@ Deno.test("what no total counts rides the blow it was stated on", () => {
 });
 
 Deno.test("what an announcement states about its skill rides the announcement", () => {
-    const events = decodeFightMessages([DECLARED_ON_SKILL], null);
+    const events = decodeFightMessages([DECLARED_ON_SKILL], null, BLOWS_GRANTED);
     const used = events.find((event) => event.kind === "skill-used");
     assertStrictEquals(used?.kind, "skill-used", "the announcement is the event");
     assertEquals(used.declared.map((one) => one.effect), ["active_block_per", "combo-max"], "both");
@@ -334,7 +403,7 @@ Deno.test("what an announcement states about its skill rides the announcement", 
 });
 
 Deno.test("a message about nobody's health is a declaration of its own", () => {
-    const logged = decodeFightMessages([LOG_LINE], null);
+    const logged = decodeFightMessages([LOG_LINE], null, BLOWS_GRANTED);
     assertStrictEquals(logged[0]?.kind, "declaration", "a log line happens to nobody");
     assertEquals(logged[0].combatantId, null, "and names nobody");
     assertEquals(logged[0].declared[0]?.text, "Locha: zdobyto Skóra z dzika", "text, not a figure");
@@ -344,14 +413,18 @@ Deno.test("a message about nobody's health is a declaration of its own", () => {
         "which is not a number and is not read as one",
     );
 
-    const stepped = decodeFightMessages([STEP_TAKEN], null);
+    const stepped = decodeFightMessages([STEP_TAKEN], null, BLOWS_GRANTED);
     assertStrictEquals(stepped[0]?.kind, "declaration", "a step is a declaration too");
     assertEquals(stepped[0].combatantId, -255967, "and this one names whose it is");
     assertEquals(stepped[0].declared, [{ effect: "step", amount: null, text: null }], "no value");
 });
 
 Deno.test("a key read only while it states nothing goes unread once it states something", () => {
-    const silent = decodeFightMessages(["1=50.00;2=50.00;+dmg=10;-dmg=10;+legbon_holytouch"], null);
+    const silent = decodeFightMessages(
+        ["1=50.00;2=50.00;+dmg=10;-dmg=10;+legbon_holytouch"],
+        null,
+        BLOWS_GRANTED,
+    );
     assertStrictEquals(silent[0]?.kind, "attack", "the blow is read");
     assertEquals(silent[0].declared[0]?.effect, "+legbon_holytouch", "and the flag beside it");
 
@@ -359,6 +432,7 @@ Deno.test("a key read only while it states nothing goes unread once it states so
     const stated = decodeFightMessages(
         ["1=50.00;2=50.00;+dmg=10;-dmg=10;+legbon_holytouch=7"],
         null,
+        BLOWS_GRANTED,
     );
     const unread = stated.find((event) => event.kind === "unknown-message");
     assertStrictEquals(unread?.kind, "unknown-message", "a figure arriving there is not read");
@@ -373,12 +447,12 @@ const WON = "0;0;winner=Gracz 1";
 const LOST = "0;0;loser=Odyniec, Odyniec, Locha";
 
 Deno.test("a fight ends on two keys, each naming its own side", () => {
-    const won = decodeFightMessages([WON], null);
+    const won = decodeFightMessages([WON], null, BLOWS_GRANTED);
     assertStrictEquals(won[0]?.kind, "fight-outcome", "the outcome is an event");
     assertEquals(won[0].result, "won", "of the side the key names");
     assertEquals(won[0].combatantNames, ["Gracz 1"], "by name, because the message states no id");
 
-    const lost = decodeFightMessages([LOST], null);
+    const lost = decodeFightMessages([LOST], null, BLOWS_GRANTED);
     assertStrictEquals(lost[0]?.kind, "fight-outcome", "the other key is the other side");
     assertEquals(lost[0].result, "lost", "which lost");
     assertEquals(lost[0].combatantNames, ["Odyniec", "Odyniec", "Locha"], "each name on its own");
@@ -386,12 +460,12 @@ Deno.test("a fight ends on two keys, each naming its own side", () => {
 
 Deno.test("a fight nobody won is stated on the winners' key alone", () => {
     // No recording carries either shape: the register reads them off the client's own branch.
-    const drawn = decodeFightMessages(["0;0;winner=?"], null);
+    const drawn = decodeFightMessages(["0;0;winner=?"], null, BLOWS_GRANTED);
     assertStrictEquals(drawn[0]?.kind, "fight-outcome", "the mark is read");
     assertEquals(drawn[0].result, "drawn", "as a fight nobody won");
     assertEquals(drawn[0].combatantNames, [], "naming nobody, which is the whole of what it says");
 
-    const refused = decodeFightMessages(["0;0;loser=?"], null);
+    const refused = decodeFightMessages(["0;0;loser=?"], null, BLOWS_GRANTED);
     assertStrictEquals(
         refused[0]?.kind,
         "unknown-message",
@@ -406,20 +480,24 @@ Deno.test("a fight nobody won is stated on the winners' key alone", () => {
  * neither is the one the material settles, because the material carries no escape at all.
  */
 Deno.test("a fight an escape broke off is read on its own key, valued or bare", () => {
-    const bare = decodeFightMessages(["500001=94.75;0;flee"], null);
+    const bare = decodeFightMessages(["500001=94.75;0;flee"], null, BLOWS_GRANTED);
     assertStrictEquals(bare[0]?.kind, "fight-outcome", "the bare key is an outcome");
     assertEquals(bare[0].result, "fled", "of a fight nobody finished");
     assertEquals(bare[0].combatantNames, [], "naming no side, because the key names none");
     assertEquals(bare.filter((one) => one.kind === "unknown-message").length, 0, "nothing unread");
 
-    const valued = decodeFightMessages(["500001=94.75;0;flee=1"], null);
+    const valued = decodeFightMessages(["500001=94.75;0;flee=1"], null, BLOWS_GRANTED);
     assertStrictEquals(valued[0]?.kind, "fight-outcome", "and so is the valued one");
     assertEquals(valued[0].result, "fled", "which says the same thing");
     assertEquals(valued[0].combatantNames, [], "and names nobody either");
 });
 
 Deno.test("an escape beside a stated winner is still what the fight came to", () => {
-    const both = decodeFightMessages(["500001=94.75;0;flee", "0;0;winner=Gracz 1"], null);
+    const both = decodeFightMessages(
+        ["500001=94.75;0;flee", "0;0;winner=Gracz 1"],
+        null,
+        BLOWS_GRANTED,
+    );
     const outcomes = both.filter((one) => one.kind === "fight-outcome");
     assertEquals(outcomes.length, 2, "both messages are read, and neither swallows the other");
     assertEquals(outcomes[0]?.result, "fled", "the escape as the escape");
@@ -437,7 +515,7 @@ Deno.test("no recording carries an escape, which is why the register cites the c
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         for (const payload of getRecordedPayloads(path)) {
-            for (const event of decodeFightMessages(payload, roster)) {
+            for (const event of decodeFightMessages(payload, roster, BLOWS_GRANTED)) {
                 if (event.kind !== "fight-outcome") continue;
                 ended += 1;
                 if (event.result === "fled") fled += 1;
@@ -461,7 +539,7 @@ Deno.test("the one element with no raw half still has an applied one", () => {
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         for (const payload of getRecordedPayloads(path)) {
-            for (const event of decodeFightMessages(payload, roster)) {
+            for (const event of decodeFightMessages(payload, roster, BLOWS_GRANTED)) {
                 if (event.kind !== "attack") continue;
                 raw += event.raw.filter((one) => one.element === "dmga").length;
                 applied += event.applied.filter((one) => one.element === "dmga").length;
@@ -484,7 +562,7 @@ Deno.test("the extra attack rides an ordinary blow and never arrives as one", ()
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         for (const payload of getRecordedPayloads(path)) {
-            for (const event of decodeFightMessages(payload, roster)) {
+            for (const event of decodeFightMessages(payload, roster, BLOWS_GRANTED)) {
                 if (event.kind !== "attack") continue;
                 const elements = [...event.raw, ...event.applied].map((one) => one.element);
                 if (!elements.includes("thirdatt")) continue;
@@ -594,7 +672,7 @@ function getCorpusTally(): CorpusTally {
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         for (const payload of getRecordedPayloads(path)) {
-            const events = decodeFightMessages(payload, roster);
+            const events = decodeFightMessages(payload, roster, BLOWS_GRANTED);
             assert(events.length >= payload.length, `${path}: a message decoded to nothing`);
             for (const event of events) countEvent(tally, event, path);
         }
@@ -614,7 +692,7 @@ const AUTO = "captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-non
 
 Deno.test("healing stated by name is read from the value, never from a slot", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(AUTO));
-    const events = decodeFightMessages([TWO_HEALED], roster);
+    const events = decodeFightMessages([TWO_HEALED], roster, BLOWS_GRANTED);
     const restored = events.filter((event) => event.kind === "healing-to-named-combatant");
     assertEquals(restored.length, 2, "both holders are healed in the one message");
     assertStrictEquals(restored[0]?.kind, "healing-to-named-combatant", "the first is read");
@@ -664,10 +742,10 @@ Deno.test("every message in every recording decodes, and the pairs hold", () => 
 Deno.test("a payload is decoded up to the stated bound, and refused past it", () => {
     const one = "0;0;txt=a";
     const full = new Array(MAXIMUM_MESSAGES).fill(one);
-    const events = decodeFightMessages(full, null);
+    const events = decodeFightMessages(full, null, BLOWS_GRANTED);
     assertEquals(events.length, MAXIMUM_MESSAGES, "a payload at the bound decodes whole");
     assertThrows(
-        () => decodeFightMessages([...full, one], null),
+        () => decodeFightMessages([...full, one], null, BLOWS_GRANTED),
         AssertionError,
         "a payload stays inside its stated bound",
     );
@@ -687,4 +765,132 @@ Deno.test("no recording carries a payload anywhere near the bound", () => {
     }
     assert(longest > 0, "the recordings carry messages at all");
     assertLess(longest * 8, MAXIMUM_MESSAGES, "and the widest of them is far inside the bound");
+});
+
+/**
+ * ⚠️ **The budget is spent on the announcer's own blows and on nothing else.** The three cases
+ * below are the whole of what ends a standing early, and each is written out because no recording
+ * puts the announcement of a granted skill in front of any of them. **ADR 0078.**
+ */
+Deno.test("a granted announcement reaches the second blow, and stops there", () => {
+    const events = decodeFightMessages(
+        [GRANTED_ANNOUNCEMENT, GRANTED_FIRST, GRANTED_SECOND, BLOW_AFTER],
+        null,
+        BLOWS_GRANTED,
+    );
+    const attacks = events.filter((event) => event.kind === "attack");
+    assertEquals(attacks.length, 3, "three blows are read");
+    assertEquals(attacks[0]?.announced?.skillName, "Podwójne trafienie", "the first is announced");
+    assertEquals(attacks[1]?.announced?.skillName, "Podwójne trafienie", "and so is the second");
+    assertEquals(attacks[2]?.announced, null, "the third is past what the table granted");
+});
+
+Deno.test("a message that is no blow ends a standing the table paid for", () => {
+    const events = decodeFightMessages(
+        [GRANTED_ANNOUNCEMENT, GRANTED_FIRST, STEP_AFTER, GRANTED_SECOND],
+        null,
+        BLOWS_GRANTED,
+    );
+    const attacks = events.filter((event) => event.kind === "attack");
+    assertEquals(attacks.length, 2, "both blows are read");
+    assertEquals(attacks[0]?.announced?.skillName, "Podwójne trafienie", "the first is announced");
+    assertEquals(attacks[1]?.announced, null, "and a step between the two ends the standing");
+});
+
+Deno.test("another combatant's blow ends a standing rather than being skipped over", () => {
+    const events = decodeFightMessages(
+        [GRANTED_TWICE, GRANTED_FIRST, BLOW_BY_ANOTHER, GRANTED_SECOND],
+        null,
+        BLOWS_GRANTED,
+    );
+    const attacks = events.filter((event) => event.kind === "attack");
+    assertEquals(attacks.length, 3, "all three blows are read");
+    assertEquals(attacks[0]?.announced?.skillName, "Demoniczne cięcie", "the first rides it");
+    assertEquals(attacks[1]?.announced, null, "the blow that is not the announcer's takes none");
+    assertEquals(attacks[2]?.announced, null, "and the standing does not step over it to reach on");
+});
+
+Deno.test("a grant of two reaches three blows of the announcer's own, and no fourth", () => {
+    const events = decodeFightMessages(
+        [GRANTED_TWICE, GRANTED_FIRST, GRANTED_SECOND, GRANTED_FIRST, GRANTED_SECOND],
+        null,
+        BLOWS_GRANTED,
+    );
+    const attacks = events.filter((event) => event.kind === "attack");
+    assertEquals(attacks.length, 4, "four blows are read");
+    assertEquals(attacks[2]?.announced?.skillName, "Demoniczne cięcie", "the third still rides it");
+    assertEquals(attacks[3]?.announced, null, "and the fourth is past what the table granted");
+});
+
+Deno.test("a table granting nothing leaves the announcement reaching one message", () => {
+    const events = decodeFightMessages(
+        [GRANTED_ANNOUNCEMENT, GRANTED_FIRST, GRANTED_SECOND],
+        null,
+        new Map(),
+    );
+    const attacks = events.filter((event) => event.kind === "attack");
+    assertEquals(
+        attacks[0]?.announced?.skillName,
+        "Podwójne trafienie",
+        "the first still rides it",
+    );
+    assertEquals(attacks[1]?.announced, null, "and with no grant behind it the second does not");
+});
+
+/**
+ * ⚠️ **Past the message the client glues it to, a standing reaches a blow and nothing else.** A
+ * reach the table could not bound outlives its own blows otherwise, and lands on whatever the
+ * announcer does next: this tick picked up `Kosa zastępcy` while the rule was being written. No
+ * figure reads it — the amount is a loss, and only the restoring branch asks what announced it —
+ * so nothing on screen would have moved, and a heal standing there would have been credited to
+ * the skill. **ADR 0078.**
+ */
+Deno.test("a movement standing behind a reach takes no skill from it", () => {
+    const events = decodeFightMessages(
+        [UNBOUNDED_ANNOUNCEMENT, UNBOUNDED_BLOW, TICK_ON_THE_ANNOUNCER],
+        null,
+        BLOWS_GRANTED,
+    );
+    const struck = events.find((event) => event.kind === "attack");
+    assertEquals(struck?.announced?.skillName, "Kosa zastępcy", "the blow rides the announcement");
+    const moved = events.find((event) => event.kind === "health-change");
+    assertStrictEquals(moved?.kind, "health-change", "the tick on the announcer is read");
+    assertEquals(moved.announced, null, "and takes no skill for standing behind one");
+});
+
+/**
+ * ⚠️ **A bound nothing ever reaches is a number rather than a bound.** The longest run of an
+ * announcer's own blows over `captures/` is two, so the material never meets
+ * `MAXIMUM_BLOWS_GRANTED` and only a payload written by hand can show it binding at all.
+ */
+Deno.test("a reach the table could not bound still stops where the bound says", () => {
+    const nine = Array.from({ length: 9 }, () => BLOW_AFTER);
+    const events = decodeFightMessages([ANNOUNCEMENT, ...nine], null, BLOWS_GRANTED);
+    const attacks = events.filter((event) => event.kind === "attack");
+    assertEquals(attacks.length, 9, "every blow is read");
+    assertEquals(attacks[7]?.announced?.skillName, "Struna płomienna", "the eighth still rides it");
+    assertEquals(attacks[8]?.announced, null, "and the ninth is past what the bound allows");
+});
+
+/**
+ * The claim above is a property of this corpus under this rule, not a theorem: a blow past what
+ * the table granted would still stand mid-strike under no announcement. No recording carries one
+ * — 0 runs of three after an announcement — so it is written out rather than left unsaid.
+ */
+Deno.test("a blow past what the table granted takes no skill, and opens no turn", () => {
+    const events = decodeFightMessages(
+        [GRANTED_ANNOUNCEMENT, GRANTED_FIRST, GRANTED_SECOND, GRANTED_SECOND],
+        null,
+        BLOWS_GRANTED,
+    );
+    let standing = NO_TURN_STANDING;
+    const openers: (number | null)[] = [];
+    for (const event of events) {
+        openers.push(event.kind === "attack" ? getTurnOpener(event, standing) : null);
+        standing = composeTurnStanding(event, standing);
+    }
+    const attacks = events.filter((event) => event.kind === "attack");
+    assertEquals(attacks.length, 3, "three blows are read");
+    assertEquals(attacks[2]?.announced, null, "the third is past what the table granted");
+    assertStrictEquals(openers.at(-1), null, "and it opens no turn, so the two readings disagree");
 });

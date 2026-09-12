@@ -10,7 +10,8 @@
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import { type Combatant, composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
-import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import { composeBlowsGrantedBySkillId, decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import { FROZEN_BLOWS_GRANTED } from "@/frozen/blows-granted.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
@@ -23,6 +24,12 @@ function getNumberFromField(value: unknown, subject: string): number {
     assert(Number.isFinite(value), `${subject} is a number a reading can use`);
     return value;
 }
+
+/**
+ * The published table, as every reader of a recording reads it. A test wanting the rule with no
+ * table behind it hands over an empty map instead (**ADR 0078**).
+ */
+export const BLOWS_GRANTED = composeBlowsGrantedBySkillId(FROZEN_BLOWS_GRANTED.skills);
 
 export function readRecordingPaths(): string[] {
     const paths = readRecordingFilePaths();
@@ -154,6 +161,8 @@ export function getRecordedCombatants(path: string): Combatant[] {
  */
 export function composeRecordedReading(path: string) {
     const roster = composeCombatantRoster(getRecordedCombatants(path));
-    const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+    const events = getRecordedPayloads(path).flatMap((one) =>
+        decodeFightMessages(one, roster, BLOWS_GRANTED)
+    );
     return { roster, statistics: composeFightStatistics(events, composeTeamHeals(events, roster)) };
 }

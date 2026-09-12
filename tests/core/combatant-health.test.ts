@@ -16,6 +16,7 @@ import {
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import {
+    BLOWS_GRANTED,
     getRecordedCombatants,
     getRecordedHealthReadings,
     getRecordedPayloads,
@@ -80,7 +81,9 @@ Deno.test("every combatant in every recording is stated before anything happens 
     for (const path of readRecordingPaths()) {
         const cast = getRecordedCombatants(path);
         const roster = composeCombatantRoster(cast);
-        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const events = getRecordedPayloads(path).flatMap((one) =>
+            decodeFightMessages(one, roster, BLOWS_GRANTED)
+        );
         const health = composeFightEntryHealth(events, roster);
         for (const combatant of cast) {
             const held = health.get(combatant.id);
@@ -103,7 +106,7 @@ Deno.test("what states a combatant first is usually an event with no figure at a
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const seen = new Set<number>();
         for (const payload of getRecordedPayloads(path)) {
-            for (const event of decodeFightMessages(payload, roster)) {
+            for (const event of decodeFightMessages(payload, roster, BLOWS_GRANTED)) {
                 for (const [combatantId] of getStatedHealthFromEvent(event)) {
                     if (seen.has(combatantId)) continue;
                     seen.add(combatantId);
@@ -158,7 +161,11 @@ Deno.test("the first statement is the one that counts, whatever came after", () 
         level: 40,
         healthMaximum: 1000,
     }]);
-    const events = decodeFightMessages(["1=80.00;0;heal=50", "1=30.00;0;poison=500"], roster);
+    const events = decodeFightMessages(
+        ["1=80.00;0;heal=50", "1=30.00;0;poison=500"],
+        roster,
+        BLOWS_GRANTED,
+    );
     assertEquals(
         composeFightEntryHealth(events, roster).get(1),
         800,
@@ -178,13 +185,17 @@ function composeSideRoster() {
 
 Deno.test("a share is of the maximum, floored, and reaches the caster's own side", () => {
     const roster = composeSideRoster();
-    const events = decodeFightMessages([
-        "1=100.00;2=100.00;tspell=Coś;skillId=1",
-        "1=50.00;0;poison=11937",
-        "2=50.00;0;poison=5000",
-        "3=100.00;0;step",
-        "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
-    ], roster);
+    const events = decodeFightMessages(
+        [
+            "1=100.00;2=100.00;tspell=Coś;skillId=1",
+            "1=50.00;0;poison=11937",
+            "2=50.00;0;poison=5000",
+            "3=100.00;0;step",
+            "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
+        ],
+        roster,
+        BLOWS_GRANTED,
+    );
     const heals = [...composeTeamHeals(events, roster).values()];
     assertEquals(heals.length, 1, "one cast");
     assertEquals(
@@ -199,12 +210,16 @@ Deno.test("a share is of the maximum, floored, and reaches the caster's own side
 
 Deno.test("a cast cannot put back more than a combatant walked in with", () => {
     const roster = composeSideRoster();
-    const events = decodeFightMessages([
-        "1=100.00;2=100.00;tspell=Coś;skillId=1",
-        "1=95.00;0;poison=1194",
-        "2=50.00;0;poison=5000",
-        "1=95.00;1=95.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
-    ], roster);
+    const events = decodeFightMessages(
+        [
+            "1=100.00;2=100.00;tspell=Coś;skillId=1",
+            "1=95.00;0;poison=1194",
+            "2=50.00;0;poison=5000",
+            "1=95.00;1=95.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
+        ],
+        roster,
+        BLOWS_GRANTED,
+    );
     const heals = [...composeTeamHeals(events, roster).values()];
     assertEquals(
         heals[0]?.restoredByCombatantId.get(1),
@@ -223,12 +238,16 @@ Deno.test("a member nobody can size leaves the cast saying so", () => {
         { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
         { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: null },
     ]);
-    const events = decodeFightMessages([
-        "1=100.00;0;step",
-        "2=100.00;0;step",
-        "1=50.00;0;poison=500",
-        "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
-    ], roster);
+    const events = decodeFightMessages(
+        [
+            "1=100.00;0;step",
+            "2=100.00;0;step",
+            "1=50.00;0;poison=500",
+            "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
+        ],
+        roster,
+        BLOWS_GRANTED,
+    );
     const heals = [...composeTeamHeals(events, roster).values()];
     assertEquals(heals[0]?.restoredByCombatantId.get(1), 300, "the one that could be sized is");
     assertEquals(heals[0]?.restoredByCombatantId.has(2), false, "the one that could not is not");
@@ -237,22 +256,30 @@ Deno.test("a member nobody can size leaves the cast saying so", () => {
 
 Deno.test("a cast on a side a reducer reached is refused whole", () => {
     const roster = composeSideRoster();
-    const reduced = decodeFightMessages([
-        "1=100.00;0;step",
-        "2=100.00;0;step",
-        "3=100.00;3=100.00;tspell=Jadowity podmuch;skillId=219;lowheal_per-enemies=27",
-        "1=50.00;0;poison=11937",
-        "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
-    ], roster);
+    const reduced = decodeFightMessages(
+        [
+            "1=100.00;0;step",
+            "2=100.00;0;step",
+            "3=100.00;3=100.00;tspell=Jadowity podmuch;skillId=219;lowheal_per-enemies=27",
+            "1=50.00;0;poison=11937",
+            "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
+        ],
+        roster,
+        BLOWS_GRANTED,
+    );
     assertEquals(composeTeamHeals(reduced, roster).size, 0, "nothing is sized where it was cut");
 
-    const theirOwn = decodeFightMessages([
-        "1=100.00;0;step",
-        "2=100.00;0;step",
-        "1=100.00;3=100.00;tspell=Jadowity podmuch;skillId=219;lowheal_per-enemies=27",
-        "1=50.00;0;poison=11937",
-        "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
-    ], roster);
+    const theirOwn = decodeFightMessages(
+        [
+            "1=100.00;0;step",
+            "2=100.00;0;step",
+            "1=100.00;3=100.00;tspell=Jadowity podmuch;skillId=219;lowheal_per-enemies=27",
+            "1=50.00;0;poison=11937",
+            "1=50.00;1=50.00;tspell=Zdrowa atmosfera;skillId=79;healall_per=30",
+        ],
+        roster,
+        BLOWS_GRANTED,
+    );
     assertEquals(
         composeTeamHeals(theirOwn, roster).size,
         1,
@@ -267,7 +294,9 @@ Deno.test("every cast in the recordings is sized, and the cap is what does the w
     let atShare = 0;
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
-        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const events = getRecordedPayloads(path).flatMap((one) =>
+            decodeFightMessages(one, roster, BLOWS_GRANTED)
+        );
         for (const heal of composeTeamHeals(events, roster).values()) {
             casts += 1;
             if (heal.isWhole) whole += 1;

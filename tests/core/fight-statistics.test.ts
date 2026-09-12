@@ -12,6 +12,7 @@ import { type CombatantRoster, composeCombatantRoster } from "@/src/core/combata
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics, getUnreadMessages } from "@/src/core/fight-statistics.ts";
 import {
+    BLOWS_GRANTED,
     getRecordedCombatants,
     getRecordedPayloads,
     readRecordingPaths,
@@ -31,7 +32,10 @@ const POISON = "-255967=19.27;0;poison=140,14";
 const HEAL = "482845=100.00;0;heal=99";
 
 Deno.test("a blow lands on both of its ends, and raw stays apart from applied", () => {
-    const statistics = composeFightStatistics(decodeFightMessages([ABSORBED], null), new Map());
+    const statistics = composeFightStatistics(
+        decodeFightMessages([ABSORBED], null, BLOWS_GRANTED),
+        new Map(),
+    );
     const dealer = statistics.byCombatantId.get(467968);
     assertEquals(dealer?.damageDealtRaw, 1557, "what the attacker put out");
     assertEquals(dealer?.damageDealtApplied, 1012, "and what of it landed");
@@ -61,7 +65,7 @@ Deno.test("damage stated against a name is charged to the skill that announced i
         { id: 195782, name: "Gracz 2", side: 1, profession: "t", level: 100, healthMaximum: 5000 },
         { id: 114881, name: "Gracz 1", side: 2, profession: "w", level: 100, healthMaximum: 5000 },
     ]);
-    const events = decodeFightMessages([NAMED_DAMAGE], roster);
+    const events = decodeFightMessages([NAMED_DAMAGE], roster, BLOWS_GRANTED);
     const statistics = composeFightStatistics(events, new Map());
     const dealer = statistics.byCombatantId.get(195782);
     assertEquals(dealer?.damageDealtApplied, 1529, "the figure reaches whoever announced it");
@@ -96,13 +100,16 @@ const BLOCKED = [
  * never swung is not a thing damage was dealt with, whatever it declared.
  */
 Deno.test("an announcement counts a use, and a swing only where one went out", () => {
-    const alone = composeFightStatistics(decodeFightMessages([AURA], null), new Map());
+    const alone = composeFightStatistics(
+        decodeFightMessages([AURA], null, BLOWS_GRANTED),
+        new Map(),
+    );
     const aura = alone.byCombatantId.get(466476)?.skills.get("Aura ochrony");
     assertEquals(aura?.uses, 1, "the announcement was made once");
     assertEquals(aura?.blows, 0, "and nothing was struck under it");
     assertEquals(aura?.dealt, 0, "so it dealt nothing, which is a reading and not a gap");
     const struck = composeFightStatistics(
-        decodeFightMessages([ANNOUNCED, ABSORBED], null),
+        decodeFightMessages([ANNOUNCED, ABSORBED], null, BLOWS_GRANTED),
         new Map(),
     );
     const arrow = struck.byCombatantId.get(467968)?.skills.get("Zatruta strzała");
@@ -112,14 +119,20 @@ Deno.test("an announcement counts a use, and a swing only where one went out", (
 });
 
 Deno.test("a swing that landed nothing is still a swing under its announcement", () => {
-    const statistics = composeFightStatistics(decodeFightMessages(BLOCKED, null), new Map());
+    const statistics = composeFightStatistics(
+        decodeFightMessages(BLOCKED, null, BLOWS_GRANTED),
+        new Map(),
+    );
     const skill = statistics.byCombatantId.get(114881)?.skills.get("Błyskawiczny cios");
     assertEquals(skill?.dealt, 0, "a block stopped the whole of it");
     assertEquals(skill?.blows, 1, "and the swing that was stopped still went out");
 });
 
 Deno.test("health moving without an attacker is taken by somebody and dealt by nobody", () => {
-    const statistics = composeFightStatistics(decodeFightMessages([POISON], null), new Map());
+    const statistics = composeFightStatistics(
+        decodeFightMessages([POISON], null, BLOWS_GRANTED),
+        new Map(),
+    );
     const bitten = statistics.byCombatantId.get(-255967);
     assertEquals(bitten?.damageTakenApplied, 140, "the tick is health this combatant lost");
     assertEquals(statistics.dealtByNobody, 140, "and the log ties it to no attacker at all");
@@ -127,7 +140,10 @@ Deno.test("health moving without an attacker is taken by somebody and dealt by n
 });
 
 Deno.test("health restored is not damage, and its own key says who gave it", () => {
-    const statistics = composeFightStatistics(decodeFightMessages([HEAL], null), new Map());
+    const statistics = composeFightStatistics(
+        decodeFightMessages([HEAL], null, BLOWS_GRANTED),
+        new Map(),
+    );
     const healed = statistics.byCombatantId.get(482845);
     assertEquals(healed?.healthRestored, 99, "the health the protocol says came back");
     assertEquals(healed?.damageTakenApplied, 0, "no total of damage moved");
@@ -145,7 +161,10 @@ Deno.test("health restored is not damage, and its own key says who gave it", () 
  */
 Deno.test("a restoring key nothing announced and no help claims is charged to nobody", () => {
     const bandaged = "482845=100.00;0;bandage=40";
-    const statistics = composeFightStatistics(decodeFightMessages([bandaged], null), new Map());
+    const statistics = composeFightStatistics(
+        decodeFightMessages([bandaged], null, BLOWS_GRANTED),
+        new Map(),
+    );
     const healed = statistics.byCombatantId.get(482845);
     assertEquals(healed?.healthRestored, 40, "the health still came back");
     assertEquals(healed?.healthGiven, 0, "and this combatant is credited with none of it");
@@ -159,7 +178,10 @@ Deno.test("a restoring key nothing announced and no help claims is charged to no
  */
 Deno.test("a restoring key credits whoever announced it, and names the skill on their row", () => {
     const announced = "469657=95.78;445202=100.00;tspell=Leczenie ran;skillId=78;heal_target=11733";
-    const statistics = composeFightStatistics(decodeFightMessages([announced], null), new Map());
+    const statistics = composeFightStatistics(
+        decodeFightMessages([announced], null, BLOWS_GRANTED),
+        new Map(),
+    );
     assertEquals(statistics.givenByNobody, 0, "nothing is left charged to nobody");
     const healer = statistics.byCombatantId.get(469657);
     assertEquals(healer?.healthGiven, 11733, "the announcer is credited with giving it");
@@ -180,7 +202,7 @@ Deno.test("a restoring key credits whoever announced it, and names the skill on 
 Deno.test("health between two is charged to the skill that announced it, or to the key", () => {
     const announced = "469657=95.78;445202=100.00;tspell=Leczenie ran;skillId=78;heal_target=11733";
     const statistics = composeFightStatistics(
-        decodeFightMessages([announced, HEAL], null),
+        decodeFightMessages([announced, HEAL], null, BLOWS_GRANTED),
         new Map(),
     );
     const healer = statistics.byCombatantId.get(469657);
@@ -213,13 +235,17 @@ Deno.test("a cast credits its caster with everything it put back, member by memb
         { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
         { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: 2000 },
     ]);
-    const events = decodeFightMessages([
-        "1=100.00;0;step",
-        "2=100.00;0;step",
-        "1=50.00;0;poison=500",
-        "2=50.00;0;poison=1000",
-        "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
-    ], roster);
+    const events = decodeFightMessages(
+        [
+            "1=100.00;0;step",
+            "2=100.00;0;step",
+            "1=50.00;0;poison=500",
+            "2=50.00;0;poison=1000",
+            "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
+        ],
+        roster,
+        BLOWS_GRANTED,
+    );
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     assertEquals(statistics.byCombatantId.get(1)?.healthGiven, 900, "the caster gave both shares");
     assertEquals(statistics.byCombatantId.get(2)?.healthGiven, 0, "and the other member gave none");
@@ -249,7 +275,9 @@ Deno.test("the corpus says who gave every point of health it put back", () => {
     let nobody = 0;
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
-        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const events = getRecordedPayloads(path).flatMap((one) =>
+            decodeFightMessages(one, roster, BLOWS_GRANTED)
+        );
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
         restored += statistics.totals.healthRestored;
         given += statistics.totals.healthGiven;
@@ -274,7 +302,7 @@ Deno.test("every point applied is counted once at each end, in every recording",
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const events = getRecordedPayloads(path).flatMap((payload) =>
-            decodeFightMessages(payload, roster)
+            decodeFightMessages(payload, roster, BLOWS_GRANTED)
         );
         const statistics = composeFightStatistics(events, new Map());
         let fightDealt = statistics.dealtByNobody;
@@ -300,13 +328,17 @@ Deno.test("a cast sized reaches the figures, and one nobody could place is count
         { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
         { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: 2000 },
     ]);
-    const events = decodeFightMessages([
-        "1=100.00;0;step",
-        "2=100.00;0;step",
-        "1=50.00;0;poison=500",
-        "2=50.00;0;poison=1000",
-        "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
-    ], roster);
+    const events = decodeFightMessages(
+        [
+            "1=100.00;0;step",
+            "2=100.00;0;step",
+            "1=50.00;0;poison=500",
+            "2=50.00;0;poison=1000",
+            "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
+        ],
+        roster,
+        BLOWS_GRANTED,
+    );
     const sized = composeFightStatistics(events, composeTeamHeals(events, roster));
     assertEquals(sized.byCombatantId.get(1)?.healthRestored, 300, "a share of the first pool");
     assertEquals(sized.byCombatantId.get(2)?.healthRestored, 600, "and of the second");
@@ -322,9 +354,13 @@ Deno.test("a cast sized reaches the figures, and one nobody could place is count
  * looking at one person had no way to ask whether the suspicion under the list was about them.
  */
 Deno.test("an unread message is charged to both of the ends it named, once each", () => {
-    const events = decodeFightMessages([
-        "1=87.63;2=87.63;tspell=Zdrowa atmosfera;skillId=79;whatever_per=30",
-    ], null);
+    const events = decodeFightMessages(
+        [
+            "1=87.63;2=87.63;tspell=Zdrowa atmosfera;skillId=79;whatever_per=30",
+        ],
+        null,
+        BLOWS_GRANTED,
+    );
     const statistics = composeFightStatistics(events, new Map());
     assertEquals(statistics.unreadMessagesUnknownKey, 1, "one key had no meaning yet");
     assertEquals(
@@ -341,9 +377,13 @@ Deno.test("an unread message is charged to both of the ends it named, once each"
 });
 
 Deno.test("a message naming one end twice charges that row once", () => {
-    const events = decodeFightMessages([
-        "469657=87.63;469657=87.63;tspell=Zdrowa atmosfera;skillId=79;whatever_per=30",
-    ], null);
+    const events = decodeFightMessages(
+        [
+            "469657=87.63;469657=87.63;tspell=Zdrowa atmosfera;skillId=79;whatever_per=30",
+        ],
+        null,
+        BLOWS_GRANTED,
+    );
     const statistics = composeFightStatistics(events, new Map());
     assertEquals(statistics.unreadMessagesUnknownKey, 1, "one message");
     assertEquals(
@@ -355,7 +395,7 @@ Deno.test("a message naming one end twice charges that row once", () => {
 
 Deno.test("a message the grammar refuses is charged to nobody, because it named nobody", () => {
     const statistics = composeFightStatistics(
-        decodeFightMessages(["gracz;0;step"], null),
+        decodeFightMessages(["gracz;0;step"], null, BLOWS_GRANTED),
         new Map(),
     );
     assertEquals(statistics.unreadMessagesGrammarRefused, 1, "the fight knows it lost a message");
@@ -373,9 +413,13 @@ Deno.test("a cast nobody could place is charged to whoever announced it", () => 
         { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
         { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: 2000 },
     ]);
-    const events = decodeFightMessages([
-        "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
-    ], roster);
+    const events = decodeFightMessages(
+        [
+            "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
+        ],
+        roster,
+        BLOWS_GRANTED,
+    );
     const unsized = composeFightStatistics(events, new Map());
     assertEquals(unsized.castsUnplaced, 1, "the fight counts the cast it could not place");
     assertEquals(unsized.byCombatantId.get(1)?.castsUnplaced, 1, "and the caster carries it");
@@ -387,7 +431,9 @@ Deno.test("what the recordings restore is mostly what a cast put back", () => {
     let unplaced = 0;
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
-        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const events = getRecordedPayloads(path).flatMap((one) =>
+            decodeFightMessages(one, roster, BLOWS_GRANTED)
+        );
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
         restored += statistics.totals.healthRestored;
         unplaced += statistics.castsUnplaced;
@@ -397,7 +443,10 @@ Deno.test("what the recordings restore is mostly what a cast put back", () => {
 });
 
 Deno.test("a blow is cut by what it was dealt with and by whom it reached", () => {
-    const statistics = composeFightStatistics(decodeFightMessages([ABSORBED], null), new Map());
+    const statistics = composeFightStatistics(
+        decodeFightMessages([ABSORBED], null, BLOWS_GRANTED),
+        new Map(),
+    );
     const dealer = statistics.byCombatantId.get(467968);
     assertEquals(dealer?.damageDealtByElement.get("dmgd"), 1012, "the element the key names");
     assertEquals(dealer?.damageDealtByOpponent.get("-10000249"), 1012, "and the end it reached");
@@ -409,7 +458,9 @@ Deno.test("a blow is cut by what it was dealt with and by whom it reached", () =
 Deno.test("every cut of a combatant comes to that combatant's own total", () => {
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
-        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const events = getRecordedPayloads(path).flatMap((one) =>
+            decodeFightMessages(one, roster, BLOWS_GRANTED)
+        );
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
         for (const [combatantId, figures] of statistics.byCombatantId) {
             let byElement = 0;
@@ -435,7 +486,9 @@ Deno.test("every cut of a combatant comes to that combatant's own total", () => 
 Deno.test("a cut by both ends comes to the same figure as the cut by one", () => {
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
-        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const events = getRecordedPayloads(path).flatMap((one) =>
+            decodeFightMessages(one, roster, BLOWS_GRANTED)
+        );
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
         for (const [combatantId, figures] of statistics.byCombatantId) {
             const where = `${path}: ${combatantId}`;
@@ -486,7 +539,9 @@ Deno.test("what one dealt another is the announcements aimed at them, and never 
     let between = 0;
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
-        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const events = getRecordedPayloads(path).flatMap((one) =>
+            decodeFightMessages(one, roster, BLOWS_GRANTED)
+        );
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
         for (const [combatantId, figures] of statistics.byCombatantId) {
             for (const [other, kinds] of figures.damageTakenByOpponentAndKind) {
@@ -529,7 +584,9 @@ Deno.test("what one gave another is the skills announced for it plus the keys, e
     let stated = 0;
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
-        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const events = getRecordedPayloads(path).flatMap((one) =>
+            decodeFightMessages(one, roster, BLOWS_GRANTED)
+        );
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
         for (const [combatantId, figures] of statistics.byCombatantId) {
             for (const [other, amount] of figures.healthGivenByReceiver) {
@@ -595,7 +652,10 @@ const EVADED = "467968=100.00;-10000249=99.69;-evade;+dmgd=900;-dmgd=0";
 const UNSETTLED = "467968=100.00;-10000249=99.69;-tenacity;+dmgd=100;-dmgd=100";
 
 Deno.test("what fired beside a blow lands on the row of whoever it belongs to", () => {
-    const statistics = composeFightStatistics(decodeFightMessages([CRITICAL], null), new Map());
+    const statistics = composeFightStatistics(
+        decodeFightMessages([CRITICAL], null, BLOWS_GRANTED),
+        new Map(),
+    );
     const striker = statistics.byCombatantId.get(467968);
     const struck = statistics.byCombatantId.get(-10000249);
     assertEquals(
@@ -628,7 +688,10 @@ Deno.test("what fired beside a blow lands on the row of whoever it belongs to", 
 });
 
 Deno.test("a flag the defence fired is the defence's, whichever sign the key wears", () => {
-    const statistics = composeFightStatistics(decodeFightMessages([EVADED], null), new Map());
+    const statistics = composeFightStatistics(
+        decodeFightMessages([EVADED], null, BLOWS_GRANTED),
+        new Map(),
+    );
     assertEquals(
         [...statistics.byCombatantId.get(-10000249)?.procsWhenStruck ?? []],
         [["-evade", 1]],
@@ -643,7 +706,10 @@ Deno.test("a flag the defence fired is the defence's, whichever sign the key wea
 });
 
 Deno.test("a proc nobody can place is charged to nobody rather than to whoever was handy", () => {
-    const statistics = composeFightStatistics(decodeFightMessages([UNSETTLED], null), new Map());
+    const statistics = composeFightStatistics(
+        decodeFightMessages([UNSETTLED], null, BLOWS_GRANTED),
+        new Map(),
+    );
     assertEquals(
         getUnreadMessages(statistics),
         0,
@@ -656,7 +722,10 @@ Deno.test("a proc nobody can place is charged to nobody rather than to whoever w
 });
 
 Deno.test("what a defence stopped is kept as the sum and as the defences it is made of", () => {
-    const statistics = composeFightStatistics(decodeFightMessages([ABSORBED], null), new Map());
+    const statistics = composeFightStatistics(
+        decodeFightMessages([ABSORBED], null, BLOWS_GRANTED),
+        new Map(),
+    );
     const target = statistics.byCombatantId.get(-10000249);
     assertEquals(target?.damagePrevented, 545, "the one number a counter states");
     assertEquals(
@@ -672,7 +741,10 @@ Deno.test("the hardest blow is the hardest blow, and no total can be read back t
         "467968=100.00;-10000249=99.69;+dmg=900;-dmg=800",
         "467968=100.00;-10000249=99.69;+dmg=200;-dmg=100",
     ];
-    const statistics = composeFightStatistics(decodeFightMessages(messages, null), new Map());
+    const statistics = composeFightStatistics(
+        decodeFightMessages(messages, null, BLOWS_GRANTED),
+        new Map(),
+    );
     assertEquals(statistics.byCombatantId.get(467968)?.damageDealtApplied, 1400, "three blows");
     assertEquals(
         statistics.byCombatantId.get(467968)?.damageDealtBlowLargest,
@@ -689,7 +761,7 @@ Deno.test("the hardest blow is the hardest blow, and no total can be read back t
 Deno.test("every recording places what a blow carried, and places none of it twice", () => {
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
-        const events = decodeFightMessages(getRecordedPayloads(path).flat(), roster);
+        const events = decodeFightMessages(getRecordedPayloads(path).flat(), roster, BLOWS_GRANTED);
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
         for (const [id, figures] of statistics.byCombatantId) {
             let cut = 0;
@@ -749,7 +821,10 @@ const NAMED_BLOW_PREPARE_READY = "-10000544=100.00;0;prepare=Osobisty rozrachune
 const STRIKER_POISON = "-10000544=98.62;0;poison=204,20";
 
 function getTurnsTaken(messages: readonly string[], combatantId: number): number {
-    const statistics = composeFightStatistics(decodeFightMessages(messages, null), new Map());
+    const statistics = composeFightStatistics(
+        decodeFightMessages(messages, null, BLOWS_GRANTED),
+        new Map(),
+    );
     return statistics.byCombatantId.get(combatantId)?.turnsTaken ?? 0;
 }
 
@@ -817,7 +892,7 @@ Deno.test("a combatant nothing was read of took no turn, and nor did an empty fi
  * recording produces the case, which is why the message is written here — **W4**.
  */
 Deno.test("a turn the protocol named nobody for is charged to no row", () => {
-    const events = decodeFightMessages(["0;0;tspell=Coś;skillId=1"], null);
+    const events = decodeFightMessages(["0;0;tspell=Coś;skillId=1"], null, BLOWS_GRANTED);
     const statistics = composeFightStatistics(events, new Map());
     assertEquals(statistics.byCombatantId.size, 0, "an unnamed actor opens no row");
 });
@@ -832,7 +907,9 @@ Deno.test("every recording charges a turn to somebody who was already in the fig
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         // One decode per payload, which is what the session does: an announcement is glued
         // inside the payload it arrived in and never across two of them.
-        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const events = getRecordedPayloads(path).flatMap((one) =>
+            decodeFightMessages(one, roster, BLOWS_GRANTED)
+        );
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
         for (const [id, figures] of statistics.byCombatantId) {
             assert(figures.turnsTaken >= 0, `${path} ${id} took no less than no turn`);
@@ -875,7 +952,7 @@ function composeTwoSided(): CombatantRoster {
 
 function getTurnsLost(messages: readonly string[], combatantId: number): number {
     const roster = composeTwoSided();
-    const events = decodeFightMessages(messages, roster);
+    const events = decodeFightMessages(messages, roster, BLOWS_GRANTED);
     const statistics = composeFightStatistics(events, new Map());
     return statistics.byCombatantId.get(combatantId)?.turnsLost ?? 0;
 }
@@ -904,7 +981,9 @@ Deno.test("every turn the recordings say was lost is charged to somebody in the 
     let lost = 0;
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
-        const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+        const events = getRecordedPayloads(path).flatMap((one) =>
+            decodeFightMessages(one, roster, BLOWS_GRANTED)
+        );
         const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
         let placed = 0;
         for (const [, figures] of statistics.byCombatantId) placed += figures.turnsLost;
@@ -926,7 +1005,7 @@ Deno.test("a name that opens another does not take its line", () => {
         { id: 1, name: "Ala", side: 1, level: 10, profession: "w", healthMaximum: null },
         { id: 2, name: "Ala - Bela", side: 2, level: 10, profession: "m", healthMaximum: null },
     ]);
-    const events = decodeFightMessages(["0;0;txt=Ala - Bela - utrata tury"], roster);
+    const events = decodeFightMessages(["0;0;txt=Ala - Bela - utrata tury"], roster, BLOWS_GRANTED);
     const statistics = composeFightStatistics(events, new Map());
     assertEquals(statistics.byCombatantId.get(2)?.turnsLost, 1, "the longer name holds the line");
     assertEquals(statistics.byCombatantId.get(1)?.turnsLost, undefined, "and the shorter has none");

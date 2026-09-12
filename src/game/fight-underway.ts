@@ -234,7 +234,11 @@ export function isFightStart(payload: unknown): boolean {
     return FIGHT_OPENS_KEY in payload;
 }
 
-export function addPayloadToFight(underway: FightUnderway, payload: unknown): void {
+export function addPayloadToFight(
+    underway: FightUnderway,
+    payload: unknown,
+    blowsGrantedBySkillId: ReadonlyMap<number, number>,
+): void {
     if (!isRecord(payload)) return;
     if (isFightStart(payload)) resetFight(underway);
     // ⚠️ **Everything that can throw is read before anything is written**, so a payload lands
@@ -245,7 +249,7 @@ export function addPayloadToFight(underway: FightUnderway, payload: unknown): vo
     const roster = composeCombatantRoster([...underway.combatants, ...arriving]);
     const messages = readMessagesFromPayload(payload);
     const stated = readMessageCountFromPayload(payload);
-    const decoded = decodeFightMessages(messages, roster);
+    const decoded = decodeFightMessages(messages, roster, blowsGrantedBySkillId);
     // Kept once seen: a payload saying nothing about it would otherwise end the auto fight a
     // reader is watching, and only the game's own word for it takes it away.
     const isOnAuto = readAutoFightFromPayload(payload) ?? underway.isOnAuto;

@@ -24,6 +24,7 @@ import {
     readTurnStatement,
 } from "@/src/game/fight-underway.ts";
 import {
+    BLOWS_GRANTED,
     getRecordedCombatants,
     getRecordedEngineUpdates,
     getRecordedPayloads,
@@ -36,17 +37,19 @@ const NO_SNAPSHOTS =
 
 function replay(path: string) {
     const underway = composeFightUnderway();
-    for (const update of getRecordedEngineUpdates(path)) addPayloadToFight(underway, update);
+    for (const update of getRecordedEngineUpdates(path)) {
+        addPayloadToFight(underway, update, BLOWS_GRANTED);
+    }
     return getReadingFromFight(underway);
 }
 
 Deno.test("a fight nobody has seen is not a fight holding nothing", () => {
     assertEquals(getReadingFromFight(composeFightUnderway()), null, "there is no fight to read");
     const underway = composeFightUnderway();
-    addPayloadToFight(underway, null);
+    addPayloadToFight(underway, null, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(underway), null, "and what is not a payload starts none");
     // A list is an object to `typeof`, and one reaching here used to open a fight nobody fought.
-    addPayloadToFight(underway, ["0;0;txt=a"]);
+    addPayloadToFight(underway, ["0;0;txt=a"], BLOWS_GRANTED);
     assertEquals(getReadingFromFight(underway), null, "a list is not a payload either");
 });
 
@@ -55,7 +58,7 @@ Deno.test("a recording replayed call by call reads as the whole of itself", () =
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         let decoded = 0;
         for (const payload of getRecordedPayloads(path)) {
-            decoded += decodeFightMessages(payload, roster).length;
+            decoded += decodeFightMessages(payload, roster, BLOWS_GRANTED).length;
         }
         const fight = replay(path);
         assertExists(fight, `${path}: the replay produced a fight`);
@@ -70,9 +73,13 @@ Deno.test("a fight that opens replaces the one standing before it", () => {
     assert(first !== undefined, "a first recording to run");
     assert(second !== undefined, "and a second to run after it");
     const underway = composeFightUnderway();
-    for (const update of getRecordedEngineUpdates(first)) addPayloadToFight(underway, update);
+    for (const update of getRecordedEngineUpdates(first)) {
+        addPayloadToFight(underway, update, BLOWS_GRANTED);
+    }
     const opened = getReadingFromFight(underway);
-    for (const update of getRecordedEngineUpdates(second)) addPayloadToFight(underway, update);
+    for (const update of getRecordedEngineUpdates(second)) {
+        addPayloadToFight(underway, update, BLOWS_GRANTED);
+    }
     const replaced = getReadingFromFight(underway);
     assert(opened !== null, "the fight that opened was read");
     assert(replaced !== null, "and so was the one that replaced it");
@@ -83,20 +90,28 @@ Deno.test("a fight that opens replaces the one standing before it", () => {
 
 Deno.test("a payload says how many messages it carried, and the count is held to it", () => {
     const underway = composeFightUnderway();
-    addPayloadToFight(underway, { init: 1, mi: [0, 0, 0], m: ["0;0;txt=a", "0;0;txt=b"] });
+    addPayloadToFight(
+        underway,
+        { init: 1, mi: [0, 0, 0], m: ["0;0;txt=a", "0;0;txt=b"] },
+        BLOWS_GRANTED,
+    );
     assertEquals(getReadingFromFight(underway)?.messagesLost, 1, "one was stated and not read");
 
     const renamed = composeFightUnderway();
-    addPayloadToFight(renamed, { init: 1, mi: [0, 0], messages: ["0;0;txt=a", "0;0;txt=b"] });
+    addPayloadToFight(
+        renamed,
+        { init: 1, mi: [0, 0], messages: ["0;0;txt=a", "0;0;txt=b"] },
+        BLOWS_GRANTED,
+    );
     assertEquals(getReadingFromFight(renamed)?.messagesLost, 2, "a rename of `m` is caught whole");
 
     const witnessGone = composeFightUnderway();
-    addPayloadToFight(witnessGone, { init: 1, m: ["0;0;txt=a"] });
+    addPayloadToFight(witnessGone, { init: 1, m: ["0;0;txt=a"] }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(witnessGone)?.messagesLost, 0, "and a lost witness is silent");
 
     // Two calls, each losing one: what is lost accumulates across a fight rather than standing
     // for whatever the last payload happened to lose.
-    addPayloadToFight(underway, { mi: [0, 0], m: ["0;0;txt=c"] });
+    addPayloadToFight(underway, { mi: [0, 0], m: ["0;0;txt=c"] }, BLOWS_GRANTED);
     assertEquals(
         getReadingFromFight(underway)?.messagesLost,
         2,
@@ -113,19 +128,23 @@ Deno.test("a reading counts what it took, beside what it never got", () => {
     const underway = composeFightUnderway();
     assertEquals(getReadingFromFight(underway), null, "a fight nobody has seen has no count");
 
-    addPayloadToFight(underway, { init: 1, mi: [0, 0, 0], m: ["0;0;txt=a", "0;0;txt=b"] });
+    addPayloadToFight(
+        underway,
+        { init: 1, mi: [0, 0, 0], m: ["0;0;txt=a", "0;0;txt=b"] },
+        BLOWS_GRANTED,
+    );
     assertEquals(getReadingFromFight(underway)?.messagesRead, 2, "two arrived and were read");
     assertEquals(getReadingFromFight(underway)?.messagesLost, 1, "and one was stated and lost");
 
-    addPayloadToFight(underway, { m: ["0;0;txt=c"] });
+    addPayloadToFight(underway, { m: ["0;0;txt=c"] }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(underway)?.messagesRead, 3, "and every call adds to it");
 
     // **W5**: a payload carrying nothing is a boundary, and it moves neither figure.
-    addPayloadToFight(underway, { m: [] });
+    addPayloadToFight(underway, { m: [] }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(underway)?.messagesRead, 3, "a payload with none adds none");
 
     // A fight starting inside the same session counts from nothing again, as the rest does.
-    addPayloadToFight(underway, { init: 1, m: ["0;0;txt=d"] });
+    addPayloadToFight(underway, { init: 1, m: ["0;0;txt=d"] }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(underway)?.messagesRead, 1, "and a new fight starts over");
 });
 
@@ -154,30 +173,30 @@ Deno.test("a fight whose calls carry no snapshot still has a cast", () => {
  */
 Deno.test("the reader's own side is read off the payload, in either spelling", () => {
     const asText = composeFightUnderway();
-    addPayloadToFight(asText, { init: 1, myteam: "2" });
+    addPayloadToFight(asText, { init: 1, myteam: "2" }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(asText)?.readerSide, 2, "stated as text, as the corpus does");
 
     const asNumber = composeFightUnderway();
-    addPayloadToFight(asNumber, { init: 1, myteam: 2 });
+    addPayloadToFight(asNumber, { init: 1, myteam: 2 }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(asNumber)?.readerSide, 2, "and stated as a number");
 
     const silent = composeFightUnderway();
-    addPayloadToFight(silent, { init: 1 });
+    addPayloadToFight(silent, { init: 1 }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(silent)?.readerSide, null, "a payload that says nothing");
 });
 
 /** It arrives on the opening payload only, so a later one saying nothing must not take it away. */
 Deno.test("the reader's own side is kept once seen, and cleared when a fight opens", () => {
     const underway = composeFightUnderway();
-    addPayloadToFight(underway, { init: 1, myteam: "1" });
-    addPayloadToFight(underway, { m: ["0;0;txt=a"] });
+    addPayloadToFight(underway, { init: 1, myteam: "1" }, BLOWS_GRANTED);
+    addPayloadToFight(underway, { m: ["0;0;txt=a"] }, BLOWS_GRANTED);
     assertEquals(
         getReadingFromFight(underway)?.readerSide,
         1,
         "a later payload takes nothing away",
     );
 
-    addPayloadToFight(underway, { init: 1 });
+    addPayloadToFight(underway, { init: 1 }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(underway)?.readerSide, null, "and a new fight starts over");
 });
 
@@ -191,7 +210,7 @@ Deno.test("every recording states its reader's side, on the payload that opens t
     for (const path of readRecordingPaths()) {
         const underway = composeFightUnderway();
         const [first] = getRecordedEngineUpdates(path);
-        addPayloadToFight(underway, first);
+        addPayloadToFight(underway, first, BLOWS_GRANTED);
         const readerSide = getReadingFromFight(underway)?.readerSide ?? null;
         assertNotStrictEquals(
             readerSide,
@@ -206,34 +225,34 @@ Deno.test("every recording states its reader's side, on the payload that opens t
 
 Deno.test("a fight the game runs itself is read off the payload, in either spelling", () => {
     const asText = composeFightUnderway();
-    addPayloadToFight(asText, { init: 1, auto: "1" });
+    addPayloadToFight(asText, { init: 1, auto: "1" }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(asText)?.isOnAuto, true, "stated as text, as the corpus does");
 
     const asNumber = composeFightUnderway();
-    addPayloadToFight(asNumber, { init: 1, auto: 1 });
+    addPayloadToFight(asNumber, { init: 1, auto: 1 }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(asNumber)?.isOnAuto, true, "and stated as a number");
 
     const byHand = composeFightUnderway();
-    addPayloadToFight(byHand, { init: 1, auto: "0" });
+    addPayloadToFight(byHand, { init: 1, auto: "0" }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(byHand)?.isOnAuto, false, "a fight the reader is fighting");
 
     const silent = composeFightUnderway();
-    addPayloadToFight(silent, { init: 1 });
+    addPayloadToFight(silent, { init: 1 }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(silent)?.isOnAuto, false, "and one that says nothing at all");
 });
 
 /** It arrives on the payload that turns it on, so a later one saying nothing must not end it. */
 Deno.test("a fight the game runs itself is kept once seen, and cleared when a fight opens", () => {
     const underway = composeFightUnderway();
-    addPayloadToFight(underway, { init: 1, auto: "1" });
-    addPayloadToFight(underway, { m: ["0;0;txt=a"] });
+    addPayloadToFight(underway, { init: 1, auto: "1" }, BLOWS_GRANTED);
+    addPayloadToFight(underway, { m: ["0;0;txt=a"] }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(underway)?.isOnAuto, true, "a later payload takes it away");
 
-    addPayloadToFight(underway, { auto: "0" });
+    addPayloadToFight(underway, { auto: "0" }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(underway)?.isOnAuto, false, "but the game's own word does");
 
-    addPayloadToFight(underway, { auto: "1" });
-    addPayloadToFight(underway, { init: 1 });
+    addPayloadToFight(underway, { auto: "1" }, BLOWS_GRANTED);
+    addPayloadToFight(underway, { init: 1 }, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(underway)?.isOnAuto, false, "and a new fight starts over");
 });
 
@@ -243,21 +262,25 @@ Deno.test("a fight the game runs itself is kept once seen, and cleared when a fi
  */
 Deno.test("the turn the game stated does not stand once it runs the fight itself", () => {
     const underway = composeFightUnderway();
-    addPayloadToFight(underway, { init: 1, auto: "0", turns_warriors: { 7: 11, 8: 12 } });
+    addPayloadToFight(
+        underway,
+        { init: 1, auto: "0", turns_warriors: { 7: 11, 8: 12 } },
+        BLOWS_GRANTED,
+    );
     assertEquals(
         getReadingFromFight(underway)?.turnStatement,
         { ordinal: 7, combatantId: 11 },
         "the queue's least ordinal is the turn in hand",
     );
 
-    addPayloadToFight(underway, { auto: "1" });
+    addPayloadToFight(underway, { auto: "1" }, BLOWS_GRANTED);
     assertEquals(
         getReadingFromFight(underway)?.turnStatement,
         null,
         "and none of it survives auto",
     );
 
-    addPayloadToFight(underway, { auto: "0", turns_warriors: { 9: 12 } });
+    addPayloadToFight(underway, { auto: "0", turns_warriors: { 9: 12 } }, BLOWS_GRANTED);
     assertEquals(
         getReadingFromFight(underway)?.turnStatement,
         { ordinal: 9, combatantId: 12 },
@@ -276,7 +299,7 @@ Deno.test("no recording states a fight the game runs itself and a turn at once",
     for (const path of readRecordingPaths()) {
         for (const update of getRecordedEngineUpdates(path)) {
             const underway = composeFightUnderway();
-            addPayloadToFight(underway, update);
+            addPayloadToFight(underway, update, BLOWS_GRANTED);
             const stated = readTurnStatement(update);
             if (getReadingFromFight(underway)?.isOnAuto !== true) {
                 if (stated !== null) numbered += 1;
@@ -292,8 +315,8 @@ Deno.test("no recording states a fight the game runs itself and a turn at once",
 
 Deno.test("a session says whether it saw the payload that opened the fight", () => {
     const fromStart = composeFightUnderway();
-    addPayloadToFight(fromStart, { init: 1, myteam: "1" });
-    addPayloadToFight(fromStart, { m: ["0;0;txt=a"] });
+    addPayloadToFight(fromStart, { init: 1, myteam: "1" }, BLOWS_GRANTED);
+    addPayloadToFight(fromStart, { m: ["0;0;txt=a"] }, BLOWS_GRANTED);
     assertEquals(
         getReadingFromFight(fromStart)?.hasJoinedInProgress,
         false,
@@ -301,20 +324,20 @@ Deno.test("a session says whether it saw the payload that opened the fight", () 
     );
 
     const joined = composeFightUnderway();
-    addPayloadToFight(joined, { m: ["0;0;txt=a"] });
+    addPayloadToFight(joined, { m: ["0;0;txt=a"] }, BLOWS_GRANTED);
     assertEquals(
         getReadingFromFight(joined)?.hasJoinedInProgress,
         true,
         "and one whose first payload is anything else began before the reading did",
     );
-    addPayloadToFight(joined, { m: ["0;0;txt=b"] });
+    addPayloadToFight(joined, { m: ["0;0;txt=b"] }, BLOWS_GRANTED);
     assertEquals(
         getReadingFromFight(joined)?.hasJoinedInProgress,
         true,
         "which no later payload undoes, having arrived after the same opening",
     );
 
-    addPayloadToFight(joined, { init: 1 });
+    addPayloadToFight(joined, { init: 1 }, BLOWS_GRANTED);
     assertEquals(
         getReadingFromFight(joined)?.hasJoinedInProgress,
         false,
@@ -341,13 +364,13 @@ Deno.test("no recording is a fight joined in progress, and each says so", () => 
  */
 Deno.test("a payload past the bound moves nothing, and closes no fight", () => {
     const underway = composeFightUnderway();
-    addPayloadToFight(underway, { init: 1, m: ["0;0;txt=a", "0;0;txt=b"] });
+    addPayloadToFight(underway, { init: 1, m: ["0;0;txt=a", "0;0;txt=b"] }, BLOWS_GRANTED);
     const stood = getReadingFromFight(underway);
     assertExists(stood, "a fight stands before the oversized payload arrives");
 
     const over = new Array(MAXIMUM_MESSAGES + 1).fill("0;0;txt=c");
     assertThrows(
-        () => addPayloadToFight(underway, { endBattle: 1, m: over }),
+        () => addPayloadToFight(underway, { endBattle: 1, m: over }, BLOWS_GRANTED),
         AssertionError,
         "a payload stays inside its stated bound",
     );

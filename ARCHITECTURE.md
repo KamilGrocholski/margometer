@@ -134,6 +134,7 @@ frozen/            Dated readings of the game, written by tooling.
   protocol-keys.ts GENERATED. Every key the client knows, with its build.
   skill-durations.ts GENERATED. Every skill the game publishes, and the turns each states.
   aura-turns.ts    GENERATED. The skills reaching a side, which is what the bundle carries.
+  blows-granted.ts GENERATED. The skills granting an attack, and the blows an announced id reaches.
   help-phrases.ts  GENERATED. How often each cited phrase occurs in the help.
 docs/
   protocol-keys.md   What has been looked into, key by key: verdict, evidence, state.
@@ -176,6 +177,7 @@ tests/
     last-heal-rule.test.ts    The threshold it fires under, and which segments pair with it.
     npc-heal-rule.test.ts     The slot it is read in, and the occurrence stating nothing.
     skill-announcement-rule.test.ts  What rides an announcement, in either spelling of one.
+    granted-blow-rule.test.ts  A blow the table granted, and how far its announcement reaches.
     wound-rule.test.ts        The tick chained from a stated percentage, killing blow apart.
   tools/
     browser-support.test.ts   Every construct the sheet spells, against the register, both ways.

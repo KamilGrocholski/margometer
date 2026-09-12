@@ -14,7 +14,8 @@
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
-import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import { composeBlowsGrantedBySkillId, decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import { FROZEN_BLOWS_GRANTED } from "@/frozen/blows-granted.ts";
 import {
     composeTurnStanding,
     getTurnOpener,
@@ -32,6 +33,8 @@ import { composeFightReplaySteps, composeRecordedMaterial } from "@/tools/fight-
 import type { RecordedFight } from "@/tools/recorded-fights.ts";
 import { composeBoundaries, type TurnBoundary } from "@/tools/turn-count.ts";
 import { readTurnStatement } from "@/src/game/fight-underway.ts";
+
+const BLOWS_GRANTED = composeBlowsGrantedBySkillId(FROZEN_BLOWS_GRANTED.skills);
 
 /** Past every recording a run could name by hand, which is what the arguments are. */
 const MAXIMUM_ARGUMENTS = 256;
@@ -143,8 +146,10 @@ function composeEventsOfMessage(
 ): BattleEvent[] {
     assert(at >= 0, "a message is numbered from nothing");
     assert(at < messages.length, "and never past the payload it sits in");
-    const before = at === 0 ? [] : decodeFightMessages(messages.slice(0, at), roster);
-    const now = decodeFightMessages(messages.slice(0, at + 1), roster);
+    const before = at === 0
+        ? []
+        : decodeFightMessages(messages.slice(0, at), roster, BLOWS_GRANTED);
+    const now = decodeFightMessages(messages.slice(0, at + 1), roster, BLOWS_GRANTED);
     assert(
         now.length >= before.length,
         "a message decodes to no fewer events than the ones before",
@@ -222,11 +227,15 @@ function composeKeysAddingTurn(
     const fields = message.split(FIELD_SEPARATOR);
     const carried = fields.slice(2);
     const adding: string[] = [];
-    const before = previous.length === 0 ? 0 : decodeFightMessages(previous, roster).length;
+    const before = previous.length === 0
+        ? 0
+        : decodeFightMessages(previous, roster, BLOWS_GRANTED).length;
     for (const key of new Set(carried.map((field) => field.split(VALUE_SEPARATOR)[0] ?? field))) {
         const kept = carried.filter((field) => (field.split(VALUE_SEPARATOR)[0] ?? field) !== key);
         const without = [...fields.slice(0, 2), ...kept].join(FIELD_SEPARATOR);
-        const decoded = decodeFightMessages([...previous, without], roster).slice(before);
+        const decoded = decodeFightMessages([...previous, without], roster, BLOWS_GRANTED).slice(
+            before,
+        );
         let opened: number | null = null;
         let walk = standing;
         for (const event of decoded) {
@@ -268,7 +277,7 @@ export function composeMessageReadings(fight: RecordedFight): MessageReading[] {
     let standing: TurnStanding = NO_TURN_STANDING;
     let previousActorId: number | null = null;
     for (const call of fight.calls) {
-        addPayloadToFight(underway, call);
+        addPayloadToFight(underway, call, BLOWS_GRANTED);
         const held = getReadingFromFight(underway);
         if (held === null) continue;
         const payload = held.messagesByPayload.length - 1;

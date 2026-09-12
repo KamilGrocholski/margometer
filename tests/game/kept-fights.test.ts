@@ -20,7 +20,11 @@ import {
     readKeptFights,
     writeKeptFights,
 } from "@/src/game/kept-fights.ts";
-import { getRecordedEngineUpdates, readRecordingPaths } from "@/tests/recorded-fight.ts";
+import {
+    BLOWS_GRANTED,
+    getRecordedEngineUpdates,
+    readRecordingPaths,
+} from "@/tests/recorded-fight.ts";
 
 const KEY = "MargoMeter-fights";
 
@@ -256,9 +260,9 @@ Deno.test("a fight off the shelf reads as the fight that went on it, through one
     assertExists(kept, "and read back");
 
     const offShelf = composeFightUnderway();
-    for (const payload of kept.payloads) addPayloadToFight(offShelf, payload);
+    for (const payload of kept.payloads) addPayloadToFight(offShelf, payload, BLOWS_GRANTED);
     const live = composeFightUnderway();
-    for (const payload of payloads) addPayloadToFight(live, payload);
+    for (const payload of payloads) addPayloadToFight(live, payload, BLOWS_GRANTED);
 
     const read = getReadingFromFight(offShelf);
     const watched = getReadingFromFight(live);

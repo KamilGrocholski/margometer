@@ -134,8 +134,8 @@ somebody: `damageDealtApplied` opens all 602 of its kind rows.
 
 ## What opens, in numbers
 
-Over `captures/` on 2026-09-01: of the rows a reader meets inside an opened row, **4,917 open and
-1,049 do not**, and the third level they reach holds **4,361 person rows**. The shut thousand is
+Over `captures/` on 2026-09-12: of the rows a reader meets inside an opened row, **5,256 open and
+1,138 do not**, and the third level they reach holds **4,661 person rows**. The shut thousand is
 `closing`, `half-named`, and the key and kind rows on the screens whose statistics keep no second
 cut of them — never a row the panel decided against.
 
@@ -174,9 +174,9 @@ rule; `docs/protocol-keys.md` owns what each key means.
 along.** It read: _nothing announces a blow you take; the protocol names what hit you and never what
 the other side chose_ — which was a claim about the protocol standing on a fact about our own
 aggregation. The protocol does announce, on both sides: 25 of the 31 combatants on side 2 across
-`captures/` announce something, Amaimon, Hildur, Draugr, Centaur and Mamlambo among them, and 79.5%
-of all applied damage in the corpus stands under an announcement — 8,201,200 of 10,321,302, read
-2026-08-31.
+`captures/` announce something, Amaimon, Hildur, Draugr, Centaur and Mamlambo among them, and 80.1%
+of all applied damage in the corpus stands under an announcement — 8,540,008 of 10,655,752, read
+2026-09-12, with **ADR 0078** worth 147,082 of that figure.
 
 What is true is narrower. `SkillFigures` hangs off the record of whoever **made** the announcement,
 so a figure somebody received carries no announcement of its own. `damageTakenApplied` therefore

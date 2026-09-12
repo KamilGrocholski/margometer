@@ -57,6 +57,7 @@ import {
     HEALTH_LOSS_WORDS,
 } from "@/src/ui/panel-words.ts";
 import {
+    BLOWS_GRANTED,
     composeRecordedReading,
     getRecordedCombatants,
     getRecordedPayloads,
@@ -341,7 +342,7 @@ Deno.test("a fight with an unread key says every figure on it may be short", () 
 
     // A probe, because no recording carries an unread key any more: the next protocol change is
     // what this mark exists for.
-    const events = decodeFightMessages(["1=100.00;0;whatever_per=30"], whole.roster);
+    const events = decodeFightMessages(["1=100.00;0;whatever_per=30"], whole.roster, BLOWS_GRANTED);
     const short = composePanelReading(
         composeFightStatistics(events, new Map()),
         whole.roster,
@@ -369,7 +370,9 @@ Deno.test("a cast nobody could place shortens the healing, and says so only ther
     // The same fight with none of its casts sized, which is how a cast nobody could place reaches
     // the figures: the event is there and the map has no answer for it.
     const unplaced = composeFightStatistics(
-        getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster)),
+        getRecordedPayloads(HILDUR).flatMap((one) =>
+            decodeFightMessages(one, roster, BLOWS_GRANTED)
+        ),
         new Map(),
     );
     assertEquals(
@@ -563,7 +566,11 @@ Deno.test("a screen that cuts by nobody still cuts by what the blows carried", (
     const { roster } = composeRecordedReading(HILDUR);
     // A blow the protocol tied to no actor: the target's own cut by whom cannot hold it, and its
     // cut by kind can, which is the pair failing apart rather than together.
-    const events = decodeFightMessages(["0;-10000249=99.69;+dmgf=100;-dmgf=40"], roster);
+    const events = decodeFightMessages(
+        ["0;-10000249=99.69;+dmgf=100;-dmgf=40"],
+        roster,
+        BLOWS_GRANTED,
+    );
     const alone = composeFightStatistics(events, new Map());
     const drill = composeDrillReading(alone, roster, "damageTakenApplied", -10000249);
     assertExists(drill, "the row opens");
@@ -631,7 +638,7 @@ Deno.test("health that went down outside a blow is a kind of its own, named by i
     const { roster } = composeRecordedReading(POISONED);
     // A movement the protocol states on its own: no blow carried it and nobody is named for it,
     // but the key says what it was, so the cut by kind can hold what the cut by whom cannot.
-    const events = decodeFightMessages([POISON], roster);
+    const events = decodeFightMessages([POISON], roster, BLOWS_GRANTED);
     const alone = composeFightStatistics(events, new Map());
     const drill = composeDrillReading(alone, roster, "damageTakenApplied", POISONED_ID);
     assertExists(drill, "the row opens");
@@ -822,7 +829,7 @@ Deno.test("a figure nobody can be charged with is shown under everybody and nowh
     const { roster } = composeRecordedReading(HILDUR);
     const [readerSide] = [...new Set([...roster.byId.values()].map((one) => one.side))];
     assertExists(readerSide, "the fight states a side");
-    const events = decodeFightMessages([NEITHER_END], roster);
+    const events = decodeFightMessages([NEITHER_END], roster, BLOWS_GRANTED);
     const statistics = composeFightStatistics(events, new Map());
     assertEquals(statistics.byNeitherEnd, 700, "the fight is one blow naming neither end");
     assertEquals(statistics.byCombatantId.size, 0, "and it stands on nobody's row");
@@ -985,14 +992,17 @@ Deno.test("a half-named point opens a level, and none at all opens nothing", () 
     assertExists(kase, "damage dealt pins the striker the game left out");
     const struck = [...roster.byId.values()][0];
     assertExists(struck, "the fight has somebody to strike");
-    const nothing = composeFightStatistics(decodeFightMessages([], roster), new Map());
+    const nothing = composeFightStatistics(
+        decodeFightMessages([], roster, BLOWS_GRANTED),
+        new Map(),
+    );
     assertEquals(
         composeHalfNamedReading(nothing, roster, kase, "everyone", null),
         null,
         "a fight with no such figure opens nothing",
     );
     const one = `0;${struck.id}=50.00;+dmg=1;-dmg=1`;
-    const events = decodeFightMessages([one], roster);
+    const events = decodeFightMessages([one], roster, BLOWS_GRANTED);
     const statistics = composeFightStatistics(events, new Map());
     const held = composeHalfNamedReading(statistics, roster, kase, "everyone", null);
     assertExists(held, "and one point of it opens a level");
@@ -1089,7 +1099,11 @@ Deno.test("a key opened carries the part of it nobody's row holds", () => {
     const { roster } = composeRecordedReading(HILDUR);
     const struck = [...roster.byId.values()][0];
     assertExists(struck, "the fight has somebody to strike");
-    const events = decodeFightMessages([`0;${struck.id}=50.00;+dmg=1;-dmg=1`, NEITHER_END], roster);
+    const events = decodeFightMessages(
+        [`0;${struck.id}=50.00;+dmg=1;-dmg=1`, NEITHER_END],
+        roster,
+        BLOWS_GRANTED,
+    );
     const statistics = composeFightStatistics(events, new Map());
     const kase = getPinnedCase("damageDealtApplied", "actor");
     assertExists(kase, "damage dealt pins the striker the game left out");
@@ -1121,7 +1135,11 @@ Deno.test("a blow with nobody at the far end opens onto whoever struck it", () =
     const { roster } = composeRecordedReading(HILDUR);
     const [striker] = [...roster.byId.values()];
     assertExists(striker, "the fight holds somebody to swing");
-    const events = decodeFightMessages([`${striker.id}=90.00;0;+dmg=500;-dmg=500`], roster);
+    const events = decodeFightMessages(
+        [`${striker.id}=90.00;0;+dmg=500;-dmg=500`],
+        roster,
+        BLOWS_GRANTED,
+    );
     const statistics = composeFightStatistics(events, new Map());
     assertEquals(statistics.takenByNobody, 500, "the blow found nobody");
     assertEquals(statistics.byNeitherEnd, 0, "but it was struck by somebody the game named");
@@ -1149,7 +1167,7 @@ Deno.test("what named neither end closes the level it is inside", () => {
     const { roster } = composeRecordedReading(HILDUR);
     const [readerSide] = [...new Set([...roster.byId.values()].map((one) => one.side))];
     assertExists(readerSide, "the fight states a side");
-    const events = decodeFightMessages([NEITHER_END], roster);
+    const events = decodeFightMessages([NEITHER_END], roster, BLOWS_GRANTED);
     const statistics = composeFightStatistics(events, new Map());
     const kase = getPinnedCase("damageDealtApplied", "actor");
     assertExists(kase, "damage dealt pins the striker the game left out");
@@ -1273,7 +1291,7 @@ const TWO_SIDES = composeCombatantRoster([
  */
 Deno.test("a side charged with a point states it, one charged with none draws nothing", () => {
     const struck = composeFightStatistics(
-        decodeFightMessages(["0;2=90.00;+dmg=1;-dmg=1"], TWO_SIDES),
+        decodeFightMessages(["0;2=90.00;+dmg=1;-dmg=1"], TWO_SIDES, BLOWS_GRANTED),
         new Map(),
     );
     const read = (statistics: typeof struck, choice: "reader" | "opposing") =>
@@ -1466,7 +1484,7 @@ Deno.test("a skill whose swings all landed nothing still stands, at nothing", ()
         { id: 114881, name: "Gracz 1", side: 1, profession: "t", level: 100, healthMaximum: 5000 },
         { id: 195782, name: "Gracz 2", side: 2, profession: "w", level: 100, healthMaximum: 5000 },
     ]);
-    const events = decodeFightMessages(BLOCKED, roster);
+    const events = decodeFightMessages(BLOCKED, roster, BLOWS_GRANTED);
     const statistics = composeFightStatistics(events, new Map());
     const drill = composeDrillReading(statistics, roster, "damageDealtApplied", 114881);
     assertExists(drill, "the combatant who swung has a row that opens");
@@ -2123,7 +2141,7 @@ Deno.test("a reading short of its own start or of a message says so, on every sc
 /** Widening to narrowing, and the healing screen is the only one that can say all of them. */
 Deno.test("what shortens a reading is said before what shortens one figure on it", () => {
     const { roster } = composeRecordedReading(HILDUR);
-    const events = decodeFightMessages(["1=100.00;0;whatever_per=30"], roster);
+    const events = decodeFightMessages(["1=100.00;0;whatever_per=30"], roster, BLOWS_GRANTED);
     const reading = composePanelReading(
         composeFightStatistics(events, composeTeamHeals(events, roster)),
         roster,
@@ -2152,9 +2170,13 @@ Deno.test("what shortens a reading is said before what shortens one figure on it
  */
 Deno.test("a suspicion about one person qualifies the screens their figure is on", () => {
     const { roster } = composeRecordedReading(HILDUR);
-    const events = decodeFightMessages([
-        "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
-    ], roster);
+    const events = decodeFightMessages(
+        [
+            "1=50.00;1=50.00;tspell=Fala leczenia;skillId=199;healall_per=30",
+        ],
+        roster,
+        BLOWS_GRANTED,
+    );
     const statistics = composeFightStatistics(events, new Map());
     const reading = composePanelReading(
         statistics,
@@ -2189,7 +2211,11 @@ Deno.test("the fight's own sentence says how big the gap is and whom it reaches"
         { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
         { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: 2000 },
     ]);
-    const events = decodeFightMessages(["1=100.00;2=100.00;whatever_per=30"], roster);
+    const events = decodeFightMessages(
+        ["1=100.00;2=100.00;whatever_per=30"],
+        roster,
+        BLOWS_GRANTED,
+    );
     const reading = composePanelReading(
         composeFightStatistics(events, new Map()),
         roster,
@@ -2219,7 +2245,10 @@ Deno.test("what could not be read is said under the cause that left it so", () =
     const { roster } = composeRecordedReading(HILDUR);
     const readSuspicions = (message: string) =>
         composePanelReading(
-            composeFightStatistics(decodeFightMessages([message], roster), new Map()),
+            composeFightStatistics(
+                decodeFightMessages([message], roster, BLOWS_GRANTED),
+                new Map(),
+            ),
             roster,
             "damageDealtApplied",
             "everyone",
@@ -2256,7 +2285,7 @@ Deno.test("a row says which of the two causes that can name it left its figure s
     const { roster } = composeRecordedReading(HILDUR);
     const readRow = (message: string) => {
         const statistics = composeFightStatistics(
-            decodeFightMessages([message], roster),
+            decodeFightMessages([message], roster, BLOWS_GRANTED),
             new Map(),
         );
         return statistics.byCombatantId.get(1);
@@ -2274,7 +2303,11 @@ Deno.test("a row says which of the two causes that can name it left its figure s
 
     const both = composePanelReading(
         composeFightStatistics(
-            decodeFightMessages(["1=100.00;0;whatever_per=30", "1=100.00;0"], roster),
+            decodeFightMessages(
+                ["1=100.00;0;whatever_per=30", "1=100.00;0"],
+                roster,
+                BLOWS_GRANTED,
+            ),
             new Map(),
         ),
         roster,
@@ -2294,7 +2327,11 @@ Deno.test("a row says which of the two causes that can name it left its figure s
 
 Deno.test("a message that went unread marks the rows it named, on every screen", () => {
     const { roster } = composeRecordedReading(HILDUR);
-    const events = decodeFightMessages(["1=100.00;2=100.00;whatever_per=30"], roster);
+    const events = decodeFightMessages(
+        ["1=100.00;2=100.00;whatever_per=30"],
+        roster,
+        BLOWS_GRANTED,
+    );
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     for (const metric of SCREENS) {
         const reading = composePanelReading(
@@ -2320,7 +2357,7 @@ Deno.test("a message that went unread marks the rows it named, on every screen",
  */
 Deno.test("a drawn fight reads the same from every seat, and from none", () => {
     const { roster } = composeRecordedReading(HILDUR);
-    const events = decodeFightMessages(["0;0;winner=?"], roster);
+    const events = decodeFightMessages(["0;0;winner=?"], roster, BLOWS_GRANTED);
     const drawn = composeFightStatistics(events, new Map());
     assertEquals(drawn.outcome?.isDrawn, true, "the fight the decoder read is a draw");
     const sides = [...new Set([...roster.byId.values()].map((one) => one.side))];
@@ -2344,7 +2381,7 @@ Deno.test("a drawn fight reads the same from every seat, and from none", () => {
  */
 Deno.test("a fight an escape broke off reads the same from every seat, and from none", () => {
     const { roster } = composeRecordedReading(HILDUR);
-    const events = decodeFightMessages(["500001=94.75;0;flee"], roster);
+    const events = decodeFightMessages(["500001=94.75;0;flee"], roster, BLOWS_GRANTED);
     const fled = composeFightStatistics(events, new Map());
     assertEquals(fled.outcome?.isFled, true, "the fight the decoder read was broken off");
     assertEquals(fled.outcome?.isDrawn, false, "which is not the same claim as a draw");
@@ -2375,6 +2412,7 @@ Deno.test("an escape outranks a side the protocol named, from either seat", () =
     const events = decodeFightMessages(
         ["500001=94.75;0;flee", `0;0;winner=${named.name}`],
         roster,
+        BLOWS_GRANTED,
     );
     const outcome = composeFightStatistics(events, new Map()).outcome;
     assertExists(outcome, "the fight states how it ended");

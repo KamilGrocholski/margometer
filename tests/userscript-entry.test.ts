@@ -40,7 +40,11 @@ import {
     getTextsByClass,
     pressElement,
 } from "@/tests/fake-document.ts";
-import { getRecordedEngineUpdates, readRecordingPaths } from "@/tests/recorded-fight.ts";
+import {
+    BLOWS_GRANTED,
+    getRecordedEngineUpdates,
+    readRecordingPaths,
+} from "@/tests/recorded-fight.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /** Another fight, so a shelf and a session can hold different figures at the same moment. */
@@ -558,9 +562,13 @@ Deno.test("a fight that ends goes on the shelf, once, and comes back after a rel
     // What is kept is what the game delivered, so the fight reads the same off the shelf as it
     // did live: every figure is derived again by the code that is running. ADR 0026.
     const offShelf = composeFightUnderway();
-    for (const payload of kept[0]?.payloads ?? []) addPayloadToFight(offShelf, payload);
+    for (const payload of kept[0]?.payloads ?? []) {
+        addPayloadToFight(offShelf, payload, BLOWS_GRANTED);
+    }
     const watched = composeFightUnderway();
-    for (const payload of getRecordedEngineUpdates(HILDUR)) addPayloadToFight(watched, payload);
+    for (const payload of getRecordedEngineUpdates(HILDUR)) {
+        addPayloadToFight(watched, payload, BLOWS_GRANTED);
+    }
     const read = getReadingFromFight(offShelf);
     const live = getReadingFromFight(watched);
     assertExists(read, "a fight off the shelf is a fight");

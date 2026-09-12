@@ -29,6 +29,7 @@ import { composeFakeDocument, type FakeElement, getTextsByClass } from "@/tests/
 import { composeFabricatedFight } from "@/tools/fabricated-fight.ts";
 import { composeFightReplay } from "@/tools/fight-replay.ts";
 import { composeShownScreen } from "@/tests/shown-screen.ts";
+import { BLOWS_GRANTED } from "@/tests/recorded-fight.ts";
 
 /** The screen that pins two figures at once, which is what puts two unnamed rows on one list. */
 const BOTH_ENDS_SCREEN: PanelMetric = "damageTakenApplied";
@@ -70,7 +71,10 @@ function composeWidestFight(): {
     const percent = ((striker.health / striker.healthMaximum) * 100).toFixed(2);
     const blow =
         `${striker.id}=${percent};0;+dmg=${UNKNOWN_TARGET_BLOW};-dmg=${UNKNOWN_TARGET_BLOW}`;
-    const events = [...replay.reading.events, ...decodeFightMessages([blow], replay.roster)];
+    const events = [
+        ...replay.reading.events,
+        ...decodeFightMessages([blow], replay.roster, BLOWS_GRANTED),
+    ];
     return {
         roster: replay.roster,
         statistics: composeFightStatistics(events, composeTeamHeals(events, replay.roster)),

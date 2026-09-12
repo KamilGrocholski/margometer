@@ -299,6 +299,14 @@ const VALUELESS_DECLARATION_KEYS = [
  * least one event behind: a bound equal to that one could never be the one that fires.
  */
 export const MAXIMUM_MESSAGES = 32768;
+/**
+ * Past every count the published table states — 2 at its highest, `frozen/blows-granted.ts`, read
+ * 2026-09-09 — and how far an announcement carrying no id reaches, because there the table has
+ * nothing to say. The longest run of an announcer's own consecutive blows over `captures/` is 2,
+ * 2026-09-12, so no recording meets this; `tests/core/fight-decoder.test.ts` writes a run of nine,
+ * because a bound nothing ever reaches is a number rather than a bound. **ADR 0078.**
+ */
+const MAXIMUM_BLOWS_GRANTED = 8;
 /** The longest message in `captures/` carries 40 parameters, 2026-08-28. */
 const MAXIMUM_PARAMETERS = 512;
 /** A skill's name is a phrase; the longest in `captures/` is far short of this, 2026-09-01. */
@@ -742,21 +750,32 @@ function composeSkillUsedEvent(
  * `heal_target`, `healall_per` and `bandage` over `captures/` on 2026-08-30 arrives that way, and
  * `docs/protocol-keys.md` says as much on each of the three. Reading only the message before
  * leaves those figures with no giver and no name (`tests/core/skill-announcement-rule.test.ts`).
+ *
+ * ⚠️ **Past the message the client itself glues it to, a standing reaches a blow and nothing
+ * else.** The glued message may be anything, because that is where a skill states what it did;
+ * every message after it is reached only for striking. Without that test a standing outliving its
+ * blows lands on whatever the announcer does next — a poison tick on the announcer picked up
+ * `Kosa zastępcy` in `2026-08-12-tempest-grupa-vs-draugr-2`, and a heal there would have been
+ * credited to it. **ADR 0078.**
  */
 function getAnnouncedForMessage(
     parsed: ProtocolMessage,
     skill: SkillReading | null,
-    standing: AnnouncedSkill | null,
+    standing: AnnouncementStanding | null,
+    isBlow: boolean,
 ): AnnouncedSkill | null {
     const own = composeAnnouncedSkill(parsed, skill);
     if (own !== null) return own;
     if (standing === null) return null;
-    if (standing.actorId === null) return null;
+    const announced = standing.announced;
+    if (announced.actorId === null) return null;
     if (parsed.actor === null) return null;
-    if (parsed.actor.combatantId !== standing.actorId) return null;
-    assert(standing.skillName.length > 0, "a standing announcement names something");
-    assert(parsed.actor.combatantId === standing.actorId, "one actor holds both halves");
-    return standing;
+    if (parsed.actor.combatantId !== announced.actorId) return null;
+    assert(standing.blowsRemaining > 0, "a standing announcement has a message left to reach");
+    assert(announced.skillName.length > 0, "a standing announcement names something");
+    if (standing.isGlued) return announced;
+    if (isBlow) return announced;
+    return null;
 }
 
 function composeAttackEvent(
@@ -808,9 +827,17 @@ interface MessageDecoding {
     announced: AnnouncedSkill | null;
 }
 
+/** An announcement, the messages it has left to reach, and whether it has reached any yet. */
+interface AnnouncementStanding {
+    announced: AnnouncedSkill;
+    blowsRemaining: number;
+    /** True for the message the client itself glues this to, false for every one after it. */
+    isGlued: boolean;
+}
+
 function decodeOneMessage(
     message: string,
-    standing: AnnouncedSkill | null,
+    standing: AnnouncementStanding | null,
     roster: CombatantRoster | null,
 ): MessageDecoding {
     assert(message.length > 0, "a message to decode is never empty");
@@ -829,12 +856,12 @@ function decodeOneMessage(
         return { events: [refused], announced: null };
     }
     const reading = composeAttackReading(parsed);
-    const announced = getAnnouncedForMessage(parsed, reading.skill, standing);
+    const isBlow = hasAttackFigure(reading);
+    const announced = getAnnouncedForMessage(parsed, reading.skill, standing, isBlow);
     const events: BattleEvent[] = [];
     // A proc rides a blow in every message in `captures/` that carries one, 2026-08-28. Where no
     // figure stands beside it the key is not read as one: a proc alone would be a claim this
     // decoder cannot make.
-    const isBlow = hasAttackFigure(reading);
     const declaredElsewhere = isBlow || reading.skill !== null;
     if (!isBlow) reading.unreadKeys.push(...reading.procs);
     else events.push(composeAttackEvent(parsed, reading, announced, reading.declared));
@@ -946,20 +973,95 @@ function composeAnnouncedSkill(
 }
 
 /**
+ * The counts the published table states, keyed by the id an announcement carries. Composed here
+ * and never imported here, for the reason `src/core/aura-standing.ts` gives its own.
+ */
+export function composeBlowsGrantedBySkillId(
+    stated: readonly { id: number; blowsGrantedMinimum: number }[],
+): Map<number, number> {
+    const found = new Map<number, number>();
+    for (const skill of stated) {
+        assert(skill.blowsGrantedMinimum > 0, "a skill in the table grants at least one blow");
+        assert(skill.blowsGrantedMinimum < MAXIMUM_BLOWS_GRANTED, "and stays inside the bound");
+        found.set(skill.id, skill.blowsGrantedMinimum);
+    }
+    assert(found.size <= stated.length, "and each of them is named once");
+    return found;
+}
+
+/** Who struck in this message, or null where it decoded no blow at all. */
+function getStrikerFromEvents(events: readonly BattleEvent[]): number | null {
+    for (const event of events) {
+        if (event.kind !== "attack") continue;
+        return event.actorId;
+    }
+    return null;
+}
+
+/**
+ * How far an announcement still reaches, one message on.
+ *
+ * ⚠️ **The chain breaks on anything that is not the announcer's own blow.** A message that
+ * decoded no blow ends it, and so does another combatant's; carrying a standing across either
+ * would charge a skill with what it did not do. Where the table grants nothing, the budget is one
+ * and this is bit for bit the rule that stood before it (**ADR 0078**).
+ */
+/**
+ * How many messages an announcement reaches. The table's count where the announcement names an id
+ * it can be looked up by; where it names none the table has no way to speak, so the reach is the
+ * announcer's own run of blows and the bound is what ends it. Every id any announcement carried
+ * over `captures/` is one the table carries — 0 exceptions of 3,129, 2026-09-12 — so a missing id
+ * is the whole of that case, and 364 of the 371 announcements without one are an NPC's, whose
+ * skills the published table of a **player's** skills was never going to hold.
+ */
+function getBlowsForAnnouncement(
+    announced: AnnouncedSkill,
+    blowsGrantedBySkillId: ReadonlyMap<number, number>,
+): number {
+    if (announced.skillId === null) return MAXIMUM_BLOWS_GRANTED;
+    const granted = blowsGrantedBySkillId.get(announced.skillId) ?? 0;
+    assert(1 + granted <= MAXIMUM_BLOWS_GRANTED, "a reach stays inside its stated bound");
+    return 1 + granted;
+}
+
+function composeStandingAfterMessage(
+    standing: AnnouncementStanding | null,
+    decoded: MessageDecoding,
+    blowsGrantedBySkillId: ReadonlyMap<number, number>,
+): AnnouncementStanding | null {
+    if (decoded.announced !== null) {
+        const reaching = getBlowsForAnnouncement(decoded.announced, blowsGrantedBySkillId);
+        return { announced: decoded.announced, blowsRemaining: reaching, isGlued: true };
+    }
+    if (standing === null) return null;
+    const strikerId = getStrikerFromEvents(decoded.events);
+    if (strikerId === null) return null;
+    if (strikerId !== standing.announced.actorId) return null;
+    const blowsRemaining = standing.blowsRemaining - 1;
+    assert(blowsRemaining >= 0, "a standing spends no more blows than it was given");
+    if (blowsRemaining === 0) return null;
+    return { announced: standing.announced, blowsRemaining, isGlued: false };
+}
+
+/**
  * A payload's messages, in order. Order is the whole of what an announcement has: the client
- * glues the message after one to it, and this reads them the same way.
+ * glues the message after one to it, and this reads them the same way — then one blow message of
+ * its own announcer further for each attack the published table grants that skill, or, where the
+ * announcement names no id the table could be asked by, for as far as the bound allows
+ * (**ADR 0078**).
  */
 export function decodeFightMessages(
     messages: readonly string[],
     roster: CombatantRoster | null,
+    blowsGrantedBySkillId: ReadonlyMap<number, number>,
 ): BattleEvent[] {
     assert(messages.length <= MAXIMUM_MESSAGES, "a payload stays inside its stated bound");
     const events: BattleEvent[] = [];
-    let standing: AnnouncedSkill | null = null;
+    let standing: AnnouncementStanding | null = null;
     for (const message of messages) {
         const decoded = decodeOneMessage(message, standing, roster);
         for (const event of decoded.events) events.push(event);
-        standing = decoded.announced;
+        standing = composeStandingAfterMessage(standing, decoded, blowsGrantedBySkillId);
     }
     assert(events.length >= messages.length, "every message leaves at least one event behind");
     return events;

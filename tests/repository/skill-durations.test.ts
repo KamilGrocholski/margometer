@@ -7,6 +7,7 @@
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { FROZEN_AURA_TURNS } from "@/frozen/aura-turns.ts";
+import { FROZEN_BLOWS_GRANTED } from "@/frozen/blows-granted.ts";
 import { FROZEN_SKILL_DURATIONS } from "@/frozen/skill-durations.ts";
 import {
     composeAuraTurnsBySkillId,
@@ -16,12 +17,16 @@ import {
 } from "@/src/core/aura-standing.ts";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { composeCombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
-import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
+import { composeBlowsGrantedBySkillId, decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import {
+    BLOWS_GRANTED,
     getRecordedCombatants,
     getRecordedPayloads,
     readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
+
+/** The game's word for the effect, spelled here because this file reads the frozen rows. */
+const BLOWS_GRANTED_KEY = "add_attacks";
 
 /** Every skill the corpus announces beside a key reaching more than one combatant. */
 function getCastSkillIds(): Map<number, string> {
@@ -30,7 +35,7 @@ function getCastSkillIds(): Map<number, string> {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const events: BattleEvent[] = [];
         for (const messages of getRecordedPayloads(path)) {
-            events.push(...decodeFightMessages(messages, roster));
+            events.push(...decodeFightMessages(messages, roster, BLOWS_GRANTED));
         }
         for (const event of events) {
             if (event.kind !== "skill-used") continue;
@@ -42,13 +47,45 @@ function getCastSkillIds(): Map<number, string> {
     return found;
 }
 
-Deno.test("both frozen files were taken off the same page, on the same fetch", () => {
+Deno.test("all three frozen files were taken off the same page, on the same fetch", () => {
     assertStrictEquals(
         FROZEN_AURA_TURNS.fetchedAt,
         FROZEN_SKILL_DURATIONS.fetchedAt,
         "a side's table derived from a page other than the one beside it dates nothing",
     );
+    assertStrictEquals(
+        FROZEN_BLOWS_GRANTED.fetchedAt,
+        FROZEN_SKILL_DURATIONS.fetchedAt,
+        "and neither does a grant",
+    );
     assert(FROZEN_SKILL_DURATIONS.skills.length > 0, "and the page served skills");
+});
+
+/**
+ * ⚠️ **Only the membership is re-earnable here, and the count is not.**
+ * `FROZEN_SKILL_DURATIONS` keeps keys and turns and drops the value, which is the whole of what
+ * this key states — the same split the shouts already carry. What holds the count is
+ * `tests/tools/skill-table.test.ts`, against a transcript of the page. **ADR 0078.**
+ */
+Deno.test("the skills granting a blow are the rows of the table carrying that key", () => {
+    const carrying = FROZEN_SKILL_DURATIONS.skills
+        .filter((one) => one.effects.some((effect) => effect.key === BLOWS_GRANTED_KEY))
+        .map((one) => one.id);
+    assertEquals(
+        FROZEN_BLOWS_GRANTED.skills.map((one) => one.id),
+        carrying,
+        "every skill the page states it on is frozen, and nothing else is",
+    );
+    assert(carrying.length > 0, "and the page states it on something");
+    for (const skill of FROZEN_BLOWS_GRANTED.skills) {
+        assert(Number.isSafeInteger(skill.blowsGrantedMinimum), `${skill.id}: a count is whole`);
+        assert(skill.blowsGrantedMinimum > 0, `${skill.id}: and a grant is worth a blow`);
+    }
+    assertStrictEquals(
+        composeBlowsGrantedBySkillId(FROZEN_BLOWS_GRANTED.skills).size,
+        FROZEN_BLOWS_GRANTED.skills.length,
+        "and each of them is keyed once",
+    );
 });
 
 Deno.test("the side's table is what the rule derives from the whole one, and nothing else", () => {
@@ -63,6 +100,33 @@ Deno.test("the side's table is what the rule derives from the whole one, and not
         derived,
         "the judgement about which keys reach a side is written once, in core",
     );
+});
+
+/**
+ * ⚠️ **The whole of ADR 0078's second half rests on this, and it is the reason it is here.** An
+ * announcement carrying no id is read as one the table cannot be asked about, and its reach falls
+ * to the bound. That reading is only honest while every id the game **does** send is one the table
+ * carries: an id it did not would be read as "the table says nothing extra", the reach would be
+ * one message, and a multi-hit skill would go quietly back into `Zwykły cios`.
+ */
+Deno.test("every skill the corpus announces by id is one the published table carries", () => {
+    const dated = new Set<number>(FROZEN_SKILL_DURATIONS.skills.map((one) => one.id));
+    const missed = new Map<number, string>();
+    let stated = 0;
+    for (const path of readRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        for (const messages of getRecordedPayloads(path)) {
+            for (const event of decodeFightMessages(messages, roster, BLOWS_GRANTED)) {
+                if (event.kind !== "skill-used") continue;
+                if (event.skillId === null) continue;
+                stated += 1;
+                if (dated.has(event.skillId)) continue;
+                missed.set(event.skillId, event.skillName);
+            }
+        }
+    }
+    assertEquals([...missed], [], "an id the reach would read as a table saying nothing extra");
+    assert(stated > 0, "the corpus announces by id at all");
 });
 
 Deno.test("every skill the corpus casts at a side is one the published table dates", () => {

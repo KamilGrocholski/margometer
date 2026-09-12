@@ -22,6 +22,7 @@ import {
 } from "@/src/ui/panel-words.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import {
+    BLOWS_GRANTED,
     getRecordedCombatants,
     getRecordedPayloads,
     readRecordingPaths,
@@ -38,7 +39,13 @@ function getBlowKeysFromRecordings(): BlowKeys {
     const found: BlowKeys = { procs: new Set(), defences: new Set(), destroyed: new Set() };
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
-        for (const event of decodeFightMessages(getRecordedPayloads(path).flat(), roster)) {
+        for (
+            const event of decodeFightMessages(
+                getRecordedPayloads(path).flat(),
+                roster,
+                BLOWS_GRANTED,
+            )
+        ) {
             if (event.kind !== "attack") continue;
             for (const key of event.procs) found.procs.add(key);
             for (const stopped of event.prevented) found.defences.add(stopped.defence);

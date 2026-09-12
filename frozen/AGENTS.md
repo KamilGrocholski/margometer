@@ -37,5 +37,7 @@ how four keys once came to be filed as undocumented while the help described all
 
 The durations are here for the same reason and one more: they are the **only** source that says how
 long an effect runs for, so a figure the panel draws beside a counted one rests on them alone (**ADR
-0058**). `frozen/aura-turns.ts` is the smaller table derived from the larger, and the bundle carries
-only that.
+0058**). The bundle carries neither the durations nor the prose beside them, but the two small
+tables derived from them: `frozen/aura-turns.ts`, which is what reaches more than one combatant, and
+`frozen/blows-granted.ts`, which is how many blows an announcement **that names an id** reaches
+(**ADR 0078**). Both are written by the same freeze off the same fetch, so all three date together.

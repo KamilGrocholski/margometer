@@ -12,6 +12,7 @@ import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import {
+    BLOWS_GRANTED,
     getRecordedCombatants,
     getRecordedMessages,
     readRecordingPaths,
@@ -71,7 +72,7 @@ Deno.test("a tick is charged to its victim, and to nobody who applied the bleed"
     }
     assertEquals(appliers.size, 2, "two combatants apply the bleed in this fight");
 
-    const events = decodeFightMessages(messages, roster);
+    const events = decodeFightMessages(messages, roster, BLOWS_GRANTED);
     const ticked = events.filter((event) =>
         event.kind === "health-change" && event.source === TICK_KEY
     );
@@ -94,7 +95,7 @@ Deno.test("a tick is charged to its victim, and to nobody who applied the bleed"
 
 Deno.test("the bleed reaches the victim's own figures and credits nobody with dealing it", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(TWO_APPLIERS));
-    const events = decodeFightMessages(getRecordedMessages(TWO_APPLIERS), roster);
+    const events = decodeFightMessages(getRecordedMessages(TWO_APPLIERS), roster, BLOWS_GRANTED);
     const bled = events.filter((event) =>
         event.kind === "health-change" && event.source === TICK_KEY
     );

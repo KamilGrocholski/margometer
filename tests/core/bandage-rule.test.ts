@@ -12,6 +12,7 @@ import { getStatedHealthFromEvent } from "@/src/core/combatant-health.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import {
+    BLOWS_GRANTED,
     getRecordedCombatants,
     getRecordedMessages,
     readRecordingPaths,
@@ -27,7 +28,7 @@ Deno.test("the figure is health, and raises the percentage stated before it by i
     const healthMaximumById = new Map(combatants.map((one) => [one.id, one.healthMaximum]));
     const percentById = new Map<number, number>();
     let healed = 0;
-    for (const event of decodeFightMessages(getRecordedMessages(BANDAGE), roster)) {
+    for (const event of decodeFightMessages(getRecordedMessages(BANDAGE), roster, BLOWS_GRANTED)) {
         if (event.kind === "health-change" && event.source === KEY) {
             const id = event.combatantId;
             assertExists(id, "the healing names whose health moved");

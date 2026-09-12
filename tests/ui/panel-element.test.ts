@@ -69,7 +69,11 @@ import {
     pointAtElement,
     pressElement,
 } from "@/tests/fake-document.ts";
-import { getRecordedCombatants, getRecordedPayloads } from "@/tests/recorded-fight.ts";
+import {
+    BLOWS_GRANTED,
+    getRecordedCombatants,
+    getRecordedPayloads,
+} from "@/tests/recorded-fight.ts";
 import { getDeclaration, getRuleBody } from "@/tests/style-sheet.ts";
 
 /**
@@ -93,7 +97,9 @@ const FOUR_KINDS = "captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.js
 
 function readFight(): PanelReading {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
-    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) =>
+        decodeFightMessages(one, roster, BLOWS_GRANTED)
+    );
     return composePanelReading(
         composeFightStatistics(events, composeTeamHeals(events, roster)),
         roster,
@@ -106,7 +112,9 @@ function readFight(): PanelReading {
 
 function openFirstRow() {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
-    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) =>
+        decodeFightMessages(one, roster, BLOWS_GRANTED)
+    );
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     const reading = composePanelReading(
         statistics,
@@ -130,7 +138,9 @@ function readPinnedFight(
     path: string = HILDUR,
 ) {
     const roster = composeCombatantRoster(getRecordedCombatants(path));
-    const events = getRecordedPayloads(path).flatMap((one) => decodeFightMessages(one, roster));
+    const events = getRecordedPayloads(path).flatMap((one) =>
+        decodeFightMessages(one, roster, BLOWS_GRANTED)
+    );
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     const readerSide = [...roster.byId.values()][0]?.side ?? null;
     const reading = composePanelReading(
@@ -1581,7 +1591,9 @@ Deno.test("a person inside an opened row opens the card the ranking opens", () =
  */
 Deno.test("a person under an opened skill opens a card promising no gesture", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
-    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) =>
+        decodeFightMessages(one, roster, BLOWS_GRANTED)
+    );
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     const reading = composePanelReading(
         statistics,
@@ -1870,7 +1882,9 @@ Deno.test("a draw landing mid-drag does not take the panel out of the hand", () 
 /** Healing opens onto who, what with, and — on the receiving side alone — under which key. */
 Deno.test("a healing row opens, and says whose the health was and what put it back", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
-    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) =>
+        decodeFightMessages(one, roster, BLOWS_GRANTED)
+    );
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     const open = (screen: "healthGiven" | "healthRestored") => {
         const reading = composePanelReading(
@@ -2136,7 +2150,9 @@ function getHeadingCells(host: FakeElement): Array<[string, string[]]> {
 Deno.test("a heading is its words and a figure, and says only what its level is cut by", () => {
     const { reading, drill } = openFirstRow();
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
-    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) =>
+        decodeFightMessages(one, roster, BLOWS_GRANTED)
+    );
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     const healer = 469657;
     const healing = composePanelReading(
@@ -2398,7 +2414,9 @@ Deno.test("every row in a list draws the same cells before its name", () => {
  */
 Deno.test("a healing section draws the key the game named, not a row saying it did not", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
-    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) =>
+        decodeFightMessages(one, roster, BLOWS_GRANTED)
+    );
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     const reading = composePanelReading(
         statistics,
@@ -2440,7 +2458,9 @@ Deno.test("a healing section draws the key the game named, not a row saying it d
  */
 Deno.test("an opened healing pair draws its announcements and its keys as one section", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
-    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) =>
+        decodeFightMessages(one, roster, BLOWS_GRANTED)
+    );
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     const healer = 469657;
     const reading = composePanelReading(
@@ -2500,7 +2520,7 @@ Deno.test("an opened healing pair draws its announcements and its keys as one se
 Deno.test("a row that opens says so, and a row that does not says nothing of the kind", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(BOTH_KINDS_OF_PAIR));
     const events = getRecordedPayloads(BOTH_KINDS_OF_PAIR)
-        .flatMap((one) => decodeFightMessages(one, roster));
+        .flatMap((one) => decodeFightMessages(one, roster, BLOWS_GRANTED));
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     const reading = composePanelReading(
         statistics,
@@ -2562,7 +2582,9 @@ function composeNotesForOpenedRow(
     combatantId: number,
 ): Map<string, string[]> {
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
-    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) =>
+        decodeFightMessages(one, roster, BLOWS_GRANTED)
+    );
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
     const reading = composePanelReading(
         statistics,

@@ -242,11 +242,14 @@ cutting it off the ranking, which is the region's own and says it stands outside
 **A row with no place in the ranking wears a hatched bar, wherever it stands.** The pinned row is
 one of them and not the only one: a section closes against what the game named nothing for, and that
 row stands _inside_ the list with a number cell left blank. A blank cell is not an accent. It is
-read as the next place in the order, and the figure is often the largest in its own cut — 54% of
-`CZYM` on the opened shot, under thirteen numbered rows. So the hatch follows the claim rather than
-the region: `person`, `skill`, `source` and `kind` rows take a place and keep a solid bar;
-`half-named`, `closing`, `no kind` and `neither end` take none and are hatched, as is the row
-summing what a bound left out. `docs/drill-levels.md` owns which kinds those are.
+read as the next place in the order, and the figure is often the largest in its own cut — 47% of
+`CZYM` on the opened shot, under thirteen numbered rows and **five times the largest of them**.
+Measured again over `captures/` on 2026-09-12, after **ADR 0078** took every blow it could out of
+that row: it is still the largest row of its own section in **96 of 168** sections, and still more
+than half of one in **89**. So the hatch follows the claim rather than the region: `person`,
+`skill`, `source` and `kind` rows take a place and keep a solid bar; `half-named`, `closing`,
+`no kind` and `neither end` take none and are hatched, as is the row summing what a bound left out.
+`docs/drill-levels.md` owns which kinds those are.
 
 It spends nothing to say it — no height, no width, no hue, and no second glyph the row would have to
 shorten a name for (**ADR 0023**). It is a shape, so _Colour Never Alone_ is satisfied twice over:

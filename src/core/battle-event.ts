@@ -20,7 +20,10 @@ export interface DestroyedStatistic {
     amount: number;
 }
 
-/** The client renders the pair as one action; that both name one actor is our condition. */
+/**
+ * The client renders an announcement and what follows it as one action; that they name one actor
+ * is our condition, and how many messages it reaches is **ADR 0078**'s.
+ */
 export interface AnnouncedSkill {
     skillName: string;
     skillId: number | null;

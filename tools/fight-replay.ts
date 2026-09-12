@@ -31,6 +31,10 @@ import {
     getRecordedFights,
     type RecordedFight,
 } from "@/tools/recorded-fights.ts";
+import { composeBlowsGrantedBySkillId } from "@/src/core/fight-decoder.ts";
+import { FROZEN_BLOWS_GRANTED } from "@/frozen/blows-granted.ts";
+
+const BLOWS_GRANTED = composeBlowsGrantedBySkillId(FROZEN_BLOWS_GRANTED.skills);
 
 /** One recording, and everything the add-on would have known about it. */
 export interface FightReplay {
@@ -92,7 +96,7 @@ export function composeFightReplay(fight: RecordedFight): FightReplay {
     assert(fight.name.length > 0, "a replay is named for the recording it came from");
     assert(fight.calls.length > 0, "and is built from at least one call");
     const underway = composeFightUnderway();
-    for (const call of fight.calls) addPayloadToFight(underway, call);
+    for (const call of fight.calls) addPayloadToFight(underway, call, BLOWS_GRANTED);
     const replay = composeReplayOfSession(fight.name, underway);
     if (replay === null) {
         throw new RecordingReadError(`${fight.name} carries no payload the add-on would read`);
@@ -115,7 +119,7 @@ export function composeFightReplaySteps(fight: RecordedFight): FightReplayStep[]
     const underway = composeFightUnderway();
     const steps: FightReplayStep[] = [];
     for (const call of fight.calls) {
-        addPayloadToFight(underway, call);
+        addPayloadToFight(underway, call, BLOWS_GRANTED);
         const replay = composeReplayOfSession(fight.name, underway);
         if (replay !== null) steps.push({ payload: call, replay });
     }

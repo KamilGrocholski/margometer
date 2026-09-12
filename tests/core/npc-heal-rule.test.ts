@@ -11,6 +11,7 @@ import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import {
+    BLOWS_GRANTED,
     getRecordedCombatants,
     getRecordedMessages,
     readRecordingPaths,
@@ -40,9 +41,8 @@ function getMessagesCarryingKey(path: string): string[] {
 
 Deno.test("the key is read wherever it stands, including where it states nothing", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(NPC_HEAL));
-    const restored = decodeFightMessages(getRecordedMessages(NPC_HEAL), roster).filter((event) =>
-        event.kind === "health-change" && event.source === KEY
-    );
+    const restored = decodeFightMessages(getRecordedMessages(NPC_HEAL), roster, BLOWS_GRANTED)
+        .filter((event) => event.kind === "health-change" && event.source === KEY);
     assertEquals(restored.length, 3, "every occurrence became an event, 2026-08-30");
     const figures = restored.map((event) => event.kind === "health-change" ? event.amount : null);
     assertEquals(figures.filter((one) => one === 0).length, 1, "one of them states nothing");
@@ -81,7 +81,7 @@ Deno.test("the restoration is the actor's, and the figure a share of their own p
         assertExists(healed, "a set of one has a member");
         const maximum = combatants.find((one) => one.id === healed)?.healthMaximum ?? null;
         assertExists(maximum, `${path}: the snapshot states that combatant's pool`);
-        for (const event of decodeFightMessages(messages, roster)) {
+        for (const event of decodeFightMessages(messages, roster, BLOWS_GRANTED)) {
             if (event.kind !== "health-change") continue;
             assertEquals(event.combatantId, healed, `${path}: every event lands on the actor`);
             assert(event.amount >= 0, `${path}: and puts health back rather than taking it`);

@@ -11,7 +11,11 @@ import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages, NAME_SEPARATOR } from "@/src/core/fight-decoder.ts";
 import { PROVOCATION_KEY } from "@/src/core/aura-standing.ts";
 import { readRecordingPaths } from "@/project/repository-layout.ts";
-import { getRecordedCombatants, getRecordedPayloads } from "@/tests/recorded-fight.ts";
+import {
+    BLOWS_GRANTED,
+    getRecordedCombatants,
+    getRecordedPayloads,
+} from "@/tests/recorded-fight.ts";
 
 /** The keys whose value is a list of combatant names, in the grammar the decoder splits on. */
 const NAME_KEYS = [PROVOCATION_KEY];
@@ -38,7 +42,7 @@ Deno.test("no recording carries a name its own roster cannot place", () => {
         const roster = composeCombatantRoster(combatants);
         const known = new Set(combatants.map((one) => one.name));
         for (const payload of getRecordedPayloads(path)) {
-            for (const event of decodeFightMessages(payload, roster)) {
+            for (const event of decodeFightMessages(payload, roster, BLOWS_GRANTED)) {
                 const said: string[] = [];
                 if (event.kind === "fight-outcome") said.push(...event.combatantNames);
                 // The decoder keeps the raw name beside the id, and answers null where no

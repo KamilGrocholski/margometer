@@ -10,7 +10,11 @@ import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/ass
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { getStatedHealthFromEvent } from "@/src/core/combatant-health.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
-import { getRecordedCombatants, getRecordedMessages } from "@/tests/recorded-fight.ts";
+import {
+    BLOWS_GRANTED,
+    getRecordedCombatants,
+    getRecordedMessages,
+} from "@/tests/recorded-fight.ts";
 
 const WOUND = "captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json";
 const TICK_KEY = "wound";
@@ -24,7 +28,7 @@ Deno.test("every tick takes the percentage stated before it down by its own figu
     const percentById = new Map<number, number>();
     let closed = 0;
     let past = 0;
-    for (const event of decodeFightMessages(getRecordedMessages(WOUND), roster)) {
+    for (const event of decodeFightMessages(getRecordedMessages(WOUND), roster, BLOWS_GRANTED)) {
         const isTick = event.kind === "health-change" && event.source === TICK_KEY;
         if (isTick) {
             assertStrictEquals(event.kind, "health-change", "a tick is a health change");
@@ -56,9 +60,9 @@ Deno.test("every tick takes the percentage stated before it down by its own figu
 
 Deno.test("the key is read as damage, and all of it lands on the combatant it ticks on", () => {
     const roster = composeCombatantRoster(getRecordedCombatants(WOUND));
-    const ticked = decodeFightMessages(getRecordedMessages(WOUND), roster).filter((event) =>
-        event.kind === "health-change" && event.source === TICK_KEY
-    );
+    const ticked = decodeFightMessages(getRecordedMessages(WOUND), roster, BLOWS_GRANTED).filter((
+        event,
+    ) => event.kind === "health-change" && event.source === TICK_KEY);
     assertEquals(ticked.length, 15, "the material carries this many ticks, 2026-08-30");
     const victims = new Set<number>();
     for (const event of ticked) {

@@ -16,6 +16,7 @@ import { RecordingReadError } from "@/tools/margometer-tool-error.ts";
 import { composeFightReplay, composeReplayedMaterial } from "@/tools/fight-replay.ts";
 import { getRecordedFightAt } from "@/tools/recorded-fights.ts";
 import {
+    BLOWS_GRANTED,
     getRecordedCombatants,
     getRecordedPayloads,
     readRecordingPaths,
@@ -30,7 +31,9 @@ Deno.test("a replay states the figures the panel's own route states", () => {
     // The route `tests/ui/panel-reading.test.ts` takes: the snapshots for the roster, the payloads
     // decoded against it. The replay reaches the same figures off the payloads alone.
     const roster = composeCombatantRoster(getRecordedCombatants(HILDUR));
-    const events = getRecordedPayloads(HILDUR).flatMap((one) => decodeFightMessages(one, roster));
+    const events = getRecordedPayloads(HILDUR).flatMap((one) =>
+        decodeFightMessages(one, roster, BLOWS_GRANTED)
+    );
     const statistics = composeFightStatistics(events, composeTeamHeals(events, roster));
 
     assertEquals(

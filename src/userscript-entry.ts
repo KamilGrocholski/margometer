@@ -20,6 +20,8 @@ import {
     type StatedSkills,
 } from "@/src/core/aura-standing.ts";
 import { FROZEN_AURA_TURNS } from "@/frozen/aura-turns.ts";
+import { FROZEN_BLOWS_GRANTED } from "@/frozen/blows-granted.ts";
+import { composeBlowsGrantedBySkillId } from "@/src/core/fight-decoder.ts";
 import { composeStandingReading, type StandingReading } from "@/src/ui/panel-standing.ts";
 import { composeFightStatistics, type FightStatistics } from "@/src/core/fight-statistics.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
@@ -138,6 +140,8 @@ const STATED_SKILLS: StatedSkills = {
     turnsBySkillId: composeAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills),
     shoutsBySkillId: composeShoutsBySkillId(FROZEN_AURA_TURNS.shouts),
 };
+/** The same reading, for the other question the table answers (**ADR 0078**). */
+const BLOWS_GRANTED_BY_SKILL_ID = composeBlowsGrantedBySkillId(FROZEN_BLOWS_GRANTED.skills);
 
 const STANDING_FOLD_KEY = "MargoMeter-pomocnik-folded";
 const STANDING_PLACE_KEY = "MargoMeter-pomocnik-place";
@@ -587,7 +591,9 @@ function handlePressScreen(screen: ScreenState, said: string): boolean {
  */
 function composeKeptFigures(kept: KeptFight): FightFigures | null {
     const underway = composeFightUnderway();
-    for (const payload of kept.payloads) addPayloadToFight(underway, payload);
+    for (const payload of kept.payloads) {
+        addPayloadToFight(underway, payload, BLOWS_GRANTED_BY_SKILL_ID);
+    }
     return composeFightFigures(underway);
 }
 
@@ -1498,7 +1504,7 @@ function readPayloadIntoLive(
     environment: UserscriptEnvironment,
     stated: { payload: unknown; battle: EngineBattle },
 ): boolean {
-    addPayloadToFight(underway, stated.payload);
+    addPayloadToFight(underway, stated.payload, BLOWS_GRANTED_BY_SKILL_ID);
     live.capture = composeNextCapture(live.capture, {
         payload: stated.payload,
         messages: underway.messagesByPayload.at(-1) ?? [],

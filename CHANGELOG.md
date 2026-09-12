@@ -33,6 +33,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Poprawka** — Kolejne uderzenia jednej umiejętności liczą się wreszcie do niej, a nie do „Zwykły
+  cios". Gra zapowiada taki cios raz, a zadaje kilka razy — panel widział tylko pierwszy. Dotyczy
+  „Podwójnego trafienia" i „Podwójnego strzału", a także ciosów, które przeciwnicy zadają seriami.
+  Przy kilku postaciach wiersz „Zwykły cios" znika teraz zupełnie, bo nie została pod nim ani jedna
+  liczba.
+
 - **Zmiana** — Wiersze, które nie mają swojego miejsca w kolejności, mają teraz skośne kreskowanie
   na pasku. Wcześniej wyglądały dokładnie jak wiersze z numerem — a „Zwykły cios" bywa największą
   liczbą w swojej sekcji, więc czytało się go jako pierwsze miejsce. Kreskowanie znał już wiersz

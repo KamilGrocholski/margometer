@@ -1287,6 +1287,10 @@ measured over every recording on 2026-08-19, not one announcement of the 2 108 c
 that is narrower than it sounds, and an earlier version of this entry said "no damage at all" and
 was wrong.
 
+This is the key an announcement always carries where `skillId` is the one it sometimes does, and
+that asymmetry decides how far the announcement reaches: `skillId` says which. `tcustom` is the
+id-less spelling by construction and takes the same answer.
+
 _Shape:_ 3493 occurrences; on a skill announcement; text
 
 _Help:_ names nothing of `tspell`, `( tspell )`, `skillId`, `( skillId )`
@@ -1303,6 +1307,20 @@ message is assembled.
 
 The game's own identifier for that skill, attached to the same announcement. Read as part of it
 rather than on its own: an id with no name is a skill nothing can put on screen.
+
+It does a second job, and it is the only key that can: the published skill table is keyed by this
+id, so where it stands it is what says how many blows an announcement reaches. Three of the two
+hundred and twenty-six skills the table serves grant an attack beyond their own —
+`frozen/blows-granted.ts`, read 2026-09-09 — and an announcement of one of them is glued to that
+many blow messages more (**ADR 0078**).
+
+⚠️ **Its absence says something too, and it is not "no extra blows".** The table is keyed by this id
+and holds a **player's** skills, so an announcement without one is a question it cannot be asked:
+371 of the 3,500 announcements over `captures/` carry `tspell` without `skillId`, and 364 of those
+are an NPC's. There the reach falls to the bound `src/core/fight-decoder.ts` states. Every id any
+announcement did carry is one the table carries — 0 exceptions of 3,129, 2026-09-12 — which is what
+makes a missing id the whole of that case, and `tests/repository/skill-durations.test.ts` re-earns
+it.
 
 _Shape:_ 3129 occurrences; on a skill announcement; a whole number
 
