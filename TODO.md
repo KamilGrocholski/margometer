@@ -17,34 +17,43 @@
 
 
 ## In Progress
-- [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and player vs. player fights (I really need this for further development, now I only know 1-93lvl)
+- [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and 10vs10 player vs. player fights (I really need this for further development, now I only know 1-93lvl)
+- [x] Add accents to rows like "Zwykly cios", "Nieznany sprawca", and so on, the ones that are not inorder in the rank
+- [ ] Change the way we calculate "Zwykly cios" - is it possible to know the source from "Szeroki zamach" and so on?
 
 ## Up Next
+- [ ] Add field "Pozostałe" for ranked statistics to make sure, that there is 100%, and to tell a user, what has not been included properly
 - [ ] Do a manual audit
-- [ ] Create a better design for helper
-    - [ ] Ask discord for help
-    - [ ] Add buffs and debuffs tracking - the second version of it is waiting outside the develop branch
+- [ ] Plan: Add a fight visualization - a simple chart with bars or something
+- [ ] Find a better way to tell a new user, how to drill views - left, right mouse buttons
+- [ ] Create a new design for tip: find a better way to tell a user, what raw damage is, and, maybe, delete `done` raw damage - it's missleading
 
 ## Done
+
+## Later
+- [ ] Add views for: abilities ranking - uses, dmg, heal, etc; legbon ranking - procs;
+- [ ] Consider adding raw dmg, absorbed, interrupts, and other views - use select as a ui select component, instead of buttons ("Obrazenia" -> "Zadane", etc.)
+- [ ] Start writing specs, and code against tests before v1.0.0 - tests first, at this point I SHOULD exactly know what I want
+- [ ] Add a thread about my add-ons and sites (MargoMeter, MargoStat) on Margonem's forum (I need 1 rep)
+- [ ] Get a recording carrying `frost` - the fourth of the `poison`/`fire`/`light` branch, unread and loud for want of material
+- [ ] Get a recording unwinding a pool past 40 000 from percentages with no snapshot - the entry-health floor's share term survives mutation for want of one
+
+---
+## History
+
+### Done v0.16.0, v0.15.x, v0.14.x
+- [x] Pick a fight, and its turn for better showcase screenshots
+- [x] Increase MAXIMUM_MESSAGES, now it is 4096 - how much can margometer hold?
+- [x] Add `Colossus`/`Titan` super-ability tracker to Pomocnik
+- [x] Validate values of "przebicie pancerza", "nieuchronne" and "Zwykły cios"
+- [x] Fix: Auto fights do not show a valid turn in Pomocnik
+- [x] Fix redundant warning - double warning on a character, when it is the reason; a shown warning SHOULD carry a more meaningful information - what and why
+- [x] Add a `Colossus`/`Titan` helper (based on MargoMeter)
 - [x] Test turns
 - [x] Add "ucieczka" as a new fight outcome
 - [x] !!!IMPORTANT!!! 256 abilities land silently in "Zwykły cios"
 - [x] Fix draging, while redrawing - the same problem like clicking had, which has been solved with `press`
 - [x] Prevent crashes in the userspace 
-
-## Later
-- [ ] Start writing specs, and code against tests before v1.0.0 - tests first, at this point I SHOULD exactly know what I want
-- [ ] Consider adding raw dmg, absorbed, interrupts, and other views - use select as a ui select component, instead of buttons ("Obrazenia" -> "Zadane", etc.)
-- [ ] Add views for: abilities ranking - uses, dmg, heal, etc; legbon ranking - procs;
-- [ ] Add a thread about my add-ons and sites (MargoMeter, MargoStat) on Margonem's forum (I need 1 rep)
-- [ ] Get a recording carrying `frost` - the fourth of the `poison`/`fire`/`light` branch, unread and loud for want of material
-- [ ] Get a recording unwinding a pool past 40 000 from percentages with no snapshot - the entry-health floor's share term survives mutation for want of one
-- [ ] Add a `Colossus`/`Titan` helper (based on MargoMeter) that shows:
-      - which characters are not casting their abilities at all (presence check)
-      - which characters are casting abilities incorrectly (correctness check)
-
----
-## History
 
 ### Done v0.13.0
 - [x] Fix error "MargoMeter/Panel AssertionError: and carries no more of them than a list draws", using 
