@@ -271,13 +271,13 @@ Deno.test("what somebody is stands beside how far along they are, or whichever w
     // The word the row's rule is drawn against: colour never carries a meaning alone, and this
     // is the label it carries (**ADR 0065**). A fight with no seat to read from says none of it.
     assertEquals(
-        subtitleOf("b", 41, "ours"),
+        subtitleOf("b", 41, "reader"),
         "Tancerz ostrzy (41) · My",
         "and whose side they stand on, last, because it is the panel's answer and not the game's",
     );
-    assertEquals(subtitleOf("b", 41, "theirs"), "Tancerz ostrzy (41) · Oni", "either way round");
+    assertEquals(subtitleOf("b", 41, "opposing"), "Tancerz ostrzy (41) · Oni", "either way round");
     assertEquals(
-        subtitleOf(null, null, "ours"),
+        subtitleOf(null, null, "reader"),
         "My",
         "the side alone where nothing else was said",
     );

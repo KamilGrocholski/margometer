@@ -54,7 +54,10 @@ export function readDictionaryFromPage(page: unknown): TranslateLabel | null {
     return (id: string): string | null => {
         assert(id.length > 0, "an id asked of the client is one the panel named");
         let entry: unknown;
-        // The game's own page state, read outbound (AGENTS.md E5).
+        // The game's own page state, read outbound (AGENTS.md E5). The mark is the answer: the
+        // panel has no word of its own for these keys, so where the client cannot be asked, the
+        // row stands under the key as the game wrote it — the third rung of **ADR 0024**, and
+        // what a reader sees instead of a word somebody made up.
         try {
             entry = (translate as (name: string) => unknown)(id);
         } catch {

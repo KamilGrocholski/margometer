@@ -113,8 +113,8 @@ Deno.test("one row per skill, and the sides counted apart where the client named
         null,
     );
     assertStrictEquals(reading.rows.length, 1, "three casts of one skill are one row");
-    assertStrictEquals(reading.rows[0]?.ours, 2, "two of them the reader's own");
-    assertStrictEquals(reading.rows[0]?.theirs, 1, "and one the other side's");
+    assertStrictEquals(reading.rows[0]?.reader, 2, "two of them the reader's own");
+    assertStrictEquals(reading.rows[0]?.opposing, 1, "and one the other side's");
     const { host } = draw(reading);
     // Two figures the colour tells apart, as the strip under the ranking states its sides —
     // never one figure with a mark in it. A slash there would read as a fraction beside `3 z 8`.
@@ -149,7 +149,7 @@ Deno.test("a caster wears their own profession, and the side is said on the edge
         264,
     );
     const casters = reading.rows[0]?.casters ?? [];
-    assertEquals(casters.map((one) => one.sidePart), ["ours", "theirs"], "one of each side");
+    assertEquals(casters.map((one) => one.sidePart), ["reader", "opposing"], "one of each side");
     const { host } = draw(reading);
     const caps = getElementsWithin(getWindow(host)).filter((one) => one.className === "bar-cap");
     assertEquals(
@@ -204,7 +204,7 @@ Deno.test("a fight nothing named a side on counts nobody apart", () => {
         composeTurn(null),
         null,
     );
-    assertStrictEquals(reading.rows[0]?.ours, null, "no side of the reader's own was stated");
+    assertStrictEquals(reading.rows[0]?.reader, null, "no side of the reader's own was stated");
     const { host } = draw(reading);
     assertEquals(
         getTextsByClass(getWindow(host), "row-value figure"),
@@ -712,7 +712,7 @@ Deno.test("a charge wears the hue of whoever is making it, and one dot per turn"
     const charged = reading.chargedSkills[0];
     assertExists(charged, "the band draws the charge the fight states");
     assertStrictEquals(charged.colour, getColourForProfession("t"), "in the maker's own hue");
-    assertStrictEquals(charged.sidePart, "theirs", "and says which side is making it");
+    assertStrictEquals(charged.sidePart, "opposing", "and says which side is making it");
 
     const { host } = draw(reading);
     const window = getWindow(host);

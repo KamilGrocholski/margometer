@@ -80,7 +80,6 @@ function readWarriorsFromValue(value: unknown): unknown[] {
     if (Array.isArray(value)) return value;
     if (!isRecord(value)) return [];
     const stated = Object.values(value);
-    assert(stated.length <= Object.keys(value).length, "a keyed cast is read once per key");
     assert(stated.length <= MAXIMUM_COMBATANTS, "and stays inside the fight's stated bound");
     return stated;
 }

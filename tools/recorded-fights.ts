@@ -32,8 +32,21 @@ export interface RecordedFight {
     calls: unknown[];
 }
 
+/**
+ * Every recording `captures/` holds, branded where the directory itself will not answer.
+ *
+ * `project/repository-layout.ts` opens the directory and reaches for no layer (**ADR 0020**), so
+ * it cannot brand its own failure and does not try: a missing or unreadable `captures/` leaves
+ * `Deno.readDirSync` throwing a family of its own. The brand is put on here, where a terminal
+ * reads it, exactly as `getRecordingText` does for the file below it (**E1**, **E4**).
+ */
 export function getRecordedFightNames(): string[] {
-    const names = readRecordingNames();
+    let names: string[];
+    try {
+        names = readRecordingNames();
+    } catch (cause) {
+        throw new RecordingReadError("captures/ is not a directory this tool can read", { cause });
+    }
     if (names.length === 0) {
         throw new RecordingReadError("there is no recording to read");
     }

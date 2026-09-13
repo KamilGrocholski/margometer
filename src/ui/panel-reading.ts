@@ -705,8 +705,8 @@ function getListedTotal(
 function getPartListed(choice: PanelSideChoice, readerSide: number | null): PanelSidePart | null {
     if (choice === "everyone") return null;
     if (readerSide === null) return null;
-    if (choice === "reader") return "ours";
-    return "theirs";
+    if (choice === "reader") return "reader";
+    return "opposing";
 }
 
 /** One person under a pinned figure, before anything has been said about how they are drawn. */
@@ -1299,8 +1299,8 @@ function getCountedTotal(
         return getFigure(statistics.totals, metric) + getNobodyForMetric(statistics, metric);
     }
     if (sides === null) return 0;
-    if (part === "ours") return sides.ours;
-    if (part === "theirs") return sides.theirs;
+    if (part === "reader") return sides.reader;
+    if (part === "opposing") return sides.opposing;
     return sides.nobody;
 }
 
@@ -1330,23 +1330,23 @@ function getWholeDisagreesWithSide(
 ): boolean {
     if (part === null) return false;
     if (sides === null) return false;
-    return whole !== (part === "ours" ? sides.ours : sides.theirs);
+    return whole !== (part === "reader" ? sides.reader : sides.opposing);
 }
 
 /** Null without a seat: two sides nothing can tell apart are not two figures. */
 export interface PanelSides {
-    ours: number;
-    theirs: number;
+    reader: number;
+    opposing: number;
     nobody: number;
 }
 
 /** Which part of the bar a figure belongs to. `nobody` is a refusal, never a third side. */
-export type PanelSidePart = "ours" | "theirs" | "nobody";
+export type PanelSidePart = "reader" | "opposing" | "nobody";
 
 export function getPartOfSide(side: number | null, readerSide: number | null): PanelSidePart {
     if (side === null) return "nobody";
     if (readerSide === null) return "nobody";
-    return side === readerSide ? "ours" : "theirs";
+    return side === readerSide ? "reader" : "opposing";
 }
 
 /**
@@ -1361,7 +1361,7 @@ function getPartCharged(part: PanelSidePart, metric: PanelMetric): PanelSidePart
     if (part === "nobody") return part;
     if (metric === "healthGiven") return part;
     if (metric === "healthRestored") return part;
-    return part === "ours" ? "theirs" : "ours";
+    return part === "reader" ? "opposing" : "reader";
 }
 
 function getHalfNamed(figures: CombatantFigures, metric: PanelMetric): number {
@@ -1385,7 +1385,7 @@ export function composePanelSides(
     readerSide: number | null,
 ): PanelSides | null {
     if (readerSide === null) return null;
-    const totals: Record<PanelSidePart, number> = { ours: 0, theirs: 0, nobody: 0 };
+    const totals: Record<PanelSidePart, number> = { reader: 0, opposing: 0, nobody: 0 };
     for (const [combatantId, figures] of statistics.byCombatantId) {
         const part = getPartOfSide(roster.byId.get(combatantId)?.side ?? null, readerSide);
         totals[part] += getFigure(figures, metric);

@@ -80,8 +80,8 @@ export interface StandingRow {
     skillId: number;
     skillName: string;
     /** Null where the client never said which side is the reader's own. */
-    ours: number | null;
-    theirs: number | null;
+    reader: number | null;
+    opposing: number | null;
     casters: StandingCaster[];
 }
 
@@ -224,7 +224,7 @@ function composeStandingChargedSkills(
     return composed;
 }
 
-function getIsOurs(
+function getIsOnReaderSide(
     standing: AuraStanding,
     roster: CombatantRoster,
     readerSide: number | null,
@@ -250,16 +250,16 @@ function composeStandingRows(
         const held = rowBySkillId.get(standing.skillId) ?? {
             skillId: standing.skillId,
             skillName: standing.skillName,
-            ours: readerSide === null ? null : 0,
-            theirs: readerSide === null ? null : 0,
+            reader: readerSide === null ? null : 0,
+            opposing: readerSide === null ? null : 0,
             casters: [],
         };
         if (held.casters.length < MAXIMUM_CASTERS) {
             held.casters.push(composeStandingCaster(standing, roster, readerSide));
         }
-        const isOurs = getIsOurs(standing, roster, readerSide);
-        if (isOurs === true) held.ours = (held.ours ?? 0) + 1;
-        if (isOurs === false) held.theirs = (held.theirs ?? 0) + 1;
+        const isReaders = getIsOnReaderSide(standing, roster, readerSide);
+        if (isReaders === true) held.reader = (held.reader ?? 0) + 1;
+        if (isReaders === false) held.opposing = (held.opposing ?? 0) + 1;
         rowBySkillId.set(standing.skillId, held);
     }
     return [...rowBySkillId.values()];

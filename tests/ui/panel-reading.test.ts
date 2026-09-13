@@ -1239,7 +1239,7 @@ Deno.test("a one-side list divides by the figure the strip states for that side"
                         .reduce((sum, one) => sum + one.figure, 0);
                     assertEquals(
                         reading.total + apart,
-                        choice === "reader" ? sides.ours : sides.theirs,
+                        choice === "reader" ? sides.reader : sides.opposing,
                         `${path}: ${metric} under ${choice} is that side's own figure`,
                     );
                     checked += 1;

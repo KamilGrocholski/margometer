@@ -507,7 +507,7 @@ export function composeCardSubtitleText(
     if (level !== null) said.push(`(${composeIntegerText(level)})`);
     const stated = said.join(" ");
     if (sidePart === "nobody") return stated.length === 0 ? null : stated;
-    const side = sidePart === "ours" ? SIDE_WORDS.reader : SIDE_WORDS.opposing;
+    const side = sidePart === "reader" ? SIDE_WORDS.reader : SIDE_WORDS.opposing;
     return stated.length === 0 ? side : `${stated} · ${side}`;
 }
 

@@ -82,7 +82,9 @@ printed on a bar at present, and the pair is what proves the tint keeps every hu
 | `UNKNOWN_COLOUR` | `#8a8a80` | Desaturated on purpose: unknown is the absence of a category. |
 
 `ours` and `theirs` are **not** green-good and red-bad: they are two sides, and the panel takes no
-view on which one the reader should be pleased about.
+view on which one the reader should be pleased about. **They are this sheet's names and nothing
+else's**: `CONTEXT.md` puts `ours` on **Side**'s `_Avoid_` list, so what the panel _reads_ calls the
+two `reader` and `opposing`, and these two words stop at the stylesheet.
 
 `defect` is a magenta because every other family already means something here: green and red are the
 two sides, amber is a suspicion about a figure, grey is the absence of a category, and the eight

@@ -674,7 +674,7 @@ Deno.test("an end left out inside an opened figure says what was left out, and n
 
 Deno.test("the fight is totalled in two figures, and a suspicion is said under them", () => {
     const reading = readFight();
-    const sides = { ours: 300, theirs: 700, nobody: 0 };
+    const sides = { reader: 300, opposing: 700, nobody: 0 };
     const host = draw({ ...reading, sides });
     const strip = getElementsWithin(host).filter((one) => one.className === "MargoMeter-sides");
     assertEquals(strip.length, 1, "the strip is there whether or not anything went wrong");
@@ -742,7 +742,7 @@ Deno.test("the strip says it is the whole fight wherever the list under it is no
 
 Deno.test("what belongs to neither side is drawn as belonging to neither", () => {
     const reading = readFight();
-    const host = draw({ ...reading, sides: { ours: 300, theirs: 600, nobody: 100 } });
+    const host = draw({ ...reading, sides: { reader: 300, opposing: 600, nobody: 100 } });
     assertEquals(
         getTextsByClass(host, "sides-spare"),
         [],
@@ -2207,7 +2207,7 @@ Deno.test("a heading is its words and a figure, and says only what its level is 
 
 /** The figures under the list are cells like any other, and the class is what says so. */
 Deno.test("both totals and what belongs to neither side are drawn as figures", () => {
-    const host = draw({ ...readFight(), sides: { ours: 300, theirs: 600, nobody: 100 } });
+    const host = draw({ ...readFight(), sides: { reader: 300, opposing: 600, nobody: 100 } });
     const figures = getElementsWithin(host).filter((one) =>
         one.className.split(" ").includes(CLASS.figure)
     );

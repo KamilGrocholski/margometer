@@ -271,7 +271,7 @@ function getSentencesFromChoices(): string[] {
         found.push(getWordsForShelfTime({ day: 1, month, hour: 0, minute: 0 }, false));
     }
     found.push(composeSideCountsText([4, 4], 2), composeShelfSizeText([4, 4]));
-    found.push(String(composeCardSubtitleText("w", 120, "ours")));
+    found.push(String(composeCardSubtitleText("w", 120, "reader")));
     return found;
 }
 

@@ -6,7 +6,13 @@
  * out. **W5**: zero turns elapsed is a boundary and has one turn beside it.
  */
 
-import { assert, assertEquals, assertStrictEquals } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    AssertionError,
+    assertStrictEquals,
+    assertThrows,
+} from "@std/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import {
     composeAuraTurnsBySkillId,
@@ -434,5 +440,32 @@ Deno.test(`${BOTH_OKRZYKI}: two casters at one monster leave one provocation sta
     assert(
         composeFightStandings(events, DATED, roster).standings.every((one) => one.skillId !== 25),
         "with neither okrzyk standing a second time among the whole-team casts",
+    );
+});
+
+/**
+ * The table is keyed by skill id, so two rows sharing one would silently collapse and the later
+ * one would win — a duration read off a row nobody meant. The assertion that says so used to read
+ * `<=`, which a map filled from a list satisfies whatever it dropped.
+ */
+Deno.test("a table naming one skill twice is refused rather than folded", () => {
+    assertThrows(
+        () => composeAuraTurnsBySkillId([{ id: 7, turns: 2 }, { id: 7, turns: 5 }]),
+        AssertionError,
+        "named once",
+    );
+    assertThrows(
+        () =>
+            composeShoutsBySkillId([
+                { id: 7, turns: 2, coverageMinimum: 3 },
+                { id: 7, turns: 5, coverageMinimum: 3 },
+            ]),
+        AssertionError,
+        "named once",
+    );
+    assertStrictEquals(
+        composeAuraTurnsBySkillId([{ id: 7, turns: 2 }, { id: 8, turns: 5 }]).size,
+        2,
+        "and two rows naming two skills are two",
     );
 });

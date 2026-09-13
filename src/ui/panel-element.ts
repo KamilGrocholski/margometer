@@ -399,7 +399,7 @@ function composeSideRuleElements(
 ): PanelElement[] {
     if (part === "nobody") return [];
     const rule = composeElement(document, "div", CLASS.rowSide);
-    rule.setAttribute(STYLE_ATTRIBUTE, `color:${part === "ours" ? SIGNAL.ours : SIGNAL.theirs}`);
+    rule.setAttribute(STYLE_ATTRIBUTE, `color:${part === "reader" ? SIGNAL.ours : SIGNAL.theirs}`);
     return [rule];
 }
 
@@ -902,19 +902,19 @@ function composeStandingCountElement(
     row: StandingRow,
 ): PanelElement {
     const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
-    if (row.ours === null || row.theirs === null) {
+    if (row.reader === null || row.opposing === null) {
         value.textContent = composeStandingCountText(row);
         return value;
     }
-    const ours = composeElement(document, "span", CLASS.standingOurs);
-    ours.textContent = composeIntegerText(row.ours);
+    const reader = composeElement(document, "span", CLASS.standingOurs);
+    reader.textContent = composeIntegerText(row.reader);
     const between = composeElement(document, "span", CLASS.rowShare);
     between.textContent = STANDING_WORDS.sideSeparator;
-    const theirs = composeElement(document, "span", CLASS.standingTheirs);
-    theirs.textContent = composeIntegerText(row.theirs);
-    value.append(ours);
+    const opposing = composeElement(document, "span", CLASS.standingTheirs);
+    opposing.textContent = composeIntegerText(row.opposing);
+    value.append(reader);
     value.append(between);
-    value.append(theirs);
+    value.append(opposing);
     return value;
 }
 
@@ -1560,15 +1560,15 @@ function composeSidesElement(document: PanelDocument, shown: ShownScreen): Panel
     if (sides === null) return composeSlotElement(document);
     const block = composeElement(document, "div", CLASS.sides);
     const line = composeElement(document, "div", CLASS.sidesLine);
-    const ours = composeElement(document, "span", `${CLASS.sidesOurs} ${CLASS.figure}`);
-    ours.textContent = composeFigureText(sides.ours);
+    const reader = composeElement(document, "span", `${CLASS.sidesOurs} ${CLASS.figure}`);
+    reader.textContent = composeFigureText(sides.reader);
     const label = composeElement(document, "span", CLASS.sidesLabel);
     label.textContent = composeSidesLabel(shown);
-    const theirs = composeElement(document, "span", `${CLASS.sidesTheirs} ${CLASS.figure}`);
-    theirs.textContent = composeFigureText(sides.theirs);
-    line.append(ours);
+    const opposing = composeElement(document, "span", `${CLASS.sidesTheirs} ${CLASS.figure}`);
+    opposing.textContent = composeFigureText(sides.opposing);
+    line.append(reader);
     line.append(label);
-    line.append(theirs);
+    line.append(opposing);
     block.append(line);
     composeSidesTrack(document, block, sides);
     if (sides.nobody > 0) block.append(composeSidesSpare(document, sides.nobody));
@@ -1580,12 +1580,12 @@ function composeSidesTrack(
     block: PanelElement,
     sides: PanelSides,
 ): void {
-    const whole = sides.ours + sides.theirs + sides.nobody;
+    const whole = sides.reader + sides.opposing + sides.nobody;
     if (whole <= 0) return;
     const track = composeElement(document, "div", CLASS.sidesTrack);
     const parts: Array<[number, string]> = [
-        [sides.ours / whole, CLASS.sidesOurs],
-        [sides.theirs / whole, CLASS.sidesTheirs],
+        [sides.reader / whole, CLASS.sidesOurs],
+        [sides.opposing / whole, CLASS.sidesTheirs],
         [sides.nobody / whole, CLASS.sidesNobody],
     ];
     for (const [share, className] of parts) {

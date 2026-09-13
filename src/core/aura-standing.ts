@@ -175,7 +175,7 @@ export function composeAuraTurnsBySkillId(
         assert(skill.turns > 0, "a skill in the table runs for a stated number of turns");
         found.set(skill.id, skill.turns);
     }
-    assert(found.size <= stated.length, "and each of them is named once");
+    assert(found.size === stated.length, "and each of them is named once");
     return found;
 }
 
@@ -189,7 +189,7 @@ export function composeShoutsBySkillId(
         assert(skill.coverageMinimum > 0, "and covers at least one character");
         found.set(skill.id, { turns: skill.turns, coverageMinimum: skill.coverageMinimum });
     }
-    assert(found.size <= stated.length, "and each of them is named once");
+    assert(found.size === stated.length, "and each of them is named once");
     return found;
 }
 

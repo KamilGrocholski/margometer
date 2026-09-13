@@ -178,9 +178,19 @@ function readMessagesFromPayload(payload: Record<string, unknown>): string[] {
     return messages;
 }
 
-function readMessageCountFromPayload(payload: Record<string, unknown>): number {
+/**
+ * How many messages the envelope says it carries, or null where it says nothing about it.
+ *
+ * ⚠️ **Never zero for an envelope that did not state one** (**E10**). Zero is a measurement — an
+ * envelope stating an empty index — and what the caller does with the two is not the same: a
+ * count that was never stated is nothing to compare against, and reading it as zero would say
+ * *nothing was lost* where the truth is *nobody knows*. Measured over `captures/` 2026-09-13: of
+ * 1 234 payloads, 65 state no index and not one of those carries a message, so the two answers
+ * have never yet parted on this material.
+ */
+function readMessageCountFromPayload(payload: Record<string, unknown>): number | null {
     const stated = payload[MESSAGE_INDEX_KEY];
-    if (!Array.isArray(stated)) return 0;
+    if (!Array.isArray(stated)) return null;
     assert(stated.length <= MAXIMUM_MESSAGES, "a payload states no more messages than one carries");
     return stated.length;
 }
@@ -285,7 +295,12 @@ export function addPayloadToFight(
     underway.chargedSkills = chargedSkills;
     underway.messagesByPayload.push(messages);
     underway.messagesRead += messages.length;
-    if (stated > messages.length) underway.messagesLost += stated - messages.length;
+    // An envelope that stated no count is nothing to measure the reading against, so nothing is
+    // counted lost — which is not the same claim as a count of zero, and is why the read answers
+    // null rather than one.
+    if (stated !== null && stated > messages.length) {
+        underway.messagesLost += stated - messages.length;
+    }
     for (const event of decoded) underway.events.push(event);
     if (FIGHT_ENDS_KEY in payload) underway.isOver = true;
     assert(underway.messagesLost >= 0, "what a payload stated and nobody read is never negative");
