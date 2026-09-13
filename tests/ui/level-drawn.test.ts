@@ -30,6 +30,7 @@ import {
     getMetricForPinned,
     type NamedPart,
     NOTHING_SUSPECT,
+    type OpenedPart,
     type PanelMetric,
     type PanelReading,
     PINNED_CASES,
@@ -312,13 +313,24 @@ function getRegionShortfall(where: string, shown: ShownScreen): string | null {
     return `${where}: promised ${seen.promised}, drew ${seen.drawn}, ${seen.failures} undrawn`;
 }
 
-/** The parts of an opened figure that open onto a level of their own, both kinds at once. */
-function composeOpenedParts(drill: DrillReading): NamedPart[] {
+/**
+ * The parts of an opened figure that open onto a level of their own, every kind at once.
+ *
+ * ⚠️ **The closing row is one of them, and it is the one a reader over `NamedPart` walks past.**
+ * It is an `OpenedPart` and nothing else (**ADR 0081**), so a walk taking the two lists of named
+ * rows takes every level but the one that row opens, and says nothing about what it missed.
+ */
+function composeOpenedParts(drill: DrillReading): OpenedPart[] {
     const skills = drill.bySkill.rows.filter((one) => one.doesOpenPart).map((one) => one.part);
     const kinds = drill.byElement.rows.filter((one) => one.doesOpenPart).map((
         one,
     ): NamedPart => ({ kind: "element", element: one.element }));
-    return [...skills, ...kinds];
+    const parts: OpenedPart[] = [...skills, ...kinds];
+    const closing = drill.bySkill.plain;
+    if (closing === null) return parts;
+    if (!closing.doesOpenPart) return parts;
+    parts.push({ kind: "plain" });
+    return parts;
 }
 
 interface LevelWalk {
@@ -437,7 +449,7 @@ Deno.test("every level stands as tall as it drew, with one card per row and no t
     );
     // The reader is proved by what it reached as well as by what it passed: a walk that stopped
     // opening rows would agree with every level it never drew.
-    assertEquals(walked, 13_778, "every level the corpus draws, 2026-09-12");
+    assertEquals(walked, 14_294, "every level the corpus draws, 2026-09-13");
 });
 
 /**
