@@ -28,6 +28,11 @@ import { composeShownScreen } from "@/tests/shown-screen.ts";
 const REGISTER_PATH = "docs/drill-levels.md";
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 const SOMETIMES_HEADING = "## The cells that say";
+const SHUT_HEADING = "## What stays shut, and why";
+/** The opening of the one sentence that names them, and the whole of how it is found. */
+const SHUT_OPENING = "Inside an opened row they are";
+/** The rung that sentence is about: the rows a reader meets inside an opened row. */
+const SHUT_RUNG = "opened";
 const BACKTICK = "`";
 
 /**
@@ -260,5 +265,66 @@ Deno.test("every verdict of `sometimes` is explained, and every explanation is o
         explained.filter((one) => !uncertain.includes(one)).sort(),
         [],
         `${REGISTER_PATH}: a cell is explained that no longer says \`sometimes\``,
+    );
+});
+
+/**
+ * The kinds the document says stay shut, read out of the one paragraph that names them. Read as a
+ * paragraph rather than as a line, because `deno fmt` owns where this prose wraps and a reader
+ * over a line would take whichever half of the sentence the formatter left it.
+ *
+ * Only a run that is a row kind is taken: the paragraph cites a path and a task in backticks
+ * beside the kinds, and the vocabulary is what tells the two apart.
+ */
+function getKindsSaidShut(text: string): string[] {
+    const found: string[] = [];
+    let inside = false;
+    let said = "";
+    for (const line of text.split("\n")) {
+        if (line.startsWith(SHUT_HEADING)) inside = true;
+        else if (inside && line.startsWith("## ")) break;
+        if (!inside) continue;
+        if (said.length > 0 && line.length === 0) break;
+        if (said.length === 0 && !line.startsWith(SHUT_OPENING)) continue;
+        said = `${said} ${line}`;
+    }
+    for (const named of getBackticked(said)) {
+        if (!DRILL_ROWS.some((one) => one === named)) continue;
+        if (found.includes(named)) continue;
+        found.push(named);
+    }
+    return found.sort();
+}
+
+/**
+ * ⚠️ **The half of the register nothing else holds.** The table above says what each cell's
+ * verdict is; this says which kinds are the shut ones, which is the sentence that goes stale when
+ * a row starts opening — as `closing` did, a release before anything asked.
+ */
+Deno.test("the kinds said to stay shut are the kinds that stay shut, both ways round", () => {
+    const sample = `${SHUT_HEADING}\n\n${SHUT_OPENING} \`kind\` and\n\`closing\` — and so on.\n`;
+    assertEquals(getKindsSaidShut(sample), ["closing", "kind"], "the reader works");
+    // The two it must not flag: the sentence standing outside the section, and a paragraph of the
+    // section that is not the one naming them.
+    const elsewhere = `${SHUT_OPENING} \`kind\`.\n${SHUT_HEADING}\n\nSomething else, \`skill\`.\n`;
+    assertEquals(getKindsSaidShut(elsewhere), [], "a sentence outside the section is not one");
+    const register = Deno.readTextFileSync(REGISTER_PATH);
+    const said = getKindsSaidShut(register);
+    assert(said.length > 0, "the document names the kinds that stay shut");
+    const shut = new Set<string>();
+    for (const one of composeDrillCases(composeReplayedMaterial([]).replays)) {
+        if (one.rung !== SHUT_RUNG) continue;
+        if (one.shut === 0) continue;
+        shut.add(one.row);
+    }
+    assertEquals(
+        said.filter((one) => !shut.has(one)),
+        [],
+        `${REGISTER_PATH}: a kind is said to stay shut that opens wherever the panel draws it`,
+    );
+    assertEquals(
+        [...shut].sort().filter((one) => !said.includes(one)),
+        [],
+        `${REGISTER_PATH}: a kind stays shut and the document does not say so`,
     );
 });

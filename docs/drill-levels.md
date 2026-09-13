@@ -155,27 +155,29 @@ under it. `damageTakenApplied` draws no such row at all: there the row needs a f
 somebody lost was taken off somebody. Measured over `captures/` on 2026-09-13, one row in the corpus
 is shut, and it is that case exactly: nought, with seven blows behind it.
 
-## What opens, in numbers
+## What stays shut, and why
 
-Over `captures/` on 2026-09-12: of the rows a reader meets inside an opened row, **5,256 open and
-1,138 do not**, and the third level they reach holds **4,661 person rows**. The shut thousand is
-`closing`, `half-named`, and the key and kind rows on the screens whose statistics keep no second
-cut of them — never a row the panel decided against.
+How many rows of each kind a recording holds is `deno task panel:drill --cases`'s to state. What
+this section carries is the half that does not move with the next recording: **which** kinds are the
+shut ones.
 
-The pinned rows open onto **90 person rows and 102 kind rows**, 45 and 51 on each damage screen. The
-people are the same 45 read from both ends: on `Zadane` they are who lost the health nobody was
-named for striking, on `Otrzymane` the same figure cut by the same people — one row per person the
-count reaches, which is what `getHalfNamedBalance` in `src/core/fight-statistics.ts` asserts it is
-the sum of.
+Inside an opened row they are `half-named`, `source`, `kind` and `closing` — the key and kind rows
+on the screens whose statistics keep no second cut of them, and the closing row drawn at nought,
+which is the case the section above names. Never a row the panel decided against, and
+`tests/tools/drill-report.test.ts` holds that list to what the tool reports, both ways round.
 
-The kinds are the second cut of that same figure, and they are what a reader came for: over
-`captures/` on 2026-09-01 the 609,078 points nobody was named for striking are 89.2% `poison`, then
-`anguish`, `wound`, `heal`, `fire` and `light` — six keys, in 51 rows across every recording.
-Composed through the panel and tallied straight off the events, the two agree to the point.
+The pinned rows open onto people and onto keys. The people are the same set read from both ends: on
+`Zadane` they are who lost the health nobody was named for striking, on `Otrzymane` the same figure
+cut by the same people — one row per person the count reaches, which is what `getHalfNamedBalance`
+in `src/core/fight-statistics.ts` asserts it is the sum of.
 
-Both of those sections open, onto **116 rows on each damage screen** — 58 keys reached from a person
-and 58 people reached from a key. They are one fold read both ways round, so the two counts are
-equal by construction rather than by coincidence.
+The kinds are the second cut of that same figure, and they are what a reader came for: the points
+nobody was named for striking, under the key each of them moved out under. Composed through the
+panel and tallied straight off the events, the two agree to the point.
+
+Both of those sections open, onto a row per key reached from a person and a row per person reached
+from a key. They are one fold read both ways round, so the two counts are equal by construction
+rather than by coincidence.
 
 ## Where a row that opens nothing still says something
 
