@@ -8,7 +8,7 @@
  */
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
-import { type Combatant, composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { type Combatant, type CombatantRoster } from "@/src/core/combatant-roster.ts";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeBlowsGrantedBySkillId, decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { FROZEN_BLOWS_GRANTED } from "@/frozen/blows-granted.ts";
@@ -17,6 +17,11 @@ import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import { readCombatantFromWarrior } from "@/src/game/engine-warrior.ts";
 import { CAPTURE_FIELDS } from "@/src/game/fight-capture.ts";
+import {
+    addPayloadToFight,
+    composeFightUnderway,
+    getReadingFromFight,
+} from "@/src/game/fight-underway.ts";
 import { readRecordingPaths as readRecordingFilePaths } from "@/project/repository-layout.ts";
 
 function getNumberFromField(value: unknown, subject: string): number {
@@ -156,11 +161,31 @@ export function getRecordedCombatants(path: string): Combatant[] {
 }
 
 /**
+ * The cast of a recording, read where the add-on reads it: off the payloads, by replaying them
+ * through the game layer's own fight. The snapshots are richer evidence and
+ * `getRecordedCombatants` is what reads them, for the guards whose subject **is** a snapshot.
+ */
+export function composeRecordedRoster(path: string): CombatantRoster {
+    const underway = composeFightUnderway();
+    for (const update of getRecordedEngineUpdates(path)) {
+        addPayloadToFight(underway, update, BLOWS_GRANTED);
+    }
+    const reading = getReadingFromFight(underway);
+    assertExists(reading, `${path}: a recording states a fight to take a cast off`);
+    return reading.roster;
+}
+
+/**
  * A recording decoded the way the add-on decodes one, with the casts sized: without sizing the
  * fight reads as suspect, because a share nobody placed is exactly what that mark is for.
+ *
+ * ⚠️ **The roster comes off the payloads and never off the snapshots.** That is where the add-on
+ * reads it (`tests/game/fight-underway.test.ts`), and one recording carries no snapshot at all —
+ * so a roster read the other way leaves that fight nameless, and every walk standing on this
+ * helper walks it with no name, no side and no profession while looking exactly as green.
  */
 export function composeRecordedReading(path: string) {
-    const roster = composeCombatantRoster(getRecordedCombatants(path));
+    const roster = composeRecordedRoster(path);
     const events = getRecordedPayloads(path).flatMap((one) =>
         decodeFightMessages(one, roster, BLOWS_GRANTED)
     );
