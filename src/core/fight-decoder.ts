@@ -73,6 +73,7 @@ export const PROC_ENDS: Record<string, ProcEnd> = {
     "+stun2-d": "actor",
     "+freeze": "actor",
     "+wound": "actor",
+    "+woundpoison": "actor",
     "+fastarrow": "actor",
     "+acdmg_destroyed": "actor",
     "+legbon_curse": "actor",
@@ -242,7 +243,6 @@ const DECLARATION_KEYS = [
     "+ph",
     "+rage",
     "+taken_dmg",
-    "+woundpoison",
     "-endest",
     "-legbon_critred",
     "-legbon_facade",
@@ -271,6 +271,17 @@ const DECLARATION_KEYS = [
     "surpass_bonus_total",
     TEXT_KEY,
 ];
+/**
+ * The procs read as procs **while carrying a figure**, which every other one in `PROC_ENDS` is
+ * not: a `+crit` arriving with a value is a shape nobody has met and goes back to unread.
+ *
+ * `+woundpoison` is `+wound`'s own announcement with a percentage written into it, so a wound
+ * something weakened reaches the card exactly as an unweakened one does. **The figure is not
+ * read**: what the percentage is taken off is unsettled by the material, and a share quoted
+ * against a wound would be a guess (**ADR 0085**, `docs/protocol-keys.md`).
+ */
+const PROCS_WITH_A_VALUE = ["+woundpoison"];
+
 /**
  * The same, stating the key and nothing else — and read **only** while they carry none. The
  * client composes `+legbon_holytouch` with a hole for a figure, so it is a declaration whose
@@ -506,6 +517,14 @@ function readFightOutcome(key: string, value: string): FightOutcomeEvent | null 
     return { kind: "fight-outcome", result, combatantNames };
 }
 
+/** True where the key is read here, which is what keeps the reading of one key in one place. */
+function addProcWithValue(reading: AttackReading, key: string): boolean {
+    if (!PROCS_WITH_A_VALUE.includes(key)) return false;
+    assert(getProcEnd(key) !== null, "a proc read with a figure is one the table places");
+    reading.procs.push(key);
+    return true;
+}
+
 function addValuelessKey(reading: AttackReading, key: string): void {
     assert(key.length > 0, "a key is never empty");
     if (getProcEnd(key) !== null) {
@@ -587,6 +606,15 @@ function addUnaccountedHealth(reading: AttackReading, key: string, value: string
     return true;
 }
 
+/** What the reading accounted for, which is held against what the message handed it. */
+function countParametersRead(reading: AttackReading): number {
+    return reading.raw.length + reading.applied.length + reading.prevented.length +
+        reading.destroyed.length + reading.procs.length + reading.healthChanges.length +
+        reading.namedDamage.length + reading.namedHealing.length + reading.unaccounted.length +
+        reading.outcomes.length + reading.declared.length + reading.skillKeys +
+        reading.unreadKeys.length;
+}
+
 function composeAttackReading(parsed: ProtocolMessage): AttackReading {
     const parameters = parsed.parameters;
     assert(parameters.length <= MAXIMUM_PARAMETERS, "a message stays inside its stated bound");
@@ -619,6 +647,7 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
             reading.outcomes.push(outcome);
             continue;
         }
+        if (addProcWithValue(reading, parameter.key)) continue;
         if (DECLARATION_KEYS.includes(parameter.key)) {
             const amount = getIntegerFromText(parameter.value);
             reading.declared.push({ effect: parameter.key, amount, text: parameter.value });
@@ -648,11 +677,7 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
         addAttackFigure(reading, parameter.key, amount);
     }
     closeSkillReading(reading);
-    const read = reading.raw.length + reading.applied.length + reading.prevented.length +
-        reading.destroyed.length + reading.procs.length + reading.healthChanges.length +
-        reading.namedDamage.length + reading.namedHealing.length + reading.unaccounted.length +
-        reading.outcomes.length + reading.declared.length + reading.skillKeys +
-        reading.unreadKeys.length;
+    const read = countParametersRead(reading);
     assert(read === parameters.length, "every parameter is read or named unread, and none twice");
     assert(reading.raw.length <= parameters.length, "a reading holds no more than it was handed");
     return reading;

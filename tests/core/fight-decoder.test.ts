@@ -66,6 +66,14 @@ const NEGATIVE_HEAL = "467968=99.52;0;heal=-92";
  * that took the actor would pass, which is what a first draft of this test did.
  */
 const HEAL_TARGET = "469657=95.78;445202=100.00;tspell=Leczenie ran;skillId=78;heal_target=11733";
+/**
+ * `2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`, the one recording carrying
+ * `+woundpoison` as the set stood 2026-09-11: a deep wound something weakened, announced with a
+ * percentage where an unweakened one is announced with nothing at all.
+ */
+const WEAKENED_WOUND =
+    "28940=98.72;-10016678=97.30;+dmgd=1139;+acdmg=16;+woundpoison=50;+taken_dmg=239;" +
+    "-dmgd=272;-dmga=239";
 
 function getOnlyAttack(events: readonly BattleEvent[]): BattleEvent {
     assertEquals(events.length, 1, "the message decoded to one event");
@@ -85,6 +93,26 @@ Deno.test("a blow reads as raw, applied, and what a defence stopped", () => {
     assertEquals(event.prevented, [{ defence: "absorb", amount: 545 }], "and what stopped 545");
     assertEquals(event.destroyed, [{ statistic: "acdmg", amount: 16 }], "armour is not damage");
     assertEquals(event.procs, ["+pierce"], "a proc states no figure");
+});
+
+/**
+ * ⚠️ **A wound is a wound whether or not something weakened it.** `+wound` carries no figure and
+ * reaches the card as a proc; this one carries a percentage, and a reader taking only valueless
+ * keys left a weakened wound off the card while an unweakened one stood on it — a hole in what a
+ * player sees that turned on something they cannot see. The figure itself is **not** read: what
+ * the percentage is taken off is unsettled (`docs/protocol-keys.md`).
+ */
+Deno.test("a wound something weakened reaches the card, and its share does not", () => {
+    const event = getOnlyAttack(decodeFightMessages([WEAKENED_WOUND], null, BLOWS_GRANTED));
+    if (event.kind !== "attack") return;
+    assertEquals(event.procs, ["+woundpoison"], "the announcement is a proc like any other");
+    assertEquals(
+        event.declared.filter((one) => one.effect === "+woundpoison"),
+        [],
+        "and states nothing, because the share it carries is a unit no total here keeps",
+    );
+    assertEquals(event.raw, [{ element: "dmgd", amount: 1139 }], "the blow it rides is read whole");
+    assertEquals(event.destroyed, [{ statistic: "acdmg", amount: 16 }], "armour with it");
 });
 
 Deno.test("the third blow is read by name, and a zero is a reading", () => {

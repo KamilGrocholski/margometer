@@ -51,6 +51,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   jak wiersze z numerem, więc czytało się je jako kolejne miejsce. Kreskowanie znał już wiersz
   stojący pod listą; teraz noszą je wszystkie wiersze o tym samym znaczeniu, gdziekolwiek stoją.
 
+- **Poprawka** — Rana, którą coś osłabiło, pokazuje się wreszcie na karcie postaci — obok zwykłej
+  głębokiej rany, jako „osłabiona rana". Wcześniej znikała: panel czytał tylko te zapowiedzi, przy
+  których gra nie podaje żadnej liczby, a przy tej podaje.
+
 - **Poprawka** — Kolejne uderzenia jednej umiejętności liczą się wreszcie do niej, a nie do „Zwykły
   cios". Gra zapowiada taki cios raz, a zadaje kilka razy — panel widział tylko pierwszy. Dotyczy
   „Podwójnego trafienia" i „Podwójnego strzału", a także ciosów, które przeciwnicy zadają seriami.

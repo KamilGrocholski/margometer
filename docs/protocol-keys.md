@@ -2370,9 +2370,11 @@ the client writes it into a hole the sentence closes with a `%`, and the same sw
 `+woundfrost` and `+woundmagic` for the two other things that weaken a wound. Two of the three have
 an `+of_` twin for the auxiliary weapon; `+woundfrost` has none.
 
-Read as a declaration, for the reason `+critslow_per` is: a percentage is a unit no total here
-keeps, and what the wound does to health arrives separately as the `wound` ticks the entry above
-reads.
+Read as a **proc on the attacker's end**, which is where `+wound` is read, and the figure it carries
+is not read at all: a percentage is a unit no total here keeps, and what the wound does to health
+arrives separately as the `wound` ticks the entry above reads. It is the one key in `PROC_ENDS` read
+as a proc while stating a value, and `src/core/fight-decoder.ts` names that set rather than letting
+every proc take one.
 
 ⚠️ **What the percentage is taken off is not settled by this material.** All six occurrences state
 `50` while the ticks following them state 177, 265, 353, 177, 265 and 177, and the blows they ride
@@ -2380,10 +2382,12 @@ carry `+dmgd` of 1139, 1284, 1205, 1952, 1292 and 1201 — the figure moves with
 (`captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`, read 2026-09-11). A share quoted
 against a wound would be a guess, so none is quoted.
 
-⚠️ **The same announcement is read two ways, and only because one of them carries a figure.**
-`+wound` is a proc on the actor's end and reaches the panel's procs; this one carries a value, and
-the proc reader takes valueless keys only (`src/core/fight-decoder.ts`). So a wound nothing weakened
-is drawn as a proc and a weakened one is not. `[ASK]` before widening that reader.
+⚠️ **Both announcements reach the card, and the figure is the only difference between them.** The
+proc reader takes valueless keys, this one excepted and named — because a wound nothing weakened
+standing on the card while a weakened one does not is a hole in what a player sees, turning on
+something they cannot. The `[ASK]` this entry carried was put and granted on 2026-09-13 (**ADR
+0085**). What was **not** granted is reading the figure, which is a share of something the material
+does not settle.
 
 _Shape:_ 6 occurrences; on a blow; a whole number
 

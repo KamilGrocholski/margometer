@@ -219,3 +219,5 @@ edited to agree with the new rule.
   built from a copy, and the tree keeps no seam. **Accepted**
 - [0084](0084-a-kept-fight-states-its-day-and-the-place-pays.md) — A kept fight states its day, and
   the place pays for it. **Accepted**
+- [0085](0085-a-proc-may-carry-a-figure-nobody-reads.md) — A proc may carry a figure nobody reads.
+  **Accepted**

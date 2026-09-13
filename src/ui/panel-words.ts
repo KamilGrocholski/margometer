@@ -372,6 +372,8 @@ export const PROC_WORDS: Record<string, string> = {
     "+stun2-d": "ogłuszenie",
     "+freeze": "zamrożenie",
     "+wound": "głęboka rana",
+    /** A deep wound something weakened; the client writes the share into the sentence. */
+    "+woundpoison": "osłabiona rana",
     "+fastarrow": "szybka strzała",
     "+acdmg_destroyed": "pancerz zniszczony",
     "-evade": "unik",
