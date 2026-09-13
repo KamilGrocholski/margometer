@@ -773,6 +773,13 @@ function getStrikerFigures(
  * 2026-08-30, 149 are named by nothing else, and a card reading off blows alone would leave the
  * whole party's hardest hit blank. What it is not is a swing — `blowsStruck` counts what the
  * protocol calls a blow, and this is damage riding one aimed at somebody else.
+ *
+ * ⚠️ **Where nothing announced the blow it rode, it reaches the closing row's cut as well.** The
+ * row's figure is a remainder, so it takes this figure whatever happens; the level under it is a
+ * second walk, and a walk that skipped this would answer one press two ways (**ADR 0081**). No
+ * recording carries the case — 0 of the 1,175 figures stated against a name over `captures/` on
+ * 2026-09-13 stand under no announcement — so a corpus figure that moves means this branch caught
+ * something that was announced.
  */
 function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== "damage-to-named-combatant") return;
@@ -793,6 +800,9 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
         if (event.targetId !== null) {
             addToCut(dealer.damageDealtByOpponent, `${event.targetId}`, amount);
             addToPairCut(dealer.damageDealtByOpponentAndKind, `${event.targetId}`, [event.damage]);
+            if (event.announced === null) {
+                addToCut(dealer.damageDealtWithoutSkillByOpponent, `${event.targetId}`, amount);
+            }
         }
     }
     if (event.targetId === null) {
@@ -810,6 +820,9 @@ function addNamedDamageEvent(build: StatisticsBuild, event: BattleEvent): void {
     if (event.actorId !== null) {
         addToCut(target.damageTakenByOpponent, `${event.actorId}`, amount);
         addToPairCut(target.damageTakenByOpponentAndKind, `${event.actorId}`, [event.damage]);
+        if (event.announced === null) {
+            addToCut(target.damageTakenWithoutSkillByOpponent, `${event.actorId}`, amount);
+        }
     }
 }
 

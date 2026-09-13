@@ -144,6 +144,35 @@ Deno.test("no row states a figure with no blow under it", () => {
 });
 
 /**
+ * ⚠️ **The zero the `+oth_dmg` bullet stands on.** A figure stated against a name reaches a
+ * skill's row because the blow it rode was announced, and the document says that of every one in
+ * the corpus. The day a recording carries one announced by nothing, the sentence stops being a
+ * measurement and the row it would land in is the one this file is about.
+ */
+Deno.test("every figure stated against a name rode a blow something announced", () => {
+    let stated = 0;
+    let unannounced = 0;
+    for (const path of readRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        for (const payload of getRecordedPayloads(path)) {
+            for (const event of decodeFightMessages(payload, roster, BLOWS_GRANTED)) {
+                if (event.kind !== "damage-to-named-combatant") continue;
+                stated += 1;
+                if (event.announced === null) unannounced += 1;
+            }
+        }
+    }
+    assert(stated > 0, "the corpus states figures against a name at all");
+    const said = getUnwrapped(Deno.readTextFileSync(REGISTER_PATH));
+    assertStringIncludes(
+        said,
+        `the corpus states ${composeGrouped(stated)} figures against a name and ` +
+            `${composeGrouped(unannounced)} of them stand under no announcement`,
+        `${REGISTER_PATH}: what the bullet about a figure stated by name is standing on`,
+    );
+});
+
+/**
  * The label is the panel's, not the document's. A rename that reached one and not the other would
  * leave a document arguing about a row a reader never sees under that name.
  */

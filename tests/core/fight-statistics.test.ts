@@ -77,6 +77,39 @@ Deno.test("damage stated against a name is charged to the skill that announced i
     assertEquals(skill?.blows, 0, "and the skill's own count of swings holds none either");
 });
 
+/**
+ * The same transcript with its announcement taken away and an ordinary damage pair put in, which
+ * is the one shape `captures/` does not carry: 0 of the 1,175 figures stated against a name stand
+ * under no announcement, 2026-09-13. Written by hand for that reason — **W4**.
+ */
+const NAMED_DAMAGE_UNANNOUNCED = "195782=96.83;114881=80.61;+dmg=917;-dmg=760;" +
+    "+oth_dmg=1529,a,Gracz 3(80.61%)";
+
+/**
+ * The closing row's figure is a remainder and the level under it is a second walk, so a figure
+ * reaching the first without reaching the second would answer one press two ways (**ADR 0081**).
+ * A swing is still a swing: one blow went out, however many names it landed on.
+ */
+Deno.test("damage stated against a name with nothing announcing it reaches the closing cut", () => {
+    const roster = composeCombatantRoster([
+        { id: 195782, name: "Gracz 2", side: 1, profession: "t", level: 100, healthMaximum: 5000 },
+        { id: 114881, name: "Gracz 1", side: 2, profession: "w", level: 100, healthMaximum: 5000 },
+        { id: 300001, name: "Gracz 3", side: 2, profession: "w", level: 100, healthMaximum: 5000 },
+    ]);
+    const events = decodeFightMessages([NAMED_DAMAGE_UNANNOUNCED], roster, BLOWS_GRANTED);
+    const statistics = composeFightStatistics(events, new Map());
+    const dealer = statistics.byCombatantId.get(195782);
+    assertEquals(dealer?.damageDealtApplied, 2289, "the blow and the figure it stated by name");
+    assertEquals(dealer?.blowsWithoutSkill, 1, "one swing, whatever it landed on");
+    const dealt = dealer?.damageDealtWithoutSkillByOpponent;
+    assertEquals(dealt?.get("114881"), 760, "the end the blow was aimed at");
+    assertEquals(dealt?.get("300001"), 1529, "and the end it was stated against");
+    const aimed = statistics.byCombatantId.get(114881);
+    assertEquals(aimed?.damageTakenWithoutSkillByOpponent.get("195782"), 760, "read back at it");
+    const named = statistics.byCombatantId.get(300001);
+    assertEquals(named?.damageTakenWithoutSkillByOpponent.get("195782"), 1529, "and at the other");
+});
+
 /** An announcement of the game's own that nothing of the damage family follows. */
 const AURA =
     "466476=94.30;466476=94.30;tspell=Aura ochrony;skillId=76;aura-ac_per=20;aura-resall=15";

@@ -94,7 +94,12 @@ come to 107 rows.
   sends a movement to a skill's row or to the key cut, never to both and never to neither (**ADR
   0051**). The two healing entries in the panel's own table are never read.
 - **Damage a blow reports against a name** (`+oth_dmg`, `docs/protocol-keys.md`) carries the
-  announcement of the blow it rode, so it reaches a skill's row like any other figure.
+  announcement of the blow it rode, so it reaches a skill's row like any other figure. ⚠️ **That is
+  a measurement and not a construction**: the corpus states 1,175 figures against a name and 0 of
+  them stand under no announcement. Where one did, it would reach this row — the figure is a
+  remainder, so it takes whatever no row named — and it reaches the cut under the row with it, so
+  the level and the row over it cannot answer one press two ways (**ADR 0081**). The count beside
+  the row does not move either way: a figure riding somebody else's blow is not a swing.
 - **What a display bound would not draw** is summed into a row of its own and never folded in here
   (**ADR 0055**). That row holds what the game **did** name; this one holds what it did not.
 - **Health that went out under a key** stands under that key (**ADR 0080**). It moved under a name
