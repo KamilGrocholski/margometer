@@ -2434,7 +2434,9 @@ switch where `+injure` carries one — so the key announces its event and states
 `+fastarrow` and `-contra` do. The published help documents the effect twice, both times under the
 engine name `swing` — article `view,372` (read 2026-08-21) — once as a monster's statistic and once
 as an active effect, and the two forms differ in how many further targets each names. Absent from
-`captures/` as the set stood 2026-08-21.
+`captures/` as the set stood 2026-09-13, and the one skill the published table grants the effect to
+is announced by no recording either — `tests/tools/unannounced-damage.test.ts`, which is where the
+row that would hold such a blow states what it cannot be asked.
 
 ### `-parry` — investigated
 

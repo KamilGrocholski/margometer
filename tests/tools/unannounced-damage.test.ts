@@ -17,6 +17,7 @@ import {
     type PanelMetric,
 } from "@/src/ui/panel-reading.ts";
 import { getWordsForUnannounced } from "@/src/ui/panel-words.ts";
+import { FROZEN_SKILL_DURATIONS } from "@/frozen/skill-durations.ts";
 import { getUnwrapped } from "@/tests/markdown-document.ts";
 import {
     BLOWS_GRANTED,
@@ -368,4 +369,54 @@ Deno.test("the row opens onto whoever stood at the other end, and they come to i
     }
     assertEquals(opened, 258, "the rows that open onto an opponent, 2026-09-13");
     assertEquals(shut, 1, "and the one that holds nothing to open onto: every blow was stopped");
+});
+
+/** The effect key the published table writes a wide swing under, in its own spelling. */
+const SWING_KEY = "swing";
+
+/**
+ * ⚠️ **The question `TODO.md` asks of this row, answered by the material rather than by a rule.**
+ * A blow the panel closes into this row could be one further opponent a wide swing reached, and
+ * nothing in the message would say so (`docs/protocol-keys.md`). What settles it here is that no
+ * recording announces the one skill the published table gives the effect to — so the corpus
+ * cannot be asked, and a reading that charged a blow to a swing would stand on nothing.
+ *
+ * Zero is a boundary (**W5**), so the walk states what it did find as well: a set of announced
+ * ids that came out empty would make the claim by finding nothing at all.
+ */
+Deno.test("no recording announces the skill a wide swing is granted by", () => {
+    const granted = new Set<number>();
+    for (const skill of FROZEN_SKILL_DURATIONS.skills) {
+        if (!skill.effects.some((one) => one.key === SWING_KEY)) continue;
+        granted.add(skill.id);
+    }
+    assert(granted.size > 0, "the frozen table carries the effect at all");
+    const announced = new Set<number>();
+    for (const path of readRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        for (const payload of getRecordedPayloads(path)) {
+            for (const event of decodeFightMessages(payload, roster, BLOWS_GRANTED)) {
+                if (event.kind !== "skill-used") continue;
+                if (event.skillId === null) continue;
+                announced.add(event.skillId);
+            }
+        }
+    }
+    assert(announced.size > 0, "the corpus announces skills by id at all");
+    assertEquals(
+        [...granted].filter((one) => announced.has(one)),
+        [],
+        `${REGISTER_PATH}: a recording announces the skill, so the row can be asked about a swing`,
+    );
+    const said = getUnwrapped(Deno.readTextFileSync(REGISTER_PATH));
+    assertStringIncludes(
+        said,
+        `the effect to **${composeGrouped(granted.size)}** of the skills it serves`,
+        `${REGISTER_PATH}: how many skills the table grants it`,
+    );
+    assertStringIncludes(
+        said,
+        `not one of the **${composeGrouped(announced.size)}** skill ids the recordings announce`,
+        `${REGISTER_PATH}: how many ids the corpus announces`,
+    );
 });

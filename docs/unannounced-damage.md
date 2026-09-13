@@ -138,6 +138,13 @@ of the evidence: every blow in this row opened a turn of its own, which is what 
 its default action. A skill striking more times than the published table grants would still land
 here, and no recording carries one — 0 runs of three after an announcement, 2026-09-13.
 
+⚠️ **Whether a blow standing here was a further target of a wide swing.** `docs/protocol-keys.md`
+owns what `+swing` is and states what the material cannot settle about it: whether the opponents the
+effect reaches arrive as messages of their own. What this corpus adds is that the question cannot be
+put to it at all — the published table gives the effect to **1** of the skills it serves, and not
+one of the **50** skill ids the recordings announce is that skill. So the reading that would tell a
+swing's second target from a plain attack is one a recording has to bring, and none here carries it.
+
 ⚠️ **What the tick of a wound was struck with.** A tick is charged to whoever left the wound (**ADR
 0022**) and carries no announcement of its own, so it stands under its key rather than under the
 skill that opened the wound. The skill is knowable in principle — the blow that wounded was
