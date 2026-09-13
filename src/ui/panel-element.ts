@@ -82,6 +82,7 @@ import {
     composeUndrawnText,
     composeUsesText,
     DEFECT_MARK,
+    getNoteForUnannounced,
     getWordsForChargedSkill,
     getWordsForDamageKind,
     getWordsForHealthSource,
@@ -1329,11 +1330,13 @@ function composeSkillSectionPlain(
         if (!isLast) return drawn;
         if (plain.place <= drawn) return drawn;
     }
+    const note = getNoteForUnannounced(getNounForMetric(stated.metric));
     const tip = {
         register: stated.register,
         key: "skill:plain",
         figure: stated.figure,
         share: PANEL_WORDS.shareOfFigure,
+        notes: note === null ? [] : [note],
     };
     const reading = {
         ...composeUnnamedReading(plain, getWordsForUnannounced(stated.metric)),

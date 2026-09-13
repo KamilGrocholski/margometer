@@ -44,6 +44,7 @@ import {
     DESTROYED_WORDS,
     ELEMENT_WORDS,
     EVERY_SLOT_PINNED_ANSWER,
+    getNoteForUnannounced,
     getWordsForCardMetric,
     getWordsForDamageKind,
     getWordsForDirection,
@@ -175,6 +176,12 @@ function getSentences(): string[] {
     for (const end of ["actor", "target"] as readonly PanelUnnamedEnd[]) {
         found.push(getWordsForUnnamedEnd(end, "damage"));
         found.push(getWordsForUnnamedEnd(end, "healing"));
+    }
+    // The closing row of a damage section says what the game did not; a healing one says nothing,
+    // because there is no such row there to carry a sentence.
+    for (const noun of ["damage", "healing"] as const) {
+        const note = getNoteForUnannounced(noun);
+        if (note !== null) found.push(note);
     }
     for (const kase of PINNED_CASES) {
         found.push(getWordsForPinnedStanding(kase));

@@ -186,9 +186,34 @@ const UNNAMED_END_NOTES: Record<PanelUnnamedEnd, Record<PanelNoun, string>> = {
     },
 };
 
+/**
+ * What the closing row of a damage section can be told about, in the register the unnamed ends
+ * above already use: what the game did not say, never what a reader of ours could not do with it
+ * (**L3**).
+ *
+ * ⚠️ **The interesting half cannot be said here, and that is the rule working, not failing.**
+ * Whether a blow standing under no announcement is the game's own default action or one whose
+ * announcement this reading did not reach is a question about **us**, and a player is owed the
+ * limit rather than our reason for it. `docs/unannounced-damage.md` carries the half that cannot
+ * be printed.
+ */
+const UNANNOUNCED_NOTES: Record<PanelNoun, string | null> = {
+    damage: "Gra nie mówi, czym te ciosy zadano — wiadomo tylko, że padły.",
+    healing: null,
+};
+
 export function getWordsForUnnamedEnd(end: PanelUnnamedEnd, noun: PanelNoun): string {
     const words = UNNAMED_END_NOTES[end][noun];
     return words;
+}
+
+/**
+ * The sentence the closing row of a damage section carries, and none on a healing screen — where
+ * the section closes against nothing at all. The noun is handed over rather than read off the
+ * metric, as the unnamed ends' is: this file imports no screen of its own.
+ */
+export function getNoteForUnannounced(noun: PanelNoun): string | null {
+    return UNANNOUNCED_NOTES[noun];
 }
 
 const APART_NOTE = "Nikt tego nie ma na swoim wierszu — dlatego stoi osobno.";

@@ -36,6 +36,7 @@ import {
     composeDirectionStrips,
     composeNounStrips,
     composeSideStrips,
+    getNounForMetric,
     getScreenFromName,
     getWordsForMetric,
     type PanelSideChoice,
@@ -46,6 +47,7 @@ import {
     composeCardSubtitleText,
     composeFigureText,
     composeUndrawnText,
+    getNoteForUnannounced,
     getWordsForCardMetric,
     getWordsForDamageKind,
     getWordsForHealthSource,
@@ -2715,4 +2717,39 @@ Deno.test("the bar a panel waits behind carries nobody's position", () => {
 
     panel.show(shown);
     assertStrictEquals(readList(host).scrollTop, SOMEWHERE_DOWN, "the fight is where it was left");
+});
+
+/**
+ * ⚠️ **A sentence nothing reads is a sentence nobody is told.** `tests/ui/panel-words.test.ts`
+ * proves this one is allowed in front of a player; only a walk over the drawn panel proves it
+ * reaches the row it was written for. And it is written for the damage screens alone — a healing
+ * section closes against nothing, so there is no row there to carry it (**ADR 0080**).
+ */
+Deno.test("the closing row's card says what the game did not, and only on a damage screen", () => {
+    for (const metric of SCREEN_ORDER) {
+        const { reading, statistics, roster } = readPinnedFight(metric, "everyone");
+        const opened = reading.rows[0];
+        assertExists(opened, `${metric}: the ranking holds a row to open`);
+        const drill = composeDrillReading(statistics, roster, metric, opened.combatantId);
+        assertExists(drill, `${metric}: the first row opens`);
+        const document = composeFakeDocument();
+        const panel = composePanelHost(document, () => {}, () => {});
+        panel.show({ ...composeShownScreen(reading, metric), drill });
+        const host = panel.element as FakeElement;
+        const row = getElementsWithin(host).find(
+            (one) => one.attributes.get("data-tip") === "skill:plain",
+        );
+        const note = getNoteForUnannounced(getNounForMetric(metric));
+        if (row === undefined) {
+            assertEquals(note, null, `${metric}: a screen drawing no closing row carries no note`);
+            continue;
+        }
+        assertExists(note, `${metric}: a screen drawing the row has a sentence for it`);
+        pointAtElement(host, "pointermove", row, 300);
+        assertArrayIncludes(
+            readTip(host).notes,
+            [note],
+            `${metric}: the card says what the game did not say about these blows`,
+        );
+    }
 });
