@@ -45,8 +45,8 @@ interface ReportSkill {
 
 type ReportRow = {
     [Key in keyof CombatantFigures]: CombatantFigures[Key] extends number ? number
-        : CombatantFigures[Key] extends Map<string, number> ? Record<string, number>
-        : CombatantFigures[Key] extends Map<string, Map<string, number>>
+        : CombatantFigures[Key] extends ReadonlyMap<string, number> ? Record<string, number>
+        : CombatantFigures[Key] extends ReadonlyMap<string, ReadonlyMap<string, number>>
             ? Record<string, Record<string, number>>
         : Record<string, ReportSkill>;
 };

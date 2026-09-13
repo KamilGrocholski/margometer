@@ -47,10 +47,10 @@ export interface SkillFigures {
      * way `blowsStruck` is, so a figure stated against a name reaches neither.
      */
     blows: number;
-    dealtByOpponent: Map<string, number>;
+    dealtByOpponent: ReadonlyMap<string, number>;
     /** What it put back, and into whom: one announcement can do both, and each is counted once. */
     restored: number;
-    restoredByOpponent: Map<string, number>;
+    restoredByOpponent: ReadonlyMap<string, number>;
 }
 
 export interface CombatantFigures {
@@ -84,23 +84,23 @@ export interface CombatantFigures {
      * of the 609,078 points nobody was named for striking over `captures/` on 2026-09-01, 89.2%
      * arrive under `poison`, on rows that took damage from named strikers too.
      */
-    damageTakenFromNobodyByElement: Map<string, number>;
-    damageDealtToNobodyByElement: Map<string, number>;
-    healthRestoredByNobodyBySource: Map<string, number>;
+    damageTakenFromNobodyByElement: ReadonlyMap<string, number>;
+    damageDealtToNobodyByElement: ReadonlyMap<string, number>;
+    healthRestoredByNobodyBySource: ReadonlyMap<string, number>;
     /**
      * Health moving, cut by the other end and by the key it moved under. There is no flat cut of
      * what a combatant **gave** by key: the keys the protocol names belong to whoever received the
      * health, so charging one to the giver would be wording their row with somebody else's cause.
      */
-    healthRestoredByGiver: Map<string, number>;
-    healthGivenByReceiver: Map<string, number>;
-    healthRestoredBySource: Map<string, number>;
+    healthRestoredByGiver: ReadonlyMap<string, number>;
+    healthGivenByReceiver: ReadonlyMap<string, number>;
+    healthRestoredBySource: ReadonlyMap<string, number>;
     /**
      * The part of `healthRestoredBySource` no announcement covered, and the reason it is a field
      * of its own: the whole cut holds the announced movements as well, so a panel adding it to the
      * skills would state a figure twice. This one is what the skills do **not** hold.
      */
-    healthRestoredWithoutSkillBySource: Map<string, number>;
+    healthRestoredWithoutSkillBySource: ReadonlyMap<string, number>;
     /**
      * Health this combatant lost **outside a blow**, by the key it went out under, and the damage
      * screens' answer to the same question the field above answers for healing: what the section
@@ -108,13 +108,13 @@ export interface CombatantFigures {
      * under a key the game named, so it stands under that name rather than in a row named for a
      * swing. **ADR 0080.**
      */
-    damageTakenWithoutSkillBySource: Map<string, number>;
+    damageTakenWithoutSkillBySource: ReadonlyMap<string, number>;
     /**
      * The same from the dealing end, which only a wound reaches: a tick is charged to whoever left
      * the wound (**ADR 0022**) and carries no announcement, so it is the one movement that lands on
      * a dealer's total without landing on a skill.
      */
-    damageDealtWithoutSkillBySource: Map<string, number>;
+    damageDealtWithoutSkillBySource: ReadonlyMap<string, number>;
     /**
      * The same, kept per opponent, because a pair is a section of its own and a figure named one
      * way on the level above and another inside it is one program saying two things. One cut and
@@ -122,7 +122,7 @@ export interface CombatantFigures {
      * second copy to keep. Only a wound reaches it — every other loss outside a blow names no
      * opponent at all, so it has no pair to stand in. **ADR 0080.**
      */
-    damageDealtWithoutSkillByOpponentAndSource: Map<string, Map<string, number>>;
+    damageDealtWithoutSkillByOpponentAndSource: ReadonlyMap<string, ReadonlyMap<string, number>>;
     /**
      * The blows standing under no announcement, by whoever stood at the other end of them — the
      * cut the row closing a damage section opens onto. A skill's row opens because
@@ -130,29 +130,29 @@ export interface CombatantFigures {
      * so without this it had nothing to be cut by and the only way to the same figures was to
      * walk every opponent in turn. **ADR 0081.**
      */
-    damageDealtWithoutSkillByOpponent: Map<string, number>;
-    damageTakenWithoutSkillByOpponent: Map<string, number>;
+    damageDealtWithoutSkillByOpponent: ReadonlyMap<string, number>;
+    damageTakenWithoutSkillByOpponent: ReadonlyMap<string, number>;
     /**
      * The same figure on the giving side, cut by the receiver **as well** — which is the one place
      * a key may stand on a giver's row, because the pair names whose cause it is.
      */
-    healthGivenWithoutSkillByReceiverAndSource: Map<string, Map<string, number>>;
-    damageDealtByElement: Map<string, number>;
-    damageTakenByElement: Map<string, number>;
-    damageDealtByOpponent: Map<string, number>;
-    damageTakenByOpponent: Map<string, number>;
+    healthGivenWithoutSkillByReceiverAndSource: ReadonlyMap<string, ReadonlyMap<string, number>>;
+    damageDealtByElement: ReadonlyMap<string, number>;
+    damageTakenByElement: ReadonlyMap<string, number>;
+    damageDealtByOpponent: ReadonlyMap<string, number>;
+    damageTakenByOpponent: ReadonlyMap<string, number>;
     /**
      * The same figures again, cut twice over: by the other end **and** by what the blows carried.
      * A cut of a cut is what an opened pair is, and neither of the two flat cuts above can be
      * folded into it — a panel that multiplied them would be inventing a figure.
      */
-    damageDealtByOpponentAndKind: Map<string, Map<string, number>>;
-    damageTakenByOpponentAndKind: Map<string, Map<string, number>>;
+    damageDealtByOpponentAndKind: ReadonlyMap<string, ReadonlyMap<string, number>>;
+    damageTakenByOpponentAndKind: ReadonlyMap<string, ReadonlyMap<string, number>>;
     /**
      * What this combatant announced, and what came of it. One record per skill rather than one
      * per screen: an announcement is a single event, so a count kept twice would be counted twice.
      */
-    skills: Map<string, SkillFigures>;
+    skills: ReadonlyMap<string, SkillFigures>;
     /**
      * How many blows they struck, and how many stood behind no announcement. The second is the
      * count the closing row of a skills section states — a figure alone cannot say it.
@@ -189,19 +189,19 @@ export interface CombatantFigures {
      * or struck. Which end a key belongs to is `docs/protocol-keys.md`'s to say and the decoder's
      * to state (`PROC_ENDS`); a key that document refuses an end reaches neither map.
      */
-    procsWhenStriking: Map<string, number>;
-    procsWhenStruck: Map<string, number>;
+    procsWhenStriking: ReadonlyMap<string, number>;
+    procsWhenStruck: ReadonlyMap<string, number>;
     /**
      * The same `damagePrevented`, cut by the defence that stopped it. The scalar stays: the cut
      * is what a card draws and the sum is what a counter states, and an assertion holds the two
      * together rather than leaving a reader to add the rows up and hope.
      */
-    damagePreventedByDefence: Map<string, number>;
+    damagePreventedByDefence: ReadonlyMap<string, number>;
     /**
      * What their blows destroyed on whoever took them, **never totalled** — in this file or above
      * it. The two are counted in different units, which `src/core/battle-event.ts` states.
      */
-    statisticsDestroyed: Map<string, number>;
+    statisticsDestroyed: ReadonlyMap<string, number>;
     /**
      * This combatant's own share of the suspicions the fight-wide counts below hold, under each
      * cause that can name anybody, and casts of theirs nobody could size onto a side.
@@ -289,7 +289,7 @@ export function getUnreadMessages(counted: UnreadMessageCounts): number {
     return unread;
 }
 
-export function composeCombatantFigures(): CombatantFigures {
+export function composeCombatantFigures(): ComposedFigures {
     return {
         damageDealtRaw: 0,
         damageDealtApplied: 0,
@@ -338,6 +338,23 @@ export function composeCombatantFigures(): CombatantFigures {
     };
 }
 
+/**
+ * The same figures while they are being composed, which is the only place anything writes to
+ * them. **Derived from the shape a reader is handed, never spelled a second time** — two lists of
+ * twenty-six fields drift, and a field readonly in one and not the other looks like neither.
+ *
+ * Every field of both shapes is a map or a whole number, so the three branches are the whole of
+ * it: a map opens, a number is copied and cannot be aliased, and what is left is the figures a
+ * skill keeps, which the same rule reaches through.
+ */
+type Composing<Held> = Held extends ReadonlyMap<infer Key, infer Value> ? Map<Key, Composing<Value>>
+    : Held extends number ? number
+    : { [Field in keyof Held]: Composing<Held[Field]> };
+
+/** What the aggregator writes into. **S9**: what a reader is handed is `CombatantFigures`. */
+type ComposedFigures = Composing<CombatantFigures>;
+type ComposedSkillFigures = Composing<SkillFigures>;
+
 /** The largest cut in `captures/` holds ten elements against twenty combatants, 2026-08-28. */
 const MAXIMUM_CUT = 64;
 /** Past every key `PROC_ENDS` holds; the most one blow fires in `captures/` is 3, 2026-08-30. */
@@ -382,7 +399,10 @@ function addToPairCut(
  * `captures/` on 2026-08-29 carry no id at all, and a row keyed by nothing is a row that would
  * merge two skills the game tells apart.
  */
-function getSkillFigures(skills: Map<string, SkillFigures>, name: string): SkillFigures {
+function getSkillFigures(
+    skills: Map<string, ComposedSkillFigures>,
+    name: string,
+): ComposedSkillFigures {
     assert(name.length > 0, "a skill is kept under the name it was announced by");
     const held = skills.get(name) ?? {
         name,
@@ -399,7 +419,7 @@ function getSkillFigures(skills: Map<string, SkillFigures>, name: string): Skill
 }
 
 function addSkillDealt(
-    skills: Map<string, SkillFigures>,
+    skills: Map<string, ComposedSkillFigures>,
     announced: AnnouncedSkill,
     amount: number,
     other: string | null,
@@ -416,7 +436,7 @@ function addSkillDealt(
  * against a name is not one, which is the line `blowsStruck` already draws. It is what tells an
  * attack that landed nothing from an announcement that was never going to land anything.
  */
-function addSkillBlow(skills: Map<string, SkillFigures>, announced: AnnouncedSkill): void {
+function addSkillBlow(skills: Map<string, ComposedSkillFigures>, announced: AnnouncedSkill): void {
     assert(
         announced.skillName.length > 0,
         "a swing is counted under the announcement that named it",
@@ -561,9 +581,9 @@ function getTotalFromFigures(figures: readonly DamageFigure[]): number {
 }
 
 function getFiguresForCombatant(
-    byCombatantId: Map<number, CombatantFigures>,
+    byCombatantId: Map<number, ComposedFigures>,
     combatantId: number,
-): CombatantFigures {
+): ComposedFigures {
     assert(Number.isSafeInteger(combatantId), "a row belongs to an id that was read");
     const held = byCombatantId.get(combatantId);
     if (held !== undefined) return held;
@@ -597,7 +617,7 @@ export interface TurnStanding {
 export const NO_TURN_STANDING: TurnStanding = { strikingId: null, actingId: null };
 
 interface StatisticsBuild extends UnreadMessageCounts {
-    byCombatantId: Map<number, CombatantFigures>;
+    byCombatantId: Map<number, ComposedFigures>;
     woundByVictimId: Map<number, WoundStanding>;
     castsUnplaced: number;
     castsStated: number;
@@ -643,8 +663,8 @@ function getOtherEndKey(targetId: number | null): string | null {
  * would be this file guessing (`docs/protocol-keys.md`).
  */
 function addBlowProcs(
-    striker: CombatantFigures | null,
-    struck: CombatantFigures | null,
+    striker: ComposedFigures | null,
+    struck: ComposedFigures | null,
     procs: readonly string[],
 ): void {
     assert(procs.length <= MAXIMUM_PROCS, "a blow fires no more procs than it is bounded to");
@@ -684,7 +704,7 @@ function getLargerBlow(standing: number, applied: number): number {
  * Everything a blow says about the combatant who **struck** it, beyond the damage itself.
  * `+acdmg` counts points and `+resdmg` percentage points, so the cut is kept and never totalled.
  */
-function addBlowStruck(striker: CombatantFigures, event: AttackEvent, applied: number): void {
+function addBlowStruck(striker: ComposedFigures, event: AttackEvent, applied: number): void {
     assert(applied >= 0, "a blow lands no less than nothing");
     assert(event.destroyed.length <= MAXIMUM_CUT, "and destroys inside its stated bound");
     striker.damageDealtBlowLargest = getLargerBlow(striker.damageDealtBlowLargest, applied);
@@ -698,7 +718,7 @@ function addBlowStruck(striker: CombatantFigures, event: AttackEvent, applied: n
  * The same for the combatant who **took** it: what stopped part of the blow, kept both as the sum
  * a counter states and as the cut a card draws, so neither can drift from the other.
  */
-function addBlowTaken(struck: CombatantFigures, event: AttackEvent, applied: number): void {
+function addBlowTaken(struck: ComposedFigures, event: AttackEvent, applied: number): void {
     assert(applied >= 0, "a blow lands no less than nothing");
     assert(event.prevented.length <= MAXIMUM_CUT, "and is stopped inside its stated bound");
     struck.damageTakenBlowLargest = getLargerBlow(struck.damageTakenBlowLargest, applied);
@@ -769,7 +789,7 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
 function getStrikerFigures(
     build: StatisticsBuild,
     actorId: number | null,
-): CombatantFigures | null {
+): ComposedFigures | null {
     if (actorId === null) return null;
     assert(Number.isSafeInteger(actorId), "an end the protocol named is named by a number");
     assert(build.byCombatantId.size <= MAXIMUM_COMBATANTS, "a fight stays inside its stated bound");
@@ -1180,7 +1200,7 @@ function addTeamHeal(
     assert(build.castsUnplaced <= build.castsStated, "and no more of them than were stated");
 }
 
-function composeTotals(build: StatisticsBuild): CombatantFigures {
+function composeTotals(build: StatisticsBuild): ComposedFigures {
     const totals = composeCombatantFigures();
     for (const figures of build.byCombatantId.values()) {
         totals.damageDealtRaw += figures.damageDealtRaw;
