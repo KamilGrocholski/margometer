@@ -15,7 +15,7 @@ import {
     assertThrows,
 } from "@std/assert";
 import { AssertionError } from "@std/assert/assertion-error";
-import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { composeCombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages, MAXIMUM_MESSAGES } from "@/src/core/fight-decoder.ts";
 import {
     addPayloadToFight,
@@ -382,4 +382,54 @@ Deno.test("a payload past the bound moves nothing, and closes no fight", () => {
     assertEquals(after.messagesByPayload.length, 1, "nor kept");
     assertEquals(after.events.length, stood.events.length, "and it left no events behind");
     assertFalse(after.isOver, "and the `endBattle` it carried closed nothing");
+});
+
+/**
+ * A cast the game would field: ten a side, each stated in full, keyed by id as the client keys
+ * its own warriors.
+ */
+function composeFullCast(): Record<string, unknown> {
+    const cast: Record<string, unknown> = {};
+    for (let at = 0; at < MAXIMUM_COMBATANTS; at += 1) {
+        const id = at + 1;
+        cast[`${id}`] = {
+            id,
+            name: `Postac${id}`,
+            team: at < MAXIMUM_COMBATANTS / 2 ? 1 : 2,
+            prof: "w",
+            lvl: 100,
+            hp: { max: 1000 },
+        };
+    }
+    return cast;
+}
+
+Deno.test("a cast stated twice is one cast, and a fight of twenty survives the restatement", () => {
+    const cast = composeFullCast();
+    assertEquals(Object.keys(cast).length, MAXIMUM_COMBATANTS, "the sample is a full fight");
+    const underway = composeFightUnderway();
+    addPayloadToFight(underway, { init: 1, w: cast, m: ["0;0;txt=a"] }, BLOWS_GRANTED);
+    const opened = getReadingFromFight(underway);
+    assertExists(opened, "the fight stands on its opening payload");
+    assertEquals(opened.roster.byId.size, MAXIMUM_COMBATANTS, "and holds everybody in it");
+
+    // The second sighting is what used to end the fight: forty names reached a bound counting
+    // twenty, and every payload after this one failed the same way (**E5**).
+    addPayloadToFight(underway, { w: cast, m: ["0;0;txt=b"] }, BLOWS_GRANTED);
+    const after = getReadingFromFight(underway);
+    assertExists(after, "a payload restating the cast leaves the fight standing");
+    assertEquals(after.roster.byId.size, MAXIMUM_COMBATANTS, "and the cast is the same people");
+    assertEquals(after.payloads, 2, "the payload was read rather than refused");
+    assertEquals(after.messagesRead, 2, "and its message with it");
+});
+
+Deno.test("a name stated by two people resolves to nobody, however often each is stated", () => {
+    const cast = { 1: { id: 1, name: "Odyniec", team: 1 }, 2: { id: 2, name: "Odyniec", team: 2 } };
+    const underway = composeFightUnderway();
+    addPayloadToFight(underway, { init: 1, w: cast, m: ["0;0;txt=a"] }, BLOWS_GRANTED);
+    addPayloadToFight(underway, { w: cast, m: ["0;0;txt=b"] }, BLOWS_GRANTED);
+    const after = getReadingFromFight(underway);
+    assertExists(after, "the fight stands");
+    // The replacement must not resolve an ambiguity by overwriting: two people keep one name.
+    assertEquals(after.roster.idByName.get("Odyniec"), null, "a name two people answer to");
 });

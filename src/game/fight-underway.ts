@@ -15,6 +15,7 @@ import {
     type Combatant,
     type CombatantRoster,
     composeCombatantRoster,
+    MAXIMUM_COMBATANTS,
 } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages, MAXIMUM_MESSAGES } from "@/src/core/fight-decoder.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
@@ -275,7 +276,7 @@ export function addPayloadToFight(
     if (underway.payloads === 0) underway.hasJoinedInProgress = !isFightStart(payload);
     underway.hasFight = true;
     underway.payloads += 1;
-    for (const combatant of arriving) underway.combatants.push(combatant);
+    setCastFromArrivals(underway, arriving);
     // Kept once seen, because only the opening payload carries it: a fragment saying nothing
     // about the side would otherwise take the reader's own away mid-fight.
     underway.readerSide = readReaderSideFromPayload(payload) ?? underway.readerSide;
@@ -291,6 +292,26 @@ export function addPayloadToFight(
     assert(underway.messagesRead >= messages.length, "and what it did read is counted once");
     assert(underway.payloads > 0, "a payload that was read is counted");
     assert(underway.hasFight, "and leaves a fight behind it, however little it stated");
+}
+
+/**
+ * The cast a payload leaves standing. **A second sighting replaces the first rather than joining
+ * it.** The roster keys people by id and the last sighting already won there, so a list that grew
+ * with every restatement counted sightings where the bound counts people: over `captures/` on
+ * 2026-09-13 exactly one payload per recording states a cast in full, at most eleven of them, so
+ * nothing in the material reaches twenty — and a fight of ten against ten reaches it on the cast
+ * alone, with a single restatement past that refusing the whole fight (**E5**).
+ */
+function setCastFromArrivals(underway: FightUnderway, arriving: readonly Combatant[]): void {
+    for (const combatant of arriving) {
+        const seen = underway.combatants.findIndex((one) => one.id === combatant.id);
+        if (seen === -1) {
+            underway.combatants.push(combatant);
+            continue;
+        }
+        underway.combatants[seen] = combatant;
+    }
+    assert(underway.combatants.length <= MAXIMUM_COMBATANTS, "a cast stays inside its bound");
 }
 
 /** Null until a payload has arrived: a fight nobody has seen is not a fight with no figures. */

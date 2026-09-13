@@ -28,10 +28,18 @@ export interface CombatantRoster {
 
 /** A side holds at most ten, so a fight holds twenty. The largest in `captures/` is 11. */
 export const MAXIMUM_COMBATANTS = 20;
+/**
+ * How many times one call may be handed somebody. **The bound above counts people and this counts
+ * sightings**, and one assertion used to do both: a fight's own cast beside a payload restating it
+ * is forty sightings of twenty people, and the cast of a full ten against ten was refused by being
+ * named a second time. Two of each is the shape `src/game/fight-underway.ts` hands over — what it
+ * holds, and what one payload states.
+ */
+const MAXIMUM_SIGHTINGS = MAXIMUM_COMBATANTS * 2;
 const AMBIGUOUS = null;
 
 export function composeCombatantRoster(combatants: readonly Combatant[]): CombatantRoster {
-    assert(combatants.length <= MAXIMUM_COMBATANTS, "a roster stays inside its stated bound");
+    assert(combatants.length <= MAXIMUM_SIGHTINGS, "a roster is composed from bounded sightings");
     const byId = new Map<number, Combatant>();
     const idByName = new Map<string, number | null>();
     for (const combatant of combatants) {
@@ -46,6 +54,7 @@ export function composeCombatantRoster(combatants: readonly Combatant[]): Combat
         idByName.set(combatant.name, AMBIGUOUS);
     }
     assert(byId.size <= combatants.length, "a roster holds no more people than it was handed");
+    assert(byId.size <= MAXIMUM_COMBATANTS, "a roster stays inside its stated bound");
     assert(idByName.size <= byId.size, "a name belongs to somebody in the roster");
     return { byId, idByName };
 }
