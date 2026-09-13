@@ -210,3 +210,5 @@ edited to agree with the new rule.
   key stands under it, on the damage screens too. **Accepted**
 - [0081](0081-the-closing-row-opens-onto-the-other-end.md) — The closing row opens onto whoever
   stood at the other end. **Accepted**
+- [0082](0082-a-screen-is-counted-twice-and-the-difference-is-drawn.md) — A screen is counted twice,
+  and the difference is drawn. **Accepted**

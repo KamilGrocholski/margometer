@@ -278,6 +278,17 @@ function getPinnedCasesForMetric(metric: PanelMetric): PinnedCase[] {
     return PINNED_CASES.filter((kase) => PINNED_SHAPES[kase].metric === metric);
 }
 
+/**
+ * The part of a screen's figure that reached no row at all. It takes no place in the ranking and
+ * wears the hatch every such row wears (`DESIGN.md`), and it has no card of its own to open: what
+ * it is made of is the one thing nobody can state, which is what makes it this row.
+ */
+export interface OutsideRankingRow {
+    figure: number;
+    fill: number;
+    shareText: string;
+}
+
 export interface PinnedRow {
     case: PinnedCase;
     end: PanelUnnamedEnd;
@@ -379,6 +390,11 @@ export interface PanelReading {
     unplaced: number;
     total: number;
     pinned: PinnedRow[];
+    /**
+     * What the screen's own count holds that no row of it does. Null where there is none, which is
+     * every reading `captures/` produces — it is drawn by a probe and by nothing else today.
+     */
+    outsideRanking: OutsideRankingRow | null;
     suspicions: string[];
     /**
      * Whether two counts of one figure came out different — a drawn figure that is wrong rather
@@ -1201,11 +1217,22 @@ export function composePanelReading(
     const listed = found.slice(0, MAXIMUM_ROWS);
     const total = getListedTotal(statistics, listed, metric, choice);
     const pinned = composePinnedFigures(statistics, roster, listed, metric, choice, readerSide);
+    const sides = composePanelSides(statistics, roster, metric, readerSide);
+    const part = getPartListed(choice, readerSide);
     // Only a figure standing apart joins the whole: one standing as a cut is already inside the
     // rows, so paying it out of the hundred would take a point off a row that owns one.
     const apart = pinned.filter((one) => one.standing === "apart");
-    const whole = apart.reduce((sum, one) => sum + one.figure, total);
+    const placed = apart.reduce((sum, one) => sum + one.figure, total);
+    // ⚠️ **The second count, and the whole reason there are two.** Everything above is composed
+    // from the rows; this is composed from the statistics and never looks at them, so the
+    // difference is what the screen holds and no row does. It came out of a construction before —
+    // the shares were divided by a whole derived from the very figures being shared — so a hundred
+    // was what the column said whatever had gone missing on the way to it.
+    const counted = getCountedTotal(statistics, sides, metric, part);
+    const outside = Math.max(counted - placed, 0);
+    const whole = placed + outside;
     const shared = [...listed.map((row) => row.figure), ...apart.map((one) => one.figure)];
+    if (outside > 0) shared.push(outside);
     const shares = composeShareTexts(shared, whole);
     const largest = getLargestFigure([...shared, ...pinned.map((one) => one.figure)]);
     const rows = listed.map((row, at) => ({
@@ -1214,16 +1241,23 @@ export function composePanelReading(
         shareText: shares[at] ?? "",
         detail: composeRowDetailFor(statistics, roster, row.combatantId),
     }));
-    const sides = composePanelSides(statistics, roster, metric, readerSide);
-    const part = getPartListed(choice, readerSide);
     return {
         rows,
-        hasFiguresDisagreed: getWholeDisagreesWithSide(whole, sides, part) ||
+        // The rows holding **more** than the screen's own count is the other side of `unplaced`,
+        // and the one that says a drawn figure is wrong rather than short.
+        hasFiguresDisagreed: counted < placed || getWholeDisagreesWithSide(whole, sides, part) ||
             pinned.some((one) => getPinnedDisagrees(statistics, one.case, one.figure, part)),
         outcome: getOutcomeForReader(statistics, roster, readerSide),
         ...composeHeadcount(statistics, roster, readerSide),
         total,
         pinned: composePinnedRows(pinned, shares.slice(listed.length), whole, largest),
+        outsideRanking: outside > 0
+            ? {
+                figure: outside,
+                fill: getFill(outside, largest),
+                shareText: shares[shared.length - 1] ?? "",
+            }
+            : null,
         suspicions: composeSuspicions(statistics, roster, metric, suspicions),
         sides,
         // Read off what the list is, and never off what was pressed: with no seat to read from
@@ -1231,6 +1265,45 @@ export function composePanelReading(
         // be the height of a side nothing narrowed to.
         visibleRows: part === null ? RANKING_ROWS : SIDE_ROWS,
     };
+}
+
+/**
+ * **The screen's own count, composed from the statistics and from nothing a row holds.** This is
+ * the denominator the shares are divided by, and the point of taking it a second way is that the
+ * first way cannot fail: a whole summed out of the very rows being shared comes to a hundred
+ * whatever fell out on the road to it — a bound that cut a row, a person the roster refused, a
+ * figure in the statistics nothing draws.
+ *
+ * Under one side it is the strip's own figure, which **ADR 0036** already holds the list to. Under
+ * everybody it is the fight's own total plus the one bucket that is on nobody's row, and a figure
+ * naming nobody has no side — so under a side there is nothing here to add (**ADR 0038**).
+ */
+function getCountedTotal(
+    statistics: FightStatistics,
+    sides: PanelSides | null,
+    metric: PanelMetric,
+    part: PanelSidePart | null,
+): number {
+    if (part === null) {
+        return getFigure(statistics.totals, metric) + getNobodyForMetric(statistics, metric);
+    }
+    if (sides === null) return 0;
+    if (part === "ours") return sides.ours;
+    if (part === "theirs") return sides.theirs;
+    return sides.nobody;
+}
+
+/**
+ * The one fight-wide figure each screen keeps off every combatant's row. Three of them already
+ * reach a pinned row standing apart, so under everybody they are inside the count twice over —
+ * once here and once as that row — and the two are held to each other by `getPinnedDisagrees`.
+ * The fourth reaches no row at all, which is what the section under the list is for.
+ */
+function getNobodyForMetric(statistics: FightStatistics, metric: PanelMetric): number {
+    if (metric === "damageDealtApplied") return statistics.dealtByNobody;
+    if (metric === "damageTakenApplied") return statistics.takenByNobody;
+    if (metric === "healthGiven") return statistics.givenByNobody;
+    return statistics.restoredToNobody;
 }
 
 /**
@@ -1393,6 +1466,14 @@ export interface ClosingRow extends PlainRow {
 export interface SkillCut {
     rows: SkillRow[];
     /**
+     * Whether the rows above came to **more** than the figure they are a cut of, which is the one
+     * thing a section can say about a drawn figure being wrong rather than short. The row closing
+     * it is a remainder, so an over-count arrives as a remainder below nothing — and a bar cannot
+     * be drawn at less than nothing, so the figure is clamped and this carries what the clamp
+     * hid. **ADR 0051** is why it is a defect rather than an assertion.
+     */
+    hasFiguresDisagreed: boolean;
+    /**
      * ⚠️ **What would not fit, summed — and never folded into the row below it.** A section is
      * bounded because it is drawn (**S11**), and a part past that bound is one the game **did**
      * name. Left out of the rows it landed in `plain`, which says the game announced nothing: a
@@ -1478,6 +1559,8 @@ export interface DrillReading {
     bySkill: SkillCut;
     byElement: ElementCut;
     total: number;
+    /** The answer `SkillCut` states, where the level that holds it is the one a reader opened. */
+    hasFiguresDisagreed: boolean;
 }
 
 interface MetricCuts {
@@ -1868,14 +1951,7 @@ function composeSkillCut(
 ): SkillCut {
     const folded = composeSkillRows(statistics, figures, metric, combatantId);
     const stated = folded.rows;
-    stated.sort((one, other) =>
-        getRankedOrder(
-            one.figure,
-            other.figure,
-            getTextForNamedPart(one.part),
-            getTextForNamedPart(other.part),
-        )
-    );
+    stated.sort(compareSkillRows);
     // What the bound would not give a row to counts as held, because the game **did** name it:
     // left out of this sum it would land in `plain`, which says nothing announced the blow.
     const held = stated.reduce((sum, one) => sum + one.figure, folded.rest);
@@ -1891,9 +1967,14 @@ function composeSkillCut(
     const isCounted = metric === "damageDealtApplied";
     const hasPlain = plain > 0 || (isCounted && figures.blowsWithoutSkill > 0);
     const hasRest = folded.rest > 0;
+    // ⚠️ **The clamped figure is what the shares are composed from, and it used to be the bare
+    // remainder.** A row drawn at nought beside a share worked out from a figure below nothing
+    // printed *Nie wiadomo* where the panel had just drawn a number, which is a row saying two
+    // things at once. What the clamp hides is carried out of here instead.
+    const drawn = Math.max(plain, 0);
     const figuresOnScreen = stated.map((one) => one.figure);
     if (hasRest) figuresOnScreen.push(folded.rest);
-    if (hasPlain) figuresOnScreen.push(plain);
+    if (hasPlain) figuresOnScreen.push(drawn);
     const shares = composeShareTexts(figuresOnScreen, total);
     const largest = getLargestFigure(figuresOnScreen);
     return {
@@ -1907,26 +1988,59 @@ function composeSkillCut(
         // order; the closing row has taken a place since (**ADR 0079**) and this has not, so
         // "between the two" no longer names a position. What that decision settled is unmoved:
         // what a bound would not draw is never folded into the row below it.
-        rest: hasRest
-            ? {
-                blows: null,
-                figure: folded.rest,
-                fill: getFill(folded.rest, largest),
-                shareText: shares[stated.length] ?? "",
-            }
-            : null,
+        rest: hasRest ? composeRestRow(folded.rest, largest, shares[stated.length] ?? "") : null,
         plain: hasPlain
-            ? {
+            ? composeClosingRow({
                 blows: isCounted ? figures.blowsWithoutSkill : null,
-                place: getPlaceForPlain(stated, Math.max(plain, 0)),
                 doesOpenPart:
                     composePartCut(statistics, figures, metric, combatantId, { kind: "plain" }) !==
                         null,
-                figure: Math.max(plain, 0),
-                fill: getFill(Math.max(plain, 0), largest),
+                figure: drawn,
+                largest,
+                stated,
                 shareText: shares[stated.length + (hasRest ? 1 : 0)] ?? "",
-            }
+            })
             : null,
+        hasFiguresDisagreed: plain < 0,
+    };
+}
+
+/** Largest first, and a tie broken by the text a part is named with — `ranked-order.ts` owns it. */
+function compareSkillRows(one: UnsharedSkill, other: UnsharedSkill): number {
+    return getRankedOrder(
+        one.figure,
+        other.figure,
+        getTextForNamedPart(one.part),
+        getTextForNamedPart(other.part),
+    );
+}
+
+/**
+ * What a bound would not give a row to, summed. It holds no place, which is **ADR 0079**'s test:
+ * its figure grows with how many we could not fit rather than with what any one of them did.
+ */
+function composeRestRow(figure: number, largest: number, shareText: string): PlainRow {
+    return { blows: null, figure, fill: getFill(figure, largest), shareText };
+}
+
+/** The row a section closes against, and the place its own figure earns it (**ADR 0079**). */
+function composeClosingRow(
+    said: {
+        blows: number | null;
+        doesOpenPart: boolean;
+        figure: number;
+        largest: number;
+        stated: readonly { figure: number }[];
+        shareText: string;
+    },
+): ClosingRow {
+    return {
+        blows: said.blows,
+        place: getPlaceForPlain(said.stated, said.figure),
+        doesOpenPart: said.doesOpenPart,
+        figure: said.figure,
+        fill: getFill(said.figure, said.largest),
+        shareText: said.shareText,
     };
 }
 
@@ -2326,13 +2440,15 @@ export function composeDrillReading(
                     element,
                 }) !== null,
         );
+    const bySkill = composeSkillCut(statistics, figures, metric, total, combatantId);
     return {
         combatantId,
         name: held?.name ?? null,
         profession: held?.profession ?? null,
         byOpponent,
-        bySkill: composeSkillCut(statistics, figures, metric, total, combatantId),
+        bySkill,
         byElement,
         total,
+        hasFiguresDisagreed: bySkill.hasFiguresDisagreed,
     };
 }

@@ -389,6 +389,7 @@ Deno.test("a fight nothing has happened in says so, rather than drawing nothing"
         unplaced: 0,
         total: 0,
         pinned: [],
+        outsideRanking: null,
         suspicions: [],
         hasFiguresDisagreed: false,
         sides: null,
@@ -1977,7 +1978,7 @@ Deno.test("an opened row grows the list to what its cuts need, and never shorten
     const small = {
         ...drill,
         byOpponent: { rows: [], unnamed: null },
-        bySkill: { rows: [], rest: null, plain: null },
+        bySkill: { rows: [], rest: null, plain: null, hasFiguresDisagreed: false },
         byElement: { rows: drill.byElement.rows.slice(0, 2), rest: null, unnamed: null },
     };
     assertEquals(
@@ -2011,7 +2012,7 @@ Deno.test("a level that grows while the fight goes on grows the region it is dra
     const early = {
         ...drill,
         byOpponent: { rows: drill.byOpponent.rows.slice(0, 1), unnamed: null },
-        bySkill: { rows: [], rest: null, plain: null },
+        bySkill: { rows: [], rest: null, plain: null, hasFiguresDisagreed: false },
         byElement: { rows: [], rest: null, unnamed: null },
     };
     panel.show({ ...shown, drill: early });
@@ -2064,7 +2065,7 @@ Deno.test("a cut that repeats the figure above it is drawn all the same", () => 
     const repeated = {
         ...drill,
         total: one.figure,
-        bySkill: { rows: [], rest: null, plain: null },
+        bySkill: { rows: [], rest: null, plain: null, hasFiguresDisagreed: false },
         byElement: { rows: [one], rest: null, unnamed: null },
     };
     assertEquals(
@@ -2078,7 +2079,7 @@ Deno.test("a cut that repeats the figure above it is drawn all the same", () => 
     const split = {
         ...drill,
         total: two.reduce((sum, row) => sum + row.figure, 0),
-        bySkill: { rows: [], rest: null, plain: null },
+        bySkill: { rows: [], rest: null, plain: null, hasFiguresDisagreed: false },
         byElement: { rows: two, rest: null, unnamed: null },
     };
     assertEquals(
@@ -2112,12 +2113,15 @@ Deno.test("a lone row of a section names what the heading over it never does", (
         total: only.figure,
         byOpponent: { rows: [], unnamed: null },
         byElement: { rows: [], rest: null, unnamed: null },
-        bySkill: { rows: [only], rest: null, plain: null },
+        bySkill: { rows: [only], rest: null, plain: null, hasFiguresDisagreed: false },
     };
     assertEquals(headings(alone), [PANEL_WORDS.skills], "so the section is drawn all the same");
 
     const key = { ...only, part: { kind: "source" as const, source: "heal" } };
-    const keyed = { ...alone, bySkill: { rows: [key], rest: null, plain: null } };
+    const keyed = {
+        ...alone,
+        bySkill: { rows: [key], rest: null, plain: null, hasFiguresDisagreed: false },
+    };
     assertEquals(headings(keyed), [PANEL_WORDS.skills], "and so is a lone key row");
 });
 
@@ -2236,6 +2240,7 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
                     fill: 0,
                     shareText: "0%",
                 },
+                hasFiguresDisagreed: false,
             },
         },
     });
@@ -2283,6 +2288,7 @@ Deno.test("what a section could not draw is a row of its own, over the one that 
                     fill: 0.2,
                     shareText: "10%",
                 },
+                hasFiguresDisagreed: false,
             },
         },
     });
@@ -2359,7 +2365,11 @@ Deno.test("a skill that opens asks for itself by name, wherever the press lands 
     ];
     panel.show({
         ...composeShownScreen(reading, "healthGiven"),
-        drill: { ...drill, total: 1000, bySkill: { rows, rest: null, plain: null } },
+        drill: {
+            ...drill,
+            total: 1000,
+            bySkill: { rows, rest: null, plain: null, hasFiguresDisagreed: false },
+        },
     });
     const host = panel.element as FakeElement;
     const named = getElementsWithin(host).filter((one) => one.className === "row-name");
@@ -2764,4 +2774,56 @@ Deno.test("the closing row's card says what the game did not, and only on a dama
             `${metric}: the card says what the game did not say about these blows`,
         );
     }
+});
+
+/**
+ * The section under the list, drawn. **Both halves are held here**: that it reaches the page at
+ * all, and that it does not when there is nothing for it to say — a section standing empty under
+ * every fight would be a claim the panel makes about all of them.
+ */
+Deno.test("what no row holds stands under the list, hatched, and says so on its card", () => {
+    const reading = readFight();
+    assertEquals(reading.outsideRanking, null, "the recording leaves nothing outside the ranking");
+    const quiet = draw(reading);
+    assertEquals(
+        getTextsByClass(quiet, "section-words").filter(
+            (one) => one === PANEL_WORDS.outsideRanking,
+        ),
+        [],
+        "so the section is not drawn at all",
+    );
+
+    const outside = { figure: 1000, fill: 0.5, shareText: "10%" };
+    const host = draw({ ...reading, outsideRanking: outside });
+    assertArrayIncludes(
+        getTextsByClass(host, "section-words"),
+        [PANEL_WORDS.outsideRanking],
+        "a figure on nobody's row brings the section with it",
+    );
+    assertArrayIncludes(
+        getTextsByClass(host, "row-name"),
+        [PANEL_WORDS.outsideRow],
+        "and the row inside it is named",
+    );
+    const row = getElementsWithin(host).find(
+        (one) => one.attributes.get("data-tip") === "outside",
+    );
+    assertExists(row, "the row is drawn with a card to open");
+    // ⚠️ **The hatch is read off this row and not off the panel**, which is the whole visual
+    // claim: it holds no place in the order above it. Asking whether anything on the screen wears
+    // the accent is a reader the pinned rows answer for, whatever this row does.
+    const hatched = getElementsWithin(host).find((one) =>
+        one.children.some((child) =>
+            child.className === "row-name" && child.textContent === PANEL_WORDS.outsideRow
+        )
+    );
+    assertExists(hatched, "the row itself is on the page");
+    assert(hatched.className.includes("apart"), "wearing the accent every placeless row wears");
+    pointAtElement(host, "pointermove", row, 300);
+    const card = readTip(host);
+    assertArrayIncludes(
+        card.notes,
+        [PANEL_WORDS.outsideNote],
+        "and its card says what cannot be known about it",
+    );
 });

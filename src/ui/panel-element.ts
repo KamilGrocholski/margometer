@@ -1513,6 +1513,46 @@ function composeSidesPart(
     return part;
 }
 
+/**
+ * The section under the list: what the screen's own count holds and no row of it does.
+ *
+ * **It is not the suspicions in another shape.** A suspicion says a figure may be short and never
+ * by how much, because nothing states one; this states a figure, because two counts of the same
+ * screen came out different by exactly that much. The two stand under one heading so a reader has
+ * one place for what the panel could not put anywhere, and they are different claims inside it.
+ */
+function composeOutsideElement(
+    document: PanelDocument,
+    shown: ShownScreen,
+    register: TipRegister,
+): PanelElement {
+    const outside = shown.reading.outsideRanking;
+    if (outside === null) return composeSlotElement(document);
+    const block = composeElement(document, "div", CLASS.outside);
+    block.append(composeSectionElement(document, PANEL_WORDS.outsideRanking, outside.figure));
+    const reading = {
+        name: PANEL_WORDS.outsideRow,
+        figure: outside.figure,
+        fill: outside.fill,
+        shareText: outside.shareText,
+        colour: getColourForProfession(null),
+        profession: null,
+        // No place, so the hatch: its figure is what reached no row rather than what anybody did
+        // — `DESIGN.md`, and **ADR 0079**'s test for which kind of row takes one.
+        rank: null,
+    };
+    const tip = {
+        register,
+        key: "outside",
+        figure: getWordsForMetric(shown.current),
+        share: PANEL_WORDS.share,
+        notes: [PANEL_WORDS.outsideNote],
+    };
+    // It opens nothing: what it is made of is the one thing nobody can state about it.
+    block.append(composeRowElement(document, reading, null, tip));
+    return block;
+}
+
 function composeSidesElement(document: PanelDocument, shown: ShownScreen): PanelElement {
     const sides = shown.reading.sides;
     // Two sides nothing can tell apart are not two figures, and a strip of them says nothing:
@@ -2165,6 +2205,7 @@ interface PanelRegions {
     list: PanelElement;
     pinnedActor: PanelElement;
     pinnedTarget: PanelElement;
+    outside: PanelElement;
     sides: PanelElement;
     suspicions: PanelElement;
     defects: PanelElement;
@@ -2181,6 +2222,7 @@ function composePanelRegions(document: PanelDocument): PanelRegions {
         list: composeSlotElement(document),
         pinnedActor: composeSlotElement(document),
         pinnedTarget: composeSlotElement(document),
+        outside: composeSlotElement(document),
         sides: composeSlotElement(document),
         suspicions: composeSlotElement(document),
         defects: composeSlotElement(document),
@@ -2218,6 +2260,7 @@ function composePanelFrame(document: PanelDocument, regions: PanelRegions): Pane
     for (const region of [regions.list, regions.pinnedActor, regions.pinnedTarget]) {
         panel.append(region);
     }
+    panel.append(regions.outside);
     panel.append(regions.sides);
     panel.append(regions.suspicions);
     panel.append(regions.defects);
@@ -2620,6 +2663,14 @@ function setPanelBody(
     );
     drawing.draw(shown.listName, () => composeShownList(document, shown, register, translate));
     setPinnedRegions(document, regions, shown, register, redraw);
+    regions.outside = redraw(
+        regions.outside,
+        "outside",
+        () =>
+            shown.isOnShelf
+                ? composeSlotElement(document)
+                : composeOutsideElement(document, shown, register),
+    );
     // Whether there is a summary to draw is asked **inside** the guard, not before it: a reading
     // that throws on being asked cost the whole panel where the question stood outside (**E5**).
     regions.sides = redraw(regions.sides, "sides", () => {

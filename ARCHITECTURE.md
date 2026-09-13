@@ -400,13 +400,15 @@ nothing and throws nothing is **A11** and **E14**. None of them is restated here
 One contract is this document's own, because it is about attribution rather than drawing:
 
 - **A gap reaches a row only where the protocol named whom it was about**, and it says a figure is
-  short without ever saying by how much. A gap naming nobody stays in the fight's own summary, which
-  is the only place it is now said (**ADR 0069**). A cut of a figure never carries one — a shortfall
-  cannot be placed onto one opponent or one skill, so the mark rides the combatant's own row at
-  every level. The summary's own sentence states its count against what that count is out of and
-  **names the rows it reaches while they are few** (**ADR 0070**), which is what a mark cannot say
-  without a pointer on it. `[ASK]` before a gap is placed on a row it was not named for: that is a
-  guess wearing a suspicion's clothes. What went unread is counted under each of the three causes
+  short without ever saying by how much. A gap naming nobody stays in the fight's own summary (**ADR
+  0069**). **A figure is not a gap**, and the section under the list is where one that reached no
+  row stands: the screen counted a second time off the statistics, less what the rows hold, so it
+  states a number rather than a suspicion (**ADR 0082**). A cut of a figure never carries one — a
+  shortfall cannot be placed onto one opponent or one skill, so the mark rides the combatant's own
+  row at every level. The summary's own sentence states its count against what that count is out of
+  and **names the rows it reaches while they are few** (**ADR 0070**), which is what a mark cannot
+  say without a pointer on it. `[ASK]` before a gap is placed on a row it was not named for: that is
+  a guess wearing a suspicion's clothes. What went unread is counted under each of the three causes
   the decoder tells apart, granted by **ADR 0070** against the `[ASK]` this paragraph used to hold,
   and the rule above binds each of them — a message the grammar refused names nobody, so it reaches
   no row at all.
@@ -540,37 +542,39 @@ commit that opens or closes one.
    sentence under it, a row whose own figure a suspicion reaches wears a mark with that row's own
    sentence on its card and on nobody else's (**ADR 0069**), and the panel is moved by its bar and
    comes back where it was left, with the list standing at the place the reader scrolled it to
-   (**ADR 0050**). Which rows of all that open and which are the last is `docs/drill-levels.md`'s to
-   say, measured rather than claimed here. The card that says what a combatant's figures are made of
-   is written, and so are both of its runs, on every screen and each under the heading naming its
-   end: the criticals against the blows struck, the hardest blow, what fired beside one and what it
-   destroyed on the other side, what a defence stopped, cut by the defence (**ADR 0032**), and the
-   turns that combatant took with, under them, the ones a stun took away — each on a line of its
-   own, and nothing divided by either (**ADR 0048**, **ADR 0049**). Two proc keys reach no row —
-   `-tenacity` and `+superspell-dispel`, whose end article view,372 does not settle — and they are
-   decoded and charged to nobody until material does, though the player's own client names them and
-   five others on the card (**ADR 0024**). **A second window stands beside the panel**, inside the
-   same shadow root and dragged, folded and remembered apart from it (**ADR 0060**): it says whose
-   turn the game numbers — and, where it is numbering none because the fight ended or because the
-   reader handed it over on the auto key, which of the two it is (**ADR 0072**) — and what is
-   standing on the fight, one counted row per skill reaching a side, and a press opens the casters
-   under it with what has passed of what the published table gives them — never what is left (**ADR
-   0059**) — each wearing their own profession's hue and the same side rule the ranking wears (**ADR
-   0065**). A cast reaching a whole side says nothing about whom, because there is nothing to say;
-   the two okrzyki stand in a section of their own, drawn under whoever threw them with the
-   characters they hold as rows beneath, the turns stated once because they are the cast's (**ADR
-   0062**, **ADR 0067**). It draws a third band above them where a combatant is making a **charged
-   skill** ready: one row, the game's own name for the blow, one dot per turn of the charge lit to
-   what has passed, and the pair of figures the client itself divides — never the percentage that
-   division comes to. The two ends the protocol names stand for one turn after the fact and then the
-   band is gone, which is one payload: the game's own turn number moves by one on the very next one,
-   24 times out of 24 over `captures/` 2026-09-11. Whom a shout holds is **read off its value**,
-   which names every provoked character separated by a comma and a space, and a name the roster
-   cannot place is dropped rather than guessed at (**ADR 0064**). That table is the third frozen
-   reading (**ADR 0058**), and `docs/auras-standing.md` is its register over `captures/`. Both
-   READMEs are written and show the set `deno task panel:shots` takes, so the release plumbing is
-   whole and has now run at a tag — what is left of it is held by a person, which is what the gap
-   below it is about.
+   (**ADR 0050**). Under the pinned rows stands the section holding what the screen's own count
+   holds and no row of it does, drawn only where the two counts differ, which over `captures/` is
+   nowhere (**ADR 0082**). Which rows of all that open and which are the last is
+   `docs/drill-levels.md`'s to say, measured rather than claimed here. The card that says what a
+   combatant's figures are made of is written, and so are both of its runs, on every screen and each
+   under the heading naming its end: the criticals against the blows struck, the hardest blow, what
+   fired beside one and what it destroyed on the other side, what a defence stopped, cut by the
+   defence (**ADR 0032**), and the turns that combatant took with, under them, the ones a stun took
+   away — each on a line of its own, and nothing divided by either (**ADR 0048**, **ADR 0049**). Two
+   proc keys reach no row — `-tenacity` and `+superspell-dispel`, whose end article view,372 does
+   not settle — and they are decoded and charged to nobody until material does, though the player's
+   own client names them and five others on the card (**ADR 0024**). **A second window stands beside
+   the panel**, inside the same shadow root and dragged, folded and remembered apart from it (**ADR
+   0060**): it says whose turn the game numbers — and, where it is numbering none because the fight
+   ended or because the reader handed it over on the auto key, which of the two it is (**ADR 0072**)
+   — and what is standing on the fight, one counted row per skill reaching a side, and a press opens
+   the casters under it with what has passed of what the published table gives them — never what is
+   left (**ADR 0059**) — each wearing their own profession's hue and the same side rule the ranking
+   wears (**ADR 0065**). A cast reaching a whole side says nothing about whom, because there is
+   nothing to say; the two okrzyki stand in a section of their own, drawn under whoever threw them
+   with the characters they hold as rows beneath, the turns stated once because they are the cast's
+   (**ADR 0062**, **ADR 0067**). It draws a third band above them where a combatant is making a
+   **charged skill** ready: one row, the game's own name for the blow, one dot per turn of the
+   charge lit to what has passed, and the pair of figures the client itself divides — never the
+   percentage that division comes to. The two ends the protocol names stand for one turn after the
+   fact and then the band is gone, which is one payload: the game's own turn number moves by one on
+   the very next one, 24 times out of 24 over `captures/` 2026-09-11. Whom a shout holds is **read
+   off its value**, which names every provoked character separated by a comma and a space, and a
+   name the roster cannot place is dropped rather than guessed at (**ADR 0064**). That table is the
+   third frozen reading (**ADR 0058**), and `docs/auras-standing.md` is its register over
+   `captures/`. Both READMEs are written and show the set `deno task panel:shots` takes, so the
+   release plumbing is whole and has now run at a tag — what is left of it is held by a person,
+   which is what the gap below it is about.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld

@@ -62,6 +62,14 @@ export const PANEL_WORDS = {
     /** What a bound would not give a row to, summed. Never the row that closes a section: that
      * one is what the game named nothing for, and this is what it named (**ADR 0055**). */
     restOfKinds: "pozostałe",
+    /**
+     * The section under the list, and the row inside it. **Never `pozostałe`**, which the line
+     * above already is: that one is a bound's leftovers inside a cut, and a reader meeting one
+     * word over two different claims has no way to tell which they are looking at (**N9**).
+     */
+    outsideRanking: "POZA RANKINGIEM",
+    outsideRow: "Poza wierszami",
+    outsideNote: "Tej części nie ma nigdzie wyżej — ani na wierszu postaci, ani pod listą.",
     restNote: "Za dużo pozycji, żeby pokazać każdą — te są tu zsumowane.",
     undrawn: "nie dało się narysować",
     combatants: "Postacie",
@@ -907,6 +915,7 @@ export const REGION_WORDS = {
     list: "listy",
     pinned: "wiersza",
     sides: "podsumowania stron",
+    outside: "tego, co zostało poza rankingiem",
     suspicions: "ostrzeżenia",
     defects: "spisu usterek",
     /** The card a row opens. It is not a region of the panel's frame, and it is drawn like one. */

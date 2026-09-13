@@ -26,6 +26,8 @@ import {
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import type { FightStatistics } from "@/src/core/fight-statistics.ts";
 import { type PanelSideChoice, SCREEN_ORDER, SIDE_CHOICES } from "@/src/ui/panel-screen.ts";
+import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
+import { getPointsFromShareText } from "@/tests/share-text.ts";
 import { composeReplayedMaterial } from "@/tools/fight-replay.ts";
 import type {
     ElementRow,
@@ -2530,6 +2532,7 @@ function composeStatisticsWithSkills(receiverId: number, names: number): FightSt
         dealtByNobody: 0,
         takenByNobody: 0,
         givenByNobody: 0,
+        restoredToNobody: 0,
         byNeitherEnd: 0,
         byNeitherEndByElement: new Map(),
         unreadMessagesUnknownKey: 0,
@@ -2540,3 +2543,133 @@ function composeStatisticsWithSkills(receiverId: number, names: number): FightSt
         outcome: null,
     };
 }
+
+/**
+ * The same claim one level down, and the one this file had no test for at all: the rows of a
+ * section coming to **more** than the figure they are a cut of. The closing row is a remainder, so
+ * an over-count arrives there as a figure below nothing — and a bar has no length below nothing,
+ * so the panel clamps it. What is held here is that the clamp is not the whole answer.
+ *
+ * `captures/` carries none of this and cannot: `src/core/fight-statistics.ts` asserts the balance
+ * it is composed under. So the section is made to disagree by taking the figure down under rows
+ * that already stood, which is the disagreement rather than a figure that quietly changed.
+ */
+Deno.test("a section coming to more than its figure is drawn at nought, and answered for", () => {
+    const { roster, statistics } = composeRecordedReading(HILDUR);
+    const metric: PanelMetric = "damageDealtApplied";
+    const swung = [...statistics.byCombatantId].find(([, one]) =>
+        one.skills.size > 0 && one.blowsWithoutSkill > 0
+    );
+    assertExists(swung, "the recording holds somebody who announced and also swung plainly");
+    const [combatantId, figures] = swung;
+    const agreed = composeDrillReading(statistics, roster, metric, combatantId);
+    assertExists(agreed, "their row opens");
+    assertStrictEquals(agreed.hasFiguresDisagreed, false, "and its section adds up");
+
+    const short = new Map(statistics.byCombatantId);
+    short.set(combatantId, { ...figures, damageDealtApplied: 1 });
+    const over = composeDrillReading(
+        { ...statistics, byCombatantId: short },
+        roster,
+        metric,
+        combatantId,
+    );
+    assertExists(over, "the row still opens");
+    assertStrictEquals(over.hasFiguresDisagreed, true, "and says its rows came to more");
+    const plain = over.bySkill.plain;
+    assertExists(plain, "the row closing it is drawn, because blows stood behind it");
+    assertStrictEquals(plain.figure, 0, "at nought, which is the least a bar can be");
+    // ⚠️ The share used to be composed from the bare remainder while the figure was clamped, so
+    // a row drawing `0` printed `Nie wiadomo` beside it — one row saying two things at once.
+    assertNotStrictEquals(plain.shareText, PANEL_WORDS.unknown, "beside a share, not a refusal");
+});
+
+/**
+ * **The second count, proved by making the two disagree.** `captures/` cannot show this: every
+ * figure the corpus holds reaches a row, which is why a whole summed out of the rows being shared
+ * came to a hundred for as long as it did and said nothing.
+ *
+ * `restoredToNobody` is the one bucket in the statistics that no row of any screen holds, so
+ * putting a figure in it is the smallest honest way to make the screen hold more than the list.
+ */
+Deno.test("what the screen counts and no row holds stands under the list", () => {
+    const { roster, statistics } = composeRecordedReading(HILDUR);
+    const metric: PanelMetric = "healthRestored";
+    const whole = composePanelReading(
+        statistics,
+        roster,
+        metric,
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+    assertEquals(whole.outsideRanking, null, "a real fight leaves nothing outside the ranking");
+
+    const outside = 1000;
+    const short = composePanelReading(
+        { ...statistics, restoredToNobody: outside },
+        roster,
+        metric,
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+    assertExists(short.outsideRanking, "a figure on nobody's row reaches the section under it");
+    assertStrictEquals(short.outsideRanking.figure, outside, "at the figure the statistics hold");
+    assertStrictEquals(short.hasFiguresDisagreed, false, "which is short, not wrong");
+    // Every share on the screen, the section's own included, against the hundred it claims.
+    const points = [...short.rows, ...short.pinned, short.outsideRanking]
+        .map((one) => getPointsFromShareText(one.shareText))
+        .reduce((sum, one) => sum + one, 0);
+    assertStrictEquals(points, 100, "and the column a reader adds up still comes to a hundred");
+    assert(short.rows.length > 0, "while the ranking is still drawn, rows and all");
+});
+
+/** The other side of it: rows holding **more** than the screen counts is wrong, not short. */
+Deno.test("rows coming to more than the screen counts is answered for", () => {
+    const { roster, statistics } = composeRecordedReading(HILDUR);
+    const over = composePanelReading(
+        { ...statistics, dealtByNobody: statistics.dealtByNobody - 1 },
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+    assertEquals(over.outsideRanking, null, "nothing stands outside a list that holds too much");
+    assertStrictEquals(over.hasFiguresDisagreed, true, "and the panel says the counts disagree");
+});
+
+/**
+ * **The claim the section is worth stating at all.** Every screen of every recording, from every
+ * seat: the count taken off the statistics and the count summed out of the rows agree exactly, so
+ * the section is drawn nowhere in the material. A reading that starts drawing one is the panel
+ * saying something has stopped reaching a row — which is what it exists to say.
+ */
+Deno.test("no recording leaves anything outside the ranking, on any screen or seat", () => {
+    const { replays } = composeReplayedMaterial(readRecordingPaths());
+    const drawn: string[] = [];
+    let read = 0;
+    for (const replay of replays) {
+        const seats = [...new Set([...replay.roster.byId.values()].map((one) => one.side))];
+        for (const readerSide of [null, ...seats]) {
+            for (const choice of readerSide === null ? ["everyone" as const] : SIDE_CHOICES) {
+                for (const metric of SCREEN_ORDER) {
+                    const reading = composePanelReading(
+                        replay.statistics,
+                        replay.roster,
+                        metric,
+                        choice,
+                        readerSide,
+                        NOTHING_SUSPECT,
+                    );
+                    read += 1;
+                    if (reading.outsideRanking === null) continue;
+                    drawn.push(`${replay.name} ${metric} ${choice}`);
+                }
+            }
+        }
+    }
+    assert(read > 0, "there were readings to ask");
+    assertEquals(drawn, [], "a screen holding a figure no row of it does");
+});

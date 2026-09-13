@@ -1043,3 +1043,53 @@ Deno.test("a name that opens another does not take its line", () => {
     assertEquals(statistics.byCombatantId.get(2)?.turnsLost, 1, "the longer name holds the line");
     assertEquals(statistics.byCombatantId.get(1)?.turnsLost, undefined, "and the shorter has none");
 });
+
+/**
+ * Health the protocol says came back, to nobody it named. **`captures/` carries neither shape**,
+ * so both are written by hand — which is also why the figure went uncounted for as long as it
+ * did: nothing in the material could have shown it missing.
+ */
+const RESTORED_TO_NOBODY = "0;0;heal=99";
+const RESTORED_TO_A_STRANGER = "1=50.00;0;legbon_lastheal=40,Nieznajoma(50.00%)";
+
+/** One person, so a name the value carries is a name this roster cannot place. */
+function composeOneCombatantRoster(): CombatantRoster {
+    return composeCombatantRoster([
+        { id: 1, name: "Alfa", side: 1, profession: "w", level: 10, healthMaximum: 100 },
+    ]);
+}
+
+Deno.test("health that came back to nobody is counted, under the key it came back on", () => {
+    const roster = composeOneCombatantRoster();
+    const statistics = composeFightStatistics(
+        decodeFightMessages([RESTORED_TO_NOBODY], roster, BLOWS_GRANTED),
+        new Map(),
+    );
+    assertEquals(statistics.restoredToNobody, 99, "the health the protocol says came back");
+    assertEquals(statistics.byCombatantId.size, 0, "nobody was invented to carry it");
+    assertEquals(getUnreadMessages(statistics), 0, "and the message was read, not skipped");
+    assertEquals(statistics.totals.healthRestored, 0, "no combatant's total holds it");
+});
+
+Deno.test("healing aimed at a name the roster cannot place is counted rather than dropped", () => {
+    const roster = composeOneCombatantRoster();
+    const statistics = composeFightStatistics(
+        decodeFightMessages([RESTORED_TO_A_STRANGER], roster, BLOWS_GRANTED),
+        new Map(),
+    );
+    assertEquals(statistics.restoredToNobody, 40, "the figure the value stated");
+    assertEquals(statistics.givenByNobody, 0, "the giving end is a different claim, and is nought");
+    assertEquals(statistics.totals.healthRestored, 0, "and nobody's own total holds it");
+});
+
+Deno.test("every recording states no healing the game aimed at nobody", () => {
+    for (const path of readRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = [];
+        for (const payload of getRecordedPayloads(path)) {
+            events.push(...decodeFightMessages(payload, roster, BLOWS_GRANTED));
+        }
+        const statistics = composeFightStatistics(events, new Map());
+        assertEquals(statistics.restoredToNobody, 0, `${path}: healing the game aimed at nobody`);
+    }
+});

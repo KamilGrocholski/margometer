@@ -252,6 +252,17 @@ export interface FightStatistics extends UnreadMessageCounts {
     /** Restored health no giver could be read for: none of it over `captures/`, 2026-08-30. */
     givenByNobody: number;
     /**
+     * Restored health whose **receiver** the game did not name, which reached no total at all
+     * until 2026-09-13: `addHealthChangeEvent` returned on a movement naming nobody unless it was
+     * a loss, and `addNamedHealingEvent` returned on a name the roster could not place. A figure
+     * the decoder read and nothing counted is the one shape this repository exists to refuse, and
+     * it is worse than an unread message, which at least says a total may be short.
+     *
+     * None of it over `captures/`, 2026-09-13 — the same standing as `givenByNobody`, and held by
+     * a probe rather than by material.
+     */
+    restoredToNobody: number;
+    /**
      * What the protocol named **neither** end of, which is the one figure no side can be charged
      * with: it is inside `dealtByNobody` and `takenByNobody` both, and on nobody's row.
      */
@@ -593,6 +604,7 @@ interface StatisticsBuild extends UnreadMessageCounts {
     dealtByNobody: number;
     takenByNobody: number;
     givenByNobody: number;
+    restoredToNobody: number;
     byNeitherEnd: number;
     byNeitherEndByElement: Map<string, number>;
     turnStanding: TurnStanding;
@@ -1003,7 +1015,10 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
     if (event.kind !== "health-change") return;
     assert(Number.isSafeInteger(event.amount), "a movement totalled is a whole number");
     if (event.combatantId === null) {
-        if (event.amount >= 0) return;
+        if (event.amount >= 0) {
+            addRestoredToNobody(build, event.amount);
+            return;
+        }
         build.takenByNobody += -event.amount;
         build.dealtByNobody += -event.amount;
         build.byNeitherEnd += -event.amount;
@@ -1046,10 +1061,28 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
     assert(figures.healthRestored >= 0, "a total of health restored never falls below nothing");
 }
 
+/**
+ * Health the protocol says came back, to nobody it named. **Counted rather than dropped**, which
+ * is the whole of the change: a figure the decoder read and no total held was invisible to the
+ * panel, to the report and to every guard over the balance — it simply was not there.
+ *
+ * It is charged to no side, because the end that would decide one is the end that is missing, and
+ * it is a figure with nothing kept beside it: the key it moved under belongs to whoever received
+ * the health, and that is exactly whom the game did not name. **ADR 0082.**
+ */
+function addRestoredToNobody(build: StatisticsBuild, amount: number): void {
+    assert(amount >= 0, "health that came back never came back below nothing");
+    build.restoredToNobody += amount;
+    assert(build.restoredToNobody >= amount, "a total only grows by what it was handed");
+}
+
 function addNamedHealingEvent(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== "healing-to-named-combatant") return;
     assert(event.amount >= 0, "healing restored is never below nothing");
-    if (event.targetId === null) return;
+    if (event.targetId === null) {
+        addRestoredToNobody(build, event.amount);
+        return;
+    }
     const figures = getFiguresForCombatant(build.byCombatantId, event.targetId);
     figures.healthRestored += event.amount;
     addRestoredSource(build, event.targetId, event.source, event.amount, null);
@@ -1277,6 +1310,7 @@ export function composeFightStatistics(
         dealtByNobody: 0,
         takenByNobody: 0,
         givenByNobody: 0,
+        restoredToNobody: 0,
         byNeitherEnd: 0,
         byNeitherEndByElement: new Map(),
         unreadMessagesUnknownKey: 0,
@@ -1321,6 +1355,7 @@ export function composeFightStatistics(
         dealtByNobody: build.dealtByNobody,
         takenByNobody: build.takenByNobody,
         givenByNobody: build.givenByNobody,
+        restoredToNobody: build.restoredToNobody,
         byNeitherEnd: build.byNeitherEnd,
         byNeitherEndByElement: build.byNeitherEndByElement,
         unreadMessagesUnknownKey: build.unreadMessagesUnknownKey,

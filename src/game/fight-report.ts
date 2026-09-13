@@ -72,6 +72,13 @@ export function composeReportFight(subject: ReportSubject): Record<string, unkno
         dealtByNobody: subject.statistics.dealtByNobody,
         takenByNobody: subject.statistics.takenByNobody,
         givenByNobody: subject.statistics.givenByNobody,
+        // The fourth of them, and the only one that reaches no row of the panel: a reader looking
+        // at the file has nothing on any screen to check it against (**ADR 0082**).
+        restoredToNobody: subject.statistics.restoredToNobody,
+        // It is inside the two above it rather than beside them, and the file said nothing about
+        // it at all: how much of what nobody was named for is what **neither** end was named for
+        // is a question the two counts cannot be asked.
+        byNeitherEnd: subject.statistics.byNeitherEnd,
         roster: [...subject.roster.byId.values()],
         combatants: composeReportCombatants(subject.statistics),
         totals: composeReportRow(subject.statistics.totals),

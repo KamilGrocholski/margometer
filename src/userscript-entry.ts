@@ -808,11 +808,11 @@ function drawFightOnPanel(
         fight.readerSide,
         getFightSuspicions(fight),
     );
-    addFiguresDisagreed(keeper, reading);
     const { drill, pair, part, halfNamed, halfNamedDrill } = composeOpenedReadings(
         figures,
         screen,
     );
+    addFiguresDisagreed(keeper, reading, drill);
     // The row the panel is actually drawing, which is the kept one wherever there is no live
     // fight for the shelf to mark instead. The live fight has no row of its own to name, so the
     // place a reader stands in is named by the moment that fight opened.
@@ -869,9 +869,20 @@ function getFightSuspicions(fight: FightReading): FightSuspicions {
  * drawn figure being wrong rather than short. `src/ui/panel-reading.ts` answers it; it was an
  * assertion there until **ADR 0051**, and stopping the panel is what it used to cost.
  */
-function addFiguresDisagreed(keeper: KeptDefects, reading: PanelReading): void {
-    if (!reading.hasFiguresDisagreed) return;
-    keeper.add("figures", null, "two counts of one figure came out different");
+function addFiguresDisagreed(
+    keeper: KeptDefects,
+    reading: PanelReading,
+    drill: DrillReading | null,
+): void {
+    if (reading.hasFiguresDisagreed) {
+        keeper.add("figures", null, "two counts of one figure came out different");
+    }
+    // The same claim one level down, where the rows of a section came to more than the figure
+    // they are a cut of: the row closing it is a remainder below nothing, drawn at nought because
+    // that is the least a bar can be, and this is the mark that the nought was not the reading.
+    if (drill === null) return;
+    if (!drill.hasFiguresDisagreed) return;
+    keeper.add("figures", null, "a cut came to more than the figure it is a cut of");
 }
 
 interface OpenedReadings {

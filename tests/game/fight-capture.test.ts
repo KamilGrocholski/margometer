@@ -224,3 +224,29 @@ Deno.test("a file is named for the world, both versions and the moment", () => {
     assertStringIncludes(blind, "-none-", "a build the page never stated is said to be none");
     assert(!name.slice(0, -".json".length).includes(":"), "no colon reaches a file's name");
 });
+
+/**
+ * **Every fight-wide figure the aggregate holds reaches the file a reader is handed.** The rows
+ * are held by the compiler — `ReportRow` is a mapped type over `CombatantFigures`, so a figure
+ * added there breaks the build until somebody decides how it is written. The figures beside the
+ * rows are hand-listed, and nothing held them at all: `restoredToNobody` was counted by the core,
+ * drawn by the panel and absent from the handover for as long as it took to write this.
+ *
+ * Read off a composed aggregate rather than off a list typed here, so a figure arriving in
+ * `FightStatistics` fails this until it is either written out or excused by name.
+ */
+Deno.test("every fight-wide figure the aggregate holds is written into the handover", () => {
+    const statistics = composeFightStatistics([], composeTeamHeals([], composeCombatantRoster([])));
+    const counted = Object.entries(statistics)
+        .filter(([, value]) => typeof value === "number")
+        .map(([name]) => name);
+    assert(counted.length > 0, "the aggregate holds figures beside its rows");
+    const text = composeCaptureText(composeEmptyCapture(), SURROUNDINGS, composeEmptySubject());
+    const written = readCapture(text ?? "").report;
+    assert(isRecord(written), "a fight that was read is written into the recording");
+    assertEquals(
+        counted.filter((name) => !(name in written)),
+        [],
+        "a figure the aggregate counts and the handover does not carry",
+    );
+});

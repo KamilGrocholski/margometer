@@ -128,6 +128,11 @@ this meter does not hold. Distinct from **unattributed**, which is a figure we h
 place. What is left in it is the fight nobody watched the start of. _Avoid_: Missing, lost,
 unexplained
 
+**Unread**: A message the decoder could not turn into meaning, counted under the cause that left it
+so. **It carries no figure**, which is what separates it from everything above: a total may be short
+by it and nothing anywhere can say by how much. `AGENTS.md` **N15** names this word as one of this
+file's own and it was not in it until 2026-09-13. _Avoid_: Failed, skipped, dropped
+
 **Suspect**: A drawn figure that may be short, because something feeding it could not be read.
 Marked next to the figure it concerns, never in a banner. _Avoid_: Warning, error, invalid
 
@@ -165,6 +170,12 @@ entry, bar
 
 **Drill**: What pressing a row opens onto — the levels below the ranking. _Avoid_: Detail view,
 expansion, breakdown, sub-panel
+
+**Outside the ranking**: The section under the list, and the figure standing in it: what a screen's
+own count holds and no row of it does. **A measurement, never a category** — it is the screen
+counted a second time, from the statistics rather than from the rows, so anything that stops
+reaching a row lands in it and nothing is ever written to put it there. Zero on every recording.
+_Avoid_: Other, remainder, misc, pozostałe
 
 **Cut**: What one drill level states a figure by — the element it was dealt with, or the combatant
 at the other end of the blow. A cut of one combatant's figure, never of the fight's. _Avoid_:

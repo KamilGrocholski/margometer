@@ -93,6 +93,8 @@ export const CLASS = {
     /** Worn by every cell that carries a figure, wherever in the panel it stands. */
     figure: "figure",
     pinned: "pinned-region",
+    /** The section under the pinned rows: what the screen's own count holds and no row does. */
+    outside: "outside-region",
     empty: "empty",
     undrawn: "undrawn",
     suspicions: "suspicions",
@@ -568,6 +570,19 @@ function composeListRules(): string {
         `padding:0 var(${VARIABLE_PREFIX}region-across) var(${VARIABLE_PREFIX}region-down);}`;
 }
 
+/**
+ * The two regions standing under the list, which wear one rule because they say one thing: what is
+ * below the dashed line is outside it. The section carries a heading where the pinned rows do not,
+ * so a reader meeting a figure belonging to nobody is told what it is before they read it.
+ */
+function composeUnderListRules(): string {
+    const inset = composeInsetUnderRows(VARIABLE_PREFIX + "region-down");
+    const shape = `margin:0 var(${VARIABLE_PREFIX}region-across);` +
+        `padding:var(${VARIABLE_PREFIX}region-down) 0 ${inset};` +
+        `border-top:1px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;`;
+    return `.${CLASS.pinned}{${shape}}` + `.${CLASS.outside}{${shape}}`;
+}
+
 function composeRowRules(): string {
     const capRight = `var(${VARIABLE_PREFIX}radius-small)`;
     const cap = `${capRight} 0 0 ${capRight}`;
@@ -620,10 +635,6 @@ function composeRowRules(): string {
         `padding-left:var(${VARIABLE_PREFIX}wide);font-weight:600;}` +
         `.${CLASS.rowShare}{color:var(${VARIABLE_PREFIX}quiet);` +
         `padding-left:var(${VARIABLE_PREFIX}small);font-weight:400;}` +
-        `.${CLASS.pinned}{margin:0 var(${VARIABLE_PREFIX}region-across);` +
-        `padding:var(${VARIABLE_PREFIX}region-down) 0 ` +
-        `${composeInsetUnderRows(VARIABLE_PREFIX + "region-down")};` +
-        `border-top:1px dashed var(${VARIABLE_PREFIX}border);overflow:hidden;}` +
         // Worn by the row and not by the region under the list, because the rows that earn it
         // stand inside a section too: a sum a bound left undrawn stands there, and a solid bar on
         // it would read as a place in an order it holds none of. Which rows those are, and the
@@ -787,5 +798,6 @@ function composeStandingRules(): string {
 
 export function composeStyleSheet(): string {
     return `${composeFrameRules()}${composeRegionRules()}${composeListRules()}` +
-        `${composeRowRules()}${composeTipRules()}${composeStandingRules()}`;
+        `${composeRowRules()}${composeUnderListRules()}` +
+        `${composeTipRules()}${composeStandingRules()}`;
 }

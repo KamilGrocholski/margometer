@@ -259,6 +259,19 @@ It spends nothing to say it — no height, no width, no hue, and no second glyph
 shorten a name for (**ADR 0023**). It is a shape, so _Colour Never Alone_ is satisfied twice over:
 every one of these rows is already labelled in words.
 
+**Outside the ranking.** A section under the pinned rows, over the summary bar, standing under the
+same dashed rule they do — because it says the same thing about itself: what is below the rule is
+not in the list. It carries a heading where they do not, so a reader meeting a figure belonging to
+nobody is told what the section is before they read the number.
+
+**It is drawn only where there is a figure for it**, and there is one only where the screen's own
+count and the rows disagree. A section standing empty under every fight would be a claim the panel
+makes about all of them; one that appears is the panel saying _this much of the screen is not on any
+row above_, which nothing else here can say. Its row takes no place and wears the hatch, by the same
+test every other placeless row is judged by: its figure grows with what we could not put anywhere
+rather than with what anybody did. It opens nothing — what it is made of is the one thing nobody can
+state about it.
+
 **Shelf row.** A fight already fought, as a row of the same height as a ranking's: when it was, how
 big it was, where, and how it went, in that order — the place is the only cell allowed to shorten,
 so it stands second to last. The fight going on now is a row like the rest and is drawn once: while

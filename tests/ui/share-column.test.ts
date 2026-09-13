@@ -152,10 +152,13 @@ function composeSectionsForScreen(
     const found: Section[] = [{
         where: `${metric}/ranking`,
         // A pinned figure standing as a cut is already inside the rows; only one standing apart
-        // joins the whole, which is the arithmetic `composePanelReading` shares them by.
+        // joins the whole, which is the arithmetic `composePanelReading` shares them by. The
+        // section under the list joins it too: it is what the screen counts and no row above it
+        // holds, so a column read without it is the shortfall itself.
         rows: [
             ...reading.rows,
             ...reading.pinned.filter((one) => one.standing === "apart"),
+            ...(reading.outsideRanking === null ? [] : [reading.outsideRanking]),
         ],
         total: reading.total,
     }];
