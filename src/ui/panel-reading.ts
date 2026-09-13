@@ -1337,8 +1337,15 @@ export type NamedPart =
     | { kind: "source"; source: string }
     | { kind: "element"; element: string };
 
+/**
+ * A part a reader can open, which is the named ones and the row closing a damage section. Kept as
+ * a union rather than a fourth member of `NamedPart`: what that type is for is a part the **game**
+ * named, and the closing row is the one that stands for what it named nothing about. **ADR 0081.**
+ */
+export type OpenedPart = NamedPart | { kind: "plain" };
+
 /** The text a part is ordered by where two of them come to the same figure. */
-export function getTextForNamedPart(part: NamedPart | { kind: "plain" }): string {
+export function getTextForNamedPart(part: OpenedPart): string {
     if (part.kind === "skill") return part.name;
     if (part.kind === "source") return part.source;
     if (part.kind === "element") return part.element;
@@ -1379,6 +1386,8 @@ export interface PlainRow {
 export interface ClosingRow extends PlainRow {
     /** Where its figure puts it among the rows that take one. */
     place: number;
+    /** Whether pressing it opens the cut of whoever stood at the other end (**ADR 0081**). */
+    doesOpenPart: boolean;
 }
 
 export interface SkillCut {
@@ -1452,7 +1461,7 @@ export interface PairReading {
  * them it came from.
  */
 export interface PartReading {
-    part: NamedPart;
+    part: OpenedPart;
     total: number;
     byOpponent: OpponentCut;
 }
@@ -1910,6 +1919,9 @@ function composeSkillCut(
             ? {
                 blows: isCounted ? figures.blowsWithoutSkill : null,
                 place: getPlaceForPlain(stated, Math.max(plain, 0)),
+                doesOpenPart:
+                    composePartCut(statistics, figures, metric, combatantId, { kind: "plain" }) !==
+                        null,
                 figure: Math.max(plain, 0),
                 fill: getFill(Math.max(plain, 0), largest),
                 shareText: shares[stated.length + (hasRest ? 1 : 0)] ?? "",
@@ -1933,7 +1945,7 @@ export function composePartReading(
     roster: CombatantRoster,
     metric: PanelMetric,
     combatantId: number,
-    part: NamedPart,
+    part: OpenedPart,
 ): PartReading | null {
     const figures = statistics.byCombatantId.get(combatantId);
     if (figures === undefined) return null;
@@ -1957,10 +1969,19 @@ function composePartCut(
     figures: CombatantFigures,
     metric: PanelMetric,
     combatantId: number,
-    part: NamedPart,
+    part: OpenedPart,
 ): FigureCut | null {
     if (part.kind === "skill") {
         return composePartCutForSkill(statistics, figures, metric, combatantId, part.name);
+    }
+    if (part.kind === "plain") {
+        // Kept on this combatant's own record, both ways round, so the walk every other part of a
+        // received figure makes over everybody's skills is one nobody has to make here.
+        if (getNounForMetric(metric) !== "damage") return null;
+        const cut = getDirectionForMetric(metric) === "given"
+            ? figures.damageDealtWithoutSkillByOpponent
+            : figures.damageTakenWithoutSkillByOpponent;
+        return composePartCutStated(cut);
     }
     if (part.kind === "source") {
         // Only the giving side keeps a key per person: a key names whoever received the health,
@@ -2043,7 +2064,7 @@ function composePartCutStated(cut: FigureCut): FigureCut | null {
 function getPartTotal(
     figures: CombatantFigures,
     metric: PanelMetric,
-    part: NamedPart,
+    part: OpenedPart,
     cut: FigureCut,
 ): number {
     if (part.kind === "element") {

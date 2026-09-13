@@ -208,3 +208,5 @@ edited to agree with the new rule.
   takes a place. **Accepted**
 - [0080](0080-health-that-went-out-under-a-key-stands-under-it.md) — Health that went out under a
   key stands under it, on the damage screens too. **Accepted**
+- [0081](0081-the-closing-row-opens-onto-the-other-end.md) — The closing row opens onto whoever
+  stood at the other end. **Accepted**

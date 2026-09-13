@@ -27,6 +27,7 @@ import {
     type HalfNamedReading,
     type NamedPart,
     NOTHING_SUSPECT,
+    type OpenedPart,
     type PanelMetric,
     type PinnedCase,
 } from "@/src/ui/panel-reading.ts";
@@ -175,8 +176,12 @@ function addSectionsToTally(
         addToTally(tally, screen, { rung: "opened", row }, skill.doesOpenPart);
         if (skill.doesOpenPart) addPartRungToTally(tally, replay, screen, combatantId, skill.part);
     }
-    if (drill.bySkill.plain !== null) {
-        addToTally(tally, screen, { rung: "opened", row: "closing" }, false);
+    const closing = drill.bySkill.plain;
+    if (closing !== null) {
+        addToTally(tally, screen, { rung: "opened", row: "closing" }, closing.doesOpenPart);
+        if (closing.doesOpenPart) {
+            addPartRungToTally(tally, replay, screen, combatantId, { kind: "plain" });
+        }
     }
     for (const kind of drill.byElement.rows) {
         assert(kind.figure >= 0, "a kind drawn in a section holds no less than nothing");
@@ -195,7 +200,7 @@ function addPartRungToTally(
     replay: FightReplay,
     screen: PanelMetric,
     combatantId: number,
-    part: NamedPart,
+    part: OpenedPart,
 ): void {
     const { roster, statistics } = replay;
     const held = composePartReading(statistics, roster, screen, combatantId, part);
@@ -407,7 +412,10 @@ function composeOpenedLines(
             }`,
         );
     }
-    if (drill.bySkill.plain !== null) lines.push("      closing  leaf");
+    const closing = drill.bySkill.plain;
+    if (closing !== null) {
+        lines.push(`      closing ${closing.doesOpenPart ? "opens" : "leaf "}`);
+    }
     for (const kind of drill.byElement.rows) {
         const opens = kind.doesOpenPart ? "opens" : "leaf ";
         lines.push(

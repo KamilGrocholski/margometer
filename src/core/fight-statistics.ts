@@ -124,6 +124,15 @@ export interface CombatantFigures {
      */
     damageDealtWithoutSkillByOpponentAndSource: Map<string, Map<string, number>>;
     /**
+     * The blows standing under no announcement, by whoever stood at the other end of them — the
+     * cut the row closing a damage section opens onto. A skill's row opens because
+     * `SkillFigures` keeps one of these per announcement; the closing row keeps no announcement,
+     * so without this it had nothing to be cut by and the only way to the same figures was to
+     * walk every opponent in turn. **ADR 0081.**
+     */
+    damageDealtWithoutSkillByOpponent: Map<string, number>;
+    damageTakenWithoutSkillByOpponent: Map<string, number>;
+    /**
      * The same figure on the giving side, cut by the receiver **as well** — which is the one place
      * a key may stand on a giver's row, because the pair names whose cause it is.
      */
@@ -291,6 +300,8 @@ export function composeCombatantFigures(): CombatantFigures {
         damageTakenWithoutSkillBySource: new Map(),
         damageDealtWithoutSkillBySource: new Map(),
         damageDealtWithoutSkillByOpponentAndSource: new Map(),
+        damageDealtWithoutSkillByOpponent: new Map(),
+        damageTakenWithoutSkillByOpponent: new Map(),
         healthGivenWithoutSkillByReceiverAndSource: new Map(),
         damageDealtByElement: new Map(),
         damageTakenByElement: new Map(),
@@ -697,8 +708,12 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
         dealer.damageDealtRaw += raw;
         dealer.damageDealtApplied += applied;
         dealer.blowsStruck += 1;
-        if (event.announced === null) dealer.blowsWithoutSkill += 1;
-        else {
+        if (event.announced === null) {
+            dealer.blowsWithoutSkill += 1;
+            if (event.targetId !== null) {
+                addToCut(dealer.damageDealtWithoutSkillByOpponent, `${event.targetId}`, applied);
+            }
+        } else {
             addSkillDealt(dealer.skills, event.announced, applied, getOtherEndKey(event.targetId));
             addSkillBlow(dealer.skills, event.announced);
         }
@@ -729,6 +744,9 @@ function addAttackEvent(build: StatisticsBuild, event: BattleEvent): void {
     if (event.actorId !== null) {
         addToCut(target.damageTakenByOpponent, `${event.actorId}`, applied);
         addToPairCut(target.damageTakenByOpponentAndKind, `${event.actorId}`, event.applied);
+        if (event.announced === null) {
+            addToCut(target.damageTakenWithoutSkillByOpponent, `${event.actorId}`, applied);
+        }
     }
     addBlowTaken(target, event, applied);
     addBlowProcs(getStrikerFigures(build, event.actorId), target, event.procs);

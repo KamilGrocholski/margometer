@@ -6,13 +6,14 @@
  * ask whether the difference is what the document says it is.
  */
 
-import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import {
     composeDrillReading,
     composePairReading,
+    composePartReading,
     type PanelMetric,
 } from "@/src/ui/panel-reading.ts";
 import { getWordsForUnannounced } from "@/src/ui/panel-words.ts";
@@ -293,4 +294,49 @@ Deno.test("a key named in an opened section is named again inside every pair of 
         }
     }
     assertEquals(checked, 35, "the sections whose pairs name a key, 2026-09-13");
+});
+
+/**
+ * ⚠️ **The level the row opens onto, held against the row itself.** The figure is a remainder and
+ * the cut under it is a second walk, so nothing but this says the two agree — and a level that
+ * disagreed with the row over it would be the panel answering one press two ways. Until **ADR
+ * 0081** the row opened onto nothing and the same figures were reachable only by walking every
+ * opponent's pair in turn.
+ */
+Deno.test("the row opens onto whoever stood at the other end, and they come to it", () => {
+    let opened = 0;
+    let shut = 0;
+    for (const path of readRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path)
+            .flatMap((payload) => decodeFightMessages(payload, roster, BLOWS_GRANTED));
+        const statistics = composeFightStatistics(events, new Map());
+        for (const [combatantId] of statistics.byCombatantId) {
+            for (const metric of DAMAGE_SCREENS) {
+                const drill = composeDrillReading(statistics, roster, metric, combatantId);
+                const row = drill?.bySkill.plain;
+                if (row === null || row === undefined) continue;
+                const part = composePartReading(statistics, roster, metric, combatantId, {
+                    kind: "plain",
+                });
+                if (!row.doesOpenPart) {
+                    shut += 1;
+                    assertEquals(row.figure, 0, `${path}: a row holding a figure opens onto it`);
+                    assertEquals(part, null, `${path}: and a row that opens nothing reads nothing`);
+                    continue;
+                }
+                opened += 1;
+                assertExists(part, `${path}: the row states it opens, so it opens`);
+                assertEquals(
+                    part.total,
+                    row.figure,
+                    `${path}: the level under the row comes to the row`,
+                );
+                const summed = part.byOpponent.rows.reduce((sum, one) => sum + one.figure, 0);
+                assertEquals(summed, row.figure, `${path}: and every opponent of it is drawn`);
+            }
+        }
+    }
+    assertEquals(opened, 258, "the rows that open onto an opponent, 2026-09-13");
+    assertEquals(shut, 1, "and the one that holds nothing to open onto: every blow was stopped");
 });

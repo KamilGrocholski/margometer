@@ -78,7 +78,9 @@ test("a row that opens says so on its card; one that does not says nothing", asy
     expect(await panel.at(CARD).innerText(), "carries the one instruction the panel gives")
         .toContain(OPENS_NOTE);
 
-    // A leaf is reached under an opened row: the ranking is drillable all the way down.
+    // A leaf is reached two presses down, on the third level, which is the only one where
+    // nothing opens any more (`docs/drill-levels.md`). Every row on the second one opens.
+    await panel.at(".row.drillable").first().click();
     await panel.at(".row.drillable").first().click();
     await panel.at(".row.leaf").first().hover();
     await expect(panel.at(CARD_OPEN), "a row with nothing under it still has a card").toHaveCount(

@@ -1040,16 +1040,14 @@ Deno.test("an opened row stands over the screen, and states whose it is", () => 
     // The kinds this fight's top dealer carries, and none of them the physical one.
     assertArrayIncludes(named, ["ogień"], "and a kind is drawn in the reader's words");
     assert(!named.includes("dmgf"), "never under the token the protocol stated it on");
-    // ⚠️ **The one row that stays shut on this level is the row closing a cut**, not a kind and
-    // not a skill: this fight's cuts all hold something a level under them would say, so every
-    // named part of them opens. Matching `row leaf` whole read as a claim about kinds for as long
-    // as the closing row wore nothing else — found when it started wearing `apart`.
+    // ⚠️ **Every row of this level opens, and the closing one was the last to.** It was the single
+    // leaf here until **ADR 0081** gave it the cut of whoever stood at the other end; this fight's
+    // other cuts all hold something a level under them would say. A leaf surviving on this level
+    // is a row that lost its level rather than one that never had one.
     const leaves = rows.filter((one) => one.className.split(" ").includes(CLASS.rowLeaf));
-    assert(leaves.length > 0, "a cut closes against something, and that row opens nothing");
-    assert(
-        leaves.every((one) => one.attributes.get("data-row") === undefined),
-        "so it carries no person to open onto",
-    );
+    assertEquals(leaves.length, 0, "nothing on this level of this fight stays shut");
+    const closing = rows.find((one) => one.attributes.get("data-plain") !== undefined);
+    assertExists(closing, "and the row that closes the cut is one of the rows that open");
     const crumb = within.filter((one) => one.className === "crumb");
     assertEquals(crumb.length, 1, "and one way back");
 });
@@ -2230,7 +2228,14 @@ Deno.test("a blow nothing announced closes the skills, and says how many there w
             bySkill: {
                 rows: [],
                 rest: null,
-                plain: { blows: 3, place: 1, figure: 0, fill: 0, shareText: "0%" },
+                plain: {
+                    blows: 3,
+                    place: 1,
+                    doesOpenPart: false,
+                    figure: 0,
+                    fill: 0,
+                    shareText: "0%",
+                },
             },
         },
     });
@@ -2270,7 +2275,14 @@ Deno.test("what a section could not draw is a row of its own, over the one that 
             bySkill: {
                 rows,
                 rest: { blows: null, figure: 300, fill: 0.5, shareText: "30%" },
-                plain: { blows: 4, place: 3, figure: 100, fill: 0.2, shareText: "10%" },
+                plain: {
+                    blows: 4,
+                    place: 3,
+                    doesOpenPart: false,
+                    figure: 100,
+                    fill: 0.2,
+                    shareText: "10%",
+                },
             },
         },
     });

@@ -79,7 +79,7 @@ A verdict outside that list is refused rather than read as silence.
 | `damageDealtApplied` | `opened`      | `person`     | `always`    |
 | `damageDealtApplied` | `opened`      | `skill`      | `always`    |
 | `damageDealtApplied` | `opened`      | `source`     | `never`     |
-| `damageDealtApplied` | `opened`      | `closing`    | `never`     |
+| `damageDealtApplied` | `opened`      | `closing`    | `sometimes` |
 | `damageDealtApplied` | `opened`      | `kind`       | `always`    |
 | `damageDealtApplied` | `pair`        | `skill`      | `never`     |
 | `damageDealtApplied` | `pair`        | `source`     | `never`     |
@@ -96,7 +96,7 @@ A verdict outside that list is refused rather than read as silence.
 | `damageTakenApplied` | `opened`      | `half-named` | `never`     |
 | `damageTakenApplied` | `opened`      | `skill`      | `always`    |
 | `damageTakenApplied` | `opened`      | `source`     | `never`     |
-| `damageTakenApplied` | `opened`      | `closing`    | `never`     |
+| `damageTakenApplied` | `opened`      | `closing`    | `always`    |
 | `damageTakenApplied` | `opened`      | `kind`       | `sometimes` |
 | `damageTakenApplied` | `pair`        | `skill`      | `never`     |
 | `damageTakenApplied` | `pair`        | `source`     | `never`     |
@@ -205,7 +205,8 @@ rather than a gap in the material:
   the protocol names belong to whoever received the health.
 - **A `source` row on a damage screen opens nothing**, where the same row on `healthGiven` does. A
   key names whoever the health moved on, so a row on the receiving side has no second end to be cut
-  by — the same reason `healthRestored`'s keys are leaves.
+  by — the same reason `healthRestored`'s keys are leaves. The row **closing** a damage section is
+  not in this class and opens (**ADR 0081**): it holds blows, and a blow always has two ends.
 - **Neither healing screen has a `closing` row**, at either level — `composeSkillCut` asserts as
   much, and the pair's parts come to its figure exactly.
 - **A key on `healthRestored` opens nothing, and neither does a kind.** Both cuts are flat on the

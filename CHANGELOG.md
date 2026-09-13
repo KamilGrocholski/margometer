@@ -48,6 +48,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   Przy kilku postaciach wiersz „Zwykły cios" znika teraz zupełnie, bo nie została pod nim ani jedna
   liczba.
 
+- **Nowość** — Wiersz „Zwykły cios" da się teraz rozwinąć i zobaczyć, komu — albo od kogo — te ciosy
+  poszły. Wcześniej trzeba było obejść wszystkich przeciwników po kolei i zbierać liczby z osobnych
+  okienek.
+
 - **Poprawka** — „Zwykły cios" trzyma wreszcie same ciosy. Trucizna, podpalenie, zranienie i reszta
   tego, co zabiera życie poza ciosem, stoją teraz pod własnymi nazwami — tak jak od dawna stoją na
   leczeniu. Na zakładce „otrzymane" prawie ćwierć tego wiersza nigdy nie była ciosem, a przy kilku

@@ -6,7 +6,7 @@
  * expressed at all and the compiler counts the rows.
  */
 
-import type { NamedPart, PanelMetric, PanelUnnamedEnd } from "@/src/ui/panel-reading.ts";
+import type { OpenedPart, PanelMetric, PanelUnnamedEnd } from "@/src/ui/panel-reading.ts";
 import {
     getWordsForDirection,
     getWordsForNoun,
@@ -85,7 +85,7 @@ export interface ScreenState {
     openUnnamedEnd: PanelUnnamedEnd | null;
     openPairId: number | null;
     /** Which row of a cut stands open — a skill, a key or a kind, and never two of them. */
-    openPart: NamedPart | null;
+    openPart: OpenedPart | null;
     /** A fight chosen is read from what was kept of it, never from figures somebody stored. */
     openFightId: number | null;
     isCollapsed: boolean;
@@ -136,10 +136,15 @@ export function composeListName(screen: ScreenState, fightId: number | null): st
     return name;
 }
 
-/** The three shapes a part comes in, each spelling its own field, so no two share a name. */
-function composeNameForPart(part: NamedPart): string {
+/**
+ * The four shapes a part comes in, each spelling its own field, so no two share a name. The
+ * closing row states a constant: it has no field of its own, and a place a reader was left at is
+ * the whole of what this name is for (**ADR 0050**).
+ */
+function composeNameForPart(part: OpenedPart): string {
     if (part.kind === "skill") return `skill:${part.name}`;
     if (part.kind === "source") return `source:${part.source}`;
+    if (part.kind === "plain") return "plain:";
     return `kind:${part.element}`;
 }
 

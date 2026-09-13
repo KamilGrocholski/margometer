@@ -138,6 +138,10 @@ here, and no recording carries one — 0 runs of three after an announcement, 20
 skill that opened the wound. The skill is knowable in principle — the blow that wounded was
 announced — and this reading does not carry it that far.
 
+Pressing the row opens the cut of whoever stood at the other end of those blows (**ADR 0081**), so
+_who hit me with plain blows_ is one press rather than a walk over the roster. It opens wherever it
+holds a figure; a row drawn at nought — every blow stopped — has nothing under it to open onto.
+
 Which blows the count holds, as against which the protocol announced, is
 `tests/core/granted-blow-rule.test.ts`'s to re-earn: every blow standing under no announcement
 opened a turn of its own.

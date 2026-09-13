@@ -18,7 +18,6 @@ import type {
     HalfNamedDrillReading,
     HalfNamedReading,
     HalfNamedRow,
-    NamedPart,
     OpponentRow,
     PairReading,
     PanelMetric,
@@ -40,6 +39,7 @@ import {
     getEndForPinned,
     getPartOfSide,
     getRowIsSuspect,
+    type OpenedPart,
 } from "@/src/ui/panel-reading.ts";
 import {
     composeDirectionStrips,
@@ -226,6 +226,13 @@ const ROW_ATTRIBUTE = "data-row";
 const BACK_ATTRIBUTE = "data-back";
 /** One per kind of part, so what a row opens is read off an attribute rather than parsed. */
 const SKILL_ATTRIBUTE = "data-skill";
+/**
+ * The row closing a damage section, which opens onto whoever stood at the other end of those
+ * blows. **ADR 0081.**
+ */
+const PLAIN_ATTRIBUTE = "data-plain";
+/** It names nothing, so the mark states the same word every time and the press reads the key. */
+const PLAIN_MARK = "closing";
 const SOURCE_ATTRIBUTE = "data-source";
 const KIND_ATTRIBUTE = "data-kind";
 const FIGHT_ATTRIBUTE = "data-fight";
@@ -1246,7 +1253,7 @@ function composeOpponentSection(
  * states `heal` as a health gain and as a health loss both, and one label over the two would be two
  * quantities under one word.
  */
-function getWordsForNamedPart(part: NamedPart | { kind: "plain" }, metric: PanelMetric): string {
+function getWordsForNamedPart(part: OpenedPart, metric: PanelMetric): string {
     if (part.kind === "skill") return part.name;
     if (part.kind === "plain") return getWordsForUnannounced(metric);
     const named = part.kind === "source" ? part.source : part.element;
@@ -1256,10 +1263,11 @@ function getWordsForNamedPart(part: NamedPart | { kind: "plain" }, metric: Panel
 }
 
 /** The mark a part row wears, and null where the level under it holds nothing. */
-function getMarkForNamedPart(part: NamedPart, doesOpen: boolean): RowMark | null {
+function getMarkForNamedPart(part: OpenedPart, doesOpen: boolean): RowMark | null {
     if (!doesOpen) return null;
     if (part.kind === "skill") return { attribute: SKILL_ATTRIBUTE, stated: part.name };
     if (part.kind === "source") return { attribute: SOURCE_ATTRIBUTE, stated: part.source };
+    if (part.kind === "plain") return { attribute: PLAIN_ATTRIBUTE, stated: PLAIN_MARK };
     return { attribute: KIND_ATTRIBUTE, stated: part.element };
 }
 
@@ -1269,7 +1277,7 @@ function getMarkForNamedPart(part: NamedPart, doesOpen: boolean): RowMark | null
  * lands on somebody else's key silently — the register refuses a duplicate, and the row wears the
  * card of whichever section was drawn first.
  */
-function getKeyForNamedPart(where: string, part: NamedPart | { kind: "plain" }): string {
+function getKeyForNamedPart(where: string, part: OpenedPart): string {
     if (part.kind === "skill") return `${where}-skill:${part.name}`;
     if (part.kind === "plain") return `${where}-skill:plain`;
     if (part.kind === "element") return `${where}-kind:${part.element}`;
@@ -1343,7 +1351,8 @@ function composeSkillSectionPlain(
         rank: plain.place,
         uses: plain.blows,
     };
-    list.append(composeRowElement(document, reading, null, tip));
+    const mark = getMarkForNamedPart({ kind: "plain" }, plain.doesOpenPart);
+    list.append(composeRowElement(document, reading, mark, tip));
     return drawn + 1;
 }
 
@@ -1658,7 +1667,7 @@ export type PanelPress =
     | { kind: "side"; side: string }
     | { kind: "row"; stated: string }
     | { kind: "unnamed"; end: PanelUnnamedEnd }
-    | { kind: "part"; part: NamedPart }
+    | { kind: "part"; part: OpenedPart }
     | { kind: "fight"; stated: string }
     | { kind: "pin"; stated: string }
     | { kind: "storage"; name: string }
@@ -2030,6 +2039,11 @@ function getPressFromTarget(target: PanelTarget): PanelPress | null {
     if (name !== null) return { kind: "part", part: { kind: "skill", name } };
     const source = target.getAttribute(SOURCE_ATTRIBUTE);
     if (source !== null) return { kind: "part", part: { kind: "source", source } };
+    // The one part carrying no name of its own, so the mark states a constant and the press reads
+    // the attribute rather than its value.
+    if (target.getAttribute(PLAIN_ATTRIBUTE) !== null) {
+        return { kind: "part", part: { kind: "plain" } };
+    }
     const element = target.getAttribute(KIND_ATTRIBUTE);
     if (element !== null) return { kind: "part", part: { kind: "element", element } };
     const fight = target.getAttribute(FIGHT_ATTRIBUTE);
