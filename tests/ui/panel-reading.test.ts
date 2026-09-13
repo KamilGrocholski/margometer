@@ -651,28 +651,44 @@ Deno.test("health that went down outside a blow is a kind of its own, named by i
     assertEquals(drill.byOpponent.unnamed?.figure, 140, "while nobody is named for doing it");
 });
 
-Deno.test("every point of damage taken states what it was made of, on every recording", () => {
+/**
+ * ⚠️ **The row for a figure with no kind is a row about us, not about the game.** Every writer of
+ * a figure in `src/core/fight-statistics.ts` writes the kind it moved under in the same breath,
+ * so nothing the protocol can send reaches this remainder — only a writer that forgot the cut.
+ * That makes the check a regression guard, and it has to cover **every screen that cuts by kind**
+ * or the one it leaves out is the one a fifth writer is added to.
+ */
+Deno.test("every point a kind cut is made of states its kind, on every recording", () => {
     let byKey = 0;
+    let cut = 0;
     for (const path of readRecordingPaths()) {
         const { roster, statistics } = composeRecordedReading(path);
         for (const combatantId of statistics.byCombatantId.keys()) {
             const open = (metric: PanelMetric) => {
                 return composeDrillReading(statistics, roster, metric, combatantId);
             };
-            const dealt = open("damageDealtApplied");
-            assertExists(dealt, `${path}: a damage screen cuts further`);
-            assertEquals(dealt.byElement.unnamed, null, `${path}: every blow dealt states a kind`);
-            const taken = open("damageTakenApplied");
-            assertExists(taken, `${path}: the other damage screen cuts further too`);
-            let stated = 0;
-            for (const row of taken.byElement.rows) {
-                stated += row.figure;
-                if (HEALTH_LOSS_WORDS[row.element] !== undefined) byKey += row.figure;
+            for (const metric of SCREEN_ORDER) {
+                const drill = open(metric);
+                assertExists(drill, `${path}: ${metric} cuts further`);
+                const stated = drill.byElement.rows.reduce((sum, one) => sum + one.figure, 0);
+                cut += drill.byElement.rows.length;
+                assertEquals(
+                    drill.byElement.unnamed,
+                    null,
+                    `${path}: ${metric} holds a figure no kind was written for`,
+                );
+                if (metric !== "damageTakenApplied") continue;
+                for (const row of drill.byElement.rows) {
+                    if (HEALTH_LOSS_WORDS[row.element] === undefined) continue;
+                    byKey += row.figure;
+                }
+                assertEquals(stated, drill.total, `${path}: the kinds come to the whole figure`);
             }
-            assertEquals(stated, taken.total, `${path}: the kinds come to the whole figure`);
-            assertEquals(taken.byElement.unnamed, null, `${path}: with nothing carrying no kind`);
         }
     }
+    // Zero is a boundary (**W5**): a walk that opened nothing would agree with every screen it
+    // never cut, so the count it reached is stated beside what it found.
+    assertEquals(cut, 1813, "the kind rows the corpus draws, 2026-09-13");
     // What a blow never carried, and what the cut would have had to call unknown before the key
     // it moved under was read as a kind: 639,400 over `captures/`, measured 2026-09-06.
     assertEquals(byKey, 666157, "and the health that moved outside a blow is named by its key");
