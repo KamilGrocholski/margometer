@@ -88,13 +88,13 @@ reason the tier column is not enough on its own:
   excluded case — a scroll container with no scrollable overflow — is not the panel's, whose list
   overflows whenever the rule matters.
 - **`mask-image`** (on `.row.apart .bar`). The bar of a row with no place in the ranking loses its
-  diagonal hatch and renders solid. Cosmetic rather than a §9.7 failure, and the distinction is
-  worth stating: the hatch is a second channel on a row that is **already labelled in words**, so
-  colour is not left carrying the meaning alone. Chrome's number is high because it is the
-  **unprefixed** property; Chrome had `-webkit-mask-image` from 1 and Safari from 4, and the prefix
-  is deliberately not spelled. That is where the line sits: below its floor this property degrades
-  and the row still reads, so a prefix would buy back a hatch — while the one property that is
-  prefixed buys back a defect.
+  diagonal hatch and renders solid. Cosmetic rather than a failure of _The Colour Never Alone Rule_
+  (`DESIGN.md`), and the distinction is worth stating: the hatch is a second channel on a row that
+  is **already labelled in words**, so colour is not left carrying the meaning alone. Chrome's
+  number is high because it is the **unprefixed** property; Chrome had `-webkit-mask-image` from 1
+  and Safari from 4, and the prefix is deliberately not spelled. That is where the line sits: below
+  its floor this property degrades and the row still reads, so a prefix would buy back a hatch —
+  while the one property that is prefixed buys back a defect.
 - **`scrollbar-width: none`** (on `.list`). The platform scrollbar is drawn, and it takes its width
   out of the rows: 15px in Chrome 152, 12px in Firefox 140.13.0esr, both read on 2026-08-31. It is
   taken only while the list overflows, so a payload that fills the list and one that does not walk
@@ -186,21 +186,22 @@ from a page. The add-on therefore never predicts one: it writes, catches the ref
 oldest unpinned fight and writes again (`src/game/browser-store.ts`, `src/game/kept-fights.ts`).
 That matters more here than anywhere else in this table, because the origin is shared with the game
 — which keeps everything under one key, rewrites it whole on every change, and catches nothing
-(`git show develop:docs/specs/a-fight-you-can-go-back-to.md`).
+(`git show v0.10.1:docs/specs/a-fight-you-can-go-back-to.md`).
 
 ⚠️ **This is the half that is not complete, and saying so is the point.** The CSS above is
 enumerable and the JavaScript below is held by a compiler; the DOM is neither. What bounds it
-instead is §9.1's injection discipline: `src/ui/` takes the document as an argument and reaches for
-no browser global at all — `PanelNode`, `PanelHost` and `PanelDocument` in `src/ui/panel-element.ts`
-are the whole slice it uses, and `HostPage` in `src/userscript-entry.ts` is the whole slice the
-entry point uses. That is guarded by `tests/repository/sources.test.ts`, so the surface stays
-declared rather than ambient, and the table above stays readable against those declarations by a
-person. It is not guarded to be exhaustive, and nothing here claims it is.
+instead is the discipline `SECURITY.md` states — the panel is handed its document and never reaches
+for one: `src/ui/` takes it as an argument and reaches for no browser global at all — `PanelNode`,
+`PanelHost` and `PanelDocument` in `src/ui/panel-element.ts` are the whole slice it uses, and
+`HostPage` in `src/userscript-entry.ts` is the whole slice the entry point uses. That is guarded by
+`tests/repository/sources.test.ts`, so the surface stays declared rather than ambient, and the table
+above stays readable against those declarations by a person. It is not guarded to be exhaustive, and
+nothing here claims it is.
 
 Nothing needing a manager's cooperation is used: no `GM_*`, no `fetch`, `XMLHttpRequest`,
-`WebSocket` or `sendBeacon` (§5), no `innerHTML`, no `eval`, no external script. The banner is
-`@grant none`, so the script runs in the page's own context and the page's CSP has nothing of ours
-to refuse.
+`WebSocket` or `sendBeacon` (`SECURITY.md` owns that surface), no `innerHTML`, no `eval`, no
+external script. The banner is `@grant none`, so the script runs in the page's own context and the
+page's CSP has nothing of ours to refuse.
 
 ## JavaScript
 
@@ -231,7 +232,7 @@ to work, because the first is a promise and the second is an accident.
 
 ⚠️ **A regular expression's syntax is checked against `target` and against nothing else, and the
 check is partial.** Measured on 2026-08-27 against v1's tree, by putting a pattern into
-`git show develop:src/game/game-dictionary.ts` and restoring the file from a copy: with `target`
+`git show v0.10.1:src/game/game-dictionary.ts` and restoring the file from a copy: with `target`
 inherited as `ESNext`, `/[\p{ASCII}--[a-z]]/v` in shipped code typechecked clean. Narrowing `target`
 refuses it — `error TS1501`. Dropped to `ES2017` for the same probe, the compiler refuses
 `/(?<name>x)/` by name and accepts both `/(?<=x)y/` and `/\p{L}/u` without a word.
@@ -277,8 +278,8 @@ the failure is that thing's size. A pattern whose syntax the engine cannot parse
 SyntaxError — it is refused while the file is being read, before a line of it has run. The bundle
 never parses, so the reader sees no panel and no console line of ours. `new RegExp` differs only in
 when — `src/core/game-build.ts` builds two at module scope, so those throw while the add-on is
-starting. There is no degraded state to describe here, which is why §9.9's `[ASK]` binds with
-nothing to weigh (`git show develop:docs/specs/2026-08-27-a-pattern-the-floor-never-covered.md`).
+starting. There is no degraded state to describe here, which is why the `[ASK]` `AGENTS.md` puts on
+a construct that raises the floor binds with nothing to weigh.
 
 ## Installing it
 

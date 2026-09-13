@@ -30,16 +30,20 @@ const ROOTED_AT = [
 const ENDINGS = [".ts", ".md", ".json", ".js", ".yml", ".html", ".png"];
 const SPAN_MARK = "`";
 /**
- * How a citation into this repository's own history is written: `git show develop:<path>`, whole,
+ * How a citation into this repository's own history is written: `git show <ref>:<path>`, whole,
  * inside one span. v1 is readable there and absent here, so a path inside one is not a path into
- * this tree and nothing about it is checked.
+ * this tree — it is held against the history instead, by the reader below.
  */
 const HISTORY_MARK = "git show ";
+/** What separates the ref from the path inside such a span, as `git` itself reads it. */
+const HISTORY_SPLIT = ":";
+/** What a ref carries when the shell works it out rather than a person writing it down. */
+const SHELL_MARK = "$";
 
 /**
  * A path a document names on purpose while it does not exist. Every entry is an ADR, and the
  * reason is one: an ADR is a dated snapshot, never edited to agree with the tree it now sits in
- * (`docs/adr/README.md`). Said once here, so a sixth entry is not a sixth copy of it; each says
+ * (`docs/adr/README.md`). Said once here, so the next entry is not another copy of it; each says
  * only what is its own, because a list nobody has to justify grows until it is the rule.
  */
 const CITED_WHILE_ABSENT: Record<string, string> = {
@@ -93,6 +97,41 @@ function getCitations(document: string, source: string): Citation[] {
     return found;
 }
 
+interface HistoryCitation {
+    reference: string;
+    path: string;
+    document: string;
+}
+
+/** The same spans the reader above skips, read for what they do point at. */
+function getHistoryCitations(document: string, source: string): HistoryCitation[] {
+    const found: HistoryCitation[] = [];
+    let at = 0;
+    for (let guard = 0; guard < source.length; guard += 1) {
+        const opened = source.indexOf(SPAN_MARK, at);
+        if (opened === -1) break;
+        const closed = source.indexOf(SPAN_MARK, opened + 1);
+        if (closed === -1) break;
+        const span = source.slice(opened + 1, closed);
+        at = closed + 1;
+        if (!span.startsWith(HISTORY_MARK)) continue;
+        const asked = span.slice(HISTORY_MARK.length);
+        const split = asked.indexOf(HISTORY_SPLIT);
+        if (split === -1) continue;
+        const reference = asked.slice(0, split);
+        const path = asked.slice(split + 1);
+        if (reference.length === 0) continue;
+        if (path.length === 0) continue;
+        // A ref the shell computes is not one a reader can resolve, and `docs/releasing.md`
+        // spells its audit step that way on purpose: the tag is asked for rather than written,
+        // because a number written there is right for one release and wrong for every one after.
+        if (reference.includes(SHELL_MARK)) continue;
+        if (reference.includes(" ")) continue;
+        found.push({ reference, path, document });
+    }
+    return found;
+}
+
 function getEveryCitation(): Citation[] {
     const found: Citation[] = [];
     for (const document of getDocumentPaths()) {
@@ -103,6 +142,16 @@ function getEveryCitation(): Citation[] {
 }
 
 const CITED = getEveryCitation();
+
+function getEveryHistoryCitation(): HistoryCitation[] {
+    const found: HistoryCitation[] = [];
+    for (const document of getDocumentPaths()) {
+        found.push(...getHistoryCitations(document, Deno.readTextFileSync(document)));
+    }
+    return found;
+}
+
+const CITED_IN_HISTORY = getEveryHistoryCitation();
 
 /**
  * The reader proved on a sample it must flag and one it must not: the first catches a reader that
@@ -120,8 +169,44 @@ Deno.test("a rooted path is read as a citation, and a bare module name is not", 
 
 /** v1 is readable and absent, so a path inside one of these is not a path into this tree. */
 Deno.test("a citation into v1's history is not read as a path at all", () => {
-    const whole = getCitations("sample", "at `git show develop:tools/fight-report.ts` today");
+    const whole = getCitations("sample", "at `git show v0.10.1:tools/fight-report.ts` today");
     assertEquals(whole, [], "the reference and its path are one span, and the span is skipped");
+});
+
+/**
+ * The same reader on both samples: a span that is a reference into the history is read as one,
+ * and a span merely opening with the same words is not. A reference with no path after the ref
+ * says nothing a reader could follow, so it is not one either.
+ */
+Deno.test("a reference into the history is read, and one that looks like it is not", () => {
+    const read = getHistoryCitations(
+        "sample",
+        "see `git show v0.10.1:src/ui/panel-look.ts` and `git status` today",
+    );
+    assertEquals(read.map((one) => one.reference), ["v0.10.1"], "the reference it names");
+    assertEquals(read.map((one) => one.path), ["src/ui/panel-look.ts"], "and the path at it");
+    assertEquals(getHistoryCitations("sample", "`git show v0.10.1`"), [], "a ref with no path");
+    assertEquals(getHistoryCitations("sample", "`src/ui/panel-look.ts`"), [], "nor a bare path");
+    const computed = getHistoryCitations("sample", '`git show "$(git describe main):a.md"`');
+    assertEquals(computed, [], "nor a ref the shell works out, which resolves to nothing here");
+});
+
+/**
+ * A citation into the history reads exactly as a citation into the tree does, and goes as quietly
+ * wrong: `develop` is the working branch, so a path cited there for v1 answers with the file as it
+ * stands today — the one the sentence beside it says it is not.
+ */
+Deno.test("every reference a document cites resolves, and so does the path at it", () => {
+    const dangling: string[] = [];
+    for (const citation of CITED_IN_HISTORY) {
+        const asked = new Deno.Command("git", {
+            args: ["cat-file", "-e", `${citation.reference}:${citation.path}`],
+        }).outputSync();
+        if (asked.success) continue;
+        dangling.push(`${citation.document} → ${citation.reference}:${citation.path}`);
+    }
+    assertEquals(dangling, [], "a reference renders as history and answers with nothing");
+    assert(CITED_IN_HISTORY.length > 0, "the documents cite history, and it was read");
 });
 
 Deno.test("every path a document cites exists, or is one this file says does not", () => {

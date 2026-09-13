@@ -556,7 +556,7 @@ the same thing a second way.
 | `tests/tools/protocol-key-shape.test.ts`      | every `_Shape:_` line against `captures/`                        |
 | `tests/repository/skill-durations.test.ts`    | the frozen durations, and the rule behind them                   |
 | `tests/repository/readmes.test.ts`            | the two READMEs, and both against the shot set                   |
-| `tests/repository/cited-paths.test.ts`        | every rooted path a document cites                               |
+| `tests/repository/cited-paths.test.ts`        | every path a document cites, in the tree and in the history      |
 | `tests/repository/constructs.test.ts`         | the construct register, both ways                                |
 | `tests/repository/game-vocabulary.test.ts`    | N13 for the two pages standing a game up                         |
 | `tests/repository/fabricated-fights.test.ts`  | the wall between evidence and what was made up                   |

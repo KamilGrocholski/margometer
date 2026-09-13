@@ -60,6 +60,16 @@ rests on the help and the client — no line of vocabulary is going to check tha
 the other half: a count or a placement that was true when someone typed it and has been quietly
 wrong since.
 
+### Which channel a claim is read on
+
+Two channels serve the client. `<world>.margonem.pl` is what players run, minified and without
+source maps; `experimental.margonem.pl` is readable — module paths and class names survive — and it
+lags. **Production decides.** A claim may be found in the readable one, and it is confirmed against
+production, because production is the program the recordings came out of. One entry below is a case
+of it: the readable build passes a member straight through where production takes its absolute
+value, so read there alone the member looks like a plain number. Which build a claim was read on is
+the `*Evidence:*` line's to say (**V2**).
+
 ### And what it says about the published help
 
 The same idea, applied to the one source that is somebody else's document and can change without
@@ -92,9 +102,9 @@ the tail is one of those suffixes the head is what has to have been searched
 (`tests/repository/protocol-keys.test.ts`).
 
 Re-counting alone would not have caught anything. The entry that got `+legbon_holytouch` wrong
-recorded the phrases it searched, exactly as §7.6 asks — `legbon_holytouch` and `legbon` — and both
-count zero. A guard re-measuring only what was listed would have agreed with the bug, which is the
-failure §7.5 names: a guard that names the same wrong thing the code did.
+recorded the phrases it searched, exactly as the rule above asks — `legbon_holytouch` and `legbon` —
+and both count zero. A guard re-measuring only what was listed would have agreed with the bug, which
+is a guard naming the same wrong thing the code did.
 
 The phrase is stated by a person and never derived. `( freeze )` counts zero where bare `freeze`
 counts four, so a rule that parenthesised the engine name would bless a false silence for a key this
@@ -146,15 +156,15 @@ did it**. Every entry stating `*Health:* moves health` answers it on one line, f
 
 | `*Cause:*`                 | means                                                                                                                                                    | held against                                              |
 | -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `the subject's own`        | the published help says the effect belongs to the combatant it moved health on, so the two ends are one person (§9.6)                                    | `SELF_SOURCED_HEALING_KEYS`                               |
+| `the subject's own`        | the published help says the effect belongs to the combatant it moved health on, so the two ends are one person                                           | `SELF_SOURCED_HEALING_KEYS`                               |
 | `the announcement's actor` | the figure sits on the message **target** and a skill announcement names the giver — the message's own where it carries one, the one before it otherwise | `HEALTH_CHANGE_KEYS`, the entries reading the target slot |
 | `the message actor`        | the protocol states the cause in the actor slot of the message itself                                                                                    | `SIDE_SHARE_HEALTH_KEYS`, and the attack family           |
-| `the wound's attacker`     | an **earlier** message announced the effect and named who applied it, and the figure says which application is ticking (§9.6)                            | `WOUND_ANNOUNCEMENT_BY_TICK_KEY`                          |
+| `the wound's attacker`     | an **earlier** message announced the effect and named who applied it, and the figure says which application is ticking (**ADR 0022**)                    | `WOUND_ANNOUNCEMENT_BY_TICK_KEY`                          |
 | `nobody`                   | the protocol states no cause, and nothing else supplies one                                                                                              | the rest of `HEALTH_CHANGE_KEYS`                          |
 
 **Required exactly where `*Health:*` is, and refused everywhere else.** A key that reports no health
-figure charges nobody with anything, so a line on it would be a claim with no consumer — §7.1's rule
-applied to a document.
+figure charges nobody with anything, so a line on it would be a claim with no consumer — **C9**'s
+rule applied to a document.
 
 `tests/repository/protocol-keys.test.ts` re-earns every token from `src/core/fight-decoder.ts` **in
 both directions**, so a key cannot be listed as the subject's own here and read some other way
@@ -164,7 +174,7 @@ while checking nothing.
 
 ⚠️ **`the subject's own` is the one token backed by a citation rather than by a measurement**, and
 the three keys carrying it say where the citation is in their own `*Evidence:*`. It is `[ASK]` to
-give it to a fourth key (§9.6).
+give it to a fourth key.
 
 ⚠️ **Two keys can be written identically and answer differently.** `heal` and `poison` arrive in the
 same shape — the subject in the actor slot, a literal `0` at the other end — and this line is where
@@ -291,8 +301,8 @@ counting messages rather than segments loses the second and reports nothing wron
 
 ⚠️ **The healer is the healed, and the message's actor is neither.** The actor is whoever struck the
 blow; the help says the bonus is the **holder's** own and that the holder is the one it heals, so
-the combatant named inside the value is both ends of it and is credited with giving it (§9.6, engine
-name `lastheal`, read 2026-08-19).
+the combatant named inside the value is both ends of it and is credited with giving it (engine name
+`lastheal`, read 2026-08-19).
 
 ⚠️ **Read the value, never a slot.** Most occurrences ride a group blow whose target is a third
 party, so both slots are the wrong combatant — the actor would credit an attacker with healing their
@@ -324,14 +334,14 @@ and `adest` over equipment and blessings, and `adest` as an item bonus that lowe
 of it (article view,372, engine names `heal` and `adest`, read 2026-08-22). Below zero the effect
 drains instead of restoring.
 
-⚠️ The help and the material disagree on one point, and §7.6 keeps the disagreement rather than
+⚠️ The help and the material disagree on one point, and **V6** keeps the disagreement rather than
 settling it: that same section states the accumulated value cannot fall below zero.
 
 _Help:_ names `( heal )`
 
 ⚠️ The older development build `1781609507010` passes `multi[1]` straight through, with no absolute
-value and no direction. This entry is why §7.6 says production decides: read there, the member looks
-like a plain number, and the half that makes it legible is missing.
+value and no direction. This entry is why production decides: read there, the member looks like a
+plain number, and the half that makes it legible is missing.
 
 _Shape:_ 2346 occurrences; alone in its message; text
 
@@ -343,15 +353,15 @@ it moved the witness from declining every call that contains it to agreeing on t
 
 Damage over time, same shape and same slot as `heal`, read as a negative health change.
 **Unattributed by construction:** the protocol does not say who applied it, so nothing downstream
-may credit it to anyone (§5).
+may credit it to anyone — unknown is allowed here and a guessed name is not (`AGENTS.md`).
 
-⚠️ **And no earlier message names it either — the `injure` join fails here on both halves.** §9.6's
-fourth clause fills a missing end from an announcement an earlier message of the same fight carried,
-which takes three things: a key announcing the effect, a figure on that key, and a documented rule
-making one application the owner of what is ticking. This key has neither the announcement nor the
-rule — see _Evidence:_ — and the missing announcement is re-earned every gate by
-`tests/core/anguish-rule.test.ts` (`git show develop:docs/specs/the-ends-a-figure-names.md`, which
-asks the same of every tick the client composes).
+⚠️ **And no earlier message names it either — the `injure` join fails here on both halves.** The
+wound join (**ADR 0022**) fills a missing end from an announcement an earlier message of the same
+fight carried, which takes three things: a key announcing the effect, a figure on that key, and a
+documented rule making one application the owner of what is ticking. This key has neither the
+announcement nor the rule — see _Evidence:_ — and the missing announcement is re-earned every gate
+by `tests/core/anguish-rule.test.ts` (`git show v0.10.1:docs/specs/the-ends-a-figure-names.md`,
+which asks the same of every tick the client composes).
 
 _Health:_ moves health
 
@@ -380,13 +390,13 @@ same optional second member, so it needed no rule of its own. **Unattributed by 
 
 ⚠️ **Overwritten, and still nobody's — the half of the `injure` join `poison` lacks, without the
 other half.** The help's table of damage over time puts fire among the types a fresh application
-**does** overwrite, which is the rule §9.6's fourth clause runs a wound on. What is missing here is
+**does** overwrite, which is the rule the wound join runs on (**ADR 0022**). What is missing here is
 the announcement: the client's key list carries no `+fire`, so nothing states that an application
 happened, let alone with what figure. The captures as the set stood 2026-08-19 show what reading the
 neighbouring message instead would come to — all 12 ticks fall on one victim, the figure changes
 across the fight (96, then 97, then 117 twice, then 124 for the last eight), and the blow standing
 before them belongs to eight different combatants
-(`git show develop:docs/specs/the-ends-a-figure-names.md`).
+(`git show v0.10.1:docs/specs/the-ends-a-figure-names.md`).
 
 _Health:_ moves health
 
@@ -409,9 +419,9 @@ over time (read 2026-08-19), and the absence of `+fire` from the client's list i
 `frozen/protocol-keys.ts`, re-earned by `tests/repository/protocol-keys.test.ts`.
 
 ⚠️ **`frost` shares that branch in the client and is not read.** No capture carries one, so an entry
-for it would be a verdict with nothing behind it — it stays unread and loud (§3), which is the only
-honest state for a key nobody has measured. `light` was in this sentence until material arrived; its
-entry is below.
+for it would be a verdict with nothing behind it — it stays unread and loud (`PRODUCT.md`'s first
+pillar), which is the only honest state for a key nobody has measured. `light` was in this sentence
+until material arrived; its entry is below.
 
 ### `light` — decoded
 
@@ -422,11 +432,11 @@ lightning down.
 
 ⚠️ **Nobody's, and for the narrower of the two reasons.** The client's key list carries no `+light`,
 so nothing announces that an application happened — the same missing half that keeps `fire` from
-being read the way §9.6's fourth clause reads a wound. Here there is not even a figure to match one
-against, and every occurrence falls on the one opponent of the recording it is in — measured over
-the set as it stands 2026-08-26, two recordings carry the key and each has a single victim for all
-of it — so the neighbouring message would be the only thing left to read and that is the guess §5
-refuses.
+being read the way the wound join reads one (**ADR 0022**). Here there is not even a figure to match
+one against, and every occurrence falls on the one opponent of the recording it is in — measured
+over the set as it stands 2026-08-26, two recordings carry the key and each has a single victim for
+all of it — so the neighbouring message would be the only thing left to read and that is the guess
+this repository refuses (`AGENTS.md`).
 
 _Health:_ moves health
 
@@ -522,9 +532,9 @@ _Help:_ names `( heal )`
 ⚠️ **That line is the stem, and the stem documents a different mechanic.** Article `view,372`
 carries no `npc_heal` and describes no monster-side restoration; what it carries under the engine
 name `heal` is the Character's own over-time statistic, which is the key three entries above and not
-this one (searched 2026-08-25, for the full key and for the mechanic by name). §7.6 asks that a
-claim of silence try the stem, and this is what trying it found: a documented word for something
-else.
+this one (searched 2026-08-25, for the full key and for the mechanic by name). This register asks
+that a claim of silence try the stem, and this is what trying it found: a documented word for
+something else.
 
 _Evidence:_ production build `1786514810315` composes `msg_heal_target %target% %val%` from
 `c.name`, where `heal_target` on the branch immediately above composes the identical sentence from
@@ -599,12 +609,12 @@ this sentence names a slot rather than a habit.
 
 ⚠️ **A partly sized cast keeps both events.** Where six of eight side-mates could be sized, the
 figures for the six are drawn _and_ the cast goes on being counted as missing, so a partial answer
-can never be read as a whole one (§9.6). No capture produces one any more; the shape is held by
-hand-built fights instead.
+can never be read as a whole one (**ADR 0010**). No capture produces one any more; the shape is held
+by hand-built fights instead.
 
 ⚠️ **The key is carried, and read, and what it buys is a refusal with a side on it.** It was unread
 while no capture carried it — reading a shape this repository had never seen would have been
-describing a message we had never met (§5) — and
+describing a message we had never met, which is a claim with no source (**V1**) — and
 `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json` ended that on 2026-08-27. It now
 has its own entry below and is decoded as the skill declaration it always was. What its absence buys
 is the right to size the casts around it; what its presence buys is the right to refuse **the casts
@@ -676,7 +686,7 @@ the effect:
 `<combatant>=<percent>;<the same combatant>=<percent>;
 tspell=…;skillId=…;bandage=<amount>`. Both
 ends are named and they are one person, so nothing here is inferred — this is not a half-named
-figure and not a self-sourced one either (§10).
+figure and not a self-sourced one either (`CONTEXT.md`).
 
 _Health:_ moves health
 
@@ -992,7 +1002,7 @@ the Player two turns. Production build `53XkBRxF` composes `msg_+stun2-c` with n
 switch that composes `msg_+stun2` and `msg_+stun2-d` the same way. Which of the five variants it is
 comes from the development build `1781609507010`, which keeps each branch's rendered sentence in a
 comment beside it: production cannot confirm that half at all, because the wording is not in the
-bundle — the client fetches it (§7.6). 4 occurrences on
+bundle — the client fetches it. 4 occurrences on
 `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json` and 5 on
 `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json`, and none elsewhere as the set
 stood 2026-08-27 — both against the same monster, which is the only one in the material with the
@@ -1334,14 +1344,15 @@ protocol has not yet shown one, so reading it would be describing a message we h
 The other way an announcement names what a combatant used: a name the game did not take from its
 skill table. The message has `tspell`'s shape — a name, and beside it the effects the named thing
 performs — so it is read into the same event, and the panel shows it the way it shows any other
-named thing somebody used (§10).
+named thing somebody used (`CONTEXT.md`).
 
 ⚠️ **Read only where the message names exactly one combatant, and that is the one difference from
 `tspell`.** The client composes `tspell` with the name in the **actor** slot and this one with the
 name in the **target** slot, so a message stating two different combatants would not say whose use
-it was, and taking the actor would be the guess §5 refuses. Where one combatant is all the message
-names — both ends the same, or one end unstated — there was never a second name to get wrong. A
-message naming two goes back to unread (`tests/core/fight-decoder.test.ts`).
+it was, and taking the actor would be the guess this repository refuses (`AGENTS.md`). Where one
+combatant is all the message names — both ends the same, or one end unstated — there was never a
+second name to get wrong. A message naming two goes back to unread
+(`tests/core/fight-decoder.test.ts`).
 
 _Shape:_ 7 occurrences; on a skill announcement; text
 
@@ -1352,12 +1363,13 @@ interpolating the message's second combatant and the value, and files the line u
 slot rather than the automatic one `tspell` takes — as `1786514810315` did before it, the two builds
 differing in how they quote a string and not in this. Development build `1781609507010` carries a
 comment on that branch naming the thing used as a special potion — what the readable channel adds,
-and the weaker of the two claims (§7.6). Article view,372 (read 2026-08-25) documents neither the
-key nor its parenthesised form, which is expected rather than surprising: the help describes
-mechanics, and this is how a message is assembled. Measured over every recording as the set stood
-2026-08-26: seven occurrences, five in `captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json`
-and two in `captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json`, each naming one
-combatant in both slots.
+and the weaker of the two claims, the readable channel lagging production. Article view,372 (read
+2026-08-25) documents neither the key nor its parenthesised form, which is expected rather than
+surprising: the help describes mechanics, and this is how a message is assembled. Measured over
+every recording as the set stood 2026-08-26: seven occurrences, five in
+`captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json` and two in
+`captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json`, each naming one combatant in both
+slots.
 
 ⚠️ **The second recording is where this key stopped being a curiosity.** Its two occurrences are the
 only messages in the whole corpus that state a declaration under a name the game did not take from
@@ -1416,7 +1428,8 @@ later messages.
 
 ⚠️ The same name also appears in a **second switch** in the same module, the one composing skill
 descriptions. That switch is not about battle messages, and the frozen table is bounded by brace
-balance so it holds only the battle one — the trap §7.5 records, met again here.
+balance so it holds only the battle one — the trap of matching a name rather than the shape it
+stands in, met again here.
 
 _Shape:_ 477 occurrences; on a skill announcement; a whole number
 
@@ -1462,10 +1475,9 @@ Energy returned to the attacker by this blow. Rides the blow, states a whole num
 ⚠️ **This entry said `+crit` alone, and the material had already refuted it.** That was true of the
 13 occurrences `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` carried and of
 nothing since: read 2026-08-19, `+of_crit` without `+crit` accounts for 29 occurrences, and no
-occurrence anywhere arrives beside neither. A count in prose goes stale silently (AGENTS.md §5) —
-this entry's own two did, twice over, which is why they now name what they were taken on — but so
-does a universal beside it, and nothing here re-measures a claim about which keys a key arrives
-_with_.
+occurrence anywhere arrives beside neither. A count in prose goes stale silently (**V5**) — this
+entry's own two did, twice over, which is why they now name what they were taken on — but so does a
+universal beside it, and nothing here re-measures a claim about which keys a key arrives _with_.
 
 _Shape:_ 350 occurrences; on a blow; a whole number
 
@@ -1528,9 +1540,9 @@ _Shape:_ 16 occurrences; on a blow; a whole number
 
 ⚠️ **The register said this key was undocumented, and it was wrong.** The search was for
 `legbon_facade` and `legbon`; the help prints the engine name without the protocol's prefix, so
-neither matched. §7.6 gained a rule from it: a protocol key carrying a prefix is searched by its
-stem too, because _not found_ and _not documented_ are different claims and this entry made the
-wrong one for two days.
+neither matched. This register gained a rule from it: a protocol key carrying a prefix is searched
+by its stem too, because _not found_ and _not documented_ are different claims and this entry made
+the wrong one for two days.
 
 _Help:_ names `facade`
 
@@ -1679,7 +1691,7 @@ build `1786514810315` composes `msg_+legbon_puncture %val%`.
 ⚠️ **Few occurrences, and the join is still not stated.** What the ignored share does to the figures
 on the same message is not inferred: the entry claims the meaning, not an arithmetic. This warning
 read "One occurrence" for three releases after there were three, a count in prose beside a count a
-machine re-earns (§5) — the _Shape:_ line above is the one to read.
+machine re-earns (**V5**) — the _Shape:_ line above is the one to read.
 
 ### `+absorbm` — decoded
 
@@ -1717,8 +1729,8 @@ absence.
 ⚠️ **Three occurrences, two recordings, and the same value on every one of them.** Two sit on the
 same announced ability, cast by the same combatant, in
 `captures/2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json` — the ability goes unnamed
-here because its name is the game's own (§5) — where each states 15 while `-absorbm` beside them
-states 2 247 and 1 774; the third states 15 as well, in
+here because its name is the game's own and not ours to print (`AGENTS.md`) — where each states 15
+while `-absorbm` beside them states 2 247 and 1 774; the third states 15 as well, in
 `captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json`. That is far too little
 material to read a rule off, and none is read: the verdict rests on the unit, the way `-endest`'s
 does, and the unit is what makes the figure safe to show and impossible to total.
@@ -1864,7 +1876,7 @@ announcement of the skill applying it. The `-enemies` suffix is the one
 the other side.
 
 ⚠️ **The scope is the help's and the caster is the protocol's, and reading the two together is what
-narrows the refusal** (`[ASK]` under §9.6, asked and granted 2026-08-27;
+narrows the refusal** (`[ASK]` on the `*Cause:*` list above, asked and granted 2026-08-27;
 `docs/adr/0010-sizing-a-share-onto-a-side.md`). By the article the reduction lands on the casting
 side's opponents, and in the only recording carrying the key one of ours declares it at the monster
 — so our own healing was never reduced, and all three of that fight's `healall_per` casts are sized.
@@ -2142,8 +2154,8 @@ _Shape:_ 179 occurrences; alone in its message; no value
 _Help:_ names `step`
 
 _Evidence:_ not documented. Article view,372 (read 2026-08-09) was searched for `step`; the only hit
-is inside a longer Polish word, which is the false positive §7.6 warns about rather than a mention.
-Every occurrence is valueless and alone, always with an actor and never a target.
+is inside a longer Polish word, which is the false positive this register warns about rather than a
+mention. Every occurrence is valueless and alone, always with an actor and never a target.
 
 ### `prepare` — decoded
 
@@ -2265,11 +2277,11 @@ does not accumulate, and it is overwritten by the freshest value applied to that
 word the rule `injure` carries, at 10% where that one is 15%, and off a critical hit where that one
 is off a monster's attack.
 
-⚠️ **It is not `injure` under another name, and the join is where they part.** §9.6's fourth clause
-charges a wound to the attacker its announcement named, because the announcement states the figure
-and the figure identifies which application is ticking. `+critwound` states **no figure at all** —
-see the entry below — so the same reading is not available here, and adopting it by analogy would be
-charging damage to somebody on the strength of a resemblance. `[ASK]`, and material first.
+⚠️ **It is not `injure` under another name, and the join is where they part.** The wound join (**ADR
+0022**) charges a wound to the attacker its announcement named, because the announcement states the
+figure and the figure identifies which application is ticking. `+critwound` states **no figure at
+all** — see the entry below — so the same reading is not available here, and adopting it by analogy
+would be charging damage to somebody on the strength of a resemblance. `[ASK]`, and material first.
 
 _Help:_ names `critwound`
 
@@ -2392,11 +2404,11 @@ ticks this register reads under `anguish`. Read as a declaration carrying no val
 
 ⚠️ **That absent figure is what keeps `anguish` charged to nobody**, and it is the whole of the
 difference from `+injure`. That announcement carries the figure that says which application is
-ticking, which is the second of the three things §9.6's fourth clause needs; this one carries none,
-so a tick and an application cannot be matched and the nearest earlier blow is a neighbour rather
-than an answer. The absence is asserted over the material rather than described here
-(`tests/core/anguish-rule.test.ts`), so a recording that brings a figure fails rather than passing
-under a reading it invalidates.
+ticking, which is the second of the three things the wound join needs (**ADR 0022**); this one
+carries none, so a tick and an application cannot be matched and the nearest earlier blow is a
+neighbour rather than an answer. The absence is asserted over the material rather than described
+here (`tests/core/anguish-rule.test.ts`), so a recording that brings a figure fails rather than
+passing under a reading it invalidates.
 
 _Shape:_ 18 occurrences; on a blow; no value
 
@@ -2425,7 +2437,7 @@ can be asked.** A blow is one message here, and an event putting damage into two
 either rides the message it fired on or produces two beside it — the difference between one swing
 and three in `blowsStruck`, and one the client cannot settle either: its branch composes the
 announcement and never the damage. Meaning first, material second, and the material is what is
-missing (§7.1).
+missing (**C9**).
 
 _Help:_ names `swing`
 

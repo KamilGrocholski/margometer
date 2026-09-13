@@ -16,8 +16,8 @@ generated registers, the whole of `core/` — the error base, the message gramma
 data contract, the decoder, the health arithmetic and the statistics over what the decoder produces
 — and the layers over it: `game/` reads a fight off the client and keeps it, `ui/` draws it, and the
 tools build, serve, photograph and admit. What is not written is at the end of this file. The v1
-implementation remains readable in this repository's history on `develop`
-(`git show develop:src/core/fight-decoder.ts`), and is not the thing being described here.
+implementation remains readable in this repository's history, at the last release it went out in
+(`git show v0.10.1:src/core/fight-decoder.ts`), and is not the thing being described here.
 
 ```
 AGENTS.md          Rules, authority order, guard register.
@@ -383,8 +383,8 @@ does not exist.
 
 **Each becomes an ADR in the commit that lands the code realising it**, carrying the measurement
 that holds it. Four are known to be needed, and v1 paid for all four; its reasoning is readable at
-`git show develop:docs/specs/the-ends-a-figure-names.md` and
-`git show develop:docs/specs/sizing-a-share-onto-a-side.md`.
+`git show v0.10.1:docs/specs/the-ends-a-figure-names.md` and
+`git show v0.10.1:docs/specs/sizing-a-share-onto-a-side.md`.
 
 Until then, one thing binds and is not deferred: **a figure may be charged to a side by the end the
 game did name; a figure may never be charged to a person that way.** A side has members, and a guess

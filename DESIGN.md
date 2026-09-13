@@ -3,7 +3,7 @@
 ## What this document is
 
 **A specification, not a description.** The tokens below are carried from the panel v1 shipped
-(`git show develop:src/ui/panel-look.ts`) and the rules from what that panel had to satisfy. Nothing
+(`git show v0.10.1:src/ui/panel-look.ts`) and the rules from what that panel had to satisfy. Nothing
 here is evidence that anything is drawn yet — `ARCHITECTURE.md` carries what exists, and what of
 this document the tree does not yet meet.
 

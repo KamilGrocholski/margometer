@@ -5,8 +5,8 @@ level, and how much protocol the file carries. The recordings themselves say non
 being opened — a filename says `grupa-vs-hildur` and the rest is a megabyte of JSON away — and the
 decision this answers is taken often: what to record next.
 
-A recording is evidence and never changes (§9.2), so a row here is true for good. What changes is
-the set, which is why the numbers below are not written by hand.
+A recording is evidence and never changes (`captures/AGENTS.md`), so a row here is true for good.
+What changes is the set, which is why the numbers below are not written by hand.
 
 **Read off the material, not written from memory**, and held by
 `tests/tools/captured-fight-register.test.ts` — the guard walks every file in the directory and
@@ -143,7 +143,8 @@ evidence.
   number, from the format that could hold more than one fight per recording.
 - `captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json` — the only duel
   between two players, and the only recording from `experimental`, whose build lags production
-  (§7.6). The keys it brought were read the day it arrived (`05d712f`).
+  (`docs/protocol-keys.md` says why production is what a claim is read on). The keys it brought were
+  read the day it arrived (`05d712f`).
 - `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json` — the other recording with a
   player at both ends, and the first written from side 2. It is what settled whom a shout holds
   (**ADR 0064**) and it is the whole of the evidence for it.
@@ -163,15 +164,15 @@ evidence.
 
 - `captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json` — **the first recording naming
   no build**, which is what its build column says. The add-on writes `null` where the page did not
-  state one, and until this file arrived `git show develop:tools/fight-dump-parser.ts` refused to
-  read one at all (`git show develop:docs/specs/2026-08-25-a-recording-that-names-no-build.md`). So
+  state one, and until this file arrived `git show v0.10.1:tools/fight-dump-parser.ts` refused to
+  read one at all (`git show v0.10.1:docs/specs/2026-08-25-a-recording-that-names-no-build.md`). So
   nothing dates it against the client, and a claim about how the game composed a message is not one
   this recording can settle — the messages, the snapshots and the percentages in it are unaffected.
   All three recordings of that day arrived the same way, and the reason turned out not to be the
   page: the client had started naming its bundle `main.min.53XkBRxF.js`, and the reader knew only
   ids that were numbers (`src/core/game-build.ts`). It reads both now, so a recording made after
-  2026-08-25 carries a build again — these three cannot, being evidence (§9.2), and their column is
-  a fact about them for good.
+  2026-08-25 carries a build again — these three cannot, being evidence (`captures/AGENTS.md`), and
+  their column is a fact about them for good.
 
   It is also the only fight **entered by hand and finished on auto**: the opening call states `auto`
   as `0`, the third states `1`, and 304 of the 308 messages arrive in the closing call. Unlike the
