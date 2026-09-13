@@ -11,7 +11,6 @@
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { type CombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
-import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import {
     composeFightStatistics,
     type FightStatistics,
@@ -29,7 +28,6 @@ import { composeFakeDocument, type FakeElement, getTextsByClass } from "@/tests/
 import { composeFabricatedFight } from "@/tools/fabricated-fight.ts";
 import { composeFightReplay } from "@/tools/fight-replay.ts";
 import { composeShownScreen } from "@/tests/shown-screen.ts";
-import { BLOWS_GRANTED } from "@/tests/recorded-fight.ts";
 
 /** The screen that pins two figures at once, which is what puts two unnamed rows on one list. */
 const BOTH_ENDS_SCREEN: PanelMetric = "damageTakenApplied";
@@ -46,15 +44,12 @@ const CHOICES: PanelSideChoice[] = ["everyone", "reader", "opposing"];
  */
 const WITHOUT_ACTOR = "Nieznany sprawca";
 const WITHOUT_TARGET = "Nieznany cel";
-const UNKNOWN_TARGET_BLOW = 700;
 /** An id no combatant in the fabricated fight answers to, so the roster names nobody for it. */
 const ONE_TOO_MANY = 999999;
 
 /**
- * The fabricated fight already states a blow with no striker; it states none with no target, so
- * `takenByNobody` is zero over the whole script and one screen pins one figure where it can pin
- * two. The blow is written at the striker's own closing percentage, so the health it states
- * moves nothing and no witness reads a heal out of it.
+ * The fabricated fight states both ends left out on its own — a blow with no striker and one with
+ * no target — so the screen that pins two figures has two to pin without anything added here.
  */
 function composeWidestFight(): {
     roster: CombatantRoster;
@@ -66,15 +61,7 @@ function composeWidestFight(): {
         name: "fabricated",
         calls: fabricated.calls.map((call) => call.payload),
     });
-    const [striker] = fabricated.warriors;
-    assert(striker !== undefined, "the fight fields somebody to strike with");
-    const percent = ((striker.health / striker.healthMaximum) * 100).toFixed(2);
-    const blow =
-        `${striker.id}=${percent};0;+dmg=${UNKNOWN_TARGET_BLOW};-dmg=${UNKNOWN_TARGET_BLOW}`;
-    const events = [
-        ...replay.reading.events,
-        ...decodeFightMessages([blow], replay.roster, BLOWS_GRANTED),
-    ];
+    const events = replay.reading.events;
     return {
         roster: replay.roster,
         statistics: composeFightStatistics(events, composeTeamHeals(events, replay.roster)),
@@ -104,7 +91,7 @@ Deno.test("the widest fight there is fields a full cast, with both ends left out
     assertStrictEquals(getUnreadMessages(statistics), 0, "and nothing in it went unread");
     assert(statistics.dealtByNobody > 0, "a blow the protocol gave no striker");
     assert(statistics.takenByNobody > 0, "and one it gave no target");
-    assertStrictEquals(statistics.byNeitherEnd, 0, "neither of them left both ends out");
+    assert(statistics.byNeitherEnd > 0, "and health that went out with both ends left out");
 });
 
 /**
@@ -186,9 +173,14 @@ Deno.test("no screen and no side of the widest fight costs the reader a region",
             const { host, failures } = drawShownView(composeFullCastScreen(reading, metric, side));
             assertEquals(failures, [], `${metric} ${side}: a region the reader was not shown`);
             assertEquals(getTextsByClass(host, "undrawn"), [], `${metric} ${side}: undrawn`);
+            // ⚠️ **The section under the list is a drawn row and is in neither list.** It is
+            // the screen counted a second time (**ADR 0082**), so a count taken from the rows
+            // alone is short by it wherever it draws — and nothing drew it until the script
+            // stated health coming back to nobody.
+            const outside = reading.outsideRanking === null ? 0 : 1;
             assertStrictEquals(
                 getTextsByClass(host, "row-name").length,
-                reading.rows.length + reading.pinned.length,
+                reading.rows.length + reading.pinned.length + outside,
                 `${metric} ${side}: every row of the reading is a row on the screen`,
             );
         }

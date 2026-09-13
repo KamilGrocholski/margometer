@@ -871,6 +871,62 @@ function actNamedDamage(turn: FabricatedTurn): string[] {
 }
 
 /**
+ * A blow the protocol states the struck end of and calls the striker nobody. The panel pins it
+ * under the ranking rather than on a row, because the row it would go on is exactly the one
+ * nobody named. `CONTEXT.md` calls this half-named.
+ */
+function actBlowFromNobody(turn: FabricatedTurn): string[] {
+    assert(turn.target.healthMaximum > 0, "a blow lands where there is a maximum");
+    const element = getElementFor(turn);
+    const raw = composeFigure(turn, FIGURE_RAW_BASE);
+    const applied = takeHealth(turn.target, raw - composeReduction(turn));
+    return [composeMessage(null, composeSide(turn.target), [
+        composeFigureParameter(element.raw, raw),
+        composeFigureParameter(element.applied, applied),
+    ])];
+}
+
+/**
+ * The other half-named shape, and a different claim: the striker is named and the struck end is
+ * nobody. No health moves, because the combatant it would move on is the one left out.
+ */
+function actBlowAtNobody(turn: FabricatedTurn): string[] {
+    assert(isStanding(turn.actor), "a turn is taken by somebody still standing");
+    const element = getElementFor(turn);
+    const raw = composeFigure(turn, FIGURE_RAW_BASE);
+    const applied = raw - composeReduction(turn);
+    assert(applied >= 0, "no blow lands below nothing");
+    return [composeMessage(composeSide(turn.actor), null, [
+        composeFigureParameter(element.raw, raw),
+        composeFigureParameter(element.applied, applied),
+    ])];
+}
+
+/**
+ * ⚠️ **Health going out with neither end named, which `captures/` does not carry.** It is charged
+ * to no side — the end that would decide one is the end that is missing — so the panel draws it
+ * under the ranking as a claim of its own (`CONTEXT.md`, and `NEITHER_END_WORDS`).
+ */
+function actLossBetweenNobody(turn: FabricatedTurn): string[] {
+    assert(turn.round >= 0, "a tick lands on a round the fight has reached");
+    const lost = composeSmallHealth(turn, 260);
+    const stated = `${composeIntegerText(lost)},${composeIntegerText(composeSmall(turn, 11))}`;
+    return [composeMessage(null, null, [composeValued("poison", stated)])];
+}
+
+/**
+ * ⚠️ **Health coming back to nobody the protocol named, which `captures/` does not carry either.**
+ * It reaches no row at all, so the only place it can be seen is the section under the list —
+ * which is the whole of what that section is for (**ADR 0082**).
+ */
+function actHealToNobody(turn: FabricatedTurn): string[] {
+    assert(turn.round >= 0, "a movement lands on a round the fight has reached");
+    const restored = composeSmallHealth(turn, 315);
+    assert(restored >= 0, "health that came back never came back below nothing");
+    return [composeMessage(null, null, [composeFigureParameter("heal", restored)])];
+}
+
+/**
  * The share is applied to the side before the message states it, so the percentages the message
  * carries are the ones the panel will size the share against.
  */
@@ -1048,6 +1104,10 @@ const ACTS: FabricatedAct[] = [
     { name: "a bandage", doesOpenTurn: false, compose: actBandage },
     { name: "healing stated by name", doesOpenTurn: true, compose: actLastHeal },
     { name: "damage stated by name", doesOpenTurn: true, compose: actNamedDamage },
+    { name: "a blow from nobody", doesOpenTurn: false, compose: actBlowFromNobody },
+    { name: "a blow at nobody", doesOpenTurn: true, compose: actBlowAtNobody },
+    { name: "health lost between nobody", doesOpenTurn: false, compose: actLossBetweenNobody },
+    { name: "health coming back to nobody", doesOpenTurn: false, compose: actHealToNobody },
     { name: "healing a whole side", doesOpenTurn: true, compose: actSideHeal },
     { name: "an aura cast", doesOpenTurn: true, compose: actAuraCast },
     { name: "a shout", doesOpenTurn: true, compose: actShoutCast },

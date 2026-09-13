@@ -32,7 +32,7 @@ const SIDE_SEGMENTS = 2;
 /** Past the heading count of the register, so the walk carries a stated bound. */
 const MAXIMUM_HEADINGS = 1024;
 /** What the script holds, read off the fight that reaches all of it rather than stated here. */
-const ACTS_SCRIPTED = 36;
+const ACTS_SCRIPTED = 40;
 
 /**
  * A key the register calls `decoded` that no message can state, each with why. The list is the
@@ -154,6 +154,12 @@ Deno.test("the fabricated fight puts something in every part of the panel", () =
     assert(figures.some((one) => one.blowsCritical > 0), "and somebody struck a critical blow");
     assert(figures.some((one) => one.skills.size > 0), "and somebody was named under a skill");
     assert(REPLAY.statistics.totals.damagePrevented > 0, "the fight prevented something");
+    // The four the corpus cannot show. Two of them reach a pinned row, and two reach no row at
+    // all — which is the only place they can be looked at (**ADR 0082**, `CONTEXT.md`).
+    assert(REPLAY.statistics.dealtByNobody > 0, "somebody was struck by nobody the game named");
+    assert(REPLAY.statistics.takenByNobody > 0, "and somebody struck nobody it named");
+    assert(REPLAY.statistics.byNeitherEnd > 0, "health went out with neither end named");
+    assert(REPLAY.statistics.restoredToNobody > 0, "and came back to nobody named either");
 });
 
 Deno.test("a fabricated fight is written only where git is told not to look", () => {
