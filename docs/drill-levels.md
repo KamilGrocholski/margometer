@@ -123,18 +123,37 @@ A verdict outside that list is refused rather than read as silence.
 | `healthRestored`     | `pair`        | `source`     | `never`     |
 | `healthRestored`     | `part`        | `person`     | `never`     |
 
-## The one cell that says `sometimes`
+## The cells that say `sometimes`
 
-**A kind inside an opened row, on `damageTakenApplied`.** The level under it lists who dealt the
-figure that kind, read by turning the cut of a cut round: it opens where the protocol named the
-other end of at least one blow that carried it, and stays shut where it named none.
+One heading per cell, and the heading names the screen and the kind of row, because that pair is
+what the register keys a verdict by. **How many of each open is not written here** — the counts
+change with the next recording and `deno task panel:drill --cases` states them (**V5**). This
+section said _the one cell_ until 2026-09-13, while the register had held two since **ADR 0081**,
+and the figures it carried beside that had gone stale by a whole release of new material.
 
-The shut ones are the bare movement, and nothing else — 58 rows over `captures/` on 2026-08-31,
-across every recording: `poison` 32, `heal` 9, `fire` 6, `light` 4, `anguish` 4, `wound` 3. Each is
-a key the game states against the combatant it happened to, with nobody at the other end of it, so
-`damageTakenByOpponentAndKind` holds nothing under that name while `damageTakenByElement` holds the
-figure. The dealing screen has no such row, because a figure this combatant dealt was dealt to
-somebody: `damageDealtApplied` opens all 602 of its kind rows.
+### `damageTakenApplied` · `kind`
+
+The level under it lists who dealt the figure that kind, read by turning the cut of a cut round: it
+opens where the protocol named the other end of at least one blow that carried it, and stays shut
+where it named none.
+
+The shut ones are the bare movement, and nothing else — a key the game states against the combatant
+it happened to, with nobody at the other end of it, so `damageTakenByOpponentAndKind` holds nothing
+under that name while `damageTakenByElement` holds the figure. The dealing screen has no such row,
+because a figure this combatant dealt was dealt to somebody, and it opens every kind row it draws.
+
+### `damageDealtApplied` · `closing`
+
+It opens onto whoever stood at the other end of the blows it holds (**ADR 0081**), and stays shut
+where that cut holds nobody.
+
+**The asymmetry with the receiving screen is this panel's own, not the protocol's.** A closing row
+is drawn on `damageDealtApplied` where the combatant swung and landed nothing — `composeSkillCut`
+draws it on a figure of nought as long as blows stood behind it, because a section that skipped them
+would say the combatant never swung — and a figure of nought was dealt to nobody, so there is no cut
+under it. `damageTakenApplied` draws no such row at all: there the row needs a figure, and a figure
+somebody lost was taken off somebody. Measured over `captures/` on 2026-09-13, one row in the corpus
+is shut, and it is that case exactly: nought, with seven blows behind it.
 
 ## What opens, in numbers
 

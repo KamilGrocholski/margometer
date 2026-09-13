@@ -27,6 +27,8 @@ import { composeShownScreen } from "@/tests/shown-screen.ts";
 
 const REGISTER_PATH = "docs/drill-levels.md";
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
+const SOMETIMES_HEADING = "## The cells that say";
+const BACKTICK = "`";
 
 /**
  * The place these views stand in. Every test here reads what was drawn rather than where the
@@ -195,5 +197,68 @@ Deno.test("a recording walked row by row names whom each level was opened from",
     assert(
         !lines.some((line) => line.includes("--- damageDealtApplied ---")),
         "a screen nobody asked for is not walked",
+    );
+});
+
+/**
+ * The headings under `## The cells that say`, as the screen and row each names. A heading is the
+ * unit because `deno fmt` never wraps one, where the paragraph under it is wrapped at a hundred
+ * columns and a pair of names read out of prose would stop being findable the day a word ahead of
+ * them changes length.
+ */
+function getExplainedCells(text: string): string[] {
+    const found: string[] = [];
+    let inside = false;
+    for (const line of text.split("\n")) {
+        if (line.startsWith(SOMETIMES_HEADING)) inside = true;
+        else if (inside && line.startsWith("## ")) break;
+        if (!inside) continue;
+        if (!line.startsWith("### ")) continue;
+        const named = getBackticked(line);
+        const [screen, row] = named;
+        if (screen === undefined) continue;
+        if (row === undefined) continue;
+        found.push(`${screen} | ${row}`);
+    }
+    return found;
+}
+
+/** Every run between a pair of backticks on one line, in the order written. */
+function getBackticked(line: string): string[] {
+    const found: string[] = [];
+    let at = line.indexOf(BACKTICK);
+    // The bound is the line's own length: a line holds fewer pairs than it holds characters.
+    for (let held = 0; held < line.length; held += 1) {
+        if (at === -1) break;
+        const closes = line.indexOf(BACKTICK, at + 1);
+        if (closes === -1) break;
+        found.push(line.slice(at + 1, closes));
+        at = line.indexOf(BACKTICK, closes + 1);
+    }
+    return found;
+}
+
+Deno.test("every verdict of `sometimes` is explained, and every explanation is of one", () => {
+    const sample = `${SOMETIMES_HEADING}\n\n### \`healthGiven\` · \`skill\`\n\nWhy.\n`;
+    assertEquals(getExplainedCells(sample), ["healthGiven | skill"], "the reader works");
+    // The sample it must not flag: the same heading standing outside the section, and one inside
+    // it naming a single thing, which is not a cell.
+    const elsewhere = `### \`healthGiven\` · \`skill\`\n${SOMETIMES_HEADING}\n\n### \`kind\`\n`;
+    assertEquals(getExplainedCells(elsewhere), [], "a heading outside the section is not one");
+    const register = Deno.readTextFileSync(REGISTER_PATH);
+    const uncertain = getRegisterRows(register)
+        .filter((one) => one.verdict === "sometimes")
+        .map((one) => `${one.screen} | ${one.row}`);
+    assert(uncertain.length > 0, "the register carries a verdict that depends on something");
+    const explained = getExplainedCells(register);
+    assertEquals(
+        uncertain.filter((one) => !explained.includes(one)).sort(),
+        [],
+        `${REGISTER_PATH}: a cell says \`sometimes\` and nothing says on what`,
+    );
+    assertEquals(
+        explained.filter((one) => !uncertain.includes(one)).sort(),
+        [],
+        `${REGISTER_PATH}: a cell is explained that no longer says \`sometimes\``,
     );
 });

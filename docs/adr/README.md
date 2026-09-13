@@ -60,7 +60,7 @@ edited to agree with the new rule.
 - [0004](0004-a-subclass-per-catch-not-per-module.md) — An error subclass exists per `catch`, not
   per module. **Superseded by 0009**
 - [0005](0005-a-ceiling-on-comment.md) — A ceiling on comment, and three rules that give it shape.
-  **Accepted**
+  **Superseded by 0016**
 - [0006](0006-no-regular-expressions.md) — No regular expressions. **Accepted**
 - [0007](0007-assertion-density-is-measured-where-the-program-is.md) — Assertion density is measured
   where the program is. **Accepted**
@@ -171,7 +171,7 @@ edited to agree with the new rule.
 - [0061](0061-a-cast-stands-on-a-side-and-names-only-whom-the-game-names.md) — A cast stands on a
   side, and names only whom the game names. **Superseded by 0062 in part**
 - [0062](0062-a-shout-holds-one-character-and-the-last-one-wins.md) — A shout holds one character,
-  and the last one wins. **Superseded by 0063 in part**
+  and the last one wins. **Superseded by 0063 in part, and by 0067 in part**
 - [0063](0063-a-shout-covers-a-count-so-the-panel-names-the-count.md) — A shout covers a count, so
   the panel names the count. **Superseded by 0064 in part**
 - [0064](0064-a-shout-names-the-provoked-so-the-panel-reads-them.md) — A shout names the provoked,
