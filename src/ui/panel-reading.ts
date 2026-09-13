@@ -359,9 +359,20 @@ export type HalfNamedDrillReading =
         neither: UnnamedRow | null;
     };
 
+/**
+ * When a fight was, on the reader's own clock. The month is stated the way a person counts them,
+ * from one, because the word for it is looked up by what it is called and not by an offset.
+ */
+export interface FightMoment {
+    day: number;
+    month: number;
+    hour: number;
+    minute: number;
+}
+
 export interface ShelfRow {
     openedAt: number;
-    at: { hour: number; minute: number } | null;
+    at: FightMoment | null;
     sizes: number[];
     place: string | null;
     outcome: PanelOutcome | null;

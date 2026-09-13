@@ -81,6 +81,7 @@ import {
     composePanelReading,
     composePartReading,
     type DrillReading,
+    type FightMoment,
     type FightSuspicions,
     getOutcomeForSeat,
     getPinnedCase,
@@ -173,7 +174,7 @@ export interface UserscriptEnvironment {
     /** The moment is asked for: a fight off the shelf states when it was fought. **ADR 0053**. */
     readSurroundings(atMilliseconds: number): CaptureSurroundings;
     now(): number;
-    readClock(atMilliseconds: number): { hour: number; minute: number } | null;
+    readClock(atMilliseconds: number): FightMoment | null;
     /** One branded line, and the failure itself, so a console shows whose it is first. */
     report(line: string, failure: unknown): void;
 }
@@ -385,7 +386,7 @@ function composeShelfRows(
         outcome: PanelOutcome | null;
     } | null,
     chosenId: number | null,
-    readClock: (atMilliseconds: number) => { hour: number; minute: number } | null,
+    readClock: (atMilliseconds: number) => FightMoment | null,
     readFigures: (fight: KeptFight) => FightFigures | null,
 ): ShelfRow[] {
     kept = kept.slice(0, MAXIMUM_KEPT);
@@ -670,7 +671,7 @@ function drawFight(
     panel: PanelHandle,
     shelf: ShelfKeeper,
     liveFight: LiveFight,
-    readClock: (atMilliseconds: number) => { hour: number; minute: number } | null,
+    readClock: (atMilliseconds: number) => FightMoment | null,
     defects: KeptDefects,
 ): void {
     const said = defects.getSaid();
@@ -790,7 +791,7 @@ function drawFightOnPanel(
     panel: PanelHandle,
     shelf: ShelfKeeper,
     liveFight: LiveFight,
-    readClock: (atMilliseconds: number) => { hour: number; minute: number } | null,
+    readClock: (atMilliseconds: number) => FightMoment | null,
     drawn: { said: readonly string[]; hasFightToSave: boolean },
     keeper: KeptDefects,
 ): boolean {
@@ -998,6 +999,9 @@ export interface UserscriptWindow {
         new (atMilliseconds: number): {
             toISOString(): string;
             /** Absent on a document that lends no clock of its own, which answers no time. */
+            getDate?(): number;
+            /** Counted from zero, which is the one place this program spells a month that way. */
+            getMonth?(): number;
             getHours?(): number;
             getMinutes?(): number;
         };
@@ -1103,25 +1107,35 @@ function writeTextToFile(
     }
 }
 
+/** The widest a calendar goes, which is what a day and a month read off a clock are held to. */
+const MAXIMUM_DAY = 31;
+const MAXIMUM_MONTH = 12;
+/** `getMonth` counts from zero and the rest of this program counts months the way a person does. */
+const FIRST_MONTH_OFFSET = 1;
+
 /**
- * A moment on the reader's own clock, as the hour and the minute it fell on.
+ * A moment on the reader's own clock, as the day, the month, the hour and the minute it fell on.
  *
  * Read through the page's own `Date`, which is the one clock a userscript has, and answered as
  * null where it will not read one: a row with no time says nothing rather than saying `00:00`,
- * which is a reading of nothing wearing the shape of one.
+ * which is a reading of nothing wearing the shape of one. **The day is held to the same refusal**
+ * — a shelf of twenty fights spans days, and a wrong one reads as a fight that happened.
  */
-function readClockFromPage(
-    page: UserscriptWindow,
-    atMilliseconds: number,
-): { hour: number; minute: number } | null {
+function readClockFromPage(page: UserscriptWindow, atMilliseconds: number): FightMoment | null {
     if (!Number.isFinite(atMilliseconds)) return null;
     const held = new page.Date(atMilliseconds);
+    const day = getNumberFromUnknown(held.getDate?.());
+    const monthFromZero = getNumberFromUnknown(held.getMonth?.());
     const hour = getNumberFromUnknown(held.getHours?.());
     const minute = getNumberFromUnknown(held.getMinutes?.());
+    if (day === null || monthFromZero === null) return null;
     if (hour === null || minute === null) return null;
+    const month = monthFromZero + FIRST_MONTH_OFFSET;
+    if (day < 1 || day > MAXIMUM_DAY) return null;
+    if (month < 1 || month > MAXIMUM_MONTH) return null;
     if (hour < 0) return null;
     if (minute < 0) return null;
-    return { hour, minute };
+    return { day, month, hour, minute };
 }
 
 /**

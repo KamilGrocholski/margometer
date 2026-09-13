@@ -1671,7 +1671,7 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
         ...composeShownScreen(readFight()),
         shelf: [{
             openedAt: 17,
-            at: { hour: 21, minute: 5 },
+            at: { day: 13, month: 9, hour: 21, minute: 5 },
             sizes: [10, 1],
             place: "Bagno Wisielców (128, 74)",
             outcome: "lost",
@@ -1689,8 +1689,8 @@ Deno.test("a shelf row opens the place its own cell had to cut", () => {
     assertExists(row, "the fight is a row a reader can point at");
     assertEquals(
         [getTextsByClass(host, "row-time")[0], getTextsByClass(host, "row-size")[0]],
-        ["21:05", "10×1"],
-        "when it was, and how big it was, before the place that can be cut",
+        ["13 wrz 21:05", "10×1"],
+        "when it was, to the day, and how big it was, before the place that can be cut",
     );
     assertEquals(getTextsByClass(host, "row-value")[0], "przegrana", "and how it went, last");
     pointAtElement(host, "pointermove", row, 120);

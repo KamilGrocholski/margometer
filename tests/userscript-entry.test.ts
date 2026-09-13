@@ -97,7 +97,7 @@ function composeEnvironment(page: unknown) {
         // A window of a size, so a drag has something to be clamped against.
         readViewport: () => ({ width: 1280, height: 900 }),
         // A clock that answers the same moment every time, so a row's time is a fact of the test.
-        readClock: () => ({ hour: 21, minute: 5 }),
+        readClock: () => ({ day: 13, month: 9, hour: 21, minute: 5 }),
         report: (line) => reported.push(line),
         store: composeHeldStore(held),
         composeShelfStore: (choice) => composeHeldStore(getShelf(choice)),

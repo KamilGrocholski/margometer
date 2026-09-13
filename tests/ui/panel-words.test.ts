@@ -239,6 +239,10 @@ function getSentencesFromSuspicions(): string[] {
     return found;
 }
 
+/** The calendar the shelf's dates are counted over, which is nobody's constant to share. */
+const FIRST_MONTH = 1;
+const MONTHS_IN_YEAR = 12;
+
 /** Every word handed out per screen, side, noun, choice, state or ending. */
 function getSentencesFromChoices(): string[] {
     const found: string[] = [];
@@ -261,6 +265,11 @@ function getSentencesFromChoices(): string[] {
     // What is composed rather than held: a word spelled into a template is reached by no walk
     // over the tables above, and `tura` and `teraz` are both spelled that way.
     found.push(composeTurnOrdinalText(3), getWordsForShelfTime(null, true));
+    // Every month, because the twelve are spelled into the same template and a walk over the
+    // tables reaches none of them either.
+    for (let month = FIRST_MONTH; month <= MONTHS_IN_YEAR; month += 1) {
+        found.push(getWordsForShelfTime({ day: 1, month, hour: 0, minute: 0 }, false));
+    }
     found.push(composeSideCountsText([4, 4], 2), composeShelfSizeText([4, 4]));
     found.push(String(composeCardSubtitleText("w", 120, "ours")));
     return found;
@@ -795,4 +804,72 @@ Deno.test("every word a defence is drawn under is one the game prints", () => {
 Deno.test("a kind the help does not name is left out rather than invented", () => {
     assertEquals(ELEMENT_WORDS.dmgg, undefined, "the one kind no source names carries no word");
     assertEquals(getWordsForDamageKind("dmgg"), "dmgg", "and reaches a reader as the game's token");
+});
+
+/**
+ * The twelve are what makes a dated row readable, and a shelf of twenty spans months. Written out
+ * here rather than read back off the table, which is what this file's docblock asks of every
+ * sentence in it: reading them off `MONTH_WORDS` would hold the words to be whatever they are.
+ */
+Deno.test("every month a kept fight can fall in spells its own word", () => {
+    const spelled: string[] = [];
+    for (let month = FIRST_MONTH; month <= MONTHS_IN_YEAR; month += 1) {
+        spelled.push(getWordsForShelfTime({ day: 1, month, hour: 0, minute: 0 }, false));
+    }
+    assertEquals(
+        spelled,
+        [
+            "01 sty 00:00",
+            "01 lut 00:00",
+            "01 mar 00:00",
+            "01 kwi 00:00",
+            "01 maj 00:00",
+            "01 cze 00:00",
+            "01 lip 00:00",
+            "01 sie 00:00",
+            "01 wrz 00:00",
+            "01 paź 00:00",
+            "01 lis 00:00",
+            "01 gru 00:00",
+        ],
+        "each month its own three letters, so a dated column is one width all year",
+    );
+});
+
+/**
+ * Both sides of every edge, and zero is one of them: midnight on the first is a moment like any
+ * other, and a row that dropped it would be a fight the shelf holds and cannot date.
+ */
+Deno.test("a moment on either edge of the calendar is still a moment", () => {
+    assertEquals(
+        getWordsForShelfTime({ day: 1, month: FIRST_MONTH, hour: 0, minute: 0 }, false),
+        "01 sty 00:00",
+        "the first minute of the year reads back, because zero is a reading",
+    );
+    assertEquals(
+        getWordsForShelfTime({ day: 31, month: MONTHS_IN_YEAR, hour: 23, minute: 59 }, false),
+        "31 gru 23:59",
+        "and so does the last",
+    );
+});
+
+/**
+ * A month outside the twelve finds no word, and the row says nothing rather than printing the
+ * number it could not name — the refusal `00:00` has always had, extended to the half in front.
+ */
+Deno.test("a day nobody can name leaves the row saying nothing", () => {
+    const beforeTheYear = { day: 1, month: FIRST_MONTH - 1, hour: 21, minute: 5 };
+    assertEquals(getWordsForShelfTime(beforeTheYear, false), "", "no month, so no date");
+    const afterTheYear = { day: 1, month: MONTHS_IN_YEAR + 1, hour: 21, minute: 5 };
+    assertEquals(getWordsForShelfTime(afterTheYear, false), "", "on both sides of the twelve");
+    const noDay = { day: 0, month: 9, hour: 21, minute: 5 };
+    assertEquals(getWordsForShelfTime(noDay, false), "", "and a day the calendar does not have");
+    assertEquals(getWordsForShelfTime(null, false), "", "as does a moment that never read back");
+});
+
+/** The fight going on now is dated by nothing, because it is still happening. */
+Deno.test("the live row says when it is without a date", () => {
+    const dated = { day: 13, month: 9, hour: 21, minute: 5 };
+    assertEquals(getWordsForShelfTime(dated, true), "teraz", "the live wording outranks the date");
+    assertEquals(getWordsForShelfTime(null, true), "teraz", "and stands without a moment at all");
 });

@@ -9,6 +9,7 @@
 import { getValueWithin } from "@/libs/number-range.ts";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import type {
+    FightMoment,
     PanelMetric,
     PanelOutcome,
     PanelUnnamedEnd,
@@ -733,20 +734,52 @@ export const CHOICE_REFUSED_ANSWER =
 const LIVE_FIGHT_TIME = "teraz";
 const LIVE_FIGHT_OUTCOME = "trwa";
 const TWO_DIGITS = 2;
+/** The month a person counts first, which is the offset a lookup by month subtracts. */
+const FIRST_MONTH = 1;
+/** The calendar's own edges. A month outside its own is caught by finding no word for it. */
+const FIRST_DAY = 1;
+const MAXIMUM_DAY = 31;
+/**
+ * The months as a Polish calendar shortens them: three letters each, so a dated column is one
+ * width whichever month it falls in. A word rather than a number because two numbers either side
+ * of a separator are a date nobody can order without being told which half is which.
+ */
+const MONTH_WORDS = [
+    "sty",
+    "lut",
+    "mar",
+    "kwi",
+    "maj",
+    "cze",
+    "lip",
+    "sie",
+    "wrz",
+    "paź",
+    "lis",
+    "gru",
+];
 
 /**
- * Two digits either side: a column of times jumping between four and five characters reads as a
- * column of different things. Empty where the moment does not read back — `00:00` is a reading.
+ * Two digits either side and the day in front of them: a column of times jumping between four and
+ * five characters reads as a column of different things, and a shelf spanning days reads as one
+ * day where nothing says which. Empty where the moment does not read back — `00:00` is a reading,
+ * and so is a day nobody stated.
+ *
+ * The place is what pays for the width, on every row (`DESIGN.md`, **ADR 0084**).
  */
-export function getWordsForShelfTime(
-    at: { hour: number; minute: number } | null,
-    isLive: boolean,
-): string {
+export function getWordsForShelfTime(at: FightMoment | null, isLive: boolean): string {
     if (isLive) return LIVE_FIGHT_TIME;
     if (at === null) return "";
     if (at.hour < 0) return "";
     if (at.minute < 0) return "";
-    return `${composeTwoDigitText(at.hour)}:${composeTwoDigitText(at.minute)}`;
+    if (at.day < FIRST_DAY) return "";
+    if (at.day > MAXIMUM_DAY) return "";
+    const month = MONTH_WORDS[at.month - FIRST_MONTH];
+    if (month === undefined) return "";
+    const day = composeTwoDigitText(at.day);
+    if (day === "") return "";
+    const clock = `${composeTwoDigitText(at.hour)}:${composeTwoDigitText(at.minute)}`;
+    return `${day} ${month} ${clock}`;
 }
 
 function composeTwoDigitText(value: number): string {

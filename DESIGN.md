@@ -277,6 +277,13 @@ big it was, where, and how it went, in that order — the place is the only cell
 so it stands second to last. The fight going on now is a row like the rest and is drawn once: while
 it is both the live one and a kept one, it keeps the live row's wording and the kept row's pin.
 
+**When it was is a day and a time, on every row** — `13 wrz 21:05`, the month as a word and the day
+in two digits, so the cell is one width whichever day it falls on. A shelf holds twenty fights and a
+pinned one outlives the rotation, so a column of bare times is several days reading as one evening.
+The place is what pays for the width, on every row and not only on the rows that span days, and it
+pays enough that **on a dated row the place is a hint and the tip is the answer** — the name the
+cell had to cut is drawn whole there. **ADR 0084** carries the measurement.
+
 **The pin is inside the row and is not part of it.** It is the one control that outranks the row it
 sits in, and it does so structurally: a press lands on the innermost element, and the pin is left
 out of what carries the row's own mark. It is a box of the row's own height rather than a glyph,

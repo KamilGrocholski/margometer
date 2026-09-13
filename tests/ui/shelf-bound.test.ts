@@ -20,7 +20,7 @@ import { composeShownScreen } from "@/tests/shown-screen.ts";
 function composeShelfRow(openedAt: number, isLive: boolean): ShelfRow {
     return {
         openedAt,
-        at: { hour: 12, minute: 0 },
+        at: { day: 13, month: 9, hour: 12, minute: 0 },
         sizes: [1, 1],
         place: null,
         outcome: null,
