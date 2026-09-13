@@ -19,6 +19,8 @@ import { getDevelopmentVersion } from "@/tools/declared-version.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { composeUserscriptFiles, USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
 import { PreviewBuildError, UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
+import { FABRICATED_DIRECTORY } from "@/tools/fabricated-fight.ts";
+import { RECORDING_SUFFIX } from "@/project/repository-layout.ts";
 import {
     composePreviewPage,
     type PreviewFightLink,
@@ -326,6 +328,45 @@ function handleRequest(state: PreviewState, request: Request): Promise<Response>
     return new Response("not here", { status: 404 });
 }
 
+/** Past every shape a person makes to look at one — the directory holds a handful. **S11.** */
+const MAXIMUM_FABRICATED = 64;
+
+/**
+ * Every fabricated fight on this machine, which is what `--fabricated` opens the preview on.
+ *
+ * ⚠️ **The directory is git's to ignore** (`tests/repository/fabricated-fights.test.ts`), so it is
+ * absent on every machine that has not made one. That is not an empty answer to fall through on:
+ * a preview asked for these and given the recordings would look like it had them, so the failure
+ * is loud and names what writes one (**E7**).
+ */
+function readFabricatedPaths(): string[] {
+    const paths: string[] = [];
+    for (const name of readFabricatedNames()) {
+        if (!name.endsWith(RECORDING_SUFFIX)) continue;
+        paths.push(`${FABRICATED_DIRECTORY}/${name}`);
+        assert(paths.length <= MAXIMUM_FABRICATED, "a preview opens no more than the bound");
+    }
+    if (paths.length === 0) {
+        throw new PreviewBuildError(
+            `${FABRICATED_DIRECTORY}/ holds no fight — \`deno task fight:fabricate\` writes one`,
+        );
+    }
+    return paths.sort();
+}
+
+/** The one broad shape here is a directory somebody else's filesystem may not hold — **E4**. */
+function readFabricatedNames(): string[] {
+    try {
+        return [...Deno.readDirSync(FABRICATED_DIRECTORY)].map((entry) => entry.name);
+    } catch (failure) {
+        if (!(failure instanceof Deno.errors.NotFound)) throw failure;
+        throw new PreviewBuildError(
+            `${FABRICATED_DIRECTORY}/ is not here — \`deno task fight:fabricate\` writes one`,
+            { cause: failure },
+        );
+    }
+}
+
 /** The recordings, and whatever `--from` named after them. */
 function composeServedFights(fromPaths: readonly string[]): RecordedFight[] {
     const fights = getRecordedFights();
@@ -397,10 +438,16 @@ export function setPreviewServer(options: PreviewServerOptions = {}): PreviewSer
 }
 
 if (import.meta.main) {
-    const parsed = parseArgs(Deno.args, { string: ["port", "fight", "from"], collect: ["from"] });
+    const parsed = parseArgs(Deno.args, {
+        string: ["port", "fight", "from"],
+        boolean: ["fabricated"],
+        collect: ["from"],
+    });
     const asked = parsed.port === undefined ? null : getIntegerFromText(parsed.port);
     const fight = parsed.fight ?? null;
-    const preview = setPreviewServer({ port: asked ?? DEFAULT_PORT, fromPaths: parsed.from });
+    const named = parsed.from ?? [];
+    const fromPaths = parsed.fabricated ? [...named, ...readFabricatedPaths()] : named;
+    const preview = setPreviewServer({ port: asked ?? DEFAULT_PORT, fromPaths });
     const opening = fight === null ? preview.url : `${preview.url}${composeFightAddress(fight)}`;
     console.log(`preview  ${opening}`);
     console.log(`watching ${WATCHED_PATHS.join(", ")} — a change there rebuilds and reloads`);

@@ -31,6 +31,10 @@
         // rebuilt and reloaded on a change under `src/`. `--from <path>` shows a fight opened at
         // a path beside the recordings, which is how a fabricated one is looked at.
         "preview": "deno run -A tools/preview-server.ts",
+        // The same server, opened on every fight under `fabricated/` as well — the shapes no
+        // recording carries, which is what a row drawn on none of them can be looked at on. The
+        // directory is git's to ignore, so this refuses loudly where nobody has made one.
+        "preview:fabricated": "deno run -A tools/preview-server.ts --fabricated",
         // The same panel, written down for somebody who has installed nothing: one page per
         // recording under `dist/preview`, which `.github/workflows/pages.yml` publishes. That
         // workflow passes `--release`, which is what the published panel states — ADR 0037.
