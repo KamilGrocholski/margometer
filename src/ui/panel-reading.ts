@@ -798,9 +798,9 @@ function getNeitherEndForPinned(
  * still is. `getHalfNamedBalance` in `src/core/fight-statistics.ts` is what makes it hold — the
  * count is the sum of one field across the rows plus what named neither end, and nothing else.
  *
- * It was an assertion until **ADR 0051**, and what it holds is worth more than the panel it used
- * to stop: two independent counts disagreeing is the one thing here that says a drawn figure is
- * wrong rather than short, so the reading carries the answer and the entry states it.
+ * It is a reading rather than an assertion (**ADR 0051**), and what it holds is worth more than
+ * the panel an assertion here would cost: two independent counts disagreeing is the one thing
+ * that says a drawn figure is wrong rather than short, so the reading carries the answer.
  */
 function getPinnedDisagrees(
     statistics: FightStatistics,
@@ -1378,7 +1378,7 @@ function getWithNeitherEnd(statistics: FightStatistics, metric: PanelMetric): nu
     return 0;
 }
 
-export function composePanelSides(
+function composePanelSides(
     statistics: FightStatistics,
     roster: CombatantRoster,
     metric: PanelMetric,
@@ -1969,19 +1969,19 @@ function composeSkillCut(
     // Drawn even where it landed nothing: three blows that were all blocked are three blows, and
     // a section that skipped them would say the combatant never swung.
     const plain = total - held;
-    // ⚠️ **On the healing screens this is nought by construction**, and it was asserted until
-    // **ADR 0051**: one condition in `src/core/fight-statistics.ts` sends a movement to a skill's
-    // row or to the key cut, never to both and never to neither. It is not carried out as a defect
-    // like the two `composePanelReading` answers for, because the two of them are invisible — a
-    // share divided by the wrong whole — and this one is not: a remainder draws a row of its own,
-    // with the figure on it, where a reader can see it and add it up.
+    // ⚠️ **On the healing screens this is nought by construction**, and it is not asserted
+    // (**ADR 0051**): one condition in `src/core/fight-statistics.ts` sends a movement to a
+    // skill's row or to the key cut, never to both and never to neither. It is not carried out
+    // as a defect like the two `composePanelReading` answers for, because those two are invisible
+    // — a share divided by the wrong whole — and this one is not: a remainder draws a row of its
+    // own, with the figure on it, where a reader can see it and add it up.
     const isCounted = metric === "damageDealtApplied";
     const hasPlain = plain > 0 || (isCounted && figures.blowsWithoutSkill > 0);
     const hasRest = folded.rest > 0;
-    // ⚠️ **The clamped figure is what the shares are composed from, and it used to be the bare
-    // remainder.** A row drawn at nought beside a share worked out from a figure below nothing
-    // printed *Nie wiadomo* where the panel had just drawn a number, which is a row saying two
-    // things at once. What the clamp hides is carried out of here instead.
+    // ⚠️ **The shares are composed from the clamped figure, never from the bare remainder.** A
+    // row drawn at nought beside a share worked out from a figure below nothing prints
+    // *Nie wiadomo* where the panel has just drawn a number, which is a row saying two things at
+    // once. What the clamp hides is carried out of here instead.
     const drawn = Math.max(plain, 0);
     const figuresOnScreen = stated.map((one) => one.figure);
     if (hasRest) figuresOnScreen.push(folded.rest);

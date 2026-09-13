@@ -284,9 +284,9 @@ function composeTipCut(reading: TipReading, kept: readonly TipGroup[]): TipReadi
 /**
  * The card cut to the room there is, with a line saying so wherever anything was given up.
  *
- * ⚠️ **A card taller than the window used to be clipped, and say nothing.** The box carries
+ * ⚠️ **A card taller than the window is clipped and says nothing about it.** The box carries
  * `overflow:hidden` and takes no pointer: measured on Chrome 152, 2026-09-06, a 533 px card in a
- * 480 px window showed 464 of it and lost the rest without a mark. So what will not fit is given
+ * 480 px window shows 464 of it and loses the rest without a mark. So what will not fit is given
  * up at a run's own edge and the card states it. Unchanged where the page states no height.
  */
 export function composeTipWithin(reading: TipReading, room: number | null): TipReading {

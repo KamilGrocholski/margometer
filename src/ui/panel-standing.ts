@@ -15,9 +15,9 @@ import { getPartOfSide, type PanelSidePart } from "@/src/ui/panel-reading.ts";
 import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
 
 /** Past every skill the corpus casts at a side in one fight, and a clamp rather than a bound. */
-export const MAXIMUM_STANDING_ROWS = 24;
+const MAXIMUM_STANDING_ROWS = 24;
 /** Past the most casters one skill has ever stood on at once. */
-export const MAXIMUM_CASTERS = 12;
+const MAXIMUM_CASTERS = 12;
 /**
  * Past every character a shout could hold at once: the game's own party limit is smaller, and the
  * corpus has never held more than one, because every recording in it is ten against one.
@@ -27,7 +27,7 @@ export const MAXIMUM_PROVOKED = 12;
  * Past every charge the corpus has ever held at once, which is one — and past the bound
  * `core/charged-skill.ts` already clamps to, so this one only ever repeats that answer.
  */
-export const MAXIMUM_CHARGED_ROWS = 4;
+const MAXIMUM_CHARGED_ROWS = 4;
 
 export interface StandingCaster {
     casterId: number;

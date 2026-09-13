@@ -452,10 +452,10 @@ function composePersonCard(
  * The tip a row falls back on where nobody stands behind it, and the one instruction the panel
  * gives. A skill, a kind, an end the protocol left out and a fight on the shelf get this.
  *
- * ⚠️ **A row that opens says so, at every level and not only on the ranking.** The note used to be
- * the card's alone, and of the rows a reader meets inside an opened one, the 1,576 that open
- * (`captures/`, 2026-08-30) were told apart from the 588 that do not by the cursor and by nothing
- * else. Half a section being pressable and silent about it teaches a reader that none of it is.
+ * ⚠️ **A row that opens says so, at every level and not only on the ranking.** Where the note is
+ * the card's alone, the 1,576 rows inside an opened one that open (`captures/`, 2026-08-30) are
+ * told apart from the 588 that do not by the cursor and by nothing else. Half a section being
+ * pressable and silent about it teaches a reader that none of it is.
  */
 function composeRowTipReading(reading: RowReading, tip: RowTip, doesOpen: boolean): TipReading {
     const stated: TipLine[] = [{
@@ -681,8 +681,8 @@ function composeBarControl(
 
 /**
  * The save is drawn only where there is a fight to hand over. A control that does nothing is worse
- * than one that is not there (`DESIGN.md`), and this one used to hand over an envelope with no
- * call in it — a file that looked like a saved fight and was not. **ADR 0053.**
+ * than one that is not there (`DESIGN.md`), and an envelope with no call in it is a file that
+ * looks like a saved fight and is not. **ADR 0053.**
  */
 function composeTitleElement(
     document: PanelDocument,

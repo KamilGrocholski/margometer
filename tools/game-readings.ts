@@ -108,7 +108,6 @@ export function composeReadingLine(state: ReadingState): string {
  */
 export function composeUnaskedClientState(said: string): ReadingState {
     assert(said.length > 0, "a world that could not be asked says what happened");
-    assert(NAME_COLUMN > 0, "and the row it stands in has a column to stand in");
     return { name: "client", verdict: "unknown", says: `not asked: ${said}` };
 }
 
@@ -202,7 +201,7 @@ export function composeFrozenHelpState(
  * the only source that states how long an effect runs for, so a reading behind the game here is a
  * duration drawn beside a figure that moved.
  */
-export function composeSkillDumpState(cached: CachedSkillTable | null, now: number): ReadingState {
+function composeSkillDumpState(cached: CachedSkillTable | null, now: number): ReadingState {
     assert(now > 0, "a dump's age is measured from an instant");
     assert(cached === null || cached.url.length > 0, "and a cache admitted names what it fetched");
     if (cached === null) {
@@ -216,7 +215,7 @@ export function composeSkillDumpState(cached: CachedSkillTable | null, now: numb
 }
 
 /** The frozen durations against the page they were taken off. */
-export function composeFrozenSkillState(
+function composeFrozenSkillState(
     frozen: FrozenSkillReading,
     cached: CachedSkillTable | null,
 ): ReadingState {
@@ -272,7 +271,7 @@ async function readClientState(cached: CachedClientSource | null): Promise<Readi
 }
 
 /** Every reading, in the order a refresh does them: each one dates the one after it. */
-export async function readReadingStates(
+async function readReadingStates(
     now: number,
     frozen: LoadedReadings,
 ): Promise<ReadingState[]> {

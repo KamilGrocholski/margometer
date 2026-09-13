@@ -113,7 +113,7 @@ async function copyInto(from: string, into: string): Promise<void> {
 }
 
 /** The built bundle of such a tree, and the temporary tree taken away after it. */
-export async function readGivingWayBundle(regions: readonly string[]): Promise<string> {
+async function readGivingWayBundle(regions: readonly string[]): Promise<string> {
     const unknown = getRegionsUnknown(regions);
     if (unknown.length > 0) {
         throw new PanelShotError(`no region of the panel is called ${unknown.join(", ")}`);
@@ -175,7 +175,7 @@ async function writeGivingWayShot(
 }
 
 /** One picture per region asked for, named for it, into a directory of the caller's choosing. */
-export async function writeGivingWayShots(
+async function writeGivingWayShots(
     browser: string,
     regions: readonly string[],
     into: string,

@@ -867,8 +867,8 @@ function getFightSuspicions(fight: FightReading): FightSuspicions {
 
 /**
  * Two counts of one figure came out different, which is the one thing this panel can say about a
- * drawn figure being wrong rather than short. `src/ui/panel-reading.ts` answers it; it was an
- * assertion there until **ADR 0051**, and stopping the panel is what it used to cost.
+ * drawn figure being wrong rather than short. `src/ui/panel-reading.ts` answers it, and answers
+ * it as a defect rather than by asserting: an assertion there costs the panel (**ADR 0051**).
  */
 function addFiguresDisagreed(
     keeper: KeptDefects,
@@ -1176,7 +1176,8 @@ function composeStoreForChoice(page: UserscriptWindow, choice: PanelStorageChoic
 
 /**
  * Whether the page states the members this add-on **calls**, asked before one of them is reached.
- * It stands where a cast in `userscript-boot.ts` used to. **That a member is there and callable
+ * It stands here rather than as a cast in `userscript-boot.ts` (**ADR 0051**). **That a member is
+ * there and callable
  * is all it says** — a signature is not `typeof`'s to give, and a function of the wrong shape is
  * answered for by every boundary below. What this closes is the start, which has none.
  */

@@ -137,7 +137,6 @@ export function getReachFromEffects(effects: readonly { effect: string }[]): Aur
 
 export function isTeamWideKey(key: string): boolean {
     assert(key.length > 0, "a key that is asked about is named");
-    assert(TEAM_WIDE_ENDINGS.length > 0, "and there are shapes to try it against");
     if (key.startsWith(TEAM_WIDE_OPENING)) return true;
     for (const ending of TEAM_WIDE_ENDINGS) {
         if (key.endsWith(ending)) return true;

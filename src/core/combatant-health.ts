@@ -112,7 +112,6 @@ const PERCENT_SHARE = 100;
 
 /** Sides a reducer reached: the ones its own caster faced, which is what the help states. */
 function getReducedSides(events: readonly BattleEvent[], roster: CombatantRoster): Set<number> {
-    assert(HEALING_REDUCER_KEY.length > 0, "the reducer is a key with a name");
     const reduced = new Set<number>();
     for (const event of events) {
         if (event.kind !== "skill-used") continue;

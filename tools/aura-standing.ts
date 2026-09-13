@@ -319,7 +319,6 @@ function writeProvocationReport(rows: readonly ProvocationRow[]): void {
                 ` ${composeIntegerText(row.namedAtOnce).padStart(9)}`,
         );
     }
-    assert(NAME_COLUMN > 0, "and each has a column to stand in");
 }
 
 function writeSourceReport(rows: readonly SourceRow[]): void {

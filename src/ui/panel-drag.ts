@@ -4,8 +4,6 @@
  * **Two windows share this root, and a grip says which.** **ADR 0060.**
  */
 
-/** A position is two numbers written as JSON; text longer than this is not one. */
-const MAXIMUM_STORED = 4096;
 import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { getValueWithin } from "@/libs/number-range.ts";
@@ -13,6 +11,9 @@ import { getNumberFromUnknown, isRecord } from "@/libs/unknown-reading.ts";
 import type { PanelElement, PanelEvent, PanelRoot } from "@/src/ui/panel-element.ts";
 import { setGuardedListener } from "@/src/ui/panel-listener.ts";
 import { PLACE, SPACE, STANDING } from "@/src/ui/panel-look.ts";
+
+/** A position is two numbers written as JSON; text longer than this is not one. */
+const MAXIMUM_STORED = 4096;
 
 export interface PanelPosition {
     left: number;
@@ -170,7 +171,7 @@ export function composePositionStyle(
  * `composeDefaultPosition` centres what it is given, so centring both puts this one exactly under
  * the panel — where the panel paints over it and a reader sees nothing at all. **ADR 0060.**
  */
-export function composeStandingPosition(viewport: PanelViewport | null): PanelPosition | null {
+function composeStandingPosition(viewport: PanelViewport | null): PanelPosition | null {
     const panel = composeDefaultPosition(viewport);
     if (panel === null) return null;
     const width = getIntegerFromText(STANDING.width.slice(0, -2));

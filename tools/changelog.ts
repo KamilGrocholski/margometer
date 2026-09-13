@@ -66,7 +66,6 @@ export function composeReleaseNotes(changelog: string, version: string): string 
 }
 
 function printUsageAndStop(): never {
-    assert(USAGE.length > 0, "a tool refusing a command says how it is called");
     console.error(USAGE);
     Deno.exit(1);
 }

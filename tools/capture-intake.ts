@@ -423,7 +423,7 @@ export interface ReportRemoval {
  * frozen beside the evidence it was derived from, and the next reader could not tell which of the
  * two a test had failed against. **ADR 0027.**
  */
-export function removeReport(recording: unknown): ReportRemoval {
+function removeReport(recording: unknown): ReportRemoval {
     if (!isRecord(recording)) return { recording, wasRemoved: false };
     if (!(CAPTURE_FIELDS.report in recording)) return { recording, wasRemoved: false };
     const kept: Record<string, unknown> = {};
@@ -630,7 +630,7 @@ export function isSlugText(text: string): boolean {
  * bundle name, one out of a file somebody may have edited — so neither is trusted into a path.
  * Walked rather than matched (**C7**).
  */
-export function isVersionText(text: string): boolean {
+function isVersionText(text: string): boolean {
     assert(text.length <= MAXIMUM_OFFERED, "a version offered is shorter than one is typed");
     if (text.length === 0) return false;
     for (const [at, character] of [...text].entries()) {

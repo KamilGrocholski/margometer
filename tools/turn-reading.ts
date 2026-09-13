@@ -451,7 +451,7 @@ export function composeOpenerTally(fights: readonly RecordedFight[]): OpenerTall
 const OPENER_WIDTH = 32;
 
 /** The partition the document carries above the key table. */
-export function composeOpenerReport(tally: readonly OpenerTally[]): string[] {
+function composeOpenerReport(tally: readonly OpenerTally[]): string[] {
     assert(tally.length > 0, "a report states the tally it was handed");
     const lines = [`  ${"opened by".padEnd(OPENER_WIDTH)}${"turns".padStart(9)}`];
     for (const one of tally) {
@@ -466,7 +466,7 @@ export function composeOpenerReport(tally: readonly OpenerTally[]): string[] {
 const KEY_WIDTH = 32;
 
 /** The key register the document carries. */
-export function composeKeyReport(tally: readonly KeyTally[]): string[] {
+function composeKeyReport(tally: readonly KeyTally[]): string[] {
     assert(tally.length > 0, "a report states the tally it was handed");
     const lines = [
         `  ${"key".padEnd(KEY_WIDTH)}${"messages".padStart(10)}${"opened".padStart(9)}` +
@@ -487,7 +487,7 @@ export function composeKeyReport(tally: readonly KeyTally[]): string[] {
 const NAME_WIDTH = 68;
 
 /** The register the document carries, which names no message and points at every one of them. */
-export function composeDisputeReport(disputed: readonly DisputedReading[]): string[] {
+function composeDisputeReport(disputed: readonly DisputedReading[]): string[] {
     assert(disputed.every((one) => one.key.length > 0), "a dispute stands on a key it names");
     const lines = [
         `  ${"recording".padEnd(NAME_WIDTH)}${"payload".padStart(9)}${"message".padStart(9)}` +

@@ -218,7 +218,6 @@ function resetFight(underway: FightUnderway): void {
  * stop finding it the day the game sends the other one.
  */
 function readReaderSideFromPayload(payload: Record<string, unknown>): number | null {
-    assert(READER_SIDE_KEY.length > 0, "the reader's own side is stated under a key with a name");
     const stated = payload[READER_SIDE_KEY];
     const side = typeof stated === "string"
         ? getIntegerFromText(stated)
@@ -229,7 +228,6 @@ function readReaderSideFromPayload(payload: Record<string, unknown>): number | n
 
 /** Null where it says nothing, which 1086 of `captures/`'s 1135 payloads do, 2026-09-09. */
 function readAutoFightFromPayload(payload: Record<string, unknown>): boolean | null {
-    assert(AUTO_FIGHT_KEY.length > 0, "a fight the game runs itself is stated under a key");
     const stated = payload[AUTO_FIGHT_KEY];
     const said = typeof stated === "string"
         ? getIntegerFromText(stated)
@@ -241,7 +239,6 @@ function readAutoFightFromPayload(payload: Record<string, unknown>): boolean | n
 
 export function isFightStart(payload: unknown): boolean {
     if (!isRecord(payload)) return false;
-    assert(FIGHT_OPENS_KEY.length > 0, "a fight is opened by a key with a name");
     return FIGHT_OPENS_KEY in payload;
 }
 

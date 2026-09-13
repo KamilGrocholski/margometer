@@ -298,7 +298,6 @@ function setRebuilt(state: PreviewState): void {
 
 /** Drains the watcher until it is closed, which is what `stop` below does to end this. */
 async function readFileEvents(watcher: Deno.FsWatcher, state: PreviewState): Promise<void> {
-    assert(WATCHED_PATHS.length > 0, "there is something to watch");
     const rebuild = debounce(() => setRebuilt(state), REBUILD_AFTER_QUIET_MILLISECONDS);
     for await (const event of watcher) {
         if (event.kind === "access") continue;

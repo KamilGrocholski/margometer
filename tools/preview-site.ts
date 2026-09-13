@@ -146,7 +146,7 @@ export function composePreviewSitePages(): PreviewSiteFile[] {
  * own HTML turns the tag into a syntax error in every visitor's console — on a page whose whole
  * purpose is to look like nothing is wrong.
  */
-export async function composePreviewSiteFiles(version: string): Promise<PreviewSiteFile[]> {
+async function composePreviewSiteFiles(version: string): Promise<PreviewSiteFile[]> {
     assert(version.length > 0, "a published page states the version it draws");
     const bundle = await composeUserscriptFiles(
         version,

@@ -145,7 +145,6 @@ function readEffectsFromCell(cell: string): SkillEffectReading[] {
         if (effect === null) continue;
         found.push(effect);
     }
-    assert(MAXIMUM_EFFECTS > 0, "and the walk was given a bound to stay inside");
     return found;
 }
 
@@ -173,7 +172,7 @@ export function readSkillsFromPage(html: string): SkillReading[] {
     return found;
 }
 
-export function requireCachedSkillTable(value: unknown): CachedSkillTable {
+function requireCachedSkillTable(value: unknown): CachedSkillTable {
     if (!isRecord(value)) throw new SkillTableError("the skill cache states no manifest");
     const url = getTextFromUnknown(value["url"]);
     const fetchedAt = getTextFromUnknown(value["fetchedAt"]);
@@ -233,7 +232,7 @@ export async function writeSkillTableCache(): Promise<CachedSkillTable> {
 }
 
 /** The page as it was cached, refused rather than guessed at where nothing is. */
-export function requireCachedSkills(): { cached: CachedSkillTable; skills: SkillReading[] } {
+function requireCachedSkills(): { cached: CachedSkillTable; skills: SkillReading[] } {
     const cached = getCachedSkillTable();
     if (cached === null) {
         throw new SkillTableError("nothing cached — run `deno task game:skills fetch` first");

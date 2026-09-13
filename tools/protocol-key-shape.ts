@@ -216,7 +216,6 @@ export function composeKeyShapes(paths: readonly string[]): KeyShape[] {
 
 /** The key a `### ` heading names, or null where the line is not one. Walked, never matched. */
 function getHeadingKey(line: string): string | null {
-    assert(HEADING_OPENER.length > 0, "and a heading opens with something");
     if (!line.startsWith(HEADING_OPENER)) return null;
     const rest = line.slice(HEADING_OPENER.length);
     if (!rest.startsWith(BACKTICK)) return null;
@@ -234,7 +233,6 @@ function getHeadingKey(line: string): string | null {
  */
 function composeShapeOfLine(key: string, line: string): KeyShape | null {
     assert(key.length > 0, "a claim read off a line belongs to a key");
-    assert(SHAPE_MARKER.length > 0, "and a claim opens with a marker");
     if (!line.startsWith(SHAPE_MARKER)) return null;
     const claims = line.slice(SHAPE_MARKER.length).split(CLAIM_SEPARATOR).map((one) => one.trim());
     if (claims.length !== CLAIMS_PER_LINE) {
@@ -253,7 +251,6 @@ function composeShapeOfLine(key: string, line: string): KeyShape | null {
 /** `398 occurrences`, and a refusal for anything else — a count read wrong is a claim moved. */
 function readOccurrences(key: string, claim: string): number {
     assert(key.length > 0, "a count is read for a key");
-    assert(OCCURRENCE_WORD.length > 0, "and states the word it counts in");
     const ending = ` ${OCCURRENCE_WORD}`;
     if (!claim.endsWith(ending)) {
         throw new ProtocolKeyShapeError(`${key} counts in a word this reader does not know`);
@@ -270,7 +267,6 @@ function readOccurrences(key: string, claim: string): number {
 /** A phrase outside the list is refused rather than read as silence, which is the header's rule. */
 function readPlacement(key: string, claim: string): KeyPlacement {
     assert(key.length > 0, "a placement is read for a key");
-    assert(PLACEMENTS_STRONGEST_FIRST.length > 0, "and against a vocabulary that says something");
     const found = PLACEMENTS_STRONGEST_FIRST.find((one) => one === claim);
     if (found === undefined) {
         throw new ProtocolKeyShapeError(`${key} sits "${claim}", which is not one of the five`);
@@ -280,7 +276,6 @@ function readPlacement(key: string, claim: string): KeyPlacement {
 
 function readValue(key: string, claim: string): KeyValue {
     assert(key.length > 0, "a value kind is read for a key");
-    assert(VALUE_KINDS.length > 0, "and against a vocabulary that says something");
     const found = VALUE_KINDS.find((one) => one === claim);
     if (found === undefined) {
         throw new ProtocolKeyShapeError(`${key} carries "${claim}", which is not one of the four`);

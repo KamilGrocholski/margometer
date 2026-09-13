@@ -136,12 +136,10 @@ function readIdentityFromWarrior(warrior: Record<string, unknown>): number | nul
         const stated = getNumberFromUnknown(warrior[key]);
         if (stated !== null) return stated;
     }
-    assert(IDENTITY_KEYS.length > 0, "there is a spelling of an id to try");
     return null;
 }
 
 function composeCapturedCombatant(warrior: Record<string, unknown>): CapturedCombatant {
-    assert(NAME_KEY.length > 0, "a combatant put in a snapshot was found by a name");
     assert(isRecord(warrior), "and is a record before any field is read off it");
     return {
         id: readIdentityFromWarrior(warrior),
@@ -176,7 +174,6 @@ export function composeSnapshotFromBattle(battle: Record<string, unknown>): Capt
         assert(named.length > 0, "a collection that answered answered with somebody");
         return named.map((warrior) => composeCapturedCombatant(warrior));
     }
-    assert(WARRIOR_COLLECTIONS.length > 0, "there is a collection to look in");
     return [];
 }
 

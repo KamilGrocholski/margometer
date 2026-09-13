@@ -71,7 +71,6 @@ export function composeUserscriptBanner(version: string): string {
 }
 
 export function getOutboundCallsInText(text: string): string[] {
-    assert(OUTBOUND_CALLS.length > 0, "there is something to look for");
     const found: string[] = [];
     for (const call of OUTBOUND_CALLS) {
         if (text.includes(call)) found.push(call);

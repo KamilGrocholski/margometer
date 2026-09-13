@@ -137,7 +137,6 @@ function getQuotedLiteral(source: string, open: number): { text: string; end: nu
         }
         index += 1;
     }
-    assert(MAXIMUM_LITERAL_CHARACTERS > 0, "the walk was given a stated bound");
     return null;
 }
 
@@ -227,7 +226,6 @@ function getFieldsFromShape(
         if (fields !== null) return fields;
         at = bundle.indexOf(head.text, at + 1);
     }
-    assert(MAXIMUM_LOOKS > 0, "the search was given a stated bound");
     return null;
 }
 
@@ -277,7 +275,6 @@ function getSwitchSubjectStart(bundle: string, from: number): number | null {
         if (start < at) return start;
         at = bundle.indexOf(SWITCH_SUBJECT_TAIL, at + 1);
     }
-    assert(MAXIMUM_LOOKS > 0, "the search was given a stated bound");
     return null;
 }
 
@@ -364,7 +361,6 @@ function composeFrozenKeyModule(build: string, keys: string[], family: ComputedK
     const written = keys.map((key) => `        ${requireWrittenText(key)},`).join("\n");
     assert(written.length > 0, "a table that is written down says something");
     assert(build.length > 0, "and is dated by the build it was lifted from");
-    assert(FROZEN_KEY_BANNER.length > 0, "and stands under a banner saying where it came from");
     return `${FROZEN_KEY_BANNER}
 export const FROZEN_PROTOCOL_KEYS = {
     gameBuild: ${requireWrittenText(build)},

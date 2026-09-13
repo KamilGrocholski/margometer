@@ -283,7 +283,6 @@ document.body.append(report);`;
  * and a document offering none is a case it already answers for.
  */
 function composeShotScriptDrag(): string {
-    assert(GRIP_SELECTOR.length > 0, "a window is taken hold of by the bar that says it is one");
     return `delete Element.prototype.setPointerCapture;
 delete Element.prototype.releasePointerCapture;
 
@@ -331,7 +330,6 @@ var getFrameAcross = function () {
  * `right` set behind its back does not move. That is what photographed a card over the panel.
  */
 function composeShotScriptCorner(): string {
-    assert(PANEL_INSET > 0, "a panel in the corner keeps the air the sheet gives it");
     assert(MEASURING_WIDTH >= BROWSER_FLOOR_WIDTH, "and in a window the browser opens as asked");
     return `var setPanelInCorner = function () {
   var host = getPanelHost();
@@ -352,7 +350,6 @@ function composeShotScriptCorner(): string {
  * measured against the right edge cuts it in half.
  */
 function composeShotScriptBeside(): string {
-    assert(PANEL_GAP > 0, "the two windows keep the air the sheet gives them");
     return `var setStandingBeside = function () {
   var host = getPanelHost();
   var beside = getStandingWindow();
@@ -452,7 +449,7 @@ export async function readInstalledBrowser(candidates: readonly string[]): Promi
     throw new PanelShotError(`no browser to photograph with: tried ${candidates.join(", ")}`);
 }
 
-async function readBrowserOutput(browser: string, args: readonly string[]): Promise<string> {
+async function readBrowserOutput(browser: string, flags: readonly string[]): Promise<string> {
     assert(browser.length > 0, "a browser was found before it is run");
     // A profile of its own, always: a shared one is shared state between two runs.
     const profile = await Deno.makeTempDir({ prefix: "margometer-profile-" });
@@ -464,7 +461,7 @@ async function readBrowserOutput(browser: string, args: readonly string[]): Prom
                 "--no-first-run",
                 "--hide-scrollbars",
                 `--user-data-dir=${profile}`,
-                ...args,
+                ...flags,
             ],
         }).output();
         if (!run.success) {
@@ -507,11 +504,11 @@ async function writeShotOfAddress(browser: string, address: string, path: string
     assert(height > 0, "on both sides of it");
 }
 
-async function readGitSaying(args: readonly string[]): Promise<string> {
-    assert(args.length > 0, "git is asked something");
-    const asked = await new Deno.Command("git", { args: [...args] }).output();
+async function readGitSaying(words: readonly string[]): Promise<string> {
+    assert(words.length > 0, "git is asked something");
+    const asked = await new Deno.Command("git", { args: [...words] }).output();
     if (!asked.success) {
-        throw new PanelShotError(`git would not answer ${args.join(" ")}`);
+        throw new PanelShotError(`git would not answer ${words.join(" ")}`);
     }
     assert(asked.success, "and answered before its answer is read");
     return new TextDecoder().decode(asked.stdout).trim();
@@ -563,7 +560,7 @@ async function setShotsMovedIn(staging: string, record: PanelShotRecord): Promis
  * pictures with it: a machine with no browser would otherwise be left holding a `screenshots/`
  * that a README points at and that is empty.
  */
-export async function writePanelShots(browser: string, version: string): Promise<PanelShotRecord> {
+async function writePanelShots(browser: string, version: string): Promise<PanelShotRecord> {
     assert(version.length > 0, "a set is taken at a version the panel in it will state");
     const commit = await getCommitForShots();
     const fight = getPreviewRecordedFight(getRecordedFights());

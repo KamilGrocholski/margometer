@@ -41,8 +41,6 @@ export interface EngineBattleWrap {
 
 /** By the marker's presence, whatever its value: any MargoMeter is a second count. */
 export function isEngineBattleWrapped(battle: EngineBattle): boolean {
-    assert(WRAPPED_METHOD.length > 0, "the method a wrap goes on is named");
-    assert(WRAP_MARKER.length > 0, "and the marker it would be found by");
     return hasMargoMeterWrap(battle[WRAPPED_METHOD]);
 }
 

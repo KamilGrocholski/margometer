@@ -1,5 +1,5 @@
 /**
- * Markup read as the words a person would have seen in it, and a table walked by its own tags.
+ * Markup read as the words a person would have seen in it.
  *
  * Text is walked rather than matched (**C7**), so every loop here carries a stated bound. Nothing
  * about this project is in it: it is handed markup and answers with text.
@@ -8,8 +8,8 @@
 import { assert } from "@std/assert/assert";
 import { getEndOfRun } from "@/libs/text-walk.ts";
 
-export const TAG_OPEN = "<";
-export const TAG_CLOSE = ">";
+const TAG_OPEN = "<";
+const TAG_CLOSE = ">";
 const TAG_TERMINATOR = "/";
 const LOWER_CASE_OFFSET = 32;
 const WHITESPACE = " \t\r\n\f\v";
@@ -24,6 +24,10 @@ const MAXIMUM_RUNS = 1048576;
  * The named entities these pages use, in the order they are substituted. ⚠️ **The order is the
  * meaning**: each pass runs over what the one before produced, so `&amp;lt;` becomes `&lt;` and
  * then `<`. One pass over the original stops at `&lt;`, which is a different answer.
+ *
+ * `@std/html`'s `unescape` was asked first and answers differently on both counts (**C17**): it
+ * substitutes once, so a doubled entity comes back half-read, and it takes the semicolon, while
+ * these pages write `&nbsp` without one.
  */
 const ENTITIES: readonly (readonly [string, string])[] = [
     ["&nbsp;", " "],
@@ -35,7 +39,7 @@ const ENTITIES: readonly (readonly [string, string])[] = [
 ];
 
 /** ASCII case folding, and only ASCII — a tag name has nothing else in it. */
-export function isSameAsciiTextAt(text: string, from: number, expected: string): boolean {
+function isSameAsciiTextAt(text: string, from: number, expected: string): boolean {
     assert(expected.length > 0, "a comparison is against something");
     assert(from >= 0, "and starts inside the text");
     for (let index = 0; index < expected.length; index += 1) {
@@ -60,7 +64,6 @@ function getRawTextOpening(html: string, open: number): { name: string; end: num
         assert(close > open, "a tag closes after it opened");
         return { name, end: close + 1 };
     }
-    assert(RAW_TEXT_ELEMENTS.length > 0, "there are elements to recognise");
     return null;
 }
 
@@ -102,7 +105,6 @@ function composeWithoutRawTextElements(html: string): string {
         open = html.indexOf(TAG_OPEN, from);
     }
     assert(from <= html.length, "the walk stays inside what it walked");
-    assert(MAXIMUM_TAGS > 0, "and was given a stated bound");
     return kept + html.slice(from);
 }
 
@@ -124,7 +126,6 @@ function composeWithoutTags(html: string): string {
         open = html.indexOf(TAG_OPEN, from);
     }
     assert(from <= html.length, "the walk stays inside what it walked");
-    assert(MAXIMUM_TAGS > 0, "and was given a stated bound");
     return kept + html.slice(from);
 }
 
@@ -152,7 +153,6 @@ function composeCollapsedWhitespace(text: string): string {
         index = end;
     }
     assert(from <= text.length, "the walk stays inside what it walked");
-    assert(MAXIMUM_RUNS > 0, "and was given a stated bound");
     return `${collapsed}${text.slice(from)}`.trim();
 }
 
@@ -160,7 +160,6 @@ function composeCollapsedWhitespace(text: string): string {
 export function getTextFromHtml(html: string): string {
     let text = composeWithoutTags(composeWithoutRawTextElements(html));
     for (const [entity, character] of ENTITIES) text = text.split(entity).join(character);
-    assert(ENTITIES.length > 0, "there are entities to substitute");
-    assert(text.length <= html.length + ENTITIES.length, "text is never longer than its markup");
+    assert(text.length <= html.length, "text is never longer than the markup it was read from");
     return composeCollapsedWhitespace(text);
 }

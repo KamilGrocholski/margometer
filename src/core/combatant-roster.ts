@@ -30,7 +30,7 @@ export interface CombatantRoster {
 export const MAXIMUM_COMBATANTS = 20;
 /**
  * How many times one call may be handed somebody. **The bound above counts people and this counts
- * sightings**, and one assertion used to do both: a fight's own cast beside a payload restating it
+ * sightings**, and one assertion cannot do both: a fight's own cast beside a payload restating it
  * is forty sightings of twenty people, and the cast of a full ten against ten was refused by being
  * named a second time. Two of each is the shape `src/game/fight-underway.ts` hands over — what it
  * holds, and what one payload states.

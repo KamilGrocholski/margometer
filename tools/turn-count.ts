@@ -465,7 +465,7 @@ export const NO_STRETCH = "\u2014";
  * the whole stretch. A verdict without its coverage would hold while most of the numbering went
  * ungraded, which is the state this register was rebuilt out of.
  */
-export function composeGradeRegister(grades: readonly TurnGrade[]): string[] {
+function composeGradeRegister(grades: readonly TurnGrade[]): string[] {
     assert(grades.length > 0, "a register states the grades it was handed");
     const heading = `${"the game agrees".padEnd(VERDICT_WIDTH + 4)}${"steps".padStart(9)}` +
         `${"agreed".padStart(9)}${"granted".padStart(9)}${"taken".padStart(9)}` +
@@ -537,7 +537,7 @@ function composeWalkLine(boundary: TurnBoundary): string {
  * payload stating no ordinal opens no boundary and gets no line: what is graded here is the
  * stretch between two statements of the game's, never a payload.
  */
-export function composeTurnReport(fight: RecordedFight): string[] {
+function composeTurnReport(fight: RecordedFight): string[] {
     assert(fight.name.length > 0, "a walk is headed by the recording it was taken on");
     const steps = composeFightReplaySteps(fight);
     assert(steps.length <= MAXIMUM_PAYLOADS, "a walk stays inside the recording's stated bound");

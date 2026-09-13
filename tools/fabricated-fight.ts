@@ -348,7 +348,7 @@ export function isFabricatedPath(path: string): boolean {
     return path.startsWith(`${FABRICATED_DIRECTORY}${PATH_SEPARATOR}`);
 }
 
-export function writeFabricatedFight(path: string, text: string): void {
+function writeFabricatedFight(path: string, text: string): void {
     if (!isFabricatedPath(path)) {
         throw new FabricatedFightError(`${path} is outside ${FABRICATED_DIRECTORY}/`);
     }
@@ -1044,7 +1044,6 @@ function actLegendaryBuffs(turn: FabricatedTurn): string[] {
 /** The one announcement that carries no id, which is why nothing can date what it put on a side. */
 function actBardSong(turn: FabricatedTurn): string[] {
     assert(isStanding(turn.actor), "a song is sung by somebody still standing");
-    assert(BARD_SONG.length > 0, "and names what the client would have shown");
     return [composeMessage(composeSide(turn.actor), null, [composeValued("tcustom", BARD_SONG)])];
 }
 
@@ -1056,7 +1055,6 @@ function actStep(turn: FabricatedTurn): string[] {
 
 function actPrepare(turn: FabricatedTurn): string[] {
     assert(isStanding(turn.actor), "a skill is made ready by somebody standing");
-    assert(CHARGED_SKILL.length > 0, "and names the skill the client would show");
     const percent = composeIntegerText(getValueWithin(composeSmall(turn, 70), 0, WHOLE_PERCENT));
     return [composeMessage(composeSide(turn.actor), null, [
         composeValued("prepare", `${CHARGED_SKILL}(${percent}%)`),
@@ -1182,7 +1180,7 @@ function composeStandingWarrior(warrior: FabricatedWarrior): Record<string, unkn
     };
 }
 
-function composeWarriorMap(
+function composeWarriorsById(
     warriors: readonly FabricatedWarrior[],
     compose: (warrior: FabricatedWarrior) => Record<string, unknown>,
 ): Record<string, unknown> {
@@ -1366,7 +1364,7 @@ function addOpeningCall(state: FabricationState): void {
         skills_disabled: [],
         skills_combo_max: [],
         skills: ["-1", "", "", "", "", "", "", "", "", ""],
-        [WARRIOR_FIELDS.warriors]: composeWarriorMap(state.warriors, composeOpeningWarrior),
+        [WARRIOR_FIELDS.warriors]: composeWarriorsById(state.warriors, composeOpeningWarrior),
         [READER_SIDE_KEY]: SIDE_OURS,
         [MESSAGES_KEY]: messages,
         [MESSAGE_INDEX_KEY]: indexes,
@@ -1391,7 +1389,7 @@ function addTurnCall(state: FabricationState, turn: FabricatedTurn, act: Fabrica
     const indexes = addMessageIndexes(state, messages);
     addTurnStatement(state, turn.actor);
     const payload: Record<string, unknown> = {
-        [WARRIOR_FIELDS.warriors]: composeWarriorMap(
+        [WARRIOR_FIELDS.warriors]: composeWarriorsById(
             getStatedWarriors(state, turn),
             composeStandingWarrior,
         ),
@@ -1493,7 +1491,7 @@ function composeClosingPayload(
 ): Record<string, unknown> {
     return {
         [FIGHT_ENDS_KEY]: 1,
-        [WARRIOR_FIELDS.warriors]: composeWarriorMap(state.warriors, composeStandingWarrior),
+        [WARRIOR_FIELDS.warriors]: composeWarriorsById(state.warriors, composeStandingWarrior),
         [MESSAGES_KEY]: messages,
         [MESSAGE_INDEX_KEY]: addMessageIndexes(state, messages),
         move: -1,

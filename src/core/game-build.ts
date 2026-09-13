@@ -64,7 +64,6 @@ function getScriptNameSpan(text: string): ScriptNameSpan | null {
         assert(head < buildStart, "a name starts before the id inside it");
         return { nameStart: head, buildStart, buildEnd };
     }
-    assert(MAXIMUM_LOOKS > 0, "the walk was given something to look at");
     return null;
 }
 

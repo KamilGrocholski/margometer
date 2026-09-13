@@ -143,7 +143,6 @@ export const PREVIEW_FIGHT_NAME = "2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.
 
 /** Loudly (**E7**): a preview opening on some other fight is worse than one that does not open. */
 export function getPreviewRecordedFight(fights: readonly RecordedFight[]): RecordedFight {
-    assert(PREVIEW_FIGHT_NAME.length > 0, "the fight a preview opens on is named");
     const found = fights.find((fight) => fight.name === PREVIEW_FIGHT_NAME);
     if (found === undefined) {
         throw new PreviewBuildError(`${PREVIEW_FIGHT_NAME} is not among the recordings`);

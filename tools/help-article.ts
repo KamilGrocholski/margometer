@@ -126,7 +126,6 @@ export function isDumpStale(fetchedAt: string, now: number): boolean {
     if (milliseconds === null) return true;
     const days = Math.floor((now - milliseconds) / MILLISECONDS_PER_DAY);
     assert(Number.isFinite(days), "an age is a number of days");
-    assert(STALE_AFTER_DAYS > 0, "and is compared against a floor of at least a day");
     return days >= STALE_AFTER_DAYS;
 }
 
