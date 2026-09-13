@@ -100,6 +100,14 @@ Deno.test("the side's table is what the rule derives from the whole one, and not
         derived,
         "the judgement about which keys reach a side is written once, in core",
     );
+    // ⚠️ **Both sides of that comparison come from the rule**, so a rule that changed and a file
+    // re-frozen under it agree by construction. What cannot agree by construction is the rule
+    // still choosing: one that kept everything, or nothing, would answer here and not there.
+    assert(derived.length > 0, "the rule reaches skills at all");
+    assert(
+        derived.length < FROZEN_SKILL_DURATIONS.skills.length,
+        "and leaves some out — a rule keeping every skill is one that stopped choosing",
+    );
 });
 
 /**
@@ -175,6 +183,7 @@ Deno.test("a shout covers a count of characters, and a side holds at most ten", 
         );
         assert(shout.turns > 0, `${shout.id}: and it holds for stated turns`);
     }
+    assert(FROZEN_AURA_TURNS.shouts.length > 0, "there are shouts to ask this of");
 });
 
 Deno.test("a duration the table states is a whole number of turns, above nothing", () => {

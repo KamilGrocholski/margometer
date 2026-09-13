@@ -6,14 +6,23 @@
  * block against a tree holding thirty, `29 recordings` beside a guard that walks every one of
  * them, and two more — so the size of the corpus is `docs/captured-fights.md`'s to state, in a
  * table something re-earns. Everywhere else cites it or drops the figure.
+ *
+ * ⚠️ **The prose in a source file is prose.** The walk read documents only until an audit on
+ * 2026-09-13 found five more sentences behind it — two in `tools/capture-intake.ts`, one each in
+ * `src/game/fight-underway.ts`, `src/ui/panel-look.ts` and `tests/game/fight-capture.test.ts`,
+ * every one of them saying `28 recordings` of a corpus holding thirty-one. A comment goes stale
+ * exactly as a document does and is read by the same person.
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { readRecordingPaths } from "@/project/repository-layout.ts";
+import { getSourcePaths } from "@/tests/source-paths.ts";
 
 const COUNTED = " recording";
 /** More places than this tree writes prose in, so the walk states a bound like every other. */
-const MAXIMUM_DOCUMENTS = 256;
+const MAXIMUM_DOCUMENTS = 1024;
+/** This file, whose samples are counts on purpose: a reader is proved by the thing it must find. */
+const READER_OWN_PATH = "tests/repository/counted-material.test.ts";
 /** Where a count is allowed, and what re-earns it: prose is a count nothing recomputes. */
 const RE_EARNED: Record<string, string> = {
     // `tests/tools/turn-count.test.ts` composes this figure and asks the document for it word
@@ -34,6 +43,10 @@ function readDocumentPaths(): string[] {
     found.push("SECURITY.md", "README.md", "README.en.md", "deno.json");
     for (const entry of Deno.readDirSync("docs")) {
         if (entry.isFile) found.push(`docs/${entry.name}`);
+    }
+    for (const path of getSourcePaths()) {
+        if (path === READER_OWN_PATH) continue;
+        found.push(path);
     }
     assert(found.length <= MAXIMUM_DOCUMENTS, "the walk stays inside its stated bound");
     return found;

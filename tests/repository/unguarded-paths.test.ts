@@ -50,8 +50,12 @@ Deno.test("an import binds the name it is written under, however it is wrapped",
 Deno.test("nothing the add-on reaches while standing up can stop it", () => {
     const graph = composeCallGraph();
     assert(graph.has(ENTRY), "the entry this walks from is a function that exists");
+    const reached = [...getUnguardedReach(graph)];
+    // A walk that stopped following edges reports the same empty list as a walk that found
+    // nothing to report, and the two read identically green.
+    assert(reached.length > 1, "the walk left the entry it started on");
     const throwing: string[] = [];
-    for (const name of getUnguardedReach(graph)) {
+    for (const name of reached) {
         if (graph.get(name)?.doesThrow === true) throwing.push(name);
     }
     assertEquals(throwing.sort(), [], "E14: a throw on a frame the browser reaches unguarded");
@@ -97,7 +101,6 @@ const CROSSINGS_WITH_A_REASON = [
     "now ← src/userscript-entry.ts#startFromUserscriptWindow",
     "read ← src/userscript-entry.ts#composeShelfKeeper",
     "report ← src/userscript-entry.ts#startMargoMeter",
-    "report ← src/userscript-entry.ts#startMargoMeter",
     "setInterval ← src/userscript-entry.ts#startFromUserscriptWindow",
     "slice ← src/userscript-entry.ts#composeShelfKeeper",
 ];
@@ -106,20 +109,17 @@ const CROSSINGS_WITH_A_REASON = [
  * The blind spot, named row by row rather than left silent. A row here is a person's judgement and
  * not a machine's, which is what **V1**'s `by-reading` marker is for elsewhere — what the machine
  * holds is that the list is neither short nor long.
+ *
+ * ⚠️ **Compared whole rather than by containment.** `getCrossings` answers a sorted set, so the
+ * two lists are equal or they are not: a row written twice used to satisfy both halves of a
+ * containment check while excusing one crossing, and it sat here undetected until an audit read it.
  */
 Deno.test("every method the walk steps over is one somebody has looked at", () => {
     const crossings = getCrossings(composeCallGraph());
     const excused = [...CROSSINGS_WITH_A_REASON].sort();
-    assertEquals(
-        crossings.filter((one) => !excused.includes(one)),
-        [],
-        "a method on an unguarded frame that nobody has judged",
-    );
-    assertEquals(
-        excused.filter((one) => !crossings.includes(one)),
-        [],
-        "and a row excusing a crossing the walk no longer makes",
-    );
+    assert(crossings.length > 0, "the walk reaches crossings to judge");
+    assertEquals(excused.length, new Set(excused).size, "a crossing is excused once");
+    assertEquals(crossings, excused, "a crossing nobody judged, or a row the walk no longer makes");
 });
 
 Deno.test("a spread is not a method, and a method is not a plain call", () => {

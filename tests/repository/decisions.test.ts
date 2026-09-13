@@ -16,6 +16,10 @@ import {
 import { getUnwrapped } from "@/tests/markdown-document.ts";
 
 const ADR_STATUSES = ["Proposed", "Accepted", "Deprecated"];
+/** What the fourth status opens with; what follows it is one or two decision numbers. */
+const SUPERSEDED_OPENER = "Superseded by ";
+/** Four digits, never renumbered, which is what a file is named for and what a status says. */
+const ADR_NUMBER_LENGTH = 4;
 const ADR_INDEX = "docs/adr/README.md";
 const INDEX_HEADING = "## Index";
 const BULLET = "- ";
@@ -65,10 +69,69 @@ Deno.test("every decision carries a status the lifecycle allows", () => {
     const wrong: string[] = [];
     for (const name of getAdrFileNames()) {
         const status = getAdrStatus(Deno.readTextFileSync(`docs/adr/${name}`));
-        const allowed = ADR_STATUSES.includes(status) || status.startsWith("Superseded by ");
+        const allowed = ADR_STATUSES.includes(status) || status.startsWith(SUPERSEDED_OPENER);
         if (!allowed) wrong.push(`${name} says ${JSON.stringify(status)}`);
     }
     assertEquals(wrong, [], "a status the lifecycle does not allow");
+});
+
+/** Every four-digit number a status names, walked rather than matched (**C7**). */
+export function getNumbersStated(status: string): string[] {
+    const found: string[] = [];
+    let at = 0;
+    for (let guard = 0; guard < status.length; guard += 1) {
+        if (at >= status.length) break;
+        const digits = getDigitsAt(status, at);
+        if (digits.length === ADR_NUMBER_LENGTH) found.push(digits);
+        at += digits.length === 0 ? 1 : digits.length;
+    }
+    return found;
+}
+
+function getDigitsAt(status: string, at: number): string {
+    let held = "";
+    for (let step = 0; step < status.length - at; step += 1) {
+        const character = status.charAt(at + step);
+        if (character < "0") break;
+        if (character > "9") break;
+        held += character;
+    }
+    return held;
+}
+
+/**
+ * The other half of the supersession, which `startsWith` never read: a status may say
+ * `Superseded by 0009`, and three of them say `in part` and name two records, but every number in
+ * one has to be a decision that exists and never the record's own. A tail nobody reads is a tail
+ * a typo survives in, and the reader following it finds nothing.
+ */
+Deno.test("a superseded decision names decisions that exist, and never itself", () => {
+    assertEquals(getNumbersStated("Superseded by 0009"), ["0009"], "the reader finds the number");
+    assertEquals(getNumbersStated("Superseded by 0063 in part, and by 0067 in part"), [
+        "0063",
+        "0067",
+    ], "and both of them where a status names two");
+    assertEquals(getNumbersStated("Accepted"), [], "a status naming none states none");
+
+    const names = getAdrFileNames();
+    const wrong: string[] = [];
+    let superseded = 0;
+    for (const name of names) {
+        const status = getAdrStatus(Deno.readTextFileSync(`docs/adr/${name}`));
+        if (!status.startsWith(SUPERSEDED_OPENER)) continue;
+        superseded += 1;
+        const stated = getNumbersStated(status);
+        if (stated.length === 0) wrong.push(`${name} names no decision at all`);
+        for (const number of stated) {
+            if (number === name.slice(0, ADR_NUMBER_LENGTH)) {
+                wrong.push(`${name} supersedes itself`);
+            }
+            const found = names.some((one) => one.startsWith(number));
+            if (!found) wrong.push(`${name} names ${number}, which is no decision`);
+        }
+    }
+    assertEquals(wrong, [], "a supersession a reader cannot follow");
+    assert(superseded > 0, "there are superseded decisions to follow");
 });
 
 /**

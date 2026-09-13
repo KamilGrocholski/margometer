@@ -75,10 +75,15 @@ Deno.test("a name that is not a region is named back, and every real one passes"
  */
 Deno.test("nothing a reader installs carries the line that makes a region stand down", () => {
     const carried: string[] = [];
+    let opened = 0;
     for (const path of getSourcePaths()) {
-        if (!path.startsWith("src/")) continue;
+        // The bundle carries `libs/` as surely as `src/`, and a reader of only one of them would
+        // report the same empty list whether it had looked at both or at neither.
+        if (!path.startsWith("src/") && !path.startsWith("libs/")) continue;
+        opened += 1;
         if (!Deno.readTextFileSync(path).includes(MARKER)) continue;
         carried.push(path);
     }
+    assert(opened > 0, "the walk reached what a reader installs, rather than nothing at all");
     assertEquals(carried, [], "a source that ships carries the tool's own marker");
 });

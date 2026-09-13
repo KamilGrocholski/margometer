@@ -864,6 +864,12 @@ Deno.test("a day nobody can name leaves the row saying nothing", () => {
     assertEquals(getWordsForShelfTime(afterTheYear, false), "", "on both sides of the twelve");
     const noDay = { day: 0, month: 9, hour: 21, minute: 5 };
     assertEquals(getWordsForShelfTime(noDay, false), "", "and a day the calendar does not have");
+    const pastTheMonth = { day: 32, month: 9, hour: 21, minute: 5 };
+    assertEquals(getWordsForShelfTime(pastTheMonth, false), "", "on both sides of the day too");
+    const beforeMidnight = { day: 13, month: 9, hour: -1, minute: 5 };
+    assertEquals(getWordsForShelfTime(beforeMidnight, false), "", "an hour before the day began");
+    const beforeTheHour = { day: 13, month: 9, hour: 21, minute: -1 };
+    assertEquals(getWordsForShelfTime(beforeTheHour, false), "", "and a minute before the hour");
     assertEquals(getWordsForShelfTime(null, false), "", "as does a moment that never read back");
 });
 

@@ -16,7 +16,6 @@ import { MAXIMUM_TIPS } from "@/src/ui/panel-tip.ts";
 import { composeShareTexts, MAXIMUM_SHARES } from "@/src/ui/panel-words.ts";
 
 const HUNDRED = 100;
-/** What a row holding something too small to state a point prints, in place of a share. */
 
 /**
  * The widest section, which is the skills section on `damageTakenApplied`: every striker's names at
@@ -72,4 +71,23 @@ Deno.test("a column past the writer's bound is short, which is why the bound is 
         shares.length < amounts.length,
         "so a section past it would draw a row with no share on it",
     );
+});
+
+/**
+ * The bound itself, and the two ends below it. A test standing only past the bound cannot tell a
+ * writer that stops **at** it from one that stops a row early, and zero is a boundary like any
+ * other (**W5**): an empty column is what a section drawn before anything landed asks for.
+ */
+Deno.test("the writer answers at its own bound, at one row, and at none", () => {
+    const full = Array.from({ length: MAXIMUM_SHARES }, () => 1);
+    const shares = composeShareTexts(full, full.length);
+    assertStrictEquals(shares.length, MAXIMUM_SHARES, "a column exactly as wide as the bound");
+    const sum = shares.reduce((held, text) => held + getPointsFromShareText(text), 0);
+    assertEquals(sum, HUNDRED, "and it still comes to the whole");
+
+    const alone = composeShareTexts([7], 7);
+    assertStrictEquals(alone.length, 1, "one row is one share");
+    assertStrictEquals(getPointsFromShareText(alone[0] ?? ""), HUNDRED, "and it holds all of it");
+
+    assertEquals(composeShareTexts([], 0), [], "a column of nothing states nothing");
 });

@@ -33,6 +33,15 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Wiersz „Zwykły cios" da się teraz rozwinąć i zobaczyć, komu — albo od kogo — te ciosy
+  poszły. Wcześniej trzeba było obejść wszystkich przeciwników po kolei i zbierać liczby z osobnych
+  okienek.
+
+- **Nowość** — Każda zapisana walka mówi teraz, którego dnia się odbyła: przed godziną stoi data, na
+  przykład „13 wrz 21:05". Wcześniej widać było samą godzinę, więc walka sprzed tygodnia wyglądała
+  na półce tak samo jak dzisiejsza. Trwająca walka dalej stoi jako „teraz". Na nazwę miejsca zostaje
+  przez to mniej miejsca i dłuższa bywa ucięta — pełną widać w okienku wiersza.
+
 - **Zmiana** — „Zwykły cios" stoi teraz w kolejności jak każdy inny wiersz — z numerem i pełnym
   paskiem, na miejscu, które daje mu jego liczba. Bardzo często jest to miejsce pierwsze, bo zwykłe
   ciosy bywają większą częścią obrażeń niż którakolwiek umiejętność.
@@ -47,10 +56,6 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   „Podwójnego trafienia" i „Podwójnego strzału", a także ciosów, które przeciwnicy zadają seriami.
   Przy kilku postaciach wiersz „Zwykły cios" znika teraz zupełnie, bo nie została pod nim ani jedna
   liczba.
-
-- **Nowość** — Wiersz „Zwykły cios" da się teraz rozwinąć i zobaczyć, komu — albo od kogo — te ciosy
-  poszły. Wcześniej trzeba było obejść wszystkich przeciwników po kolei i zbierać liczby z osobnych
-  okienek.
 
 - **Poprawka** — „Zwykły cios" trzyma wreszcie same ciosy. Trucizna, podpalenie, zranienie i reszta
   tego, co zabiera życie poza ciosem, stoją teraz pod własnymi nazwami — tak jak od dawna stoją na

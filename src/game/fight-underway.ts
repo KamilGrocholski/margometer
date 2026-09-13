@@ -51,7 +51,7 @@ export const MESSAGES_KEY = "m";
 export const MESSAGE_INDEX_KEY = "mi";
 /**
  * Which side is the reader's own, which the protocol never says and the client does. Stated on
- * the payload that opens a fight in all 28 recordings and on none of the others, 2026-08-29 — so
+ * the payload that opens a fight in every recording and on none of the others, 2026-08-29 — so
  * it is kept once seen, and a later payload saying nothing about it never takes it away.
  */
 /** The client's own name for the reader's side, spelled here and read from here — **N13**. */

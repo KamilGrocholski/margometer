@@ -69,7 +69,7 @@ const MAXIMUM_VALUES = 4194304;
 const MAXIMUM_NAMES = 4096;
 /** A slug and a version are typed by a hand at a terminal; this is far past either. */
 const MAXIMUM_OFFERED = 256;
-/** `captures/` holds 28 recordings, measured 2026-09-01. */
+/** Two orders of magnitude past the corpus, whose size `docs/captured-fights.md` states. */
 const MAXIMUM_ADMITTED = 4096;
 /** The longest recording in `captures/` made 111 calls, measured 2026-09-01. */
 const MAXIMUM_CALLS_PRINTED = 100000;
@@ -586,8 +586,8 @@ function composePayloadPrint(payloads: readonly unknown[]): string {
  * `payload.skills`, and everything in `captures/` has been through it, so a comparison before it
  * finds nothing on a file whose nicknames are still real.
  *
- * Two admitted recordings share no payload sequence: 28 recordings, 28 prints, measured
- * 2026-09-01.
+ * No two admitted recordings share a payload sequence: every recording in `captures/` prints
+ * differently from every other, measured 2026-09-01.
  */
 export function requireRecordingIsNew(
     recording: unknown,

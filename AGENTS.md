@@ -567,6 +567,7 @@ the same thing a second way.
 | `tests/tools/unannounced-damage.test.ts`      | `docs/unannounced-damage.md` against every recording             |
 | `tests/tools/turn-reading.test.ts`            | `docs/reading-a-turn.md`, and it on the panel                    |
 | `tests/tools/browser-support.test.ts`         | `docs/browser-support.md` against the stylesheet                 |
+| `tests/tools/changelog.test.ts`               | `CHANGELOG.md` against the version being released                |
 | `tests/tools/captured-fight-register.test.ts` | `docs/captured-fights.md` against `captures/`                    |
 | `tests/tools/drill-report.test.ts`            | `docs/drill-levels.md` against every level drawn                 |
 | `tests/ui/blow-vocabulary.test.ts`            | N13 for what a blow carried, against `captures/`                 |

@@ -23,8 +23,8 @@ import type { BattleEvent } from "@/src/core/battle-event.ts";
  */
 export const CHARGE_BROKEN_KEY = "+superspell-dispel";
 /**
- * Past every charge the corpus has ever held at once, which is **one**, in every payload of all
- * 31 recordings, 2026-09-11. A clamp rather than a bound: a fight holding more draws the first
+ * Past every charge the corpus has ever held at once, which is **one**, in every payload of
+ * every recording, 2026-09-11. A clamp rather than a bound: a fight holding more draws the first
  * of them and goes on being drawn.
  */
 export const MAXIMUM_CHARGED_SKILLS = 4;

@@ -19,7 +19,7 @@ One file, `NNNN-short-title.md`, four digits, sequential, never renumbered. Head
 ```
 # NNNN. Title
 
-- **Status:** Proposed | Accepted | Superseded by NNNN | Deprecated
+- **Status:** Proposed | Accepted | Superseded by NNNN[ in part[, and by NNNN in part]] | Deprecated
 - **Date:** YYYY-MM-DD
 
 ## Context
@@ -39,7 +39,10 @@ What else was on the table and why it lost.
 
 - **Proposed** — written down, not yet binding.
 - **Accepted** — binding. The rules it implies are in `AGENTS.md` or the relevant document.
-- **Superseded by NNNN** — a later ADR replaced it. The file stays; history is not edited.
+- **Superseded by NNNN** — a later ADR replaced it. The file stays; history is not edited. Where the
+  later record took over only half of what this one decided, the status says `in part` and the rest
+  of it still binds; where two records split it between them, both are named. Every number in a
+  status is a decision that exists, and never this one's own (`tests/repository/decisions.test.ts`).
 - **Deprecated** — no longer binding and nothing replaced it.
 
 A status change is its own commit, and the ADR says which one superseded it. Never delete an ADR and

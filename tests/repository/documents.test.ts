@@ -25,6 +25,12 @@ const REGISTER_HEADING = "## Guard register";
 const GUARD_DIRECTORY = "tests/repository";
 /** What a test names when it reads a document of this repository rather than its code. */
 const DOCUMENT_ENDING = '.md"';
+/**
+ * A document a guard reaches by name rather than by path. `project/repository-layout.ts` names the
+ * changelog once so three layers agree on it, and a guard importing that name reads the document
+ * as surely as one spelling the path — while carrying no `.md` for the reader above to find.
+ */
+const DOCUMENT_CONSTANTS = ["CHANGELOG_FILE"];
 /** Deeper than this is the description column, not another level of the tree. */
 const MAXIMUM_INDENT = 6;
 const AGENTS = Deno.readTextFileSync("AGENTS.md");
@@ -43,7 +49,7 @@ const CANONICAL = [
 ];
 
 /** Where a document of this repository sits, beside the root's own. */
-const DOCUMENT_DIRECTORIES = [".agents", "captures", "docs", "frozen", "tests"];
+const DOCUMENT_DIRECTORIES = [".agents", "captures", "design", "docs", "frozen", "tests"];
 
 /** What `deno fmt` aligns and never wraps. A row opens with one, so a row is what is excused. */
 const TABLE_OPENER = "|";
@@ -400,6 +406,7 @@ function hasDocumentRead(text: string): boolean {
     for (const line of text.split("\n")) {
         if (isCommentLine(line)) continue;
         if (line.includes(DOCUMENT_ENDING)) return true;
+        if (DOCUMENT_CONSTANTS.some((named) => line.includes(named))) return true;
     }
     return false;
 }
@@ -416,6 +423,10 @@ Deno.test("every guard in the tree is in the register", () => {
     assert(hasDocumentRead(reads), "the reader finds a document being read");
     const cites = " * The guard `docs/drill-levels.md` names in its first sentence.";
     assert(!hasDocumentRead(cites), "and does not find a document merely named in prose");
+    const named = 'import { CHANGELOG_FILE } from "@/project/repository-layout.ts";';
+    assert(hasDocumentRead(named), "a document reached by name is a document read");
+    const inProse = " * The changelog, whose CHANGELOG_FILE the layout names.";
+    assert(!hasDocumentRead(inProse), "and the same name in a comment is still prose");
     assert(isGuardPath("tests/repository/names.test.ts", ""), "the directory alone says guard");
     const unit = isGuardPath("tests/core/wound-rule.test.ts", "const key = 1;");
     assert(!unit, "and a test that reads no document is not a guard");

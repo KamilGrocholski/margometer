@@ -100,3 +100,65 @@ Deno.test("every entry in the file opens with its kind", () => {
         .filter((line) => !ENTRY_KINDS.some((kind) => line.includes(kind)));
     assertEquals(untyped, [], "an entry nobody can skim");
 });
+
+/** Where a version's entries stop running in the order the file's own header states. */
+function getKindOrderFaults(text: string): string[] {
+    const faults: string[] = [];
+    let section = "";
+    let reached = 0;
+    for (const line of text.split("\n")) {
+        if (line.startsWith(VERSION_HEADING)) {
+            section = line;
+            reached = 0;
+            continue;
+        }
+        if (!line.startsWith("- ")) continue;
+        const kind = ENTRY_KINDS.findIndex((one) => line.includes(one));
+        if (kind === -1) continue;
+        if (kind >= reached) {
+            reached = kind;
+            continue;
+        }
+        faults.push(`${section}: ${ENTRY_KINDS[kind]} stands under ${ENTRY_KINDS[reached]}`);
+    }
+    return faults;
+}
+
+/**
+ * The one section this rule arrived too late for. A section past its tag is not touched — somebody
+ * already has that release — so the two entries out of order in it stay where a player who
+ * installed `0.7.0` saw them, and the guard says so rather than being narrowed to hide them.
+ */
+const SECTIONS_PAST_THEIR_TAG = ["## [0.7.0] — 2026-08-18"];
+
+/**
+ * The order inside a version, which the file's header states and nothing held: Nowość, then
+ * Zmiana, then Poprawka. A reader deciding whether to update reads down until the kinds stop
+ * being the one they came for, so an entry out of order is one they stop before.
+ *
+ * Proved both ways, on a section that holds the order and one that breaks it.
+ */
+Deno.test("the kinds run in the stated order inside every version", () => {
+    const kept = "## [1.0.0]\n\n- **Nowość** — a\n\n- **Zmiana** — b\n\n- **Poprawka** — c\n";
+    assertEquals(getKindOrderFaults(kept), [], "a section in order states no fault");
+    const broken = "## [1.0.0]\n\n- **Poprawka** — a\n\n- **Nowość** — b\n";
+    assertEquals(getKindOrderFaults(broken).length, 1, "and one out of order states one");
+
+    const faults = getKindOrderFaults(CHANGELOG)
+        .filter((one) => !SECTIONS_PAST_THEIR_TAG.some((past) => one.startsWith(`${past}:`)));
+    assertEquals(faults, [], "an entry a skimming reader stops before");
+});
+
+/**
+ * The exception from the other end: a section that stops breaking the order, or stops existing,
+ * is one nothing excuses any more — and a list nobody prunes is how an exception becomes a rule.
+ */
+Deno.test("every section this file excuses is still there, and still out of order", () => {
+    const faults = getKindOrderFaults(CHANGELOG);
+    for (const past of SECTIONS_PAST_THEIR_TAG) {
+        assertStringIncludes(CHANGELOG, past, "a section excused here is still in the file");
+        const found = faults.some((one) => one.startsWith(`${past}:`));
+        assert(found, `${past} runs in order now and no longer needs excusing`);
+    }
+    assert(SECTIONS_PAST_THEIR_TAG.length > 0, "the list is read rather than assumed empty");
+});

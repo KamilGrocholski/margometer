@@ -225,6 +225,49 @@ Deno.test("a page stating what the add-on calls is taken up, and one that does n
 });
 
 /**
+ * The one clock a userscript has is the page's own, and a page is somebody else's program. A
+ * `Date` answering a day no calendar carries is what `readClockFromPage` refuses — the branch a
+ * real clock can never reach, and the reason it is written: a shelf of twenty fights spans days,
+ * and a wrong one reads as a fight that happened.
+ *
+ * ⚠️ **What this holds is that the add-on stands and the fight is read through the whole of it.**
+ * The moment the reader answers is not observable from here — `startFromWindow` builds its own
+ * environment and appends the panel to a body this page drops — so what the row then prints is
+ * `tests/ui/panel-words.test.ts`'s, over the same refusals.
+ */
+Deno.test("a page whose clock answers a day outside the calendar is still read", () => {
+    const battle: Record<string, unknown> = { updateData: () => "the engine's own answer" };
+    const page = composeFakeWindow(battle);
+    page.Date = class {
+        getDate(): number {
+            return 99;
+        }
+        getMonth(): number {
+            return 8;
+        }
+        getHours(): number {
+            return -1;
+        }
+        getMinutes(): number {
+            return -1;
+        }
+        toISOString(): string {
+            return "2026-09-13T21:05:00.000Z";
+        }
+        static now(): number {
+            return 0;
+        }
+    };
+    const attached = startFromWindow(page);
+    assert(attached.isAttached(), "a clock nobody can read is not a page to stand down on");
+    const update = battle.updateData;
+    assert(typeof update === "function", "and the wrap is on the engine's own method");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    assert(attached.isAttached(), "and a whole fight goes through it without taking it away");
+    attached.detach();
+});
+
+/**
  * The panel refused a place on the page. Putting it there is a call into the game's own document
  * and the first one happens on the stack that started the add-on, so a refusal used to take the
  * add-on with it. It is tried again on the next payload, and said once the panel does stand.

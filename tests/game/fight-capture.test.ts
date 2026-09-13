@@ -24,7 +24,7 @@ import {
 
 /**
  * The newest recording, and the newest envelope. **`formatVersion` does not identify the shape**:
- * measured over `captures/` on 2026-08-30, all 28 recordings state `1` and four different
+ * measured over `captures/` on 2026-08-30, every recording states `1` and four different
  * envelopes exist among them — the oldest carries `otwarcie`, `zrodlo` and `odchudzonych`, which
  * nothing writes any more and the migration to English left alone, and only the five newest carry
  * `addOnVersion` and `userAgent`. So the contract this holds itself to is the newest, and it is

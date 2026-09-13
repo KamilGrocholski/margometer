@@ -340,8 +340,8 @@ export function getInkForBar(hue: string): string {
 
 /**
  * The codes are the game's own letters. Every one of the six is stated in `captures/`: 262
- * combatants over 28 recordings on 2026-08-29, none without a profession, `w` 91 of them and
- * `b` 17.
+ * combatants over the corpus as it stood on 2026-08-29, none without a profession, `w` 91 of
+ * them and `b` 17.
  */
 const PROFESSION_HUES: Record<string, number> = {
     m: 0,
