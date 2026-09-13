@@ -33,12 +33,6 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
-- **Poprawka** — Kolejne uderzenia jednej umiejętności liczą się wreszcie do niej, a nie do „Zwykły
-  cios". Gra zapowiada taki cios raz, a zadaje kilka razy — panel widział tylko pierwszy. Dotyczy
-  „Podwójnego trafienia" i „Podwójnego strzału", a także ciosów, które przeciwnicy zadają seriami.
-  Przy kilku postaciach wiersz „Zwykły cios" znika teraz zupełnie, bo nie została pod nim ani jedna
-  liczba.
-
 - **Zmiana** — „Zwykły cios" stoi teraz w kolejności jak każdy inny wiersz — z numerem i pełnym
   paskiem, na miejscu, które daje mu jego liczba. Bardzo często jest to miejsce pierwsze, bo zwykłe
   ciosy bywają większą częścią obrażeń niż którakolwiek umiejętność.
@@ -47,6 +41,17 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   powiedziała, kto albo komu — mają teraz skośne kreskowanie na pasku. Wcześniej wyglądały dokładnie
   jak wiersze z numerem, więc czytało się je jako kolejne miejsce. Kreskowanie znał już wiersz
   stojący pod listą; teraz noszą je wszystkie wiersze o tym samym znaczeniu, gdziekolwiek stoją.
+
+- **Poprawka** — Kolejne uderzenia jednej umiejętności liczą się wreszcie do niej, a nie do „Zwykły
+  cios". Gra zapowiada taki cios raz, a zadaje kilka razy — panel widział tylko pierwszy. Dotyczy
+  „Podwójnego trafienia" i „Podwójnego strzału", a także ciosów, które przeciwnicy zadają seriami.
+  Przy kilku postaciach wiersz „Zwykły cios" znika teraz zupełnie, bo nie została pod nim ani jedna
+  liczba.
+
+- **Poprawka** — „Zwykły cios" trzyma wreszcie same ciosy. Trucizna, podpalenie, zranienie i reszta
+  tego, co zabiera życie poza ciosem, stoją teraz pod własnymi nazwami — tak jak od dawna stoją na
+  leczeniu. Na zakładce „otrzymane" prawie ćwierć tego wiersza nigdy nie była ciosem, a przy kilku
+  postaciach nie była nim ani jedna liczba pod nim.
 
 ## [0.16.0] — 2026-09-11
 

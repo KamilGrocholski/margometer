@@ -73,26 +73,20 @@ theirs is what ticked.
 
 ## What reaches the figure
 
-| what                                        | which screen | how it gets there                                                                         |
-| ------------------------------------------- | ------------ | ----------------------------------------------------------------------------------------- |
-| a blow standing under no announcement       | both         | the attack event's own applied damage                                                     |
-| a wound ticking, charged to whoever left it | `Zadane`     | `addWoundTick` adds to the dealer's total and to no skill                                 |
-| health lost outside a blow                  | `Otrzymane`  | `addHealthChangeEvent` adds every loss to the total, and the section has no row for a key |
+| what                                  | which screen | how it gets there                     |
+| ------------------------------------- | ------------ | ------------------------------------- |
+| a blow standing under no announcement | both         | the attack event's own applied damage |
 
-Measured over `captures/` on 2026-09-13, and the middle column is the finding rather than the
-arithmetic:
+That is the whole table, and it was not always. ⚠️ **Until **ADR 0080** this row also held health
+that went out under a key without a blow carrying it** — a tick of poison, a wound bleeding, the
+`heal` key below zero. On `Otrzymane` that was 23.9% of it, and 6 rows over `captures/` held nothing
+else, drawn as the closing row with `×0` beside them. The keys now stand under their own names, as
+they always did on the healing screens, and what is left is blows.
 
-| screen      | the row holds | of that, blows under no announcement | of that, no blow at all |
-| ----------- | ------------- | ------------------------------------ | ----------------------- |
-| `Zadane`    | 2,146,007     | 2,115,744                            | **30,263** — 1.4%       |
-| `Otrzymane` | 2,781,901     | 2,115,744                            | **666,157** — 23.9%     |
-
-The two screens differ because they close against different things. On `Zadane` only a wound's tick
-arrives without a skill, and it is a tick of a wound that combatant left — ⚠️ **ADR 0022 settles
-that a tick belongs to the wound that is ticking, and says nothing about it standing in a row named
-for blows.** On `Otrzymane` every loss outside a blow arrives: poison, fire, a wound. The kinds are
-named one section lower, under `TYP OBRAŻEŃ`, but the skills section has no row a key can stand in,
-so they close here.
+Measured over `captures/` on 2026-09-13, the row holds **2,115,744** on each damage screen — the
+same figure from both ends, because it is the same blows read from the striking side and from the
+side struck. It is drawn in 163 sections of `Zadane` and 96 of `Otrzymane`, and the keys beside it
+come to 107 rows.
 
 ## What never does
 
@@ -103,6 +97,9 @@ so they close here.
   announcement of the blow it rode, so it reaches a skill's row like any other figure.
 - **What a display bound would not draw** is summed into a row of its own and never folded in here
   (**ADR 0055**). That row holds what the game **did** name; this one holds what it did not.
+- **Health that went out under a key** stands under that key (**ADR 0080**). It moved under a name
+  the game gave it, so a row named for a swing is the wrong place for it — which is the rule the
+  healing screens were already keeping.
 
 ## The bounds
 
@@ -130,16 +127,16 @@ wrong do not cost the same: too low and a blow falls back into this row, where i
 
 ## What this cannot answer
 
-⚠️ **The row is named for a blow and on `Otrzymane` a quarter of it is not one.** 23.9% of what it
-holds there arrived without a swing. A reader is told `Zwykły cios` and shown poison. Nothing in the
-panel says otherwise, and since **ADR 0079** the row carries a place in the order as well.
+⚠️ **Whether a blow standing under no announcement is a plain attack, or one whose announcement this
+reading did not reach.** Nothing in the message says which (see above), and the count is the whole
+of the evidence: every blow in this row opened a turn of its own, which is what the game does for
+its default action. A skill striking more times than the published table grants would still land
+here, and no recording carries one — 0 runs of three after an announcement, 2026-09-13.
 
-⚠️ **6 rows over `captures/` state a figure and no blows at all** — drawn as the closing row with
-`×0` beside them, because every point in them is a wound ticking. The count is right and the name is
-not.
-
-Both are findings rather than costs of a decision (**V6**). Neither is answered here: this document
-records the path and the size, and what to do about it is a decision that has not been taken.
+⚠️ **What the tick of a wound was struck with.** A tick is charged to whoever left the wound (**ADR
+0022**) and carries no announcement of its own, so it stands under its key rather than under the
+skill that opened the wound. The skill is knowable in principle — the blow that wounded was
+announced — and this reading does not carry it that far.
 
 Which blows the count holds, as against which the protocol announced, is
 `tests/core/granted-blow-rule.test.ts`'s to re-earn: every blow standing under no announcement

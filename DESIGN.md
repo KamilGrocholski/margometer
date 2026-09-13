@@ -314,11 +314,18 @@ that lies is worse than none.
 figure over it, and a reader who adds a column and gets ninety-four cannot tell a missing figure
 from a figure that was never there — telling those two apart is what this panel is for. What the
 named rows do not hold is accounted for in one of two ways, and which one turns on whether the game
-said anything about it. **On the damage screens it closes into `Zwykły cios`**, because a swing the
-game granted no skill to is all the game says. **On the healing screens it does not close at all**:
-health that moved outside an announcement still moved under a key the game named, so the section
-lists those keys by name and there is nothing left over. A row saying the game had not told us,
-where the game had, is a claim — and the keys were already on screen a section lower.
+said anything about it, and **both ways are on every screen** since **ADR 0080**. Health that moved
+outside an announcement moved under a key the game named, so the section lists those keys by name;
+what is left over is blows the game granted no skill to, which is all the game says about them, and
+on the damage screens that closes into `Zwykły cios`. A row saying the game had not told us, where
+the game had, is a claim.
+
+⚠️ **A key stands in two sections of one screen, and that is the price.** It is named here, among
+what a figure was dealt **with**, and again a section lower among what it was **made of** — the same
+word and the same number twice. The alternative was worse and is what the panel did until
+2026-09-13: fold it into a row named for a swing, where a quarter of `Otrzymane` stood under a word
+for something it was not. A figure counted twice in one column would break the rule above; these are
+two columns, each coming to a hundred of its own figure.
 
 **A row states nothing as `0%` and anything at all as at least `<1%`**, and the two are never
 swapped: `0%` is a measurement — this combatant did nothing — and `<1%` is a figure too small to

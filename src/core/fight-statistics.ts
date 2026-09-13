@@ -102,6 +102,28 @@ export interface CombatantFigures {
      */
     healthRestoredWithoutSkillBySource: Map<string, number>;
     /**
+     * Health this combatant lost **outside a blow**, by the key it went out under, and the damage
+     * screens' answer to the same question the field above answers for healing: what the section
+     * closing against `blowsWithoutSkill` must not be left holding. A tick of poison moved health
+     * under a key the game named, so it stands under that name rather than in a row named for a
+     * swing. **ADR 0080.**
+     */
+    damageTakenWithoutSkillBySource: Map<string, number>;
+    /**
+     * The same from the dealing end, which only a wound reaches: a tick is charged to whoever left
+     * the wound (**ADR 0022**) and carries no announcement, so it is the one movement that lands on
+     * a dealer's total without landing on a skill.
+     */
+    damageDealtWithoutSkillBySource: Map<string, number>;
+    /**
+     * The same, kept per opponent, because a pair is a section of its own and a figure named one
+     * way on the level above and another inside it is one program saying two things. One cut and
+     * not two: both damage screens read a pair off whoever struck, so the receiving side has no
+     * second copy to keep. Only a wound reaches it — every other loss outside a blow names no
+     * opponent at all, so it has no pair to stand in. **ADR 0080.**
+     */
+    damageDealtWithoutSkillByOpponentAndSource: Map<string, Map<string, number>>;
+    /**
      * The same figure on the giving side, cut by the receiver **as well** — which is the one place
      * a key may stand on a giver's row, because the pair names whose cause it is.
      */
@@ -266,6 +288,9 @@ export function composeCombatantFigures(): CombatantFigures {
         healthGivenByReceiver: new Map(),
         healthRestoredBySource: new Map(),
         healthRestoredWithoutSkillBySource: new Map(),
+        damageTakenWithoutSkillBySource: new Map(),
+        damageDealtWithoutSkillBySource: new Map(),
+        damageDealtWithoutSkillByOpponentAndSource: new Map(),
         healthGivenWithoutSkillByReceiverAndSource: new Map(),
         damageDealtByElement: new Map(),
         damageTakenByElement: new Map(),
@@ -929,6 +954,12 @@ function addWoundTick(
     const attacker = getFiguresForCombatant(build.byCombatantId, attackerId);
     attacker.damageDealtApplied += amount;
     addToCut(attacker.damageDealtByElement, WOUND_TICK_KEY, amount);
+    addToCut(attacker.damageDealtWithoutSkillBySource, WOUND_TICK_KEY, amount);
+    addToCut(
+        getPairCut(attacker.damageDealtWithoutSkillByOpponentAndSource, `${victimId}`),
+        WOUND_TICK_KEY,
+        amount,
+    );
     addToCut(attacker.damageDealtByOpponent, `${victimId}`, amount);
     addToPairCut(attacker.damageDealtByOpponentAndKind, `${victimId}`, kind);
     const victim = getFiguresForCombatant(build.byCombatantId, victimId);
@@ -969,6 +1000,10 @@ function addHealthChangeEvent(build: StatisticsBuild, event: BattleEvent): void 
     // tick of poison is a kind of damage taken, and leaving it out states a figure the cut under
     // it cannot account for.
     addToCut(figures.damageTakenByElement, event.source, -event.amount);
+    // And the cut the skills section closes against, which is a different question: the element
+    // cut holds what a blow carried as well, and a row standing for both would put a swing's
+    // figure under the word for a tick.
+    addToCut(figures.damageTakenWithoutSkillBySource, event.source, -event.amount);
     const attackerId = getWoundAttackerId(build, event);
     if (attackerId === null) {
         figures.damageTakenFromNobody += -event.amount;

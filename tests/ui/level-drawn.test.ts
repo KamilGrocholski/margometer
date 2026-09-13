@@ -621,6 +621,9 @@ Deno.test("the closing row is read as holding a place, and the row summing a bou
  * The figures the decision moves, read off the panel rather than off the rule. Half the sections
  * the corpus draws put the closing row first — which is the whole of what a reader sees change,
  * and the reason it is written down rather than left to the screenshot.
+ *
+ * The spread moved once already: **ADR 0080** took everything that was not a blow out of the row,
+ * so it stands lower than it did and reaches an eighth place it never held before.
  */
 Deno.test("the closing row stands where its figure puts it, first in half the sections", () => {
     const places = new Map<number, number>();
@@ -642,8 +645,8 @@ Deno.test("the closing row stands where its figure puts it, first in half the se
     }
     assertEquals(
         [...places.entries()].sort((one, other) => one[0] - other[0]),
-        [[1, 145], [2, 66], [3, 53], [4, 19], [5, 5], [6, 1]],
-        "every section the corpus draws one in, 2026-09-12",
+        [[1, 137], [2, 55], [3, 43], [4, 17], [5, 4], [6, 1], [8, 1]],
+        "every section the corpus draws one in, 2026-09-13",
     );
 });
 
@@ -682,5 +685,5 @@ Deno.test("a pair states its parts largest first, the closing row among them", (
             }
         }
     }
-    assertEquals(closing, 416, "and the pairs a closing row stands in, 2026-09-12");
+    assertEquals(closing, 404, "and the pairs a closing row stands in, 2026-09-13");
 });

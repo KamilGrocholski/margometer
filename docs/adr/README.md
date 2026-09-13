@@ -206,3 +206,5 @@ edited to agree with the new rule.
   announcement's. **Accepted**
 - [0079](0079-a-row-naming-what-the-game-named-takes-a-place.md) — A row naming what the game named
   takes a place. **Accepted**
+- [0080](0080-health-that-went-out-under-a-key-stands-under-it.md) — Health that went out under a
+  key stands under it, on the damage screens too. **Accepted**

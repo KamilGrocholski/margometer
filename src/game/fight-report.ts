@@ -121,6 +121,15 @@ function composeReportRow(figures: CombatantFigures): ReportRow {
         healthRestoredWithoutSkillBySource: composeReportCut(
             figures.healthRestoredWithoutSkillBySource,
         ),
+        damageTakenWithoutSkillBySource: composeReportCut(
+            figures.damageTakenWithoutSkillBySource,
+        ),
+        damageDealtWithoutSkillBySource: composeReportCut(
+            figures.damageDealtWithoutSkillBySource,
+        ),
+        damageDealtWithoutSkillByOpponentAndSource: composeReportPairCut(
+            figures.damageDealtWithoutSkillByOpponentAndSource,
+        ),
         healthGivenWithoutSkillByReceiverAndSource: composeReportPairCut(
             figures.healthGivenWithoutSkillByReceiverAndSource,
         ),

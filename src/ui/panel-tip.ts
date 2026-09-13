@@ -58,7 +58,7 @@ export interface TipSize {
  * Counted off **an opened row**, the widest screen the panel has: its three sections, each with
  * an unnamed row and a heading, and the two pinned rows. Counted off the ranking it was 128,
  * which a drill reaches; counted with a skill section of names alone it was 384, and on the two
- * healing screens that section is names **and** the keys no announcement covered. A row past the
+ * screen that section is names **and** the keys no announcement covered. A row past the
  * bound registers nothing, and `show` then hides the card rather than drawing one.
  * `tests/ui/share-bound.test.ts` is where the arithmetic is, against the panel's own constants.
  */

@@ -19,7 +19,7 @@ const HUNDRED = 100;
 /** What a row holding something too small to state a point prints, in place of a share. */
 
 /**
- * The widest section, which is the skills section on a healing screen: every caster's names at
+ * The widest section, which is the skills section on `damageTakenApplied`: every striker's names at
  * `MAXIMUM_SKILLS`, the keys no announcement covered, and **two** rows closing it — what the
  * bound would not give a row to, and what no announcement covered at all (**ADR 0055**).
  */

@@ -10,7 +10,11 @@ import { assert, assertEquals, assertStringIncludes } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
-import { composeDrillReading, type PanelMetric } from "@/src/ui/panel-reading.ts";
+import {
+    composeDrillReading,
+    composePairReading,
+    type PanelMetric,
+} from "@/src/ui/panel-reading.ts";
 import { getWordsForUnannounced } from "@/src/ui/panel-words.ts";
 import { getUnwrapped } from "@/tests/markdown-document.ts";
 import {
@@ -96,37 +100,46 @@ function composeGrouped(figure: number): string {
 
 /**
  * ⚠️ **The claim the whole document stands on, and the only one a reading of the source cannot
- * settle.** The figure is a remainder, so nothing in `composeSkillCut` says what is in it; the
- * difference between it and a second walk over the blows is the size of everything that reached
- * the row without being one. A recording that changes that difference reddens here.
+ * settle.** The figure is a remainder, so nothing in `composeSkillCut` says what is in it — the
+ * only check is to walk the blows a second way and require the two to meet. Until **ADR 0080**
+ * they did not: health that went out under a key landed here too, 23.9% of the row on
+ * `Otrzymane`. A recording that parts them again reddens here.
  */
-Deno.test("the row holds more than the blows under it, by the figures the document states", () => {
+Deno.test("the row holds the blows under it and nothing else, on both damage screens", () => {
     const tally = composeCorpusTally();
     const said = getUnwrapped(Deno.readTextFileSync(REGISTER_PATH));
     for (const metric of DAMAGE_SCREENS) {
         const held = getScreenTally(tally, metric);
-        assert(held.figure > held.fromBlows, `${metric}: the row holds only blows, unexpectedly`);
-        const apart = held.figure - held.fromBlows;
-        const share = (apart / held.figure * 100).toFixed(1);
-        assertStringIncludes(
-            said,
-            `| ${composeGrouped(held.figure)} | ${composeGrouped(held.fromBlows)} | ` +
-                `**${composeGrouped(apart)}** — ${share}%`,
-            `${REGISTER_PATH}: ${metric}, as the corpus composes it`,
+        assertEquals(
+            held.figure,
+            held.fromBlows,
+            `${metric}: the row holds something that was never a blow`,
         );
     }
-});
-
-/** The rows whose every point arrived without a swing, which the document calls out by count. */
-Deno.test("the rows stating a figure and no blow are the number the document names", () => {
-    const tally = composeCorpusTally();
-    const said = getUnwrapped(Deno.readTextFileSync(REGISTER_PATH));
-    assert(tally.blowless > 0, "the corpus draws such a row at all");
+    const dealt = getScreenTally(tally, "damageDealtApplied");
+    const taken = getScreenTally(tally, "damageTakenApplied");
+    assertEquals(dealt.figure, taken.figure, "the same blows, read from both ends");
     assertStringIncludes(
         said,
-        `${composeGrouped(tally.blowless)} rows over \`captures/\` state a figure and no blows`,
-        `${REGISTER_PATH}: how many rows are named for a blow and hold none`,
+        `the row holds **${composeGrouped(dealt.figure)}** on each damage screen`,
+        `${REGISTER_PATH}: what the row comes to`,
     );
+    assertStringIncludes(
+        said,
+        `drawn in ${dealt.rows} sections of \`Zadane\` and ${taken.rows} of \`Otrzymane\``,
+        `${REGISTER_PATH}: how many sections draw it`,
+    );
+});
+
+/**
+ * ⚠️ **A row named for a blow and holding none is the shape **ADR 0080** removed**, and zero is a
+ * measurement rather than an absence of one: the walk that found six of them before the decision
+ * is the walk that finds none after it, over the same material.
+ */
+Deno.test("no row states a figure with no blow under it", () => {
+    const tally = composeCorpusTally();
+    assertEquals(tally.blowless, 0, "a row named for a swing holds something that was not one");
+    assert(tally.blows > 0, "and the corpus holds blows under no announcement at all");
 });
 
 /**
@@ -230,4 +243,54 @@ Deno.test("the unwrapping reader joins a wrapped sentence and invents no word", 
         "one two three",
         "and a blank line is not a word",
     );
+});
+
+/**
+ * ⚠️ **The two levels of one screen, held against each other.** A pair is a section of its own,
+ * composed by its own walk, so a key named on the level above and folded into the closing row
+ * inside it is one program saying two things about one figure — and nothing was watching: the
+ * columns still came to a hundred on both, because only the names disagreed. 21 pairs and 30,263
+ * points read that way until **ADR 0080**.
+ */
+Deno.test("a key named in an opened section is named again inside every pair of it", () => {
+    let checked = 0;
+    for (const path of readRecordingPaths()) {
+        const roster = composeCombatantRoster(getRecordedCombatants(path));
+        const events = getRecordedPayloads(path)
+            .flatMap((payload) => decodeFightMessages(payload, roster, BLOWS_GRANTED));
+        const statistics = composeFightStatistics(events, new Map());
+        for (const [combatantId] of statistics.byCombatantId) {
+            for (const metric of DAMAGE_SCREENS) {
+                const drill = composeDrillReading(statistics, roster, metric, combatantId);
+                if (drill === null) continue;
+                const named = new Set(
+                    drill.bySkill.rows
+                        .filter((one) => one.part.kind === "source")
+                        .map((one) => one.part.kind === "source" ? one.part.source : ""),
+                );
+                let insidePairs = 0;
+                for (const other of drill.byOpponent.rows) {
+                    const pair = composePairReading(
+                        statistics,
+                        roster,
+                        metric,
+                        combatantId,
+                        other.combatantId,
+                    );
+                    if (pair === null) continue;
+                    for (const part of pair.parts) {
+                        if (part.part.kind !== "source") continue;
+                        insidePairs += 1;
+                        const inside = part.part.source;
+                        assert(
+                            named.has(inside),
+                            `${path}: a pair names "${inside}", the section over it does not`,
+                        );
+                    }
+                }
+                if (insidePairs > 0) checked += 1;
+            }
+        }
+    }
+    assertEquals(checked, 35, "the sections whose pairs name a key, 2026-09-13");
 });

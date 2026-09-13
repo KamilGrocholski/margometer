@@ -101,7 +101,8 @@ export function getWordsForNothing(metric: PanelMetric): string {
 /**
  * The closing row of a skills section, which is the figure no announcement covered.
  *
- * ⚠️ **The two healing entries are never read, and they stay.** What no announcement covered there
+ * ⚠️ **The two healing entries are never read, and they stay.** What no announcement covered on a
+ * healing screen
  * is named by the key the game stated it under and stands as a row of its own, so nothing is left
  * to close against. The table is exhaustive for the reason every table here is: a fifth screen
  * becomes a question the compiler asks rather than one inheriting whichever wording came first.

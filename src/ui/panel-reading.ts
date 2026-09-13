@@ -1760,10 +1760,21 @@ function composeSkillRowsStated(
             composeSourceRows(figures.healthRestoredWithoutSkillBySource),
         );
     }
-    // No keys beside them: what a blow was made of stands in a section of its own, and putting it
-    // here as well would draw it twice.
+    // ⚠️ **The keys stand here and the elements do not, and the two are not the same list.** What
+    // a blow was made of is a section of its own, so `dmgd` beside a skill would draw one figure
+    // twice; what moved health **outside** a blow reached no skill at all, and leaving it out
+    // closed it into a row named for a swing. `src/ui/panel-words.ts` keeps the two vocabularies
+    // apart for the same reason. **ADR 0080.**
     if (metric === "damageTakenApplied") {
-        return composeSkillRowsReceived(statistics, combatantId, (one) => one.dealtByOpponent);
+        const named = composeSkillRowsReceived(
+            statistics,
+            combatantId,
+            (one) => one.dealtByOpponent,
+        );
+        return composeFoldedTogether(
+            named,
+            composeSourceRows(figures.damageTakenWithoutSkillBySource),
+        );
     }
     const own = [...figures.skills.values()];
     if (metric === "healthGiven") {
@@ -1779,14 +1790,14 @@ function composeSkillRowsStated(
             rest: given.rest,
         }, composeSourceRows(given.cut));
     }
-    return {
+    return composeFoldedTogether({
         parts: own.filter((one) => one.dealt > 0 || one.blows > 0).map((one) => ({
             part: { kind: "skill" as const, name: one.name },
             uses: one.uses,
             figure: one.dealt,
         })),
         rest: 0,
-    };
+    }, composeSourceRows(figures.damageDealtWithoutSkillBySource));
 }
 
 /** Two folds drawn as one section, so what neither could fit is one row rather than two. */
@@ -2167,8 +2178,12 @@ function getPairGivingEnd(
  * announced in front. Both on the same list because they make up one section: the keys hold what
  * the announcements do not, and a reader adding the column gets the figure they pressed.
  *
- * The keys are healing's alone. On the damage screens what a blow was made of stands in a section
- * of its own beside this one, and putting it here as well would draw it twice.
+ * ⚠️ **A key stands here on every screen, and what a blow was made of stands here on none.** The
+ * elements are a section of their own beside this one, so drawing them here would draw one figure
+ * twice; a key health went out under reached no announcement at all, and leaving it out of a pair
+ * while the level above names it is one program saying two things about one figure (**ADR 0080**).
+ * Only a wound reaches a pair on the damage screens — every other loss outside a blow names no
+ * opponent, so there is no pair for it to stand in.
  */
 function composePairPartFigures(
     statistics: FightStatistics,
@@ -2186,7 +2201,17 @@ function composePairPartFigures(
             : skill.restoredByOpponent.get(end.subject) ?? 0;
         if (figure > 0) stated.push({ part: { kind: "skill", name: skill.name }, figure });
     }
-    if (isDamage) return stated;
+    if (isDamage) {
+        // The dealing end's own cut, on both screens: `getPairGivingEnd` hands over whoever struck,
+        // which is why the skills above read `dealtByOpponent` off it as well.
+        const cut = end.figures.damageDealtWithoutSkillByOpponentAndSource.get(end.subject);
+        if (cut === undefined) return stated;
+        for (const [source, figure] of cut) {
+            if (figure <= 0) continue;
+            stated.push({ part: { kind: "source", source }, figure });
+        }
+        return stated;
+    }
     const cut = end.figures.healthGivenWithoutSkillByReceiverAndSource.get(end.subject);
     if (cut === undefined) return stated;
     for (const [source, figure] of cut) {

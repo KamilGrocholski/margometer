@@ -1660,8 +1660,9 @@ Deno.test("a pair states what passed between the two, and nothing that did not",
         pair.parts.some((one) => one.part.kind === "plain"),
         "the row closing the section is one of them here",
     );
-    // No key rows on a damage screen: what a blow was made of stands in the section beside this
-    // one, and drawing it here as well would draw it twice.
+    // No **element** rows here: what a blow was made of stands in the section beside this one, and
+    // drawing it here as well would draw one figure twice. A key health went out under is a
+    // different claim and does stand here, on every screen (**ADR 0080**).
     assert(
         pair.parts.every((one) => one.part.kind !== "source"),
         "and none of them is a key the game named",
