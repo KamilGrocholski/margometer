@@ -18,10 +18,10 @@
 
 ## In Progress
 - [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and 10vs10 player vs. player fights (I really need this for further development, now I only know 1-93lvl)
-- [x] Add accents to rows like "Zwykly cios", "Nieznany sprawca", and so on, the ones that are not inorder in the rank
 - [ ] Change the way we calculate "Zwykly cios" - is it possible to know the source from "Szeroki zamach" and so on?
 
 ## Up Next
+- [ ] Attach a date to each kept fight
 - [ ] Add field "Pozostałe" for ranked statistics to make sure, that there is 100%, and to tell a user, what has not been included properly
 - [ ] Do a manual audit
 - [ ] Plan: Add a fight visualization - a simple chart with bars or something
@@ -29,6 +29,7 @@
 - [ ] Create a new design for tip: find a better way to tell a user, what raw damage is, and, maybe, delete `done` raw damage - it's missleading
 
 ## Done
+- [x] Add accents to rows like "Zwykly cios", "Nieznany sprawca", and so on, the ones that are not inorder in the rank
 
 ## Later
 - [ ] Add views for: abilities ranking - uses, dmg, heal, etc; legbon ranking - procs;
