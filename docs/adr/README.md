@@ -212,3 +212,5 @@ edited to agree with the new rule.
   stood at the other end. **Accepted**
 - [0082](0082-a-screen-is-counted-twice-and-the-difference-is-drawn.md) — A screen is counted twice,
   and the difference is drawn. **Accepted**
+- [0083](0083-a-region-that-stands-down-is-built-from-a-copy.md) — A region that stands down is
+  built from a copy, and the tree keeps no seam. **Accepted**

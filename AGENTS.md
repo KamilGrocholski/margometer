@@ -572,6 +572,7 @@ the same thing a second way.
 | `tests/ui/panel-words.test.ts`                | L3, over every word the panel module holds                       |
 | `tests/ui/share-bound.test.ts`                | both bounded writers against the widest screen                   |
 | `tests/ui/level-drawn.test.ts`                | every level drawn: its height, and its cards                     |
+| `tests/tools/panel-giving-way.test.ts`        | the line a region stands down by, and no seam in `src/`          |
 
 A guard joins this table in the commit that makes it pass, and the known-gaps list shrinks by the
 same rules in that commit.

@@ -39,6 +39,12 @@
         // recording under `dist/preview`, which `.github/workflows/pages.yml` publishes. That
         // workflow passes `--release`, which is what the published panel states — ADR 0037.
         "preview:site": "deno run -A tools/preview-site.ts",
+        // The panel with a region that will not draw, live: the states a reader meets when
+        // something breaks, on a bundle built from a copy of the tree. Nothing it does reaches
+        // what a reader installs — ADR 0083.
+        "preview:giveway": "deno run -A tools/panel-giving-way.ts",
+        // The same states, photographed instead of served: one picture per region.
+        "panel:giveway": "deno run -A tools/panel-giving-way.ts --shots",
         // The panel photographed, one picture per state a README shows. It refuses a tree whose
         // `src/` is not in a commit, which is `DESIGN.md`'s rule and not this file's. A release
         // takes the set again with `--release`, and the panel then states the number it ships as.

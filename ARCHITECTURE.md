@@ -116,6 +116,8 @@ tools/             Never ships. Each arrives with the question it answers.
   preview-site.ts      That page written down, one per recording, for somebody with no clone.
   panel-screenshots.ts The panel photographed, at a frame measured off the panel itself, in
                        whichever browser this machine turns out to have.
+  panel-giving-way.ts  The panel with a region that will not draw, served or photographed, off a
+                       bundle built from a copy of the tree. ADR 0083.
   game-client-source.ts  The client fetched and dated, and the cache nothing published leaves.
   skill-table.ts       The published skill table fetched, dated and frozen: the one duration.
   protocol-key-table.ts  Every key that client branches on, lifted out of its own switch.
@@ -203,6 +205,8 @@ tests/
     preview-site.test.ts      A page per recording, addressed relatively and asking nothing.
     panel-screenshots.test.ts The set against its sidecar, the frame a report sizes, and both
                               runs that drive a browser naming one variable.
+    panel-giving-way.test.ts  The line a region stands down by, held against the panel, and the
+                              marker held out of everything a reader installs.
     game-client-source.test.ts  Both names a world serves, and git asked about the cache.
     protocol-key-table.test.ts  The switch in either spelling, and the material against it.
     help-article.test.ts      A page turned into text, and a dump that says how old it is.

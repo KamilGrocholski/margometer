@@ -96,17 +96,18 @@ export function setVersionInBundle(bundle: string, version: string): string {
     return parts.join(version);
 }
 
-async function bundleUserscript(outputPath: string): Promise<string> {
+async function bundleUserscript(outputPath: string, root: string): Promise<string> {
     assert(outputPath.length > 0, "a bundler is told where to write");
+    assert(root.length > 0, "and which tree to read");
     const bundling = new Deno.Command(Deno.execPath(), {
         args: [
             "bundle",
             "--platform=browser",
             "--config",
-            CONFIGURATION_FILE,
+            `${root}/${CONFIGURATION_FILE}`,
             "-o",
             outputPath,
-            BUNDLE_ENTRY,
+            `${root}/${BUNDLE_ENTRY}`,
         ],
     }).output();
     const finished = await bundling;
@@ -135,11 +136,17 @@ export interface UserscriptFiles {
 export async function composeUserscriptFiles(
     version: string,
     outputPath?: string,
+    /**
+     * The tree read, which is this repository unless a caller hands over another. Only
+     * `tools/panel-giving-way.ts` does, and what it hands over is a copy of this one with a
+     * region made to stand down — so every check below still stands over what comes out.
+     */
+    root = ".",
 ): Promise<UserscriptFiles> {
     const metadata = composeUserscriptBanner(version);
     const written = outputPath ??
         await Deno.makeTempFile({ prefix: "margometer-", suffix: ".js" });
-    const bundle = await bundleUserscript(written);
+    const bundle = await bundleUserscript(written, root);
     if (outputPath === undefined) await Deno.remove(written);
     if (bundle.length === 0) {
         throw new UserscriptBuildError("the bundler wrote nothing");
