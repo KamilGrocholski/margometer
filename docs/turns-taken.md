@@ -196,7 +196,8 @@ nothing missed, nothing else caught.** The corpus states 365 of them now, 2026-0
 recordings admitted since have not had is the second half of that reading, which is a person going
 through every match. The three lines about striking a target already dead end in a full stop; loot
 lines put a colon after the name. **ADR 0049** carries the rest, including why the stun keys cannot
-do this job — 118 applications against 319 announcements.
+do this job — 118 applications against the 319 announcements that reading was taken over, both
+figures of 2026-09-03 and neither re-earned since.
 
 **The two columns are close and are not held to be equal.** Over the corpus the ordinal says 213
 turns went missing where the game announces 198: exact on 17 of the 21 recordings that can be asked,
@@ -254,7 +255,8 @@ reading `a01bf11` refused, and it is not what `grooove.pl` does either.
   join a fight already in progress, so the span is short by an amount nothing states, and a fight
   the game numbered once has no span at all. No figure on the panel is a fight's turn count.
 - **How many turns somebody was granted.** `taken` plus `lost` is what was seen, not what was
-  scheduled, and the two readings differ by two over the corpus.
+  scheduled, and the two readings do not come to the same figure over the corpus. How far apart they
+  stand is read off the register rather than written here (**V5**).
 - **Whether a world worded differently is being read.** Where the announcement has another shape the
   count is zero, and a zero draws no sub-line — so nothing on screen becomes false, and nothing says
   the reading found nothing either. That is the cost of reading a shape rather than a key.

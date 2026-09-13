@@ -114,9 +114,9 @@ How many of ours against how many of theirs, and how many recordings of each.
 Every gap below is readable off the tables above, and each is a reason to record something rather
 than a defect.
 
-- **No group fight between players.** One duel exists, and it was fought on `experimental` rather
-  than on a live world — so nothing here says what the panel does when both sides heal, resurrect
-  and drink.
+- **No group fight between players.** Two recordings hold a player at both ends — the duel on
+  `experimental`, and a two-against-one on `tempest` — and in neither is a group facing a group, so
+  nothing here says what the panel does when both sides heal, resurrect and drink at scale.
 - **No fight of more than two sides**, and none where more than three opponents stood on the other
   one. A wide enemy side is untested on real protocol.
 - **No drawn fight.** The panel draws one, and the fight it draws it from is hand-built
@@ -141,9 +141,12 @@ evidence.
   against more than one opponent.
 - `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json` — carries `walka`, the fight
   number, from the format that could hold more than one fight per recording.
-- `captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json` — the only fight
+- `captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json` — the only duel
   between two players, and the only recording from `experimental`, whose build lags production
   (§7.6). The keys it brought were read the day it arrived (`05d712f`).
+- `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json` — the other recording with a
+  player at both ends, and the first written from side 2. It is what settled whom a shout holds
+  (**ADR 0064**) and it is the whole of the evidence for it.
 - `captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json` — the first fight the
   game settled by itself, and one of three. Every payload carries `auto`, the whole battle arrives
   in one engine call with no snapshot before it, and the two calls after it carry snapshots and no

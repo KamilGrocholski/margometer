@@ -64,8 +64,11 @@ When two of these conflict, the earlier one wins:
 4. Keep the code checkable by a machine.
 5. Keep it small.
 
-Panel performance is a release gate, not follow-up polish. Under pressure the panel draws less; it
-never decodes less and never hides that it drew less.
+Panel performance is a constraint on the panel and not follow-up polish: under pressure it draws
+less, it never decodes less, and it never hides that it drew less. **Nothing mechanical holds it
+today** — `docs/releasing.md` has no step for it and `tools/` has no instrument that measures it, so
+it is a constraint a person keeps. Making it a gate again starts with a measurement, not with a
+sentence here.
 
 ## Success measures
 

@@ -102,9 +102,10 @@ The add-on **reads**. This is the whole security model, and everything else is a
 The bundle carries Deno standard-library modules alongside our own code. Two obligations follow:
 
 - `NOTICE.md` names what is bundled and under what licence.
-- The **browser floor is checked over the built bundle**, not over our sources, because the ES level
-  of code we did not write is not ours to set. A construct above the floor is an early SyntaxError:
-  the bundle never loads, so the reader sees no panel and no console line of ours.
+- The **browser floor is held over everything the bundle carries**, ours and theirs alike, because
+  the ES level of code we did not write is not ours to set. What the floor is and what holds it is
+  `docs/browser-support.md`'s. The obligation is this file's: a construct above it is an early
+  SyntaxError, so the bundle never loads and the reader sees no panel and no console line of ours.
 
 ## Verification
 

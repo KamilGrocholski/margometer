@@ -242,7 +242,7 @@ tests/
     documents.test.ts      The rule documents and the guard register.
     decisions.test.ts      The decision records: numbering, index, lifecycle.
     skill-durations.test.ts  The frozen durations, against the corpus and their own rule.
-    sources.test.ts        S1, S2, S13, C5, C15, C16, S4 and S5 over every TypeScript file.
+    sources.test.ts        Every rule AGENTS.md's register names it for, over every source.
     source-line.test.ts    The line reader every guard beside it stands on, on both samples.
     source-readers.test.ts  Those readers held to a parse of the same tree, and S4 on it.
     counted-material.test.ts  V5 over the one thing counted most: the recordings.
@@ -464,10 +464,10 @@ answer says whether it worked and the value sits behind it (**E10**, **ADR 0021*
 
 A row names an owner so a reading has one address. `tests/repository/constructs.test.ts` reads this
 section and holds it both ways. **It binds where the program is** — `libs/`, `project/`, `src/` and
-`tools/`, the scope **S5** measures — because a test spelling `Number()` to read a written figure
-back is the test doing its job rather than the owner losing its address; the register asked that
-question and this is the answer. An owner that owns nothing stops guarding, which is why a row is
-added when its first consumer arrives and not before.
+`tools/` — because a test spelling `Number()` to read a written figure back is the test doing its
+job rather than the owner losing its address; the register asked that question and this is the
+answer. An owner that owns nothing stops guarding, which is why a row is added when its first
+consumer arrives and not before.
 
 Measuring by hand on 2026-08-30 found three rows stale — `JSON.parse` named a file that had stopped
 spelling it, and `JSON.stringify` and `Date.parse` both said "planned" while carrying consumers —
@@ -500,15 +500,21 @@ change carries an explicit migration:
 not the build":
 
 ```
-deno fmt --check   formatting, line length, indentation
-deno lint          zero warnings — S10
-deno check         types, at the strictness deno.json states
-deno test          the tests, including every guard in AGENTS.md's register
-deno task build    the file a reader installs, and the checks over its built text
+deno fmt --check        formatting, line length, indentation
+deno lint               zero warnings — S10
+deno check              types, at the strictness deno.json states
+deno check tests/e2e    the browser suite, which nothing imports and nothing else checks
+deno check --config project/browser-lib.json src/userscript-boot.ts
+                        everything the bundle carries, as a program in a browser
+deno test               the tests, including every guard in AGENTS.md's register
+deno task build         the file a reader installs, and the checks over its built text
 ```
 
-The browser floor is checked over the **built bundle**, not the sources, because the bundle carries
-standard-library code whose ES level is not ours to set.
+The browser floor is checked over **everything the bundle carries** — the entry and its import
+graph, under a browser `lib` instead of Deno's — because the bundle carries standard-library code
+whose ES level is not ours to set. The two checks that do stand over the built text are the build's
+own, and neither is about the floor: the file must carry no way out of the page, and it must say
+whose it is.
 
 ## Known gaps
 
@@ -645,9 +651,9 @@ commit that opens or closes one.
    `Everything
    up-to-date`. That one cost a takt. The sequence spells both now.
 
-   Three releases have gone out the same way since — `v0.13.0` and `v0.14.0` on 2026-09-05, and
-   `v0.15.0` on 2026-09-09 — and `docs/releasing.md` has not been edited for a correction since
-   `c2803d2` on 2026-09-01, which is the observation that the sequence now holds.
+   Every release since has gone out the same way — `v0.13.0` and `v0.14.0` on 2026-09-05, `v0.15.0`
+   on 2026-09-09 and `v0.16.0` on 2026-09-11 — and `docs/releasing.md` has not been edited for a
+   correction since `c2803d2` on 2026-09-01, which is the observation that the sequence now holds.
 
    **Opening every picture is what caught the next one**, on 2026-09-09: the drag that takes the
    panel to the corner it is photographed against had stopped moving anything, because a synthetic

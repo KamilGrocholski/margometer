@@ -197,7 +197,8 @@ this language does not have would be**; each states what binds instead.
 - **E6.** Pass the original in `cause` when wrapping.
 - **E7.** An expected failure in `src/` is **data** — an explicit unknown the panel can show. In
   `tools/` it throws loudly.
-- **E8. `ui/` throws nothing.** A panel failure is state, not an exception. **ADR 0004.**
+- **E8. `ui/` throws nothing.** A panel failure is state, not an exception. **ADR 0004**, on the
+  half **ADR 0009** left standing.
 - **E9.** Reading a value never throws: it returns `null`, and the caller picks assert, error or
   unknown. Writing asserts, because the number is ours.
 - **E10.** Never substitute `0` for a failed read. Zero is a measurement. **Where the read could
@@ -330,7 +331,7 @@ TypeScript idiom, with the naming rules stated here.
   measurement.
 - **C5.** Comment share of a file stays under 25%, counting the comment lines that carry a word — a
   docblock's opening and closing lines and the blank continuation between its paragraphs are
-  punctuation. **ADR 0005**, narrowed by **ADR 0075**.
+  punctuation. **ADR 0016**, which kept **ADR 0005**'s bound, narrowed by **ADR 0075**.
 - **C6.** Comments are sentences — a space after the slashes, a capital letter, a full stop, or a
   colon when they introduce what follows. An end-of-line comment may be a phrase.
 - **C7. No regular expressions**, in either spelling — a literal or the constructor. Text is read by
@@ -354,10 +355,10 @@ TypeScript idiom, with the naming rules stated here.
   `libs/unknown-reading.ts`, a `value is X` predicate, an `instanceof`, or a `require…` under
   **N2**, which throws. `as const` and `satisfies` assert nothing — they check a literal against a
   type rather than overriding one. The case that keeps escaping is `JSON.parse`: parsed text wearing
-  a type is external data nobody checked. Three crossings here have no narrowing to offer, and the
-  register `tests/repository/type-assertions.test.ts` reads both ways names each — one place rather
-  than the same reason in three files. A fourth is `[ASK]`. Tests keep the cast, as `!` under
-  **C12**. **ADR 0044.**
+  a type is external data nobody checked. The crossings here that have no narrowing to offer are
+  named in the register `tests/repository/type-assertions.test.ts`, which reads both ways — one
+  place rather than the same reason in each file. A new one is `[ASK]`. Tests keep the cast, as `!`
+  under **C12**. **ADR 0044.**
 - **C14. Self-documenting code first.** A name, a type and an assertion say what a sentence would
   and cannot go stale, so they are the first answer to "this needs explaining". Plain description
   belongs in the **file's docblock** — what the file is for and what is in it — and nowhere else.

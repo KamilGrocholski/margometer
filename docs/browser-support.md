@@ -299,14 +299,16 @@ it exists for that browser.
 
 Three answers, and they are different: _not looked at_, _looked at and clean_, and _a finding_.
 
-- **Only Firefox has ever been run.** Every version above is read from `browser-compat-data`, not
-  observed. The one engine this repository actually drives is Firefox, through
-  `tools/preview-server.ts` and `tools/panel-screenshots.ts`. Chrome and Safari are **not looked
-  at**, and neither is on the machine that wrote this.
-- **Two CSS decisions were measured in Firefox specifically** and have no counterpart anywhere else:
-  the shadow offsets in `src/ui/panel-look.ts` and the tinted-bar contrast in
-  `src/ui/panel-look.ts`. Both say so where they are written. Whether either holds in another engine
-  is **not looked at**.
+- **Only Chrome has ever been run.** Every version above is read from `browser-compat-data`, not
+  observed. The one engine this repository drives is Chrome: `tools/panel-screenshots.ts` looks for
+  it by name and asks for no other, and `deno task e2e` pins the channel (**ADR 0047**). Firefox is
+  on the machine that wrote this and the panel has never been opened in it by anything here; Safari
+  is on no machine this repository has. Both are **not looked at**.
+- **Three decisions name an engine other than the one that is run**, and each says so where it is
+  written: the `user-select` prefix Safari has never shipped without, the glyph width a star was
+  measured at in Firefox, and the blob a download is read from after the click returns in Firefox.
+  Whether any of the three still holds is **not looked at** — what is written beside each is the
+  reading it was decided on.
 - **Mobile is out of scope, and not only because of a browser.** The detail card opens on
   `pointerover` and the panel is moved by dragging its title bar; a touch screen has no hover and no
   cursor to outrun. The limit is the panel's design, not the platform's support, so a manager that

@@ -495,7 +495,11 @@ figure it concerns, and a defect concerns none.
   `color:` too, and those are held at the graphical floor instead — named, never exempted. The
   thinnest pairing is `defect` over `raised`, measured 2026-09-10.
 - Colour is never the only signal — _The Colour Never Alone Rule_.
-- The panel is keyboard-reachable and does not trap focus.
+- **Nothing the panel draws can be reached from a keyboard, and that is a finding.** Every control
+  is a `div` or a `span` listening for a press or a hover; no element it puts in the page is
+  focusable and no key is read anywhere in `src/`. What it does not do is take anything away — it
+  steals no focus and traps none, so whatever the page underneath could reach before it can still be
+  reached.
 - A reader who has asked for reduced motion loses nothing, because there is no motion.
 
 ## Do
