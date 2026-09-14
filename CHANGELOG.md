@@ -33,6 +33,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Panel mówi teraz, jak się z rozwiniętego wiersza wychodzi. Po najechaniu na ścieżkę
+  nad listą staje okienko z dwoma sposobami: kliknięciem w samą ścieżkę i kliknięciem prawym
+  przyciskiem w dowolnym miejscu panelu. Ten drugi działał od początku i nie było skąd się o nim
+  dowiedzieć.
+
+- **Nowość** — Wiersze w Pomocniku mówią wreszcie, że da się je rozwinąć i zobaczyć, kto rzucił.
+  Rozwijały się i wcześniej, ale nic o tym nie mówiły — wyglądały jak zwykły spis.
+
 - **Nowość** — Wiersz „Zwykły cios" da się teraz rozwinąć i zobaczyć, komu — albo od kogo — te ciosy
   poszły. Wcześniej trzeba było obejść wszystkich przeciwników po kolei i zbierać liczby z osobnych
   okienek.
@@ -41,6 +49,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   przykład „13 wrz 21:05". Wcześniej widać było samą godzinę, więc walka sprzed tygodnia wyglądała
   na półce tak samo jak dzisiejsza. Trwająca walka dalej stoi jako „teraz". Na nazwę miejsca zostaje
   przez to mniej miejsca i dłuższa bywa ucięta — pełną widać w okienku wiersza.
+
+- **Zmiana** — Podpowiedź w okienku wiersza mówi teraz wprost, co się stanie: zamiast „LPM —
+  rozbicie" stoi tam „LPM — rozwiń wiersz". Poprzednie brzmienie trzeba było znać, żeby zrozumieć.
 
 - **Zmiana** — „Zwykły cios" stoi teraz w kolejności jak każdy inny wiersz — z numerem i pełnym
   paskiem, na miejscu, które daje mu jego liczba. Bardzo często jest to miejsce pierwsze, bo zwykłe

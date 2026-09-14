@@ -39,13 +39,20 @@ export interface TipReading {
 export type TipCompose = () => TipReading;
 
 /**
+ * What the pointer asks, and all it asks. Two windows fill two registers and the card is one, so
+ * the handle is handed a reading rather than either register — **ADR 0086**.
+ */
+export interface TipLookup {
+    get(key: string): TipCompose | null;
+}
+
+/**
  * Filled by every draw and read by the pointer. The key is stated by the row rather than counted
  * off the draw order: a fight reorders its ranking between payloads, and a counted key would let
  * an open tip go on describing the row that used to stand there.
  */
-export interface TipRegister {
+export interface TipRegister extends TipLookup {
     add(key: string, compose: TipCompose): void;
-    get(key: string): TipCompose | null;
     reset(): void;
 }
 
@@ -322,7 +329,7 @@ export interface TipHandle {
  */
 export function composeTipHandle(
     document: PanelDocument,
-    register: TipRegister,
+    register: TipLookup,
     redraw: TipRedraw,
     getLeft: () => number | null = () => null,
     /** How much of the window a card has to stand in. Null is a page that states no height. */

@@ -15,7 +15,7 @@ import { getPartOfSide, type PanelSidePart } from "@/src/ui/panel-reading.ts";
 import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
 
 /** Past every skill the corpus casts at a side in one fight, and a clamp rather than a bound. */
-const MAXIMUM_STANDING_ROWS = 24;
+export const MAXIMUM_STANDING_ROWS = 24;
 /** Past the most casters one skill has ever stood on at once. */
 const MAXIMUM_CASTERS = 12;
 /**

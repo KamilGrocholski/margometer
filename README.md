@@ -43,7 +43,8 @@ Walka dziesięciu na jednego, na ekranie obrażeń otrzymanych.
 
 - Obrażenia i przywracanie życia, zadane i otrzymane, dla każdej postaci, w każdej walce.
 - Wiersz się rozwija, i to trzy poziomy w głąb: kto komu, potem czym — umiejętnością albo typem
-  obrażeń.
+  obrażeń. Rozwija się kliknięciem, a wraca kliknięciem prawym przyciskiem w dowolnym miejscu panelu
+  albo w ścieżkę nad listą.
 - Najedź na wiersz postaci — na liście albo w rozwiniętym wierszu — żeby zobaczyć jej kartę:
   wszystkie cztery liczby, tury wykonane i te utracone, krytyki, największy cios, co zatrzymała
   obrona i co zniszczył atak. To samo na każdym ekranie.

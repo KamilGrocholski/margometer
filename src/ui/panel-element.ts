@@ -123,6 +123,7 @@ import {
     type TipGroup,
     type TipHandle,
     type TipLine,
+    type TipLookup,
     type TipReading,
     type TipRegister,
 } from "@/src/ui/panel-tip.ts";
@@ -250,6 +251,13 @@ const STANDING_ATTRIBUTE = "data-standing";
 const STANDING_FOLD_ATTRIBUTE = "data-standing-fold";
 const LIVE_FIGHT = "live";
 const TIP_ATTRIBUTE = "data-tip";
+/**
+ * The one card key no row states, so it can be a constant where every other is composed off what
+ * the row stands for: one crumb is drawn at a time and its card says the same two things whatever
+ * level it leaves.
+ */
+const CRUMB_TIP_KEY = "crumb:back";
+const STANDING_TIP_PREFIX = "standing:";
 const TITLE_ATTRIBUTE = "title";
 /** What a row's bar is written on, since a length and a hue are data rather than tokens. */
 const STYLE_ATTRIBUTE = "style";
@@ -922,6 +930,7 @@ function composeStandingCountElement(
 function composeStandingRowElements(
     document: PanelDocument,
     reading: StandingReading,
+    register: TipRegister,
 ): PanelElement[] {
     const drawn: PanelElement[] = [];
     for (const row of reading.rows) {
@@ -931,7 +940,11 @@ function composeStandingRowElements(
         const value = composeStandingCountElement(document, row);
         element.append(name);
         element.append(value);
-        setRowMarks([element, name, value], STANDING_ATTRIBUTE, composeIntegerText(row.skillId));
+        const marked = [element, name, value];
+        setRowMarks(marked, STANDING_ATTRIBUTE, composeIntegerText(row.skillId));
+        const key = `${STANDING_TIP_PREFIX}${composeIntegerText(row.skillId)}`;
+        register.add(key, () => composeStandingTipReading(row.skillName));
+        setRowMarks(marked, TIP_ATTRIBUTE, key);
         drawn.push(element);
         if (row.skillId !== reading.openSkillId) continue;
         for (const caster of row.casters) {
@@ -947,9 +960,25 @@ function composeStandingRowElements(
     return drawn;
 }
 
+/**
+ * The window's rows open onto the casters under them and say so, which the ranking's rows have
+ * said since **ADR 0034**. Nothing else stands on this card: who cast it is what the row opens
+ * onto, so a card stating it too would be answering the gesture it is teaching.
+ */
+function composeStandingTipReading(skillName: string): TipReading {
+    return {
+        name: skillName,
+        subtitle: null,
+        groups: [{
+            lines: [{ kind: "note", text: STANDING_WORDS.openRow, isSuspect: false }],
+        }],
+    };
+}
+
 function composeStandingBody(
     document: PanelDocument,
     reading: StandingReading,
+    register: TipRegister,
 ): PanelElement {
     const body = composeElement(document, "div", CLASS.standingBody);
     for (const element of composeStandingNow(document, reading)) body.append(element);
@@ -965,7 +994,9 @@ function composeStandingBody(
         for (const element of composeProvokedElements(document, reading)) body.append(element);
         return body;
     }
-    for (const element of composeStandingRowElements(document, reading)) body.append(element);
+    for (const element of composeStandingRowElements(document, reading, register)) {
+        body.append(element);
+    }
     for (const element of composeProvokedElements(document, reading)) body.append(element);
     return body;
 }
@@ -993,48 +1024,83 @@ function composeHeaderElement(document: PanelDocument, shown: ShownScreen): Pane
     return header;
 }
 
-function composeCrumbRegion(document: PanelDocument, shown: ShownScreen): PanelElement {
+function composeCrumbRegion(
+    document: PanelDocument,
+    shown: ShownScreen,
+    register: TipRegister,
+): PanelElement {
     if (shown.isOnShelf) {
-        return composeCrumbElement(document, PANEL_WORDS.fights, PANEL_WORDS.backFromFights);
+        return composeCrumbElement(document, register, {
+            said: PANEL_WORDS.fights,
+            from: PANEL_WORDS.backFromFights,
+        });
     }
     if (shown.halfNamedDrill !== null) {
-        return composeCrumbElement(
-            document,
-            getWordsForHalfNamedDrill(shown.halfNamedDrill, shown.current),
-            getWordsForUnnamedRow(getEndForPinned(shown.halfNamedDrill.case)),
-        );
+        return composeCrumbElement(document, register, {
+            said: getWordsForHalfNamedDrill(shown.halfNamedDrill, shown.current),
+            from: getWordsForUnnamedRow(getEndForPinned(shown.halfNamedDrill.case)),
+        });
     }
     if (shown.halfNamed !== null) {
-        return composeCrumbElement(document, getWordsForUnnamedRow(shown.halfNamed.end));
+        return composeCrumbElement(document, register, {
+            said: getWordsForUnnamedRow(shown.halfNamed.end),
+            from: null,
+        });
     }
     if (shown.drill === null) return composeSlotElement(document);
     const opened = shown.drill.name ?? PANEL_WORDS.unknown;
     if (shown.part !== null) {
-        return composeCrumbElement(
-            document,
-            getWordsForNamedPart(shown.part.part, shown.current),
-            opened,
-        );
+        return composeCrumbElement(document, register, {
+            said: getWordsForNamedPart(shown.part.part, shown.current),
+            from: opened,
+        });
     }
-    if (shown.pair === null) return composeCrumbElement(document, opened);
-    return composeCrumbElement(document, shown.pair.otherName ?? PANEL_WORDS.unknown, opened);
+    if (shown.pair === null) {
+        return composeCrumbElement(document, register, { said: opened, from: null });
+    }
+    return composeCrumbElement(document, register, {
+        said: shown.pair.otherName ?? PANEL_WORDS.unknown,
+        from: opened,
+    });
 }
 
+/**
+ * The crumb carries the one card that is not a row's, and it carries it on the way back alone:
+ * `getPressFromTarget` walks no ancestors, so the mark on that span reaches the pointer and the
+ * name beside it stays uncovered. Drawn only where a level is open, which is what lets it name a
+ * gesture a row's card may not — **ADR 0086**.
+ */
 function composeCrumbElement(
     document: PanelDocument,
-    said: string,
-    from: string | null = null,
+    register: TipRegister,
+    stated: { said: string; from: string | null },
 ): PanelElement {
     const crumb = composeElement(document, "div", CLASS.crumb);
     const back = composeElement(document, "span", CLASS.crumbBack);
-    back.textContent = `${BACK_MARK}${from ?? PANEL_WORDS.back}`;
+    const leaving = stated.from ?? PANEL_WORDS.back;
+    back.textContent = `${BACK_MARK}${leaving}`;
     back.setAttribute(BACK_ATTRIBUTE, PANEL_WORDS.back);
+    register.add(CRUMB_TIP_KEY, () => composeCrumbTipReading(leaving));
+    back.setAttribute(TIP_ATTRIBUTE, CRUMB_TIP_KEY);
     const here = composeElement(document, "span", CLASS.crumbHere);
-    here.textContent = said;
+    here.textContent = stated.said;
     here.setAttribute(TITLE_ATTRIBUTE, here.textContent);
     crumb.append(back);
     crumb.append(here);
     return crumb;
+}
+
+function composeCrumbTipReading(leaving: string): TipReading {
+    return {
+        name: leaving,
+        subtitle: null,
+        groups: [{
+            lines: [
+                { kind: "note", text: CARD_WORDS.gestureBack, isSuspect: false },
+                { kind: "note", text: CARD_WORDS.gestureBackAnywhere, isSuspect: false },
+            ],
+        }],
+    };
 }
 
 function composeSectionElement(
@@ -2299,6 +2365,18 @@ function composeStandingWindow(
     return { element, bar, body };
 }
 
+/** Null for good on a panel never made movable, which is every panel a test draws. */
+function setPanelDragOrNothing(
+    root: PanelRoot,
+    host: PanelElement,
+    getBar: () => PanelElement,
+    placement: PanelPlacement | null,
+    handleGesture: (failure: unknown) => void,
+): PanelDragHandle | null {
+    if (placement === null) return null;
+    return setPanelDrag(root, host, getBar, placement, handleGesture);
+}
+
 /**
  * The window's own four listeners, on the same root and answering to its own grip. Without a name
  * on the mark both sets start on either bar: the panel moves by the wrong one and writes its
@@ -2334,10 +2412,11 @@ function setStandingBodyDrawn(
     reading: StandingReading | null,
     isCollapsed: boolean,
     redraw: PanelRedraw,
+    register: TipRegister,
 ): PanelElement {
     if (reading === null) return redraw(standing, "standing", () => composeSlotElement(document));
     if (isCollapsed) return redraw(standing, "standing", () => composeSlotElement(document));
-    return redraw(standing, "standing", () => composeStandingBody(document, reading));
+    return redraw(standing, "standing", () => composeStandingBody(document, reading, register));
 }
 
 /** The bar, the frame, the card and the window beside it — in the order they are drawn over. */
@@ -2345,10 +2424,18 @@ function setPanelRootChildren(root: PanelRoot, children: readonly PanelElement[]
     for (const child of children) root.append(child);
 }
 
+/**
+ * One card over two windows, so one reading over two registers. The panel's is asked first: it is
+ * the one a fight refills every few seconds, and no key is stated by both.
+ */
+function composeTipLookup(panel: TipRegister, standing: TipRegister): TipLookup {
+    return { get: (key: string) => panel.get(key) ?? standing.get(key) };
+}
+
 /** The card, placed against wherever the panel is **now** rather than where it was wired. */
 function composeTipBeside(
     document: PanelDocument,
-    register: TipRegister,
+    register: TipLookup,
     placement: PanelPlacement | null,
     handleFailure: HandlePanelFailure,
     getDrag: () => PanelDragHandle | null,
@@ -2386,10 +2473,11 @@ export function composePanelHost(
         handleFailure({ kind: "gesture", region: null, failure });
     };
     const register = composeTipRegister();
+    const standingRegister = composeTipRegister();
     const drawing = composeListDrawing(document, regions, handleFailure);
-    // Null for good on a panel never made movable, which is every panel a test draws.
     let drag: PanelDragHandle | null = null;
-    const tip = composeTipBeside(document, register, placement, handleFailure, () => drag);
+    const cards = composeTipLookup(register, standingRegister);
+    const tip = composeTipBeside(document, cards, placement, handleFailure, () => drag);
     const standing = composeStandingWindow(document);
     let standingBar = standing.bar;
     let standingBody = standing.body;
@@ -2397,15 +2485,7 @@ export function composePanelHost(
     const showTip = (key: string | null, clientY: number) => tip.show(key, clientY);
     setPanelRootListeners(root, handlePress, showTip, handleGesture, standing.element);
     // After the listeners that read a press, and on the same root: a drag is four more of them.
-    if (placement !== null) {
-        drag = setPanelDrag(
-            root,
-            host,
-            () => regions.title,
-            placement,
-            handleGesture,
-        );
-    }
+    drag = setPanelDragOrNothing(root, host, () => regions.title, placement, handleGesture);
     const standingDrag = setStandingDrag(
         root,
         standing.element,
@@ -2420,6 +2500,7 @@ export function composePanelHost(
         frame,
         redraw,
         register,
+        standingRegister,
         drawing,
         translate,
         tip,
@@ -2441,6 +2522,7 @@ interface PanelDrawing {
     frame: PanelElement;
     redraw: PanelRedraw;
     register: TipRegister;
+    standingRegister: TipRegister;
     drawing: ListDrawing;
     translate: TranslateLabel | null;
     tip: TipHandle;
@@ -2485,6 +2567,10 @@ function composePanelDrawing(held: PanelDrawing): PanelHandle {
             held.setStandingBar(
                 setStandingBarDrawn(document, held.getStandingBar(), isCollapsed, redraw),
             );
+            // ⚠️ The two windows keep two registers because they are drawn at two moments: this
+            // one goes up first and the panel's own draw resets the panel's register under it,
+            // which took every card this window had registered with it (**ADR 0086**).
+            held.standingRegister.reset();
             held.setStandingBody(
                 setStandingBodyDrawn(
                     document,
@@ -2492,6 +2578,7 @@ function composePanelDrawing(held: PanelDrawing): PanelHandle {
                     reading,
                     isCollapsed,
                     redraw,
+                    held.standingRegister,
                 ),
             );
             held.standingDrag?.handleDrawn();
@@ -2655,7 +2742,11 @@ function setPanelBody(
         () =>
             isFight ? composeDirectionStripElement(document, shown) : composeSlotElement(document),
     );
-    regions.crumb = redraw(regions.crumb, "crumb", () => composeCrumbRegion(document, shown));
+    regions.crumb = redraw(
+        regions.crumb,
+        "crumb",
+        () => composeCrumbRegion(document, shown, register),
+    );
     regions.storage = redraw(
         regions.storage,
         "strips",

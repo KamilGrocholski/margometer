@@ -12,6 +12,7 @@ import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { getPointsFromShareText } from "@/tests/share-text.ts";
 import { MAXIMUM_CUT_PARTS, MAXIMUM_SKILLS } from "@/src/ui/panel-reading.ts";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
+import { MAXIMUM_STANDING_ROWS } from "@/src/ui/panel-standing.ts";
 import { MAXIMUM_TIPS } from "@/src/ui/panel-tip.ts";
 import { composeShareTexts, MAXIMUM_SHARES } from "@/src/ui/panel-words.ts";
 
@@ -25,13 +26,16 @@ const HUNDRED = 100;
 const WIDEST_SECTION = MAXIMUM_SKILLS + MAXIMUM_CUT_PARTS + 2;
 /** What a section costs a draw beyond its rows: the row named for nobody, and its heading. */
 const SECTION_EXTRAS = 2;
+/** What the crumb costs the register, and it is one wherever a level is open (**ADR 0086**). */
+const CRUMB_CARDS = 1;
 /**
- * And the widest screen: an opened row's three sections, their extras, and the two pinned. The cut
- * by key carries a third row of its own — a fold there is bounded too (**ADR 0055**).
+ * And the widest screen: an opened row's three sections, their extras, the two pinned, and the
+ * crumb over the lot. The cut by key carries a third row of its own — a fold there is bounded too
+ * (**ADR 0055**).
  */
 const WIDEST_SCREEN = MAXIMUM_COMBATANTS + SECTION_EXTRAS +
     (WIDEST_SECTION + 1) +
-    (MAXIMUM_CUT_PARTS + SECTION_EXTRAS + 1) + 2;
+    (MAXIMUM_CUT_PARTS + SECTION_EXTRAS + 1) + 2 + CRUMB_CARDS;
 
 Deno.test("the share writer holds every row the widest section can draw", () => {
     assert(
@@ -44,6 +48,18 @@ Deno.test("the card register holds every row the widest screen can draw", () => 
     assert(
         MAXIMUM_TIPS >= WIDEST_SCREEN,
         `${MAXIMUM_TIPS} cards is under the ${WIDEST_SCREEN} rows one screen may come to`,
+    );
+});
+
+/**
+ * The window beside the panel fills a register of its own, because it is drawn before the panel
+ * and the panel's own draw resets the panel's (**ADR 0086**). So its width is asked separately:
+ * one card per row it clamps to, and nothing under them registers one.
+ */
+Deno.test("the card register holds every row the window beside the panel can draw", () => {
+    assert(
+        MAXIMUM_TIPS >= MAXIMUM_STANDING_ROWS,
+        `${MAXIMUM_TIPS} cards is under the ${MAXIMUM_STANDING_ROWS} rows that window may come to`,
     );
 });
 

@@ -221,3 +221,5 @@ edited to agree with the new rule.
   the place pays for it. **Accepted**
 - [0085](0085-a-proc-may-carry-a-figure-nobody-reads.md) — A proc may carry a figure nobody reads.
   **Accepted**
+- [0086](0086-the-crumb-names-the-way-back.md) — The crumb names the way back, and a row still does
+  not. **Accepted**

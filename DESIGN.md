@@ -332,6 +332,13 @@ it. So the instruction rides the detail every row already opens on hover, at eve
 only on the ranking — and it is never printed where pressing does nothing, because an affordance
 that lies is worse than none.
 
+**The way back says both gestures, and it is the only thing that does.** A level is left by a press
+on the crumb or by a press of the other button anywhere on the panel, and the second is the cheaper
+of the two because it needs no aiming. The crumb is drawn only where a level is open, so a card
+standing on it is read at a moment when both do something — which is the condition above, met where
+a row on the ranking cannot meet it. That is why the right press is named there and on no row's
+card. **ADR 0086.**
+
 **Every column of shares comes to a hundred.** A section that is drawn accounts for the whole of the
 figure over it, and a reader who adds a column and gets ninety-four cannot tell a missing figure
 from a figure that was never there — telling those two apart is what this panel is for. What the

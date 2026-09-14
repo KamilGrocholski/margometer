@@ -314,11 +314,18 @@ export const CARD_WORDS = {
         "liczba nad nimi może trzymać więcej. Nie odejmuj jednej od drugiej: pancerza ani " +
         "odporności gra nie podaje.",
     /**
-     * The one instruction the panel gives, and it stands wherever pressing leads somewhere —
-     * `DESIGN.md` owns that rule. The right press is not named beside it: it goes back, from
-     * anywhere, and a reader on the ranking has nothing to go back to.
+     * The instruction a row gives, and it stands wherever pressing leads somewhere — `DESIGN.md`
+     * owns that rule. The right press is not named beside it: a reader on the ranking has nowhere
+     * to go back to, so a row's card would promise a gesture that does nothing there.
      */
-    gesture: "LPM — rozbicie",
+    gesture: "LPM — rozwiń wiersz",
+    /**
+     * The way back, and it stands on the crumb alone — which is drawn only where a level is open,
+     * so both gestures it names do something wherever it is read. The second is the cheapest
+     * gesture the panel has and the only one nothing else states. **ADR 0086.**
+     */
+    gestureBack: "LPM tutaj — wróć o krok",
+    gestureBackAnywhere: "PPM gdziekolwiek — wróć o krok",
     /**
      * Said where the window is too short for the whole card, which is the one thing this panel
      * cannot answer by drawing less of a figure. **L3**: what is not shown, never which of our

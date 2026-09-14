@@ -13,8 +13,11 @@ import { readCentreOf, readPointsAlongBar, setDragged } from "@/tests/e2e/panel-
 /** The card, and the mark it wears while nobody is being told anything. */
 const CARD = ".MargoMeter-tip";
 const CARD_OPEN = ".MargoMeter-tip:not(.tip-hidden)";
-/** The one instruction the panel gives, drawn on the card of a row that opens onto a level. */
-const OPENS_NOTE = "LPM — rozbicie";
+/** The one instruction a row gives, drawn on the card of a row that opens onto a level. */
+const OPENS_NOTE = "LPM — rozwiń wiersz";
+/** The two the crumb gives, and the second is named nowhere else on the panel (**ADR 0086**). */
+const BACK_NOTE = "LPM tutaj — wróć o krok";
+const BACK_ANYWHERE_NOTE = "PPM gdziekolwiek — wróć o krok";
 /** Far enough left that the card cannot stand on that side of the panel any more. */
 const TO_THE_LEFT = -420;
 /** Under the 549 px the tallest card this corpus composes needs, measured 2026-09-06. */
@@ -216,4 +219,30 @@ test("the card stands on whichever side of the panel it fits", async ({ panel })
     const moved = await panel.place();
     expect(after.x, "pushed against the left edge, it goes to the other side")
         .toBeGreaterThan(moved.left);
+});
+
+/**
+ * The way out of a level, said where a level is open and nowhere else. Held in a browser because
+ * both halves are about a node under a real pointer: that the mark reaches the card from the way
+ * back, and that the name beside it is left alone.
+ */
+test("the way back says both gestures, and only where a level is open", async ({ panel }) => {
+    await expect(panel.at(".crumb-back"), "the ranking draws no way back").toHaveCount(0);
+
+    await panel.at("[data-row]").first().click();
+    await panel.at(".crumb-back").hover();
+
+    await expect(panel.at(CARD_OPEN), "the way back opens a card of its own").toHaveCount(1);
+    const said = await panel.at(CARD).innerText();
+    expect(said, "which names the press that lands on it").toContain(BACK_NOTE);
+    expect(said, "and the one that works from anywhere").toContain(BACK_ANYWHERE_NOTE);
+    expect(said, "and promises no opening, because nothing here opens").not.toContain(OPENS_NOTE);
+    await panel.expectHonest("a card open over the way back");
+
+    // ⚠️ Closed-ness is read off the mark, never off the words. A card that is not being rendered
+    // returns its `textContent` from `innerText`, so a hidden card goes on reading exactly like
+    // the one that was open a moment ago.
+    await panel.at(".crumb-here").hover();
+    await expect(panel.at(CARD_OPEN), "the name beside it carries no card of its own")
+        .toHaveCount(0);
 });

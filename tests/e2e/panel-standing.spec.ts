@@ -244,3 +244,22 @@ test("a card stands over the window, even where the window covers it", async ({ 
         "and the card is drawn over it, not under it",
     ).toBeLessThan(stack?.standingAt ?? 0);
 });
+
+/**
+ * A row of this window opens onto the casters under it and wears the cursor that says so, and for
+ * two releases said nothing: the rows carried no card mark at all, so the sentence written for
+ * them reached nobody (**ADR 0086**). Held here because the card is opened by a real pointer.
+ */
+test("a row of the window says on its card that it opens", async ({ panel }) => {
+    const rows = panel.at(".MargoMeter-standing .row[data-standing]");
+    await expect(rows, "the window is drawing rows to hover").not.toHaveCount(0);
+    const named = await rows.first().locator(".row-name").innerText();
+
+    await rows.first().hover();
+
+    await expect(panel.at(".MargoMeter-tip:not(.tip-hidden)"), "hovering one opens a card")
+        .toHaveCount(1);
+    await expect(panel.at(".MargoMeter-tip .tip-name"), "which names that row").toHaveText(named);
+    expect(await panel.at(".MargoMeter-tip").innerText(), "and says the row opens")
+        .toContain("LPM — kto rzucił");
+});
