@@ -33,6 +33,13 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Liczba, która znaczy mniej, niż mówi jej nazwa, ma teraz obok siebie znak, a pod
+  kartą jedno zdanie mówiące, czego gra nie podaje. Na razie dotyczy to dwóch rzeczy: liczb sprzed
+  redukcji i tego, co zatrzymała obrona — gra nie podaje pancerza ani odporności, więc z tych liczb
+  nie wyjdzie cała redukcja — oraz tur, bo gra nie mówi, ile tur ktoś dostał, tylko co w nich
+  zrobił. Znak jest inny niż ostrzeżenie o nieodczytanej wiadomości: tamto mówi, że liczba może być
+  zaniżona w tej walce, a ten, że liczba jest pełna i odpowiada na węższe pytanie, niż się wydaje.
+
 - **Nowość** — Panel mówi teraz, jak się z rozwiniętego wiersza wychodzi. Po najechaniu na ścieżkę
   nad listą staje okienko z dwoma sposobami: kliknięciem w samą ścieżkę i kliknięciem prawym
   przyciskiem w dowolnym miejscu panelu. Ten drugi działał od początku i nie było skąd się o nim
@@ -49,6 +56,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   przykład „13 wrz 21:05". Wcześniej widać było samą godzinę, więc walka sprzed tygodnia wyglądała
   na półce tak samo jak dzisiejsza. Trwająca walka dalej stoi jako „teraz". Na nazwę miejsca zostaje
   przez to mniej miejsca i dłuższa bywa ucięta — pełną widać w okienku wiersza.
+
+- **Zmiana** — Karta postaci nie pokazuje już największego ciosu, ani zadanego, ani przyjętego. Ta
+  liczba stała pod nagłówkiem o ciosach, a podnosiły ją też obrażenia, których gra nigdy ciosem nie
+  nazwała — bywała więc większa od najmocniejszego ciosu, jaki w walce padł. Zostaje w pliku
+  zapisanej walki, więc nic nie przepadło. Karta jest przy okazji o linię krótsza.
 
 - **Zmiana** — Podpowiedź w okienku wiersza mówi teraz wprost, co się stanie: zamiast „LPM —
   rozbicie" stoi tam „LPM — rozwiń wiersz". Poprzednie brzmienie trzeba było znać, żeby zrozumieć.

@@ -111,8 +111,6 @@ export interface RowDetail {
     healthRestoredByNobody: number;
     /** Blows that landed critically, against `blowsStruck`, which is what a rate is taken of. */
     blowsCritical: number;
-    damageDealtBlowLargest: number;
-    damageTakenBlowLargest: number;
     /**
      * The four cuts a card draws, each already in the order it is drawn in. **Readings rather than
      * the maps they were read off**: a card handed the statistics' own map could write into the
@@ -615,8 +613,6 @@ function composeRowDetail(figures: CombatantFigures, level: number | null): RowD
         damageTakenFromNobody: figures.damageTakenFromNobody,
         healthRestoredByNobody: figures.healthRestoredByNobody,
         blowsCritical: figures.blowsCritical,
-        damageDealtBlowLargest: figures.damageDealtBlowLargest,
-        damageTakenBlowLargest: figures.damageTakenBlowLargest,
         procsWhenStriking: composeCutParts(figures.procsWhenStriking),
         procsWhenStruck: composeCutParts(figures.procsWhenStruck),
         damagePreventedByDefence: composeCutParts(figures.damagePreventedByDefence),

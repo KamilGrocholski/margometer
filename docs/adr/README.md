@@ -225,3 +225,5 @@ edited to agree with the new rule.
   not. **Accepted**
 - [0087](0087-a-card-groups-by-what-a-figure-is-a-sum-over.md) — A card groups by what a figure is a
   sum over. **Accepted**
+- [0088](0088-a-figure-that-means-narrower-says-so-and-says-it-once.md) — A figure that means
+  narrower says so, and says it once. **Accepted**

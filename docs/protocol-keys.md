@@ -142,7 +142,7 @@ disagree **on a message carrying that key**. A verdict that cannot be attributed
 cascade from a neighbour, and is not a verdict.
 
 **A key with no entry is let through**, and the witness is what pushes back: if it does report
-health, its comparisons stop matching. That is the design, not a caveat — the alternative is an
+health, its comparisons stop matching. That is the design, not a shortcoming — the alternative is an
 entry per key with nothing behind it, which is the kind of bulk this directory exists to refuse.
 
 ### And who the figure is charged to

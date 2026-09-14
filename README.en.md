@@ -46,8 +46,9 @@ A ten-against-one fight, on the damage-taken screen.
   press opens it; a right press anywhere on the panel, or a press on the crumb over the list, takes
   you back.
 - Hover the row of anybody in the fight — on the list, or inside an opened row — for their card: all
-  four figures, the turns they took and the ones they lost, criticals, the hardest blow, what a
-  defence stopped and what an attack destroyed. The same on every screen.
+  four figures, the turns they took and the ones they lost, criticals, what a defence stopped and
+  what an attack destroyed. The same on every screen. A figure that means narrower than its label
+  says carries a mark, and a sentence at the foot of the card says what the game does not report.
 - A finished fight goes on a shelf you can go back to, and the panel says where it was fought.
 - A second window stands beside the panel: whose turn it is, and what is standing on the fight —
   skills cast over a whole side, and the shouts — with how many of the turns the game states have

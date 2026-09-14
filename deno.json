@@ -52,6 +52,7 @@
         // Which rows of the panel open onto another level, measured rather than remembered.
         // `docs/drill-levels.md` carries the verdicts; `--cases` states the counts behind them.
         "panel:drill": "deno run -A tools/drill-report.ts",
+        "panel:cards": "deno run -A tools/card-height.ts",
         // What the decoder could not read, over the corpus or over a recording you name — the
         // question that decides whether an intake is worth starting.
         "fight:decoding": "deno run -A tools/decoding-status.ts",

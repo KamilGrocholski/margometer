@@ -466,14 +466,24 @@ function composePersonCard(
  * pressable and silent about it teaches a reader that none of it is.
  */
 function composeRowTipReading(reading: RowReading, tip: RowTip, doesOpen: boolean): TipReading {
+    // A row is not a person, so nothing here carries a caveat: what qualifies a figure of this
+    // shape is the note the row already hands over (`tip.notes`), and a glyph on a row would take
+    // width from the one cell allowed to shorten (**ADR 0023**).
     const stated: TipLine[] = [{
         kind: "stat",
         label: tip.figure,
         stated: composeFigureText(reading.figure),
         isStrong: false,
+        caveat: null,
     }];
     if (tip.share !== null) {
-        stated.push({ kind: "stat", label: tip.share, stated: reading.shareText, isStrong: false });
+        stated.push({
+            kind: "stat",
+            label: tip.share,
+            stated: reading.shareText,
+            isStrong: false,
+            caveat: null,
+        });
     }
     const said: TipLine[] = [];
     for (const note of tip.notes ?? []) {

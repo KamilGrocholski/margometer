@@ -119,6 +119,7 @@ export const CLASS = {
     tipStrong: "tip-strong",
     tipSub: "tip-sub",
     tipLabel: "tip-label",
+    tipCaveat: "tip-caveat",
     tipValue: "tip-value",
     /** A sentence rather than a column, so the placement counts it as wrapping. */
     tipNote: "tip-note",
@@ -686,6 +687,10 @@ function composeTipRules(): string {
         `.${CLASS.tipLabel}{color:var(${VARIABLE_PREFIX}quiet);min-width:0;` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipValue}{font-variant-numeric:tabular-nums;flex:none;}` +
+        // No ink of its own: a caveat is an explanation and not an alarm, so it stays in the
+        // colour the sentence it points at is drawn in. `DESIGN.md` owns the rule and says why
+        // the families of hue are already spent.
+        `.${CLASS.tipCaveat}{color:var(${VARIABLE_PREFIX}quiet);flex:none;}` +
         // The same letters a cut's heading wears down the panel, so a run of parts under one
         // reads as the same kind of thing in both places. `DESIGN.md` owns the look.
         `.${CLASS.tipHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +

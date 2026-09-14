@@ -60,10 +60,13 @@ _Avoid_: Source/destination, attacker/victim, from/to
 ## The figures
 
 **Blow**: One attack by one combatant, and the unit the counted figures are counted in. It carries
-the hits, the procs and what it destroyed, so the criticals are a share of the blows struck and the
-hardest blow is one of them. The decoder's own event kind spells it `attack`: that is the data
-contract's word (`core/battle-event.ts`), which **ARCHITECTURE.md** protects and this file does not
-rename. _Avoid_: Swing, exchange, hit
+the hits, the procs and what it destroyed, so the criticals are a share of the blows struck. **The
+hardest figure at each end is not one of them**, and the panel states it nowhere: damage the game
+puts against a name raises it without ever having been a swing, so it stands above the largest
+actual blow on 15 of the 296 rows over the recordings (**ADR 0087**, **ADR 0088**). It is read in
+the handed-over fight file and in `deno task fight:figures`. The decoder's own event kind spells it
+`attack`: that is the data contract's word (`core/battle-event.ts`), which **ARCHITECTURE.md**
+protects and this file does not rename. _Avoid_: Swing, exchange, hit
 
 **Hit**: A single damage number inside a blow. One blow can carry several. _Avoid_: Strike, instance
 
@@ -78,6 +81,16 @@ absorbed
 **Destroyed**: A statistic of the target that an attack reduced — armour and absorption in points,
 resistance in percentage points. Not damage, never totalled with it, and its own members are not in
 one unit either. _Avoid_: Shredded, debuffed, broken
+
+**Caveat**: A drawn figure whose label names more than the figure counts, whatever the recording —
+the protocol states it over fewer messages than the word covers, or reports one component of what
+the word names. Marked beside the figure in a glyph of its own and said as one sentence at the foot
+of the card, once however many figures there carry that sentence. **Not a Suspect**, which says a
+figure may be short because something in _this_ fight could not be read: a caveated figure is
+complete and still answers a narrower question, so a recording with nothing unread in it carries
+every caveat it ever did, and one glyph over both would make the permanent look temporary and the
+temporary look permanent. **ADR 0088.** _Avoid_: Warning, footnote, asterisk, disclaimer,
+approximate, suspect
 
 **Element**: Damage type — fire, cold, physical and the rest — taken from the key. _Avoid_: School,
 type, damage type

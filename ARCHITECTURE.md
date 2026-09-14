@@ -107,6 +107,7 @@ tools/             Never ships. Each arrives with the question it answers.
   decoding-status.ts   What the decoder could not read, counted over whatever it is handed.
   fight-figures.ts     What a fight adds up to, per combatant, as a table at a terminal.
   drill-report.ts      Which rows of the panel open, measured level by level over a fight.
+  card-height.ts       How tall the card a row opens stands, in lines, over the recordings.
   turn-count.ts        What a fight's turns come to, graded against the game's own numbering.
   aura-standing.ts     What one skill put on a whole side, and how many stood at once.
   turn-reading.ts      How a message becomes a turn, and which message a dispute stands on.
@@ -417,13 +418,17 @@ One contract is this document's own, because it is about attribution rather than
   and the rule above binds each of them — a message the grammar refused names nobody, so it reaches
   no row at all.
 
-Three severities, and a fourth is `[ASK]`: **suspect**, **undrawn** and **defect** (`CONTEXT.md`).
-The first two are claims about the fight and ride what they qualify. The third is a claim about the
-add-on, granted by **ADR 0051** against the `[ASK]` this sentence used to hold, and it stands in a
-section of its own rather than beside a figure — there is no figure it is about. **A defect states
-what the panel could not do and how many times, and never why**: a sentence a player reads carries
-no failure of ours in it (**L3**), and the failure itself reaches the console once per kind
-(**E11**).
+Four severities, and a fifth is `[ASK]`: **suspect**, **caveat**, **undrawn** and **defect**
+(`CONTEXT.md`). The first three are claims about the fight and ride what they qualify. **A caveat is
+the one of them that does not depend on the recording** — it says a figure is complete and answers a
+narrower question than its label, so it stands wherever that figure does and never turns on what
+went unread; it was granted by **ADR 0088** against the `[ASK]` this sentence used to hold, and it
+wears a glyph of its own because a mark shared with **suspect** would make the permanent look
+temporary and the temporary look permanent. The fourth is a claim about the add-on, granted by **ADR
+0051** against the `[ASK]` this sentence used to hold before that, and it stands in a section of its
+own rather than beside a figure — there is no figure it is about. **A defect states what the panel
+could not do and how many times, and never why**: a sentence a player reads carries no failure of
+ours in it (**L3**), and the failure itself reaches the console once per kind (**E11**).
 
 ## Construct register
 

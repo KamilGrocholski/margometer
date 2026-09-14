@@ -471,13 +471,15 @@ of it. What will not fit on the card is summed into one line rather than dropped
 short of the figure over it is a run that misstates it. **ADR 0041.**
 
 **Both runs stand, on every screen, each under the heading naming its end.** The run about striking
-states the criticals as a share of the blows struck, the hardest blow, what else fired, and what
-those blows destroyed on the other side — under a heading of its own, because points of armour and
-percentage points of resistance are two quantities and never one sum. The run about being struck
-states what a defence stopped with the defences it is made of under it, what fired on that
-combatant's side of somebody else's blow, and the hardest blow that reached them. Which end a key
-belongs to is read per key and never off its sign, so the heading is what says whose each line is. A
-run that came to nothing is not drawn, and neither is its heading. **ADR 0032.**
+states what the protocol stated before reduction, the criticals as a share of the blows struck, what
+else fired, and what those blows destroyed on the other side — under a heading of its own, because
+points of armour and percentage points of resistance are two quantities and never one sum. The run
+about being struck states the same figure before reduction, what a defence stopped with the defences
+it is made of under it, and what fired on that combatant's side of somebody else's blow. **Neither
+run states a hardest figure**: the one the aggregate holds is not scoped to blows, and a heading
+naming blows over it was a claim the figure does not keep (**ADR 0088**). Which end a key belongs to
+is read per key and never off its sign, so the heading is what says whose each line is. A run that
+came to nothing is not drawn, and neither is its heading. **ADR 0032.**
 
 **A line of a card never folds.** Its height is arithmetic and a stat line is counted as one, so a
 label too long for the column is cut with an ellipsis rather than wrapped — a card that folded a
@@ -492,6 +494,18 @@ not say how big it is is not dragged from a guessed origin at all.
 
 **Suspect mark.** Rides the row it was named for, at every drill level, in `suspect` plus a glyph.
 It says a figure may be short and never says by how much.
+
+**Caveat mark.** Rides the figure on the card whose label names more than the figure counts, in a
+glyph of its own and in **no ink of its own** — a caveat is an explanation and not an alarm, so it
+stays in the colour of the sentence it points at, and the families of hue are spent already. It
+stands **before** the value, because that column is right-aligned in tabular figures and a glyph
+behind it would offset the lines carrying one against the lines that do not. It goes on the line a
+figure states and never on a sub-line under it, which is read through the line above it. Its
+sentence stands at the foot of the card, **once however many figures there wear that mark**, and the
+sentences are composed from the marks rather than worked out a second time — so a glyph pointing at
+nothing, or a sentence nothing points at, is not something this panel can draw. It never rides a row
+of the list: the row has one cell allowed to shorten and it holds a name (**ADR 0023**).
+**ADR 0088.**
 
 **Undrawn marker.** Replaces one section in place, at that section's size, in `textQuiet`. It is the
 least interesting thing on screen on purpose.

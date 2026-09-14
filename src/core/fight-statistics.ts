@@ -179,8 +179,15 @@ export interface CombatantFigures {
      */
     blowsCritical: number;
     /**
-     * The largest single blow at each end, which no sum can be read back out of: two blows of
+     * The largest single figure at each end, which no sum can be read back out of: two blows of
      * 5,000 and one of 9,000 total the same. The largest in `captures/` is 19,209, 2026-08-30.
+     *
+     * ⚠️ **It is not scoped to blows, and no panel draws it.** `addNamedDamageEvent` raises it with
+     * damage that was never a swing, so it stands above the largest actual blow on 15 of the 296
+     * rows over `captures/` (**ADR 0087**) — which is why the card no longer states it under a
+     * heading naming blows (**ADR 0088**). What reads it is the handed-over fight file
+     * (`src/game/fight-report.ts`) and `deno task fight:figures`, where a reader has the other
+     * figures beside it and this sentence within reach.
      */
     damageDealtBlowLargest: number;
     damageTakenBlowLargest: number;

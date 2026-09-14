@@ -32,6 +32,15 @@ export const DEFECT_MARK = "✖ ";
 
 export const TURN_MARK = "▸ ";
 
+/**
+ * Beside the suspect mark and never instead of it. `SUSPECT_MARK` says a figure may be short
+ * because something in **this** fight could not be read; this one says the figure is complete and
+ * answers a narrower question than its label, whatever was recorded (`CONTEXT.md`). One glyph over
+ * both claims would make the permanent look temporary and the temporary look permanent.
+ * **ADR 0088.**
+ */
+export const CAVEAT_MARK = "ⓘ ";
+
 export const PANEL_WORDS = {
     title: "MargoMeter",
     // Neither says "bez": the figure was placed, and it is the person that was never named.
@@ -298,8 +307,6 @@ export const CARD_WORDS = {
     blowsCritical: "Krytyki",
     /** A subset of the line above, which is what a sub-line under it means. */
     blowsCriticalOffhand: "bronią pomocniczą",
-    blowLargestDealt: "Największy cios",
-    blowLargestTaken: "Największy przyjęty cios",
     /**
      * A heading each, because the two runs stand together and half the keys under them belong to
      * the other end: `+legbon_curse` fires when its holder attacks and `-legbon_cleanse` when its
@@ -315,21 +322,6 @@ export const CARD_WORDS = {
      * wearing one word (`src/core/battle-event.ts`).
      */
     destroyed: "Zniszczone",
-    /**
-     * Owed wherever `raw` stands, and **one** thing is owed now: that the subtraction a reader
-     * will try does not work (`src/core/battle-event.ts`). What the figure is a sum of used to be
-     * owed here too, in two more lines of it; the block heading over the figure says that.
-     *
-     * ⚠️ **It names no pair, and that is what an earlier wording got wrong.** Told *not to
-     * subtract one from the other* it pointed at whichever two numbers stood nearest — which,
-     * once the figure before reduction moved into the run, is `Zatrzymane` directly under it,
-     * a different pair from the one the sentence was written for. `z tych liczb` voids every
-     * subtraction a reader can try instead of forbidding one and silently allowing the rest.
-     * The fact comes first and the consequence second: a sentence whose whole content is an
-     * instruction teaches nothing about the game.
-     */
-    damageNote:
-        "Pancerza ani odporności gra nie podaje, więc z tych liczb nie wyliczysz całej redukcji.",
     /**
      * The instruction a row gives, and it stands wherever pressing leads somewhere — `DESIGN.md`
      * owns that rule. The right press is not named beside it: a reader on the ranking has nowhere
@@ -350,6 +342,54 @@ export const CARD_WORDS = {
      */
     cut: "Nie wszystko się mieści w tym oknie.",
 } as const;
+
+/**
+ * Every figure the card draws whose label names more than the figure counts, whatever the
+ * recording. A closed set, so the sentences a card can carry are bounded by it (**S11**), and the
+ * order is the order they stand in — two cards carrying the same pair say them the same way round.
+ *
+ * Two and not five. `Ciosy` was weighed and left out: what would qualify it is a wide swing's
+ * further targets, and `+swing` is absent from every recording (`docs/protocol-keys.md`), so the
+ * sentence would be a standing charge for a case no material carries. The closing row was weighed
+ * and left out too: `getNoteForUnannounced` already says what the game did not name there.
+ * **ADR 0088.**
+ */
+export const CARD_CAVEATS = ["reduction", "turns"] as const;
+
+export type CardCaveat = (typeof CARD_CAVEATS)[number];
+
+/**
+ * **L3**: what the game does not report, and never what this reader summed. Each is said once at
+ * the foot of the card however many of its figures drew a glyph.
+ *
+ * `reduction` is owed wherever a figure stated before reduction or a figure a defence stopped
+ * stands, and **one** thing is owed: that the subtraction a reader will try does not work
+ * (`src/core/battle-event.ts`). What the figure is a sum of used to be owed here too, in two more
+ * lines of it; the block heading over the figure says that.
+ *
+ * ⚠️ **It names no pair, and that is what an earlier wording got wrong.** Told *not to subtract
+ * one from the other* it pointed at whichever two numbers stood nearest — which, once the figure
+ * before reduction moved into the run, is `Zatrzymane` directly under it, a different pair from
+ * the one the sentence was written for. `z tych liczb` voids every subtraction a reader can try
+ * instead of forbidding one and silently allowing the rest. The fact comes first and the
+ * consequence second: a sentence whose whole content is an instruction teaches nothing about the
+ * game.
+ *
+ * `turns` says the one thing `CONTEXT.md` states about a turn count: the game numbers the turns it
+ * granted and this counts what was spent, so their sum is not what anybody was given. Written to
+ * 60 characters so that, mark and all, it wraps to two lines of the card rather than three
+ * (`src/ui/panel-tip.ts`).
+ */
+const CAVEAT_NOTES: Record<CardCaveat, string> = {
+    reduction:
+        "Pancerza ani odporności gra nie podaje, więc z tych liczb nie wyliczysz całej redukcji.",
+    turns: "Gra nie podaje, ile tur ktoś dostał, tylko co w nich zrobił.",
+};
+
+export function getNoteForCaveat(caveat: CardCaveat): string {
+    const words = CAVEAT_NOTES[caveat];
+    return words;
+}
 
 /**
  * The defence that stopped part of a blow — **the game's own word for it, every one of them**

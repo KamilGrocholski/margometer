@@ -11,6 +11,7 @@ import { assert, assertEquals } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages, PROC_ENDS } from "@/src/core/fight-decoder.ts";
 import {
+    CARD_WORDS,
     CLIENT_IDS_FOR_UNWORDED_KEYS,
     composeDestroyedText,
     DEFENCE_WORDS,
@@ -203,6 +204,40 @@ Deno.test("every proc the decoder places is placed at an end the register settle
     assertEquals(PROC_ENDS["-evade"], "target", "and an evade of whoever was swung at");
 });
 
+/**
+ * Which of `CARD_WORDS` is drawn in the column the sheet cuts, and which is a sentence that wraps.
+ * Held both ways below, so an entry added to the table lands in one list or the other rather than
+ * in neither — which is how the one label over the bound went four releases unnoticed.
+ *
+ * ⚠️ **A caveated label is not held tighter here.** The glyph beside it is a cell of its own, so
+ * what it costs is pixels rather than characters, and this count cannot see it. `panel-tip.spec.ts`
+ * holds that, in the browser, over every label a card draws. **ADR 0088.**
+ */
+const CARD_LABEL_KEYS = [
+    "raw",
+    "blows",
+    "blowsWithoutSkill",
+    "skillUses",
+    "turns",
+    "turnsLost",
+    "prevented",
+    "blowsCritical",
+    "blowsCriticalOffhand",
+] as const satisfies readonly (keyof typeof CARD_WORDS)[];
+
+/** The rest of the table: headings the sheet also cuts, and sentences that wrap instead. */
+const CARD_OTHER_KEYS = [
+    "wholeFight",
+    "striking",
+    "struck",
+    "destroyed",
+    "scope",
+    "gesture",
+    "gestureBack",
+    "gestureBackAnywhere",
+    "cut",
+] as const satisfies readonly (keyof typeof CARD_WORDS)[];
+
 Deno.test("no label a card draws is longer than the column it is drawn in", () => {
     const overlong: string[] = [];
     for (const [key, words] of Object.entries(PROC_WORDS)) {
@@ -214,7 +249,25 @@ Deno.test("no label a card draws is longer than the column it is drawn in", () =
     for (const [key, held] of Object.entries(DESTROYED_WORDS)) {
         if (held.name.length > MAXIMUM_LABEL_CHARACTERS) overlong.push(`${key} "${held.name}"`);
     }
+    // ⚠️ **The table the name of this test always covered and the walk never reached.** Until
+    // 2026-09-14 `CARD_WORDS.blowLargestTaken` stood at 24 characters against a bound of 22, cut
+    // by the sheet on every card that drew it, while the docblock over `MAXIMUM_LABEL_CHARACTERS`
+    // said every word in the module was inside it. Only the entries drawn in the cut column are
+    // held: a sentence is a note and wraps to the width of the window instead.
+    for (const key of CARD_LABEL_KEYS) {
+        const words = CARD_WORDS[key];
+        if (words.length > MAXIMUM_LABEL_CHARACTERS) overlong.push(`${key} "${words}"`);
+    }
     assertEquals(overlong, [], "a label this long is cut by the sheet rather than read");
+    // Both ways: an entry in neither list is an entry nothing above holds.
+    assertEquals(
+        Object.keys(CARD_WORDS).filter((key) =>
+            !CARD_LABEL_KEYS.some((one) => one === key) &&
+            !CARD_OTHER_KEYS.some((one) => one === key)
+        ),
+        [],
+        "every word the card table holds is either a label in the cut column or a sentence",
+    );
     // The sample that must flag, so the reader is known to be looking: the bound is real and a
     // word one character over it is over it.
     assert(

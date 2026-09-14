@@ -46,8 +46,9 @@ Walka dziesięciu na jednego, na ekranie obrażeń otrzymanych.
   obrażeń. Rozwija się kliknięciem, a wraca kliknięciem prawym przyciskiem w dowolnym miejscu panelu
   albo w ścieżkę nad listą.
 - Najedź na wiersz postaci — na liście albo w rozwiniętym wierszu — żeby zobaczyć jej kartę:
-  wszystkie cztery liczby, tury wykonane i te utracone, krytyki, największy cios, co zatrzymała
-  obrona i co zniszczył atak. To samo na każdym ekranie.
+  wszystkie cztery liczby, tury wykonane i te utracone, krytyki, co zatrzymała obrona i co zniszczył
+  atak. To samo na każdym ekranie. Liczba, która znaczy węziej, niż mówi jej nazwa, ma obok siebie
+  znak, a pod kartą zdanie wyjaśniające, czego gra nie podaje.
 - Skończone walki trafiają na półkę i można do nich wrócić. Panel mówi, gdzie się toczyły.
 - Obok panelu stoi drugie okno: mówi, czyja jest tura i co w tej chwili stoi na walce — umiejętności
   rzucone na całą stronę i okrzyki — z tym, ile tur minęło z tych, które podaje gra. Nigdy z tym,

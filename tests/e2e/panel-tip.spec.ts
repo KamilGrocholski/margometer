@@ -40,6 +40,37 @@ test("the card opens under the pointer, and names the row it describes", async (
     await panel.expectHonest("a card open over the ranking");
 });
 
+/**
+ * ⚠️ **The one claim about the card that characters cannot make.**
+ * `MAXIMUM_LABEL_CHARACTERS` counts a label's letters as a stand-in for the column's width, and
+ * the glyph a caveated figure wears is a cell of its own — so the count cannot see what it costs
+ * the label beside it. A cut label reads as a shorter label and nothing says it was cut.
+ * **ADR 0088.**
+ */
+test("no label the card draws is cut by the column it is drawn in", async ({ panel }) => {
+    const row = panel.at(".list .row").first();
+    await row.hover();
+    await expect(panel.at(CARD_OPEN), "a card is open to measure").toHaveCount(1);
+
+    const labels = panel.at(`${CARD} .tip-label`);
+    const counted = await labels.count();
+    expect(counted, "and it draws labels to measure").toBeGreaterThan(0);
+    const cut: string[] = [];
+    for (let at = 0; at < counted; at += 1) {
+        const one = labels.nth(at);
+        const room = await one.evaluate((element) => ({
+            said: element.textContent ?? "",
+            drawn: element.scrollWidth,
+            given: element.clientWidth,
+        }));
+        if (room.drawn > room.given) cut.push(`${room.said} ${room.drawn}>${room.given}`);
+    }
+    expect(cut, "every label stands whole, glyph and all").toEqual([]);
+
+    const marks = await panel.at(`${CARD} .tip-caveat`).count();
+    expect(marks, "and a figure naming more than it counts wears its mark").toBeGreaterThan(0);
+});
+
 test("crossing inside a row keeps the card, and leaving takes it away", async ({ panel }) => {
     const row = panel.at(".list .row").first();
     await row.locator(".row-name").hover();

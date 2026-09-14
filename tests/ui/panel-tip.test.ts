@@ -37,9 +37,15 @@ const HILDUR: TipReading = {
     groups: [
         {
             lines: [
-                { kind: "stat", label: "Zadane", stated: "354 258", isStrong: true },
+                { kind: "stat", label: "Zadane", stated: "354 258", isStrong: true, caveat: null },
                 { kind: "sub", label: "surowe", stated: "410 002" },
-                { kind: "stat", label: "Otrzymane", stated: "141 710", isStrong: false },
+                {
+                    kind: "stat",
+                    label: "Otrzymane",
+                    stated: "141 710",
+                    isStrong: false,
+                    caveat: null,
+                },
             ],
         },
         { lines: [{ kind: "note", text: ONE_LINE_NOTE, isSuspect: false }] },
@@ -207,8 +213,24 @@ Deno.test("a card too tall for the window gives up its runs, and says that it di
         name: "Hildur Muza Śmierci",
         subtitle: "(83)",
         groups: [
-            { lines: [{ kind: "stat", label: "Zadane", stated: "354 258", isStrong: true }] },
-            { lines: [{ kind: "stat", label: "Ciosy", stated: "180", isStrong: false }] },
+            {
+                lines: [{
+                    kind: "stat",
+                    label: "Zadane",
+                    stated: "354 258",
+                    isStrong: true,
+                    caveat: null,
+                }],
+            },
+            {
+                lines: [{
+                    kind: "stat",
+                    label: "Ciosy",
+                    stated: "180",
+                    isStrong: false,
+                    caveat: null,
+                }],
+            },
             { lines: [{ kind: "heading", text: "W CIOSACH ZADANYCH" }] },
             { lines: [{ kind: "heading", text: "W CIOSACH PRZYJĘTYCH" }] },
             { lines: [{ kind: "note", text: ONE_LINE_NOTE, isSuspect: true }] },
@@ -244,8 +266,24 @@ Deno.test("a window too short for even the figures still draws them, and says so
         name: "Hildur",
         subtitle: null,
         groups: [
-            { lines: [{ kind: "stat", label: "Zadane", stated: "354 258", isStrong: true }] },
-            { lines: [{ kind: "stat", label: "Ciosy", stated: "180", isStrong: false }] },
+            {
+                lines: [{
+                    kind: "stat",
+                    label: "Zadane",
+                    stated: "354 258",
+                    isStrong: true,
+                    caveat: null,
+                }],
+            },
+            {
+                lines: [{
+                    kind: "stat",
+                    label: "Ciosy",
+                    stated: "180",
+                    isStrong: false,
+                    caveat: null,
+                }],
+            },
             { lines: [{ kind: "note", text: ONE_LINE_NOTE, isSuspect: false }] },
         ],
     };
@@ -305,7 +343,15 @@ Deno.test("the detail follows the pointer, and lets go of a row that stopped bei
     register.reset();
     register.add("row:7", () => ({
         ...HILDUR,
-        groups: [{ lines: [{ kind: "stat", label: "Zadane", stated: "400 000", isStrong: true }] }],
+        groups: [{
+            lines: [{
+                kind: "stat",
+                label: "Zadane",
+                stated: "400 000",
+                isStrong: true,
+                caveat: null,
+            }],
+        }],
     }));
     handle.refresh();
     const later = shown.replacedBy;

@@ -13,12 +13,16 @@ import {
 } from "@/src/ui/panel-reading.ts";
 import type { TipGroup, TipLine, TipReading } from "@/src/ui/panel-tip.ts";
 import {
+    CARD_CAVEATS,
     CARD_WORDS,
+    type CardCaveat,
+    CAVEAT_MARK,
     composeCardSubtitleText,
     composeDestroyedText,
     composeFigureText,
     composeShareText,
     composeUsesText,
+    getNoteForCaveat,
     getWordsForBlowKey,
     getWordsForCardMetric,
     getWordsForDestroyed,
@@ -112,6 +116,7 @@ function composeCardFigureLines(detail: RowDetail, metric: PanelMetric): TipLine
             label: getWordsForCardMetric(one.metric),
             stated: composeFigureText(one.figure),
             isStrong: one.metric === metric,
+            caveat: null,
         });
         if (one.halfNamed !== null) {
             lines.push(...composeCardSubLine(one.halfNamed.label, one.halfNamed.figure));
@@ -130,6 +135,7 @@ function composeCardCounterLines(detail: RowDetail): TipLine[] {
             label: CARD_WORDS.turns,
             stated: composeFigureText(detail.turnsTaken),
             isStrong: false,
+            caveat: "turns",
         });
         lines.push(...composeCardSubLine(CARD_WORDS.turnsLost, detail.turnsLost));
     }
@@ -139,6 +145,7 @@ function composeCardCounterLines(detail: RowDetail): TipLine[] {
             label: CARD_WORDS.blows,
             stated: composeFigureText(detail.blowsStruck),
             isStrong: false,
+            caveat: null,
         });
         lines.push(
             ...composeCardSubLine(CARD_WORDS.blowsWithoutSkill, detail.blowsWithoutSkill),
@@ -150,6 +157,7 @@ function composeCardCounterLines(detail: RowDetail): TipLine[] {
             label: CARD_WORDS.skillUses,
             stated: composeFigureText(detail.skillUses),
             isStrong: false,
+            caveat: null,
         });
     }
     return lines;
@@ -196,6 +204,7 @@ function composeCardProcLines(
         label: one.label,
         stated: composeUsesText(one.figure),
         isStrong: false,
+        caveat: null,
     }));
 }
 
@@ -217,6 +226,7 @@ function composeCardRawLine(raw: number): TipLine[] {
         label: CARD_WORDS.raw,
         stated: composeFigureText(raw),
         isStrong: false,
+        caveat: "reduction",
     }];
 }
 
@@ -232,9 +242,10 @@ function composeCardCriticalText(detail: RowDetail): string | null {
 }
 
 /**
- * How they struck: how much of it landed critically, the hardest one, what else fired, and what
- * their blows took off the other side. The share is of **blows** and never of the turns the line
- * above states: nothing on this card is divided by a turn (`PRODUCT.md`, **ADR 0048**).
+ * How they struck: what the protocol stated before reduction, how much of it landed critically,
+ * what else fired, and what their blows took off the other side. The share is of **blows** and
+ * never of the turns the line above states: nothing on this card is divided by a turn
+ * (`PRODUCT.md`, **ADR 0048**).
  */
 function composeCardStrikingLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
     const lines: TipLine[] = [...composeCardRawLine(detail.damageDealtRaw)];
@@ -245,6 +256,7 @@ function composeCardStrikingLines(detail: RowDetail, translate: TranslateLabel |
             label: CARD_WORDS.blowsCritical,
             stated: critical,
             isStrong: false,
+            caveat: null,
         });
         const offhand = detail.procsWhenStriking.filter((part) => part.key === OFFHAND_CRIT_KEY);
         lines.push(
@@ -254,14 +266,6 @@ function composeCardStrikingLines(detail: RowDetail, translate: TranslateLabel |
                 stated: composeUsesText(one.figure),
             })),
         );
-    }
-    if (detail.damageDealtBlowLargest > 0) {
-        lines.push({
-            kind: "stat",
-            label: CARD_WORDS.blowLargestDealt,
-            stated: composeFigureText(detail.damageDealtBlowLargest),
-            isStrong: false,
-        });
     }
     lines.push(...composeCardProcLines(detail.procsWhenStriking, CRITICAL_PROC_KEYS, translate));
     lines.push(...composeCardDestroyedLines(detail.statisticsDestroyed));
@@ -288,7 +292,7 @@ function composeCardDestroyedLines(parts: readonly CutPart[]): TipLine[] {
 
 /**
  * What held: the sum a counter states with the defences it is made of under it, then what fired
- * on their side of somebody else's blow, then the hardest one that got through.
+ * on their side of somebody else's blow.
  */
 function composeCardStruckLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
     const lines: TipLine[] = [...composeCardRawLine(detail.damageTakenRaw)];
@@ -298,6 +302,7 @@ function composeCardStruckLines(detail: RowDetail, translate: TranslateLabel | n
             label: CARD_WORDS.prevented,
             stated: composeFigureText(detail.damagePrevented),
             isStrong: false,
+            caveat: "reduction",
         });
         lines.push(
             ...composeCardWordedParts(detail.damagePreventedByDefence, translate).map((
@@ -310,14 +315,6 @@ function composeCardStruckLines(detail: RowDetail, translate: TranslateLabel | n
         );
     }
     lines.push(...composeCardProcLines(detail.procsWhenStruck, [], translate));
-    if (detail.damageTakenBlowLargest > 0) {
-        lines.push({
-            kind: "stat",
-            label: CARD_WORDS.blowLargestTaken,
-            stated: composeFigureText(detail.damageTakenBlowLargest),
-            isStrong: false,
-        });
-    }
     return lines;
 }
 
@@ -341,17 +338,30 @@ function composeCardRunGroups(detail: RowDetail, translate: TranslateLabel | nul
     return groups;
 }
 
-function getIsRawStated(detail: RowDetail): boolean {
-    if (detail.damageDealtRaw > 0) return true;
-    if (detail.damageTakenRaw > 0) return true;
-    return false;
+/**
+ * The sentences the figures above earned, and **read off those figures rather than asked a second
+ * time**: a card that worked out for itself which ones to say could draw a glyph pointing at a
+ * sentence it had not drawn, or a sentence no glyph pointed at. Each is said once however many of
+ * its figures wear the mark, and the run is bounded by `CARD_CAVEATS`, which is closed (**S11**).
+ */
+function composeCardCaveatLines(groups: readonly TipGroup[]): TipLine[] {
+    const said = new Set<CardCaveat>();
+    for (const group of groups) {
+        for (const line of group.lines) {
+            if (line.kind !== "stat") continue;
+            if (line.caveat === null) continue;
+            said.add(line.caveat);
+        }
+    }
+    return CARD_CAVEATS.filter((one) => said.has(one)).map((one): TipLine => ({
+        kind: "note",
+        text: `${CAVEAT_MARK}${getNoteForCaveat(one)}`,
+        isSuspect: false,
+    }));
 }
 
-function composeCardNoteLines(subject: CardSubject): TipLine[] {
-    const lines: TipLine[] = [];
-    if (getIsRawStated(subject.detail)) {
-        lines.push({ kind: "note", text: CARD_WORDS.damageNote, isSuspect: false });
-    }
+function composeCardNoteLines(subject: CardSubject, groups: readonly TipGroup[]): TipLine[] {
+    const lines: TipLine[] = [...composeCardCaveatLines(groups)];
     // This person's own, and nobody else's: a gap naming nobody stays under the list, where it
     // qualifies every row at once (`ARCHITECTURE.md`). **ADR 0069.**
     for (const suspicion of composeRowSuspicions(subject.detail, subject.metric)) {
@@ -376,7 +386,7 @@ export function composeCardReading(subject: CardSubject): TipReading {
     const counters = composeCardCounterLines(subject.detail);
     if (counters.length > 0) groups.push({ lines: counters });
     groups.push(...composeCardRunGroups(subject.detail, subject.translate));
-    const notes = composeCardNoteLines(subject);
+    const notes = composeCardNoteLines(subject, groups);
     if (notes.length > 0) groups.push({ lines: notes });
     return {
         // A card with nobody behind it says so rather than standing with a blank where a name is.

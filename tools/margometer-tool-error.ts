@@ -20,7 +20,8 @@ export type MargoMeterToolErrorCode =
     | "Changelog"
     | "DrillReport"
     | "TurnCount"
-    | "TurnReading";
+    | "TurnReading"
+    | "CardHeight";
 
 export abstract class MargoMeterToolError extends Error {
     readonly code: MargoMeterToolErrorCode;
@@ -170,5 +171,16 @@ export class TurnReadingError extends MargoMeterToolError {
 export class FabricatedFightError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super("FabricatedFight", reason, options);
+    }
+}
+
+/**
+ * A card measured over more material than the run states a bound for. The bound is the loud half
+ * of **S11** here: a walk that quietly stopped counting would report a median over the cards it
+ * happened to reach, which reads exactly like a median over all of them.
+ */
+export class CardHeightError extends MargoMeterToolError {
+    constructor(reason: string) {
+        super("CardHeight", reason);
     }
 }

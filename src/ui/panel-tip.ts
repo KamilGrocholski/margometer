@@ -8,7 +8,7 @@
 
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { CLASS, getTipHeight } from "@/src/ui/panel-look.ts";
-import { CARD_WORDS } from "@/src/ui/panel-words.ts";
+import { CARD_WORDS, type CardCaveat, CAVEAT_MARK } from "@/src/ui/panel-words.ts";
 
 /**
  * One line of a card. A shape rather than a sentence, because the panel draws the three of them
@@ -16,7 +16,19 @@ import { CARD_WORDS } from "@/src/ui/panel-words.ts";
  * renderer handed one string and a newline would hold that decision where nothing can check it.
  */
 export type TipLine =
-    | { kind: "stat"; label: string; stated: string; isStrong: boolean }
+    | {
+        kind: "stat";
+        label: string;
+        stated: string;
+        isStrong: boolean;
+        /**
+         * Which sentence at the foot of the card the glyph beside this figure points at, and null
+         * where the figure claims nothing beyond itself. **Required rather than optional**: a
+         * figure joining the card has to answer whether its label names more than it counts, and
+         * an optional field would let the next one in without being asked.
+         */
+        caveat: CardCaveat | null;
+    }
     | { kind: "sub"; label: string; stated: string }
     | { kind: "heading"; text: string }
     | { kind: "note"; text: string; isSuspect: boolean };
@@ -81,8 +93,9 @@ const NOTE_CHARACTERS_PER_LINE = 32;
 /**
  * Past every card this panel composes: four figures and their parts, the counters, both runs —
  * the criticals, the defences, the procs and what a blow destroyed — and the notes. The tallest
- * card any recording composes is 33 lines, measured over every combatant, screen and place a
- * card stands in over `captures/` on 2026-08-31 — headroom, rather than a limit anything meets.
+ * card any recording composes is 31 lines and the median 24, over the 1,184 cards the ranking of
+ * `captures/` opens on 2026-09-14 — `deno task panel:cards` is what measures it, and this is
+ * headroom rather than a limit anything meets.
  */
 const MAXIMUM_TIP_LINES = 64;
 /** A custom property, which is the one kind `src/ui/panel-look.ts`'s reset leaves standing. */
@@ -178,7 +191,25 @@ function composeTipLineElement(document: PanelDocument, line: TipLine): PanelEle
     value.className = CLASS.tipValue;
     value.textContent = line.stated;
     element.append(label);
+    // Before the value and never after it: the value column is right-aligned in `tabular-nums`,
+    // and a glyph behind it would offset the figures of the lines carrying one against those that
+    // do not. Before it, the column stays aligned and the glyph still stands at the figure.
+    if (line.kind === "stat") {
+        if (line.caveat !== null) element.append(composeTipCaveatElement(document));
+    }
     element.append(value);
+    return element;
+}
+
+/**
+ * The glyph a figure wears where its label names more than the figure counts. It takes its width
+ * from the label beside it, which the sheet cuts rather than folds — `MAXIMUM_LABEL_CHARACTERS` in
+ * `src/ui/panel-words.ts` is where that arithmetic is.
+ */
+function composeTipCaveatElement(document: PanelDocument): PanelElement {
+    const element = document.createElement("span");
+    element.className = CLASS.tipCaveat;
+    element.textContent = CAVEAT_MARK;
     return element;
 }
 

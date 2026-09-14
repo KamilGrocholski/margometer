@@ -13,7 +13,9 @@ import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 import type { TipGroup } from "@/src/ui/panel-tip.ts";
 import {
     CARD_WORDS,
+    CAVEAT_MARK,
     composeUnknownKeyRowSuspicion,
+    getNoteForCaveat,
     PANEL_WORDS,
     SUSPECT_MARK,
 } from "@/src/ui/panel-words.ts";
@@ -37,8 +39,6 @@ const HILDUR: RowDetail = {
     damageTakenFromNobody: 10672,
     healthRestoredByNobody: 1500,
     blowsCritical: 9,
-    damageDealtBlowLargest: 19209,
-    damageTakenBlowLargest: 8062,
     procsWhenStriking: [
         { key: "+crit", figure: 9 },
         { key: "+pierce", figure: 4 },
@@ -78,8 +78,6 @@ const NOBODY: RowDetail = {
     damageTakenFromNobody: 0,
     healthRestoredByNobody: 0,
     blowsCritical: 0,
-    damageDealtBlowLargest: 0,
-    damageTakenBlowLargest: 0,
     procsWhenStriking: [],
     procsWhenStruck: [],
     /** Defences and destroyed statistics are kept under the client's token, procs under the key. */
@@ -90,14 +88,42 @@ const NOBODY: RowDetail = {
     castsUnplaced: 0,
 };
 
-/** One group as a reader meets it, so an expectation reads like the window does. */
+/** The glyph as a reader meets it in a line, which is beside the figure and not inside a word. */
+const CAVEATED = CAVEAT_MARK.trim();
+
+/** The sentence a figure of the reduction owes, mark and all, as the card composes it. */
+const REDUCTION_NOTE = `${CAVEAT_MARK}${getNoteForCaveat("reduction")}`;
+
+/** And the one a count of turns owes. */
+const TURNS_NOTE = `${CAVEAT_MARK}${getNoteForCaveat("turns")}`;
+
+/**
+ * One group as a reader meets it, so an expectation reads like the window does — **the glyph
+ * included**. Left out of this reader, a figure that lost its mark would read the same as one that
+ * never had it, and every frozen list below would stay green through the loss.
+ */
 function readGroup(group: TipGroup): string[] {
     return group.lines.map((line) => {
         if (line.kind === "note") return line.text;
         if (line.kind === "heading") return `[${line.text}]`;
         if (line.kind === "sub") return `  ${line.label} ${line.stated}`;
-        return line.isStrong ? `**${line.label}** ${line.stated}` : `${line.label} ${line.stated}`;
+        const said = line.caveat === null ? line.label : `${line.label} ${CAVEATED}`;
+        return line.isStrong ? `**${said}** ${line.stated}` : `${said} ${line.stated}`;
     });
+}
+
+/** One card, flattened, for a test that asks what a card as a whole does and does not say. */
+function readCardOf(detail: RowDetail): string[] {
+    return composeCardReading({
+        name: "Gracz 9",
+        profession: null,
+        sidePart: "nobody" as const,
+        detail,
+        metric: "damageTakenApplied",
+        doesOpen: false,
+        isRowNarrower: false,
+        translate: null,
+    }).groups.flatMap(readGroup);
 }
 
 Deno.test("the whole fight is a block of its own, and the screen's figure is in bold", () => {
@@ -137,7 +163,7 @@ Deno.test("the whole fight is a block of its own, and the screen's figure is in 
     assertEquals(
         readGroup(counters),
         [
-            `${CARD_WORDS.turns} 37`,
+            `${CARD_WORDS.turns} ${CAVEATED} 37`,
             `  ${CARD_WORDS.turnsLost} 4`,
             `${CARD_WORDS.blows} 40`,
             `  ${CARD_WORDS.blowsWithoutSkill} 7`,
@@ -148,8 +174,8 @@ Deno.test("the whole fight is a block of its own, and the screen's figure is in 
     assertExists(notes, "and what to be careful of");
     assertEquals(
         readGroup(notes),
-        [CARD_WORDS.damageNote, CARD_WORDS.gesture],
-        "a figure before reduction is owed the sentence that says not to subtract it",
+        [REDUCTION_NOTE, TURNS_NOTE, CARD_WORDS.gesture],
+        "each figure whose label names more than it counts is owed its own sentence, in order",
     );
 });
 
@@ -183,37 +209,94 @@ Deno.test("a figure before reduction stands in its own run, under no figure", ()
     assertExists(striking, "the run about striking stands");
     assertArrayIncludes(
         readGroup(striking),
-        [`${CARD_WORDS.raw} 410\u00a0002`],
+        [`${CARD_WORDS.raw} ${CAVEATED} 410\u00a0002`],
         "which is where what they put out before reduction is stated, as a line and not a part",
     );
     assertExists(struck, "and the run about being struck");
     assertArrayIncludes(
         readGroup(struck),
-        [`${CARD_WORDS.raw} 160\u00a0998`],
+        [`${CARD_WORDS.raw} ${CAVEATED} 160\u00a0998`],
         "with what reached them before reduction in it",
     );
     assertArrayIncludes(
         card.groups.flatMap(readGroup),
-        [CARD_WORDS.damageNote],
+        [REDUCTION_NOTE],
         "and the sentence saying not to subtract one from the other is still owed",
     );
-    // The sample that must not carry it: nothing before reduction was stated, so neither is said.
-    const without = composeCardReading({
-        name: "Gracz 9",
-        profession: null,
-        sidePart: "nobody" as const,
-        detail: { ...HILDUR, damageDealtRaw: 0, damageTakenRaw: 0 },
-        metric: "damageTakenApplied",
-        doesOpen: false,
-        isRowNarrower: false,
-        translate: null,
-    }).groups.flatMap(readGroup);
+    // Raw is gone and what a defence stopped is not, and that figure is one component of the
+    // reduction too (`CONTEXT.md`) — so the sentence is still owed by the other figure.
+    const stopped = readCardOf({ ...HILDUR, damageDealtRaw: 0, damageTakenRaw: 0 });
     assertEquals(
-        without.filter((line) => line.includes(CARD_WORDS.raw)),
+        stopped.filter((line) => line.includes(CARD_WORDS.raw)),
         [],
         "a card with no raw figure on it draws no raw line",
     );
-    assert(!without.includes(CARD_WORDS.damageNote), "and owes no sentence about one");
+    assertArrayIncludes(
+        stopped,
+        [REDUCTION_NOTE],
+        "and what a defence stopped is owed the same sentence on its own",
+    );
+    // The sample that must not carry it: neither figure of the pair stands, so neither is said.
+    const without = readCardOf({
+        ...HILDUR,
+        damageDealtRaw: 0,
+        damageTakenRaw: 0,
+        damagePrevented: 0,
+        damagePreventedByDefence: [],
+    });
+    assert(!without.includes(REDUCTION_NOTE), "and a card with neither owes no sentence about one");
+});
+
+/**
+ * The fifth claim `CONTEXT.md` names, and it is not the suspect mark: a caveated figure is
+ * complete and answers a narrower question than its label, whatever was recorded. **ADR 0088.**
+ */
+Deno.test("a figure naming more than it counts wears a mark, and the mark has a sentence", () => {
+    const said = readCardOf(HILDUR);
+    assertEquals(
+        said.filter((line) => line === REDUCTION_NOTE).length,
+        1,
+        "three figures of the reduction stand on this card and the sentence is said once",
+    );
+    assertArrayIncludes(said, [TURNS_NOTE], "and a count of turns says its own");
+    // The sample that must NOT carry it, so the reader is known to be looking: the four figures of
+    // the whole fight count exactly what they name, so none of them wears the mark.
+    const whole = said.filter((line) => line.includes("Otrzymane"));
+    assertEquals(
+        whole.filter((line) => line.includes(CAVEATED)),
+        [],
+        "a figure the protocol states outright claims nothing beyond itself",
+    );
+    const untouched = readCardOf({ ...HILDUR, turnsTaken: 0, turnsLost: 0 });
+    assert(
+        !untouched.includes(TURNS_NOTE),
+        "and a card with no turn count owes no sentence on one",
+    );
+});
+
+/**
+ * Two claims, and a reader meets both on one card: a figure that answers a narrower question than
+ * its label, and a figure that may be short because a message went unread. Collapsing them is
+ * `CONTEXT.md`'s own failure case — the permanent reads as temporary and the temporary as
+ * permanent — so the test is over the composed card and not over the two constants, which the
+ * compiler already tells apart (**A12**).
+ */
+Deno.test("a caveat and a suspicion stand on one card, each under its own mark", () => {
+    const said = readCardOf({ ...HILDUR, unreadMessagesUnknownKey: 2 });
+    const marked = said.filter((line) =>
+        line.startsWith(CAVEAT_MARK) || line.startsWith(SUSPECT_MARK)
+    );
+    assertEquals(
+        marked.filter((line) => line.startsWith(CAVEAT_MARK)).length,
+        2,
+        "the two sentences a caveated figure owes stand under the caveat's mark",
+    );
+    assertEquals(
+        marked.filter((line) => line.startsWith(SUSPECT_MARK)).length,
+        1,
+        "and the one a message nobody could read owes stands under the other",
+    );
+    assertEquals(marked.length, 3, "and no sentence wears both marks or neither");
 });
 
 /**
@@ -238,31 +321,29 @@ Deno.test("the card says what they did when they struck, and what held when they
         readGroup(striking),
         [
             `[${CARD_WORDS.striking}]`,
-            `${CARD_WORDS.raw} 410\u00a0002`,
+            `${CARD_WORDS.raw} ${CAVEATED} 410\u00a0002`,
             `${CARD_WORDS.blowsCritical} 9 (23%)`,
             `  ${CARD_WORDS.blowsCriticalOffhand} ×2`,
-            `${CARD_WORDS.blowLargestDealt} 19\u00a0209`,
             "przebicie ×4",
             `[${CARD_WORDS.destroyed}]`,
             "  pancerz 940 pkt",
             "  odporność 26 p.p.",
         ],
-        "the criticals against the blows, the hardest one, what else fired and what it took off",
+        "what was stated before reduction, the criticals, what else fired and what it took off",
     );
     assertExists(struck, "and what happened when somebody struck them, under the other");
     assertEquals(
         readGroup(struck),
         [
             `[${CARD_WORDS.struck}]`,
-            `${CARD_WORDS.raw} 160\u00a0998`,
-            `${CARD_WORDS.prevented} 10\u00a0413`,
+            `${CARD_WORDS.raw} ${CAVEATED} 160\u00a0998`,
+            `${CARD_WORDS.prevented} ${CAVEATED} 10\u00a0413`,
             "  absorpcja 8\u00a0000",
             "  blok 2\u00a0413",
             "unik ×3",
             "-legbon_cleanse ×1",
-            `${CARD_WORDS.blowLargestTaken} 8\u00a0062`,
         ],
-        "what stopped part of a blow, what fired on their side of one, and the hardest through",
+        "what was stated before reduction, what stopped part of a blow, and what fired on one",
     );
 });
 
@@ -561,12 +642,12 @@ Deno.test("a run that came to nothing is not drawn, and neither is its heading",
         "somebody the fight never touched has neither run, and only the block that answers them",
     );
     assertEquals(
-        readHeadings({ ...NOBODY, blowsStruck: 4, damageDealtBlowLargest: 9 }),
+        readHeadings({ ...NOBODY, damageDealtRaw: 9 }),
         [`[${CARD_WORDS.wholeFight}]`, `[${CARD_WORDS.striking}]`],
         "somebody who only ever struck has the one heading",
     );
     assertEquals(
-        readHeadings({ ...NOBODY, damageTakenBlowLargest: 9 }),
+        readHeadings({ ...NOBODY, damageTakenRaw: 9 }),
         [`[${CARD_WORDS.wholeFight}]`, `[${CARD_WORDS.struck}]`],
         "and somebody who was only ever struck has the other",
     );
