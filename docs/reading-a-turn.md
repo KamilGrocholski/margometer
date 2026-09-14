@@ -65,8 +65,8 @@ message actor, which is why the two now answer alike. Reading the second as nobo
 33 turns across the corpus, 16 of them where the game's own numbering could see it.
 
 The third row is where the suppression stops, and it is load-bearing: health moving on a combatant
-is not that combatant acting, so a preparation after one opens a turn. The corpus stands 141
-preparations on that shape, 2026-09-07.
+is not that combatant acting, so a preparation after one opens a turn. The corpus stands 149
+preparations on that shape.
 
 ## The register
 

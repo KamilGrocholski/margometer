@@ -7,8 +7,10 @@
  * `composeFightStatistics`, so nothing but a test stops the two from counting a fight differently.
  */
 
-import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { getBareCell, getCellsFromLine } from "@/tests/markdown-document.ts";
+import { assert, assertEquals, assertStrictEquals, assertStringIncludes } from "@std/assert";
+import { getBareCell, getCellsFromLine, getUnwrapped } from "@/tests/markdown-document.ts";
+import type { BattleEvent } from "@/src/core/battle-event.ts";
+import { PREPARE_KEY } from "@/src/core/fight-decoder.ts";
 import {
     composeDisputedReadings,
     composeDisputeRegister,
@@ -24,6 +26,8 @@ import { composeFightReplay } from "@/tools/fight-replay.ts";
 import { getRecordedFightAt, getRecordedFights } from "@/tools/recorded-fights.ts";
 
 const REGISTER_PATH = "docs/reading-a-turn.md";
+/** The event that leaves nobody having acted, which is what the third row of that table is. */
+const HEALTH_MOVED: BattleEvent["kind"] = "health-change";
 /** The recording carrying the most disputed openers, which is where a walk is worth reading. */
 const DISPUTED = "captures/2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none.json";
 
@@ -211,6 +215,33 @@ Deno.test("the reader takes a table at its width, and the legend beside it at no
         getRowsUnder(sample, "## The keys a turn was read off", 5),
         ["step | 171 | 171 | 171 | 0"],
         "the five-column table is read and the two-column legend is not",
+    );
+});
+
+/**
+ * ⚠️ **The one sentence of that section a machine can re-earn, and it had gone stale twice before
+ * anything did.** It read 141 against a corpus standing at 146, because the figure was written
+ * with a date beside it and two recordings arrived after it. A date is not a guard.
+ */
+Deno.test("the preparations that open a turn after health moved are the ones written down", () => {
+    let onThatShape = 0;
+    let opened = 0;
+    for (const fight of getRecordedFights()) {
+        let before: readonly string[] = [];
+        for (const reading of composeMessageReadings(fight)) {
+            if (reading.openerKey === PREPARE_KEY) {
+                opened += 1;
+                if (before.at(-1) === HEALTH_MOVED) onThatShape += 1;
+            }
+            before = reading.kinds;
+        }
+    }
+    assert(onThatShape > 0, "the corpus carries the shape the sentence is about");
+    assert(onThatShape < opened, "and carries a preparation opening a turn on some other shape");
+    assertStringIncludes(
+        getUnwrapped(Deno.readTextFileSync(REGISTER_PATH)),
+        `The corpus stands ${onThatShape} preparations on that shape`,
+        `${REGISTER_PATH}: how often a preparation opens a turn after health moved`,
     );
 });
 
