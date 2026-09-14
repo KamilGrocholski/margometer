@@ -83,9 +83,9 @@ that went out under a key without a blow carrying it** — a tick of poison, a w
 else, drawn as the closing row with `×0` beside them. The keys now stand under their own names, as
 they always did on the healing screens, and what is left is blows.
 
-Measured over `captures/` on 2026-09-13, the row holds **2,115,744** on each damage screen — the
+Measured over `captures/` on 2026-09-14, the row holds **2,161,636** on each damage screen — the
 same figure from both ends, because it is the same blows read from the striking side and from the
-side struck. It is drawn in 163 sections of `Zadane` and 96 of `Otrzymane`, and the keys beside it
+side struck. It is drawn in 173 sections of `Zadane` and 101 of `Otrzymane`, and the keys beside it
 come to 107 rows.
 
 ## What never does
@@ -95,7 +95,7 @@ come to 107 rows.
   0051**). The two healing entries in the panel's own table are never read.
 - **Damage a blow reports against a name** (`+oth_dmg`, `docs/protocol-keys.md`) carries the
   announcement of the blow it rode, so it reaches a skill's row like any other figure. ⚠️ **That is
-  a measurement and not a construction**: the corpus states 1,175 figures against a name and 0 of
+  a measurement and not a construction**: the corpus states 1,193 figures against a name and 0 of
   them stand under no announcement. Where one did, it would reach this row — the figure is a
   remainder, so it takes whatever no row named — and it reaches the cut under the row with it, so
   the level and the row over it cannot answer one press two ways (**ADR 0081**). The count beside

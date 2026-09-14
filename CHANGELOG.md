@@ -51,6 +51,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   jak wiersze z numerem, więc czytało się je jako kolejne miejsce. Kreskowanie znał już wiersz
   stojący pod listą; teraz noszą je wszystkie wiersze o tym samym znaczeniu, gdziekolwiek stoją.
 
+- **Poprawka** — Głęboka rana zadana bronią pomocniczą trafia teraz na kartę postaci, tak samo jak
+  ta z broni głównej i pod tą samą nazwą. Wcześniej cios, który ją zostawił, wyglądał na karcie tak,
+  jakby nic przy nim nie zaszło, a panel stawiał przy takiej walce wątpliwość, że czegoś nie
+  zrozumiał.
+
 - **Poprawka** — Rana, którą coś osłabiło, pokazuje się wreszcie na karcie postaci — obok zwykłej
   głębokiej rany, jako „osłabiona rana". Wcześniej znikała: panel czytał tylko te zapowiedzi, przy
   których gra nie podaje żadnej liczby, a przy tej podaje.

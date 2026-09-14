@@ -316,8 +316,8 @@ Deno.test("the corpus says who gave every point of health it put back", () => {
         given += statistics.totals.healthGiven;
         nobody += statistics.givenByNobody;
     }
-    assertEquals(restored, 3_866_459, "the health the recordings put back, 2026-09-11");
-    assertEquals(given, 3_866_459, "all of which has a giver the reading can name");
+    assertEquals(restored, 3_881_210, "the health the recordings put back, 2026-09-14");
+    assertEquals(given, 3_881_210, "all of which has a giver the reading can name");
     assertEquals(nobody, 0, "and none of it is left charged to nobody");
     assertEquals(given + nobody, restored, "every point put back is counted once on each side");
 });
@@ -949,7 +949,7 @@ Deno.test("every recording charges a turn to somebody who was already in the fig
             turns += figures.turnsTaken;
         }
     }
-    assertEquals(turns, 5442, "the turns the recordings hold, 2026-09-11");
+    assertEquals(turns, 5567, "the turns the recordings hold, 2026-09-14");
 });
 
 /**

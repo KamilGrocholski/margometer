@@ -13,10 +13,6 @@ import {
     readRecordingPaths,
 } from "@/tests/recorded-fight.ts";
 
-/** The one recording whose calls carry no snapshot at all, so nothing can be held against them. */
-const NO_SNAPSHOTS =
-    "captures/2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1.json";
-
 Deno.test("a warrior missing what a row needs is refused, not filled in", () => {
     const whole = { id: 1, name: "Gracz 1", team: 2, prof: "w", lvl: 40, hp: { max: 745 } };
     assertEquals(readCombatantFromWarrior(whole)?.healthMaximum, 745, "a whole warrior reads");
@@ -63,7 +59,11 @@ Deno.test("what a payload states about a combatant is what the snapshot states",
                 const snapshot = snapshots.get(combatant.id);
                 if (snapshot === undefined) {
                     withoutSnapshot += 1;
-                    assertEquals(path, NO_SNAPSHOTS, "only that one recording holds nothing back");
+                    // A fight the game had already run itself arrives in a single call and
+                    // snapshots nobody, so its whole cast is held back and none of it can be
+                    // compared. Anywhere else the two shapes state the same people, and one the
+                    // snapshots do not hold is a finding rather than a shape of the material.
+                    assertEquals(snapshots.size, 0, `${path}: only a fight snapshotting nobody`);
                     continue;
                 }
                 assertEquals(combatant, snapshot, `${path}: the two shapes state one combatant`);
@@ -72,5 +72,5 @@ Deno.test("what a payload states about a combatant is what the snapshot states",
         }
     }
     assert(compared > 100, "the recordings state their people twice over, and often");
-    assertEquals(withoutSnapshot, 3, "three, and all of them in the recording with no snapshots");
+    assertEquals(withoutSnapshot, 14, "and all of them in the recordings that snapshot nobody");
 });

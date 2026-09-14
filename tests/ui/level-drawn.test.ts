@@ -449,7 +449,7 @@ Deno.test("every level stands as tall as it drew, with one card per row and no t
     );
     // The reader is proved by what it reached as well as by what it passed: a walk that stopped
     // opening rows would agree with every level it never drew.
-    assertEquals(walked, 14_294, "every level the corpus draws, 2026-09-13");
+    assertEquals(walked, 14_728, "every level the corpus draws, 2026-09-14");
 });
 
 /**
@@ -657,7 +657,7 @@ Deno.test("the closing row stands where its figure puts it, first in half the se
     }
     assertEquals(
         [...places.entries()].sort((one, other) => one[0] - other[0]),
-        [[1, 137], [2, 55], [3, 43], [4, 17], [5, 4], [6, 1], [8, 1]],
+        [[1, 147], [2, 59], [3, 44], [4, 17], [5, 4], [6, 1], [8, 1]],
         "every section the corpus draws one in, 2026-09-13",
     );
 });
@@ -697,5 +697,5 @@ Deno.test("a pair states its parts largest first, the closing row among them", (
             }
         }
     }
-    assertEquals(closing, 404, "and the pairs a closing row stands in, 2026-09-13");
+    assertEquals(closing, 430, "and the pairs a closing row stands in, 2026-09-14");
 });

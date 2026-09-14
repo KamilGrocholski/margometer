@@ -367,7 +367,7 @@ Deno.test("the row opens onto whoever stood at the other end, and they come to i
             }
         }
     }
-    assertEquals(opened, 258, "the rows that open onto an opponent, 2026-09-13");
+    assertEquals(opened, 273, "the rows that open onto an opponent, 2026-09-14");
     assertEquals(shut, 1, "and the one that holds nothing to open onto: every blow was stopped");
 });
 

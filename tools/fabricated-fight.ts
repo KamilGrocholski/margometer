@@ -775,6 +775,19 @@ function actWeakenedWound(turn: FabricatedTurn): string[] {
     ])];
 }
 
+/**
+ * The wound an auxiliary weapon left, and `+wound` is not beside it: both occurrences in
+ * `captures/` ride a blow stating this key alone (`docs/protocol-keys.md`).
+ */
+function actAuxiliaryWound(turn: FabricatedTurn): string[] {
+    assert(isStanding(turn.actor), "a blow is thrown by somebody still standing");
+    assert(turn.target.side !== turn.actor.side, "and never at its own side");
+    setStatusBit(turn.target, 0, turn.round);
+    return [composeBlow(turn, [
+        composeValueless("+of_wound"),
+    ])];
+}
+
 function actWoundTick(turn: FabricatedTurn): string[] {
     assert(turn.target.healthMaximum > 0, "a tick lands where there is a maximum");
     assert(turn.round >= 0, "and on a round the fight has reached");
@@ -1093,6 +1106,7 @@ const ACTS: FabricatedAct[] = [
     { name: "a blow evaded", doesOpenTurn: true, compose: actEvadedBlow },
     { name: "a wounding blow", doesOpenTurn: true, compose: actWoundingBlow },
     { name: "a wound weakened", doesOpenTurn: true, compose: actWeakenedWound },
+    { name: "a wound off the other hand", doesOpenTurn: true, compose: actAuxiliaryWound },
     { name: "a wound ticking", doesOpenTurn: false, compose: actWoundTick },
     { name: "poison and fire ticking", doesOpenTurn: false, compose: actPoisonTick },
     { name: "light and anguish ticking", doesOpenTurn: false, compose: actLightTick },

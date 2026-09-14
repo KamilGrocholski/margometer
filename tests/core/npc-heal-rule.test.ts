@@ -12,6 +12,7 @@ import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import {
     BLOWS_GRANTED,
+    composeRecordedRoster,
     getRecordedCombatants,
     getRecordedMessages,
     readRecordingPaths,
@@ -61,8 +62,10 @@ Deno.test("the restoration is the actor's, and the figure a share of their own p
     const carrying = getRecordingsCarryingKey();
     assert(carrying.length > 0, "the material carries the key somewhere");
     for (const path of carrying) {
-        const combatants = getRecordedCombatants(path);
-        const roster = composeCombatantRoster(combatants);
+        // Off the payloads and not the snapshots: a fight the game had already run itself
+        // snapshots nobody, and a rule read only where a snapshot stands is a rule the material
+        // most in need of it never reaches.
+        const roster = composeRecordedRoster(path);
         const messages = getMessagesCarryingKey(path);
         assert(messages.length > 0, `${path}: a carrier states the key at least once`);
         const actors = new Set<number>();
@@ -79,8 +82,8 @@ Deno.test("the restoration is the actor's, and the figure a share of their own p
 
         const [healed] = [...actors];
         assertExists(healed, "a set of one has a member");
-        const maximum = combatants.find((one) => one.id === healed)?.healthMaximum ?? null;
-        assertExists(maximum, `${path}: the snapshot states that combatant's pool`);
+        const maximum = roster.byId.get(healed)?.healthMaximum ?? null;
+        assertExists(maximum, `${path}: the cast states that combatant's pool`);
         for (const event of decodeFightMessages(messages, roster, BLOWS_GRANTED)) {
             if (event.kind !== "health-change") continue;
             assertEquals(event.combatantId, healed, `${path}: every event lands on the actor`);
@@ -96,13 +99,17 @@ Deno.test("the restoration is the actor's, and the figure a share of their own p
 });
 
 /**
- * Which recordings the reading rests on. Named rather than counted, so a third arriving is a
+ * Which recordings the reading rests on. Named rather than counted, so one more arriving is a
  * failure that says what to read next — the rule above is then asked of it too.
  */
 Deno.test("the recordings carrying the key are the ones the reading was read on", () => {
     assertEquals(
         getRecordingsCarryingKey(),
-        [NPC_HEAL, "captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json"],
-        "two recordings, and a third would want reading too, 2026-09-06",
+        [
+            NPC_HEAL,
+            "captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json",
+            "captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json",
+        ],
+        "three recordings, and a fourth would want reading too, 2026-09-14",
     );
 });

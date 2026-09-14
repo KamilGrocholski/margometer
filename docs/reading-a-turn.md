@@ -96,10 +96,10 @@ event kind and, for a declaration, the key that decided it.
 
 | opened by             | turns |
 | --------------------- | ----- |
-| `skill-used`          | 3500  |
-| `attack`              | 1580  |
-| `declaration/prepare` | 183   |
-| `declaration/step`    | 179   |
+| `skill-used`          | 3533  |
+| `attack`              | 1668  |
+| `declaration/prepare` | 186   |
+| `declaration/step`    | 180   |
 
 ## The keys a turn was read off
 
@@ -132,44 +132,44 @@ reduction against each of them. That register counts the occurrences; this one c
 
 | key                           | messages | opened | adds | lost |
 | ----------------------------- | -------- | ------ | ---- | ---- |
-| `tspell`                      | 3493     | 3493   | 3493 | 0    |
-| `skillId`                     | 3129     | 3129   | 0    | 0    |
-| `+dmgd`                       | 1633     | 854    | 0    | 0    |
-| `-dmgd`                       | 1633     | 854    | 0    | 0    |
+| `tspell`                      | 3526     | 3526   | 3526 | 0    |
+| `skillId`                     | 3154     | 3154   | 0    | 0    |
+| `+dmgd`                       | 1697     | 906    | 0    | 0    |
+| `-dmgd`                       | 1697     | 906    | 0    | 0    |
+| `+resdmg`                     | 1307     | 543    | 0    | 0    |
+| `+dmgc`                       | 1449     | 522    | 0    | 0    |
 | `-dmga`                       | 1355     | 522    | 0    | 0    |
+| `+dmg`                        | 1821     | 512    | 0    | 0    |
+| `-dmg`                        | 1821     | 512    | 0    | 0    |
 | `+taken_dmg`                  | 1332     | 507    | 0    | 0    |
-| `+resdmg`                     | 1264     | 505    | 0    | 0    |
-| `+dmg`                        | 1800     | 498    | 0    | 0    |
-| `-dmg`                        | 1800     | 498    | 0    | 0    |
-| `+dmgc`                       | 1405     | 489    | 0    | 0    |
-| `active_absorbdest_per`       | 477      | 477    | 0    | 0    |
-| `+acdmg`                      | 1022     | 465    | 0    | 0    |
-| `-dmgc`                       | 1349     | 463    | 0    | 0    |
+| `+acdmg`                      | 1052     | 487    | 0    | 0    |
+| `-dmgc`                       | 1383     | 486    | 0    | 0    |
+| `active_absorbdest_per`       | 484      | 484    | 0    | 0    |
 | `combo-max`                   | 451      | 451    | 0    | 0    |
-| `+crit`                       | 948      | 361    | 0    | 0    |
+| `+crit`                       | 961      | 367    | 0    | 0    |
 | `active_decblock_per`         | 306      | 306    | 0    | 0    |
-| `+oth_dmg`                    | 481      | 297    | 0    | 0    |
-| `+dmgl`                       | 741      | 265    | 0    | 0    |
+| `+oth_dmg`                    | 484      | 297    | 0    | 0    |
+| `+dmgl`                       | 766      | 279    | 0    | 0    |
+| `+dmgf`                       | 570      | 240    | 0    | 0    |
+| `-dmgl`                       | 695      | 240    | 0    | 0    |
 | `-poison_lowdmg_per`          | 499      | 230    | 0    | 0    |
-| `-dmgl`                       | 670      | 226    | 0    | 0    |
-| `+pierce`                     | 415      | 223    | 0    | 0    |
-| `+dmgf`                       | 535      | 211    | 0    | 0    |
-| `-absorb`                     | 627      | 183    | 0    | 0    |
-| `prepare`                     | 324      | 183    | 183  | 0    |
-| `step`                        | 179      | 179    | 179  | 0    |
+| `+pierce`                     | 424      | 229    | 0    | 0    |
+| `prepare`                     | 328      | 186    | 186  | 0    |
+| `-absorb`                     | 629      | 185    | 0    | 0    |
+| `step`                        | 180      | 180    | 180  | 0    |
 | `shout`                       | 164      | 164    | 0    | 0    |
 | `active_block_per`            | 159      | 159    | 0    | 0    |
+| `-dmgf`                       | 396      | 144    | 0    | 0    |
 | `mana`                        | 131      | 131    | 0    | 0    |
 | `heal_target`                 | 124      | 124    | 0    | 0    |
-| `-dmgf`                       | 367      | 120    | 0    | 0    |
 | `active_decblock_per-enemies` | 117      | 117    | 0    | 0    |
 | `alllowdmg`                   | 117      | 117    | 0    | 0    |
 | `healall_per`                 | 117      | 117    | 0    | 0    |
 | `allslow_per`                 | 114      | 114    | 0    | 0    |
 | `-blok`                       | 210      | 112    | 0    | 0    |
-| `aura-sa_per`                 | 85       | 85     | 0    | 0    |
-| `+dmgo`                       | 368      | 81     | 0    | 0    |
-| `-dmgo`                       | 353      | 81     | 0    | 0    |
+| `+dmgo`                       | 385      | 91     | 0    | 0    |
+| `-dmgo`                       | 370      | 91     | 0    | 0    |
+| `aura-sa_per`                 | 87       | 87     | 0    | 0    |
 | `energy`                      | 75       | 75     | 0    | 0    |
 | `+abdest_per`                 | 257      | 71     | 0    | 0    |
 | `+abmdest_per`                | 257      | 71     | 0    | 0    |
@@ -179,19 +179,19 @@ reduction against each of them. That register counts the occurrences; this one c
 | `aura-adddmg2_per-meele`      | 47       | 47     | 0    | 0    |
 | `aura-ac_per`                 | 43       | 43     | 0    | 0    |
 | `aura-resall`                 | 43       | 43     | 0    | 0    |
+| `-evade`                      | 57       | 34     | 0    | 0    |
 | `+fastarrow`                  | 59       | 30     | 0    | 0    |
-| `+acdmg_destroyed`            | 45       | 22     | 0    | 0    |
-| `-evade`                      | 43       | 22     | 0    | 0    |
+| `+acdmg_destroyed`            | 47       | 24     | 0    | 0    |
 | `+engback`                    | 350      | 20     | 0    | 0    |
-| `+legbon_holytouch`           | 65       | 19     | 0    | 0    |
+| `+legbon_holytouch`           | 66       | 20     | 0    | 0    |
 | `+crush_physical`             | 23       | 15     | 0    | 0    |
-| `+legbon_anguish`             | 18       | 12     | 0    | 0    |
-| `+thirdatt`                   | 28       | 12     | 0    | 0    |
-| `-thirdatt`                   | 28       | 12     | 0    | 0    |
+| `+thirdatt`                   | 31       | 15     | 0    | 0    |
+| `-thirdatt`                   | 31       | 15     | 0    | 0    |
+| `+legbon_anguish`             | 19       | 13     | 0    | 0    |
+| `+stun2`                      | 13       | 13     | 0    | 0    |
 | `+legbon_verycrit`            | 30       | 11     | 0    | 0    |
 | `-legbon_critred`             | 17       | 11     | 0    | 0    |
-| `+of_crit`                    | 72       | 10     | 0    | 0    |
-| `+stun2`                      | 10       | 10     | 0    | 0    |
+| `+of_crit`                    | 73       | 10     | 0    | 0    |
 | `+stun2-c`                    | 11       | 9      | 0    | 0    |
 | `-pierceb`                    | 12       | 9      | 0    | 0    |
 | `-legbon_facade`              | 16       | 8      | 0    | 0    |
@@ -201,13 +201,14 @@ reduction against each of them. That register counts the occurrences; this one c
 | `+woundpoison`                | 6        | 5      | 0    | 0    |
 | `en-regen-cast`               | 5        | 5      | 0    | 0    |
 | `+legbon_curse`               | 14       | 4      | 0    | 0    |
+| `+legbon_puncture`            | 9        | 4      | 0    | 0    |
 | `legbon_lastheal`             | 13       | 4      | 0    | 0    |
 | `lowheal_per-enemies`         | 4        | 4      | 0    | 0    |
-| `+legbon_puncture`            | 8        | 3      | 0    | 0    |
 | `-legbon_glare`               | 6        | 3      | 0    | 0    |
+| `+absorb`                     | 3        | 2      | 0    | 0    |
+| `+wound`                      | 18       | 2      | 0    | 0    |
 | `-contra`                     | 3        | 2      | 0    | 0    |
 | `removedot-allies`            | 2        | 2      | 0    | 0    |
-| `+absorb`                     | 2        | 1      | 0    | 0    |
 | `+critpoison_per`             | 10       | 1      | 0    | 0    |
 | `+rage`                       | 2        | 1      | 0    | 0    |
 | `-arrowblock`                 | 1        | 1      | 0    | 0    |
@@ -217,7 +218,7 @@ reduction against each of them. That register counts the occurrences; this one c
 | `critval-allies`              | 1        | 1      | 0    | 0    |
 | `removeslow-allies`           | 1        | 1      | 0    | 0    |
 | `removestun-allies`           | 1        | 1      | 0    | 0    |
-| `txt`                         | 389      | 0      | 0    | 365  |
+| `txt`                         | 409      | 0      | 0    | 384  |
 
 ## What this cannot answer
 

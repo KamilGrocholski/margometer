@@ -191,7 +191,7 @@ it is written down per key instead of derived from the grammar.
 The combatants on the winning side, as a single string, names separated by a comma and a space.
 Appears in a message that names no combatant at all: it is about the fight, not about anyone in it.
 
-_Shape:_ 31 occurrences; alone in its message; text
+_Shape:_ 32 occurrences; alone in its message; text
 
 _Help:_ names `max_moves`
 
@@ -206,7 +206,7 @@ The same, for the losing side — with the one exception the entry above states:
 spends on a fight nobody won is not a value this one carries, and it is left unread here rather than
 read as a side of that name.
 
-_Shape:_ 31 occurrences; alone in its message; text
+_Shape:_ 32 occurrences; alone in its message; text
 
 ### `flee` — decoded
 
@@ -247,7 +247,7 @@ makes no distinction there. Read literally it made `dmg` a second element beside
 107 952 points of physical damage into two rows nothing on screen could tell apart. Held by
 `tests/core/fight-decoder.test.ts`.
 
-_Shape:_ 1175 occurrences; on a message reporting damage; text
+_Shape:_ 1193 occurrences; on a message reporting damage; text
 
 _Evidence:_ in every call where a target lost more health than the attack accounted for, the
 shortfall equalled this amount exactly — 110, 247 and 123 in three separate calls. Three independent
@@ -343,7 +343,7 @@ _Help:_ names `( heal )`
 value and no direction. This entry is why production decides: read there, the member looks like a
 plain number, and the half that makes it legible is missing.
 
-_Shape:_ 2346 occurrences; alone in its message; text
+_Shape:_ 2399 occurrences; alone in its message; text
 
 _Evidence:_ of the four ways to sign `heal` and `poison`, only healing added and poison subtracted
 closes the stated percentages — the other three leave hundreds of comparisons disagreeing. Applying
@@ -367,7 +367,7 @@ _Health:_ moves health
 
 _Cause:_ nobody
 
-_Shape:_ 874 occurrences; anywhere; text
+_Shape:_ 891 occurrences; anywhere; text
 
 _Help:_ names `poison`
 
@@ -442,7 +442,7 @@ _Health:_ moves health
 
 _Cause:_ nobody
 
-_Shape:_ 69 occurrences; alone in its message; text
+_Shape:_ 78 occurrences; alone in its message; text
 
 _Help:_ names `( light )`
 
@@ -471,7 +471,7 @@ _Health:_ moves health
 
 _Cause:_ nobody
 
-_Shape:_ 70 occurrences; alone in its message; a whole number
+_Shape:_ 71 occurrences; alone in its message; a whole number
 
 _Help:_ names `anguish`
 
@@ -525,7 +525,7 @@ _Health:_ moves health
 
 _Cause:_ the message actor
 
-_Shape:_ 7 occurrences; alone in its message; a whole number
+_Shape:_ 10 occurrences; alone in its message; a whole number
 
 _Help:_ names `( heal )`
 
@@ -561,7 +561,7 @@ _Health:_ moves health
 
 _Cause:_ the subject's own
 
-_Shape:_ 158 occurrences; alone in its message; a whole number
+_Shape:_ 161 occurrences; alone in its message; a whole number
 
 _Help:_ names `holytouch`
 
@@ -764,7 +764,7 @@ The **Third Blow** rolled: an extra auxiliary attack fired alongside the ordinar
 Damage the shape above cannot reach, because the key carries no `dmg` marker — `fight-decoder.ts`
 names this pair instead, which is the one exception the family rule has.
 
-_Shape:_ 28 occurrences; on a blow; a whole number
+_Shape:_ 31 occurrences; on a blow; a whole number
 
 _Help:_ names `thirdatt`, `trzeci cios`
 
@@ -789,7 +789,7 @@ _Health:_ moves health
 
 _Cause:_ the message actor
 
-_Shape:_ 28 occurrences; on a blow; a whole number
+_Shape:_ 31 occurrences; on a blow; a whole number
 
 _Help:_ names `thirdatt`, `trzeci cios`
 
@@ -804,7 +804,7 @@ a key that moves health.
 
 Damage physical absorption stopped before it reached the target.
 
-_Shape:_ 627 occurrences; on a blow; a whole number
+_Shape:_ 629 occurrences; on a blow; a whole number
 
 _Help:_ names `absorb`, `absorpcja`
 
@@ -854,7 +854,7 @@ which is why it is grouped with them.
 A critical hit fired on this blow. **Carries no figure at all**: the protocol states the key and
 stops, and the client's branch composes its sentence without reading a value.
 
-_Shape:_ 948 occurrences; on a blow; no value
+_Shape:_ 961 occurrences; on a blow; no value
 
 _Help:_ names `crit`
 
@@ -868,7 +868,7 @@ it unread again rather than a flag with a number dropped beside it.
 A critical hit with the **offhand weapon** fired on this blow. Carries no figure: the protocol
 states the key and stops.
 
-_Shape:_ 72 occurrences; on a blow; no value
+_Shape:_ 73 occurrences; on a blow; no value
 
 _Help:_ names `crit`
 
@@ -891,7 +891,7 @@ corroborates the meaning outside the battle log — `this.of_crit` writes the ch
 Armour piercing fired on this blow — the help states that within such a blow the target's armour
 does not reduce the damage. No figure, like `+crit`.
 
-_Shape:_ 415 occurrences; on a blow; no value
+_Shape:_ 424 occurrences; on a blow; no value
 
 _Help:_ names `pierce`
 
@@ -962,7 +962,7 @@ The same Ogłuszenie as `+stun2-d` above and off the same statistic, in the bare
 variants the client spells (`+stun2`, `-c`, `-d`, `-f`, `-l`). A proc: it states no figure and the
 blow it rides already reports its damage.
 
-_Shape:_ 10 occurrences; on a blow; no value
+_Shape:_ 13 occurrences; on a blow; no value
 
 _Help:_ names `stun2`
 
@@ -1112,7 +1112,7 @@ anybody checks. Measured over every recording as the set stood 2026-08-25: ten a
 `-dmg=0` and thirteen beside `-dmgd=0`, none beside a non-zero one, and none beside no applied
 figure at all.
 
-_Shape:_ 43 occurrences; on a blow; no value
+_Shape:_ 57 occurrences; on a blow; no value
 
 _Help:_ names `evade`
 
@@ -1192,7 +1192,7 @@ carries neither it nor `superspell`.
 The target's armour was destroyed outright by this blow — the floor `+acdmg` counts down to. **Not a
 figure**, unlike `+acdmg`: this key states that the armour is gone and no amount.
 
-_Shape:_ 45 occurrences; on a blow; no value
+_Shape:_ 47 occurrences; on a blow; no value
 
 _Help:_ names nothing of `acdmg_destroyed`, `destroyed`
 
@@ -1209,7 +1209,7 @@ pedantic: the help describes it as lowering a statistic before the blow's reduct
 with a floor below which it cannot go. Summed together with `dealt` it would be a total of two
 different things.
 
-_Shape:_ 1022 occurrences; on a blow; a whole number
+_Shape:_ 1052 occurrences; on a blow; a whole number
 
 _Help:_ names `acdmg`
 
@@ -1257,7 +1257,7 @@ Elemental resistance of the target destroyed by this blow, which the help states
 points** rather than in the points `+acdmg` uses. The two are kept in one shape here because the
 protocol gives no unit either way; what the figure means is the entry's job, not the type's.
 
-_Shape:_ 1264 occurrences; on a blow; a whole number
+_Shape:_ 1307 occurrences; on a blow; a whole number
 
 _Help:_ names `resdmg`
 
@@ -1301,7 +1301,7 @@ This is the key an announcement always carries where `skillId` is the one it som
 that asymmetry decides how far the announcement reaches: `skillId` says which. `tcustom` is the
 id-less spelling by construction and takes the same answer.
 
-_Shape:_ 3493 occurrences; on a skill announcement; text
+_Shape:_ 3526 occurrences; on a skill announcement; text
 
 _Help:_ names nothing of `tspell`, `( tspell )`, `skillId`, `( skillId )`
 
@@ -1332,7 +1332,7 @@ announcement did carry is one the table carries — 0 exceptions of 3,129, 2026-
 makes a missing id the whole of that case, and `tests/repository/skill-durations.test.ts` re-earns
 it.
 
-_Shape:_ 3129 occurrences; on a skill announcement; a whole number
+_Shape:_ 3154 occurrences; on a skill announcement; a whole number
 
 _Evidence:_ production build `1785244275300` for the empty branch. Measured on the captures: present
 on 182 of the 197 announcements, absent from 15, and never once on a message that does not also
@@ -1431,7 +1431,7 @@ descriptions. That switch is not about battle messages, and the frozen table is 
 balance so it holds only the battle one — the trap of matching a name rather than the shape it
 stands in, met again here.
 
-_Shape:_ 477 occurrences; on a skill announcement; a whole number
+_Shape:_ 484 occurrences; on a skill announcement; a whole number
 
 _Help:_ names `active_absorbdest_per`
 
@@ -1557,7 +1557,7 @@ the value it carries; the client composes its log line with a `%val%` hole, prod
 `+crit` does — but production build `1785244275300` composes its sentence with a `%val%` hole, so
 the client expects a figure this occurrence does not carry.
 
-_Shape:_ 65 occurrences; on a blow; no value
+_Shape:_ 66 occurrences; on a blow; no value
 
 _Help:_ names `holytouch`
 
@@ -1677,7 +1677,7 @@ a critical. The material agrees: every occurrence states 25, and every one rides
 Piercing Efficiency: the share of the target's defensive statistics this attack ignores. An input to
 the damage on the same message, not an outcome.
 
-_Shape:_ 8 occurrences; on a blow; a whole number
+_Shape:_ 9 occurrences; on a blow; a whole number
 
 _Help:_ names `puncture`
 
@@ -1748,7 +1748,7 @@ the attack is one the character landed or one they took, and the message does no
 kept both keys declarations is untouched: they name an attacker and the combatant whose absorption
 stopped damage, and state nowhere which of the two gained.
 
-_Shape:_ 2 occurrences; on a blow; a whole number
+_Shape:_ 3 occurrences; on a blow; a whole number
 
 _Help:_ names `absorb`, `absagain_per`
 
@@ -1859,7 +1859,7 @@ _Evidence:_ article view,372 (read 2026-08-09) at the engine name `aura-resall`.
 
 An aura raising the team's attack speed.
 
-_Shape:_ 85 occurrences; on a skill announcement; a whole number
+_Shape:_ 87 occurrences; on a skill announcement; a whole number
 
 _Help:_ names `aura-sa_per`
 
@@ -2149,7 +2149,7 @@ The help does say what it **is**: a step forward is one of the two default actio
 spent on, beside the attack (article 372 §2.3, read 2026-09-02). So `src/core/fight-statistics.ts`
 counts it as a turn its combatant took, and never as a boundary between two of them (**ADR 0048**).
 
-_Shape:_ 179 occurrences; alone in its message; no value
+_Shape:_ 180 occurrences; alone in its message; no value
 
 _Help:_ names `step`
 
@@ -2167,7 +2167,7 @@ acted in the message before it, the preparation rides that turn rather than bein
 documents no such mechanic, so unlike `step` this is measured and not cited — `docs/turns-taken.md`
 carries both shapes and what each costs (**ADR 0048**).
 
-_Shape:_ 324 occurrences; alone in its message; text
+_Shape:_ 328 occurrences; alone in its message; text
 
 _Help:_ names nothing of `prepare`
 
@@ -2187,7 +2187,7 @@ name and the separator the game puts after it, and the game's other lines about 
 full stop. The decoder resolves the name against the roster and passes on an id (**ADR 0049**);
 `docs/turns-taken.md` carries what that comes to.
 
-_Shape:_ 389 occurrences; alone in its message; text
+_Shape:_ 409 occurrences; alone in its message; text
 
 _Help:_ names nothing of `txt`
 
@@ -2331,7 +2331,7 @@ what stands above is the fight it was read off and not the whole of the material
 line below counts every occurrence there is, which is how the two came to disagree — the placement
 was `alone in its message` until a recording arrived stating the key beside `-poison_lowdmg_per`.
 
-_Shape:_ 67 occurrences; anywhere; a whole number
+_Shape:_ 76 occurrences; anywhere; a whole number
 
 _Help:_ names `wound`, `wound1`
 
@@ -2347,10 +2347,10 @@ was read off, and by four recordings admitted since (read 2026-09-11).
 ### `+wound` — decoded
 
 The event a blow announces when a weapon's deep wound is applied, read as a proc: an effect that
-fired with the attack and states no figure. `+of_wound` is the auxiliary weapon's own and no capture
-carries one, so it is not read.
+fired with the attack and states no figure. `+of_wound` below is the auxiliary weapon's own half of
+the pair, read the same way and worded the same way.
 
-_Shape:_ 16 occurrences; on a blow; no value
+_Shape:_ 18 occurrences; on a blow; no value
 
 _Help:_ names `wound`, `wound1`, `of_wound1`
 
@@ -2361,6 +2361,29 @@ article `view,372` (read 2026-08-19) — and prints no separate entry for either
 it prints none for `+injure` or `+critwound`. Every occurrence rides a blow of the monster's in
 `captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json`, the one recording
 carrying either half of this pair as the set stood 2026-08-24.
+
+### `+of_wound` — decoded
+
+`+wound`'s other half: the deep wound an **auxiliary weapon** left, announced by the blow that left
+it and stating no figure. Read as a proc on the attacker's end, where `+wound` is read, and given
+`+wound`'s own word on the card rather than one of its own — one mechanic from two hands, and the
+panel has no column in which the hand is a thing a player acts on (`src/ui/panel-words.ts`).
+
+What it announces ticks afterwards under `wound`, which names nobody at the striking end, so the
+ticks stand where the entry above says they stand and this key moves no health of its own.
+
+_Shape:_ 2 occurrences; on a blow; no value
+
+_Help:_ names `of_wound1`
+
+_Evidence:_ production build `Cl9U89Zr` (read 2026-09-09) composes `msg_+of_wound` on the same
+switch as `msg_+wound` and `msg_+critwound`, and writes no `%val%` hole into it — the switch that
+composes `+injure` with one. The published help documents the weapon attribute `wound1, of_wound1`
+and the type's behaviour in its table of damage over time — article `view,372` (read 2026-08-19) —
+and prints no separate entry for this announcing form, as it prints none for `+wound` or
+`+critwound`. Both occurrences ride blows of one player's against the monster in
+`captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json`, which is the whole of the
+material for this key (read 2026-09-14).
 
 ### `+woundpoison` — decoded
 
@@ -2414,7 +2437,7 @@ neighbour rather than an answer. The absence is asserted over the material rathe
 here (`tests/core/anguish-rule.test.ts`), so a recording that brings a figure fails rather than
 passing under a reading it invalidates.
 
-_Shape:_ 18 occurrences; on a blow; no value
+_Shape:_ 19 occurrences; on a blow; no value
 
 _Help:_ names `anguish`
 

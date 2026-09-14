@@ -352,9 +352,9 @@ export const DEFENCE_WORDS: Record<string, string> = {
  * What fired beside a blow, in the player's words. Ours, and short: these sit in a column beside a
  * count, so each is the mechanic's name and not a sentence about it.
  *
- * **Six of the twenty keys are deliberately absent**, and `CLIENT_IDS_FOR_UNWORDED_KEYS` below
- * names them and says why. The five stun keys share one word because they are one event from five
- * sources, which is what `+stun2-d`'s entry in `docs/protocol-keys.md` says outright.
+ * **Not every key in `PROC_ENDS` has a word here**, and `CLIENT_IDS_FOR_UNWORDED_KEYS` below names
+ * the ones that do not and says why. The five stun keys share one word because they are one event
+ * from five sources, which is what `+stun2-d`'s entry in `docs/protocol-keys.md` says outright.
  *
  * **Keyed with the sign**, for the reason `DEFENCE_WORDS` above states: `+wound` is a wound a blow
  * announced and `wound` is one ticking afterwards, and they are different rows on different
@@ -372,6 +372,12 @@ export const PROC_WORDS: Record<string, string> = {
     "+stun2-d": "ogłuszenie",
     "+freeze": "zamrożenie",
     "+wound": "głęboka rana",
+    /**
+     * The same wound off the auxiliary weapon, sharing the word rather than taking one of its own:
+     * a second row would split one mechanic over the hand that threw it, which is a difference the
+     * five stun keys were not given either.
+     */
+    "+of_wound": "głęboka rana",
     /** A deep wound something weakened; the client writes the share into the sentence. */
     "+woundpoison": "osłabiona rana",
     "+fastarrow": "szybka strzała",

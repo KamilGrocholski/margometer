@@ -158,7 +158,7 @@ a register of their own below.
 |  id | skill            | on | fights | at once | stated | reaches  |
 | --: | ---------------- | -: | -----: | ------: | -----: | -------- |
 |  76 | Aura ochrony     | 10 |     14 |       2 |      8 | caster's |
-|  89 | Podwójny dech    | 16 |     17 |       4 |      8 | caster's |
+|  89 | Podwójny dech    | 17 |     18 |       4 |      8 | caster's |
 | 123 | Szadź            | 17 |     21 |       3 |      8 | other    |
 | 219 | Jadowity podmuch |  1 |      1 |       1 |      8 | other    |
 | 264 | Piętno bestii    | 13 |     16 |       2 |      8 | other    |

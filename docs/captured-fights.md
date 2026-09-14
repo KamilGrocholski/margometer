@@ -35,7 +35,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `2 vs 1`  | `1`        |
 | `5 vs 1`  | `1`        |
 | `9 vs 1`  | `1`        |
-| `10 vs 1` | `23`       |
+| `10 vs 1` | `24`       |
 
 ## The fights
 
@@ -72,6 +72,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json`         | `5 vs 1`  | `theirs won` | `5 players · m 2, p 1, t 1, w 1 · levels 23–61`            | `1 NPC · b 1 · level 36`           | `49124`              |
 | `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json`               | `2 vs 1`  | `ours won`   | `2 players · h 1, t 1 · level 70`                          | `1 player · w 1 · level 64`        | `15615`              |
 | `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`                 | `10 vs 1` | `ours won`   | `10 players · h 2, m 2, p 1, t 3, w 2 · levels 83–99`      | `1 NPC · p 1 · level 83`           | `209110`             |
+| `captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json`           | `10 vs 1` | `ours won`   | `10 players · b 1, h 2, m 3, t 3, w 1 · levels 28–60`      | `1 NPC · b 1 · level 36`           | `43092`              |
 
 ## The recordings
 
@@ -108,6 +109,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json`         | `luvia`        | `ne0iTNdg`      | `0.14.0`      | `3`   | `171`    |
 | `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json`               | `tempest`      | `ne0iTNdg`      | `0.14.0`      | `24`  | `124`    |
 | `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`                 | `luvia`        | `Cl9U89Zr`      | `0.15.0`      | `99`  | `475`    |
+| `captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json`           | `luvia`        | `Cl9U89Zr`      | `0.16.0`      | `1`   | `276`    |
 
 ## What the material does not hold
 
@@ -124,7 +126,7 @@ than a defect.
 - **No fight broken off by an escape.** The same again, and for a key the corpus has never carried:
   `flee` is read off the client's own branch and the published help, and the panel's `ucieczka` is
   drawn from a fight the fabricator writes (`docs/protocol-keys.md`).
-- **Three worlds, and one of them once.** Everything but the duel and the eight recordings from
+- **Three worlds, and one of them once.** Everything but the duel and the nine recordings from
   `luvia` comes from `tempest`; the duel is the one that happened once.
 
 A loss **is** held, in more than one recording — which is what the outcome column is for, since
@@ -287,6 +289,25 @@ evidence.
 
   It is also the third fight against this monster, and the third carrying `+stun2-c`. The entry for
   that key had written down what a third would settle: nothing. It did not.
+
+- `captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json` — **the second recording
+  carrying no snapshot at all**, and the first is `2026-08-24-tempest-tropiciel-vs-centaury-auto`.
+  Its one engine call states `auto`, carries all 276 messages, and states an empty cast on either
+  side of itself: unlike the three auto fights above it there is no trailing call to snapshot
+  anybody. So it contributes nothing to the health witness, and the cast is `payload.w` with nothing
+  to check it against. Two guards that had been reading the snapshots now read the payloads, where
+  the same cast was available all along (`tests/repository/redacted-names.test.ts`,
+  `tests/core/npc-heal-rule.test.ts`), and the one whose subject **is** the comparison counts what
+  the snapshots hold back by that property rather than by a recording's name
+  (`tests/game/engine-warrior.test.ts`).
+
+  ⚠️ **It is the only recording carrying `+of_wound`**, and the register had written down that none
+  did. It is `+wound`'s twin off the auxiliary weapon, and both occurrences ride blows of one
+  player's (`docs/protocol-keys.md`).
+
+  It is also the third carrying `npc_heal`, and it re-earns that key's reading rather than resting
+  on it: three casts of 1724 against a pool of 43092, four points of it apiece, which is what the
+  other two recordings state.
 
 - `captures/2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none.json`,
   `captures/2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none.json` and
