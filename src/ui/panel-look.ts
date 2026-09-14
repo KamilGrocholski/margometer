@@ -684,7 +684,11 @@ function composeTipRules(): string {
         `.${CLASS.tipLine}.${CLASS.tipSub}{padding-left:var(${VARIABLE_PREFIX}wide);}` +
         // Cut rather than wrapped, because a label that folded would stand the card wrong —
         // `MAXIMUM_LABEL_CHARACTERS` in `src/ui/panel-words.ts` is where that arithmetic is.
-        `.${CLASS.tipLabel}{color:var(${VARIABLE_PREFIX}quiet);min-width:0;` +
+        // `flex:1` and not `auto`: the mark a caveated figure wears sits between this and the
+        // value, and a label at its natural width leaves it stranded mid-line, beside the words
+        // rather than beside the figure it is about (`DESIGN.md`). Grown, the label pushes the
+        // mark against the value wherever the label is short.
+        `.${CLASS.tipLabel}{color:var(${VARIABLE_PREFIX}quiet);flex:1;min-width:0;` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipValue}{font-variant-numeric:tabular-nums;flex:none;}` +
         // No ink of its own: a caveat is an explanation and not an alarm, so it stays in the
