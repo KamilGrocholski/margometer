@@ -275,11 +275,20 @@ export const NEITHER_END_WORDS = {
 
 export const CARD_WORDS = {
     /**
-     * **The qualifier is the label.** Called `surowe` alone it read as the raw half of the figure
-     * above it, and stood below that figure on hundreds of rows — the measurement, and what the
-     * protocol states a raw on, are in `tests/ui/panel-card.test.ts`.
+     * The heading over the figures the fight is summed over, and it is what the two blow headings
+     * below are read against: a card whose blocks each name their own scope needs the widest one
+     * named too, or the widest reads as the default every other figure is a part of.
      */
-    raw: "surowe z ciosów",
+    wholeFight: "W całej walce",
+    /**
+     * **It says what the protocol stated, not what this reader summed.** `surowe z ciosów` named
+     * a scope, and the scope was not true: `-dmga` — *obrażenia nieuchronne* — never carries a
+     * `+dmga` half, because nothing reduces it (`docs/protocol-keys.md`), so the figure sits
+     * below the blows' own applied total on 5 of the 113 rows stating one, measured over
+     * `captures/` on 2026-09-14. Worded as what was **stated** it claims nothing about coverage,
+     * which is the register the rest of this file's sentences are written in (**L3**).
+     */
+    raw: "Podane przed redukcją",
     blows: "Ciosy",
     blowsWithoutSkill: "bez umiejętności",
     skillUses: "Użycia umiejętności",
@@ -307,12 +316,20 @@ export const CARD_WORDS = {
      */
     destroyed: "Zniszczone",
     /**
-     * Owed wherever `raw` stands, and two things are owed: what the figure is a sum of, and that
-     * the subtraction a reader will try does not work (`src/core/battle-event.ts`).
+     * Owed wherever `raw` stands, and **one** thing is owed now: that the subtraction a reader
+     * will try does not work (`src/core/battle-event.ts`). What the figure is a sum of used to be
+     * owed here too, in two more lines of it; the block heading over the figure says that.
+     *
+     * ⚠️ **It names no pair, and that is what an earlier wording got wrong.** Told *not to
+     * subtract one from the other* it pointed at whichever two numbers stood nearest — which,
+     * once the figure before reduction moved into the run, is `Zatrzymane` directly under it,
+     * a different pair from the one the sentence was written for. `z tych liczb` voids every
+     * subtraction a reader can try instead of forbidding one and silently allowing the rest.
+     * The fact comes first and the consequence second: a sentence whose whole content is an
+     * instruction teaches nothing about the game.
      */
-    damageNote: "Surowe z ciosów to obrażenia przed redukcją, i liczą się tylko z ciosów — " +
-        "liczba nad nimi może trzymać więcej. Nie odejmuj jednej od drugiej: pancerza ani " +
-        "odporności gra nie podaje.",
+    damageNote:
+        "Pancerza ani odporności gra nie podaje, więc z tych liczb nie wyliczysz całej redukcji.",
     /**
      * The instruction a row gives, and it stands wherever pressing leads somewhere — `DESIGN.md`
      * owns that rule. The right press is not named beside it: a reader on the ranking has nowhere

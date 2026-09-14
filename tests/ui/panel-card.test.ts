@@ -100,7 +100,7 @@ function readGroup(group: TipGroup): string[] {
     });
 }
 
-Deno.test("a card states all four figures, and the one on screen is the one in bold", () => {
+Deno.test("the whole fight is a block of its own, and the screen's figure is in bold", () => {
     const card = composeCardReading({
         name: "Hildur Muza Śmierci",
         profession: "p",
@@ -114,21 +114,24 @@ Deno.test("a card states all four figures, and the one on screen is the one in b
     assertEquals(card.name, "Hildur Muza Śmierci", "the name in full");
     assertEquals(card.subtitle, "Paladyn (83)", "what they are and how far along, under it");
     const [figures, counters, , , notes] = card.groups;
-    assertExists(figures, "a card states the four figures");
+    assertExists(figures, "a card states the figures the whole fight is summed over");
     assertEquals(
         readGroup(figures),
         [
+            `[${CARD_WORDS.wholeFight}]`,
             "Zadane 354\u00a0258",
-            `  ${CARD_WORDS.raw} 410\u00a0002`,
             `  ${PANEL_WORDS.withoutTarget} 2\u00a0104`,
             "**Otrzymane** 141\u00a0710",
-            `  ${CARD_WORDS.raw} 160\u00a0998`,
             `  ${PANEL_WORDS.withoutActor} 10\u00a0672`,
-            "Leczenie dane 0",
             "Leczenie otrzymane 16\u00a0273",
             `  ${PANEL_WORDS.withoutActor} 1\u00a0500`,
         ],
-        "each with the part of it the protocol named only this row's end of, under it",
+        "under the heading naming their scope, each with the end the protocol left out under it",
+    );
+    assertEquals(
+        readGroup(figures).filter((line) => line.startsWith("Leczenie dane")),
+        [],
+        "and healing they gave nobody is no line: it is nought, and nought was not what was asked",
     );
     assertExists(counters, "and how they fought, under a rule of its own");
     assertEquals(
@@ -151,14 +154,16 @@ Deno.test("a card states all four figures, and the one on screen is the one in b
 });
 
 /**
- * **A figure before reduction is the raw of the blows and not of the figure beside it**, so the
- * label says what it is a sum of. The protocol states one on a blow and nowhere else, while an
- * applied figure grows from blows, from damage named against somebody and from health moving
- * outside one — over `captures/` on 2026-08-31 the sum stood **below** the figure it is drawn under
- * on 20 of the 244 rows stating both on the dealt end, and on 48 of the 100 on the taken end.
+ * **A figure before reduction stands in the run of its own end, and under no figure at all.**
+ * The protocol states one on a blow and nowhere else, while an applied figure grows from blows,
+ * from damage named against somebody and from health moving outside one — so drawn under the
+ * applied figure it read as a part of it and was **smaller** than the number it hung beneath on
+ * 296 of the 1,184 cards over `captures/`, and on 172 of those smaller than one and larger than
+ * the other on the same card, measured 2026-09-14. In the run there is no figure above it to be
+ * read as a part of. **ADR 0087.**
  */
-Deno.test("a figure before reduction says it is the blows', and owes the sentence", () => {
-    const lines = composeCardReading({
+Deno.test("a figure before reduction stands in its own run, under no figure", () => {
+    const card = composeCardReading({
         name: "Hildur Muza Śmierci",
         profession: "p",
         sidePart: "nobody" as const,
@@ -167,20 +172,30 @@ Deno.test("a figure before reduction says it is the blows', and owes the sentenc
         doesOpen: false,
         isRowNarrower: false,
         translate: null,
-    }).groups.flatMap(readGroup);
+    });
+    const [figures, , striking, struck] = card.groups;
+    assertExists(figures, "the card opens on the figures of the whole fight");
     assertEquals(
-        lines.filter((line) => line.startsWith(`  ${CARD_WORDS.raw}`)),
-        [`  ${CARD_WORDS.raw} 410\u00a0002`, `  ${CARD_WORDS.raw} 160\u00a0998`],
-        "both ends state theirs, each under the figure it is drawn beside",
+        readGroup(figures).filter((line) => line.includes(CARD_WORDS.raw)),
+        [],
+        "and none of them carries a figure before reduction under it",
     );
-    assert(
-        CARD_WORDS.raw.includes(" "),
-        "and the label is qualified rather than the bare word, which is what makes it true",
+    assertExists(striking, "the run about striking stands");
+    assertArrayIncludes(
+        readGroup(striking),
+        [`${CARD_WORDS.raw} 410\u00a0002`],
+        "which is where what they put out before reduction is stated, as a line and not a part",
+    );
+    assertExists(struck, "and the run about being struck");
+    assertArrayIncludes(
+        readGroup(struck),
+        [`${CARD_WORDS.raw} 160\u00a0998`],
+        "with what reached them before reduction in it",
     );
     assertArrayIncludes(
-        lines,
+        card.groups.flatMap(readGroup),
         [CARD_WORDS.damageNote],
-        "with the sentence saying not to subtract it",
+        "and the sentence saying not to subtract one from the other is still owed",
     );
     // The sample that must not carry it: nothing before reduction was stated, so neither is said.
     const without = composeCardReading({
@@ -194,7 +209,7 @@ Deno.test("a figure before reduction says it is the blows', and owes the sentenc
         translate: null,
     }).groups.flatMap(readGroup);
     assertEquals(
-        without.filter((line) => line.startsWith(`  ${CARD_WORDS.raw}`)),
+        without.filter((line) => line.includes(CARD_WORDS.raw)),
         [],
         "a card with no raw figure on it draws no raw line",
     );
@@ -223,10 +238,11 @@ Deno.test("the card says what they did when they struck, and what held when they
         readGroup(striking),
         [
             `[${CARD_WORDS.striking}]`,
+            `${CARD_WORDS.raw} 410\u00a0002`,
             `${CARD_WORDS.blowsCritical} 9 (23%)`,
-            `  ${CARD_WORDS.blowsCriticalOffhand} 2`,
+            `  ${CARD_WORDS.blowsCriticalOffhand} ×2`,
             `${CARD_WORDS.blowLargestDealt} 19\u00a0209`,
-            "przebicie 4",
+            "przebicie ×4",
             `[${CARD_WORDS.destroyed}]`,
             "  pancerz 940 pkt",
             "  odporność 26 p.p.",
@@ -238,11 +254,12 @@ Deno.test("the card says what they did when they struck, and what held when they
         readGroup(struck),
         [
             `[${CARD_WORDS.struck}]`,
+            `${CARD_WORDS.raw} 160\u00a0998`,
             `${CARD_WORDS.prevented} 10\u00a0413`,
             "  absorpcja 8\u00a0000",
             "  blok 2\u00a0413",
-            "unik 3",
-            "-legbon_cleanse 1",
+            "unik ×3",
+            "-legbon_cleanse ×1",
             `${CARD_WORDS.blowLargestTaken} 8\u00a0062`,
         ],
         "what stopped part of a blow, what fired on their side of one, and the hardest through",
@@ -326,30 +343,40 @@ Deno.test("a key nothing here words is drawn as the player's own client names it
     );
 });
 
-Deno.test("a combatant the fight never touched states four zeros and nothing else", () => {
-    const card = composeCardReading({
-        name: "Gracz 9",
-        profession: null,
-        sidePart: "nobody" as const,
-        detail: NOBODY,
-        metric: "damageDealtApplied",
-        doesOpen: false,
-        isRowNarrower: false,
-        translate: null,
-    });
+/**
+ * **Zero is an answer, and only to the question that was asked.** A screen showing somebody at
+ * nothing has to say nothing — that is what the reader pointed at — while the other three at
+ * nought answer nobody and cost three lines. Drawn unconditionally the four printed 580 figures
+ * of nought over `captures/` on 2026-09-14, 0.49 to a card; the screen's own alone leaves 145.
+ * **ADR 0087.**
+ */
+Deno.test("a combatant the fight never touched states the figure that was asked, at nought", () => {
+    const at = (metric: PanelMetric) =>
+        composeCardReading({
+            name: "Gracz 9",
+            profession: null,
+            sidePart: "nobody" as const,
+            detail: NOBODY,
+            metric,
+            doesOpen: false,
+            isRowNarrower: false,
+            translate: null,
+        });
+    const card = at("damageDealtApplied");
     assertEquals(card.subtitle, null, "and a line drawn for neither is a question, not an answer");
     assertEquals(card.groups.length, 1, "and nothing they did is nothing to put under a rule");
     const [figures] = card.groups;
-    assertExists(figures, "the four still stand: zero happened, and is not unknown");
+    assertExists(figures, "the one asked for still stands: zero happened, and is not unknown");
     assertEquals(
         readGroup(figures),
-        [
-            "**Zadane** 0",
-            "Otrzymane 0",
-            "Leczenie dane 0",
-            "Leczenie otrzymane 0",
-        ],
-        "with no part under any of them, because there is no part of nothing",
+        [`[${CARD_WORDS.wholeFight}]`, "**Zadane** 0"],
+        "and no part under it, because there is no part of nothing",
+    );
+    // The sample that must move: the same combatant on another screen answers that screen.
+    assertEquals(
+        readGroup(at("healthRestored").groups[0] ?? { lines: [] }),
+        [`[${CARD_WORDS.wholeFight}]`, "**Leczenie otrzymane** 0"],
+        "the figure standing at nought is the screen's own, and never a fixed one of the four",
     );
 });
 
@@ -367,8 +394,10 @@ Deno.test("a part of a figure is drawn from the first point of it, and never bel
                 translate: null,
             }).groups[0] ?? { lines: [] },
         );
-    assertEquals(at(0)[1], "Otrzymane 0", "nothing named nobody is nothing to say");
-    assertEquals(at(1)[1], `  ${PANEL_WORDS.withoutTarget} 1`, "and one point of it is said");
+    const named = (figure: number) =>
+        at(figure).filter((line) => line.includes(PANEL_WORDS.withoutTarget));
+    assertEquals(named(0), [], "nothing named nobody is nothing to say");
+    assertEquals(named(1), [`  ${PANEL_WORDS.withoutTarget} 1`], "and one point of it is said");
 });
 
 /**
@@ -468,18 +497,32 @@ Deno.test("both runs stand on every screen, and the screen moves only the bold f
     // just as well when a run has been dropped from all of them.
     assertEquals(
         first.flat().filter((line) => line.startsWith("[")),
-        [`[${CARD_WORDS.striking}]`, `[${CARD_WORDS.destroyed}]`, `[${CARD_WORDS.struck}]`],
+        [
+            `[${CARD_WORDS.wholeFight}]`,
+            `[${CARD_WORDS.striking}]`,
+            `[${CARD_WORDS.destroyed}]`,
+            `[${CARD_WORDS.struck}]`,
+        ],
         "somebody who struck and was struck carries both runs, whichever screen they are read on",
     );
-    const withoutBold = (groups: string[][]) =>
-        groups.map((group) => group.map((line) => line.replaceAll("*", "")));
+    // **Everything below the first block is the same card on all four.** That is what **ADR 0032**
+    // holds and this change does not touch it: the runs still do not turn on the screen. What the
+    // screen now decides, beside the bold, is which figure of nought is still worth a line — so
+    // the first block is compared on its own, below.
     for (const [at, groups] of rest.entries()) {
         assertEquals(
-            withoutBold(groups),
-            withoutBold(first),
-            `${SCREEN_ORDER[at + 1]} says what the first screen says, bar which figure is bold`,
+            groups.slice(1),
+            first.slice(1),
+            `${SCREEN_ORDER[at + 1]} says what the first screen says below the fight's own figures`,
         );
     }
+    const noughtsOf = (metric: PanelMetric) =>
+        (readScreen(metric)[0] ?? []).filter((line) => line.endsWith(" 0"));
+    assertEquals(
+        SCREEN_ORDER.map(noughtsOf),
+        [[], [], ["**Leczenie dane** 0"], []],
+        "and the one figure of nought they have stands on its own screen and on no other",
+    );
     const bold = SCREEN_ORDER.map((metric) =>
         readScreen(metric)[0]?.filter((line) => line.startsWith("**"))
     );
@@ -512,20 +555,29 @@ Deno.test("a run that came to nothing is not drawn, and neither is its heading",
             isRowNarrower: false,
             translate: null,
         }).groups.flatMap(readGroup).filter((line) => line.startsWith("["));
-    assertEquals(readHeadings(NOBODY), [], "somebody the fight never touched has neither run");
+    assertEquals(
+        readHeadings(NOBODY),
+        [`[${CARD_WORDS.wholeFight}]`],
+        "somebody the fight never touched has neither run, and only the block that answers them",
+    );
     assertEquals(
         readHeadings({ ...NOBODY, blowsStruck: 4, damageDealtBlowLargest: 9 }),
-        [`[${CARD_WORDS.striking}]`],
+        [`[${CARD_WORDS.wholeFight}]`, `[${CARD_WORDS.striking}]`],
         "somebody who only ever struck has the one heading",
     );
     assertEquals(
         readHeadings({ ...NOBODY, damageTakenBlowLargest: 9 }),
-        [`[${CARD_WORDS.struck}]`],
+        [`[${CARD_WORDS.wholeFight}]`, `[${CARD_WORDS.struck}]`],
         "and somebody who was only ever struck has the other",
     );
     assertEquals(
         readHeadings(HILDUR),
-        [`[${CARD_WORDS.striking}]`, `[${CARD_WORDS.destroyed}]`, `[${CARD_WORDS.struck}]`],
+        [
+            `[${CARD_WORDS.wholeFight}]`,
+            `[${CARD_WORDS.striking}]`,
+            `[${CARD_WORDS.destroyed}]`,
+            `[${CARD_WORDS.struck}]`,
+        ],
         "somebody who did both has both, and what a blow destroyed sits inside the first",
     );
 });
@@ -549,10 +601,8 @@ Deno.test("a card over a narrower row says its figures are the whole fight's", (
     assertEquals(
         notesOf(true),
         [
+            `[${CARD_WORDS.wholeFight}]`,
             "**Zadane** 0",
-            "Otrzymane 0",
-            "Leczenie dane 0",
-            "Leczenie otrzymane 0",
             `${SUSPECT_MARK}${composeUnknownKeyRowSuspicion(1)}`,
             CARD_WORDS.scope,
             CARD_WORDS.gesture,
@@ -590,7 +640,7 @@ Deno.test("a rate is taken of blows, and a rate of no blows is no rate at all", 
     // above the hundred is a number that is wrong looking like one that is right — **E14**.
     assertEquals(
         critical(41, 40),
-        [`${CARD_WORDS.blowsCritical} 41`],
+        [`${CARD_WORDS.blowsCritical} ×41`],
         "and more of them than there were blows states the count and takes no share of it",
     );
 });
@@ -640,7 +690,7 @@ Deno.test("two keys the panel words the same way are one line, not two of one wo
     assertExists(striking, "and the run about striking says what fired");
     assertEquals(
         readGroup(striking),
-        [`[${CARD_WORDS.striking}]`, "ogłuszenie 6", "zamrożenie 2"],
+        [`[${CARD_WORDS.striking}]`, "ogłuszenie ×6", "zamrożenie ×2"],
         "one line per word, biggest first, and the stuns summed rather than listed apart",
     );
 });

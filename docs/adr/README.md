@@ -223,3 +223,5 @@ edited to agree with the new rule.
   **Accepted**
 - [0086](0086-the-crumb-names-the-way-back.md) — The crumb names the way back, and a row still does
   not. **Accepted**
+- [0087](0087-a-card-groups-by-what-a-figure-is-a-sum-over.md) — A card groups by what a figure is a
+  sum over. **Accepted**

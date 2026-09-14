@@ -62,6 +62,17 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   jak wiersze z numerem, więc czytało się je jako kolejne miejsce. Kreskowanie znał już wiersz
   stojący pod listą; teraz noszą je wszystkie wiersze o tym samym znaczeniu, gdziekolwiek stoją.
 
+- **Zmiana** — Karta postaci jest teraz podzielona na części, a każda ma nagłówek mówiący, czego
+  dotyczą stojące pod nim liczby: całej walki, ciosów zadanych albo ciosów przyjętych. Liczba
+  obrażeń przed redukcją przeniosła się pod nagłówek ciosów. Stała wcięta pod sumą z całej walki i
+  bywała od niej mniejsza, bo obejmuje tylko te ciosy, przy których gra taką liczbę podała —
+  wyglądało to na błąd, a było zestawieniem dwóch liczb liczonych z czegoś innego. Zdanie pod
+  liczbami mówi teraz wprost, czego gra nie podaje: ile obrażeń zjadł pancerz i odporność.
+- **Zmiana** — Karta nie pokazuje już liczb, które dla danej postaci są zerem. Zostaje ta, o którą
+  pytasz ekranem, nawet gdy wynosi zero — bo to jest odpowiedź na twoje pytanie.
+- **Zmiana** — Liczniki na karcie, na przykład ile razy zadziałało przebicie, mają teraz przed sobą
+  `×`. Stały w tej samej kolumnie co obrażenia i nic nie mówiło, które są czym.
+
 - **Poprawka** — Głęboka rana zadana bronią pomocniczą trafia teraz na kartę postaci, tak samo jak
   ta z broni głównej i pod tą samą nazwą. Wcześniej cios, który ją zostawił, wyglądał na karcie tak,
   jakby nic przy nim nie zaszło, a panel stawiał przy takiej walce wątpliwość, że czegoś nie

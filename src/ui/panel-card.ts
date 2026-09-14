@@ -18,6 +18,7 @@ import {
     composeDestroyedText,
     composeFigureText,
     composeShareText,
+    composeUsesText,
     getWordsForBlowKey,
     getWordsForCardMetric,
     getWordsForDestroyed,
@@ -48,8 +49,6 @@ export interface CardSubject {
 interface CardFigure {
     metric: PanelMetric;
     figure: number;
-    /** Before reduction, on the two the protocol states a raw half for. Null on the others. */
-    raw: number | null;
     halfNamed: { label: string; figure: number } | null;
 }
 
@@ -68,20 +67,17 @@ function composeCardFigures(detail: RowDetail): CardFigure[] {
         {
             metric: "damageDealtApplied",
             figure: detail.damageDealtApplied,
-            raw: detail.damageDealtRaw,
             halfNamed: { label: PANEL_WORDS.withoutTarget, figure: detail.damageDealtToNobody },
         },
         {
             metric: "damageTakenApplied",
             figure: detail.damageTakenApplied,
-            raw: detail.damageTakenRaw,
             halfNamed: { label: PANEL_WORDS.withoutActor, figure: detail.damageTakenFromNobody },
         },
-        { metric: "healthGiven", figure: detail.healthGiven, raw: null, halfNamed: null },
+        { metric: "healthGiven", figure: detail.healthGiven, halfNamed: null },
         {
             metric: "healthRestored",
             figure: detail.healthRestored,
-            raw: null,
             halfNamed: { label: PANEL_WORDS.withoutActor, figure: detail.healthRestoredByNobody },
         },
     ];
@@ -95,16 +91,28 @@ function composeCardSubLine(label: string, figure: number): TipLine[] {
     return [{ kind: "sub", label, stated: composeFigureText(figure) }];
 }
 
+/**
+ * The figures the whole fight is summed over, under the heading saying so.
+ *
+ * **The screen's own figure stands whatever it is, and the other three only above nought.** A
+ * screen showing somebody at nothing has to say nothing — that is the answer to what was asked —
+ * while the other three at nought are three lines answering nobody. Drawing all four
+ * unconditionally printed 580 figures of nought over `captures/` on 2026-09-14, 0.49 to a card;
+ * this leaves 145, each of them the one a reader pointed at.
+ */
 function composeCardFigureLines(detail: RowDetail, metric: PanelMetric): TipLine[] {
-    const lines: TipLine[] = [];
+    const lines: TipLine[] = [{ kind: "heading", text: CARD_WORDS.wholeFight }];
     for (const one of composeCardFigures(detail)) {
+        if (one.metric !== metric) {
+            if (!Number.isFinite(one.figure)) continue;
+            if (one.figure <= 0) continue;
+        }
         lines.push({
             kind: "stat",
             label: getWordsForCardMetric(one.metric),
             stated: composeFigureText(one.figure),
             isStrong: one.metric === metric,
         });
-        if (one.raw !== null) lines.push(...composeCardSubLine(CARD_WORDS.raw, one.raw));
         if (one.halfNamed !== null) {
             lines.push(...composeCardSubLine(one.halfNamed.label, one.halfNamed.figure));
         }
@@ -169,7 +177,14 @@ function composeCardWordedParts(
     return folded;
 }
 
-/** Everything but the keys the line above it already counted, which would otherwise read twice. */
+/**
+ * Everything but the keys the line above it already counted, which would otherwise read twice.
+ *
+ * **The count wears the sign, because it shares a column with damage.** A proc that fired thirteen
+ * times printed `13` directly over `Największy cios 2 865`, in one right-aligned column of
+ * `tabular-nums`, with nothing saying which of the two is a quantity of damage. `×13` is the
+ * spelling `composeUsesText` already gives a count of announcements (`src/ui/panel-words.ts`).
+ */
 function composeCardProcLines(
     parts: readonly CutPart[],
     without: readonly string[],
@@ -179,9 +194,30 @@ function composeCardProcLines(
     return composeCardWordedParts(kept, translate).map((one) => ({
         kind: "stat",
         label: one.label,
-        stated: composeFigureText(one.figure),
+        stated: composeUsesText(one.figure),
         isStrong: false,
     }));
+}
+
+/**
+ * What the protocol stated before reduction, at whichever end the run it joins is about.
+ *
+ * **It stands in the run and never under the figure of the whole fight.** Drawn there it read as
+ * a part of the figure over it, and it is a sum over a narrower set of messages: a blow states a
+ * figure before reduction, while damage stated against a name arrives already reduced and health
+ * moving outside a blow states no such figure at all (`src/core/fight-statistics.ts`). Over
+ * `captures/` on 2026-09-14 it stood **below** the figure it hung under on 296 of 1,184 cards,
+ * and on 172 of them below one figure and above the other on the same card. **ADR 0087.**
+ */
+function composeCardRawLine(raw: number): TipLine[] {
+    if (!Number.isFinite(raw)) return [];
+    if (raw <= 0) return [];
+    return [{
+        kind: "stat",
+        label: CARD_WORDS.raw,
+        stated: composeFigureText(raw),
+        isStrong: false,
+    }];
 }
 
 /** Null where nothing was struck, because a rate of nothing is not zero — it is no rate. */
@@ -190,7 +226,7 @@ function composeCardCriticalText(detail: RowDetail): string | null {
     if (detail.blowsStruck <= 0) return null;
     // More criticals than blows is a share above the hundred, which is a number that is wrong
     // looking like one that is right. The count is stated on its own instead (**E14**).
-    if (detail.blowsCritical > detail.blowsStruck) return composeFigureText(detail.blowsCritical);
+    if (detail.blowsCritical > detail.blowsStruck) return composeUsesText(detail.blowsCritical);
     const share = composeShareText(detail.blowsCritical / detail.blowsStruck);
     return `${composeFigureText(detail.blowsCritical)} (${share})`;
 }
@@ -201,7 +237,7 @@ function composeCardCriticalText(detail: RowDetail): string | null {
  * above states: nothing on this card is divided by a turn (`PRODUCT.md`, **ADR 0048**).
  */
 function composeCardStrikingLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
-    const lines: TipLine[] = [];
+    const lines: TipLine[] = [...composeCardRawLine(detail.damageDealtRaw)];
     const critical = composeCardCriticalText(detail);
     if (critical !== null) {
         lines.push({
@@ -215,7 +251,7 @@ function composeCardStrikingLines(detail: RowDetail, translate: TranslateLabel |
             ...composeCardWordedParts(offhand, translate).map((one): TipLine => ({
                 kind: "sub",
                 label: one.label,
-                stated: composeFigureText(one.figure),
+                stated: composeUsesText(one.figure),
             })),
         );
     }
@@ -255,7 +291,7 @@ function composeCardDestroyedLines(parts: readonly CutPart[]): TipLine[] {
  * on their side of somebody else's blow, then the hardest one that got through.
  */
 function composeCardStruckLines(detail: RowDetail, translate: TranslateLabel | null): TipLine[] {
-    const lines: TipLine[] = [];
+    const lines: TipLine[] = [...composeCardRawLine(detail.damageTakenRaw)];
     if (detail.damagePrevented > 0) {
         lines.push({
             kind: "stat",

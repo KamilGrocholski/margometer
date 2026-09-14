@@ -1625,8 +1625,13 @@ Deno.test("a person under an opened skill opens a card promising no gesture", ()
     const card = readTip(host);
     assertEquals(
         SCREEN_ORDER.map(getWordsForCardMetric).filter((words) => !card.lines.includes(words)),
-        [],
-        "the card states all four of their figures here too",
+        [getWordsForCardMetric("damageDealtApplied")],
+        "the card states every figure they have here too, and the one they have not is dropped",
+    );
+    assertArrayIncludes(
+        card.lines,
+        [getWordsForCardMetric("healthGiven")],
+        "the screen's own among them, which is the figure this row was pointed at for",
     );
     assertArrayIncludes(
         card.notes,
