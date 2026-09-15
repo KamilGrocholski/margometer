@@ -153,12 +153,12 @@ legibility.
 | Token            | Value                                                           |
 | ---------------- | --------------------------------------------------------------- |
 | `spaceHalf`      | `2px`                                                           |
-| `spaceSmall`     | the base step                                                   |
+| `spaceSmall`     | `4px` — the base step                                           |
 | `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region    |
 | `spaceWide`      | `8px`, which is also the inset the panel sits at                |
 | `rowHeight`      | `18px`                                                          |
 | `maxHeightShare` | `66vh`                                                          |
-| `tipWidth`       | a maximum and not a width — a card is as wide as what it says   |
+| `tipWidth`       | `250px` — a maximum, and a card is as wide as what it says      |
 | `lineHeight`     | `15px` — whole pixels, and what a counted card is multiplied by |
 | `panelWidth`     | `260px` — narrow on purpose: the panel is a guest               |
 | `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against |

@@ -257,6 +257,7 @@ tests/
     protocol-keys.test.ts  The register help claims, re-counted against the frozen table.
     readmes.test.ts        The two READMEs to one skeleton, and both to one set of shots.
     cited-paths.test.ts    Every rooted path a document names, against the tree it names into.
+    design-tokens.test.ts  `DESIGN.md`'s token tables, against the sheet that spends them.
     constructs.test.ts     The construct register, against the files it says own each reading.
     game-vocabulary.test.ts  The two pages standing a game up, held to one spelling of it.
     libraries.test.ts      `libs/` reaching no layer, and naming nothing of this project.
