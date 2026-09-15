@@ -66,6 +66,22 @@ export async function readCentreOf(page: Page, selector: string, at = 0): Promis
     };
 }
 
+/**
+ * The edges rather than the middle. A card that overlaps the panel by less than half its own
+ * width has a centre on the correct side of it, so a claim about where a card stands has to be
+ * made about the edge that would do the covering — which is what a centre let past on 2026-09-15.
+ */
+export async function readEdgesOf(
+    page: Page,
+    selector: string,
+    at = 0,
+): Promise<{ left: number; right: number }> {
+    const box = await page.locator(selector).nth(at).boundingBox();
+    expect(box, `${selector} #${at} is somewhere on the page`).not.toBeNull();
+    const found = box ?? { x: 0, y: 0, width: 0, height: 0 };
+    return { left: Math.round(found.x), right: Math.round(found.x + found.width) };
+}
+
 export async function setDragged(page: Page, from: PagePoint, by: PagePoint): Promise<void> {
     await page.mouse.move(from.x, from.y);
     await page.mouse.down();

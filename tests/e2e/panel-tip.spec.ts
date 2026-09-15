@@ -8,7 +8,7 @@
  */
 
 import { expect, HOST_SELECTOR, test } from "@/tests/e2e/panel-fixture.ts";
-import { readCentreOf, readPointsAlongBar, setDragged } from "@/tests/e2e/panel-probe.ts";
+import { readEdgesOf, readPointsAlongBar, setDragged } from "@/tests/e2e/panel-probe.ts";
 
 /** The card, and the mark it wears while nobody is being told anything. */
 const CARD = ".MargoMeter-tip";
@@ -235,9 +235,10 @@ async function readCardHeight(page: import("@playwright/test").Page) {
 test("the card stands on whichever side of the panel it fits", async ({ panel }) => {
     const row = panel.at(".list .row").first();
     await row.hover();
-    const before = await readCentreOf(panel.page, CARD_OPEN);
+    const before = await readEdgesOf(panel.page, CARD_OPEN);
     const standing = await panel.place();
-    expect(before.x, "with room to its left, the card stands there").toBeLessThan(standing.left);
+    expect(before.right, "with room to its left, the card ends before the panel begins")
+        .toBeLessThanOrEqual(standing.left);
 
     const bar = await readPointsAlongBar(panel.page, [20]);
     await setDragged(panel.page, { x: bar[0]?.x ?? 0, y: bar[0]?.y ?? 0 }, {
@@ -246,9 +247,9 @@ test("the card stands on whichever side of the panel it fits", async ({ panel })
     });
     await panel.at(".list .row").first().hover();
 
-    const after = await readCentreOf(panel.page, CARD_OPEN);
+    const after = await readEdgesOf(panel.page, CARD_OPEN);
     const moved = await panel.place();
-    expect(after.x, "pushed against the left edge, it goes to the other side")
+    expect(after.left, "pushed against the left edge, it goes to the other side")
         .toBeGreaterThan(moved.left);
 });
 

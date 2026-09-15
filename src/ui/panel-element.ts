@@ -9,7 +9,7 @@ import {
     type StandingReading,
     type StandingRow,
 } from "@/src/ui/panel-standing.ts";
-import { composeDecimalText, composeIntegerText } from "@/libs/number-text.ts";
+import { composeDecimalText, composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { setGuardedListener } from "@/src/ui/panel-listener.ts";
 import type {
     DrillReading,
@@ -62,6 +62,7 @@ import {
     getColourForProfession,
     getTipRoom,
     SIGNAL,
+    TIP,
 } from "@/src/ui/panel-look.ts";
 import type { HandlePanelFailure } from "@/src/ui/panel-defect.ts";
 import {
@@ -319,7 +320,13 @@ const WAITING_LIST_NAME = "waiting";
  * carries in with the seven a bare movement does.
  */
 const MAXIMUM_TIP_CUT_PARTS = 6;
-const TIP_WIDTH = 250;
+/**
+ * The card's width as a number. `TIP.width` is where that width is chosen, and this reads it
+ * rather than restating it: the two spellings drifted on 2026-09-15 and the failure was silent —
+ * the card drew at one width and was placed as if it were the other, standing 43px over the rows
+ * it explains. A width nothing could be read from leaves the card where the sheet puts it.
+ */
+const TIP_WIDTH = getIntegerFromText(TIP.width.slice(0, -2)) ?? 0;
 /** A bar is written to one place: a tenth of a 260-pixel row is a quarter of a pixel. */
 const FILL_PLACES = 1;
 const AS_PERCENT = 100;
