@@ -59,6 +59,16 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   na półce tak samo jak dzisiejsza. Trwająca walka dalej stoi jako „teraz". Na nazwę miejsca zostaje
   przez to mniej miejsca i dłuższa bywa ucięta — pełną widać w okienku wiersza.
 
+- **Zmiana** — Panel jest większy. Pismo urosło z 11 na 13 pikseli, wiersz z 18 na 21, a sam panel z
+  260 na 306 pikseli. Do tej pory panel miał dokładnie tę wielkość co okna gry i zlewał się z nimi;
+  teraz czyta się go jednym spojrzeniem. Karta rośnie razem z nim. Obiecane jedenaście wierszy nadal
+  wchodzi na każdym oknie wyższym niż 640 pikseli.
+
+- **Zmiana** — Nowe kolory. Tło panelu jest ciemniejsze i chłodniejsze, a wszystkie barwy —
+  profesji, stron i znaków — rozsunięte tak, żeby żadne dwie nie wyglądały tak samo. Wcześniej
+  ostrzeżenie o niepełnej liczbie miało co do bitu ten sam kolor co Tropiciel, a znak awarii panelu
+  nie odcinał się dość mocno od paska pod nim.
+
 - **Zmiana** — Karta postaci nie pokazuje już największego ciosu, ani zadanego, ani przyjętego. Ta
   liczba stała pod nagłówkiem o ciosach, a podnosiły ją też obrażenia, których gra nigdy ciosem nie
   nazwała — bywała więc większa od najmocniejszego ciosu, jaki w walce padł. Zostaje w pliku
@@ -82,10 +92,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   bywała od niej mniejsza, bo obejmuje tylko te ciosy, przy których gra taką liczbę podała —
   wyglądało to na błąd, a było zestawieniem dwóch liczb liczonych z czegoś innego. Zdanie pod
   liczbami mówi teraz wprost, czego gra nie podaje: ile obrażeń zjadł pancerz i odporność.
+
 - **Zmiana** — Karta nie pokazuje już liczb, które dla danej postaci są zerem. Zostaje ta, o którą
   pytasz ekranem, nawet gdy wynosi zero — bo to jest odpowiedź na twoje pytanie.
+
 - **Zmiana** — Liczniki na karcie, na przykład ile razy zadziałało przebicie, mają teraz przed sobą
   `×`. Stały w tej samej kolumnie co obrażenia i nic nie mówiło, które są czym.
+
+- **Poprawka** — Karta nie zasłania już wierszy, nad którymi stoi.
 
 - **Poprawka** — Głęboka rana zadana bronią pomocniczą trafia teraz na kartę postaci, tak samo jak
   ta z broni głównej i pod tą samą nazwą. Wcześniej cios, który ją zostawił, wyglądał na karcie tak,
