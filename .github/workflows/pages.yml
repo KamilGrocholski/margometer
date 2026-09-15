@@ -48,10 +48,11 @@ jobs:
             name: github-pages
             url: ${{ steps.deploy.outputs.page_url }}
         steps:
-            # The whole history, because the gate reads `git ls-files` and a shallow checkout of one
-            # commit still answers it — but the screenshot guard and any later git-reading guard do not
-            # all promise that, and a full checkout of this repository costs seconds.
+            # The whole history and the tags, for the reason `check.yml` states beside the same
+            # line: this job runs that same gate, and the gate reads this repository's own past.
             - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
             # Pinned, and not to a moving tag: "latest" means the published page changes one day with
             # no change in the code.

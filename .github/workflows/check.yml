@@ -19,9 +19,15 @@ jobs:
     check:
         runs-on: ubuntu-latest
         steps:
-            # The whole history, because part of the gate reads `git ls-files` and the screenshot
-            # guard asks git about the tree. A full checkout of this repository costs seconds.
+            # ⚠️ **The whole history, and the tags with it.** Since `c1be034` the gate reads this
+            # repository's own past: `tests/repository/cited-paths.test.ts` asks
+            # `git cat-file -e v0.10.1:<path>` for every reference a document makes into v1.
+            # Measured 2026-09-15 on a `--depth 1` clone of this tree: no tags, ten references
+            # dangling, that test alone red — and the same clone fetched `--unshallow --tags`
+            # green. `0` takes every branch and every tag, and costs seconds here.
             - uses: actions/checkout@v4
+              with:
+                  fetch-depth: 0
 
             # Pinned, and to the same version `pages.yml` and `release.yml` pin: "latest" means the
             # gate turns red one day with no change in the code, and then nobody knows whether it
