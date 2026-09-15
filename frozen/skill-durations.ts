@@ -5,7 +5,7 @@
 
 export const FROZEN_SKILL_DURATIONS = {
     /** When the page these were read from was fetched, not when a person read it. */
-    fetchedAt: "2026-09-09T11:42:36.010Z",
+    fetchedAt: "2026-09-15T13:20:17.965Z",
     skills: [
         {
             id: 7,
@@ -1673,7 +1673,7 @@ export const FROZEN_SKILL_DURATIONS = {
         {
             id: 284,
             effects: [
-                { key: "dmg-target_fire", turns: [] },
+                { key: "test", turns: [5, 5, 5] },
             ],
         },
         {

@@ -5,7 +5,7 @@
 export const FROZEN_HELP_PHRASES = {
     article: "372",
     /** When the dump these counts were taken from was fetched, not when it was read. */
-    fetchedAt: "2026-09-09T11:42:35.616Z",
+    fetchedAt: "2026-09-15T13:20:17.588Z",
     counts: {
         "( fire )": 2,
         "( heal )": 3,
