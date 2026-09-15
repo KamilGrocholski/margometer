@@ -6,7 +6,7 @@
  * because the arithmetic that would have needed measuring is in the stylesheet and not here.
  */
 
-import { assert, assertEquals, assertExists } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/assert";
 import {
     composeTipElement,
     composeTipHandle,
@@ -197,12 +197,44 @@ Deno.test("where the detail sits and how tall it is are written together, in who
     assert(tip.attributes.get("style")?.startsWith("--MargoMeter-tip-top:0px;"), "and never above");
     // A panel that has never been dragged keeps the side the sheet states, so nothing is written
     // across: the one written here is the panel saying it has moved.
-    setTipPlace(tip, 100, 42.6, size);
+    setTipPlace(tip, 100, { edge: "left", at: 42.6 }, size);
     assertEquals(
         tip.attributes.get("style"),
-        "--MargoMeter-tip-top:100px;--MargoMeter-tip-height:136px;--MargoMeter-tip-left:43px",
+        "--MargoMeter-tip-top:100px;--MargoMeter-tip-height:136px;" +
+            "--MargoMeter-tip-left:43px;--MargoMeter-tip-right:auto",
         "and a panel that has moved says which side the detail opens on",
     );
+});
+
+/**
+ * ⚠️ **Both edges every time, and one of them released.** A card is drawn at `max-content` since
+ * **ADR 0091**, so the sheet states a fallback for the edge nobody pinned — and an offset written
+ * without releasing the other leaves the card held by both, which is a width nobody chose. The
+ * failure is silent: the card is simply wider or narrower than what it says.
+ */
+Deno.test("a card pinned by one edge releases the other, whichever way round it opens", () => {
+    const document = composeFakeDocument();
+    const tip = composeTipElement(document, HILDUR) as FakeElement;
+    const size = getTipSize(HILDUR);
+
+    setTipPlace(tip, 0, { edge: "right", at: 272 }, size);
+    assertStringIncludes(
+        tip.attributes.get("style") ?? "",
+        "--MargoMeter-tip-left:auto;--MargoMeter-tip-right:272px",
+        "a card standing left of its window is measured from the screen's right edge",
+    );
+
+    setTipPlace(tip, 0, { edge: "left", at: 330 }, size);
+    assertStringIncludes(
+        tip.attributes.get("style") ?? "",
+        "--MargoMeter-tip-left:330px;--MargoMeter-tip-right:auto",
+        "and one flipped to the other side is measured from the left, the right let go",
+    );
+
+    setTipPlace(tip, 0, null, size);
+    const sheets = tip.attributes.get("style") ?? "";
+    assertEquals(sheets.includes("tip-left"), false, "a panel nobody moved writes no edge at all");
+    assertEquals(sheets.includes("tip-right"), false, "and the sheet's own corner stands");
 });
 
 /**
@@ -434,7 +466,8 @@ Deno.test("the card asks where it may stand with the key it is open for", () => 
         (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
         (key) => {
             asked.push(key);
-            return key === "standing:12" ? 255 : 507;
+            const at = key === "standing:12" ? 255 : 507;
+            return { edge: "left", at };
         },
     );
     const first = handle.element as FakeElement;

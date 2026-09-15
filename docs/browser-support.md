@@ -134,10 +134,10 @@ Properties: `align-items` · `align-self` · `all` · `background` · `border` �
 `display` · `flex` · `flex-direction` · `flex-wrap` · `font` · `font-size` · `font-style` ·
 `font-variant-numeric` · `font-weight` · `gap` · `height` · `justify-content` · `left` ·
 `letter-spacing` · `margin` · `margin-bottom` · `margin-left` · `margin-right` · `margin-top` ·
-`max-height` · `min-height` · `min-width` · `opacity` · `overflow` · `overflow-x` · `overflow-y` ·
-`padding` · `padding-bottom` · `padding-left` · `padding-right` · `padding-top` · `pointer-events` ·
-`position` · `right` · `text-align` · `text-overflow` · `text-transform` · `top` · `touch-action` ·
-`white-space` · `width` · `z-index`
+`max-height` · `max-width` · `min-height` · `min-width` · `opacity` · `overflow` · `overflow-x` ·
+`overflow-y` · `padding` · `padding-bottom` · `padding-left` · `padding-right` · `padding-top` ·
+`pointer-events` · `position` · `right` · `text-align` · `text-overflow` · `text-transform` · `top`
+· `touch-action` · `white-space` · `width` · `z-index`
 
 Pairs: `-webkit-user-select: none` · `align-items: baseline` · `align-items: center` ·
 `align-self: center` · `align-self: stretch` · `all: initial` · `background: currentColor` ·
@@ -151,7 +151,7 @@ Pairs: `-webkit-user-select: none` · `align-items: baseline` · `align-items: c
 `pointer-events: none` · `position: absolute` · `position: fixed` · `position: relative` ·
 `position: sticky` · `scrollbar-width: none` · `text-align: center` · `text-align: right` ·
 `text-overflow: ellipsis` · `text-transform: uppercase` · `touch-action: none` · `user-select: none`
-· `white-space: nowrap`
+· `white-space: nowrap` · `width: max-content`
 
 Functions: `calc` · `clamp` · `min` · `repeating-linear-gradient` · `rgb` · `var`
 

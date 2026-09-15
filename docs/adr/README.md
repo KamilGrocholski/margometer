@@ -231,3 +231,5 @@ edited to agree with the new rule.
   and the row whose figure is the narrower one. **Accepted**
 - [0090](0090-a-card-opens-beside-the-window-whose-row-it-names.md) — A card opens beside the window
   whose row it names. **Accepted**
+- [0091](0091-a-card-is-as-wide-as-what-it-says.md) — A card is as wide as what it says.
+  **Accepted**

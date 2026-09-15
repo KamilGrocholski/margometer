@@ -207,28 +207,52 @@ function composeStandingPosition(viewport: PanelViewport | null): PanelPosition 
 }
 
 /**
+ * Which edge of the screen a card is measured from, and how far. **Never a left offset for a card
+ * standing left of its window**: the card is as wide as what it says (**ADR 0091**), so a left
+ * offset worked out from the bound would leave a card of two words floating the difference away
+ * from the window it belongs to. The edge facing the window is the one that is pinned.
+ */
+export interface TipAcross {
+    edge: "left" | "right";
+    at: number;
+}
+
+/**
  * Where a card opens: beside **the window whose row it names**, and that window alone. The other
  * one under this root is not consulted — a card that stepped past it as well left the window it
  * came from and stood where the reader was not pointing (**ADR 0090**). `DESIGN.md` owns the rule.
+ *
+ * ⚠️ **The side is decided by the widest a card may be, never by the width of this one.** A card
+ * is drawn at `max-content` and a short one would find room on the left where the card before it
+ * found none — so the side a card opens on would change with what it happens to say, and a reader
+ * crossing two rows would watch it jump the window. The bound is what every card was placed by
+ * before **ADR 0091**, so this half of the answer does not move.
  */
-export function composeTipLeft(
+export function composeTipAcross(
     anchor: TipWindowPlace | null,
     viewport: PanelViewport | null,
-    tipWidth: number,
-): number | null {
-    if (!Number.isFinite(tipWidth)) return null;
-    if (tipWidth <= 0) return null;
+    tipWidthMaximum: number,
+): TipAcross | null {
+    if (!Number.isFinite(tipWidthMaximum)) return null;
+    if (tipWidthMaximum <= 0) return null;
     if (anchor === null) return null;
     if (viewport === null) return null;
     // This panel's own token, so a reading that fails is a token that changed shape rather than
     // anything a page did — zero would place the window against the wrong edge.
     const gap = getIntegerFromText(SPACE.small.slice(0, -2));
     if (gap === null) return null;
-    const beside = anchor.position.left - tipWidth - gap;
-    if (beside >= 0) return beside;
+    if (anchor.position.left - tipWidthMaximum - gap >= 0) {
+        return { edge: "right", at: viewport.width - anchor.position.left + gap };
+    }
     const right = composeWindowRight(anchor);
     if (right === null) return null;
-    return Math.min(right + gap, Math.max(0, viewport.width - tipWidth));
+    // The clamp is the screen and it is spent on the bound, because what the card draws at is not
+    // known here. A card narrower than the bound near the right edge therefore stands a little
+    // further left than it had to — on the screen, which is what this line is for.
+    return {
+        edge: "left",
+        at: Math.min(right + gap, Math.max(0, viewport.width - tipWidthMaximum)),
+    };
 }
 
 /** What the panel keeps of a drag once the listeners are on. */

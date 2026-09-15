@@ -7,6 +7,7 @@
  */
 
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
+import type { TipAcross } from "@/src/ui/panel-drag.ts";
 import { CLASS, getTipHeight } from "@/src/ui/panel-look.ts";
 import { CARD_WORDS, type Caveat, CAVEAT_MARK } from "@/src/ui/panel-words.ts";
 
@@ -112,6 +113,13 @@ const MAXIMUM_TIP_LINES = 64;
 /** A custom property, which is the one kind `src/ui/panel-look.ts`'s reset leaves standing. */
 const TOP_VARIABLE = "--MargoMeter-tip-top";
 const LEFT_VARIABLE = "--MargoMeter-tip-left";
+const RIGHT_VARIABLE = "--MargoMeter-tip-right";
+/**
+ * What the edge a card is **not** measured from is released to. Both are always written together:
+ * leaving one off would let the sheet's own fallback stand beside the offset just written, and
+ * the card would be pinned by both edges at once — which is a width nobody chose (**ADR 0091**).
+ */
+const EDGE_RELEASED = "auto";
 const HEIGHT_VARIABLE = "--MargoMeter-tip-height";
 const STYLE_ATTRIBUTE = "style";
 /** Past every card there is: four figures, the counters, both runs and the notes come to five. */
@@ -283,19 +291,33 @@ function getIsTipHidden(tip: PanelElement): boolean {
 export function setTipPlace(
     tip: PanelElement,
     clientY: number,
-    left: number | null,
+    across: TipAcross | null,
     size: TipSize,
 ): void {
     // A pointer that states no position puts the card at the top rather than nowhere: `Math.round`
     // of a figure that is not one is not one either, and a card placed at it is off the screen.
     const stated = Number.isFinite(clientY) ? clientY : 0;
     const top = Math.max(0, Math.round(stated));
-    const across = left === null ? "" : `;${LEFT_VARIABLE}:${Math.max(0, Math.round(left))}px`;
+    const sideways = composeTipAcrossStyle(across);
     // The height rather than the counts it came from: the trim and the sheet's clamp spend one
     // number. A height nothing could be read for leaves the property off (**E14**).
     const height = getTipHeight(size);
     const tall = height === null ? "" : `;${HEIGHT_VARIABLE}:${height}px`;
-    tip.setAttribute(STYLE_ATTRIBUTE, `${TOP_VARIABLE}:${top}px${tall}${across}`);
+    tip.setAttribute(STYLE_ATTRIBUTE, `${TOP_VARIABLE}:${top}px${tall}${sideways}`);
+}
+
+/**
+ * The pair of properties a placement across comes to, or nothing at all — a panel nobody has
+ * moved keeps the corner the sheet states, and writing an offset for it would say the reader had
+ * moved something.
+ */
+function composeTipAcrossStyle(across: TipAcross | null): string {
+    if (across === null) return "";
+    const at = `${Math.max(0, Math.round(across.at))}px`;
+    if (across.edge === "left") {
+        return `;${LEFT_VARIABLE}:${at};${RIGHT_VARIABLE}:${EDGE_RELEASED}`;
+    }
+    return `;${LEFT_VARIABLE}:${EDGE_RELEASED};${RIGHT_VARIABLE}:${at}`;
 }
 
 /** A run of nothing but notes, which is what a card puts last and what a trim never takes. */
@@ -381,7 +403,7 @@ export function composeTipHandle(
     register: TipLookup,
     redraw: TipRedraw,
     /** Asked with the key the card is open for: the two windows do not open on the same side. */
-    getLeft: (key: string) => number | null = () => null,
+    getAcross: (key: string) => TipAcross | null = () => null,
     /** How much of the window a card has to stand in. Null is a page that states no height. */
     getRoom: () => number | null = () => null,
 ): TipHandle {
@@ -395,7 +417,7 @@ export function composeTipHandle(
         const shown = composeTipWithin(reading, getRoom());
         openSize = getTipSize(shown);
         standing = redraw(standing, () => composeTipElement(document, shown));
-        setTipPlace(standing, openTop, getLeft(key), openSize);
+        setTipPlace(standing, openTop, getAcross(key), openSize);
     };
     const hide = (): void => {
         if (openKey === null) return;
@@ -416,7 +438,7 @@ export function composeTipHandle(
                     // and a move inside one pixel would rewrite the same declaration.
                     if (top === openTop) return;
                     openTop = top;
-                    setTipPlace(standing, openTop, getLeft(key), openSize);
+                    setTipPlace(standing, openTop, getAcross(key), openSize);
                     return;
                 }
             }

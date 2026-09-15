@@ -206,7 +206,7 @@ Deno.test("the window measured in holds the card beside the panel, not over it",
     const room = MEASURING_WIDTH - getSheetLength(PLACE.width) - getSheetLength(PLACE.inset) * 2 -
         getSheetLength(SPACE.small);
     assert(
-        room >= getSheetLength(TIP.width),
+        room >= getSheetLength(TIP.widthMaximum),
         "a window with no room beside the panel flips the card onto the figures it explains",
     );
 });

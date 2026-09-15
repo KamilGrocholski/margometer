@@ -75,7 +75,7 @@ const BROWSER_FLOOR_WIDTH = 500;
  * over the floor is what keeps the card's own placement, which is decided once when it opens,
  * from being decided in a window the picture is not taken in.
  */
-export const MEASURING_WIDTH = PANEL_INSET + getSheetPixels(TIP.width) +
+export const MEASURING_WIDTH = PANEL_INSET + getSheetPixels(TIP.widthMaximum) +
     getSheetPixels(SPACE.small) +
     getSheetPixels(PLACE.width) + PANEL_INSET;
 /** More than any frame this repository photographs, so a measurement past it is a finding. */

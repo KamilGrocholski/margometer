@@ -109,7 +109,7 @@ import {
     TURN_MARK,
 } from "@/src/ui/panel-words.ts";
 import {
-    composeTipLeft,
+    composeTipAcross,
     PANEL_WINDOW,
     type PanelDragHandle,
     type PanelPlacement,
@@ -118,6 +118,7 @@ import {
     setGripMark,
     setPanelDrag,
     STANDING_WINDOW,
+    type TipAcross,
     type TipWindowPlace,
 } from "@/src/ui/panel-drag.ts";
 import {
@@ -323,12 +324,14 @@ const WAITING_LIST_NAME = "waiting";
  */
 const MAXIMUM_TIP_CUT_PARTS = 6;
 /**
- * The card's width as a number. `TIP.width` is where that width is chosen, and this reads it
- * rather than restating it: the two spellings drifted on 2026-09-15 and the failure was silent —
- * the card drew at one width and was placed as if it were the other, standing 43px over the rows
- * it explains. A width nothing could be read from leaves the card where the sheet puts it.
+ * The widest a card may stand, as a number. `TIP.widthMaximum` is where that bound is chosen, and
+ * this reads it rather than restating it: the two spellings drifted on 2026-09-15 and the failure
+ * was silent — the card drew at one width and was placed as if it were the other, standing 43px
+ * over the rows it explains. What the card is actually drawn at is the sheet's to decide now
+ * (**ADR 0091**); this is what the **side** it opens on is decided by, and nothing else. A bound
+ * nothing could be read from leaves the card where the sheet puts it.
  */
-const TIP_WIDTH = getIntegerFromText(TIP.width.slice(0, -2)) ?? 0;
+const MAXIMUM_TIP_WIDTH = getIntegerFromText(TIP.widthMaximum.slice(0, -2)) ?? 0;
 /** A bar is written to one place: a tenth of a 260-pixel row is a quarter of a pixel. */
 const FILL_PLACES = 1;
 const AS_PERCENT = 100;
@@ -2389,7 +2392,7 @@ interface TipWindows {
 function composeTipPlace(
     placement: PanelPlacement | null,
     windows: TipWindows,
-): { getLeft: (key: string) => number | null; getRoom: () => number | null } {
+): { getAcross: (key: string) => TipAcross | null; getRoom: () => number | null } {
     const composePlace = (
         position: PanelPosition | null,
         windowName: PanelWindowName,
@@ -2397,16 +2400,17 @@ function composeTipPlace(
         if (position === null) return null;
         return { position, windowName };
     };
-    const composeLeft = (key: string): number | null => {
+    const composeAcross = (key: string): TipAcross | null => {
         const viewport = placement?.getViewport() ?? null;
         if (key.startsWith(STANDING_TIP_PREFIX)) {
             const standing = composePlace(windows.getStanding(), STANDING_WINDOW);
-            return composeTipLeft(standing, viewport, TIP_WIDTH);
+            return composeTipAcross(standing, viewport, MAXIMUM_TIP_WIDTH);
         }
-        return composeTipLeft(composePlace(windows.getPanel(), PANEL_WINDOW), viewport, TIP_WIDTH);
+        const panel = composePlace(windows.getPanel(), PANEL_WINDOW);
+        return composeTipAcross(panel, viewport, MAXIMUM_TIP_WIDTH);
     };
     return {
-        getLeft: composeLeft,
+        getAcross: composeAcross,
         getRoom: () => getTipRoom(placement?.getViewport()?.height ?? null),
     };
 }
@@ -2506,7 +2510,7 @@ function composeTipBeside(
         document,
         register,
         (standing, compose) => composeTipInPlace(standing, compose, handleFailure),
-        place.getLeft,
+        place.getAcross,
         place.getRoom,
     );
 }

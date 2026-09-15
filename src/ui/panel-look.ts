@@ -168,8 +168,16 @@ export const LAYER = {
     tip: "3",
 } as const;
 
+/**
+ * How wide a card may stand — **a maximum and not a width**. The card is drawn at `max-content`
+ * and this clamps it, so one saying two words is as wide as two words. Measured in Chrome 152 on
+ * 2026-09-15: the second window's card, a skill name over one instruction, went from 296px to
+ * 117px, every ranking card stayed at this bound, and no card's height moved either way — a note
+ * only stops filling the bound once it fits on one line, so what the height is counted from is
+ * untouched. **ADR 0091.**
+ */
 export const TIP = {
-    width: "296px",
+    widthMaximum: "296px",
 } as const;
 
 /**
@@ -665,12 +673,18 @@ function composeRowRules(): string {
  * cannot clip it: the host creates none, having no transform, filter or containment.
  */
 function composeTipRules(): string {
-    // A detail opening leftwards from the left edge of the screen would be drawn off it.
-    const left = `var(${VARIABLE_PREFIX}tip-left,calc(100vw - ${PLACE.inset} - ${PLACE.width} - ` +
-        `${TIP.width} - ${SPACE.small}))`;
+    // Where a card stands before any window has been moved: against the panel's own corner. It is
+    // a distance from the **right** edge, and every placement across is, because a card narrower
+    // than the bound has to keep the edge facing its window and not float the difference away.
+    const right = `var(${VARIABLE_PREFIX}tip-right,calc(${PLACE.inset} + ${PLACE.width} + ` +
+        `${SPACE.small}))`;
     return `.${CLASS.tip}{position:fixed;box-sizing:border-box;pointer-events:none;` +
-        `left:${left};top:${composeTipTop()};z-index:${LAYER.tip};` +
-        `width:${TIP.width};` +
+        `left:var(${VARIABLE_PREFIX}tip-left,auto);right:${right};` +
+        `top:${composeTipTop()};z-index:${LAYER.tip};` +
+        // As wide as what it says, up to the bound — and never wider than the screen it stands
+        // on, which is the case the bound on its own does not answer.
+        `width:max-content;` +
+        `max-width:min(${TIP.widthMaximum},calc(100vw - ${PLACE.inset} - ${PLACE.inset}));` +
         // A card taller than the screen has no position showing all of it, and the clamp keeps
         // the top edge over the bottom.
         `max-height:calc(100vh - ${PLACE.inset} - ${PLACE.inset});overflow:hidden;` +

@@ -67,6 +67,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   teraz czyta się go jednym spojrzeniem. Karta rośnie razem z nim. Obiecane jedenaście wierszy nadal
   wchodzi na każdym oknie wyższym niż 640 pikseli.
 
+- **Zmiana** — Okienko wiersza jest teraz tak szerokie, jak to, co w nim stoi. Do tej pory każde
+  miało jedną szerokość, więc okienko z Pomocnika — nazwa umiejętności i jedno zdanie — było równie
+  szerokie co pełna karta postaci i zasłaniało wiersze, po które się na nie najeżdżało. Karta
+  postaci wygląda tak samo jak dotąd: ona tę szerokość wypełnia.
+
 - **Zmiana** — Nowe kolory. Tło panelu jest ciemniejsze i chłodniejsze, a wszystkie barwy —
   profesji, stron i znaków — rozsunięte tak, żeby żadne dwie nie wyglądały tak samo. Wcześniej
   ostrzeżenie o niepełnej liczbie miało co do bitu ten sam kolor co Tropiciel, a znak awarii panelu

@@ -7,7 +7,7 @@
  * about that.
  */
 
-import { expect, HOST_SELECTOR, test } from "@/tests/e2e/panel-fixture.ts";
+import { expect, HOST_SELECTOR, type PanelHandle, test } from "@/tests/e2e/panel-fixture.ts";
 import { readEdgesOf, readPointsAlongBar, setDragged } from "@/tests/e2e/panel-probe.ts";
 
 /** The card, and the mark it wears while nobody is being told anything. */
@@ -20,10 +20,16 @@ const BACK_NOTE = "LPM tutaj — wróć o krok";
 const BACK_ANYWHERE_NOTE = "PPM gdziekolwiek — wróć o krok";
 /** Far enough left that the card cannot stand on that side of the panel any more. */
 const TO_THE_LEFT = -420;
+/** Far enough right that the widest card there is has room on that window's left (**ADR 0091**). */
+const TO_THE_RIGHT = 420;
 /** Under the 549 px the tallest card this corpus composes needs, measured 2026-09-06. */
 const SHORT_WINDOW = 480;
 /** What the card says where a run of it was given up. Read in words, as every sentence is. */
 const CUT_NOTE = "Nie wszystko się mieści w tym oknie.";
+/** `TIP.widthMaximum`, as the number a measurement is compared against. */
+const BOUND = 296;
+/** `SPACE.small`, which is the air the sheet keeps between a window and the card beside it. */
+const GAP = 4;
 
 test("the card opens under the pointer, and names the row it describes", async ({ panel }) => {
     await expect(panel.at(CARD), "the card is there before anybody is told anything").toHaveCount(
@@ -277,4 +283,92 @@ test("the way back says both gestures, and only where a level is open", async ({
     await panel.at(".crumb-here").hover();
     await expect(panel.at(CARD_OPEN), "the name beside it carries no card of its own")
         .toHaveCount(0);
+});
+
+/**
+ * ⚠️ **The one claim a unit test cannot make: how wide the card ends up.** The width is the
+ * sheet's — `max-content` under a bound (**ADR 0091**) — so nothing in `src/` knows it and only a
+ * browser laying the card out can answer. Before that decision every card was the bound: the
+ * second window's card, a skill name over one instruction, stood 296px wide for sixteen
+ * characters.
+ */
+test("a card is as wide as what it says, up to the bound", async ({ panel }) => {
+    const standingRow = panel.at(`${HOST_SELECTOR} .MargoMeter-standing .row[data-standing]`)
+        .first();
+    await expect(standingRow, "the fight leaves something standing to point at").toHaveCount(1);
+    await standingRow.hover();
+    await expect(panel.at(CARD_OPEN), "which opens a card of its own").toHaveCount(1);
+    const little = await readEdgesOf(panel.page, CARD_OPEN);
+
+    const wide = panel.at(".list .row").first();
+    await wide.hover();
+    await expect(panel.at(CARD_OPEN), "and a ranking row opens one too").toHaveCount(1);
+    const much = await readEdgesOf(panel.page, CARD_OPEN);
+
+    const said = much.right - much.left;
+    const little_ = little.right - little.left;
+    expect(said, "a card of four figures and both runs stands at the bound").toBe(BOUND);
+    expect(little_, "and one of a name and a sentence stands at what it says").toBeLessThan(said);
+    // A floor as well as a ceiling: a card narrower than this would be one the sheet had
+    // collapsed rather than one it had fitted, and nothing else here would notice.
+    expect(little_, "which is a width and not a collapse").toBeGreaterThan(40);
+});
+
+/**
+ * The air between a window and the card one of its rows opened, on whichever side the card landed
+ * — this holds the gap and never the side, which is `composeTipAcross`'s answer and held in
+ * `tests/ui/panel-drag.test.ts`. The row is hovered again each time, because a drag in between
+ * takes the pointer off it and the card with it.
+ */
+async function readGapTo(
+    panel: PanelHandle,
+    rowSelector: string,
+    windowSelector: string,
+): Promise<number> {
+    await panel.at(rowSelector).first().hover();
+    await expect(panel.at(CARD_OPEN), `${rowSelector} opens a card`).toHaveCount(1);
+    const card = await readEdgesOf(panel.page, CARD_OPEN);
+    const window = await readEdgesOf(panel.page, `${HOST_SELECTOR} ${windowSelector}`);
+    if (card.right <= window.left) return window.left - card.right;
+    return card.left - window.right;
+}
+
+/**
+ * The half the width change could have broken quietly: a card pinned by a **left** offset worked
+ * out from the bound would float the difference away from the window the moment it drew narrower
+ * (**ADR 0091**).
+ *
+ * ⚠️ **It has to be a narrow card standing to its window's left, and the second window has to be
+ * dragged to get one.** Where the card is the bound wide, an offset from the left and one from
+ * the right put it in the same place to the pixel — so the wide card passes either way, and the
+ * narrow one flips to the right in the layout this suite opens on. Both halves of the mutation
+ * were run: without the drag, breaking the anchoring lit nothing at all.
+ */
+test("a card keeps the edge facing its window, whatever width it draws at", async ({ panel }) => {
+    expect(
+        await readGapTo(panel, ".list .row", ".panel"),
+        "the wide card stands a gap from the window whose row it names",
+    ).toBe(GAP);
+
+    const grip = await panel.at('[data-grip="standing"]').first().boundingBox();
+    expect(grip, "the second window draws a bar to drag it by").not.toBeNull();
+    const from = { x: Math.round(grip?.x ?? 0) + 20, y: Math.round(grip?.y ?? 0) + 6 };
+    await setDragged(panel.page, from, { x: TO_THE_RIGHT, y: 0 });
+
+    const standing = await readEdgesOf(panel.page, `${HOST_SELECTOR} .MargoMeter-standing`);
+    expect(standing.left, "dragged right, it has room on its left for any card there is")
+        .toBeGreaterThan(BOUND + GAP);
+
+    // The drag took the pointer off the row, so the card is asked for again before it is read.
+    const gap = await readGapTo(
+        panel,
+        ".MargoMeter-standing .row[data-standing]",
+        ".MargoMeter-standing",
+    );
+    const narrow = await readEdgesOf(panel.page, CARD_OPEN);
+    expect(narrow.right - narrow.left, "the card that window opens is narrower than the bound")
+        .toBeLessThan(BOUND);
+    expect(narrow.right, "and it stands to that window's left, which is the case that bites")
+        .toBeLessThanOrEqual(standing.left);
+    expect(gap, "so it stands the same gap, pinned by the edge that faces the window").toBe(GAP);
 });

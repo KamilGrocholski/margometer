@@ -439,21 +439,32 @@ outside it: a row is inset equally on both sides and a bar means the same length
 and left behind all give the list back where they found it, and a level opened for the first time
 starts at its top. **ADR 0050.**
 
-**Tooltip.** `surfaceRaised`, fixed width, opens on hover and follows the cursor's vertical
-position. It states its own type and its own ink, because `all: initial` on the host reaches it and
-the panel's own rules do not — a region hanging off the root that paints a ground and leaves the
-rest to inheritance is drawn in the browser's serif, in black. It opens beside the window whose row
-it names — the panel, or the window standing beside it — and beside **that** window alone: to its
-left while there is room there, and to its right once there is not. Neither window reads where the
-other is standing, so a tooltip is always a gap from the rows it explains. **ADR 0090.** Its
-vertical position is clamped between the inset and the viewport's foot, and where the two cross the
-top edge wins: a window hanging off the bottom beats one whose first line is off the top.
+**Tooltip.** `surfaceRaised`, **as wide as what it says up to a stated bound**, opens on hover and
+follows the cursor's vertical position. It states its own type and its own ink, because
+`all: initial` on the host reaches it and the panel's own rules do not — a region hanging off the
+root that paints a ground and leaves the rest to inheritance is drawn in the browser's serif, in
+black. It opens beside the window whose row it names — the panel, or the window standing beside it —
+and beside **that** window alone: to its left while there is room there, and to its right once there
+is not. **The side is decided by the bound and never by this card's own width**, or a card of two
+words would find room where the card before it found none and a reader crossing two rows would watch
+it jump the window. What is pinned is the edge **facing** that window, so a card stands the same gap
+from the rows it explains at whatever width it draws. Neither window reads where the other is
+standing. **ADR 0090**, **ADR 0091.** Its vertical position is clamped between the inset and the
+viewport's foot, and where the two cross the top edge wins: a window hanging off the bottom beats
+one whose first line is off the top.
 
 **Nothing here is measured off the document.** The page states its own size, the pointer states
 where it is, and the height is arithmetic — the lines the draw counted times what a line costs, plus
 the rule and the air each run of them spends over itself. A wrapping sentence is counted at a floor
 of characters per line, so the count is never short: a card reserving a line it did not need stands
 higher up the screen, which is the direction that keeps it on one.
+
+**The width is the sheet's, and it is the one thing here nobody counts.** A card is laid out at its
+content's own width under the bound, so what decides it is the browser's own type metrics — which
+differ by the machine the reader is on, and which no arithmetic in this tree could stand in for. The
+height arithmetic survives it: a card is narrower than the bound only where every sentence on it
+already fits one line, so the floor above is never counting a wrap the card no longer has.
+**ADR 0091.**
 
 **A card taller than the window gives up a run rather than being cut around.** The block of the
 fight's own figures stands whatever the window, and so do the notes — a suspicion is a claim about a
