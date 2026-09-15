@@ -18,18 +18,29 @@
 
 ## In Progress
 - [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and 10vs10 player vs. player fights (I really need this for further development, now I only know 1-93lvl)
-- [ ] Change the way we calculate "Zwykly cios" - is it possible to know the source from "Szeroki zamach" and so on?
 
 ## Up Next
-- [ ] Attach a date to each kept fight
-- [ ] Add field "Pozostałe" for ranked statistics to make sure, that there is 100%, and to tell a user, what has not been included properly
+- [ ] Should dmg applied and taken take into account only health or also absorbtion?
 - [ ] Do a manual audit
 - [ ] Plan: Add a fight visualization - a simple chart with bars or something
-- [ ] Find a better way to tell a new user, how to drill views - left, right mouse buttons
-- [ ] Create a new design for tip: find a better way to tell a user, what raw damage is, and, maybe, delete `done` raw damage - it's missleading
 
 ## Done
-- [x] Add accents to rows like "Zwykly cios", "Nieznany sprawca", and so on, the ones that are not inorder in the rank
+- [x] Increase font size
+- [x] Change color palette
+- [x] Remove uncertain informations: the largest blow, raw damage, etc.
+- [x] Attach information glyph to each uncertain information, which is NOT a bug or an error
+- [x] Create a new design for tip: find a better way to tell a user, what raw damage is, and, maybe, delete `done` raw damage - it's missleading
+- [x] Find a better way to tell a new user, how to drill views - left, right mouse buttons
+- [x] Attach a date to each kept fight
+- [x] Fix "Zwykły cios" - it now holds only the blows the game named no skill for; poison, fire, wounds and the rest stand under their own keys
+- [x] Charge both blows of a skill that strikes twice - the second one no longer lands in "Zwykły cios"
+- [x] Open "Zwykły cios" one level down - it now says who dealt those blows
+- [x] Add a tip card to "Zwykły cios" saying the game did not tell what the blows were
+- [x] Give "Zwykły cios" a place in the ranking, and hatch every row that has none
+- [x] Add field "Pozostałe" for ranked statistics to make sure, that there is 100%, and to tell a user, what has not been included properly
+- [x] Make the statistics read-only for the panel - no cut can be written into from the UI
+- [x] Add `deno task preview:fabricated` - look at the panel on fights the recordings do not carry
+- [x] Add `deno task panel:giveway` - look at a region that refuses to draw, without editing `src/` by hand
 
 ## Later
 - [ ] Add views for: abilities ranking - uses, dmg, heal, etc; legbon ranking - procs;
