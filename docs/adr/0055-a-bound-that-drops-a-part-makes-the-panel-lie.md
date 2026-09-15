@@ -1,6 +1,6 @@
 # 0055. A bound sums what it will not draw
 
-- **Status:** Accepted
+- **Status:** Superseded by 0079 in part
 - **Date:** 2026-09-06
 
 ## Context

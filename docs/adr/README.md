@@ -158,9 +158,9 @@ edited to agree with the new rule.
   payload that lands in it. **Accepted**
 - [0053](0053-the-file-is-the-fight-on-screen.md) — The file is the fight on screen. **Accepted**
 - [0054](0054-a-card-taller-than-the-window-gives-up-a-run.md) — A card taller than the window gives
-  up a run. **Accepted**
+  up a run. **Superseded by 0087 in part**
 - [0055](0055-a-bound-that-drops-a-part-makes-the-panel-lie.md) — A bound sums what it will not
-  draw. **Accepted**
+  draw. **Superseded by 0079 in part**
 - [0056](0056-a-fight-broken-off-is-neither-a-loss-nor-a-draw.md) — A fight broken off is neither a
   loss nor a draw. **Accepted**
 - [0057](0057-damage-stated-by-name-is-still-its-strikers-turn.md) — Damage stated by name is still

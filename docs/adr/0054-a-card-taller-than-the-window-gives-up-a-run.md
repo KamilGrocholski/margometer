@@ -1,6 +1,6 @@
 # 0054. A card taller than the window gives up a run
 
-- **Status:** Accepted
+- **Status:** Superseded by 0087 in part
 - **Date:** 2026-09-06
 
 ## Context
