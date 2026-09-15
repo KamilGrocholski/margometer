@@ -51,7 +51,7 @@ Deno.test("a ratio is read from the colours, and refuses what it cannot read", (
     assertEquals(getContrastRatio("white", "#ffffff"), 1, "a colour nobody wrote passes nothing");
     assertEquals(getContrastRatio("#fff", "#000000"), 1, "and neither does a short one");
     assert(
-        getContrastRatio("#000000", "#ffffff") > getContrastRatio("#17171c", "#1f1f26"),
+        getContrastRatio("#000000", "#ffffff") > getContrastRatio(SURFACE.panel, SURFACE.raised),
         "order",
     );
 });
@@ -94,9 +94,10 @@ function readNamesUsedBy(sheet: string, property: string): Set<string> {
 
 /**
  * ⚠️ **`DESIGN.md` says AA holds on every text-over-colour pairing, and the checks above reach
- * three of them.** The sheet prints words in five inks and the signal ones were in none: measured
- * 2026-09-10, `defect` sits at 4.60 over `raised` — ten hundredths above the floor — and at 4.34
- * over `track`, which is why the ground each ink is drawn on is named rather than assumed.
+ * three of them.** The sheet prints words in five inks and the signal ones were in none, which is
+ * why the ground each ink is drawn on is named rather than assumed. Measured 2026-09-15, the
+ * thinnest pairing registered here is `heading` over `surface` at 5.22, and the thinnest of the
+ * signal inks is `defect` over `track` at 6.61 — so `defect` names all three grounds.
  */
 const INK_GROUNDS: Record<string, readonly string[]> = {
     text: ["surface", "raised", "track"],
@@ -105,7 +106,7 @@ const INK_GROUNDS: Record<string, readonly string[]> = {
     caveat: ["surface", "raised", "track"],
     heading: ["surface"],
     // The defects block stands in the panel body under a rule of its own, and on no row.
-    defect: ["surface", "raised"],
+    defect: ["surface", "raised", "track"],
 };
 
 /**
@@ -319,7 +320,7 @@ Deno.test("the two sides are told apart by more than a hue", () => {
         getContrastRatio(SIGNAL.caveat, TEXT.quiet) > getContrastRatio(TEXT.quiet, TEXT.quiet),
         "and off the label it stands beside, which is what a caveat mark is read against",
     );
-    assertEquals(SIGNAL.unknown, "#8a8a80", "unknown is desaturated: the absence of a category");
+    assertEquals(SIGNAL.unknown, "#9299a0", "unknown is desaturated: the absence of a category");
 });
 
 Deno.test("the sheet shuts the game out, and every class it selects is one the panel wears", () => {

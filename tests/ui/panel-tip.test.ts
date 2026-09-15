@@ -185,7 +185,7 @@ Deno.test("where the detail sits and how tall it is are written together, in who
     setTipPlace(tip, 292.33333333333, null, size);
     assertEquals(
         tip.attributes.get("style"),
-        "--MargoMeter-tip-top:292px;--MargoMeter-tip-height:118px",
+        "--MargoMeter-tip-top:292px;--MargoMeter-tip-height:136px",
         "a fractional `clientY` on a scaled display is not a place anybody can see",
     );
     setTipPlace(tip, 0, null, size);
@@ -200,7 +200,7 @@ Deno.test("where the detail sits and how tall it is are written together, in who
     setTipPlace(tip, 100, 42.6, size);
     assertEquals(
         tip.attributes.get("style"),
-        "--MargoMeter-tip-top:100px;--MargoMeter-tip-height:118px;--MargoMeter-tip-left:43px",
+        "--MargoMeter-tip-top:100px;--MargoMeter-tip-height:136px;--MargoMeter-tip-left:43px",
         "and a panel that has moved says which side the detail opens on",
     );
 });
@@ -361,7 +361,7 @@ Deno.test("the detail follows the pointer, and lets go of a row that stopped bei
     assertEquals(getTextsByClass(later, CLASS.tipValue), ["400 000"], "with the new one");
     assertEquals(
         later.attributes.get("style"),
-        "--MargoMeter-tip-top:480px;--MargoMeter-tip-height:64px",
+        "--MargoMeter-tip-top:480px;--MargoMeter-tip-height:73px",
         "and a card that shrank says so, or the sheet clamps it against a height it no longer has",
     );
 

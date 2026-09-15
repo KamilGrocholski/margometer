@@ -11,37 +11,35 @@ import { getValueWithin } from "@/libs/number-range.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 
 export const SURFACE = {
-    panel: "#17171c",
-    raised: "#1f1f26",
-    track: "#24242a",
-    border: "#2c2c35",
+    panel: "#0f161d",
+    raised: "#171e25",
+    track: "#1b232a",
+    border: "#232b33",
 } as const;
 
 export const TEXT = {
-    plain: "#e7e7ea",
-    quiet: "#9a9aa6",
-    inkDark: "#14141a",
+    plain: "#e3e7ea",
+    quiet: "#979fa8",
+    inkDark: "#0d1319",
     inkLight: "#ffffff",
 } as const;
 
 export const SIGNAL = {
-    ours: "#6fbf8b",
-    theirs: "#e0736f",
-    suspect: "#c98500",
-    caveat: "#66baf6",
-    defect: "#c25ce0",
-    unknown: "#8a8a80",
+    ours: "#00d083",
+    theirs: "#ff8685",
+    suspect: "#ed9c00",
+    caveat: "#6bb5ff",
+    defect: "#ed78ff",
+    unknown: "#9299a0",
 } as const;
 
 export const PALETTE_COLOURS = [
-    "#3987e5",
-    "#008300",
-    "#d55181",
-    "#c98500",
-    "#199e70",
-    "#d95926",
-    "#9085e9",
-    "#e66767",
+    "#157cd0",
+    "#3f8e2b",
+    "#bb4a7f",
+    "#9d6f00",
+    "#008e71",
+    "#c2502b",
 ] as const;
 
 /**
@@ -148,13 +146,13 @@ export const SPACE = {
     regionDown: "5px",
     regionAcross: "7px",
     wide: "8px",
-    rowHeight: "18px",
+    rowHeight: "21px",
     heightShareMaximum: "66vh",
 } as const;
 
 export const PLACE = {
     inset: "8px",
-    width: "260px",
+    width: "306px",
     /** The host against the game's own page, and nothing inside the root. */
     layer: "9999",
 } as const;
@@ -171,7 +169,7 @@ export const LAYER = {
 } as const;
 
 export const TIP = {
-    width: "250px",
+    width: "296px",
 } as const;
 
 /**
@@ -179,11 +177,11 @@ export const TIP = {
  * and never a rank or a share, and it is the second thing standing over somebody else's game.
  */
 export const STANDING = {
-    width: "210px",
+    width: "248px",
 } as const;
 
 /** A dot small enough that four of them and a figure fit the window's own width. */
-const PIP_SIZE = "5px";
+const PIP_SIZE = "6px";
 
 export const SHAPE = {
     radius: "8px",
@@ -191,8 +189,8 @@ export const SHAPE = {
     windowShadow: "0 6px 20px rgb(0 0 0 / 55%)",
 } as const;
 
-/** Two digits and a stop: 17.49px in Chrome 152, 2026-08-29, and a fight holds twenty. */
-const RANK_WIDTH = "22px";
+/** Two digits and a stop: 20.69px in Chrome 152, 2026-09-15, and a fight holds twenty. */
+const RANK_WIDTH = "26px";
 /** What a row carries over its contents and not under, so its ink lands even. **ADR 0015.** */
 const ROW_INK_DROP = "1px";
 const BAR_TINT = 0.55;
@@ -227,7 +225,7 @@ const LUMINANCE_OFFSET = 0.05;
  */
 type ColourChannels = readonly [number, number, number];
 
-const INK_DARK_CHANNELS: ColourChannels = [0x14, 0x14, 0x1a];
+const INK_DARK_CHANNELS: ColourChannels = [0x0d, 0x13, 0x19];
 const INK_LIGHT_CHANNELS: ColourChannels = [0xff, 0xff, 0xff];
 
 function getDigitFromHex(character: string): number | null {
@@ -384,14 +382,14 @@ function composeHeadingColour(): string {
 const VARIABLE_PREFIX = "--MargoMeter-";
 const ROWS_BY_DEFAULT = 11;
 const FONT_STACK = "system-ui, sans-serif";
-const FONT_SIZE = "11px";
+const FONT_SIZE = "13px";
 /** Whole pixels: a fractional line box puts every box under it off the grid. **ADR 0015.** */
-const LINE_HEIGHT = "15px";
+const LINE_HEIGHT = "18px";
 /** The two characters a length in pixels ends in, taken off before the number is read. */
 const PIXELS_SUFFIX = 2;
 /** What a border costs the box it is on, at the one width this panel draws one. */
 const RULE_WIDTH = 1;
-const LINE_HEIGHT_TITLE = "13px";
+const LINE_HEIGHT_TITLE = "15px";
 
 function composeVariable(name: string, value: string): string {
     return `${VARIABLE_PREFIX}${name}:${value};`;
@@ -456,7 +454,7 @@ function composeFrameRules(): string {
         // Safari has never shipped `user-select` unprefixed, so without this a drag by the bar
         // selects the text under the cursor (`docs/browser-support.md`).
         `-webkit-user-select:none;user-select:none;touch-action:none;}` +
-        `.${CLASS.titleVersion}{opacity:0.7;font-size:10px;}` +
+        `.${CLASS.titleVersion}{opacity:0.7;font-size:12px;}` +
         `.${CLASS.control}{padding:0 var(${VARIABLE_PREFIX}small);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);` +
@@ -484,12 +482,12 @@ function composeRegionRules(): string {
     const region = `var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across)`;
     return `.${CLASS.header}{display:block;padding:${region};padding-bottom:0;}` +
         `.${CLASS.headerLine}{display:flex;justify-content:space-between;align-items:baseline;}` +
-        `.${CLASS.headerPlace}{color:var(${VARIABLE_PREFIX}quiet);font-size:10px;` +
+        `.${CLASS.headerPlace}{color:var(${VARIABLE_PREFIX}quiet);font-size:12px;` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
         // The upper case belongs to this rule rather than to a word: the shelf says the same
         // word a row at a time, in the case it was composed in.
         `.${CLASS.headerOutcome}{color:var(${VARIABLE_PREFIX}quiet);text-transform:uppercase;` +
-        `font-size:10px;}` +
+        `font-size:12px;}` +
         `.${CLASS.strips}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);` +
         `padding:${region};padding-bottom:0;}` +
         `.${CLASS.strips}+.${CLASS.strips}{padding-top:var(${VARIABLE_PREFIX}radius-small);}` +
@@ -536,7 +534,7 @@ function composeListRules(): string {
         `.${CLASS.section}{position:sticky;` +
         `top:calc(0px - var(${VARIABLE_PREFIX}region-down));z-index:1;` +
         `background:var(${VARIABLE_PREFIX}surface);display:flex;justify-content:space-between;` +
-        `color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;font-size:10px;` +
+        `color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;font-size:12px;` +
         // Deliberately unequal, against ADR 0014's rule for every other region: the air under a
         // heading belongs to the rows it names.
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}half) ` +
@@ -554,7 +552,7 @@ function composeListRules(): string {
         `font-variant-numeric:tabular-nums;font-weight:600;}` +
         `.${CLASS.sidesLabel}{color:var(${VARIABLE_PREFIX}quiet);font-weight:400;opacity:0.8;` +
         `min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
-        `.${CLASS.sidesSpare}{margin-top:var(${VARIABLE_PREFIX}small);font-size:10px;}` +
+        `.${CLASS.sidesSpare}{margin-top:var(${VARIABLE_PREFIX}small);font-size:12px;}` +
         `.${CLASS.sidesSpare} .${CLASS.sidesLabel}{color:inherit;}` +
         `.${CLASS.sidesTrack}{display:flex;height:4px;` +
         `margin-top:var(${VARIABLE_PREFIX}small);` +
@@ -708,7 +706,7 @@ function composeTipRules(): string {
         // The same letters a cut's heading wears down the panel, so a run of parts under one
         // reads as the same kind of thing in both places. `DESIGN.md` owns the look.
         `.${CLASS.tipHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
-        `font-size:10px;text-transform:uppercase;overflow:hidden;` +
+        `font-size:12px;text-transform:uppercase;overflow:hidden;` +
         `text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipNote}{color:var(${VARIABLE_PREFIX}quiet);}` +
         `.${CLASS.tipNote}.${CLASS.tipSuspect}{color:var(${VARIABLE_PREFIX}suspect);}` +

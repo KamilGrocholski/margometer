@@ -1786,7 +1786,7 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
     // which is also the place the first grab starts from.
     assertEquals(
         host.attributes.get("style"),
-        "left:510px;top:153px;--MargoMeter-panel-top:153px;right:auto",
+        "left:487px;top:153px;--MargoMeter-panel-top:153px;right:auto",
         "a panel nobody has moved is put in the middle of the window it was drawn into",
     );
 
@@ -1794,18 +1794,18 @@ Deno.test("the bar is what moves the panel, and where it was let go is reported 
     dragOnElement(host, "pointermove", bar, { clientX: 1000, clientY: 120 });
     assertEquals(
         host.attributes.get("style"),
-        "left:410px;top:253px;--MargoMeter-panel-top:253px;right:auto",
+        "left:387px;top:253px;--MargoMeter-panel-top:253px;right:auto",
         "the panel follows the hand, by the distance the hand moved",
     );
     assertEquals(moved, [], "and nothing is stored while it is still being dragged");
 
     dragOnElement(host, "pointerup", bar, { clientX: 1000, clientY: 120 });
-    assertEquals(moved, [{ left: 410, top: 253 }], "where it was let go is reported, once");
+    assertEquals(moved, [{ left: 387, top: 253 }], "where it was let go is reported, once");
 
     dragOnElement(host, "pointermove", bar, { clientX: 500, clientY: 500 });
     assertEquals(
         host.attributes.get("style"),
-        "left:410px;top:253px;--MargoMeter-panel-top:253px;right:auto",
+        "left:387px;top:253px;--MargoMeter-panel-top:253px;right:auto",
         "and a pointer moving with nothing held moves nothing",
     );
 });

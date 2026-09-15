@@ -48,7 +48,7 @@ Deno.test("a position is kept inside the window, with the grab area still on scr
 Deno.test("a panel nobody has moved opens in the middle of the window", () => {
     assertEquals(
         composeDefaultPosition(WINDOW),
-        { left: 510, top: 153 },
+        { left: 487, top: 153 },
         "centred across, and centred on the tallest body the sheet allows down",
     );
     assertEquals(
@@ -133,7 +133,7 @@ Deno.test("the detail opens on the side of the panel that has room for it", () =
     // leftwards would be drawn off the screen — where nothing here would measure it back on.
     assertEquals(
         composeTipLeft({ left: 20, top: 40 }, WINDOW, TIP_WIDTH),
-        284,
+        330,
         "and one against the left edge opens it to the right instead",
     );
     assertEquals(
@@ -143,7 +143,7 @@ Deno.test("the detail opens on the side of the panel that has room for it", () =
     );
     assertEquals(
         composeTipLeft({ left: 253, top: 0 }, WINDOW, TIP_WIDTH),
-        517,
+        563,
         "and one pixel less is not",
     );
     assertEquals(composeTipLeft(null, WINDOW, TIP_WIDTH), null, "a panel nobody moved is placed");

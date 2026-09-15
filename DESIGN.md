@@ -53,18 +53,18 @@ dark, and a light panel over it would be the brightest thing on the display.
 
 | Token           | Value     | Use                                                   |
 | --------------- | --------- | ----------------------------------------------------- |
-| `surface`       | `#17171c` | The panel body.                                       |
-| `surfaceRaised` | `#1f1f26` | Title bar, tooltip, anything standing above the body. |
-| `track`         | `#24242a` | The unfilled part of a bar.                           |
-| `border`        | `#2c2c35` | Separations. Never a shadow where a border will do.   |
+| `surface`       | `#0f161d` | The panel body.                                       |
+| `surfaceRaised` | `#171e25` | Title bar, tooltip, anything standing above the body. |
+| `track`         | `#1b232a` | The unfilled part of a bar.                           |
+| `border`        | `#232b33` | Separations. Never a shadow where a border will do.   |
 
 ### Text
 
 | Token       | Value     | Use                                                     |
 | ----------- | --------- | ------------------------------------------------------- |
-| `text`      | `#e7e7ea` | Figures and names.                                      |
-| `textQuiet` | `#9a9aa6` | Labels, units, denominators — everything the eye skips. |
-| `inkDark`   | `#14141a` | Ink on a light-enough bar.                              |
+| `text`      | `#e3e7ea` | Figures and names.                                      |
+| `textQuiet` | `#979fa8` | Labels, units, denominators — everything the eye skips. |
+| `inkDark`   | `#0d1319` | Ink on a light-enough bar.                              |
 | `inkLight`  | `#ffffff` | Ink on a dark-enough bar.                               |
 
 **Text on a coloured bar clears WCAG AA contrast, checked by a test rather than by eye.** Which of
@@ -75,12 +75,12 @@ printed on a bar at present, and the pair is what proves the tint keeps every hu
 
 | Token            | Value     | Means                                                         |
 | ---------------- | --------- | ------------------------------------------------------------- |
-| `ours`           | `#6fbf8b` | The reader's own side.                                        |
-| `theirs`         | `#e0736f` | The other side.                                               |
-| `suspect`        | `#c98500` | A figure that may be short.                                   |
+| `ours`           | `#00d083` | The reader's own side.                                        |
+| `theirs`         | `#ff8685` | The other side.                                               |
+| `suspect`        | `#ed9c00` | A figure that may be short.                                   |
 | `caveat`         | `#6bb5ff` | A figure answering a narrower question than its label.        |
-| `defect`         | `#c25ce0` | What the panel itself could not do.                           |
-| `UNKNOWN_COLOUR` | `#8a8a80` | Desaturated on purpose: unknown is the absence of a category. |
+| `defect`         | `#ed78ff` | What the panel itself could not do.                           |
+| `UNKNOWN_COLOUR` | `#9299a0` | Desaturated on purpose: unknown is the absence of a category. |
 
 `ours` and `theirs` are **not** green-good and red-bad: they are two sides, and the panel takes no
 view on which one the reader should be pleased about. **They are this sheet's names and nothing
@@ -88,40 +88,43 @@ else's**: `CONTEXT.md` puts `ours` on **Side**'s `_Avoid_` list, so what the pan
 two `reader` and `opposing`, and these two words stop at the stylesheet.
 
 `defect` is a magenta because every other family already means something here: green and red are the
-two sides, amber is a suspicion about a figure, grey is the absence of a category, and the eight
-below are the professions. Measured 2026-09-05, it sits 65 from its nearest neighbour in the palette
-— `#9085e9` — where the two closest professions sit 38 apart, and clears 5.02:1 against the panel,
-over the 4.5:1 the floor asks of text.
+two sides, amber is a suspicion about a figure, grey is the absence of a category, and the six below
+are the professions. Measured 2026-09-15 on Euclidean distance in sRGB, it sits 124 from its nearest
+neighbour among the twelve this sheet spends, and clears 7.57:1 against the panel, over the 4.5:1
+the floor asks of text.
 
-`caveat` is a blue, and a blue was there to be had where the paragraph above reads as though none
-was. Measured 2026-09-15 on the same arithmetic, `#66baf6` sits 69 from its nearest neighbour among
-the fourteen colours this sheet spends and 70 from the palette's own blue, and clears 8.44:1 on the
-panel, 7.74:1 on a card and 7.29:1 on a row. It needed an ink at all because the one it had was the
-label's: a glyph in `textQuiet` standing beside a label in `textQuiet` is a mark nobody sees.
+`caveat` is a blue. Measured the same day and the same way, `#6bb5ff` sits 106 from its nearest
+neighbour, and clears 8.40:1 on the panel, 7.75:1 on a card and 7.33:1 on a row. It needed an ink at
+all because the one it had was the label's: a glyph in `textQuiet` standing beside a label in
+`textQuiet` is a mark nobody sees.
 
-⚠️ **A signal and a profession may hold one hue, and two of them already do.** `suspect` and the
-palette's fourth colour are the same value, `#c98500`, at a distance of nought. So the eight are
-spent on the professions **in a bar**, which is where a hue says who somebody is, and a mark beside
-a figure is read against no bar at all. Nothing holds either half of that, and the sentence opening
-the section below is older than the pairing (**V6**).
+**No signal and no profession share a hue, and the closest pair of the twelve stands 64.6 apart.**
+That is the rule this sheet is held to rather than a happy result: `suspect` and the palette's
+fourth colour were once the same value, at a distance of nought, and the exemption written here to
+excuse it — that one lived in a bar and the other beside a figure — was held by nothing.
 
 ### The palette
 
-Eight hues, spent on the professions and on nothing else, assigned by the game's own letter rather
+Six hues, one per profession and spent on nothing else, assigned by the game's own letter rather
 than by rank, so the same profession is the same colour in every fight:
 
-`#3987e5` `#008300` `#d55181` `#c98500` `#199e70` `#d95926` `#9085e9` `#e66767`
+`#157cd0` `#3f8e2b` `#bb4a7f` `#9d6f00` `#008e71` `#c2502b`
+
+**Six, because the game has six.** The register carried eight until 2026-09-15 and `PROFESSION_HUES`
+spent six of them; the two nobody drew were a hue waiting for a profession that does not exist, and
+one of them stood 15.6 from `theirs` (**C9**).
 
 **A hue says who somebody is.** A cut of a figure — a kind of damage, a key health went out under,
 the part the protocol named nobody for — is drawn in `UNKNOWN_COLOUR` and worded outright instead.
 An opened row puts the two lists one above the other, and a fire row wearing a warrior's orange
 there would be the panel answering a question nobody asked of it.
 
-A bar is drawn at `barTint` `0.55` over `track`, which is what keeps eight saturated hues from
+A bar is drawn at `barTint` `0.55` over `track`, which is what keeps six saturated hues from
 competing with the figures printed over them. The tint is measured rather than chosen: at full
-strength the green clears only 3.71:1 against dark ink, under the 4.5:1 the floor asks for, and no
-single ink clears every hue — tinting keeps the text on the panel's own surface instead, and the
-worst pairing across the palette becomes 5.25:1. Past about 0.6 the green fails again.
+strength the blue clears 4.35:1 at best against either ink, under the 4.5:1 the floor asks for, and
+no single ink clears every hue — tinting keeps the text on the panel's own surface instead, and the
+worst pairing across the palette becomes 6.12:1. Past 0.77 the blue fails again. Measured
+2026-09-15.
 
 ## Typography
 
@@ -153,11 +156,11 @@ legibility.
 | `spaceSmall`     | the base step                                                   |
 | `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region    |
 | `spaceWide`      | `8px`, which is also the inset the panel sits at                |
-| `rowHeight`      | `18px`                                                          |
+| `rowHeight`      | `21px`                                                          |
 | `maxHeightShare` | `66vh`                                                          |
 | `tipWidth`       | fixed, so a tooltip never reflows against its own content       |
-| `lineHeight`     | `15px` — whole pixels, and what a counted card is multiplied by |
-| `panelWidth`     | `260px` — narrow on purpose: the panel is a guest               |
+| `lineHeight`     | `18px` — whole pixels, and what a counted card is multiplied by |
+| `panelWidth`     | `306px` — narrow on purpose: the panel is a guest               |
 | `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against |
 | `panelLayer`     | high enough to clear the game's own windows                     |
 
@@ -204,7 +207,7 @@ have no state to say, so their marks read the same always.
 
 **Header.** What the fight is, as a headcount, and how it went. Where it is being fought goes on a
 second line and nowhere else: beside the headcount a map's name plus a tile had about thirty
-characters of a 260-pixel panel, so the one thing answering _where_ was the one thing being cut.
+characters of a 306-pixel panel, so the one thing answering _where_ was the one thing being cut.
 
 **Ranking row.** A place in the ranking, a name, a figure and its share. The bar is an element
 behind the text at `barTint`, with a three-pixel cap at full strength on the edge it starts from:
@@ -225,9 +228,9 @@ answer.
 The rule is colour, so it carries a word: the card names the side in full — `Mag (120) · My` — which
 is what _Colour Never Alone_ asks and what the strip under the list already anchors the two inks to.
 The lightness of the name was measured and refused instead: a row's name sits over its own bar, and
-over the worst bar in the palette the plain ink clears the AA floor at 5.09 while the quiet ink
-reaches 2.26 against 4.5, with the last neutral grey that clears it indistinguishable from plain
-(measured over the whole palette, 2026-08-30). **ADR 0065.**
+over the worst bar in the palette the plain ink clears the AA floor at 6.12 while the quiet ink
+reaches 2.84 against 4.5, with the last neutral grey that clears it indistinguishable from plain
+(measured over the whole palette, 2026-09-15). **ADR 0065.**
 
 ⚠️ **The row says a profession in its hue and in nothing else, and that is a decision.** Six
 professions cannot be made mutually distinguishable by hue on this background, so the hue is a hint
@@ -244,16 +247,16 @@ a row wearing a mark is shown whole, or the mark took it.
 **The ranking marks whose turn it is**, before the name, on the one row the game is numbering. It
 stands on the same argument as the suspect mark below: a mark that reaches one row is not the second
 channel the paragraph above refuses, which would stand on every row to say a thing the card already
-says. `▸` measures 9.03px in Chrome on 2026-09-09, against 13.36 for the suspect mark the panel
+says. `▸` measures 10.67px in Chrome 152 on 2026-09-15, against 15.80 for the suspect mark the panel
 already carries — and it toggles against nothing, which is what ★/☆ failed at. A fight already over
 numbers nobody's turn and a fight read off the shelf is a moment that has passed, so both draw no
 mark at all. **ADR 0066.**
 
 **A row whose figure means less than its label wears the caveat mark**, in the same place and on the
-same argument, and the two stand together where a row earns both. `ⓘ` measures 9.5px in Chrome on
-2026-09-15, against 13.36 for the suspect mark and 9.03 for the turn mark, and it is the one mark
-whose cost is held rather than reasoned about: with every row wearing it, a level's longest skill
-name lost 4px to it, measured the same day. **ADR 0089.**
+same argument, and the two stand together where a row earns both. `ⓘ` measures 10.64px in Chrome 152
+on 2026-09-15, against 15.80 for the suspect mark and 10.67 for the turn mark, and it is the one
+mark whose cost is held rather than reasoned about: what every row wearing it takes off a level's
+longest skill name is `tests/e2e/panel-marks.spec.ts`'s to say. **ADR 0089.**
 
 **A row whose own figure is short wears the suspect mark**, before the name and drawn only there. It
 is not the second channel the paragraph above refuses: that one would stand on every row to say a
@@ -405,7 +408,7 @@ of them constants, and none of them longer than `TYP OBRAŻEŃ`.
 
 ⚠️ **A figure never folds.** It is one word — the gap between its thousands is a space that offers
 no place to break — and the cell it stands in never gives way; the words beside it are what
-shortens, cut with an ellipsis. A figure that broke across two lines in a row 18 pixels tall was
+shortens, cut with an ellipsis. A figure that broke across two lines in a row 21 pixels tall was
 read as a number half its size, which is worse than a figure not drawn at all.
 
 **Summary bar.** The fight's own strip. This is where a gap that names nobody is said, because no
@@ -559,7 +562,8 @@ figure it concerns, and a defect concerns none.
 - WCAG AA contrast on every text-over-colour pairing, held by a test that reads the shipped sheet:
   every ink it prints words in, over each ground it is drawn on. A rule filling a bar segment spells
   `color:` too, and those are held at the graphical floor instead — named, never exempted. The
-  thinnest pairing is `defect` over `raised`, measured 2026-09-10.
+  thinnest pairing is the heading over the panel at 5.22, and the thinnest of the signal inks is
+  `defect` over `track` at 6.61 — measured 2026-09-15.
 - Colour is never the only signal — _The Colour Never Alone Rule_.
 - **Nothing the panel draws can be reached from a keyboard, and that is a finding.** Every control
   is a `div` or a `span` listening for a press or a hover; no element it puts in the page is
