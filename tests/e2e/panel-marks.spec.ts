@@ -46,3 +46,32 @@ test("a mark before a name leaves that name whole", async ({ panel }) => {
     }
     await panel.expectHonest("a level drawing the row a mark rides");
 });
+
+/**
+ * ⚠️ **The one claim about the caveat mark that no unit test can make.** Its shape is the
+ * browser's answer, not the tree's: `ⓘ` was a codepoint until 2026-09-15 and measured 6.5px wide
+ * against 10.23 for `O` at the same 13px — the same 6.5 under every family this machine offers,
+ * none of them carrying U+24D8. What a reader met was a vertical sliver. The ring is drawn now
+ * (**ADR 0092**), and round is a thing only a laid-out box can be asked about.
+ */
+test("the caveat mark is a circle, on the row and on the card alike", async ({ panel }) => {
+    await panel.at("[data-row]").first().click();
+    const row = panel.at(`${HOST_SELECTOR} .list .row-caveat`).first();
+    await expect(row, "a level draws the row a mark rides").toHaveCount(1);
+
+    const boxes = [await row.boundingBox()];
+    await panel.at(`${HOST_SELECTOR} .list .row`).first().hover();
+    const onCard = panel.at(`${HOST_SELECTOR} .MargoMeter-tip .tip-caveat`).first();
+    await expect(onCard, "and a card carries it beside a figure").not.toHaveCount(0);
+    boxes.push(await onCard.boundingBox());
+
+    for (const box of boxes) {
+        expect(box, "every mark drawn is somewhere on the page").not.toBeNull();
+        const seen = box ?? { width: 0, height: 0, x: 0, y: 0 };
+        expect(seen.width, "a mark has a width to be round at").toBeGreaterThan(0);
+        expect(
+            Math.round(seen.width),
+            "and it is as wide as it is tall, which the codepoint never was",
+        ).toBe(Math.round(seen.height));
+    }
+});

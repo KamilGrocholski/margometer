@@ -103,6 +103,11 @@ export const MAXIMUM_TIPS = 512;
  */
 const NOTE_CHARACTERS_PER_LINE = 32;
 /**
+ * What the drawn mark opening a caveated note takes off that note's first line, as the characters
+ * it stands in the room of: the ring and the air after it, against a body character's own width.
+ */
+const NOTE_MARK_CHARACTERS = 2;
+/**
  * Past every card this panel composes: four figures and their parts, the counters, both runs —
  * the criticals, the defences, the procs and what a blow destroyed — and the notes. The tallest
  * card any recording composes is 31 lines and the median 24, over the 1,184 cards the ranking of
@@ -148,10 +153,16 @@ export function composeTipRegister(): TipRegister {
 /**
  * What one line costs the height. A note wraps, so it costs the lines its text runs to; every
  * other kind is held to one by the stylesheet, which cuts a long label rather than folding it.
+ *
+ * ⚠️ **A caveated note's mark is counted although it is not in the text.** It is drawn from the
+ * tone since **ADR 0092**, and a count reading `text` alone would shorten every one of those
+ * notes by a mark the card still draws — which is the trap the glyph sat inside the sentence to
+ * avoid while it was a codepoint.
  */
 function getTipLineCost(line: TipLine): number {
     if (line.kind !== "note") return 1;
-    const wrapped = Math.ceil(line.text.length / NOTE_CHARACTERS_PER_LINE);
+    const marked = line.tone === "caveat" ? NOTE_MARK_CHARACTERS : 0;
+    const wrapped = Math.ceil((line.text.length + marked) / NOTE_CHARACTERS_PER_LINE);
     if (wrapped < 1) return 1;
     return wrapped;
 }
@@ -188,6 +199,12 @@ function composeTipLineClass(line: TipLine): string {
     return CLASS.tipLine;
 }
 
+/**
+ * A sentence at the foot of a card, with the caveat's ring standing before it where it wears one.
+ * The suspect and the defect marks stay inside their own text: both are drawn by a codepoint that
+ * every face carries at a width its own height (**ADR 0092** carries the measurement), and only
+ * the circled letter had to be built.
+ */
 function composeTipNoteElement(
     document: PanelDocument,
     line: Extract<TipLine, { kind: "note" }>,
@@ -195,6 +212,11 @@ function composeTipNoteElement(
     const element = document.createElement("div");
     element.className = `${CLASS.tipNote}${composeTipNoteToneClass(line.tone)}`;
     element.textContent = line.text;
+    // ⚠️ **Appended after the sentence and stood before it by the sheet.** `textContent` replaces
+    // every child, so a ring written first is wiped by the line it belongs to — and wrapping the
+    // sentence in a span of its own instead would leave this element's own `textContent` empty,
+    // which is what every reader of a drawn note asks it for.
+    if (line.tone === "caveat") element.append(composeTipCaveatElement(document));
     return element;
 }
 

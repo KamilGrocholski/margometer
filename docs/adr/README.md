@@ -233,3 +233,5 @@ edited to agree with the new rule.
   whose row it names. **Accepted**
 - [0091](0091-a-card-is-as-wide-as-what-it-says.md) — A card is as wide as what it says.
   **Accepted**
+- [0092](0092-the-caveat-mark-is-drawn-not-spelled.md) — The caveat mark is drawn, not spelled.
+  **Accepted**

@@ -253,10 +253,19 @@ numbers nobody's turn and a fight read off the shelf is a moment that has passed
 mark at all. **ADR 0066.**
 
 **A row whose figure means less than its label wears the caveat mark**, in the same place and on the
-same argument, and the two stand together where a row earns both. `ⓘ` measures 10.64px in Chrome 152
-on 2026-09-15, against 15.80 for the suspect mark and 10.67 for the turn mark, and it is the one
-mark whose cost is held rather than reasoned about: what every row wearing it takes off a level's
-longest skill name is `tests/e2e/panel-marks.spec.ts`'s to say. **ADR 0089.**
+same argument, and the two stand together where a row earns both. It costs a row 15px in Chrome 152
+on 2026-09-15 — an 11px ring and the air after it — against 15.80 for the suspect mark and 10.67 for
+the turn mark, and it is the one mark whose cost is held rather than reasoned about: what every row
+wearing it takes off a level's longest skill name is `tests/e2e/panel-marks.spec.ts`'s to say.
+**ADR 0089.**
+
+**And it is the one mark this panel draws rather than spells.** `ⓘ` was a codepoint until
+2026-09-15, when it was measured at 6.5px of ink against 10.23 for `O` at the same 13px — and at the
+same 6.5 under `system-ui`, `sans-serif`, DejaVu Sans, Liberation Sans, Noto Sans, Arial, Segoe UI,
+Cantarell and Ubuntu alike, none of them carrying U+24D8 and every one falling back to a single
+condensed face. What a reader met beside a figure was a vertical sliver. A ring with a border is a
+circle wherever the panel is opened, which a codepoint is not — and the figure this page had been
+quoting all along was the **cell**, which stayed 10.64 whatever shape stood inside it. **ADR 0092.**
 
 **A row whose own figure is short wears the suspect mark**, before the name and drawn only there. It
 is not the second channel the paragraph above refuses: that one would stand on every row to say a

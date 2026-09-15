@@ -15,6 +15,7 @@ import {
     getTipSize,
     setTipHidden,
     setTipPlace,
+    type TipNoteTone,
     type TipReading,
 } from "@/src/ui/panel-tip.ts";
 import { CLASS, getTipHeight } from "@/src/ui/panel-look.ts";
@@ -500,4 +501,34 @@ Deno.test("nobody under the pointer hides it, and a row nobody drew never opens 
     assertExists(shown, "a key it did register opens it");
     handle.show(null, 200);
     assertEquals(shown.className, `${CLASS.tip} ${CLASS.tipHidden}`, "and leaving hides it again");
+});
+
+/**
+ * ⚠️ **The mark a caveated sentence wears is counted although the text no longer carries it.** It
+ * is a node of its own, drawn from the tone since **ADR 0092**, and a count reading `text` alone
+ * would shorten every one of those notes by a mark the card still draws — a card standing lower
+ * on the screen than it is tall, with its last line off the bottom.
+ *
+ * Thirty-one characters is the length that tells the two apart: with the mark it wraps and
+ * without it does not. Thirty says one line either way, which is the other side of the boundary.
+ */
+Deno.test("a caveated sentence is counted with the mark the card draws before it", () => {
+    const compose = (length: number, tone: TipNoteTone): TipReading => ({
+        name: "Hildur",
+        subtitle: null,
+        groups: [{ lines: [{ kind: "note", text: "x".repeat(length), tone }] }],
+    });
+    // What the mark costs, and never the card's own total: the name above the sentence is a line
+    // of the count too, and a test stating the total would move with the card rather than with
+    // the thing it is about.
+    const cost = (length: number): number =>
+        getTipSize(compose(length, "caveat")).lines - getTipSize(compose(length, "plain")).lines;
+
+    assertEquals(cost(31), 1, "thirty-one characters and a mark run to a second line");
+    assertEquals(cost(30), 0, "thirty and a mark still stand on one, which is the other side");
+    assertEquals(
+        getTipSize(compose(31, "plain")).lines,
+        getTipSize(compose(30, "plain")).lines,
+        "and neither length wraps on its own, so the line the mark bought is the mark's",
+    );
 });

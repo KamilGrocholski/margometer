@@ -38,8 +38,14 @@ export const TURN_MARK = "▸ ";
  * answers a narrower question than its label, whatever was recorded (`CONTEXT.md`). One glyph over
  * both claims would make the permanent look temporary and the temporary look permanent.
  * **ADR 0088.**
+ *
+ * ⚠️ **The letter only — the ring around it is drawn** (`DESIGN.md`, **ADR 0092**). `ⓘ` stood
+ * here until it was measured: 6.5px wide against 10.23 for `O` at the same 13px, in Chrome 152 on
+ * 2026-09-15, and the same 6.5 under every family this machine offers. None of them carries
+ * U+24D8, so all of them fall back to one face whose circled letters are condensed, and what a
+ * reader met beside a figure was a vertical sliver rather than a circle.
  */
-export const CAVEAT_MARK = "ⓘ ";
+export const CAVEAT_MARK = "i";
 
 export const PANEL_WORDS = {
     title: "MargoMeter",

@@ -15,7 +15,6 @@ import type { TipGroup, TipLine, TipReading } from "@/src/ui/panel-tip.ts";
 import {
     CARD_WORDS,
     type Caveat,
-    CAVEAT_MARK,
     CAVEATS,
     composeCardSubtitleText,
     composeDestroyedText,
@@ -356,9 +355,11 @@ export function composeCaveatNoteLines(groups: readonly TipGroup[]): TipLine[] {
             said.add(line.caveat);
         }
     }
+    // The sentence alone: the mark opening it is drawn from the tone rather than spelled into the
+    // text (**ADR 0092**), and `getTipLineCost` is where it goes on being counted.
     return CAVEATS.filter((one) => said.has(one)).map((one): TipLine => ({
         kind: "note",
-        text: `${CAVEAT_MARK}${getNoteForCaveat(one)}`,
+        text: getNoteForCaveat(one),
         tone: "caveat",
     }));
 }

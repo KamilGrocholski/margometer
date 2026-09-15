@@ -44,7 +44,6 @@ import {
 } from "@/src/ui/panel-screen.ts";
 import {
     CARD_WORDS,
-    CAVEAT_MARK,
     composeCardSubtitleText,
     composeFigureText,
     composeUndrawnText,
@@ -2803,9 +2802,11 @@ Deno.test("the closing row's card says what the game did not, and only on a dama
         }
         assertExists(caveat, `${metric}: a screen drawing the row has a sentence for it`);
         pointAtElement(host, "pointermove", row, 300);
+        // The sentence alone: the ring opening it is a node of its own, drawn from the tone, and
+        // never a character inside the text (**ADR 0092**).
         assertArrayIncludes(
             readTip(host).notes,
-            [`${CAVEAT_MARK}${getNoteForCaveat(caveat)}`],
+            [getNoteForCaveat(caveat)],
             `${metric}: the card says what the game did not say about these blows`,
         );
         // The glyph and the sentence are one answer, so the row wears the mark the card explains.

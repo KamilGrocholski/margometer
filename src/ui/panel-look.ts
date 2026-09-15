@@ -190,6 +190,13 @@ export const STANDING = {
 
 /** A dot small enough that four of them and a figure fit the window's own width. */
 const PIP_SIZE = "6px";
+/**
+ * The caveat mark's ring, across and down. Eleven against a 13px body and a 21px row: smaller
+ * reads as a speck beside a figure, larger sits taller than the digits it stands next to.
+ */
+const MARK_SIZE = "11px";
+/** What drops the ring onto the first line of a sentence: the line box less the ring, halved. */
+const MARK_DROP = "3px";
 
 export const SHAPE = {
     radius: "8px",
@@ -627,9 +634,10 @@ function composeRowRules(): string {
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
         // Beside the suspect mark and under the same argument: it reaches the row closing a
         // damage section and no other. A mark on every row was measured and refused — `DESIGN.md`
-        // carries the share, **ADR 0089** the decision.
-        `.${CLASS.rowCaveat}{position:relative;color:var(${VARIABLE_PREFIX}caveat);flex:none;` +
-        `padding-right:var(${VARIABLE_PREFIX}small);}` +
+        // carries the share, **ADR 0089** the decision. The ring itself is drawn once for both
+        // places it stands, below; margin and not padding, because the ring is this box's border.
+        `.${CLASS.rowCaveat}{position:relative;` +
+        `margin-right:var(${VARIABLE_PREFIX}small);}` +
         // Beside the suspect mark and under the same argument: it reaches the one row whose turn
         // the game is numbering, never every row. `DESIGN.md` owns the rule, **ADR 0066** the cost.
         `.${CLASS.rowTurn}{position:relative;color:var(${VARIABLE_PREFIX}quiet);flex:none;` +
@@ -672,6 +680,32 @@ function composeRowRules(): string {
  * `position:fixed` puts its containing block at the viewport, so the host's `overflow:hidden`
  * cannot clip it: the host creates none, having no transform, filter or containment.
  */
+/**
+ * The caveat mark, **drawn and not spelled**, in the one rule both places it stands read from.
+ *
+ * ⚠️ **No font can be relied on for this shape.** Measured in Chrome 152 on 2026-09-15: `ⓘ` comes
+ * to 6.5px against 10.23 for `O` at 13px, and to the same 6.5 under `system-ui`, `sans-serif`,
+ * DejaVu Sans, Liberation Sans, Noto Sans, Arial, Segoe UI, Cantarell and Ubuntu alike — none of
+ * them carries U+24D8, so every one falls back to a single condensed face. A ring with a border
+ * is a circle wherever the panel is opened, which a codepoint is not. **ADR 0092.**
+ *
+ * `align-self` because both parents are flex rows that stretch a child by default, and a ring
+ * stretched to the line box is the ellipse this rule exists to stop being.
+ */
+function composeCaveatMarkRule(): string {
+    return `.${CLASS.rowCaveat},.${CLASS.tipCaveat}{box-sizing:border-box;display:inline-flex;` +
+        `align-items:center;justify-content:center;align-self:center;flex:none;` +
+        `width:${MARK_SIZE};height:${MARK_SIZE};` +
+        // An ink of its own, as the other three severities have: drawn in the label's colour it
+        // was invisible against the label it qualifies. `DESIGN.md` owns the rule and carries the
+        // measured distance to every other hue the panel spends.
+        `color:var(${VARIABLE_PREFIX}caveat);` +
+        `border:1px solid currentColor;border-radius:50%;` +
+        // The letter inside the ring, and it is the only type on the panel below the body size:
+        // an `i` at the body's own 13px leaves no ring to draw around it.
+        `font-size:9px;font-weight:600;font-style:normal;line-height:1;}`;
+}
+
 function composeTipRules(): string {
     // Where a card stands before any window has been moved: against the panel's own corner. It is
     // a distance from the **right** edge, and every placement across is, because a card narrower
@@ -713,16 +747,22 @@ function composeTipRules(): string {
         `.${CLASS.tipLabel}{color:var(${VARIABLE_PREFIX}quiet);flex:1;min-width:0;` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipValue}{font-variant-numeric:tabular-nums;flex:none;}` +
-        // An ink of its own, as the other three severities have: drawn in the label's colour it
-        // was invisible against the label it qualifies. `DESIGN.md` owns the rule and carries the
-        // measured distance to every other hue the panel spends.
-        `.${CLASS.tipCaveat}{color:var(${VARIABLE_PREFIX}caveat);flex:none;}` +
+        composeCaveatMarkRule() +
         // The same letters a cut's heading wears down the panel, so a run of parts under one
         // reads as the same kind of thing in both places. `DESIGN.md` owns the look.
         `.${CLASS.tipHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
         `font-size:12px;text-transform:uppercase;overflow:hidden;` +
         `text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipNote}{color:var(${VARIABLE_PREFIX}quiet);}` +
+        // The sentence is this box's own text and the ring is a child appended after it, so the
+        // sheet is what stands the ring first: `order` over a flex row. It buys the hanging indent
+        // as well — a sentence running to a second line aligns under its own first word rather
+        // than under the ring.
+        `.${CLASS.tipNote}.${CLASS.tipCaveatNote}{display:flex;align-items:flex-start;` +
+        `gap:var(${VARIABLE_PREFIX}small);}` +
+        `.${CLASS.tipNote} .${CLASS.tipCaveat}{order:-1;align-self:flex-start;` +
+        // Onto the optical centre of the first line: a 21px line box less an 11px ring, halved.
+        `margin-top:${MARK_DROP};}` +
         `.${CLASS.tipNote}.${CLASS.tipSuspect}{color:var(${VARIABLE_PREFIX}suspect);}` +
         `.${CLASS.tipNote}.${CLASS.tipCaveatNote}{color:var(${VARIABLE_PREFIX}caveat);}`;
 }

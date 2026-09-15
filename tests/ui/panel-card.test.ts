@@ -88,14 +88,18 @@ const NOBODY: RowDetail = {
     castsUnplaced: 0,
 };
 
-/** The glyph as a reader meets it in a line, which is beside the figure and not inside a word. */
-const CAVEATED = CAVEAT_MARK.trim();
+/**
+ * The mark as a reader meets it in a line, in this reader's own spelling. The panel draws a ring
+ * around the letter rather than spelling a glyph (**ADR 0092**), so there is no one string to read
+ * back off the module — and `i` alone would match any Polish sentence opening with that word.
+ */
+const CAVEATED = `(${CAVEAT_MARK})`;
 
 /** The sentence a figure of the reduction owes, mark and all, as the card composes it. */
-const REDUCTION_NOTE = `${CAVEAT_MARK}${getNoteForCaveat("reduction")}`;
+const REDUCTION_NOTE = `${CAVEATED} ${getNoteForCaveat("reduction")}`;
 
 /** And the one a count of turns owes. */
-const TURNS_NOTE = `${CAVEAT_MARK}${getNoteForCaveat("turns")}`;
+const TURNS_NOTE = `${CAVEATED} ${getNoteForCaveat("turns")}`;
 
 /**
  * One group as a reader meets it, so an expectation reads like the window does — **the glyph
@@ -104,7 +108,10 @@ const TURNS_NOTE = `${CAVEAT_MARK}${getNoteForCaveat("turns")}`;
  */
 function readGroup(group: TipGroup): string[] {
     return group.lines.map((line) => {
-        if (line.kind === "note") return line.text;
+        // The mark a sentence wears is read off its tone, which is where the panel reads it too.
+        if (line.kind === "note") {
+            return line.tone === "caveat" ? `${CAVEATED} ${line.text}` : line.text;
+        }
         if (line.kind === "heading") return `[${line.text}]`;
         if (line.kind === "sub") return `  ${line.label} ${line.stated}`;
         const said = line.caveat === null ? line.label : `${line.label} ${CAVEATED}`;
@@ -284,10 +291,10 @@ Deno.test("a figure naming more than it counts wears a mark, and the mark has a 
 Deno.test("a caveat and a suspicion stand on one card, each under its own mark", () => {
     const said = readCardOf({ ...HILDUR, unreadMessagesUnknownKey: 2 });
     const marked = said.filter((line) =>
-        line.startsWith(CAVEAT_MARK) || line.startsWith(SUSPECT_MARK)
+        line.startsWith(CAVEATED) || line.startsWith(SUSPECT_MARK)
     );
     assertEquals(
-        marked.filter((line) => line.startsWith(CAVEAT_MARK)).length,
+        marked.filter((line) => line.startsWith(CAVEATED)).length,
         2,
         "the two sentences a caveated figure owes stand under the caveat's mark",
     );
