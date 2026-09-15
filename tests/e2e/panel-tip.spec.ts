@@ -27,7 +27,7 @@ const SHORT_WINDOW = 480;
 /** What the card says where a run of it was given up. Read in words, as every sentence is. */
 const CUT_NOTE = "Nie wszystko się mieści w tym oknie.";
 /** `TIP.widthMaximum`, as the number a measurement is compared against. */
-const BOUND = 296;
+const BOUND = 250;
 /** `SPACE.small`, which is the air the sheet keeps between a window and the card beside it. */
 const GAP = 4;
 
@@ -289,8 +289,8 @@ test("the way back says both gestures, and only where a level is open", async ({
  * ⚠️ **The one claim a unit test cannot make: how wide the card ends up.** The width is the
  * sheet's — `max-content` under a bound (**ADR 0091**) — so nothing in `src/` knows it and only a
  * browser laying the card out can answer. Before that decision every card was the bound: the
- * second window's card, a skill name over one instruction, stood 296px wide for sixteen
- * characters.
+ * second window's card, a skill name over one instruction, stood at the whole of the bound for
+ * sixteen characters.
  */
 test("a card is as wide as what it says, up to the bound", async ({ panel }) => {
     const standingRow = panel.at(`${HOST_SELECTOR} .MargoMeter-standing .row[data-standing]`)

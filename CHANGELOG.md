@@ -62,11 +62,6 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   na półce tak samo jak dzisiejsza. Trwająca walka dalej stoi jako „teraz". Na nazwę miejsca zostaje
   przez to mniej miejsca i dłuższa bywa ucięta — pełną widać w okienku wiersza.
 
-- **Zmiana** — Panel jest większy. Pismo urosło z 11 na 13 pikseli, wiersz z 18 na 21, a sam panel z
-  260 na 306 pikseli. Do tej pory panel miał dokładnie tę wielkość co okna gry i zlewał się z nimi;
-  teraz czyta się go jednym spojrzeniem. Karta rośnie razem z nim. Obiecane jedenaście wierszy nadal
-  wchodzi na każdym oknie wyższym niż 640 pikseli.
-
 - **Zmiana** — Okienko wiersza jest teraz tak szerokie, jak to, co w nim stoi. Do tej pory każde
   miało jedną szerokość, więc okienko z Pomocnika — nazwa umiejętności i jedno zdanie — było równie
   szerokie co pełna karta postaci i zasłaniało wiersze, po które się na nie najeżdżało. Karta

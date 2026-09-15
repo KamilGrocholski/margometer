@@ -156,11 +156,11 @@ legibility.
 | `spaceSmall`     | the base step                                                   |
 | `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region    |
 | `spaceWide`      | `8px`, which is also the inset the panel sits at                |
-| `rowHeight`      | `21px`                                                          |
+| `rowHeight`      | `18px`                                                          |
 | `maxHeightShare` | `66vh`                                                          |
-| `tipWidth`       | fixed, so a tooltip never reflows against its own content       |
-| `lineHeight`     | `18px` — whole pixels, and what a counted card is multiplied by |
-| `panelWidth`     | `306px` — narrow on purpose: the panel is a guest               |
+| `tipWidth`       | a maximum and not a width — a card is as wide as what it says   |
+| `lineHeight`     | `15px` — whole pixels, and what a counted card is multiplied by |
+| `panelWidth`     | `260px` — narrow on purpose: the panel is a guest               |
 | `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against |
 | `panelLayer`     | high enough to clear the game's own windows                     |
 
@@ -207,7 +207,7 @@ have no state to say, so their marks read the same always.
 
 **Header.** What the fight is, as a headcount, and how it went. Where it is being fought goes on a
 second line and nowhere else: beside the headcount a map's name plus a tile had about thirty
-characters of a 306-pixel panel, so the one thing answering _where_ was the one thing being cut.
+characters of a 260-pixel panel, so the one thing answering _where_ was the one thing being cut.
 
 **Ranking row.** A place in the ranking, a name, a figure and its share. The bar is an element
 behind the text at `barTint`, with a three-pixel cap at full strength on the edge it starts from:
@@ -247,25 +247,26 @@ a row wearing a mark is shown whole, or the mark took it.
 **The ranking marks whose turn it is**, before the name, on the one row the game is numbering. It
 stands on the same argument as the suspect mark below: a mark that reaches one row is not the second
 channel the paragraph above refuses, which would stand on every row to say a thing the card already
-says. `▸` measures 10.67px in Chrome 152 on 2026-09-15, against 15.80 for the suspect mark the panel
+says. `▸` measures 9.53px in Chrome 152 on 2026-09-15, against 13.88 for the suspect mark the panel
 already carries — and it toggles against nothing, which is what ★/☆ failed at. A fight already over
 numbers nobody's turn and a fight read off the shelf is a moment that has passed, so both draw no
 mark at all. **ADR 0066.**
 
 **A row whose figure means less than its label wears the caveat mark**, in the same place and on the
-same argument, and the two stand together where a row earns both. It costs a row 15px in Chrome 152
-on 2026-09-15 — an 11px ring and the air after it — against 15.80 for the suspect mark and 10.67 for
+same argument, and the two stand together where a row earns both. It costs a row 14px in Chrome 152
+on 2026-09-15 — a 10px ring and the air after it — against 13.88 for the suspect mark and 9.53 for
 the turn mark, and it is the one mark whose cost is held rather than reasoned about: what every row
 wearing it takes off a level's longest skill name is `tests/e2e/panel-marks.spec.ts`'s to say.
 **ADR 0089.**
 
 **And it is the one mark this panel draws rather than spells.** `ⓘ` was a codepoint until
-2026-09-15, when it was measured at 6.5px of ink against 10.23 for `O` at the same 13px — and at the
-same 6.5 under `system-ui`, `sans-serif`, DejaVu Sans, Liberation Sans, Noto Sans, Arial, Segoe UI,
-Cantarell and Ubuntu alike, none of them carrying U+24D8 and every one falling back to a single
-condensed face. What a reader met beside a figure was a vertical sliver. A ring with a border is a
-circle wherever the panel is opened, which a codepoint is not — and the figure this page had been
-quoting all along was the **cell**, which stayed 10.64 whatever shape stood inside it. **ADR 0092.**
+2026-09-15, when it was measured at 5.5px of ink against 8.67 for `O` at the panel's own 11px — and
+at the same 5.5 under `system-ui`, `sans-serif`, DejaVu Sans, Liberation Sans, Noto Sans, Arial,
+Segoe UI, Cantarell and Ubuntu alike, none of them carrying U+24D8 and every one falling back to a
+single condensed face. What a reader met beside a figure was a vertical sliver. A ring with a border
+is a circle wherever the panel is opened, which a codepoint is not — and the figure this page had
+been quoting all along was the **cell**, which kept its width whatever shape stood inside it.
+**ADR 0092.**
 
 **A row whose own figure is short wears the suspect mark**, before the name and drawn only there. It
 is not the second channel the paragraph above refuses: that one would stand on every row to say a
@@ -417,7 +418,7 @@ of them constants, and none of them longer than `TYP OBRAŻEŃ`.
 
 ⚠️ **A figure never folds.** It is one word — the gap between its thousands is a space that offers
 no place to break — and the cell it stands in never gives way; the words beside it are what
-shortens, cut with an ellipsis. A figure that broke across two lines in a row 21 pixels tall was
+shortens, cut with an ellipsis. A figure that broke across two lines in a row 18 pixels tall was
 read as a number half its size, which is worse than a figure not drawn at all.
 
 **Summary bar.** The fight's own strip. This is where a gap that names nobody is said, because no

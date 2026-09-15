@@ -146,13 +146,13 @@ export const SPACE = {
     regionDown: "5px",
     regionAcross: "7px",
     wide: "8px",
-    rowHeight: "21px",
+    rowHeight: "18px",
     heightShareMaximum: "66vh",
 } as const;
 
 export const PLACE = {
     inset: "8px",
-    width: "306px",
+    width: "260px",
     /** The host against the game's own page, and nothing inside the root. */
     layer: "9999",
 } as const;
@@ -170,14 +170,12 @@ export const LAYER = {
 
 /**
  * How wide a card may stand — **a maximum and not a width**. The card is drawn at `max-content`
- * and this clamps it, so one saying two words is as wide as two words. Measured in Chrome 152 on
- * 2026-09-15: the second window's card, a skill name over one instruction, went from 296px to
- * 117px, every ranking card stayed at this bound, and no card's height moved either way — a note
- * only stops filling the bound once it fits on one line, so what the height is counted from is
- * untouched. **ADR 0091.**
+ * and this clamps it, so one saying two words is as wide as two words, and a ranking card fills
+ * the bound. What that was measured to cost is **ADR 0091**'s, and the widths a browser really
+ * draws are `tests/e2e/panel-tip.spec.ts`'s.
  */
 export const TIP = {
-    widthMaximum: "296px",
+    widthMaximum: "250px",
 } as const;
 
 /**
@@ -185,18 +183,19 @@ export const TIP = {
  * and never a rank or a share, and it is the second thing standing over somebody else's game.
  */
 export const STANDING = {
-    width: "248px",
+    width: "210px",
 } as const;
 
 /** A dot small enough that four of them and a figure fit the window's own width. */
-const PIP_SIZE = "6px";
+const PIP_SIZE = "5px";
 /**
- * The caveat mark's ring, across and down. Eleven against a 13px body and a 21px row: smaller
- * reads as a speck beside a figure, larger sits taller than the digits it stands next to.
+ * The caveat mark's ring, across and down. Ten against an 11px body and an 18px row: smaller
+ * reads as a speck beside a figure, larger sits taller than the digits it stands next to — and
+ * nine carries no letter at all, measured in Chrome 152 on 2026-09-15.
  */
-const MARK_SIZE = "11px";
+const MARK_SIZE = "10px";
 /** What drops the ring onto the first line of a sentence: the line box less the ring, halved. */
-const MARK_DROP = "3px";
+const MARK_DROP = "2px";
 
 export const SHAPE = {
     radius: "8px",
@@ -204,8 +203,8 @@ export const SHAPE = {
     windowShadow: "0 6px 20px rgb(0 0 0 / 55%)",
 } as const;
 
-/** Two digits and a stop: 20.69px in Chrome 152, 2026-09-15, and a fight holds twenty. */
-const RANK_WIDTH = "26px";
+/** Two digits and a stop: 17.50px in Chrome 152, 2026-09-15, and a fight holds twenty. */
+const RANK_WIDTH = "22px";
 /** What a row carries over its contents and not under, so its ink lands even. **ADR 0015.** */
 const ROW_INK_DROP = "1px";
 const BAR_TINT = 0.55;
@@ -397,14 +396,14 @@ function composeHeadingColour(): string {
 const VARIABLE_PREFIX = "--MargoMeter-";
 const ROWS_BY_DEFAULT = 11;
 const FONT_STACK = "system-ui, sans-serif";
-const FONT_SIZE = "13px";
+const FONT_SIZE = "11px";
 /** Whole pixels: a fractional line box puts every box under it off the grid. **ADR 0015.** */
-const LINE_HEIGHT = "18px";
+const LINE_HEIGHT = "15px";
 /** The two characters a length in pixels ends in, taken off before the number is read. */
 const PIXELS_SUFFIX = 2;
 /** What a border costs the box it is on, at the one width this panel draws one. */
 const RULE_WIDTH = 1;
-const LINE_HEIGHT_TITLE = "15px";
+const LINE_HEIGHT_TITLE = "13px";
 
 function composeVariable(name: string, value: string): string {
     return `${VARIABLE_PREFIX}${name}:${value};`;
@@ -469,7 +468,7 @@ function composeFrameRules(): string {
         // Safari has never shipped `user-select` unprefixed, so without this a drag by the bar
         // selects the text under the cursor (`docs/browser-support.md`).
         `-webkit-user-select:none;user-select:none;touch-action:none;}` +
-        `.${CLASS.titleVersion}{opacity:0.7;font-size:12px;}` +
+        `.${CLASS.titleVersion}{opacity:0.7;font-size:10px;}` +
         `.${CLASS.control}{padding:0 var(${VARIABLE_PREFIX}small);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);` +
@@ -497,12 +496,12 @@ function composeRegionRules(): string {
     const region = `var(${VARIABLE_PREFIX}region-down) var(${VARIABLE_PREFIX}region-across)`;
     return `.${CLASS.header}{display:block;padding:${region};padding-bottom:0;}` +
         `.${CLASS.headerLine}{display:flex;justify-content:space-between;align-items:baseline;}` +
-        `.${CLASS.headerPlace}{color:var(${VARIABLE_PREFIX}quiet);font-size:12px;` +
+        `.${CLASS.headerPlace}{color:var(${VARIABLE_PREFIX}quiet);font-size:10px;` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
         // The upper case belongs to this rule rather than to a word: the shelf says the same
         // word a row at a time, in the case it was composed in.
         `.${CLASS.headerOutcome}{color:var(${VARIABLE_PREFIX}quiet);text-transform:uppercase;` +
-        `font-size:12px;}` +
+        `font-size:10px;}` +
         `.${CLASS.strips}{display:flex;flex-wrap:wrap;gap:var(${VARIABLE_PREFIX}half);` +
         `padding:${region};padding-bottom:0;}` +
         `.${CLASS.strips}+.${CLASS.strips}{padding-top:var(${VARIABLE_PREFIX}radius-small);}` +
@@ -549,7 +548,7 @@ function composeListRules(): string {
         `.${CLASS.section}{position:sticky;` +
         `top:calc(0px - var(${VARIABLE_PREFIX}region-down));z-index:1;` +
         `background:var(${VARIABLE_PREFIX}surface);display:flex;justify-content:space-between;` +
-        `color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;font-size:12px;` +
+        `color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;font-size:10px;` +
         // Deliberately unequal, against ADR 0014's rule for every other region: the air under a
         // heading belongs to the rows it names.
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}half) ` +
@@ -567,7 +566,7 @@ function composeListRules(): string {
         `font-variant-numeric:tabular-nums;font-weight:600;}` +
         `.${CLASS.sidesLabel}{color:var(${VARIABLE_PREFIX}quiet);font-weight:400;opacity:0.8;` +
         `min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
-        `.${CLASS.sidesSpare}{margin-top:var(${VARIABLE_PREFIX}small);font-size:12px;}` +
+        `.${CLASS.sidesSpare}{margin-top:var(${VARIABLE_PREFIX}small);font-size:10px;}` +
         `.${CLASS.sidesSpare} .${CLASS.sidesLabel}{color:inherit;}` +
         `.${CLASS.sidesTrack}{display:flex;height:4px;` +
         `margin-top:var(${VARIABLE_PREFIX}small);` +
@@ -684,10 +683,10 @@ function composeRowRules(): string {
  * The caveat mark, **drawn and not spelled**, in the one rule both places it stands read from.
  *
  * ⚠️ **No font can be relied on for this shape.** Measured in Chrome 152 on 2026-09-15: `ⓘ` comes
- * to 6.5px against 10.23 for `O` at 13px, and to the same 6.5 under `system-ui`, `sans-serif`,
- * DejaVu Sans, Liberation Sans, Noto Sans, Arial, Segoe UI, Cantarell and Ubuntu alike — none of
- * them carries U+24D8, so every one falls back to a single condensed face. A ring with a border
- * is a circle wherever the panel is opened, which a codepoint is not. **ADR 0092.**
+ * to 5.5px against 8.67 for `O` at the panel's own 11px. No family this machine offers carries
+ * U+24D8, so every one falls back to a single condensed face, and **ADR 0092** carries that sweep
+ * and the nine it was taken over. A ring with a border is a circle wherever the panel is opened,
+ * which a codepoint is not.
  *
  * `align-self` because both parents are flex rows that stretch a child by default, and a ring
  * stretched to the line box is the ellipse this rule exists to stop being.
@@ -702,8 +701,9 @@ function composeCaveatMarkRule(): string {
         `color:var(${VARIABLE_PREFIX}caveat);` +
         `border:1px solid currentColor;border-radius:50%;` +
         // The letter inside the ring, and it is the only type on the panel below the body size:
-        // an `i` at the body's own 13px leaves no ring to draw around it.
-        `font-size:9px;font-weight:600;font-style:normal;line-height:1;}`;
+        // an `i` at the body's own 11px leaves no ring to draw around it. Seven is the largest
+        // that leaves the ring untouched: at eight the stem meets it at the top.
+        `font-size:7px;font-weight:600;font-style:normal;line-height:1;}`;
 }
 
 function composeTipRules(): string {
@@ -751,7 +751,7 @@ function composeTipRules(): string {
         // The same letters a cut's heading wears down the panel, so a run of parts under one
         // reads as the same kind of thing in both places. `DESIGN.md` owns the look.
         `.${CLASS.tipHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
-        `font-size:12px;text-transform:uppercase;overflow:hidden;` +
+        `font-size:10px;text-transform:uppercase;overflow:hidden;` +
         `text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipNote}{color:var(${VARIABLE_PREFIX}quiet);}` +
         // The sentence is this box's own text and the ring is a child appended after it, so the
@@ -761,7 +761,7 @@ function composeTipRules(): string {
         `.${CLASS.tipNote}.${CLASS.tipCaveatNote}{display:flex;align-items:flex-start;` +
         `gap:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.tipNote} .${CLASS.tipCaveat}{order:-1;align-self:flex-start;` +
-        // Onto the optical centre of the first line: a 21px line box less an 11px ring, halved.
+        // Onto the optical centre of the first line: a 15px line box less a 10px ring, halved.
         `margin-top:${MARK_DROP};}` +
         `.${CLASS.tipNote}.${CLASS.tipSuspect}{color:var(${VARIABLE_PREFIX}suspect);}` +
         `.${CLASS.tipNote}.${CLASS.tipCaveatNote}{color:var(${VARIABLE_PREFIX}caveat);}`;

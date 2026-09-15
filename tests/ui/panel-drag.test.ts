@@ -53,7 +53,7 @@ Deno.test("a position is kept inside the window, with the grab area still on scr
 Deno.test("a panel nobody has moved opens in the middle of the window", () => {
     assertEquals(
         composeDefaultPosition(WINDOW),
-        { left: 487, top: 153 },
+        { left: 510, top: 153 },
         "centred across, and centred on the tallest body the sheet allows down",
     );
     assertEquals(
@@ -159,7 +159,7 @@ Deno.test("the detail opens on the side of the panel that has room for it", () =
     // leftwards would be drawn off the screen — where nothing here would measure it back on.
     assertEquals(
         composeTipAcross(composePlace(20), WINDOW, MAXIMUM_TIP_WIDTH),
-        composeFromLeft(330),
+        composeFromLeft(284),
         "and one against the left edge opens it to the right instead",
     );
     assertEquals(
@@ -169,7 +169,7 @@ Deno.test("the detail opens on the side of the panel that has room for it", () =
     );
     assertEquals(
         composeTipAcross(composePlace(253), WINDOW, MAXIMUM_TIP_WIDTH),
-        composeFromLeft(563),
+        composeFromLeft(517),
         "and one pixel less is not",
     );
     assertEquals(
@@ -195,7 +195,7 @@ Deno.test("the side a card opens on is the same for every card the window holds"
     const at = composePlace(253);
     assertEquals(
         composeTipAcross(at, WINDOW, MAXIMUM_TIP_WIDTH),
-        composeFromLeft(563),
+        composeFromLeft(517),
         "the bound says there is no room on the left",
     );
     assertEquals(
@@ -206,8 +206,8 @@ Deno.test("the side a card opens on is the same for every card the window holds"
 });
 
 /**
- * The second window is 248px wide against the panel's 306, so a card flipped off its left edge
- * lands 58px short of where the panel's own would — on the panel, which is what the second half of
+ * The second window is 210px wide against the panel's 260, so a card flipped off its left edge
+ * lands 50px short of where the panel's own would — on the panel, which is what the second half of
  * this holds it against (**ADR 0090**).
  */
 Deno.test("a card from the window beside the panel opens beside that window", () => {
@@ -218,17 +218,17 @@ Deno.test("a card from the window beside the panel opens beside that window", ()
     );
     assertEquals(
         composeTipAcross(composePlace(20, STANDING_WINDOW), WINDOW, MAXIMUM_TIP_WIDTH),
-        composeFromLeft(272),
+        composeFromLeft(234),
         "and flipped right, alone in the strip, it steps over its own width and not the panel's",
     );
     assertEquals(
         composeTipAcross(composePlace(20), WINDOW, MAXIMUM_TIP_WIDTH),
-        composeFromLeft(330),
+        composeFromLeft(284),
         "which is where the panel's own card goes, the two being 58px apart",
     );
     assertEquals(
         composeTipAcross(composePlace(253, STANDING_WINDOW), WINDOW, MAXIMUM_TIP_WIDTH),
-        composeFromLeft(505),
+        composeFromLeft(467),
         "the boundary on the left is the bound and the gap, which no window decides",
     );
     assertEquals(
@@ -241,26 +241,26 @@ Deno.test("a card from the window beside the panel opens beside that window", ()
 /**
  * ⚠️ **The two windows are placed apart, and nothing reads the other's corner.** A flip that
  * stepped past both put the panel's own card beyond the second window the moment the panel was
- * dragged left of it — 310 away from the panel it belongs to, at 487, against a window the reader
+ * dragged left of it — 264 away from the panel it belongs to, at 449, against a window the reader
  * was not pointing at. Reported on the branch that introduced it (**ADR 0090**).
  */
 Deno.test("a card flipped right stays with its own window, whatever the other is doing", () => {
     const WINDOW_LEFT = 235;
     assertEquals(
         composeTipAcross(composePlace(0), WINDOW, MAXIMUM_TIP_WIDTH),
-        composeFromLeft(310),
+        composeFromLeft(264),
         "a panel against the left edge opens its card a gap to its own right",
     );
     assertEquals(
         composeTipAcross(composePlace(WINDOW_LEFT, STANDING_WINDOW), WINDOW, MAXIMUM_TIP_WIDTH),
-        composeFromLeft(487),
+        composeFromLeft(449),
         "and the second window's card is where that window's own right edge puts it",
     );
     // The same two windows, the panel dragged left of the other: neither answer moved, because
     // neither was read from the other. This is the whole of what the pair is held to.
     assertEquals(
         composeTipAcross(composePlace(0), WINDOW, MAXIMUM_TIP_WIDTH),
-        composeFromLeft(310),
+        composeFromLeft(264),
         "the panel's answer is the panel's, whatever corner the second window is standing in",
     );
     // The clamp is the screen and outranks the window. It is reachable only on a screen narrow
