@@ -25,7 +25,7 @@
 - [ ] Plan: Add a fight visualization - a simple chart with bars or something
 
 ## Done
-- [x] Increase font size
+- [x] Try to increase font size - outcome: it's a bad idea
 - [x] Change color palette
 - [x] Remove uncertain informations: the largest blow, raw damage, etc.
 - [x] Attach information glyph to each uncertain information, which is NOT a bug or an error
