@@ -42,14 +42,18 @@ alt="Karta postaci otwarta obok panelu">
 Walka dziesięciu na jednego, na ekranie obrażeń otrzymanych.
 
 - Obrażenia i przywracanie życia, zadane i otrzymane, dla każdej postaci, w każdej walce.
-- Wiersz się rozwija, i to trzy poziomy w głąb: kto komu, potem czym — umiejętnością albo typem
-  obrażeń. Rozwija się kliknięciem, a wraca kliknięciem prawym przyciskiem w dowolnym miejscu panelu
-  albo w ścieżkę nad listą.
-- Najedź na wiersz postaci — na liście albo w rozwiniętym wierszu — żeby zobaczyć jej kartę:
-  wszystkie cztery liczby, tury wykonane i te utracone, krytyki, co zatrzymała obrona i co zniszczył
-  atak. To samo na każdym ekranie. Liczba, która znaczy węziej, niż mówi jej nazwa, ma obok siebie
-  znak, a pod kartą zdanie wyjaśniające, czego gra nie podaje.
-- Skończone walki trafiają na półkę i można do nich wrócić. Panel mówi, gdzie się toczyły.
+- Wiersz się rozwija, i to trzy poziomy w głąb: kto komu, potem czym — umiejętnością, typem obrażeń
+  albo wierszem „Zwykły cios", pod którym stoi to, czego gra żadną umiejętnością nie nazwała; na
+  ekranach obrażeń bywa on pierwszy. Rozwija się kliknięciem, a wraca kliknięciem prawym przyciskiem
+  w dowolnym miejscu panelu albo w ścieżkę nad listą.
+- Najedź na wiersz postaci — na liście albo w rozwiniętym wierszu — żeby zobaczyć jej kartę: tę
+  liczbę, o którą pytasz ekranem, i każdą z pozostałych trzech, która nie jest zerem, tury wykonane
+  i te utracone, krytyki, co zatrzymała obrona i co zniszczył atak. To samo na każdym ekranie.
+  Liczba, która znaczy węziej, niż mówi jej nazwa, ma obok siebie znak, a pod kartą zdanie
+  wyjaśniające, czego gra nie podaje.
+- Skończone walki trafiają na półkę i można do nich wrócić. Każda mówi, którego dnia i o której się
+  odbyła, a obok — gdzie. Na nazwę miejsca zostaje przez to mniej miejsca i dłuższa bywa ucięta;
+  pełną widać w okienku wiersza.
 - Obok panelu stoi drugie okno: mówi, czyja jest tura i co w tej chwili stoi na walce — umiejętności
   rzucone na całą stronę i okrzyki — z tym, ile tur minęło z tych, które podaje gra. Nigdy z tym,
   ile zostało: tego gra nie mówi. Kiedy ktoś szykuje cios specjalny, stoi tam osobno — z tym, ile

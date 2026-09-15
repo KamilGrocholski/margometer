@@ -42,14 +42,18 @@ alt="The combatant's card open beside the panel">
 A ten-against-one fight, on the damage-taken screen.
 
 - Damage and health restored, dealt and taken, per combatant, per fight.
-- A row opens, three levels deep: who to whom, then with what — a skill, or a kind of damage. A
-  press opens it; a right press anywhere on the panel, or a press on the crumb over the list, takes
-  you back.
-- Hover the row of anybody in the fight — on the list, or inside an opened row — for their card: all
-  four figures, the turns they took and the ones they lost, criticals, what a defence stopped and
-  what an attack destroyed. The same on every screen. A figure that means narrower than its label
-  says carries a mark, and a sentence at the foot of the card says what the game does not report.
-- A finished fight goes on a shelf you can go back to, and the panel says where it was fought.
+- A row opens, three levels deep: who to whom, then with what — a skill, a kind of damage, or the
+  "Zwykły cios" row holding what the game named no skill for, which on the damage screens is often
+  the first row of the list. A press opens it; a right press anywhere on the panel, or a press on
+  the crumb over the list, takes you back.
+- Hover the row of anybody in the fight — on the list, or inside an opened row — for their card: the
+  figure the screen asks for, and each of the other three that is not nought, the turns they took
+  and the ones they lost, criticals, what a defence stopped and what an attack destroyed. The same
+  on every screen. A figure that means narrower than its label says carries a mark, and a sentence
+  at the foot of the card says what the game does not report.
+- A finished fight goes on a shelf you can go back to. Each says which day and hour it was fought,
+  and beside that where — the place name has less room for it now, and a long one is cut, whole in
+  that row's own card.
 - A second window stands beside the panel: whose turn it is, and what is standing on the fight —
   skills cast over a whole side, and the shouts — with how many of the turns the game states have
   passed. Never how many are left: the game does not say. A special blow being made ready stands

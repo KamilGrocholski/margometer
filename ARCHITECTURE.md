@@ -542,57 +542,59 @@ commit that opens or closes one.
    client named one of the reader's own, and — on the one row the game is numbering, and never on a
    fight that is over or read off the shelf — a mark before the name saying whose turn it is (**ADR
    0065**, **ADR 0066**), hovering the row of somebody the roster holds — on the ranking, in the
-   ends an opened figure reached, or under an opened part of one — opens the card that states all
-   four of a combatant's figures with the screen's own in bold, the part of each the protocol named
-   one end of, how they fought at either end and what qualifies the lot, and says so where the row
-   under it states a cut of the figure — while hovering a row with nobody behind it opens the name
-   its own cell had to cut, and one the protocol left an end of says which end and where its figure
-   stands, and opens onto the end the game did name and what it was dealt with, the bar says which
-   build drew it and the host carries the same number for a screenshot to be read by, the panel
-   folds to that bar and comes back folded, a press on `⭳` hands the reader the fight in one file —
-   the calls in the shape intake reads and the figures they came to beside them, the panel carries
-   the stylesheet `DESIGN.md` specifies and the strip that always states the screen's own total, and
-   `deno task build` writes the file they install, `deno task preview` serves it over a recording
-   and reloads it on a change under `src/`, `deno task preview:site` writes the same page down for
-   somebody with no clone, `deno task panel:shots` photographs it, and `deno task capture:intake`
-   redacts a recording and admits it to `captures/`. The header says how the fight went, the strip
-   under the list totals the two sides and what belongs to neither, a suspicion is said as a
-   sentence under it, a row whose own figure a suspicion reaches wears a mark with that row's own
-   sentence on its card and on nobody else's (**ADR 0069**), and the panel is moved by its bar and
-   comes back where it was left, with the list standing at the place the reader scrolled it to
-   (**ADR 0050**). Under the pinned rows stands the section holding what the screen's own count
-   holds and no row of it does, drawn only where the two counts differ, which over `captures/` is
-   nowhere (**ADR 0082**). Which rows of all that open and which are the last is
-   `docs/drill-levels.md`'s to say, measured rather than claimed here. The card that says what a
-   combatant's figures are made of is written, and so are both of its runs, on every screen and each
-   under the heading naming its end: the criticals against the blows struck, the hardest blow, what
-   fired beside one and what it destroyed on the other side, what a defence stopped, cut by the
-   defence (**ADR 0032**), and the turns that combatant took with, under them, the ones a stun took
-   away — each on a line of its own, and nothing divided by either (**ADR 0048**, **ADR 0049**). Two
-   proc keys reach no row — `-tenacity` and `+superspell-dispel`, whose end article view,372 does
-   not settle — and they are decoded and charged to nobody until material does, though the player's
-   own client names them and five others on the card (**ADR 0024**). **A second window stands beside
-   the panel**, inside the same shadow root and dragged, folded and remembered apart from it (**ADR
-   0060**): it says whose turn the game numbers — and, where it is numbering none because the fight
-   ended or because the reader handed it over on the auto key, which of the two it is (**ADR 0072**)
-   — and what is standing on the fight, one counted row per skill reaching a side, and a press opens
-   the casters under it with what has passed of what the published table gives them — never what is
-   left (**ADR 0059**) — each wearing their own profession's hue and the same side rule the ranking
-   wears (**ADR 0065**). A cast reaching a whole side says nothing about whom, because there is
-   nothing to say; the two okrzyki stand in a section of their own, drawn under whoever threw them
-   with the characters they hold as rows beneath, the turns stated once because they are the cast's
-   (**ADR 0062**, **ADR 0067**). It draws a third band above them where a combatant is making a
-   **charged skill** ready: one row, the game's own name for the blow, one dot per turn of the
-   charge lit to what has passed, and the pair of figures the client itself divides — never the
-   percentage that division comes to. The two ends the protocol names stand for one turn after the
-   fact and then the band is gone, which is one payload: the game's own turn number moves by one on
-   the very next one, 24 times out of 24 over `captures/` 2026-09-11. Whom a shout holds is **read
-   off its value**, which names every provoked character separated by a comma and a space, and a
-   name the roster cannot place is dropped rather than guessed at (**ADR 0064**). That table is the
-   third frozen reading (**ADR 0058**), and `docs/auras-standing.md` is its register over
-   `captures/`. Both READMEs are written and show the set `deno task panel:shots` takes, so the
-   release plumbing is whole and has now run at a tag — what is left of it is held by a person,
-   which is what the gap below it is about.
+   ends an opened figure reached, or under an opened part of one — opens the card that states the
+   screen's own figure whatever it is and each of the other three only above nought, that one in
+   bold (**ADR 0087**), the part of each the protocol named one end of, how they fought at either
+   end and what qualifies the lot, and says so where the row under it states a cut of the figure —
+   while hovering a row with nobody behind it opens the name its own cell had to cut, and one the
+   protocol left an end of says which end and where its figure stands, and opens onto the end the
+   game did name and what it was dealt with, the bar says which build drew it and the host carries
+   the same number for a screenshot to be read by, the panel folds to that bar and comes back
+   folded, a press on `⭳` hands the reader the fight in one file — the calls in the shape intake
+   reads and the figures they came to beside them, the panel carries the stylesheet `DESIGN.md`
+   specifies and the strip that always states the screen's own total, and `deno task build` writes
+   the file they install, `deno task preview` serves it over a recording and reloads it on a change
+   under `src/`, `deno task preview:site` writes the same page down for somebody with no clone,
+   `deno task panel:shots` photographs it, and `deno task capture:intake` redacts a recording and
+   admits it to `captures/`. The header says how the fight went, the strip under the list totals the
+   two sides and what belongs to neither, a suspicion is said as a sentence under it, a row whose
+   own figure a suspicion reaches wears a mark with that row's own sentence on its card and on
+   nobody else's (**ADR 0069**), and the panel is moved by its bar and comes back where it was left,
+   with the list standing at the place the reader scrolled it to (**ADR 0050**). Under the pinned
+   rows stands the section holding what the screen's own count holds and no row of it does, drawn
+   only where the two counts differ, which over `captures/` is nowhere (**ADR 0082**). Which rows of
+   all that open and which are the last is `docs/drill-levels.md`'s to say, measured rather than
+   claimed here. The card that says what a combatant's figures are made of is written, and so are
+   both of its runs, on every screen, in blocks headed by **what the figures under each are a sum
+   over** — the whole fight, the blows dealt, the blows taken (**ADR 0087**): the criticals against
+   the blows struck, what fired beside one and what it destroyed on the other side, what a defence
+   stopped, cut by the defence (**ADR 0032**), and the turns that combatant took with, under them,
+   the ones a stun took away — each on a line of its own, and nothing divided by either (**ADR
+   0048**, **ADR 0049**). The largest blow at either end is in the file the reader is handed and on
+   no card (**ADR 0088**). Two proc keys reach no row — `-tenacity` and `+superspell-dispel`, whose
+   end article view,372 does not settle — and they are decoded and charged to nobody until material
+   does, though the player's own client names them and five others on the card (**ADR 0024**). **A
+   second window stands beside the panel**, inside the same shadow root and dragged, folded and
+   remembered apart from it (**ADR 0060**): it says whose turn the game numbers — and, where it is
+   numbering none because the fight ended or because the reader handed it over on the auto key,
+   which of the two it is (**ADR 0072**) — and what is standing on the fight, one counted row per
+   skill reaching a side, and a press opens the casters under it with what has passed of what the
+   published table gives them — never what is left (**ADR 0059**) — each wearing their own
+   profession's hue and the same side rule the ranking wears (**ADR 0065**). A cast reaching a whole
+   side says nothing about whom, because there is nothing to say; the two okrzyki stand in a section
+   of their own, drawn under whoever threw them with the characters they hold as rows beneath, the
+   turns stated once because they are the cast's (**ADR 0062**, **ADR 0067**). It draws a third band
+   above them where a combatant is making a **charged skill** ready: one row, the game's own name
+   for the blow, one dot per turn of the charge lit to what has passed, and the pair of figures the
+   client itself divides — never the percentage that division comes to. The two ends the protocol
+   names stand for one turn after the fact and then the band is gone, which is one payload: the
+   game's own turn number moves by one on the very next one, 24 times out of 24 over `captures/`
+   2026-09-11. Whom a shout holds is **read off its value**, which names every provoked character
+   separated by a comma and a space, and a name the roster cannot place is dropped rather than
+   guessed at (**ADR 0064**). That table is the third frozen reading (**ADR 0058**), and
+   `docs/auras-standing.md` is its register over `captures/`. Both READMEs are written and show the
+   set `deno task panel:shots` takes, so the release plumbing is whole and has now run at a tag —
+   what is left of it is held by a person, which is what the gap below it is about.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
@@ -600,11 +602,13 @@ commit that opens or closes one.
 3. **Some documents run past 100 columns.** They hold tables `deno fmt` aligns but never wraps.
    `tests/repository/documents.test.ts` names each and why, and reads the list both ways — a
    document excused for a line it no longer has fails, and so does one excused that the walk does
-   not reach. Which documents those are is its to state rather than this file's (**V5**), and this
-   entry listed five of them while the walk reached none: the guard read the root's documents, the
-   two READMEs and the decision records, and nothing else under `docs/` or `.agents/` at all.
-   Rewrapping is a large diff, on carried material or on a generated register, and waits until each
-   is next edited for its own reasons.
+   not reach. Which lines those are is its to state rather than this file's (**V5**). This entry
+   listed five documents while the walk reached none: the guard read the root's documents, the two
+   READMEs and the decision records, and nothing else under `docs/` or `.agents/` at all. `34928fe`
+   put the walk over `.agents`, `captures`, `design`, `docs`, `frozen` and `tests` beside the root,
+   and turned the excuse from a **document** into a **line** — naming a file had excused its prose
+   along with its tables. Two lines are left, neither of them a rewrap's to fix: a front matter the
+   format writes as one line, and the maintainer's list, which no tool here writes.
 4. **A JavaScript construct past the floor is caught by an ES level, not by the floor itself.**
    `tests/tools/browser-support.test.ts` holds `docs/browser-support.md`'s CSS half against the one
    string the stylesheet is, holds both halves' rows to the files they name, and re-earns both tiers
@@ -629,10 +633,11 @@ commit that opens or closes one.
 5. **Every key in `captures/` is read, and no recording is short.** `flee` was the last to go
    unread, and **ADR 0056** is where it became a fourth outcome; `healall_per` was the last whose
    figure had to be sized, and ADR 0010 carries how a share stated about a whole side is put onto
-   its members. Measured over `captures/` on 2026-09-09: 115 casts across every recording, every one
-   of them whole, and no message anywhere unread — so the suspect mark never fires on the material
-   this repository holds. It is held by probes only, and the next protocol change is what it exists
-   for.
+   its members. How many casts the corpus holds moves with the next recording, so it is measured
+   rather than written down here (**V5**, and `docs/auras-standing.md`'s own rule): `fight:auras`
+   counts them and `fight:decoding` answers the other half — over `captures/` on 2026-09-15, every
+   key read and no message anywhere unread, so the suspect mark never fires on the material this
+   repository holds. It is held by probes only, and the next protocol change is what it exists for.
 6. **A payload can move health with no message stating it.** Every comparison between the health the
    protocol states about a combatant and the movement decoded from its own messages agrees inside
    the reading's tolerance, bar three kinds: a killing blow landing more than the health that was
