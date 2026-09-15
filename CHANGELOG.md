@@ -34,7 +34,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
-## [Niewydane]
+## [0.17.0] — 2026-09-15
 
 - **Nowość** — Liczba, która znaczy mniej, niż mówi jej nazwa, ma teraz obok siebie niebieski znak,
   a pod kartą jedno zdanie mówiące, czego gra nie podaje. Dotyczy to trzech rzeczy: liczb sprzed
