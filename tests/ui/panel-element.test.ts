@@ -2819,6 +2819,67 @@ Deno.test("the closing row's card says what the game did not, and only on a dama
 });
 
 /**
+ * ⚠️ **The same row, one rung down.** A pair's section closes against the same blows and the
+ * caveat rides the same field, so a level that drops it hands a reader at the bottom of the drill
+ * a figure that means narrower with nothing saying so — no ring, and no sentence on its card. A
+ * walk over the level above reads none of this rung, which is where every other claim about the
+ * mark is made (**ADR 0089**).
+ */
+Deno.test("a row closing a pair says what it says one level up, and its neighbours do not", () => {
+    let drawn = 0;
+    for (const metric of SCREEN_ORDER) {
+        const { reading, statistics, roster } = readPinnedFight(metric, "everyone");
+        const opened = reading.rows[0];
+        assertExists(opened, `${metric}: the ranking holds a row to open`);
+        const drill = composeDrillReading(statistics, roster, metric, opened.combatantId);
+        assertExists(drill, `${metric}: the first row opens`);
+        const other = drill.byOpponent.rows.find((one) => one.doesOpenPair);
+        if (other === undefined) continue;
+        const pair = composePairReading(
+            statistics,
+            roster,
+            metric,
+            opened.combatantId,
+            other.combatantId,
+        );
+        assertExists(pair, `${metric}: the end inside that row opens onto the pair`);
+        const document = composeFakeDocument();
+        const panel = composePanelHost(document, () => {}, () => {});
+        panel.show({ ...composeShownScreen(reading, metric), drill, pair });
+        const host = panel.element as FakeElement;
+        const rows = getElementsWithin(host).filter(
+            (one) => one.attributes.get("data-tip")?.startsWith("pair-") === true,
+        );
+        const closing = rows.find((one) => one.attributes.get("data-tip") === "pair-skill:plain");
+        // Every other part of a pair names what it was, so a mark on one would point at nothing.
+        for (const row of rows) {
+            if (row === closing) continue;
+            assertEquals(
+                row.children.filter((one) => one.className === CLASS.rowCaveat).length,
+                0,
+                `${metric}: a part the game named wears no mark`,
+            );
+        }
+        if (closing === undefined) continue;
+        const caveat = getCaveatForUnannounced(getNounForMetric(metric));
+        assertExists(caveat, `${metric}: a screen drawing the row has a sentence for it`);
+        drawn += 1;
+        assertEquals(
+            closing.children.filter((one) => one.className === CLASS.rowCaveat).length,
+            1,
+            `${metric}: the row closing a pair wears the mark it wears one level up`,
+        );
+        pointAtElement(host, "pointermove", closing, 300);
+        assertArrayIncludes(
+            readTip(host).notes,
+            [getNoteForCaveat(caveat)],
+            `${metric}: and its card says what the game did not say about these blows`,
+        );
+    }
+    assert(drawn > 0, "a screen of this fight drew the row, so the walk above read one");
+});
+
+/**
  * The section under the list, drawn. **Both halves are held here**: that it reaches the page at
  * all, and that it does not when there is nothing for it to say — a section standing empty under
  * every fight would be a claim the panel makes about all of them.

@@ -1388,6 +1388,16 @@ function getMarkForNamedPart(part: OpenedPart, doesOpen: boolean): RowMark | nul
 }
 
 /**
+ * What a part row owes, asked wherever one is drawn: the same row stands on two levels, and a
+ * caveat the deeper one drops leaves a reader at the bottom of the drill with no ring and no
+ * sentence (**ADR 0089**). Every other kind of part names what it was, so none owes one.
+ */
+function getCaveatForNamedPart(part: OpenedPart, metric: PanelMetric): Caveat | null {
+    if (part.kind !== "plain") return null;
+    return getCaveatForUnannounced(getNounForMetric(metric));
+}
+
+/**
  * One key per part and per section, so a tip is never the one a row beside it registered. Every
  * caller names its own section here rather than spelling a key of its own: a second spelling
  * lands on somebody else's key silently — the register refuses a duplicate, and the row wears the
@@ -1459,7 +1469,7 @@ function composeSkillSectionPlain(
         key: "skill:plain",
         figure: stated.figure,
         share: PANEL_WORDS.shareOfFigure,
-        caveat: getCaveatForUnannounced(getNounForMetric(stated.metric)),
+        caveat: getCaveatForNamedPart({ kind: "plain" }, stated.metric),
     };
     const reading = {
         ...composeUnnamedReading(plain, getWordsForUnannounced(stated.metric)),
@@ -2072,7 +2082,11 @@ function composePairParts(
     if (pair.parts.length === 0) return;
     list.append(composeSectionElement(document, PANEL_WORDS.skills, pair.total));
     for (const [at, row] of pair.parts.entries()) {
-        const tip = { ...stated, key: getKeyForNamedPart("pair", row.part) };
+        const tip = {
+            ...stated,
+            key: getKeyForNamedPart("pair", row.part),
+            caveat: getCaveatForNamedPart(row.part, stated.metric),
+        };
         const reading = {
             name: getWordsForNamedPart(row.part, stated.metric),
             figure: row.figure,
