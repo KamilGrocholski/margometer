@@ -778,3 +778,46 @@ Deno.test("a charge names the figures the game states, and never a percentage", 
     assertEquals(figures.includes("1 z 2"), true, "what has passed of what the game states");
     assertEquals(figures.some((one) => one.includes("%")), false, "and no share of anything");
 });
+
+/**
+ * ⚠️ **A press is read off the node under the hand and never walked up from** —
+ * `getPressFromTarget` asks the target for its mark and stops there. So every span inside a row
+ * that opens has to wear that row's mark, or the row says it opens and a press on part of it does
+ * nothing at all. `composeRowElement` carries the same note for the ranking's rows.
+ *
+ * The count is where it bites here: a row counting both sides draws `1`, the separator and `0` as
+ * three spans inside the figure, and the figure is the widest, most pressable thing on the row.
+ */
+Deno.test("a press anywhere on a row that opens opens it, every span included", () => {
+    const standings = [composeStanding(11), composeStanding(21)];
+    const reading = composeStandingReading(
+        standings,
+        [],
+        [],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        null,
+    );
+    const { host, pressed } = draw(reading);
+    const window = getWindow(host);
+    assertEquals(
+        getTextsByClass(window, "row-share"),
+        [STANDING_WORDS.sideSeparator],
+        "the row counts both sides, which is the shape that draws spans inside the figure",
+    );
+
+    const row = getElementsWithin(window)
+        .find((one) => one.attributes.get("data-standing") !== undefined);
+    assertExists(row, "a counted row carries the mark a press is read off");
+    const inside = getElementsWithin(row);
+    assert(inside.length > 3, "the row is drawn out of parts, not as one node");
+
+    const deaf: string[] = [];
+    for (const part of inside) {
+        pressed.length = 0;
+        pressElement(host, "pointerdown", part);
+        if (pressed.length === 0) deaf.push(`${part.className}:${part.textContent}`);
+    }
+    assertEquals(deaf, [], "every span of a row that opens answers the press that lands on it");
+});

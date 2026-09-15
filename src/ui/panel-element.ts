@@ -938,6 +938,18 @@ function composeStandingPersonElement(
 }
 
 /**
+ * The figure a standing row states, and **every span a press may land on inside it**. A press is
+ * read off the node under the hand and never walked up from (`getPressFromTarget`), so the parts
+ * go back to the caller to be marked with the row's own — spelled out here because the row that
+ * carries the mark cannot see what this built. Unmarked, the three spans of `1 | 0` were the
+ * widest deaf patch on a row whose cursor said it opened.
+ */
+interface StandingCount {
+    value: PanelElement;
+    parts: PanelElement[];
+}
+
+/**
  * The two sides' counts, as the strip under the ranking states them: **two figures the colour
  * tells apart**, not one figure with a mark in it. The separator divides nothing and is drawn in
  * the quiet ink to say so — `DESIGN.md`'s Colour Never Alone Rule is met by the numbers it stands
@@ -946,11 +958,11 @@ function composeStandingPersonElement(
 function composeStandingCountElement(
     document: PanelDocument,
     row: StandingRow,
-): PanelElement {
+): StandingCount {
     const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
     if (row.reader === null || row.opposing === null) {
         value.textContent = composeStandingCountText(row);
-        return value;
+        return { value, parts: [value] };
     }
     const reader = composeElement(document, "span", CLASS.standingOurs);
     reader.textContent = composeIntegerText(row.reader);
@@ -961,7 +973,7 @@ function composeStandingCountElement(
     value.append(reader);
     value.append(between);
     value.append(opposing);
-    return value;
+    return { value, parts: [value, reader, between, opposing] };
 }
 
 /** One counted row per skill, and the casters under whichever one is open. */
@@ -975,10 +987,10 @@ function composeStandingRowElements(
         const element = composeElement(document, "div", `${CLASS.row} ${CLASS.rowDrillable}`);
         const name = composeElement(document, "span", CLASS.rowName);
         name.textContent = row.skillName;
-        const value = composeStandingCountElement(document, row);
+        const count = composeStandingCountElement(document, row);
         element.append(name);
-        element.append(value);
-        const marked = [element, name, value];
+        element.append(count.value);
+        const marked = [element, name, ...count.parts];
         setRowMarks(marked, STANDING_ATTRIBUTE, composeIntegerText(row.skillId));
         const key = `${STANDING_TIP_PREFIX}${composeIntegerText(row.skillId)}`;
         register.add(key, () => composeStandingTipReading(row.skillName));

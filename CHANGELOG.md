@@ -112,6 +112,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Zmiana** — Liczniki na karcie, na przykład ile razy zadziałało przebicie, mają teraz przed sobą
   `×`. Stały w tej samej kolumnie co obrażenia i nic nie mówiło, które są czym.
 
+- **Poprawka** — W Pomocniku kliknięcie w same liczby przy nazwie — te po obu stronach kreski,
+  mówiące, ile stoi po twojej stronie, a ile po przeciwnej — nie robiło nic, choć kursor nad całym
+  wierszem mówił, że da się go rozwinąć. Trzeba było trafić w nazwę. Teraz odpowiada cały wiersz.
+
 - **Poprawka** — Okienko wiersza z Pomocnika staje teraz obok Pomocnika, a nie na nim. Wcześniej
   stawało dokładnie na tym oknie i przykrywało wiersze poniżej tego, na który najechałeś — a to
   właśnie one są tym, co chciałeś zobaczyć. Każde z dwóch okien odpowiada odtąd za swoje okienka
