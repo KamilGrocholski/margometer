@@ -10,7 +10,12 @@
 import { assert, assertArrayIncludes, assertEquals } from "@std/assert";
 import { BATTLE_EVENT_KINDS } from "@/src/core/battle-event.ts";
 import { composeDecodingStatus, composeStatusReport } from "@/tools/decoding-status.ts";
-import { composeFightReplay, composeReplayedMaterial } from "@/tools/fight-replay.ts";
+import {
+    composeFightReplay,
+    composeReplayedMaterial,
+    type ReplayedMaterial,
+} from "@/tools/fight-replay.ts";
+import type { RecordedFight } from "@/tools/recorded-fights.ts";
 
 /** A key the register has never seen, on an announcement that is otherwise a real one. */
 const UNREAD = "469657=87.63;469657=87.63;tspell=Zdrowa atmosfera;skillId=79;whatever_per=30";
@@ -20,11 +25,17 @@ const REFUSED = "gracz;0;step";
 const EMPTY = "1=100.00;0";
 const READ = "482845=100.00;0;heal=99";
 
+function fightOf(messages: readonly string[], hasSnapshot: boolean): RecordedFight {
+    return { name: "a fight nobody recorded", calls: [{ init: 1, m: messages }], hasSnapshot };
+}
+
 function replayOf(messages: readonly string[]) {
-    return composeFightReplay({
-        name: "a fight nobody recorded",
-        calls: [{ init: 1, m: messages }],
-    });
+    return composeFightReplay(fightOf(messages, false));
+}
+
+/** What a report is taken over: the file beside the replay of it, index for index. */
+function materialOf(fight: RecordedFight): ReplayedMaterial {
+    return { material: "a probe", fights: [fight], replays: [composeFightReplay(fight)] };
 }
 
 Deno.test("the corpus reads whole, and the report says so rather than staying silent", () => {
@@ -36,6 +47,11 @@ Deno.test("the corpus reads whole, and the report says so rather than staying si
 
     const report = composeStatusReport(composeReplayedMaterial([]));
     assertArrayIncludes(report, ["  every key was read"], "an empty tally is an answer, not a gap");
+    assertArrayIncludes(
+        report,
+        ["  every recording states one"],
+        "and every file here is evidence",
+    );
     assert(report.some((line) => line.startsWith("material          captures/")), "material named");
 });
 
@@ -46,7 +62,7 @@ Deno.test("a key the register has never seen is reported, naming it", () => {
     assertEquals(status.messagesRefused, 0, "and the grammar refused neither");
     assertEquals(status.messages, 3, "the message that read fine is still counted");
 
-    const lines = composeStatusReport({ material: "a probe", replays: [replayOf([UNREAD])] });
+    const lines = composeStatusReport(materialOf(fightOf([UNREAD], true)));
     assert(lines.some((line) => line.endsWith("  whatever_per")), "the key reaches the report");
     assert(!lines.includes("  every key was read"), "which is not what a read corpus says");
 });
@@ -72,7 +88,7 @@ Deno.test("a message carrying nothing to read is neither a refusal nor an unread
     assertEquals(status.messagesWithoutParameter, 1, "the empty one is counted as its own thing");
     assertEquals(status.unreadKeysByFrequency, [["whatever_per", 1]], "and neither names a key");
 
-    const lines = composeStatusReport({ material: "a probe", replays: [replayOf([EMPTY])] });
+    const lines = composeStatusReport(materialOf(fightOf([EMPTY], true)));
     assert(
         lines.some((line) => line.startsWith("no parameter") && line.trim().endsWith("1")),
         "which is a line of the report, so a reader is sent to the right place",
@@ -98,9 +114,33 @@ Deno.test("what never reached the decoder is stated beside what it could not rea
         // The companion list states three where `m` carries two, which is a message the session
         // never saw — a different failure from one it saw and could not read.
         calls: [{ init: 1, mi: [0, 0, 0], m: [READ, READ] }],
+        hasSnapshot: false,
     });
     const status = composeDecodingStatus([replay]);
     assertEquals(status.messagesLost, 1, "the payload said it carried one more");
     assertEquals(status.messagesWithUnread, 0, "and nothing that arrived went unread");
     assertEquals(status.messages, 2, "only what arrived is counted as a message");
+});
+
+/**
+ * ⚠️ **Such a file reads whole, which is exactly why the report has to say it.** A fight handed
+ * over off the panel's shelf carries every payload and every message, so the tally above it is
+ * clean and nothing else here would say a word — while `tools/capture-intake.ts` refuses it, days
+ * later and after the redaction step (**ADR 0053**).
+ */
+Deno.test("a recording an intake would refuse is named before the intake is started", () => {
+    const lines = composeStatusReport(materialOf(fightOf([READ], false)));
+    assert(
+        lines.some((line) => line.startsWith("no snapshot") && line.trim().endsWith("1")),
+        "the count qualifies the recordings above it",
+    );
+    assertArrayIncludes(lines, ["  a fight nobody recorded"], "and the file itself is named");
+    assert(!lines.includes("  every recording states one"), "which is not what a clean run says");
+
+    const carried = composeStatusReport(materialOf(fightOf([READ], true)));
+    assert(
+        carried.some((line) => line.startsWith("no snapshot") && line.trim().endsWith("0")),
+        "a recording that states a cast is counted at nought, not left off the report",
+    );
+    assertArrayIncludes(carried, ["  every recording states one"], "and the section says so");
 });

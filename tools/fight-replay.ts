@@ -50,19 +50,20 @@ export interface FightReplayStep {
     replay: FightReplay;
 }
 
-/**
- * What was replayed, named beside it. **V4**: a report over anything but the corpus is a claim
- * about that file and not about this repository, so the material travels with the figures.
- */
-export interface ReplayedMaterial {
-    material: string;
-    replays: FightReplay[];
-}
-
-/** The same, before anything was replayed — for a reader that needs the payloads themselves. */
+/** The material before anything was replayed — for a reader that needs the payloads themselves. */
 export interface RecordedMaterial {
     material: string;
     fights: RecordedFight[];
+}
+
+/**
+ * What was replayed, named beside it. **V4**: a report over anything but the corpus is a claim
+ * about that file and not about this repository, so the material travels with the figures. The
+ * files come with it, index for index, because what a replay is composed of answers nothing about
+ * the file it came out of — whether it states a snapshot, among the rest.
+ */
+export interface ReplayedMaterial extends RecordedMaterial {
+    replays: FightReplay[];
 }
 
 /**
@@ -155,5 +156,5 @@ export function composeReplayedMaterial(paths: readonly string[]): ReplayedMater
         "every recording read is a recording replayed",
     );
     assert(replays.length > 0, "and something was replayed");
-    return { material: recorded.material, replays };
+    return { material: recorded.material, fights: recorded.fights, replays };
 }

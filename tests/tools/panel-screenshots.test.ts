@@ -21,12 +21,16 @@ import { getJsonReading } from "@/libs/json-text.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import { PLACE, SPACE, TIP } from "@/src/ui/panel-look.ts";
-import { CONFIGURATION_FILE } from "@/project/repository-layout.ts";
+import { composeRecordingPath, CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 import { getDeclaredVersion, isVersionOfTree } from "@/tools/declared-version.ts";
 import { PanelShotError } from "@/tools/margometer-tool-error.ts";
 import type { FightReading } from "@/src/game/fight-underway.ts";
 import { composeFightReplaySteps } from "@/tools/fight-replay.ts";
-import { getRecordedFightCalls, PREVIEW_FIGHT_NAME } from "@/tools/recorded-fights.ts";
+import {
+    getRecordedFightAt,
+    getRecordedFightCalls,
+    PREVIEW_FIGHT_NAME,
+} from "@/tools/recorded-fights.ts";
 import {
     BROWSER_VARIABLE,
     composeFrameFromReport,
@@ -358,16 +362,16 @@ function composeUnderwayObjections(reading: FightReading): string[] {
  * same fight, which must not.
  */
 Deno.test("the moment the underway pictures are taken at is one a fight is going at", () => {
-    const calls = getRecordedFightCalls(PREVIEW_FIGHT_NAME);
-    const steps = composeFightReplaySteps({ name: PREVIEW_FIGHT_NAME, calls });
-    assertStrictEquals(steps.length, calls.length, "every payload leaves a fight to read");
+    const fight = getRecordedFightAt(composeRecordingPath(PREVIEW_FIGHT_NAME));
+    const steps = composeFightReplaySteps(fight);
+    assertStrictEquals(steps.length, fight.calls.length, "every payload leaves a fight to read");
     assertEquals(
         composeUnderwayObjections(steps[UNDERWAY_ENTRY - 1]!.replay.reading),
         [],
         `entry ${UNDERWAY_ENTRY} of ${PREVIEW_FIGHT_NAME} is not a fight going on`,
     );
     assertNotEquals(
-        composeUnderwayObjections(steps[calls.length - 1]!.replay.reading),
+        composeUnderwayObjections(steps[fight.calls.length - 1]!.replay.reading),
         [],
         "and the end of the same fight is not, which is the moment the shelf is photographed at",
     );

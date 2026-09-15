@@ -12,7 +12,11 @@ import { getRecordedFightAt } from "@/tools/recorded-fights.ts";
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /** A fight of one call, so a report over a fight with nothing in it is still a report. */
-const EMPTY = { name: "a fight nobody recorded", calls: [{ init: 1, m: [] }] };
+const EMPTY = {
+    name: "a fight nobody recorded",
+    calls: [{ init: 1, m: [] }],
+    hasSnapshot: false,
+};
 
 function getReportOf(path: string): string[] {
     return composeFigureReport(composeFightReplay(getRecordedFightAt(path)));

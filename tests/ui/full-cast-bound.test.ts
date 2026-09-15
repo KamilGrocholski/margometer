@@ -60,6 +60,7 @@ function composeWidestFight(): {
     const replay = composeFightReplay({
         name: "fabricated",
         calls: fabricated.calls.map((call) => call.payload),
+        hasSnapshot: false,
     });
     const events = replay.reading.events;
     return {

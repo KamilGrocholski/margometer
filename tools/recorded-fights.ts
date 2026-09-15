@@ -30,6 +30,8 @@ const PATH_SEPARATOR = "/";
 export interface RecordedFight {
     name: string;
     calls: unknown[];
+    /** Whether the file states a cast read off the engine, which is what intake asks of it. */
+    hasSnapshot: boolean;
 }
 
 /**
@@ -84,6 +86,23 @@ function getRecordingText(path: string): string {
     }
 }
 
+/**
+ * Whether any call states the cast read off the engine. `null` is what nobody read and `[]` is a
+ * reading that found nobody: only the first is no snapshot (**E10**), and the second is why a
+ * recording of a fight the game settled by itself is material. **ADR 0053** says what turns on it.
+ */
+export function isSnapshotCarried(calls: readonly unknown[]): boolean {
+    assert(calls.length <= MAXIMUM_CALLS, "a recording stays inside its stated bound");
+    let carried = 0;
+    for (const call of calls) {
+        if (!isRecord(call)) continue;
+        if (Array.isArray(call[CAPTURE_FIELDS.combatantsBefore])) carried += 1;
+        else if (Array.isArray(call[CAPTURE_FIELDS.combatantsAfter])) carried += 1;
+    }
+    assert(carried <= calls.length, "and a call states its cast once");
+    return carried > 0;
+}
+
 /** One recording at a path, whether or not it has ever passed intake. */
 export function getRecordedFightAt(path: string): RecordedFight {
     assert(path.length > 0, "a recording is asked for by path");
@@ -111,7 +130,7 @@ export function getRecordedFightAt(path: string): RecordedFight {
     if (calls.length === 0) {
         throw new RecordingReadError(`${path} carries no call the add-on would see`);
     }
-    return { name: composeNameOfPath(path), calls };
+    return { name: composeNameOfPath(path), calls, hasSnapshot: isSnapshotCarried(entries) };
 }
 
 export function getRecordedFightCalls(name: string): unknown[] {
@@ -124,9 +143,9 @@ export function getRecordedFightCalls(name: string): unknown[] {
 export function getRecordedFights(): RecordedFight[] {
     const fights: RecordedFight[] = [];
     for (const name of getRecordedFightNames()) {
-        const calls = getRecordedFightCalls(name);
-        assert(calls.length > 0, "a recording that is carried has something to play");
-        fights.push({ name, calls });
+        const fight = getRecordedFightAt(composeRecordingPath(name));
+        assert(fight.calls.length > 0, "a recording that is carried has something to play");
+        fights.push(fight);
     }
     assert(fights.length > 0, "a preview draws at least one fight");
     return fights;

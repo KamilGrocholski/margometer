@@ -18,6 +18,7 @@ import {
     type FightReplay,
     type ReplayedMaterial,
 } from "@/tools/fight-replay.ts";
+import type { RecordedFight } from "@/tools/recorded-fights.ts";
 
 /** Wide enough for every count the corpus produces, and for the ones a longer one will. */
 const COUNT_WIDTH = 7;
@@ -120,6 +121,18 @@ function composeTallyLines(tally: readonly (readonly [string, number])[]): strin
 }
 
 /**
+ * The recordings no intake can take, named. A file stating no cast on any call is a fight the
+ * panel read back off its own shelf, and `tools/capture-intake.ts` refuses one — days later and
+ * after the redaction step, which is the whole reason this answers it here. **ADR 0053.**
+ */
+function composeFightsStatingNoSnapshot(fights: readonly RecordedFight[]): string[] {
+    assert(fights.length > 0, "a report is taken over something");
+    const found = fights.filter((fight) => !fight.hasSnapshot).map((fight) => fight.name);
+    assert(found.length <= fights.length, "a recording is named at most once");
+    return found;
+}
+
+/**
  * The report as lines, so a guard reads what this states without running it. `console.log` is the
  * entry's alone (**W6**: nothing here parses another program's output, because it is ours).
  */
@@ -128,9 +141,15 @@ export function composeStatusReport(replayed: ReplayedMaterial): string[] {
     assert(replayed.material.length > 0, "a report names the material it was taken on");
     const unread = status.unreadKeysByFrequency;
     assert(unread.length <= MAXIMUM_TALLY, "and a list of unread keys stays inside it too");
+    const shelved = composeFightsStatingNoSnapshot(replayed.fights);
+    assertStrictEquals(replayed.fights.length, status.recordings, "every file read was replayed");
     return [
         `material          ${replayed.material}`,
         composeCountLine("recordings", status.recordings),
+        // Qualifying the count above: such a file reads whole, so every figure below it looks
+        // like a recording worth admitting. Printed at nought rather than only when something is
+        // wrong — a line nobody ever sees is a line nobody knows to look for.
+        composeCountLine("no snapshot", shelved.length),
         composeCountLine("payloads", status.payloads),
         composeCountLine("messages", status.messages),
         composeCountLine("carrying unread", status.messagesWithUnread),
@@ -142,6 +161,11 @@ export function composeStatusReport(replayed: ReplayedMaterial): string[] {
         composeCountLine("no parameter", status.messagesWithoutParameter),
         // And beside both: this is what never reached the decoder at all.
         composeCountLine("messages lost", status.messagesLost),
+        "",
+        "recordings stating no snapshot, which an intake refuses (ADR 0053)",
+        ...(shelved.length === 0
+            ? ["  every recording states one"]
+            : shelved.map((name) => `  ${name}`)),
         "",
         "events by kind",
         ...composeTallyLines([...status.eventsByKind].sort(getTallyOrder)),

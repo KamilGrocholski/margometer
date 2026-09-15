@@ -19,7 +19,11 @@ import { getIntegerFromText } from "@/libs/number-text.ts";
 import { CAPTURE_FIELDS, NOTHING_STATED } from "@/src/game/fight-capture.ts";
 import { WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
 import { CaptureIntakeError } from "@/tools/margometer-tool-error.ts";
-import { getRecordedFights, type RecordedFight } from "@/tools/recorded-fights.ts";
+import {
+    getRecordedFights,
+    isSnapshotCarried,
+    type RecordedFight,
+} from "@/tools/recorded-fights.ts";
 import {
     composeRecordingPath,
     RECORDING_DIRECTORY,
@@ -534,10 +538,7 @@ export function requireCallsCarried(recording: unknown): void {
  */
 export function requireSnapshotsCarried(recording: unknown): void {
     const calls = getCallsFromRecording(recording);
-    for (const call of calls) {
-        if (Array.isArray(call[CAPTURE_FIELDS.combatantsBefore])) return;
-        if (Array.isArray(call[CAPTURE_FIELDS.combatantsAfter])) return;
-    }
+    if (isSnapshotCarried(calls)) return;
     assert(calls.length > 0, "a recording with no call at all was refused before this");
     throw new CaptureIntakeError(
         `no call states \`${CAPTURE_FIELDS.combatantsBefore}\` or ` +

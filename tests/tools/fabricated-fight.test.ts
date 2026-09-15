@@ -96,6 +96,7 @@ const MESSAGES = [...FIGHT.calls, ...FLED.calls].flatMap((call) => call.messages
 const REPLAY = composeFightReplay({
     name: "fabricated",
     calls: FIGHT.calls.map((call) => call.payload),
+    hasSnapshot: false,
 });
 
 Deno.test("what the fabricator writes states every key the register calls decoded", () => {
@@ -214,6 +215,7 @@ Deno.test("a fight at another level is fought at that level's figures", () => {
     const replay = composeFightReplay({
         name: "duel",
         calls: duel.calls.map((call) => call.payload),
+        hasSnapshot: false,
     });
     assertStrictEquals(
         getUnreadMessages(replay.statistics),
@@ -236,6 +238,7 @@ Deno.test("a fight the script breaks off states an escape and names no side", ()
     const replay = composeFightReplay({
         name: "fled",
         calls: fled.calls.map((call) => call.payload),
+        hasSnapshot: false,
     });
     assertStrictEquals(getUnreadMessages(replay.statistics), 0, "the escape leaves nothing unread");
     const outcome = replay.statistics.outcome;

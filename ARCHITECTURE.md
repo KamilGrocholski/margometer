@@ -102,9 +102,9 @@ tools/             Never ships. Each arrives with the question it answers.
   build-userscript.ts  The file a reader installs, the version written in, and two checks.
   capture-intake.ts    How a recording becomes material: two redactions, then a file.
   fabricated-fight.ts  A fight nobody fought — ten players against ten, written outside git.
-  recorded-fights.ts   The recordings as a tool reads them: a name, and the calls made.
+  recorded-fights.ts   The recordings as a tool reads them: a name, the calls, a cast or none.
   fight-replay.ts      A recording put back through the layers that read it live.
-  decoding-status.ts   What the decoder could not read, counted over whatever it is handed.
+  decoding-status.ts   What the decoder could not read, and what no intake could take.
   fight-figures.ts     What a fight adds up to, per combatant, as a table at a terminal.
   drill-report.ts      Which rows of the panel open, measured level by level over a fight.
   card-height.ts       How tall the card a row opens stands, in lines, over the recordings.
