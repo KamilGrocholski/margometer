@@ -11,6 +11,9 @@
     Margonem and has never seen the code understand it?
   - What a player cannot see — a refactor, a test, a tool — is not an entry. That work is in the
     commit that did it, and in `docs/adr/` where it was costly to decide.
+  - Written against the last released number, never against the last state of the branch. A
+    regression this cycle opened and closed before the release is not an entry — nobody outside
+    ever had it, so its fix is not a change anybody can see.
   - At a release: move `[Niewydane]` under the new number with its date, bump `version` in
     `deno.json`, and push in the order AGENTS.md **G7** states. The rest is
     `.github/workflows/release.yml`, which takes this version's section as the body of the
@@ -86,6 +89,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   jak wiersze z numerem, więc czytało się je jako kolejne miejsce. Kreskowanie znał już wiersz
   stojący pod listą; teraz noszą je wszystkie wiersze o tym samym znaczeniu, gdziekolwiek stoją.
 
+- **Zmiana** — Udziały na liście sumują się teraz do stu wobec całej walki, a nie wobec tego, co
+  panel zdążył narysować. Gdyby jakaś część nie trafiła na żaden wiersz, stoi pod listą jako „Poza
+  rankingiem" — z kreskowaniem i bez miejsca w kolejności. Wcześniej po cichu podnosiła wszystkie
+  pozostałe udziały.
+
 - **Zmiana** — Karta postaci jest teraz podzielona na części, a każda ma nagłówek mówiący, czego
   dotyczą stojące pod nim liczby: całej walki, ciosów zadanych albo ciosów przyjętych. Liczba
   obrażeń przed redukcją przeniosła się pod nagłówek ciosów. Stała wcięta pod sumą z całej walki i
@@ -98,8 +106,6 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 - **Zmiana** — Liczniki na karcie, na przykład ile razy zadziałało przebicie, mają teraz przed sobą
   `×`. Stały w tej samej kolumnie co obrażenia i nic nie mówiło, które są czym.
-
-- **Poprawka** — Karta nie zasłania już wierszy, nad którymi stoi.
 
 - **Poprawka** — Okienko wiersza z Pomocnika staje teraz obok Pomocnika, a nie na nim. Wcześniej
   stawało dokładnie na tym oknie i przykrywało wiersze poniżej tego, na który najechałeś — a to
@@ -123,8 +129,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 - **Poprawka** — „Zwykły cios" trzyma wreszcie same ciosy. Trucizna, podpalenie, zranienie i reszta
   tego, co zabiera życie poza ciosem, stoją teraz pod własnymi nazwami — tak jak od dawna stoją na
-  leczeniu. Na zakładce „otrzymane" prawie ćwierć tego wiersza nigdy nie była ciosem, a przy kilku
-  postaciach nie była nim ani jedna liczba pod nim.
+  leczeniu. Na zakładce „otrzymane" prawie ćwierć tego wiersza nigdy nie była ciosem.
+
+- **Poprawka** — Bardzo duża walka — dziesięciu na dziesięciu — czyta się teraz do końca. Kiedy gra
+  podawała w jej trakcie obsadę drugi raz, panel przestawał ją od tego miejsca czytać: liczby
+  stawały i nie ruszały się już do końca walki.
 
 ## [0.16.0] — 2026-09-11
 
