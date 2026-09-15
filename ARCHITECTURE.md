@@ -274,6 +274,7 @@ tests/
     panel-strips.spec.ts   Every strip: the nouns, directions, audiences, stores.
     panel-drill.spec.ts    The rows that open a level, and the two ways back out.
     panel-tip.spec.ts      The card the pointer leaves behind, and what closes it.
+    panel-marks.spec.ts    What a mark before a name costs the name it stands before.
     panel-scroll.spec.ts   The one region that scrolls, and what scrolling it must not do.
     panel-level.spec.ts    A level open while payloads land, and the region it grows in.
     panel-fold.spec.ts     The panel folded away and brought back, and what is remembered.
@@ -423,12 +424,14 @@ Four severities, and a fifth is `[ASK]`: **suspect**, **caveat**, **undrawn** an
 the one of them that does not depend on the recording** — it says a figure is complete and answers a
 narrower question than its label, so it stands wherever that figure does and never turns on what
 went unread; it was granted by **ADR 0088** against the `[ASK]` this sentence used to hold, and it
-wears a glyph of its own because a mark shared with **suspect** would make the permanent look
-temporary and the temporary look permanent. The fourth is a claim about the add-on, granted by **ADR
-0051** against the `[ASK]` this sentence used to hold before that, and it stands in a section of its
-own rather than beside a figure — there is no figure it is about. **A defect states what the panel
-could not do and how many times, and never why**: a sentence a player reads carries no failure of
-ours in it (**L3**), and the failure itself reaches the console once per kind (**E11**).
+wears a glyph and an ink of its own because a mark shared with **suspect** would make the permanent
+look temporary and the temporary look permanent. Like a suspicion it rides a row as well as a
+figure, on the rows its own figure is the narrower one (**ADR 0089**). The fourth is a claim about
+the add-on, granted by **ADR 0051** against the `[ASK]` this sentence used to hold before that, and
+it stands in a section of its own rather than beside a figure — there is no figure it is about. **A
+defect states what the panel could not do and how many times, and never why**: a sentence a player
+reads carries no failure of ours in it (**L3**), and the failure itself reaches the console once per
+kind (**E11**).
 
 ## Construct register
 

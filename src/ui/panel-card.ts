@@ -13,10 +13,10 @@ import {
 } from "@/src/ui/panel-reading.ts";
 import type { TipGroup, TipLine, TipReading } from "@/src/ui/panel-tip.ts";
 import {
-    CARD_CAVEATS,
     CARD_WORDS,
-    type CardCaveat,
+    type Caveat,
     CAVEAT_MARK,
+    CAVEATS,
     composeCardSubtitleText,
     composeDestroyedText,
     composeFigureText,
@@ -342,10 +342,13 @@ function composeCardRunGroups(detail: RowDetail, translate: TranslateLabel | nul
  * The sentences the figures above earned, and **read off those figures rather than asked a second
  * time**: a card that worked out for itself which ones to say could draw a glyph pointing at a
  * sentence it had not drawn, or a sentence no glyph pointed at. Each is said once however many of
- * its figures wear the mark, and the run is bounded by `CARD_CAVEATS`, which is closed (**S11**).
+ * its figures wear the mark, and the run is bounded by `CAVEATS`, which is closed (**S11**).
+ *
+ * A row's card composes its sentences here too (`src/ui/panel-element.ts`), which is what keeps
+ * one glyph and one sentence answering to each other wherever either is drawn. **ADR 0089.**
  */
-function composeCardCaveatLines(groups: readonly TipGroup[]): TipLine[] {
-    const said = new Set<CardCaveat>();
+export function composeCaveatNoteLines(groups: readonly TipGroup[]): TipLine[] {
+    const said = new Set<Caveat>();
     for (const group of groups) {
         for (const line of group.lines) {
             if (line.kind !== "stat") continue;
@@ -353,28 +356,28 @@ function composeCardCaveatLines(groups: readonly TipGroup[]): TipLine[] {
             said.add(line.caveat);
         }
     }
-    return CARD_CAVEATS.filter((one) => said.has(one)).map((one): TipLine => ({
+    return CAVEATS.filter((one) => said.has(one)).map((one): TipLine => ({
         kind: "note",
         text: `${CAVEAT_MARK}${getNoteForCaveat(one)}`,
-        isSuspect: false,
+        tone: "caveat",
     }));
 }
 
 function composeCardNoteLines(subject: CardSubject, groups: readonly TipGroup[]): TipLine[] {
-    const lines: TipLine[] = [...composeCardCaveatLines(groups)];
+    const lines: TipLine[] = [...composeCaveatNoteLines(groups)];
     // This person's own, and nobody else's: a gap naming nobody stays under the list, where it
     // qualifies every row at once (`ARCHITECTURE.md`). **ADR 0069.**
     for (const suspicion of composeRowSuspicions(subject.detail, subject.metric)) {
         if (suspicion.length === 0) continue;
-        lines.push({ kind: "note", text: `${SUSPECT_MARK}${suspicion}`, isSuspect: true });
+        lines.push({ kind: "note", text: `${SUSPECT_MARK}${suspicion}`, tone: "suspect" });
     }
     // Last of the sentences and before the instruction, because it answers for every figure above
     // it rather than for one of them.
     if (subject.isRowNarrower) {
-        lines.push({ kind: "note", text: CARD_WORDS.scope, isSuspect: false });
+        lines.push({ kind: "note", text: CARD_WORDS.scope, tone: "plain" });
     }
     if (subject.doesOpen) {
-        lines.push({ kind: "note", text: CARD_WORDS.gesture, isSuspect: false });
+        lines.push({ kind: "note", text: CARD_WORDS.gesture, tone: "plain" });
     }
     return lines;
 }

@@ -72,6 +72,8 @@ import {
 } from "@/src/ui/panel-scroll.ts";
 import {
     CARD_WORDS,
+    type Caveat,
+    CAVEAT_MARK,
     composeChargedSkillTurnsText,
     composeFigureText,
     composeShelfSizeText,
@@ -82,7 +84,7 @@ import {
     composeUndrawnText,
     composeUsesText,
     DEFECT_MARK,
-    getNoteForUnannounced,
+    getCaveatForUnannounced,
     getWordsForChargedSkill,
     getWordsForDamageKind,
     getWordsForHealthSource,
@@ -127,7 +129,7 @@ import {
     type TipReading,
     type TipRegister,
 } from "@/src/ui/panel-tip.ts";
-import { composeCardReading } from "@/src/ui/panel-card.ts";
+import { composeCardReading, composeCaveatNoteLines } from "@/src/ui/panel-card.ts";
 
 export interface PanelDocument {
     createElement(tag: string): PanelElement;
@@ -344,6 +346,12 @@ interface RowTip {
      */
     notes?: readonly string[] | undefined;
     /**
+     * Which sentence this row's own figure owes, where its label names more than the figure
+     * counts. **One field and not two**: the glyph the row wears and the sentence its card says
+     * are read off this, so neither can be drawn without the other (**ADR 0089**).
+     */
+    caveat?: Caveat | null | undefined;
+    /**
      * What that figure was made of, where the row stands over a cut somebody kept for it. Drawn
      * as a run of its own under a heading, the way a card draws one. **ADR 0041.**
      */
@@ -466,15 +474,14 @@ function composePersonCard(
  * pressable and silent about it teaches a reader that none of it is.
  */
 function composeRowTipReading(reading: RowReading, tip: RowTip, doesOpen: boolean): TipReading {
-    // A row is not a person, so nothing here carries a caveat: what qualifies a figure of this
-    // shape is the note the row already hands over (`tip.notes`), and a glyph on a row would take
-    // width from the one cell allowed to shorten (**ADR 0023**).
+    // The row's own figure and nothing else: a share is a reading of the list rather than a claim
+    // the protocol narrowed, so the glyph stands on the line above it (**ADR 0089**).
     const stated: TipLine[] = [{
         kind: "stat",
         label: tip.figure,
         stated: composeFigureText(reading.figure),
         isStrong: false,
-        caveat: null,
+        caveat: tip.caveat ?? null,
     }];
     if (tip.share !== null) {
         stated.push({
@@ -485,11 +492,11 @@ function composeRowTipReading(reading: RowReading, tip: RowTip, doesOpen: boolea
             caveat: null,
         });
     }
-    const said: TipLine[] = [];
+    const said: TipLine[] = [...composeCaveatNoteLines([{ lines: stated }])];
     for (const note of tip.notes ?? []) {
-        said.push({ kind: "note", text: note, isSuspect: false });
+        said.push({ kind: "note", text: note, tone: "plain" });
     }
-    if (doesOpen) said.push({ kind: "note", text: CARD_WORDS.gesture, isSuspect: false });
+    if (doesOpen) said.push({ kind: "note", text: CARD_WORDS.gesture, tone: "plain" });
     const cut = composeRowTipCutLines(tip.cut);
     // One group where there is nothing to divide. A rule drawn between two lines and the two
     // sentences under them is a card cut in half for the sake of it, and every row but a pinned
@@ -538,6 +545,15 @@ function composeRowElement(
         const mark = composeElement(document, "span", CLASS.rowSuspect);
         mark.textContent = SUSPECT_MARK;
         parts.push(mark);
+    }
+    // Read off the tip and never off the reading: the glyph here and the sentence the card says
+    // are then one answer to one question, and a row cannot wear a mark nothing explains.
+    if (tip.caveat !== undefined) {
+        if (tip.caveat !== null) {
+            const mark = composeElement(document, "span", CLASS.rowCaveat);
+            mark.textContent = CAVEAT_MARK;
+            parts.push(mark);
+        }
     }
     if (reading.isTurnHolder === true) {
         const mark = composeElement(document, "span", CLASS.rowTurn);
@@ -980,7 +996,7 @@ function composeStandingTipReading(skillName: string): TipReading {
         name: skillName,
         subtitle: null,
         groups: [{
-            lines: [{ kind: "note", text: STANDING_WORDS.openRow, isSuspect: false }],
+            lines: [{ kind: "note", text: STANDING_WORDS.openRow, tone: "plain" }],
         }],
     };
 }
@@ -1106,8 +1122,8 @@ function composeCrumbTipReading(leaving: string): TipReading {
         subtitle: null,
         groups: [{
             lines: [
-                { kind: "note", text: CARD_WORDS.gestureBack, isSuspect: false },
-                { kind: "note", text: CARD_WORDS.gestureBackAnywhere, isSuspect: false },
+                { kind: "note", text: CARD_WORDS.gestureBack, tone: "plain" },
+                { kind: "note", text: CARD_WORDS.gestureBackAnywhere, tone: "plain" },
             ],
         }],
     };
@@ -1414,13 +1430,12 @@ function composeSkillSectionPlain(
         if (!isLast) return drawn;
         if (plain.place <= drawn) return drawn;
     }
-    const note = getNoteForUnannounced(getNounForMetric(stated.metric));
     const tip = {
         register: stated.register,
         key: "skill:plain",
         figure: stated.figure,
         share: PANEL_WORDS.shareOfFigure,
-        notes: note === null ? [] : [note],
+        caveat: getCaveatForUnannounced(getNounForMetric(stated.metric)),
     };
     const reading = {
         ...composeUnnamedReading(plain, getWordsForUnannounced(stated.metric)),

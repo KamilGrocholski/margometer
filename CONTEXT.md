@@ -84,13 +84,14 @@ one unit either. _Avoid_: Shredded, debuffed, broken
 
 **Caveat**: A drawn figure whose label names more than the figure counts, whatever the recording —
 the protocol states it over fewer messages than the word covers, or reports one component of what
-the word names. Marked beside the figure in a glyph of its own and said as one sentence at the foot
-of the card, once however many figures there carry that sentence. **Not a Suspect**, which says a
-figure may be short because something in _this_ fight could not be read: a caveated figure is
-complete and still answers a narrower question, so a recording with nothing unread in it carries
-every caveat it ever did, and one glyph over both would make the permanent look temporary and the
-temporary look permanent. **ADR 0088.** _Avoid_: Warning, footnote, asterisk, disclaimer,
-approximate, suspect
+the word names. Marked in a glyph of its own — beside the figure, or on the row whose own figure is
+the narrower one — and said as one sentence at the foot of the card, once however many figures there
+carry that sentence. **Not a Suspect**, which says a figure may be short because something in _this_
+fight could not be read: a caveated figure is complete and still answers a narrower question, so a
+recording with nothing unread in it carries every caveat it ever did, and one glyph over both would
+make the permanent look temporary and the temporary look permanent. **ADR 0088**, whose mark got an
+ink and a row in **ADR 0089**. _Avoid_: Warning, footnote, asterisk, disclaimer, approximate,
+suspect
 
 **Element**: Damage type — fire, cold, physical and the rest — taken from the key. _Avoid_: School,
 type, damage type

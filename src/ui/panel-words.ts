@@ -204,34 +204,23 @@ const UNNAMED_END_NOTES: Record<PanelUnnamedEnd, Record<PanelNoun, string>> = {
     },
 };
 
-/**
- * What the closing row of a damage section can be told about, in the register the unnamed ends
- * above already use: what the game did not say, never what a reader of ours could not do with it
- * (**L3**).
- *
- * ⚠️ **The interesting half cannot be said here, and that is the rule working, not failing.**
- * Whether a blow standing under no announcement is the game's own default action or one whose
- * announcement this reading did not reach is a question about **us**, and a player is owed the
- * limit rather than our reason for it. `docs/unannounced-damage.md` carries the half that cannot
- * be printed.
- */
-const UNANNOUNCED_NOTES: Record<PanelNoun, string | null> = {
-    damage: "Gra nie mówi, czym te ciosy zadano — wiadomo tylko, że padły.",
-    healing: null,
-};
-
 export function getWordsForUnnamedEnd(end: PanelUnnamedEnd, noun: PanelNoun): string {
     const words = UNNAMED_END_NOTES[end][noun];
     return words;
 }
 
 /**
- * The sentence the closing row of a damage section carries, and none on a healing screen — where
- * the section closes against nothing at all. The noun is handed over rather than read off the
- * metric, as the unnamed ends' is: this file imports no screen of its own.
+ * Which caveat the closing row of a section carries, and none on a healing screen — where the
+ * section closes against nothing at all. The noun is handed over rather than read off the metric,
+ * as the unnamed ends' is: this file imports no screen of its own.
  */
-export function getNoteForUnannounced(noun: PanelNoun): string | null {
-    return UNANNOUNCED_NOTES[noun];
+const UNANNOUNCED_CAVEATS: Record<PanelNoun, Caveat | null> = {
+    damage: "unannounced",
+    healing: null,
+};
+
+export function getCaveatForUnannounced(noun: PanelNoun): Caveat | null {
+    return UNANNOUNCED_CAVEATS[noun];
 }
 
 const APART_NOTE = "Nikt tego nie ma na swoim wierszu — dlatego stoi osobno.";
@@ -344,19 +333,22 @@ export const CARD_WORDS = {
 } as const;
 
 /**
- * Every figure the card draws whose label names more than the figure counts, whatever the
+ * Every figure the panel draws whose label names more than the figure counts, whatever the
  * recording. A closed set, so the sentences a card can carry are bounded by it (**S11**), and the
  * order is the order they stand in — two cards carrying the same pair say them the same way round.
  *
- * Two and not five. `Ciosy` was weighed and left out: what would qualify it is a wide swing's
+ * **It is not the card's alone**: the row closing a damage section carries the third, which is
+ * what took `Card` out of this name (**N9**). A row spends the same glyph and the same sentence,
+ * and a second register for it would be the same rule in two copies.
+ *
+ * Three and not five. `Ciosy` was weighed and left out: what would qualify it is a wide swing's
  * further targets, and `+swing` is absent from every recording (`docs/protocol-keys.md`), so the
- * sentence would be a standing charge for a case no material carries. The closing row was weighed
- * and left out too: `getNoteForUnannounced` already says what the game did not name there.
- * **ADR 0088.**
+ * sentence would be a standing charge for a case no material carries. **ADR 0088**, widened by
+ * **ADR 0089**.
  */
-export const CARD_CAVEATS = ["reduction", "turns"] as const;
+export const CAVEATS = ["reduction", "turns", "unannounced"] as const;
 
-export type CardCaveat = (typeof CARD_CAVEATS)[number];
+export type Caveat = (typeof CAVEATS)[number];
 
 /**
  * **L3**: what the game does not report, and never what this reader summed. Each is said once at
@@ -379,14 +371,21 @@ export type CardCaveat = (typeof CARD_CAVEATS)[number];
  * granted and this counts what was spent, so their sum is not what anybody was given. Written to
  * 60 characters so that, mark and all, it wraps to two lines of the card rather than three
  * (`src/ui/panel-tip.ts`).
+ *
+ * ⚠️ **`unannounced` cannot say the interesting half, and that is the rule working, not failing.**
+ * Whether a blow standing under no announcement is the game's own default action or one whose
+ * announcement this reading did not reach is a question about **us**, and a player is owed the
+ * limit rather than our reason for it (**L3**). What it does say holds whatever we read: the game
+ * names no skill there. `docs/unannounced-damage.md` carries the half that cannot be printed.
  */
-const CAVEAT_NOTES: Record<CardCaveat, string> = {
+const CAVEAT_NOTES: Record<Caveat, string> = {
     reduction:
         "Pancerza ani odporności gra nie podaje, więc z tych liczb nie wyliczysz całej redukcji.",
     turns: "Gra nie podaje, ile tur ktoś dostał, tylko co w nich zrobił.",
+    unannounced: "Gra nie mówi, czym te ciosy zadano — wiadomo tylko, że padły.",
 };
 
-export function getNoteForCaveat(caveat: CardCaveat): string {
+export function getNoteForCaveat(caveat: Caveat): string {
     const words = CAVEAT_NOTES[caveat];
     return words;
 }

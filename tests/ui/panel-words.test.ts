@@ -12,8 +12,8 @@ import { isCommentLine } from "@/tests/source-line.ts";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import {
-    CARD_CAVEATS,
     CARD_WORDS,
+    CAVEATS,
     CHOICE_REFUSED_ANSWER,
     composeCardSubtitleText,
     composeChargedRowsText,
@@ -46,7 +46,6 @@ import {
     ELEMENT_WORDS,
     EVERY_SLOT_PINNED_ANSWER,
     getNoteForCaveat,
-    getNoteForUnannounced,
     getWordsForCardMetric,
     getWordsForDamageKind,
     getWordsForDirection,
@@ -179,19 +178,13 @@ function getSentences(): string[] {
         found.push(getWordsForUnnamedEnd(end, "damage"));
         found.push(getWordsForUnnamedEnd(end, "healing"));
     }
-    // The closing row of a damage section says what the game did not; a healing one says nothing,
-    // because there is no such row there to carry a sentence.
-    for (const noun of ["damage", "healing"] as const) {
-        const note = getNoteForUnannounced(noun);
-        if (note !== null) found.push(note);
-    }
     for (const kase of PINNED_CASES) {
         found.push(getWordsForPinnedStanding(kase));
         found.push(getWordsForPinnedScope(kase));
     }
     // The sentence each caveated figure owes, for the same reason: `CAVEAT_NOTES` is keyed by the
     // caveat and no walk over a table above reaches it.
-    for (const caveat of CARD_CAVEATS) found.push(getNoteForCaveat(caveat));
+    for (const caveat of CAVEATS) found.push(getNoteForCaveat(caveat));
     found.push(NEITHER_END_WORDS.label, NEITHER_END_WORDS.note);
     // ⚠️ **What the panel says it could not do**, which `DEFECT_WORDS` carries and its own
     // docblock cites **L3** for. `PANEL_WORDS` does not hold them and a walk over it reached
@@ -348,7 +341,8 @@ const HOLDS_NO_WORD: Record<string, string> = {
     CLIENT_IDS_FOR_UNWORDED_KEYS: "ids the running client answers to, spelled by it",
     THOUSAND_SEPARATOR: "the space a figure groups on, written as its escape",
     DEFECT_KINDS: "what the defects are called here, which the panel never says",
-    CARD_CAVEATS: "what the caveats are called here; the sentences are in `CAVEAT_NOTES`",
+    CAVEATS: "what the caveats are called here; the sentences are in `CAVEAT_NOTES`",
+    UNANNOUNCED_CAVEATS: "which of those a closing row owes, which is a key and not a word",
     composeDefectText: "the branch a region takes, and a branch is not a word",
     composeCardSubtitleText: "the default for a card nobody is a side of",
 };

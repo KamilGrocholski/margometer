@@ -28,6 +28,7 @@ export const SIGNAL = {
     ours: "#6fbf8b",
     theirs: "#e0736f",
     suspect: "#c98500",
+    caveat: "#66baf6",
     defect: "#c25ce0",
     unknown: "#8a8a80",
 } as const;
@@ -86,6 +87,7 @@ export const CLASS = {
     rowValue: "row-value",
     rowShare: "row-share",
     rowSuspect: "row-suspect",
+    rowCaveat: "row-caveat",
     rowTurn: "row-turn",
     rowSide: "row-side",
     bar: "bar",
@@ -124,6 +126,8 @@ export const CLASS = {
     /** A sentence rather than a column, so the placement counts it as wrapping. */
     tipNote: "tip-note",
     tipSuspect: "tip-suspect",
+    /** The sentence's own, and never `tipCaveat` — that one is the glyph cell beside a figure. */
+    tipCaveatNote: "tip-caveat-note",
     /** The window beside the panel: its own bar, its own body, and the rows under each heading. */
     standing: "MargoMeter-standing",
     standingBar: "standing-bar",
@@ -402,6 +406,7 @@ function composeVariables(): string {
         composeVariable("text", TEXT.plain),
         composeVariable("quiet", TEXT.quiet),
         composeVariable("suspect", SIGNAL.suspect),
+        composeVariable("caveat", SIGNAL.caveat),
         composeVariable("defect", SIGNAL.defect),
         composeVariable("ours", SIGNAL.ours),
         composeVariable("theirs", SIGNAL.theirs),
@@ -614,6 +619,11 @@ function composeRowRules(): string {
         // drawn on the rows a suspicion reaches, which is none of the rows in `captures/`.
         `.${CLASS.rowSuspect}{position:relative;color:var(${VARIABLE_PREFIX}suspect);flex:none;` +
         `padding-right:var(${VARIABLE_PREFIX}small);}` +
+        // Beside the suspect mark and under the same argument: it reaches the row closing a
+        // damage section and no other. A mark on every row was measured and refused — `DESIGN.md`
+        // carries the share, **ADR 0089** the decision.
+        `.${CLASS.rowCaveat}{position:relative;color:var(${VARIABLE_PREFIX}caveat);flex:none;` +
+        `padding-right:var(${VARIABLE_PREFIX}small);}` +
         // Beside the suspect mark and under the same argument: it reaches the one row whose turn
         // the game is numbering, never every row. `DESIGN.md` owns the rule, **ADR 0066** the cost.
         `.${CLASS.rowTurn}{position:relative;color:var(${VARIABLE_PREFIX}quiet);flex:none;` +
@@ -691,17 +701,18 @@ function composeTipRules(): string {
         `.${CLASS.tipLabel}{color:var(${VARIABLE_PREFIX}quiet);flex:1;min-width:0;` +
         `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipValue}{font-variant-numeric:tabular-nums;flex:none;}` +
-        // No ink of its own: a caveat is an explanation and not an alarm, so it stays in the
-        // colour the sentence it points at is drawn in. `DESIGN.md` owns the rule and says why
-        // the families of hue are already spent.
-        `.${CLASS.tipCaveat}{color:var(${VARIABLE_PREFIX}quiet);flex:none;}` +
+        // An ink of its own, as the other three severities have: drawn in the label's colour it
+        // was invisible against the label it qualifies. `DESIGN.md` owns the rule and carries the
+        // measured distance to every other hue the panel spends.
+        `.${CLASS.tipCaveat}{color:var(${VARIABLE_PREFIX}caveat);flex:none;}` +
         // The same letters a cut's heading wears down the panel, so a run of parts under one
         // reads as the same kind of thing in both places. `DESIGN.md` owns the look.
         `.${CLASS.tipHeading}{color:var(${VARIABLE_PREFIX}heading);letter-spacing:0.08em;` +
         `font-size:10px;text-transform:uppercase;overflow:hidden;` +
         `text-overflow:ellipsis;white-space:nowrap;}` +
         `.${CLASS.tipNote}{color:var(${VARIABLE_PREFIX}quiet);}` +
-        `.${CLASS.tipNote}.${CLASS.tipSuspect}{color:var(${VARIABLE_PREFIX}suspect);}`;
+        `.${CLASS.tipNote}.${CLASS.tipSuspect}{color:var(${VARIABLE_PREFIX}suspect);}` +
+        `.${CLASS.tipNote}.${CLASS.tipCaveatNote}{color:var(${VARIABLE_PREFIX}caveat);}`;
 }
 
 /**

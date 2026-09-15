@@ -33,12 +33,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
-- **Nowość** — Liczba, która znaczy mniej, niż mówi jej nazwa, ma teraz obok siebie znak, a pod
-  kartą jedno zdanie mówiące, czego gra nie podaje. Na razie dotyczy to dwóch rzeczy: liczb sprzed
+- **Nowość** — Liczba, która znaczy mniej, niż mówi jej nazwa, ma teraz obok siebie niebieski znak,
+  a pod kartą jedno zdanie mówiące, czego gra nie podaje. Dotyczy to trzech rzeczy: liczb sprzed
   redukcji i tego, co zatrzymała obrona — gra nie podaje pancerza ani odporności, więc z tych liczb
-  nie wyjdzie cała redukcja — oraz tur, bo gra nie mówi, ile tur ktoś dostał, tylko co w nich
-  zrobił. Znak jest inny niż ostrzeżenie o nieodczytanej wiadomości: tamto mówi, że liczba może być
-  zaniżona w tej walce, a ten, że liczba jest pełna i odpowiada na węższe pytanie, niż się wydaje.
+  nie wyjdzie cała redukcja — tur, bo gra nie mówi, ile tur ktoś dostał, tylko co w nich zrobił,
+  oraz wiersza „Zwykły cios", bo gra nie mówi, czym te ciosy zadano. Ten ostatni nosi znak na samym
+  wierszu, więc widać go bez najeżdżania. Znak jest inny niż ostrzeżenie o nieodczytanej wiadomości:
+  tamto mówi, że liczba może być zaniżona w tej walce, a ten, że liczba jest pełna i odpowiada na
+  węższe pytanie, niż się wydaje.
 
 - **Nowość** — Panel mówi teraz, jak się z rozwiniętego wiersza wychodzi. Po najechaniu na ścieżkę
   nad listą staje okienko z dwoma sposobami: kliknięciem w samą ścieżkę i kliknięciem prawym

@@ -44,10 +44,12 @@ import {
 } from "@/src/ui/panel-screen.ts";
 import {
     CARD_WORDS,
+    CAVEAT_MARK,
     composeCardSubtitleText,
     composeFigureText,
     composeUndrawnText,
-    getNoteForUnannounced,
+    getCaveatForUnannounced,
+    getNoteForCaveat,
     getWordsForCardMetric,
     getWordsForDamageKind,
     getWordsForHealthSource,
@@ -1349,7 +1351,11 @@ function readTip(host: FakeElement): {
         className: tip.className,
         name,
         subtitle: getTextsByClass(tip, CLASS.tipSubtitle),
-        notes: getTextsByClass(tip, CLASS.tipNote),
+        // By the class among its classes, not by the whole attribute: a note carrying a tone
+        // wears a second class, and an exact match read past every suspicion the panel drew.
+        notes: getElementsWithin(tip)
+            .filter((one) => one.className.split(" ").includes(CLASS.tipNote))
+            .map((one) => one.textContent),
         headings: getTextsByClass(tip, CLASS.tipHeading),
         groups: getElementsWithin(tip).filter((one) => one.className === CLASS.tipGroup).length,
         lines: [
@@ -2400,6 +2406,14 @@ Deno.test("a skill that opens asks for itself by name, wherever the press lands 
     }
 });
 
+/**
+ * The marks a row may wear before its name, each drawn only on the rows it reaches. They are named
+ * here rather than filtered by shape: a cell appearing before a name for any other reason is the
+ * bug the check below was written for, and a filter that could not tell the two apart would let
+ * it back in.
+ */
+const ROW_MARK_CELLS = ["row-suspect", "row-caveat", "row-turn"];
+
 /** Where a row's name starts, which is the sum of every cell drawn before it. */
 function getCellsBeforeName(row: FakeElement): string[] {
     const before: string[] = [];
@@ -2409,6 +2423,11 @@ function getCellsBeforeName(row: FakeElement): string[] {
         before.push(named);
     }
     return before;
+}
+
+/** The same cells with the marks taken out, which is the shape every row keeps whatever it says. */
+function getCellsBeforeMarks(row: FakeElement): string[] {
+    return getCellsBeforeName(row).filter((one) => !ROW_MARK_CELLS.includes(one));
 }
 
 Deno.test("every row in a list draws the same cells before its name", () => {
@@ -2422,13 +2441,19 @@ Deno.test("every row in a list draws the same cells before its name", () => {
     const panel = composePanelHost(document, () => {}, () => {});
     const shown = composeShownScreen(reading);
     const shapes = new Map<string, string[]>();
+    const marked = new Set<string>();
     for (const [screen, opened] of [["ranking", null], ["drilled", drill]] as const) {
         panel.show({ ...shown, drill: opened });
         const host = panel.element as FakeElement;
         for (const row of getElementsWithin(host)) {
             if (row.className.split(" ")[0] !== "row") continue;
             if (row.children.length === 0) continue;
-            shapes.set(`${screen}: ${getCellsBeforeName(row).join(",")}`, getCellsBeforeName(row));
+            const kept = getCellsBeforeMarks(row);
+            shapes.set(`${screen}: ${kept.join(",")}`, kept);
+            for (const cell of getCellsBeforeName(row)) {
+                if (kept.includes(cell)) continue;
+                marked.add(cell);
+            }
         }
     }
     assertEquals(
@@ -2436,6 +2461,11 @@ Deno.test("every row in a list draws the same cells before its name", () => {
         ["drilled: bar,bar-cap,row-rank", "ranking: bar,bar-cap,row-rank"],
         "a row on one screen is built of the cells a row on the other is",
     );
+    // The half a shape check cannot state: what a row wears on top of that shape is a mark, and
+    // a mark is one of three. A badge slipping back in reads as a cell nobody registered.
+    for (const cell of marked) {
+        assertArrayIncludes(ROW_MARK_CELLS, [cell], `${cell}: a cell before a name and no mark`);
+    }
 });
 
 /**
@@ -2766,17 +2796,23 @@ Deno.test("the closing row's card says what the game did not, and only on a dama
         const row = getElementsWithin(host).find(
             (one) => one.attributes.get("data-tip") === "skill:plain",
         );
-        const note = getNoteForUnannounced(getNounForMetric(metric));
+        const caveat = getCaveatForUnannounced(getNounForMetric(metric));
         if (row === undefined) {
-            assertEquals(note, null, `${metric}: a screen drawing no closing row carries no note`);
+            assertEquals(caveat, null, `${metric}: a screen drawing no closing row owes nothing`);
             continue;
         }
-        assertExists(note, `${metric}: a screen drawing the row has a sentence for it`);
+        assertExists(caveat, `${metric}: a screen drawing the row has a sentence for it`);
         pointAtElement(host, "pointermove", row, 300);
         assertArrayIncludes(
             readTip(host).notes,
-            [note],
+            [`${CAVEAT_MARK}${getNoteForCaveat(caveat)}`],
             `${metric}: the card says what the game did not say about these blows`,
+        );
+        // The glyph and the sentence are one answer, so the row wears the mark the card explains.
+        assertEquals(
+            row.children.filter((one) => one.className === CLASS.rowCaveat).length,
+            1,
+            `${metric}: and the row wears the mark that sentence is the foot of`,
         );
     }
 });

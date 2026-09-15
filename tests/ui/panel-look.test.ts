@@ -102,6 +102,7 @@ const INK_GROUNDS: Record<string, readonly string[]> = {
     text: ["surface", "raised", "track"],
     quiet: ["surface", "raised", "track"],
     suspect: ["surface", "raised", "track"],
+    caveat: ["surface", "raised", "track"],
     heading: ["surface"],
     // The defects block stands in the panel body under a rule of its own, and on no row.
     defect: ["surface", "raised"],
@@ -312,6 +313,12 @@ Deno.test("the two sides are told apart by more than a hue", () => {
         getContrastRatio(SIGNAL.suspect, SURFACE.panel) >= AA_MARK_RATIO,
         "a mark stands off its surface",
     );
+    // The one it was drawn in until it got an ink of its own, and the reason it needed one: a
+    // glyph in the label's colour stands 1.00 from the words it qualifies.
+    assert(
+        getContrastRatio(SIGNAL.caveat, TEXT.quiet) > getContrastRatio(TEXT.quiet, TEXT.quiet),
+        "and off the label it stands beside, which is what a caveat mark is read against",
+    );
     assertEquals(SIGNAL.unknown, "#8a8a80", "unknown is desaturated: the absence of a category");
 });
 
@@ -332,7 +339,8 @@ Deno.test("a value is written once, and every rule spends it by name", () => {
     // A value stated twice is the bug this catches, wherever the second one sits: the host's own
     // declarations spend tokens like any other rule, so one occurrence is the whole allowance.
     const twice: string[] = [];
-    for (const value of [...Object.values(SURFACE), ...Object.values(TEXT), SIGNAL.suspect]) {
+    const signals = [SIGNAL.suspect, SIGNAL.caveat, SIGNAL.defect];
+    for (const value of [...Object.values(SURFACE), ...Object.values(TEXT), ...signals]) {
         const written = sheet.split(value).length - 1;
         if (written > 1) twice.push(`${value} written ${written} times`);
     }

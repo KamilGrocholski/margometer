@@ -3,10 +3,11 @@
 The row a damage section closes against, what reaches its figure, and why that is not the same
 question as what reaches the count beside it.
 
-The panel draws it as `Zwykły cios`. **ADR 0078** says how far an announcement reaches and **ADR
-0079** why the row takes a place among the rows above it; `DESIGN.md` owns how it is drawn and
-`docs/drill-levels.md` which rows open onto another level. None of that is repeated here. What this
-document owns is the **path a figure takes to get into it**.
+The panel draws it as `Zwykły cios`, wearing the caveat mark since **ADR 0089** — the one row of a
+list that does. **ADR 0078** says how far an announcement reaches and **ADR 0079** why the row takes
+a place among the rows above it; `DESIGN.md` owns how it is drawn and `docs/drill-levels.md` which
+rows open onto another level. None of that is repeated here. What this document owns is the **path a
+figure takes to get into it**.
 
 **Read off the recordings, not written from memory.** `tests/tools/unannounced-damage.test.ts`
 composes every figure below over `captures/` and asks this file to carry it word for word. A number

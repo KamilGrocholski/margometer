@@ -48,7 +48,7 @@ const HILDUR: TipReading = {
                 },
             ],
         },
-        { lines: [{ kind: "note", text: ONE_LINE_NOTE, isSuspect: false }] },
+        { lines: [{ kind: "note", text: ONE_LINE_NOTE, tone: "plain" }] },
     ],
 };
 
@@ -125,7 +125,7 @@ Deno.test("a suspicion on the card wears the mark as well as the colour", () => 
     const document = composeFakeDocument();
     const tip = composeTipElement(document, {
         ...HILDUR,
-        groups: [{ lines: [{ kind: "note", text: ONE_LINE_NOTE, isSuspect: true }] }],
+        groups: [{ lines: [{ kind: "note", text: ONE_LINE_NOTE, tone: "suspect" }] }],
     }) as FakeElement;
     assertEquals(
         getClassesByPrefix(tip, CLASS.tipNote),
@@ -148,7 +148,9 @@ Deno.test("how tall a card stands is counted, and a note as the lines it wraps t
     );
     const wrapped = {
         ...HILDUR,
-        groups: [{ lines: [{ kind: "note" as const, text: TWO_LINE_NOTE, isSuspect: false }] }],
+        groups: [{
+            lines: [{ kind: "note" as const, text: TWO_LINE_NOTE, tone: "plain" as const }],
+        }],
     };
     assertEquals(
         getTipSize(wrapped),
@@ -233,7 +235,7 @@ Deno.test("a card too tall for the window gives up its runs, and says that it di
             },
             { lines: [{ kind: "heading", text: "W CIOSACH ZADANYCH" }] },
             { lines: [{ kind: "heading", text: "W CIOSACH PRZYJĘTYCH" }] },
-            { lines: [{ kind: "note", text: ONE_LINE_NOTE, isSuspect: true }] },
+            { lines: [{ kind: "note", text: ONE_LINE_NOTE, tone: "suspect" }] },
         ],
     };
     const whole = getTipHeight(getTipSize(tall));
@@ -251,7 +253,7 @@ Deno.test("a card too tall for the window gives up its runs, and says that it di
         "and a card that gave something up says so rather than losing it in silence",
     );
     assert(
-        said.some((one) => one.kind === "note" && one.isSuspect),
+        said.some((one) => one.kind === "note" && one.tone === "suspect"),
         "the suspicion stands: it is a claim that a figure above it may be wrong",
     );
     assert(
@@ -284,7 +286,7 @@ Deno.test("a window too short for even the figures still draws them, and says so
                     caveat: null,
                 }],
             },
-            { lines: [{ kind: "note", text: ONE_LINE_NOTE, isSuspect: false }] },
+            { lines: [{ kind: "note", text: ONE_LINE_NOTE, tone: "plain" }] },
         ],
     };
     const cut = composeTipWithin(tall, 1);

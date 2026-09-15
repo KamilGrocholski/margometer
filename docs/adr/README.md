@@ -226,4 +226,6 @@ edited to agree with the new rule.
 - [0087](0087-a-card-groups-by-what-a-figure-is-a-sum-over.md) — A card groups by what a figure is a
   sum over. **Accepted**
 - [0088](0088-a-figure-that-means-narrower-says-so-and-says-it-once.md) — A figure that means
-  narrower says so, and says it once. **Accepted**
+  narrower says so, and says it once. **Superseded by 0089 in part**
+- [0089](0089-the-caveat-mark-gets-an-ink-and-a-row.md) — The caveat mark gets an ink of its own,
+  and the row whose figure is the narrower one. **Accepted**

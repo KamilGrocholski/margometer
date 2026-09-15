@@ -78,6 +78,7 @@ printed on a bar at present, and the pair is what proves the tint keeps every hu
 | `ours`           | `#6fbf8b` | The reader's own side.                                        |
 | `theirs`         | `#e0736f` | The other side.                                               |
 | `suspect`        | `#c98500` | A figure that may be short.                                   |
+| `caveat`         | `#6bb5ff` | A figure answering a narrower question than its label.        |
 | `defect`         | `#c25ce0` | What the panel itself could not do.                           |
 | `UNKNOWN_COLOUR` | `#8a8a80` | Desaturated on purpose: unknown is the absence of a category. |
 
@@ -91,6 +92,18 @@ two sides, amber is a suspicion about a figure, grey is the absence of a categor
 below are the professions. Measured 2026-09-05, it sits 65 from its nearest neighbour in the palette
 — `#9085e9` — where the two closest professions sit 38 apart, and clears 5.02:1 against the panel,
 over the 4.5:1 the floor asks of text.
+
+`caveat` is a blue, and a blue was there to be had where the paragraph above reads as though none
+was. Measured 2026-09-15 on the same arithmetic, `#66baf6` sits 69 from its nearest neighbour among
+the fourteen colours this sheet spends and 70 from the palette's own blue, and clears 8.44:1 on the
+panel, 7.74:1 on a card and 7.29:1 on a row. It needed an ink at all because the one it had was the
+label's: a glyph in `textQuiet` standing beside a label in `textQuiet` is a mark nobody sees.
+
+⚠️ **A signal and a profession may hold one hue, and two of them already do.** `suspect` and the
+palette's fourth colour are the same value, `#c98500`, at a distance of nought. So the eight are
+spent on the professions **in a bar**, which is where a hue says who somebody is, and a mark beside
+a figure is read against no bar at all. Nothing holds either half of that, and the sentence opening
+the section below is older than the pairing (**V6**).
 
 ### The palette
 
@@ -222,6 +235,12 @@ and the card a reader opens by pointing is the answer — it names the professio
 channel in the row was tried and removed on 2026-08-29: a letter beside every name took width from
 the one cell that has to shorten, to say a thing the card already said. **ADR 0023.**
 
+⚠️ **What that refusal measures is _every row_, and until 2026-09-15 nothing here measured it.** The
+three marks below stand on the exemption it grants, and each says it reaches some rows rather than
+all of them; none of them said how many, and a name the panel shortens is cut with an ellipsis,
+which overflows no box. `tests/e2e/panel-marks.spec.ts` now asks the rows actually paying: a name on
+a row wearing a mark is shown whole, or the mark took it.
+
 **The ranking marks whose turn it is**, before the name, on the one row the game is numbering. It
 stands on the same argument as the suspect mark below: a mark that reaches one row is not the second
 channel the paragraph above refuses, which would stand on every row to say a thing the card already
@@ -229,6 +248,12 @@ says. `▸` measures 9.03px in Chrome on 2026-09-09, against 13.36 for the suspe
 already carries — and it toggles against nothing, which is what ★/☆ failed at. A fight already over
 numbers nobody's turn and a fight read off the shelf is a moment that has passed, so both draw no
 mark at all. **ADR 0066.**
+
+**A row whose figure means less than its label wears the caveat mark**, in the same place and on the
+same argument, and the two stand together where a row earns both. `ⓘ` measures 9.5px in Chrome on
+2026-09-15, against 13.36 for the suspect mark and 9.03 for the turn mark, and it is the one mark
+whose cost is held rather than reasoned about: with every row wearing it, a level's longest skill
+name lost 4px to it, measured the same day. **ADR 0089.**
 
 **A row whose own figure is short wears the suspect mark**, before the name and drawn only there. It
 is not the second channel the paragraph above refuses: that one would stand on every row to say a
@@ -495,17 +520,22 @@ not say how big it is is not dragged from a guessed origin at all.
 **Suspect mark.** Rides the row it was named for, at every drill level, in `suspect` plus a glyph.
 It says a figure may be short and never says by how much.
 
-**Caveat mark.** Rides the figure on the card whose label names more than the figure counts, in a
-glyph of its own and in **no ink of its own** — a caveat is an explanation and not an alarm, so it
-stays in the colour of the sentence it points at, and the families of hue are spent already. It
-stands **before** the value, because that column is right-aligned in tabular figures and a glyph
-behind it would offset the lines carrying one against the lines that do not. It goes on the line a
-figure states and never on a sub-line under it, which is read through the line above it. Its
-sentence stands at the foot of the card, **once however many figures there wear that mark**, and the
-sentences are composed from the marks rather than worked out a second time — so a glyph pointing at
-nothing, or a sentence nothing points at, is not something this panel can draw. It never rides a row
-of the list: the row has one cell allowed to shorten and it holds a name (**ADR 0023**).
-**ADR 0088.**
+**Caveat mark.** Rides the figure whose label names more than the figure counts, in a glyph of its
+own and in `caveat`. It stands **before** the value, because that column is right-aligned in tabular
+figures and a glyph behind it would offset the lines carrying one against the lines that do not. It
+goes on the line a figure states and never on a sub-line under it, which is read through the line
+above it. Its sentence stands at the foot of the card, **once however many figures there wear that
+mark**, and the sentences are composed from the marks rather than worked out a second time — so a
+glyph pointing at nothing, or a sentence nothing points at, is not something this panel can draw.
+**ADR 0088**, and its ink is **ADR 0089**'s.
+
+**It rides a row of the list too**, where that row's own figure is the narrower one — the row
+closing a damage section, and nothing else today. It is the same glyph, the same ink and the same
+sentence, read off one field, so a row cannot wear a mark its card does not explain. What earns it
+the exemption **ADR 0023** grants is measured rather than argued: over `captures/` on 2026-09-15 it
+reaches **274 of the 7,903 rows** the panel draws over 1,312 levels, which is 3.5% of them, and the
+label it stands before is eleven characters the game never lengthens. A mark on every row was
+measured too, and refused — `tests/e2e/panel-marks.spec.ts` holds the cost that decided it.
 
 **Undrawn marker.** Replaces one section in place, at that section's size, in `textQuiet`. It is the
 least interesting thing on screen on purpose.

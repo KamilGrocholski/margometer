@@ -502,12 +502,12 @@ Deno.test("a card says the gaps that name its own person, and no others", () => 
     };
     const clean = readNotes(NOBODY);
     assertEquals(
-        clean.filter((line) => line.kind === "note" && line.isSuspect),
+        clean.filter((line) => line.kind === "note" && line.tone === "suspect"),
         [],
         "a person no gap names carries none, whatever the fight is short of",
     );
     const charged = readNotes({ ...NOBODY, unreadMessagesUnknownKey: 2 })
-        .filter((line) => line.kind === "note" && line.isSuspect);
+        .filter((line) => line.kind === "note" && line.tone === "suspect");
     assertEquals(charged.length, 1, "and the person a gap does name carries that one");
     assert(
         charged[0]?.kind === "note" && charged[0].text.startsWith(SUSPECT_MARK),

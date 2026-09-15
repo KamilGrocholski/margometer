@@ -55,7 +55,7 @@ node under the hand and walks no ancestors.
 | `half-named`  | the end the protocol left out — `Nieznany sprawca`, `Nieznany cel` |
 | `skill`       | an announcement, under the name it was made by                     |
 | `source`      | a key the game named with nothing announced in front of it         |
-| `closing`     | what no announcement covered, as one row — `Zwykły cios`, placed   |
+| `closing`     | what no announcement covered, as one row — `Zwykły cios`, marked   |
 | `kind`        | what a figure was made of                                          |
 | `no kind`     | the part of a figure its kinds do not account for                  |
 | `neither end` | the part of a half-named figure that named no end at all           |
@@ -186,15 +186,17 @@ in its section so the parts add up to the figure over them, and the two screens 
 
 **On the damage screens it closes into `Zwykły cios`**, which takes a place among the rows above it
 since **ADR 0079** — it holds the blows the game numbered a turn for and named no skill to, and that
-is a thing the game names. Since **ADR 0080** it holds nothing else: health that went out under a
-key, without a blow carrying it, stands under that key here as it always did on healing. Under
-`damageDealtApplied` that row also carries how many blows — the question a plain attack raises, and
-a number the figure alone cannot state. The count is that screen's alone: the protocol states no
-number of anything against one opponent rather than another, and on `damageTakenApplied` the
-announcement was somebody else's, so a count read off the reader's own row would be their own swings
-under somebody else's heading. **On the healing screens nothing closes at all**: health that moved
-outside an announcement still moved under a key the game named, so the section lists those keys as
-`source` rows. `DESIGN.md` owns that rule; `docs/protocol-keys.md` owns what each key means.
+is a thing the game names. It is also the one row of a list wearing the caveat mark, because what
+the game names there is that the blows landed and not what they were dealt with (**ADR 0089**).
+Since **ADR 0080** it holds nothing else: health that went out under a key, without a blow carrying
+it, stands under that key here as it always did on healing. Under `damageDealtApplied` that row also
+carries how many blows — the question a plain attack raises, and a number the figure alone cannot
+state. The count is that screen's alone: the protocol states no number of anything against one
+opponent rather than another, and on `damageTakenApplied` the announcement was somebody else's, so a
+count read off the reader's own row would be their own swings under somebody else's heading. **On
+the healing screens nothing closes at all**: health that moved outside an announcement still moved
+under a key the game named, so the section lists those keys as `source` rows. `DESIGN.md` owns that
+rule; `docs/protocol-keys.md` owns what each key means.
 
 ## An announcement is kept on the row that made it
 

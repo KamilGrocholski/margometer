@@ -8,7 +8,7 @@
 
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { CLASS, getTipHeight } from "@/src/ui/panel-look.ts";
-import { CARD_WORDS, type CardCaveat, CAVEAT_MARK } from "@/src/ui/panel-words.ts";
+import { CARD_WORDS, type Caveat, CAVEAT_MARK } from "@/src/ui/panel-words.ts";
 
 /**
  * One line of a card. A shape rather than a sentence, because the panel draws the three of them
@@ -27,11 +27,22 @@ export type TipLine =
          * figure joining the card has to answer whether its label names more than it counts, and
          * an optional field would let the next one in without being asked.
          */
-        caveat: CardCaveat | null;
+        caveat: Caveat | null;
     }
     | { kind: "sub"; label: string; stated: string }
     | { kind: "heading"; text: string }
-    | { kind: "note"; text: string; isSuspect: boolean };
+    | { kind: "note"; text: string; tone: TipNoteTone };
+
+/**
+ * What a sentence at the foot of a card is about, which is the only thing that decides its ink.
+ * One field and not a flag each: a sentence is a suspicion or a caveat and never both, and two
+ * booleans would let a caller spell the pair nothing composes.
+ *
+ * ⚠️ **The glyph stays inside the sentence's own `text`.** It is counted in what that note costs
+ * the card's height (`composeTipNoteLines`), and hoisting it into a node of its own would shorten
+ * every note by the glyph in that arithmetic while the drawn sentence stayed the same length.
+ */
+export type TipNoteTone = "plain" | "suspect" | "caveat";
 
 export interface TipGroup {
     lines: TipLine[];
@@ -174,9 +185,16 @@ function composeTipNoteElement(
     line: Extract<TipLine, { kind: "note" }>,
 ): PanelElement {
     const element = document.createElement("div");
-    element.className = line.isSuspect ? `${CLASS.tipNote} ${CLASS.tipSuspect}` : CLASS.tipNote;
+    element.className = `${CLASS.tipNote}${composeTipNoteToneClass(line.tone)}`;
     element.textContent = line.text;
     return element;
+}
+
+/** Empty for a sentence about nothing in particular, which is most of them. */
+function composeTipNoteToneClass(tone: TipNoteTone): string {
+    if (tone === "suspect") return ` ${CLASS.tipSuspect}`;
+    if (tone === "caveat") return ` ${CLASS.tipCaveatNote}`;
+    return "";
 }
 
 function composeTipLineElement(document: PanelDocument, line: TipLine): PanelElement {
@@ -308,7 +326,7 @@ function composeGroupsWithout(groups: readonly TipGroup[]): TipGroup[] | null {
 /** The card once something was given up: it says so, where a figure's qualifiers are read. */
 function composeTipCut(reading: TipReading, kept: readonly TipGroup[]): TipReading {
     if (kept.length === reading.groups.length) return reading;
-    const said: TipLine = { kind: "note", text: CARD_WORDS.cut, isSuspect: false };
+    const said: TipLine = { kind: "note", text: CARD_WORDS.cut, tone: "plain" };
     const last = kept[kept.length - 1];
     if (last !== undefined) {
         if (getIsNoteGroup(last)) {

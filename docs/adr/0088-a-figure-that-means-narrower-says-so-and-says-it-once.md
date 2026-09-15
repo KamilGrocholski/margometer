@@ -1,6 +1,6 @@
 # 0088. A figure that means narrower says so, and says it once
 
-- **Status:** Accepted
+- **Status:** Superseded by 0089 in part
 - **Date:** 2026-09-14
 
 ## Context
