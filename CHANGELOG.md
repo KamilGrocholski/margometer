@@ -101,6 +101,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 - **Poprawka** — Karta nie zasłania już wierszy, nad którymi stoi.
 
+- **Poprawka** — Okienko wiersza z Pomocnika staje teraz obok Pomocnika, a nie na nim. Wcześniej
+  stawało dokładnie na tym oknie i przykrywało wiersze poniżej tego, na który najechałeś — a to
+  właśnie one są tym, co chciałeś zobaczyć. Każde z dwóch okien odpowiada odtąd za swoje okienka
+  samo: stają z jego boku, gdziekolwiek przesuniesz to drugie.
+
 - **Poprawka** — Głęboka rana zadana bronią pomocniczą trafia teraz na kartę postaci, tak samo jak
   ta z broni głównej i pod tą samą nazwą. Wcześniej cios, który ją zostawił, wyglądał na karcie tak,
   jakby nic przy nim nie zaszło, a panel stawiał przy takiej walce wątpliwość, że czegoś nie

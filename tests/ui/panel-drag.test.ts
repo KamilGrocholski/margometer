@@ -11,6 +11,10 @@ import {
     composeStoredTextFromPosition,
     composeTipLeft,
     getPositionFromStoredText,
+    PANEL_WINDOW,
+    type PanelWindowName,
+    STANDING_WINDOW,
+    type TipWindowPlace,
 } from "@/src/ui/panel-drag.ts";
 
 const WINDOW = { width: 1280, height: 900 };
@@ -118,38 +122,111 @@ Deno.test("what puts the panel there releases the corner it was anchored to", ()
     );
 });
 
-/** 250 pixels, which is what the sheet draws the detail window at. */
+/** A round stand-in for the sheet's own width, so the arithmetic below reads without one. */
 const TIP_WIDTH = 250;
+
+/** A window to open a card beside, written the way the panel hands one over. */
+function composePlace(left: number, windowName: PanelWindowName = PANEL_WINDOW): TipWindowPlace {
+    return { position: { left, top: 8 }, windowName };
+}
 
 Deno.test("the detail opens on the side of the panel that has room for it", () => {
     // Where the sheet puts the panel, which is where it stays until somebody drags it: the whole
     // right-hand side of the window is behind it, so the detail opens to its left.
     assertEquals(
-        composeTipLeft({ left: 1012, top: 8 }, WINDOW, TIP_WIDTH),
+        composeTipLeft(composePlace(1012), WINDOW, TIP_WIDTH),
         758,
         "a panel in its own corner opens the detail to its left, a gap away",
     );
     // Dragged to the left edge there is no room on that side, and a detail that went on opening
     // leftwards would be drawn off the screen — where nothing here would measure it back on.
     assertEquals(
-        composeTipLeft({ left: 20, top: 40 }, WINDOW, TIP_WIDTH),
+        composeTipLeft(composePlace(20), WINDOW, TIP_WIDTH),
         330,
         "and one against the left edge opens it to the right instead",
     );
     assertEquals(
-        composeTipLeft({ left: 254, top: 0 }, WINDOW, TIP_WIDTH),
+        composeTipLeft(composePlace(254), WINDOW, TIP_WIDTH),
         0,
         "the boundary: exactly the detail's width and the gap is still room on the left",
     );
     assertEquals(
-        composeTipLeft({ left: 253, top: 0 }, WINDOW, TIP_WIDTH),
+        composeTipLeft(composePlace(253), WINDOW, TIP_WIDTH),
         563,
         "and one pixel less is not",
     );
     assertEquals(composeTipLeft(null, WINDOW, TIP_WIDTH), null, "a panel nobody moved is placed");
     assertEquals(
-        composeTipLeft({ left: 20, top: 0 }, null, TIP_WIDTH),
+        composeTipLeft(composePlace(20), null, TIP_WIDTH),
         null,
         "by the sheet, and so is one in a page that will not say how big it is",
+    );
+});
+
+/**
+ * The second window is 248px wide against the panel's 306, so a card flipped off its left edge
+ * lands 58px short of where the panel's own would — on the panel, which is what the second half of
+ * this holds it against (**ADR 0090**).
+ */
+Deno.test("a card from the window beside the panel opens beside that window", () => {
+    assertEquals(
+        composeTipLeft(composePlace(758, STANDING_WINDOW), WINDOW, TIP_WIDTH),
+        504,
+        "with room to its left the card steps over nothing, so no width is read at all",
+    );
+    assertEquals(
+        composeTipLeft(composePlace(20, STANDING_WINDOW), WINDOW, TIP_WIDTH),
+        272,
+        "and flipped right, alone in the strip, it steps over its own width and not the panel's",
+    );
+    assertEquals(
+        composeTipLeft(composePlace(20), WINDOW, TIP_WIDTH),
+        330,
+        "which is where the panel's own card goes, the two being 58px apart",
+    );
+    assertEquals(
+        composeTipLeft(composePlace(253, STANDING_WINDOW), WINDOW, TIP_WIDTH),
+        505,
+        "the boundary on the left is the card's own width and the gap, which no window decides",
+    );
+    assertEquals(
+        composeTipLeft(composePlace(254, STANDING_WINDOW), WINDOW, TIP_WIDTH),
+        0,
+        "and a pixel more is room there",
+    );
+});
+
+/**
+ * ⚠️ **The two windows are placed apart, and nothing reads the other's corner.** A flip that
+ * stepped past both put the panel's own card beyond the second window the moment the panel was
+ * dragged left of it — 310 away from the panel it belongs to, at 487, against a window the reader
+ * was not pointing at. Reported on the branch that introduced it (**ADR 0090**).
+ */
+Deno.test("a card flipped right stays with its own window, whatever the other is doing", () => {
+    const WINDOW_LEFT = 235;
+    assertEquals(
+        composeTipLeft(composePlace(0), WINDOW, TIP_WIDTH),
+        310,
+        "a panel against the left edge opens its card a gap to its own right",
+    );
+    assertEquals(
+        composeTipLeft(composePlace(WINDOW_LEFT, STANDING_WINDOW), WINDOW, TIP_WIDTH),
+        487,
+        "and the second window's card is where that window's own right edge puts it",
+    );
+    // The same two windows, the panel dragged left of the other: neither answer moved, because
+    // neither was read from the other. This is the whole of what the pair is held to.
+    assertEquals(
+        composeTipLeft(composePlace(0), WINDOW, TIP_WIDTH),
+        310,
+        "the panel's answer is the panel's, whatever corner the second window is standing in",
+    );
+    // The clamp is the screen and outranks the window. It is reachable only on a screen narrow
+    // enough to hold neither side: a window with no room on its left stands near that edge, so at
+    // the widths above the flip always lands on the screen with room to spare.
+    assertEquals(
+        composeTipLeft(composePlace(0), { width: 500, height: 900 }, TIP_WIDTH),
+        250,
+        "and a screen too narrow for either side draws the card back onto it",
     );
 });

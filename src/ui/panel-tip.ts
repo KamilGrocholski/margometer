@@ -380,7 +380,8 @@ export function composeTipHandle(
     document: PanelDocument,
     register: TipLookup,
     redraw: TipRedraw,
-    getLeft: () => number | null = () => null,
+    /** Asked with the key the card is open for: the two windows do not open on the same side. */
+    getLeft: (key: string) => number | null = () => null,
     /** How much of the window a card has to stand in. Null is a page that states no height. */
     getRoom: () => number | null = () => null,
 ): TipHandle {
@@ -388,13 +389,13 @@ export function composeTipHandle(
     let openKey: string | null = null;
     let openTop = 0;
     let openSize: TipSize = getTipSize(null);
-    const setTo = (reading: TipReading): void => {
+    const setTo = (key: string, reading: TipReading): void => {
         // Cut here rather than where a card is composed: the one place that knows both it and the
         // window, and on the way in for a card opened and for one a redraw put up again.
         const shown = composeTipWithin(reading, getRoom());
         openSize = getTipSize(shown);
         standing = redraw(standing, () => composeTipElement(document, shown));
-        setTipPlace(standing, openTop, getLeft(), openSize);
+        setTipPlace(standing, openTop, getLeft(key), openSize);
     };
     const hide = (): void => {
         if (openKey === null) return;
@@ -415,7 +416,7 @@ export function composeTipHandle(
                     // and a move inside one pixel would rewrite the same declaration.
                     if (top === openTop) return;
                     openTop = top;
-                    setTipPlace(standing, openTop, getLeft(), openSize);
+                    setTipPlace(standing, openTop, getLeft(key), openSize);
                     return;
                 }
             }
@@ -426,16 +427,17 @@ export function composeTipHandle(
             }
             openTop = top;
             openKey = key;
-            setTo(compose());
+            setTo(key, compose());
         },
         refresh(): void {
-            if (openKey === null) return;
-            const compose = register.get(openKey);
+            const key = openKey;
+            if (key === null) return;
+            const compose = register.get(key);
             if (compose === null) {
                 hide();
                 return;
             }
-            setTo(compose());
+            setTo(key, compose());
         },
     };
 }

@@ -7,7 +7,12 @@
  */
 
 import { expect, test } from "@/tests/e2e/panel-fixture.ts";
-import { setDragged } from "@/tests/e2e/panel-probe.ts";
+import {
+    type PanelEdges,
+    readEdgesOf,
+    readPointsAlongBar,
+    setDragged,
+} from "@/tests/e2e/panel-probe.ts";
 import type { Page } from "@playwright/test";
 
 /**
@@ -39,6 +44,8 @@ async function readCutSentences(page: Page): Promise<string[]> {
 const PLACE_KEY = "MargoMeter-place";
 const STANDING_PLACE_KEY = "MargoMeter-pomocnik-place";
 const STANDING_FOLD_KEY = "MargoMeter-pomocnik-folded";
+/** The air the sheet keeps between a window and the card beside it, as `SPACE.small` states it. */
+const GAP = 4;
 const FOLD_MARK = "—";
 const UNFOLD_MARK = "+";
 
@@ -243,6 +250,69 @@ test("a card stands over the window, even where the window covers it", async ({ 
         stack?.tipAt ?? 1,
         "and the card is drawn over it, not under it",
     ).toBeLessThan(stack?.standingAt ?? 0);
+});
+
+/** Whether two boxes share no pixel of the screen between them, read off their edges. */
+function getIsClearOf(one: PanelEdges, other: PanelEdges): boolean {
+    if (one.right <= other.left) return true;
+    return one.left >= other.right;
+}
+
+/**
+ * ⚠️ **Asked of the edges, never the centre.** A card overlapping this window by 248px — its whole
+ * width — and one overlapping by nothing put their centres in much the same place, which is how
+ * `cc481f2` shipped a 43px overlap of the panel's own rows under a green test.
+ *
+ * The card opens to this window's left while there is room there, and to its own right once there
+ * is not — the panel is not consulted either way (**ADR 0090**). At the width this suite runs at
+ * there is no room on the left, so what it holds is the flip.
+ */
+test("a card from this window's row stands clear of this window", async ({ panel }) => {
+    const rows = panel.at(".MargoMeter-standing .row[data-standing]");
+    await expect(rows, "the window is drawing rows to hover").not.toHaveCount(0);
+
+    await rows.first().hover();
+
+    await expect(panel.at(".MargoMeter-tip:not(.tip-hidden)"), "hovering one opens a card")
+        .toHaveCount(1);
+    const card = await readEdgesOf(panel.page, ".MargoMeter-tip:not(.tip-hidden)");
+    const window = await readEdgesOf(panel.page, ".MargoMeter-standing");
+    expect(
+        getIsClearOf(card, window),
+        `the card at ${card.left}..${card.right} is off the window at ` +
+            `${window.left}..${window.right}`,
+    ).toBe(true);
+    await panel.expectHonest("a card open over a row of the window beside the panel");
+});
+
+/**
+ * ⚠️ **The panel's card belongs to the panel, wherever the second window is standing.** Dragged
+ * hard left the panel flips its card to its own right — and a flip that also stepped past the
+ * second window put it 177px further on, beside a window the reader was not pointing at. Reported
+ * on the branch that introduced it, which is why both windows are measured here (**ADR 0090**).
+ */
+test("the panel's own card follows the panel, not the window beside it", async ({ panel }) => {
+    const bar = await readPointsAlongBar(panel.page, [20]);
+    await setDragged(panel.page, { x: bar[0]?.x ?? 0, y: bar[0]?.y ?? 0 }, { x: -600, y: 0 });
+    await panel.at("#MargoMeter-Panel .list .row").first().hover();
+
+    await expect(panel.at(".MargoMeter-tip:not(.tip-hidden)"), "hovering a panel row opens a card")
+        .toHaveCount(1);
+    const card = await readEdgesOf(panel.page, ".MargoMeter-tip:not(.tip-hidden)");
+    const frame = await readEdgesOf(panel.page, "#MargoMeter-Panel");
+    const window = await readEdgesOf(panel.page, ".MargoMeter-standing");
+    expect(
+        card.left - frame.right,
+        `the card at ${card.left}..${card.right} opens one gap past the panel at ` +
+            `${frame.left}..${frame.right}`,
+    ).toBe(GAP);
+    // The claim that tells the two rules apart. Stepping past the second window as well put this
+    // card at that window's right edge; beside its own panel it starts well before it. That it
+    // then lies over the window is ADR 0068's case, decided, and not what this measures.
+    expect(
+        card.left,
+        `and never out past the window at ${window.left}..${window.right}`,
+    ).toBeLessThan(window.right);
 });
 
 /**

@@ -114,9 +114,11 @@ import {
     type PanelDragHandle,
     type PanelPlacement,
     type PanelPosition,
+    type PanelWindowName,
     setGripMark,
     setPanelDrag,
     STANDING_WINDOW,
+    type TipWindowPlace,
 } from "@/src/ui/panel-drag.ts";
 import {
     composeTipHandle,
@@ -2366,18 +2368,45 @@ function composePanelFrame(document: PanelDocument, regions: PanelRegions): Pane
     return frame;
 }
 
+/** The two windows a card may open beside, each asked for where it stands **now**. */
+interface TipWindows {
+    getPanel(): PanelPosition | null;
+    getStanding(): PanelPosition | null;
+}
+
 /**
  * Where the card may stand, and how much of the window it has to stand in — both asked of the
- * panel as it is now rather than as it was when the tip was wired, because a drag moves one and a
- * window resize moves the other. A panel never made movable is handed neither, which is every
- * panel a test draws and no page a reader is on.
+ * windows as they are now rather than as they were when the tip was wired, because a drag moves
+ * one and a window resize moves the other. A panel never made movable is handed neither, which is
+ * every panel a test draws and no page a reader is on.
+ *
+ * **Which window a card opens beside is decided off its key**, the one thing the handle holds that
+ * says where the row it names is drawn. Placed against the panel, a card from the second window
+ * opened straight over that window's own lower rows: both are put a gap to the panel's left, and
+ * the card is the wider of the two (**ADR 0090**). Each window answers for its own card and reads
+ * nothing of the other's place.
  */
 function composeTipPlace(
     placement: PanelPlacement | null,
-    getPosition: () => PanelPosition | null,
-): { getLeft: () => number | null; getRoom: () => number | null } {
+    windows: TipWindows,
+): { getLeft: (key: string) => number | null; getRoom: () => number | null } {
+    const composePlace = (
+        position: PanelPosition | null,
+        windowName: PanelWindowName,
+    ): TipWindowPlace | null => {
+        if (position === null) return null;
+        return { position, windowName };
+    };
+    const composeLeft = (key: string): number | null => {
+        const viewport = placement?.getViewport() ?? null;
+        if (key.startsWith(STANDING_TIP_PREFIX)) {
+            const standing = composePlace(windows.getStanding(), STANDING_WINDOW);
+            return composeTipLeft(standing, viewport, TIP_WIDTH);
+        }
+        return composeTipLeft(composePlace(windows.getPanel(), PANEL_WINDOW), viewport, TIP_WIDTH);
+    };
     return {
-        getLeft: () => composeTipLeft(getPosition(), placement?.getViewport() ?? null, TIP_WIDTH),
+        getLeft: composeLeft,
         getRoom: () => getTipRoom(placement?.getViewport()?.height ?? null),
     };
 }
@@ -2464,15 +2493,15 @@ function composeTipLookup(panel: TipRegister, standing: TipRegister): TipLookup 
     return { get: (key: string) => panel.get(key) ?? standing.get(key) };
 }
 
-/** The card, placed against wherever the panel is **now** rather than where it was wired. */
+/** The card, placed against wherever its own window is **now** rather than where it was wired. */
 function composeTipBeside(
     document: PanelDocument,
     register: TipLookup,
     placement: PanelPlacement | null,
     handleFailure: HandlePanelFailure,
-    getDrag: () => PanelDragHandle | null,
+    windows: TipWindows,
 ): TipHandle {
-    const place = composeTipPlace(placement, () => getDrag()?.getPosition() ?? null);
+    const place = composeTipPlace(placement, windows);
     return composeTipHandle(
         document,
         register,
@@ -2508,8 +2537,13 @@ export function composePanelHost(
     const standingRegister = composeTipRegister();
     const drawing = composeListDrawing(document, regions, handleFailure);
     let drag: PanelDragHandle | null = null;
+    // Both windows are wired after the card, which is asked for neither until a row is hovered.
+    let standingDrag: PanelDragHandle | null = null;
     const cards = composeTipLookup(register, standingRegister);
-    const tip = composeTipBeside(document, cards, placement, handleFailure, () => drag);
+    const tip = composeTipBeside(document, cards, placement, handleFailure, {
+        getPanel: () => drag?.getPosition() ?? null,
+        getStanding: () => standingDrag?.getPosition() ?? null,
+    });
     const standing = composeStandingWindow(document);
     let standingBar = standing.bar;
     let standingBody = standing.body;
@@ -2518,7 +2552,7 @@ export function composePanelHost(
     setPanelRootListeners(root, handlePress, showTip, handleGesture, standing.element);
     // After the listeners that read a press, and on the same root: a drag is four more of them.
     drag = setPanelDragOrNothing(root, host, () => regions.title, placement, handleGesture);
-    const standingDrag = setStandingDrag(
+    standingDrag = setStandingDrag(
         root,
         standing.element,
         () => standingBar,

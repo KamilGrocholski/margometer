@@ -418,6 +418,43 @@ Deno.test("a card hidden where it stood is composed again, not moved", () => {
     assertEquals(getTextsByClass(shown, CLASS.tipName), [HILDUR.name], "and it names that row");
 });
 
+/**
+ * Two windows draw rows, and a card does not open on the same side for both — so the handle asks
+ * for a place with the key in hand rather than asking once for all of them (**ADR 0090**). Held
+ * here because the handle is the one piece that knows which card is open.
+ */
+Deno.test("the card asks where it may stand with the key it is open for", () => {
+    const document = composeFakeDocument();
+    const register = composeTipRegister();
+    const asked: string[] = [];
+    const swap = composeSwap();
+    const handle = composeTipHandle(
+        document,
+        register,
+        (standing, compose) => swap(standing as FakeElement, compose as () => FakeElement),
+        (key) => {
+            asked.push(key);
+            return key === "standing:12" ? 255 : 507;
+        },
+    );
+    const first = handle.element as FakeElement;
+
+    register.add("standing:12", () => HILDUR);
+    handle.show("standing:12", 300);
+    const shown = first.replacedBy;
+    assertExists(shown, "a row of the second window opens a card");
+    assertEquals(asked, ["standing:12"], "and the place was asked for under that row's own key");
+    assert(
+        shown.attributes.get("style")?.includes("--MargoMeter-tip-left:255px"),
+        "so it stands where that window's answer put it, not the panel's",
+    );
+
+    handle.show("standing:12", 360);
+    assertEquals(asked.length, 2, "a move on the same row asks again, the card having not moved");
+    handle.refresh();
+    assertEquals(asked, ["standing:12", "standing:12", "standing:12"], "and so does a redraw");
+});
+
 Deno.test("nobody under the pointer hides it, and a row nobody drew never opens it", () => {
     const { register, handle, first } = composeHandleUnderTest();
     handle.show("row:404", 200);

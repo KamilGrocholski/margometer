@@ -442,11 +442,12 @@ starts at its top. **ADR 0050.**
 **Tooltip.** `surfaceRaised`, fixed width, opens on hover and follows the cursor's vertical
 position. It states its own type and its own ink, because `all: initial` on the host reaches it and
 the panel's own rules do not — a region hanging off the root that paints a ground and leaves the
-rest to inheritance is drawn in the browser's serif, in black. It opens on whichever side of the
-panel has room for it — to the left while there is room there, and to the right once the panel
-stands far enough left that a leftward tooltip would be drawn off the screen. Its vertical position
-is clamped between the inset and the viewport's foot, and where the two cross the top edge wins: a
-window hanging off the bottom beats one whose first line is off the top.
+rest to inheritance is drawn in the browser's serif, in black. It opens beside the window whose row
+it names — the panel, or the window standing beside it — and beside **that** window alone: to its
+left while there is room there, and to its right once there is not. Neither window reads where the
+other is standing, so a tooltip is always a gap from the rows it explains. **ADR 0090.** Its
+vertical position is clamped between the inset and the viewport's foot, and where the two cross the
+top edge wins: a window hanging off the bottom beats one whose first line is off the top.
 
 **Nothing here is measured off the document.** The page states its own size, the pointer states
 where it is, and the height is arithmetic — the lines the draw counted times what a line costs, plus

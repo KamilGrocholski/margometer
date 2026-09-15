@@ -229,3 +229,5 @@ edited to agree with the new rule.
   narrower says so, and says it once. **Superseded by 0089 in part**
 - [0089](0089-the-caveat-mark-gets-an-ink-and-a-row.md) — The caveat mark gets an ink of its own,
   and the row whose figure is the narrower one. **Accepted**
+- [0090](0090-a-card-opens-beside-the-window-whose-row-it-names.md) — A card opens beside the window
+  whose row it names. **Accepted**

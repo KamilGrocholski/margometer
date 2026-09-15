@@ -52,6 +52,25 @@ const TOP_VARIABLES: Record<PanelWindowName, string> = {
     [STANDING_WINDOW]: "--MargoMeter-standing-top",
 };
 
+/** How wide each window stands, which is what a card opening beside one has to step over. */
+const WINDOW_WIDTHS: Record<PanelWindowName, string> = {
+    [PANEL_WINDOW]: PLACE.width,
+    [STANDING_WINDOW]: STANDING.width,
+};
+
+/** A window a card stands beside: where its left edge is, and which one it is. */
+export interface TipWindowPlace {
+    position: PanelPosition;
+    windowName: PanelWindowName;
+}
+
+/** Where a window ends, or null where the token it is drawn at stopped reading as pixels. */
+function composeWindowRight(place: TipWindowPlace): number | null {
+    const width = getIntegerFromText(WINDOW_WIDTHS[place.windowName].slice(0, -2));
+    if (width === null) return null;
+    return place.position.left + width;
+}
+
 /**
  * A whole pixel, on the screen, and a number a style can be written from. `getValueWithin` refuses
  * anything else, so what is not one is answered before it is handed over (**E14**).
@@ -182,30 +201,34 @@ function composeStandingPosition(viewport: PanelViewport | null): PanelPosition 
     if (gap === null) return null;
     const beside = panel.left - width - gap;
     if (beside >= 0) return composeClampedPosition({ left: beside, top: panel.top }, viewport);
-    // No room on the left, so the other side — the same answer the card gives (**ADR 0019**).
+    // No room on the left, so the other side — the same answer the card gives (**ADR 0090**).
     const other = { left: panel.left + panelWidth + gap, top: panel.top };
     return composeClampedPosition(other, viewport);
 }
 
+/**
+ * Where a card opens: beside **the window whose row it names**, and that window alone. The other
+ * one under this root is not consulted — a card that stepped past it as well left the window it
+ * came from and stood where the reader was not pointing (**ADR 0090**). `DESIGN.md` owns the rule.
+ */
 export function composeTipLeft(
-    position: PanelPosition | null,
+    anchor: TipWindowPlace | null,
     viewport: PanelViewport | null,
     tipWidth: number,
 ): number | null {
     if (!Number.isFinite(tipWidth)) return null;
     if (tipWidth <= 0) return null;
-    if (position === null) return null;
+    if (anchor === null) return null;
     if (viewport === null) return null;
-    // Both are this panel's own tokens, so a reading that fails is a token that changed shape
-    // rather than anything a page did — zero would place the window against the wrong edge.
-    const width = getIntegerFromText(PLACE.width.slice(0, -2));
+    // This panel's own token, so a reading that fails is a token that changed shape rather than
+    // anything a page did — zero would place the window against the wrong edge.
     const gap = getIntegerFromText(SPACE.small.slice(0, -2));
-    if (width === null) return null;
     if (gap === null) return null;
-    const beside = position.left - tipWidth - gap;
+    const beside = anchor.position.left - tipWidth - gap;
     if (beside >= 0) return beside;
-    const other = position.left + width + gap;
-    return Math.min(other, Math.max(0, viewport.width - tipWidth));
+    const right = composeWindowRight(anchor);
+    if (right === null) return null;
+    return Math.min(right + gap, Math.max(0, viewport.width - tipWidth));
 }
 
 /** What the panel keeps of a drag once the listeners are on. */
@@ -303,7 +326,7 @@ export function setPanelDrag(
     windowName: PanelWindowName = PANEL_WINDOW,
 ): PanelDragHandle {
     // The reader's place, or the middle of the window: a position from the first frame is what
-    // lets the detail window and the card answer the side the panel is on (**ADR 0019**), where a
+    // lets the detail window and the card answer the side they stand on (**ADR 0090**), where a
     // panel left on the sheet's corner has no `left` for either of them to read.
     let position = placement.position ??
         composeOpeningPosition(windowName, placement.getViewport());
