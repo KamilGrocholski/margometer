@@ -84,10 +84,10 @@ that went out under a key without a blow carrying it** — a tick of poison, a w
 else, drawn as the closing row with `×0` beside them. The keys now stand under their own names, as
 they always did on the healing screens, and what is left is blows.
 
-Measured over `captures/` on 2026-09-14, the row holds **2,161,636** on each damage screen — the
+Measured over `captures/` on 2026-09-17, the row holds **2,161,636** on each damage screen — the
 same figure from both ends, because it is the same blows read from the striking side and from the
 side struck. It is drawn in 173 sections of `Zadane` and 101 of `Otrzymane`, and the keys beside it
-come to 107 rows.
+come to 111 rows.
 
 ## What never does
 

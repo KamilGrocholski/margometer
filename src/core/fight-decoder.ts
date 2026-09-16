@@ -130,7 +130,7 @@ export const WOUND_TICK_KEY = "injure";
  * happens to. Both are ours to supply — the protocol states a magnitude and leaves the rest to
  * the key, and `docs/protocol-keys.md` carries the evidence per key.
  */
-const HEALTH_CHANGE_BY_KEY: Record<string, { sign: number; isOnTarget: boolean }> = {
+export const HEALTH_CHANGE_BY_KEY: Record<string, { sign: number; isOnTarget: boolean }> = {
     heal: { sign: 1, isOnTarget: false },
     legbon_holytouch_heal: { sign: 1, isOnTarget: false },
     heal_target: { sign: 1, isOnTarget: true },
@@ -186,14 +186,14 @@ const FLED_KEY = "flee";
  * opposite order from `+oth_dmg`, which is why the two cannot share a reader. Both ends of the
  * message are the wrong combatant: it rides a blow struck at somebody else.
  */
-const HEALING_TO_NAMED_KEY = "legbon_lastheal";
+export const HEALING_TO_NAMED_KEY = "legbon_lastheal";
 const HEALING_TO_NAMED_MEMBERS = 2;
 /**
  * A share of the maximum, restored to every combatant on the caster's side. What it restores is
  * stated nowhere else, so reading it as a declaration would silence a total that really is short.
  * The value has never carried a second member, and one that did would not be read.
  */
-const UNACCOUNTED_HEALTH_KEY = "healall_per";
+export const UNACCOUNTED_HEALTH_KEY = "healall_per";
 /**
  * The keys whose giver is the one healed, on the published help's word rather than on the
  * grammar: each entry's `_Cause:_` in `docs/protocol-keys.md` reads *the subject's own*. Being
@@ -430,6 +430,18 @@ export function isDamageKey(key: string): boolean {
     assert(key.length > 0, "a key is never empty");
     if (DAMAGE_KEYS.includes(key)) return true;
     return key.slice(DAMAGE_MARKER_AT, DAMAGE_MARKER_AT + DAMAGE_MARKER.length) === DAMAGE_MARKER;
+}
+
+/**
+ * The applied half of a blow, which is the half that moved health — the raw half is what the
+ * figure was before any reduction and no total of health accounts for it. Exported so the sign
+ * this repository did not choose is read in one place (**N13**): `docs/protocol-keys.md` states
+ * which keys move health and `tests/repository/protocol-keys.test.ts` asks this to re-earn it.
+ */
+export function isAppliedDamageKey(key: string): boolean {
+    assert(key.length > 0, "a key is never empty");
+    if (!isDamageKey(key)) return false;
+    return !key.startsWith(RAW_SIGN);
 }
 
 /** The client's own token: the key with its sign taken off. */

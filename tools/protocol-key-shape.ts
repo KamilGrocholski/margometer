@@ -20,7 +20,11 @@ import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { composeReplayedMaterial } from "@/tools/fight-replay.ts";
 import { getBacktickedPhrases } from "@/tools/help-claim-register.ts";
 import { ProtocolKeyShapeError } from "@/tools/margometer-tool-error.ts";
-import { readRecordingPaths } from "@/project/repository-layout.ts";
+import {
+    readRecordingPaths,
+    RECORDING_DIRECTORY,
+    RECORDING_SUFFIX,
+} from "@/project/repository-layout.ts";
 
 /**
  * Where every occurrence of a key sits. Strongest first, which is the order a claim is picked in:
@@ -61,6 +65,19 @@ export interface RegisteredKey {
     shape: KeyShape | null;
 }
 
+/**
+ * One sentence of an entry's prose that counts how many times a key occurs, and the recordings it
+ * names. A count scoped to a recording cannot go stale, because evidence does not change; a count
+ * over `captures/` goes wrong the day the next recording is admitted, and reads exactly the same.
+ */
+export interface ProseCountClaim {
+    key: string;
+    /** The line the paragraph opens on, which is where a reader goes to fix the sentence. */
+    line: number;
+    sentence: string;
+    recordings: string[];
+}
+
 export const REGISTER_PATH = "docs/protocol-keys.md";
 /**
  * The family entry, which is the one heading naming no key. The client has no case labels for
@@ -84,9 +101,44 @@ const HEADING_OPENER = "### ";
 const VERDICT_DASH = "—";
 /** The sentence in the preamble that names every verdict an entry may carry. */
 const VERDICTS_STATED = "**A verdict is one of ";
+/**
+ * The sentence in the preamble stating what a count written in prose has to carry. Read over
+ * the document with its wrapping taken out: `deno fmt` breaks a sentence across three lines,
+ * and a reader over lines would find no rule where the document plainly states one.
+ */
+const COUNT_RULE_STATED = "**A count of occurrences in prose ";
+const BOLD = "**";
 const BACKTICK = "`";
 const SHAPE_MARKER = "_Shape:_";
 const OCCURRENCE_WORD = "occurrences";
+/** The stem covering `occurrence` and `occurrences` at once, so neither is spelled twice. */
+const OCCURRENCE_STEM = "occurrence";
+/**
+ * The words standing where a figure would. `both` and `single` spell a count without a digit, so
+ * a reader looking for digits alone finds neither, and the register writes counts in both forms.
+ */
+const COUNT_WORDS: readonly string[] = [
+    "one",
+    "two",
+    "three",
+    "four",
+    "five",
+    "six",
+    "seven",
+    "eight",
+    "nine",
+    "ten",
+    "eleven",
+    "twelve",
+    "both",
+    "single",
+];
+/** What a sentence wraps a word in: markdown emphasis, and the punctuation around a clause. */
+const WORD_EDGES = "*_`.,;:()[]\"'";
+const SENTENCE_END = ". ";
+/** Past the claims the register carries, and past what a document of this size could state. */
+const MAXIMUM_CLAIMS = 1024;
+
 const CLAIM_SEPARATOR = ";";
 const CLAIMS_PER_LINE = 3;
 /** Past the 110 the corpus carries, 2026-09-10, and past what a protocol change would add. */
@@ -313,6 +365,37 @@ export function getStatedVerdicts(text: string): string[] {
 }
 
 /**
+ * What the register says a count in prose has to name, read off the register rather than written
+ * down here — a guard stating its own rule is a rule with two copies (**C15**). The sentence going
+ * missing throws, so deleting it turns the rule off loudly rather than quietly.
+ */
+export function getStatedCountRule(text: string): string {
+    assert(text.length > 0, "a register read for its rule says something");
+    const flowing = composeFlowingText(text);
+    const at = flowing.indexOf(COUNT_RULE_STATED);
+    if (at === -1) {
+        throw new ProtocolKeyShapeError(
+            `${REGISTER_PATH}: no sentence states what a count written in prose has to name`,
+        );
+    }
+    const opened = at + BOLD.length;
+    const end = flowing.indexOf(BOLD, opened);
+    if (end === -1) {
+        throw new ProtocolKeyShapeError(`${REGISTER_PATH}: the count rule never closes its bold`);
+    }
+    assert(end > opened, "a rule that closes says something between its markers");
+    return flowing.slice(opened, end);
+}
+
+/** The document with its line wrapping taken out, so a phrase is read over the sentence. */
+function composeFlowingText(text: string): string {
+    assert(text.length > 0, "a document read flat says something");
+    const flowing = text.split("\n").map((line) => line.trim()).join(" ");
+    assert(flowing.length > 0, "and is still there once the wrapping is gone");
+    return flowing;
+}
+
+/**
  * Every entry the register opens, with the claim under it. The `_Shape:_` line is taken from the
  * entry it stands in and never from the next one, so an entry that omits it reads as an omission
  * rather than as a borrowed claim from the heading below.
@@ -335,6 +418,124 @@ export function getRegisteredKeys(text: string): RegisteredKey[] {
     assert(entries.length <= MAXIMUM_KEYS, "a register states no more entries than the bound");
     assert(entries.every((one) => one.line > 0), "and every entry knows which line it opened on");
     return entries;
+}
+
+/**
+ * Every sentence of the register's prose that counts occurrences of a key, with the recordings it
+ * names. Walked as paragraphs rather than as lines, because `deno fmt` wraps a sentence across
+ * three of them and a reader over lines sees a count and its material as two separate claims.
+ */
+export function getProseCountClaims(text: string): ProseCountClaim[] {
+    assert(text.length > 0, "a register read for its prose says something");
+    assert(text.length <= Number.MAX_SAFE_INTEGER, "and is a document rather than a stream");
+    const claims: ProseCountClaim[] = [];
+    let key = "";
+    let paragraph = "";
+    let opened = 0;
+    for (const [offset, line] of text.split("\n").entries()) {
+        const heading = composeHeadingOfLine(line);
+        if (heading !== null) {
+            addParagraphToClaims(claims, key, opened, paragraph);
+            key = heading.key;
+            paragraph = "";
+            continue;
+        }
+        if (key.length === 0) continue;
+        if (line.trim().length === 0) {
+            addParagraphToClaims(claims, key, opened, paragraph);
+            paragraph = "";
+            continue;
+        }
+        if (line.startsWith(SHAPE_MARKER)) continue;
+        if (paragraph.length === 0) opened = offset + 1;
+        paragraph = paragraph.length === 0 ? line.trim() : `${paragraph} ${line.trim()}`;
+    }
+    addParagraphToClaims(claims, key, opened, paragraph);
+    assert(claims.length <= MAXIMUM_CLAIMS, "a register states no more claims than the bound");
+    return claims;
+}
+
+/** One paragraph's sentences, each asked whether it counts something the `_Shape:_` line owns. */
+function addParagraphToClaims(
+    claims: ProseCountClaim[],
+    key: string,
+    line: number,
+    paragraph: string,
+): void {
+    assert(claims.length <= MAXIMUM_CLAIMS, "a tally stays inside its stated bound");
+    assert(line >= 0, "and a paragraph knows which line it opened on");
+    if (key.length === 0) return;
+    if (paragraph.length === 0) return;
+    for (const sentence of paragraph.split(SENTENCE_END)) {
+        if (!doesSentenceCountOccurrences(sentence)) continue;
+        claims.push({ key, line, sentence, recordings: getRecordingsNamed(sentence) });
+    }
+}
+
+/** A count stands immediately before the word it counts, which is the one shape prose uses. */
+function doesSentenceCountOccurrences(sentence: string): boolean {
+    assert(sentence.length <= Number.MAX_SAFE_INTEGER, "a sentence read is a sentence");
+    const words = composeWordsOfSentence(sentence);
+    for (const [at, word] of words.entries()) {
+        if (!word.toLowerCase().startsWith(OCCURRENCE_STEM)) continue;
+        if (at === 0) continue;
+        if (isCountWord(words[at - 1] ?? "")) return true;
+    }
+    return false;
+}
+
+/** Digits, or a word that spells a figure. `every` and `each` are neither, and are the point. */
+function isCountWord(word: string): boolean {
+    assert(word.length <= Number.MAX_SAFE_INTEGER, "a word asked about is a word");
+    if (word.length === 0) return false;
+    if (getIntegerFromText(word) !== null) return true;
+    return COUNT_WORDS.includes(word.toLowerCase());
+}
+
+/** The sentence's words, each stripped of the emphasis and punctuation it is written with. */
+function composeWordsOfSentence(sentence: string): string[] {
+    assert(sentence.length <= Number.MAX_SAFE_INTEGER, "a sentence split is a sentence");
+    const words: string[] = [];
+    for (const raw of sentence.split(" ")) {
+        const word = composeBareWord(raw);
+        if (word.length === 0) continue;
+        words.push(word);
+    }
+    assert(words.length <= MAXIMUM_CLAIMS, "a sentence holds no more words than the bound");
+    return words;
+}
+
+/** `**Both**` and `340,` are the same word as `both` and `340` to a reader looking for a count. */
+function composeBareWord(raw: string): string {
+    assert(raw.length <= Number.MAX_SAFE_INTEGER, "a word trimmed is a word");
+    let start = 0;
+    for (let at = 0; at < raw.length; at += 1) {
+        if (!WORD_EDGES.includes(raw[at] ?? "")) break;
+        start = at + 1;
+    }
+    let end = raw.length;
+    for (let at = raw.length; at > start; at -= 1) {
+        if (!WORD_EDGES.includes(raw[at - 1] ?? "")) break;
+        end = at - 1;
+    }
+    assert(end >= start, "a word trimmed from both ends has not crossed itself");
+    return raw.slice(start, end);
+}
+
+/** Every recording path the sentence names, which is the material a count is allowed to rest on. */
+function getRecordingsNamed(sentence: string): string[] {
+    assert(sentence.length <= Number.MAX_SAFE_INTEGER, "a sentence read for paths is a sentence");
+    const opener = `${RECORDING_DIRECTORY}/`;
+    const named: string[] = [];
+    let at = sentence.indexOf(opener);
+    while (at !== -1) {
+        assert(named.length <= MAXIMUM_CLAIMS, "a sentence names no more paths than the bound");
+        const end = sentence.indexOf(RECORDING_SUFFIX, at);
+        if (end === -1) break;
+        named.push(sentence.slice(at, end + RECORDING_SUFFIX.length));
+        at = sentence.indexOf(opener, end);
+    }
+    return named;
 }
 
 /** The line the register writes, composed from a measurement so nobody types one by hand. */

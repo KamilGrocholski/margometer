@@ -40,6 +40,8 @@ interface ScreenTally {
 
 /** Both screens, and the count the panel states beside the row on one of them. */
 interface CorpusTally {
+    /** Key rows standing beside the closing row, over both damage screens. */
+    keyRows: number;
     byScreen: Map<PanelMetric, ScreenTally>;
     /** Rows stating a figure and no blows at all — every point in them arrived without a swing. */
     blowless: number;
@@ -49,7 +51,7 @@ interface CorpusTally {
 function composeCorpusTally(): CorpusTally {
     const byScreen = new Map<PanelMetric, ScreenTally>();
     for (const metric of DAMAGE_SCREENS) byScreen.set(metric, { rows: 0, figure: 0, fromBlows: 0 });
-    const tally: CorpusTally = { byScreen, blowless: 0, blows: 0 };
+    const tally: CorpusTally = { keyRows: 0, byScreen, blowless: 0, blows: 0 };
     for (const path of readRecordingPaths()) {
         const roster = composeCombatantRoster(getRecordedCombatants(path));
         const events = getRecordedPayloads(path)
@@ -70,6 +72,11 @@ function composeCorpusTally(): CorpusTally {
             tally.blows += figures.blowsWithoutSkill;
             for (const metric of DAMAGE_SCREENS) {
                 const drill = composeDrillReading(statistics, roster, metric, combatantId);
+                if (drill !== null) {
+                    tally.keyRows += drill.bySkill.rows.filter((one) =>
+                        one.part.kind === "source"
+                    ).length;
+                }
                 const row = drill?.bySkill.plain;
                 if (row === null || row === undefined) continue;
                 const isDealt = metric === "damageDealtApplied";
@@ -130,6 +137,13 @@ Deno.test("the row holds the blows under it and nothing else, on both damage scr
         said,
         `drawn in ${dealt.rows} sections of \`Zadane\` and ${taken.rows} of \`Otrzymane\``,
         `${REGISTER_PATH}: how many sections draw it`,
+    );
+    // The clause beside the three above, and the one that was left unearned: it read 107 while
+    // the corpus drew 111, because two guarded figures and one unguarded one sat in one sentence.
+    assertStringIncludes(
+        said,
+        `the keys beside it come to ${tally.keyRows} rows`,
+        `${REGISTER_PATH}: how many key rows stand beside the row`,
     );
 });
 

@@ -203,10 +203,11 @@ rule; `docs/protocol-keys.md` owns what each key means.
 ⚠️ **This document said the opposite until 2026-08-31, and the recordings said otherwise all
 along.** It read: _nothing announces a blow you take; the protocol names what hit you and never what
 the other side chose_ — which was a claim about the protocol standing on a fact about our own
-aggregation. The protocol does announce, on both sides: 25 of the 31 combatants on side 2 across
-`captures/` announce something, Amaimon, Hildur, Draugr, Centaur and Mamlambo among them, and 80.1%
-of all applied damage in the corpus stands under an announcement — 8,540,008 of 10,655,752, read
-2026-09-12, with **ADR 0078** worth 147,082 of that figure.
+aggregation. The protocol does announce, on both sides: 30 of the 37 combatants on side 2 across
+`captures/` announce something, Amaimon, Hildur, Draugr, Centaur and Mamlambo among them, and 79.7%
+of all applied damage in the corpus stands under an announcement — 8,595,442 of 10,787,341, read
+2026-09-17. **ADR 0078** was worth 147,082 of that figure when it was read on 2026-09-12, and that
+share has not been re-earned since.
 
 What is true is narrower. `SkillFigures` hangs off the record of whoever **made** the announcement,
 so a figure somebody received carries no announcement of its own. `damageTakenApplied` therefore

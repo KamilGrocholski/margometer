@@ -21,6 +21,8 @@ import {
     DRILL_VERDICTS,
 } from "@/tools/drill-report.ts";
 import { composeFightReplay, composeReplayedMaterial } from "@/tools/fight-replay.ts";
+import { readRecordingPaths } from "@/project/repository-layout.ts";
+import { assertStringIncludes } from "@std/assert";
 import { getRecordedFightAt } from "@/tools/recorded-fights.ts";
 import { SCREEN_ORDER } from "@/src/ui/panel-screen.ts";
 import { composeShownScreen } from "@/tests/shown-screen.ts";
@@ -326,5 +328,58 @@ Deno.test("the kinds said to stay shut are the kinds that stay shut, both ways r
         [...shut].sort().filter((one) => !said.includes(one)),
         [],
         `${REGISTER_PATH}: a kind stays shut and the document does not say so`,
+    );
+});
+
+/** A figure grouped the way the register writes one: `10,787,341`. */
+function composeGroupedFigure(figure: number): string {
+    assert(Number.isSafeInteger(figure), "a figure written into prose is a whole number");
+    assert(figure >= 0, "and a sum over the corpus is never below nothing");
+    return figure.toLocaleString("en-US");
+}
+
+/**
+ * ⚠️ **The paragraph that overturned this document's earlier claim, and the figures it stands on
+ * were read once.** Every one of them had gone stale by 2026-09-17 — the corpus had grown by five
+ * recordings and the share had moved from 80.1% to 79.7%, the side-2 count from 25 of 31 to 30 of
+ * 37. A figure arguing a point is the last one that may be left unearned, because the argument
+ * goes on reading as though it were measured.
+ */
+Deno.test("what stands under an announcement is what the register says it is", () => {
+    let appliedTotal = 0;
+    let underAnnouncement = 0;
+    let onSideTwo = 0;
+    let announcingOnSideTwo = 0;
+    for (const replay of composeReplayedMaterial(readRecordingPaths()).replays) {
+        for (const [combatantId, figures] of replay.statistics.byCombatantId) {
+            appliedTotal += figures.damageDealtApplied;
+            let dealt = 0;
+            for (const skill of figures.skills.values()) dealt += skill.dealt;
+            underAnnouncement += dealt;
+            const member = replay.roster.byId.get(combatantId);
+            if (member?.side !== 2) continue;
+            onSideTwo += 1;
+            if (figures.skills.size > 0) announcingOnSideTwo += 1;
+        }
+    }
+    assert(appliedTotal > 0, "the corpus holds applied damage to take a share of");
+    assert(onSideTwo > 0, "and combatants on the side the paragraph is about");
+
+    const register = Deno.readTextFileSync(REGISTER_PATH);
+    const share = ((underAnnouncement / appliedTotal) * 100).toFixed(1);
+    assertStringIncludes(
+        register,
+        `${announcingOnSideTwo} of the ${onSideTwo} combatants on side 2`,
+        `${REGISTER_PATH}: how many of them announce anything`,
+    );
+    assertStringIncludes(
+        register,
+        `${share}%\nof all applied damage`,
+        `${REGISTER_PATH}: the share standing under an announcement`,
+    );
+    assertStringIncludes(
+        register,
+        `${composeGroupedFigure(underAnnouncement)} of ${composeGroupedFigure(appliedTotal)}`,
+        `${REGISTER_PATH}: the two figures that share is taken between`,
     );
 });
