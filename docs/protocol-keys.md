@@ -2487,18 +2487,32 @@ arrives separately as the `wound` ticks the entry above reads. It is one of five
 `src/core/fight-decoder.ts` names that set rather than letting every proc take one (**ADR 0094**,
 which grew the set **ADR 0085** opened at this key alone).
 
-⚠️ **What the percentage is taken off is not settled by this material.** All six occurrences state
-`50` while the ticks following them state 177, 265, 353, 177, 265 and 177, and the blows they ride
-carry `+dmgd` of 1139, 1284, 1205, 1952, 1292 and 1201 — the figure moves with neither
-(`captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`, read 2026-09-11). A share quoted
-against a wound would be a guess, so none is quoted.
+**The published help settles what the figure means, under a heading that never names this key.** Its
+section on deep-wound damage states that where one attack applies poison and a deep wound together,
+the wound damage that application adds is halved, and that the halving does not happen against a
+target poisoned earlier unless the same attack poisons it again (article `view,372`, read
+2026-09-15). So `50` is that halving written as a percentage — a constant the rule fixes, not a
+quantity anything measured.
+
+⚠️ **Knowing that is not knowing a number to draw.** What the help halves is the damage _this
+application_ would have added, and no message states it: the figure a reader would want is the
+difference, and the protocol carries neither side of it. The material shows the same from the other
+direction — all six occurrences state `50` while the ticks following them state 177, 265, 353, 177,
+265 and 177, and the blows they ride carry `+dmgd` of 1139, 1284, 1205, 1952, 1292 and 1201, so the
+figure moves with neither (`captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`, read
+2026-09-11). A share quoted against a wound would still be a guess, so none is quoted.
+
+⚠️ **The help documents the poison case and no other.** It states one halving rule and states it of
+poison; of frost or magic weakening a wound it says nothing (read 2026-09-15). What `+woundfrost`
+and `+woundmagic` weaken a wound _by_ is therefore taken from the client's own switch and from the
+symmetry of the three, not from an article.
 
 ⚠️ **Both announcements reach the card, and the figure is the only difference between them.** The
 proc reader takes valueless keys, this one excepted and named — because a wound nothing weakened
 standing on the card while a weakened one does not is a hole in what a player sees, turning on
 something they cannot. The `[ASK]` this entry carried was put and granted on 2026-09-13 (**ADR
-0085**). What was **not** granted is reading the figure, which is a share of something the material
-does not settle.
+0085**). What was **not** granted is reading the figure, and the help settling what it means has not
+changed that: the base it is a share of is a quantity no message carries.
 
 _Shape:_ 6 occurrences; on a blow; a whole number
 
@@ -2507,15 +2521,18 @@ _Help:_ names nothing of `woundpoison`
 _Evidence:_ production build `Cl9U89Zr` composes `msg_woundpoison %val%` on the switch that composes
 `msg_+wound` and `msg_+critwound` without one; build `1785244275300` fills that slot with the deep
 wound's own name and a share taken off it. The published help names nothing of the key — article
-view,372, read 2026-09-09 — which is the whole of what it settles. Every occurrence rides a blow of
-one combatant in `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`, the one
-recording carrying it as the set stood 2026-09-11.
+view,372, read 2026-09-09 — but it does settle the mechanic, under its deep-wound damage heading and
+without the engine name, which is what the prose above reads it for (read 2026-09-15). Every
+occurrence rides a blow of one combatant in
+`captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`, the one recording carrying it as
+the set stood 2026-09-11.
 
 ### `+woundfrost` — decoded
 
 The same announcement as `+woundpoison` above, for the second of the three things that weaken a deep
 wound. Read as a **proc on the attacker's end** and the figure it carries is not read, for the
-reason that entry gives: the percentage is a share of something this material does not settle.
+reason that entry gives, which holds here twice over: the help settles the halving for poison and
+says nothing of frost, so neither the base nor the rule behind this key is documented at all.
 
 ⚠️ **No recording carries it, and it has no `+of_` twin.** The client composes an auxiliary-weapon
 variant for the other two weakeners and none for this one — a claim about the switch, read on
