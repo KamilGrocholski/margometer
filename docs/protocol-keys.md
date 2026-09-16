@@ -1008,6 +1008,55 @@ bundle — the client fetches it. 4 occurrences on
 stood 2026-08-27 — both against the same monster, which is the only one in the material with the
 statistic; of the five variants three are now in some recording and `-f` and `-l` are in none.
 
+### `+stun2-f` — decoded
+
+The same Ogłuszenie as the three above and off the same statistic, in the fire-shaped one of the
+five variants the client spells (`+stun2`, `-c`, `-d`, `-f`, `-l`). A proc: it states no figure and
+the blow it rides already reports its damage.
+
+⚠️ **No recording carries it, and the file that prompted this entry is not one.** A fight handed
+over on 2026-09-16 against a Choukker on `luvia`, build `Bb28FQty`, states the key twice and states
+no snapshot beside it, so an intake refuses it and it is a report rather than evidence (**ADR
+0053**). It would not have settled the variant either: all thirteen of that monster's blows carry
+`+dmgf`, so nothing in them tells a fire-shaped stun from any other — the wall `+stun2-c` above
+stands at, reached a second time. What the key is comes from the client, which is where `-c`'s
+answer came from too, and a snapshot has nothing to say about a proc that moves no health.
+
+_Help:_ names `stun2`
+
+_Evidence:_ article `view,372` at the engine name `stun2` (read 2026-08-25) gives it as a monster's
+statistic deciding the chance of the Ogłuszenie event, fired while the monster attacks and costing
+the Player two turns. Production build `Bb28FQty` composes `msg_+stun2-f` with no `%val%`, on the
+switch that composes `msg_+stun2`, `msg_+stun2-c` and `msg_+stun2-d` the same way. Which of the five
+variants it is comes from the development build `1781609507010`, which keeps each branch's rendered
+sentence in a comment beside it: the `-f` branch's names a burning, where `-c`'s names a freezing
+and `-l`'s a lightning strike. The sentences themselves stay in that bundle and are not copied here
+(`AGENTS.md`). Absent from `captures/` as the set stood 2026-09-16.
+
+### `+stun2-l` — decoded
+
+The same Ogłuszenie as the four above and off the same statistic, in the lightning-shaped one of the
+five variants the client spells (`+stun2`, `-c`, `-d`, `-f`, `-l`). A proc: it states no figure and
+the blow it rides already reports its damage.
+
+⚠️ **No recording carries it, and no fight prompted it.** It is read because the client settles it
+and `+stun2-f` above left it the last of the five unread — a blow carrying it would otherwise raise
+a defect against a key whose meaning this register already states. Material would not have settled
+the variant either: a snapshot has nothing to say about a proc that moves no health, which is the
+wall `+stun2-c` above stands at.
+
+_Help:_ names `stun2`
+
+_Evidence:_ article `view,372` at the engine name `stun2` (read 2026-08-25) gives it as a monster's
+statistic deciding the chance of the Ogłuszenie event, fired while the monster attacks and costing
+the Player two turns. Production build `Bb28FQty` composes `msg_+stun2-l` with no `%val%`, on the
+one switch that composes `msg_+stun`, `msg_+stun2`, `msg_+stun2-c`, `msg_+stun2-d` and
+`msg_+stun2-f` the same way — all six cases read 2026-09-16. Which of the five variants it is comes
+from the development build `1781609507010`, which keeps each branch's rendered sentence in a comment
+beside it: the `-l` branch's names a lightning strike, where `-f`'s names a burning and `-c`'s a
+freezing. The sentences themselves stay in that bundle and are not copied here (`AGENTS.md`). Absent
+from `captures/` as the set stood 2026-09-16.
+
 ### `+freeze` — decoded
 
 The same stun, from the effect the help documents separately as its own passive: a chance to freeze,

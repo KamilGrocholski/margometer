@@ -34,6 +34,13 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — Ogłuszenie w ognistej i błyskawicznej odmianie jest już rozpoznawane. W walkach z
+  potworami, które je zadają, panel przestaje ostrzegać, że nie wiedział, co znaczyła część tego, co
+  powiedziała gra, a przy ciosie staje „ogłuszenie" — tak samo jak przy pozostałych odmianach tego
+  samego zdarzenia.
+
 ## [0.17.0] — 2026-09-15
 
 - **Nowość** — Liczba, która znaczy mniej, niż mówi jej nazwa, ma teraz obok siebie niebieski znak,

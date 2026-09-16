@@ -422,8 +422,9 @@ export const DEFENCE_WORDS: Record<string, string> = {
  * count, so each is the mechanic's name and not a sentence about it.
  *
  * **Not every key in `PROC_ENDS` has a word here**, and `CLIENT_IDS_FOR_UNWORDED_KEYS` below names
- * the ones that do not and says why. The five stun keys share one word because they are one event
- * from five sources, which is what `+stun2-d`'s entry in `docs/protocol-keys.md` says outright.
+ * the ones that do not and says why. The six keys sharing `ogłuszenie` are one event the client
+ * spells two ways — `+stun`, and the five variants of the monster statistic — which is what
+ * `+stun2-d`'s entry in `docs/protocol-keys.md` says outright.
  *
  * **Keyed with the sign**, for the reason `DEFENCE_WORDS` above states: `+wound` is a wound a blow
  * announced and `wound` is one ticking afterwards, and they are different rows on different
@@ -439,6 +440,8 @@ export const PROC_WORDS: Record<string, string> = {
     "+stun2": "ogłuszenie",
     "+stun2-c": "ogłuszenie",
     "+stun2-d": "ogłuszenie",
+    "+stun2-f": "ogłuszenie",
+    "+stun2-l": "ogłuszenie",
     "+freeze": "zamrożenie",
     "+wound": "głęboka rana",
     /**

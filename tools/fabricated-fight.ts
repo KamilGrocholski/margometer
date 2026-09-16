@@ -722,6 +722,8 @@ function actStunningBlow(turn: FabricatedTurn): string[] {
         composeValueless("+stun2"),
         composeValueless("+stun2-c"),
         composeValueless("+stun2-d"),
+        composeValueless("+stun2-f"),
+        composeValueless("+stun2-l"),
         composeValueless("+freeze"),
     ])];
 }

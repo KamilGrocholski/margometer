@@ -71,6 +71,8 @@ export const PROC_ENDS: Record<string, ProcEnd> = {
     "+stun2": "actor",
     "+stun2-c": "actor",
     "+stun2-d": "actor",
+    "+stun2-f": "actor",
+    "+stun2-l": "actor",
     "+freeze": "actor",
     "+wound": "actor",
     "+of_wound": "actor",
