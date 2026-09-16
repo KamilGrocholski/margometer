@@ -194,7 +194,7 @@ export interface CombatantFigures {
     /**
      * What fired beside a blow, kept apart by which end of it this combatant stood at — striking,
      * or struck. Which end a key belongs to is `docs/protocol-keys.md`'s to say and the decoder's
-     * to state (`PROC_ENDS`); a key that document refuses an end reaches neither map.
+     * to state (`BLOW_END_BY_PROC_KEY`); a key that document refuses an end reaches neither map.
      */
     procsWhenStriking: ReadonlyMap<string, number>;
     procsWhenStruck: ReadonlyMap<string, number>;
@@ -364,7 +364,10 @@ type ComposedSkillFigures = Composing<SkillFigures>;
 
 /** The largest cut in `captures/` holds ten elements against twenty combatants, 2026-08-28. */
 const MAXIMUM_CUT = 64;
-/** Past every key `PROC_ENDS` holds; the most one blow fires in `captures/` is 3, 2026-08-30. */
+/**
+ * Past every key `BLOW_END_BY_PROC_KEY` holds; the most one blow fires in `captures/` is 3,
+ * 2026-08-30.
+ */
 const MAXIMUM_PROCS = 32;
 /** 81 skills are named across `captures/`, 2026-08-29, and one fight states a fraction of them. */
 const MAXIMUM_SKILLS = 256;
@@ -665,9 +668,9 @@ function getOtherEndKey(targetId: number | null): string | null {
 }
 
 /**
- * What fired beside the blow, on the row of whoever it belongs to. A key `PROC_ENDS` calls
- * `unsettled` reaches neither row: whose it is has not been established, and a row charged with one
- * would be this file guessing (`docs/protocol-keys.md`).
+ * What fired beside the blow, on the row of whoever it belongs to. A key `BLOW_END_BY_PROC_KEY`
+ * calls `unsettled` reaches neither row: whose it is has not been established, and a row charged
+ * with one would be this file guessing (`docs/protocol-keys.md`).
  */
 function addBlowProcs(
     striker: ComposedFigures | null,

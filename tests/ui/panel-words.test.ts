@@ -41,9 +41,9 @@ import {
     composeUsesText,
     COUNTED_NOUNS,
     DEFECT_KINDS,
-    DEFENCE_WORDS,
-    DESTROYED_WORDS,
-    ELEMENT_WORDS,
+    DEFENCE_WORD_BY_KEY,
+    DESTROYED_WORD_BY_KEY,
+    ELEMENT_WORD_BY_KEY,
     EVERY_SLOT_PINNED_ANSWER,
     getNoteForCaveat,
     getWordsForCardMetric,
@@ -63,13 +63,13 @@ import {
     getWordsForTurnState,
     getWordsForUnannounced,
     getWordsForUnnamedEnd,
-    HEALTH_LOSS_WORDS,
-    HEALTH_SOURCE_WORDS,
+    HEALTH_LOSS_WORD_BY_KEY,
+    HEALTH_SOURCE_WORD_BY_KEY,
     NEITHER_END_WORDS,
     PANEL_WORDS,
     type PanelRegion,
-    PROC_WORDS,
-    PROFESSION_WORDS,
+    PROC_WORD_BY_KEY,
+    PROFESSION_WORD_BY_KEY,
     REGION_WORDS,
     STANDING_WORDS,
     STORE_MADE_ROOM_ANSWER,
@@ -135,12 +135,12 @@ const SAID_OUT_OF = 412;
 /** Every table of words the module exports, walked for its values rather than named one by one. */
 const TABLES = [
     CARD_WORDS,
-    DEFENCE_WORDS,
-    ELEMENT_WORDS,
-    HEALTH_LOSS_WORDS,
-    HEALTH_SOURCE_WORDS,
-    PROC_WORDS,
-    PROFESSION_WORDS,
+    DEFENCE_WORD_BY_KEY,
+    ELEMENT_WORD_BY_KEY,
+    HEALTH_LOSS_WORD_BY_KEY,
+    HEALTH_SOURCE_WORD_BY_KEY,
+    PROC_WORD_BY_KEY,
+    PROFESSION_WORD_BY_KEY,
     STANDING_WORDS,
 ];
 
@@ -204,7 +204,7 @@ function getSentences(): string[] {
     for (const table of TABLES) {
         for (const words of Object.values(table)) found.push(String(words));
     }
-    for (const [statistic, held] of Object.entries(DESTROYED_WORDS)) {
+    for (const [statistic, held] of Object.entries(DESTROYED_WORD_BY_KEY)) {
         found.push(held.name, held.unit, composeDestroyedText(statistic, 12));
     }
     found.push(STORE_REFUSED_ANSWER, STORE_MADE_ROOM_ANSWER);
@@ -338,7 +338,7 @@ Deno.test("no sentence carries a key of the game's", () => {
  * `getSentences`. What is registered below holds text no reader reads.
  */
 const HOLDS_NO_WORD: Record<string, string> = {
-    CLIENT_IDS_FOR_UNWORDED_KEYS: "ids the running client answers to, spelled by it",
+    CLIENT_ID_BY_UNWORDED_KEY: "ids the running client answers to, spelled by it",
     THOUSAND_SEPARATOR: "the space a figure groups on, written as its escape",
     DEFECT_KINDS: "what the defects are called here, which the panel never says",
     CAVEATS: "what the caveats are called here; the sentences are in `CAVEAT_NOTES`",
@@ -621,7 +621,7 @@ Deno.test("a key health moved under is worded, and one nobody named travels as w
     // What the game sends and nobody here has named is shown as the game wrote it: a row that
     // vanished or read "nieznane" would hide a real figure behind our own ignorance.
     assertEquals(getWordsForHealthSource("heal_of_2027"), "heal_of_2027", "a key nobody has named");
-    for (const [key, words] of Object.entries(HEALTH_SOURCE_WORDS)) {
+    for (const [key, words] of Object.entries(HEALTH_SOURCE_WORD_BY_KEY)) {
         assert(words.length > 0, `${key}: a key the table holds is worded`);
         assert(!words.includes("%"), `${key}: a hole in a sentence is not a word for a column`);
     }
@@ -778,9 +778,9 @@ Deno.test("the reader knows a word the article prints from one it does not", () 
 });
 
 Deno.test("every word the element column draws is one the game prints", () => {
-    assert(Object.values(ELEMENT_WORDS).length > 0, "the column words something");
+    assert(Object.values(ELEMENT_WORD_BY_KEY).length > 0, "the column words something");
     assertEquals(
-        getWordsTheArticleDoesNotPrint(ELEMENT_WORDS),
+        getWordsTheArticleDoesNotPrint(ELEMENT_WORD_BY_KEY),
         [],
         "a kind is drawn under the article's word for it, or under the game's own token",
     );
@@ -793,16 +793,20 @@ Deno.test("every word the element column draws is one the game prints", () => {
  * key by key, and `blok` is both the client's token and a word the article prints.
  */
 Deno.test("every word a defence is drawn under is one the game prints", () => {
-    assert(Object.values(DEFENCE_WORDS).length > 0, "the card words something");
+    assert(Object.values(DEFENCE_WORD_BY_KEY).length > 0, "the card words something");
     assertEquals(
-        getWordsTheArticleDoesNotPrint(DEFENCE_WORDS),
+        getWordsTheArticleDoesNotPrint(DEFENCE_WORD_BY_KEY),
         [],
         "a defence is drawn under the article's word for it, and never an invented one",
     );
 });
 
 Deno.test("a kind the help does not name is left out rather than invented", () => {
-    assertEquals(ELEMENT_WORDS.dmgg, undefined, "the one kind no source names carries no word");
+    assertEquals(
+        ELEMENT_WORD_BY_KEY.dmgg,
+        undefined,
+        "the one kind no source names carries no word",
+    );
     assertEquals(getWordsForDamageKind("dmgg"), "dmgg", "and reaches a reader as the game's token");
 });
 

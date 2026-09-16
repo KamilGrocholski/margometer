@@ -235,3 +235,5 @@ edited to agree with the new rule.
   **Accepted**
 - [0092](0092-the-caveat-mark-is-drawn-not-spelled.md) — The caveat mark is drawn, not spelled.
   **Accepted**
+- [0093](0093-a-lookup-table-is-named-for-the-lookup-it-takes.md) — A lookup table is named for the
+  lookup it takes. **Accepted**

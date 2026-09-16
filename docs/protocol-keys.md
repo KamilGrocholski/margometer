@@ -154,13 +154,13 @@ did it**. Every entry stating `*Health:* moves health` answers it on one line, f
 *Cause:* the subject's own
 ```
 
-| `*Cause:*`                 | means                                                                                                                                                    | held against                                              |
-| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------- |
-| `the subject's own`        | the published help says the effect belongs to the combatant it moved health on, so the two ends are one person                                           | `SELF_SOURCED_HEALING_KEYS`                               |
-| `the announcement's actor` | the figure sits on the message **target** and a skill announcement names the giver — the message's own where it carries one, the one before it otherwise | `HEALTH_CHANGE_KEYS`, the entries reading the target slot |
-| `the message actor`        | the protocol states the cause in the actor slot of the message itself                                                                                    | `SIDE_SHARE_HEALTH_KEYS`, and the attack family           |
-| `the wound's attacker`     | an **earlier** message announced the effect and named who applied it, and the figure says which application is ticking (**ADR 0022**)                    | `WOUND_ANNOUNCEMENT_BY_TICK_KEY`                          |
-| `nobody`                   | the protocol states no cause, and nothing else supplies one                                                                                              | the rest of `HEALTH_CHANGE_KEYS`                          |
+| `*Cause:*`                 | means                                                                                                                                                    | held against                                                |
+| -------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `the subject's own`        | the published help says the effect belongs to the combatant it moved health on, so the two ends are one person                                           | `SELF_SOURCED_HEALING_KEYS`                                 |
+| `the announcement's actor` | the figure sits on the message **target** and a skill announcement names the giver — the message's own where it carries one, the one before it otherwise | `HEALTH_CHANGE_BY_KEY`, the entries reading the target slot |
+| `the message actor`        | the protocol states the cause in the actor slot of the message itself                                                                                    | `SIDE_SHARE_HEALTH_KEYS`, and the attack family             |
+| `the wound's attacker`     | an **earlier** message announced the effect and named who applied it, and the figure says which application is ticking (**ADR 0022**)                    | `WOUND_ANNOUNCEMENT_BY_TICK_KEY`                            |
+| `nobody`                   | the protocol states no cause, and nothing else supplies one                                                                                              | the rest of `HEALTH_CHANGE_BY_KEY`                          |
 
 **Required exactly where `*Health:*` is, and refused everywhere else.** A key that reports no health
 figure charges nobody with anything, so a line on it would be a claim with no consumer — **C9**'s
@@ -725,7 +725,7 @@ drop matched the sum of `-dmg*` in 22 of 26 comparisons and the sum of `+dmg*` i
 **The panel's word for each of these is the game's, and the line above is where it is held.** The
 client has no case label to read a name off, so the article is the only source there is: its
 `Typ obrażeń` table names the types and its `dmgmul…` bonus list names them again beside the engine
-name of the bonus raising each. `ELEMENT_WORDS` in `src/ui/panel-words.ts` carries them and
+name of the bonus raising each. `ELEMENT_WORD_BY_KEY` in `src/ui/panel-words.ts` carries them and
 `tests/ui/panel-words.test.ts` re-earns every one against the frozen counts. **ADR 0073.**
 
 ### `-dmga` — decoded
@@ -904,7 +904,7 @@ The answer to the key above, and the one flag here that belongs to the **defence
 it as an event that can occur only after `+pierce` has, and that switches off the effects that event
 triggers. So the armour piercing is the striker's doing and the block of it is the struck
 combatant's, which is the split the sign alone would not have given — the same shape
-`-legbon_cleanse` and `-legbon_glare` have, and the reason `PROC_ENDS` in
+`-legbon_cleanse` and `-legbon_glare` have, and the reason `BLOW_END_BY_PROC_KEY` in
 `src/core/fight-decoder.ts` places all three at the target's end.
 
 _Shape:_ 12 occurrences; on a blow; no value
@@ -2444,9 +2444,9 @@ an `+of_` twin for the auxiliary weapon; `+woundfrost` has none.
 
 Read as a **proc on the attacker's end**, which is where `+wound` is read, and the figure it carries
 is not read at all: a percentage is a unit no total here keeps, and what the wound does to health
-arrives separately as the `wound` ticks the entry above reads. It is the one key in `PROC_ENDS` read
-as a proc while stating a value, and `src/core/fight-decoder.ts` names that set rather than letting
-every proc take one.
+arrives separately as the `wound` ticks the entry above reads. It is the one key in
+`BLOW_END_BY_PROC_KEY` read as a proc while stating a value, and `src/core/fight-decoder.ts` names
+that set rather than letting every proc take one.
 
 ⚠️ **What the percentage is taken off is not settled by this material.** All six occurrences state
 `50` while the ticks following them state 177, 265, 353, 177, 265 and 177, and the blows they ride

@@ -29,7 +29,7 @@ import {
     SURFACE,
     TEXT,
 } from "@/src/ui/panel-look.ts";
-import { getWordsForProfession, PROFESSION_WORDS } from "@/src/ui/panel-words.ts";
+import { getWordsForProfession, PROFESSION_WORD_BY_KEY } from "@/src/ui/panel-words.ts";
 import { getDeclaration, getRuleBody, RULES_IN_A_SHEET } from "@/tests/style-sheet.ts";
 
 /** WCAG AA for text at the size this panel prints figures, and for a mark that is not text. */
@@ -252,7 +252,7 @@ Deno.test("a profession the panel colours is one it can name, and the other way 
         "the six the recordings state are the six the panel draws",
     );
     assertEquals(
-        getUnpairedProfessions(PROFESSION_WORDS, getColouredProfessions()),
+        getUnpairedProfessions(PROFESSION_WORD_BY_KEY, getColouredProfessions()),
         [],
         "and every one of them has a word as well as a hue",
     );

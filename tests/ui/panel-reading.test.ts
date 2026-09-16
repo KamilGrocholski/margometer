@@ -56,7 +56,7 @@ import {
     composeNoParameterRowSuspicion,
     composeUnknownKeyRowSuspicion,
     getWordsForDamageKind,
-    HEALTH_LOSS_WORDS,
+    HEALTH_LOSS_WORD_BY_KEY,
 } from "@/src/ui/panel-words.ts";
 import {
     BLOWS_GRANTED,
@@ -679,7 +679,7 @@ Deno.test("every point a kind cut is made of states its kind, on every recording
                 );
                 if (metric !== "damageTakenApplied") continue;
                 for (const row of drill.byElement.rows) {
-                    if (HEALTH_LOSS_WORDS[row.element] === undefined) continue;
+                    if (HEALTH_LOSS_WORD_BY_KEY[row.element] === undefined) continue;
                     byKey += row.figure;
                 }
                 assertEquals(stated, drill.total, `${path}: the kinds come to the whole figure`);

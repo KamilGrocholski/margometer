@@ -360,7 +360,7 @@ export function getInkForBar(hue: string): string {
  * combatants over the corpus as it stood on 2026-08-29, none without a profession, `w` 91 of
  * them and `b` 17.
  */
-const PROFESSION_HUES: Record<string, number> = {
+const PALETTE_INDEX_BY_PROFESSION: Record<string, number> = {
     m: 0,
     h: 1,
     p: 2,
@@ -371,7 +371,7 @@ const PROFESSION_HUES: Record<string, number> = {
 
 export function getColourForProfession(profession: string | null): string {
     if (profession === null) return SIGNAL.unknown;
-    const stated = PROFESSION_HUES[profession];
+    const stated = PALETTE_INDEX_BY_PROFESSION[profession];
     if (stated === undefined) return SIGNAL.unknown;
     return PALETTE_COLOURS[stated] ?? SIGNAL.unknown;
 }

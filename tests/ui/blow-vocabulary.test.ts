@@ -9,17 +9,17 @@
 
 import { assert, assertEquals } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
-import { decodeFightMessages, PROC_ENDS } from "@/src/core/fight-decoder.ts";
+import { BLOW_END_BY_PROC_KEY, decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import {
     CARD_WORDS,
-    CLIENT_IDS_FOR_UNWORDED_KEYS,
+    CLIENT_ID_BY_UNWORDED_KEY,
     composeDestroyedText,
-    DEFENCE_WORDS,
-    DESTROYED_WORDS,
+    DEFENCE_WORD_BY_KEY,
+    DESTROYED_WORD_BY_KEY,
     getWordsForBlowKey,
     getWordsForDestroyed,
     MAXIMUM_LABEL_CHARACTERS,
-    PROC_WORDS,
+    PROC_WORD_BY_KEY,
 } from "@/src/ui/panel-words.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import {
@@ -62,10 +62,10 @@ const CARRIED = getBlowKeysFromRecordings();
 Deno.test("every defence and every statistic a recording states is one the panel words", () => {
     const unworded: string[] = [];
     for (const key of CARRIED.defences) {
-        if (DEFENCE_WORDS[key] === undefined) unworded.push(`defence ${key}`);
+        if (DEFENCE_WORD_BY_KEY[key] === undefined) unworded.push(`defence ${key}`);
     }
     for (const key of CARRIED.destroyed) {
-        if (DESTROYED_WORDS[key] === undefined) unworded.push(`destroyed ${key}`);
+        if (DESTROYED_WORD_BY_KEY[key] === undefined) unworded.push(`destroyed ${key}`);
     }
     assertEquals(unworded, [], "a key the material carries reaches a reader as a bare token");
     // The sample that must not flag: a key the client branches on and no recording has stated.
@@ -112,16 +112,16 @@ Deno.test("what was destroyed carries the unit it was counted in, and never the 
  * 0024.**
  */
 Deno.test("the panel asks the client for a key it has no word for, and for no other", () => {
-    const asked = Object.keys(CLIENT_IDS_FOR_UNWORDED_KEYS);
-    const worded = asked.filter((key) => PROC_WORDS[key] !== undefined);
+    const asked = Object.keys(CLIENT_ID_BY_UNWORDED_KEY);
+    const worded = asked.filter((key) => PROC_WORD_BY_KEY[key] !== undefined);
     assertEquals(worded, [], "a key the panel already words is never asked about");
     const known: readonly string[] = FROZEN_PROTOCOL_KEYS.keys;
     const unknown = asked.filter((key) => !known.includes(key));
     assertEquals(unknown, [], "and every key asked about is one the client itself branches on");
     const unasked: string[] = [];
     for (const key of CARRIED.procs) {
-        if (PROC_WORDS[key] !== undefined) continue;
-        if (CLIENT_IDS_FOR_UNWORDED_KEYS[key] !== undefined) continue;
+        if (PROC_WORD_BY_KEY[key] !== undefined) continue;
+        if (CLIENT_ID_BY_UNWORDED_KEY[key] !== undefined) continue;
         unasked.push(key);
     }
     assertEquals(unasked, [], "a proc the material carries is worded by us or asked of the client");
@@ -194,14 +194,22 @@ Deno.test("a label longer than the column is refused, and one that fits is taken
 Deno.test("every proc the decoder places is placed at an end the register settled", () => {
     const unplaced: string[] = [];
     for (const key of CARRIED.procs) {
-        if (PROC_ENDS[key] === undefined) unplaced.push(key);
+        if (BLOW_END_BY_PROC_KEY[key] === undefined) unplaced.push(key);
     }
     assertEquals(unplaced, [], "a proc the material carries is one this table places");
     // The two the register refuses an end: they are decoded, and charged to nobody on purpose.
-    assertEquals(PROC_ENDS["-tenacity"], "unsettled", "whose it is has not been established");
-    assertEquals(PROC_ENDS["+superspell-dispel"], "unsettled", "and neither has whose this is");
-    assertEquals(PROC_ENDS["+crit"], "actor", "a crit is the doing of whoever swung");
-    assertEquals(PROC_ENDS["-evade"], "target", "and an evade of whoever was swung at");
+    assertEquals(
+        BLOW_END_BY_PROC_KEY["-tenacity"],
+        "unsettled",
+        "whose it is has not been established",
+    );
+    assertEquals(
+        BLOW_END_BY_PROC_KEY["+superspell-dispel"],
+        "unsettled",
+        "and neither has whose this is",
+    );
+    assertEquals(BLOW_END_BY_PROC_KEY["+crit"], "actor", "a crit is the doing of whoever swung");
+    assertEquals(BLOW_END_BY_PROC_KEY["-evade"], "target", "and an evade of whoever was swung at");
 });
 
 /**
@@ -240,13 +248,13 @@ const CARD_OTHER_KEYS = [
 
 Deno.test("no label a card draws is longer than the column it is drawn in", () => {
     const overlong: string[] = [];
-    for (const [key, words] of Object.entries(PROC_WORDS)) {
+    for (const [key, words] of Object.entries(PROC_WORD_BY_KEY)) {
         if (words.length > MAXIMUM_LABEL_CHARACTERS) overlong.push(`${key} "${words}"`);
     }
-    for (const [key, words] of Object.entries(DEFENCE_WORDS)) {
+    for (const [key, words] of Object.entries(DEFENCE_WORD_BY_KEY)) {
         if (words.length > MAXIMUM_LABEL_CHARACTERS) overlong.push(`${key} "${words}"`);
     }
-    for (const [key, held] of Object.entries(DESTROYED_WORDS)) {
+    for (const [key, held] of Object.entries(DESTROYED_WORD_BY_KEY)) {
         if (held.name.length > MAXIMUM_LABEL_CHARACTERS) overlong.push(`${key} "${held.name}"`);
     }
     // ⚠️ **The table the name of this test always covered and the walk never reached.** Until

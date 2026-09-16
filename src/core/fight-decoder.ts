@@ -62,7 +62,13 @@ const DESTROYED_KEYS = ["+acdmg", "+critpierce", "+resdmg", "+abdest_per", "+abm
  */
 export type ProcEnd = "actor" | "target" | "unsettled";
 
-export const PROC_ENDS: Record<string, ProcEnd> = {
+/**
+ * ⚠️ **Membership is the second thing this table states.** `getProcEnd` answers `null` for a
+ * key absent from it, the caller files that key under `unreadKeys`, and the panel states a
+ * defect against it. So a proc `docs/protocol-keys.md` calls decoded and this table does not
+ * hold reaches a player as a message nobody could read.
+ */
+export const BLOW_END_BY_PROC_KEY: Record<string, ProcEnd> = {
     "+crit": "actor",
     "+of_crit": "actor",
     "+pierce": "actor",
@@ -108,7 +114,7 @@ export const WOUND_TICK_KEY = "injure";
  * happens to. Both are ours to supply — the protocol states a magnitude and leaves the rest to
  * the key, and `docs/protocol-keys.md` carries the evidence per key.
  */
-const HEALTH_CHANGE_KEYS: Record<string, { sign: number; isOnTarget: boolean }> = {
+const HEALTH_CHANGE_BY_KEY: Record<string, { sign: number; isOnTarget: boolean }> = {
     heal: { sign: 1, isOnTarget: false },
     legbon_holytouch_heal: { sign: 1, isOnTarget: false },
     heal_target: { sign: 1, isOnTarget: true },
@@ -142,7 +148,7 @@ const PERCENT_CLOSER = "%)";
  * message naming no combatant at all. Every recording in `captures/` ends with exactly one of
  * each, 2026-08-28.
  */
-const OUTCOME_KEYS: Record<string, "won" | "lost"> = { winner: "won", loser: "lost" };
+const OUTCOME_BY_KEY: Record<string, "won" | "lost"> = { winner: "won", loser: "lost" };
 /** The key a draw arrives on, which is the winners' — `core/battle-event.ts` says what it is. */
 const NO_WINNER = "?";
 /**
@@ -275,8 +281,9 @@ const DECLARATION_KEYS = [
     TEXT_KEY,
 ];
 /**
- * The procs read as procs **while carrying a figure**, which every other one in `PROC_ENDS` is
- * not: a `+crit` arriving with a value is a shape nobody has met and goes back to unread.
+ * The procs read as procs **while carrying a figure**, which every other one in
+ * `BLOW_END_BY_PROC_KEY` is not: a `+crit` arriving with a value is a shape nobody has met and
+ * goes back to unread.
  *
  * `+woundpoison` is `+wound`'s own announcement with a percentage written into it, so a wound
  * something weakened reaches the card exactly as an unweakened one does. **The figure is not
@@ -384,7 +391,7 @@ interface AttackReading {
 /** Null for a key that is not a proc at all, which is what makes this the membership test too. */
 export function getProcEnd(key: string): ProcEnd | null {
     assert(key.length > 0, "a key asked about is a key the message wrote");
-    const end = PROC_ENDS[key];
+    const end = BLOW_END_BY_PROC_KEY[key];
     if (end === undefined) return null;
     assert(end.length > 0, "and a proc the table holds is placed at an end, or refused one");
     return end;
@@ -411,7 +418,7 @@ function getTokenFromKey(key: string): string {
  * a number, which leaves the key unread rather than read as nothing.
  */
 function readHealthChange(key: string, value: string): HealthChangeReading | null {
-    const stated = HEALTH_CHANGE_KEYS[key];
+    const stated = HEALTH_CHANGE_BY_KEY[key];
     if (stated === undefined) return null;
     const members = value.split(MEMBER_SEPARATOR);
     const first = members[0];
@@ -506,7 +513,7 @@ function composeFledOutcome(): FightOutcomeEvent {
 /** `loser=?` is not a side of that name, so it is left unread rather than read as a draw. */
 function readFightOutcome(key: string, value: string): FightOutcomeEvent | null {
     if (key === FLED_KEY) return composeFledOutcome();
-    const result = OUTCOME_KEYS[key];
+    const result = OUTCOME_BY_KEY[key];
     if (result === undefined) return null;
     if (value.length === 0) return null;
     if (value === NO_WINNER) {

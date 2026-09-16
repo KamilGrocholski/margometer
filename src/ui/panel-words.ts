@@ -411,7 +411,7 @@ export function getNoteForCaveat(caveat: Caveat): string {
  * keyed the other way for the opposite reason — there the sign is part of what the key names.
  * How often each is stated is `docs/protocol-keys.md`'s, key by key.
  */
-export const DEFENCE_WORDS: Record<string, string> = {
+export const DEFENCE_WORD_BY_KEY: Record<string, string> = {
     blok: "blok",
     absorb: "absorpcja",
     absorbm: "absorpcja magiczna",
@@ -421,16 +421,16 @@ export const DEFENCE_WORDS: Record<string, string> = {
  * What fired beside a blow, in the player's words. Ours, and short: these sit in a column beside a
  * count, so each is the mechanic's name and not a sentence about it.
  *
- * **Not every key in `PROC_ENDS` has a word here**, and `CLIENT_IDS_FOR_UNWORDED_KEYS` below names
- * the ones that do not and says why. The six keys sharing `ogłuszenie` are one event the client
- * spells two ways — `+stun`, and the five variants of the monster statistic — which is what
- * `+stun2-d`'s entry in `docs/protocol-keys.md` says outright.
+ * **Not every key in `BLOW_END_BY_PROC_KEY` has a word here**, and `CLIENT_ID_BY_UNWORDED_KEY`
+ * below names the ones that do not and says why. The six keys sharing `ogłuszenie` are one event
+ * the client spells two ways — `+stun`, and the five variants of the monster statistic — which is
+ * what `+stun2-d`'s entry in `docs/protocol-keys.md` says outright.
  *
- * **Keyed with the sign**, for the reason `DEFENCE_WORDS` above states: `+wound` is a wound a blow
- * announced and `wound` is one ticking afterwards, and they are different rows on different
+ * **Keyed with the sign**, for the reason `DEFENCE_WORD_BY_KEY` above states: `+wound` is a wound
+ * a blow announced and `wound` is one ticking afterwards, and they are different rows on different
  * screens.
  */
-export const PROC_WORDS: Record<string, string> = {
+export const PROC_WORD_BY_KEY: Record<string, string> = {
     "+crit": "krytyk",
     /** Never drawn beside the others: the card states it under the count it is a part of. */
     "+of_crit": "bronią pomocniczą",
@@ -483,7 +483,7 @@ export const MAXIMUM_LABEL_CHARACTERS = 22;
  * build `53XkBRxF` on 2026-08-30. Five are `msg_` and the key; `+superspell-dispel` is the one
  * that is not, and it is why this is a table rather than a rule.
  */
-export const CLIENT_IDS_FOR_UNWORDED_KEYS: Record<string, string> = {
+export const CLIENT_ID_BY_UNWORDED_KEY: Record<string, string> = {
     "+legbon_curse": "msg_+legbon_curse",
     "+legbon_verycrit": "msg_+legbon_verycrit",
     "-legbon_cleanse": "msg_-legbon_cleanse",
@@ -494,7 +494,7 @@ export const CLIENT_IDS_FOR_UNWORDED_KEYS: Record<string, string> = {
 
 /** Ours, then the player's own client, then the key as the game wrote it. **ADR 0024.** */
 export function getWordsForBlowKey(key: string, translate: TranslateLabel | null = null): string {
-    const words = PROC_WORDS[key] ?? DEFENCE_WORDS[key];
+    const words = PROC_WORD_BY_KEY[key] ?? DEFENCE_WORD_BY_KEY[key];
     if (words !== undefined) {
         return words;
     }
@@ -506,7 +506,7 @@ export function getWordsForBlowKey(key: string, translate: TranslateLabel | null
 /** Null where nobody is asked, where the client has no name, or where the name will not fit. */
 function getClientWordsForKey(key: string, translate: TranslateLabel | null): string | null {
     if (translate === null) return null;
-    const id = CLIENT_IDS_FOR_UNWORDED_KEYS[key];
+    const id = CLIENT_ID_BY_UNWORDED_KEY[key];
     if (id === undefined) return null;
     const label = translate(id);
     if (label === null) return null;
@@ -526,7 +526,7 @@ function getClientWordsForKey(key: string, translate: TranslateLabel | null): st
  * The unit rides the figure rather than the name because the name shares its column with three
  * others and the figure has the room. Keyed by the token, like the defences above.
  */
-export const DESTROYED_WORDS: Record<string, { name: string; unit: string }> = {
+export const DESTROYED_WORD_BY_KEY: Record<string, { name: string; unit: string }> = {
     acdmg: { name: "pancerz", unit: "pkt" },
     // The one pair here that empties the same pool in the same unit, so the names say which
     // took it rather than what it was (`docs/protocol-keys.md`).
@@ -537,7 +537,7 @@ export const DESTROYED_WORDS: Record<string, { name: string; unit: string }> = {
 };
 
 export function getWordsForDestroyed(statistic: string): string {
-    const held = DESTROYED_WORDS[statistic];
+    const held = DESTROYED_WORD_BY_KEY[statistic];
     if (held === undefined) return statistic;
     return held.name;
 }
@@ -545,7 +545,7 @@ export function getWordsForDestroyed(statistic: string): string {
 /** The figure with the unit it is in, which is the whole reason the two are never totalled. */
 export function composeDestroyedText(statistic: string, figure: number): string {
     const stated = composeFigureText(figure);
-    const held = DESTROYED_WORDS[statistic];
+    const held = DESTROYED_WORD_BY_KEY[statistic];
     if (held === undefined) return stated;
     return `${stated} ${held.unit}`;
 }
@@ -555,7 +555,7 @@ export function composeDestroyedText(statistic: string, figure: number): string 
  * for the reason **ADR 0011** gives, and the six letters are the six the recordings state
  * (`src/ui/panel-look.ts` colours the same six).
  */
-export const PROFESSION_WORDS: Record<string, string> = {
+export const PROFESSION_WORD_BY_KEY: Record<string, string> = {
     w: "Wojownik",
     p: "Paladyn",
     t: "Tropiciel",
@@ -565,7 +565,7 @@ export const PROFESSION_WORDS: Record<string, string> = {
 };
 
 export function getWordsForProfession(profession: string): string {
-    const words = PROFESSION_WORDS[profession];
+    const words = PROFESSION_WORD_BY_KEY[profession];
     if (words === undefined) return profession;
     return words;
 }
@@ -602,7 +602,7 @@ export function composeCardSubtitleText(
  * is left out rather than invented: it reaches a reader as the game's own token, which is what
  * **ADR 0011** asks for and is visible where an invention is not.
  */
-export const ELEMENT_WORDS: Record<string, string> = {
+export const ELEMENT_WORD_BY_KEY: Record<string, string> = {
     dmg: "fizyczne",
     dmgd: "dystansowe",
     dmgo: "pomocnicze",
@@ -620,7 +620,7 @@ export const ELEMENT_WORDS: Record<string, string> = {
  * them, which is not a phrase a column can take. How often each is stated is
  * `docs/protocol-keys.md`'s, key by key.
  */
-export const HEALTH_SOURCE_WORDS: Record<string, string> = {
+export const HEALTH_SOURCE_WORD_BY_KEY: Record<string, string> = {
     heal: "przywracanie życia",
     heal_target: "uleczenie wskazanego",
     legbon_holytouch_heal: "dotyk anioła",
@@ -631,7 +631,7 @@ export const HEALTH_SOURCE_WORDS: Record<string, string> = {
 };
 
 export function getWordsForHealthSource(source: string): string {
-    const words = HEALTH_SOURCE_WORDS[source];
+    const words = HEALTH_SOURCE_WORD_BY_KEY[source];
     if (words === undefined) return source;
     return words;
 }
@@ -653,7 +653,7 @@ export const COUNTED_NOUNS = {
  * holds for `fire` against `dmgf` and `light` against `dmgl`. How much each takes and over how
  * many movements is `docs/protocol-keys.md`'s, key by key.
  */
-export const HEALTH_LOSS_WORDS: Record<string, string> = {
+export const HEALTH_LOSS_WORD_BY_KEY: Record<string, string> = {
     poison: "zatrucie",
     fire: "podpalenie",
     light: "porażenie",
@@ -665,7 +665,7 @@ export const HEALTH_LOSS_WORDS: Record<string, string> = {
 
 /** What a figure was made of, whether a blow carried it or health went out under it. */
 export function getWordsForDamageKind(kind: string): string {
-    const words = ELEMENT_WORDS[kind] ?? HEALTH_LOSS_WORDS[kind];
+    const words = ELEMENT_WORD_BY_KEY[kind] ?? HEALTH_LOSS_WORD_BY_KEY[kind];
     if (words === undefined) return kind;
     return words;
 }
