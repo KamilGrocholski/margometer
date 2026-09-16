@@ -143,7 +143,7 @@ here, and no recording carries one — 0 runs of three after an announcement, 20
 owns what `+swing` is and states what the material cannot settle about it: whether the opponents the
 effect reaches arrive as messages of their own. What this corpus adds is that the question cannot be
 put to it at all — the published table gives the effect to **1** of the skills it serves, and not
-one of the **50** skill ids the recordings announce is that skill. So the reading that would tell a
+one of the **51** skill ids the recordings announce is that skill. So the reading that would tell a
 swing's second target from a plain attack is one a recording has to bring, and none here carries it.
 
 ⚠️ **What the tick of a wound was struck with.** A tick is charged to whoever left the wound (**ADR

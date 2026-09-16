@@ -32,6 +32,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `1 vs 1`  | `3`        |
 | `1 vs 2`  | `1`        |
 | `1 vs 3`  | `1`        |
+| `1 vs 5`  | `1`        |
 | `2 vs 1`  | `1`        |
 | `5 vs 1`  | `1`        |
 | `9 vs 1`  | `1`        |
@@ -39,40 +40,41 @@ How many of ours against how many of theirs, and how many recordings of each.
 
 ## The fights
 
-| recording                                                                         | shape     | outcome      | ours                                                       | theirs                             | their largest health |
-| --------------------------------------------------------------------------------- | --------- | ------------ | ---------------------------------------------------------- | ---------------------------------- | -------------------- |
-| `captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`            | `1 vs 3`  | `ours won`   | `1 player · h 1 · level 40`                                | `3 NPCs · w 3 · levels 40–41`      | `763`                |
-| `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`             | `10 vs 1` | `ours won`   | `10 players · h 1, m 2, p 2, t 1, w 4 · levels 93–120`     | `1 NPC · m 1 · level 100`          | `325584`             |
-| `captures/2026-08-11-tempest-tancerz-vs-wermont-1786441768914-none.json`          | `1 vs 1`  | `ours won`   | `1 player · b 1 · level 85`                                | `1 NPC · w 1 · level 85`           | `4522`               |
-| `captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`    | `1 vs 1`  | `theirs won` | `1 player · b 1 · level 85`                                | `1 player · w 1 · level 83`        | `23629`              |
-| `captures/2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · h 2, m 3, p 1, t 1, w 3 · levels 63–83`      | `1 NPC · w 1 · level 60`           | `184680`             |
-| `captures/2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · b 2, m 2, p 2, t 2, w 2 · levels 63–83`      | `1 NPC · w 1 · level 60`           | `184680`             |
-| `captures/2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · h 1, m 2, p 1, t 1, w 5 · levels 93–114`     | `1 NPC · m 1 · level 100`          | `325584`             |
-| `captures/2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · b 1, h 3, m 2, w 4 · levels 93–120`          | `1 NPC · m 1 · level 100`          | `279072`             |
-| `captures/2026-08-14-tempest-grupa-vs-draugr-1-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · h 2, m 2, p 1, t 1, w 4 · levels 63–79`      | `1 NPC · w 1 · level 60`           | `184680`             |
-| `captures/2026-08-14-tempest-grupa-vs-draugr-2-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · b 2, h 1, m 2, p 2, t 2, w 1 · levels 63–83` | `1 NPC · w 1 · level 60`           | `184680`             |
-| `captures/2026-08-14-tempest-grupa-vs-hildur-1786514810315-none.json`             | `10 vs 1` | `ours won`   | `10 players · h 1, m 2, p 1, t 1, w 5 · levels 93–120`     | `1 NPC · m 1 · level 100`          | `325584`             |
-| `captures/2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · h 2, m 1, p 2, t 1, w 4 · levels 63–79`      | `1 NPC · w 1 · level 60`           | `184680`             |
-| `captures/2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · b 2, h 1, m 2, p 2, t 2, w 1 · levels 63–83` | `1 NPC · w 1 · level 60`           | `184680`             |
-| `captures/2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none.json`           | `10 vs 1` | `theirs won` | `10 players · h 1, m 2, p 1, t 1, w 5 · levels 93–120`     | `1 NPC · m 1 · level 100`          | `325584`             |
-| `captures/2026-08-15-tempest-grupa-vs-hildur-2-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · h 1, m 2, p 1, t 1, w 5 · levels 93–120`     | `1 NPC · m 1 · level 100`          | `325584`             |
-| `captures/2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · b 1, h 3, m 2, w 4 · levels 93–120`          | `1 NPC · m 1 · level 100`          | `279072`             |
-| `captures/2026-08-15-tempest-grupa-vs-hildur-4-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · b 1, h 3, m 2, w 4 · levels 93–120`          | `1 NPC · m 1 · level 100`          | `279072`             |
-| `captures/2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json`             | `10 vs 1` | `theirs won` | `10 players · h 2, m 1, p 1, t 1, w 5 · levels 93–120`     | `1 NPC · m 1 · level 100`          | `325584`             |
-| `captures/2026-08-23-tempest-grupa-vs-hildur-1786514810315-none.json`             | `10 vs 1` | `ours won`   | `10 players · b 1, h 3, m 2, w 4 · levels 93–120`          | `1 NPC · m 1 · level 100`          | `279072`             |
-| `captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json`        | `10 vs 1` | `theirs won` | `10 players · h 1, m 2, p 1, t 1, w 5 · levels 93–114`     | `1 NPC · m 1 · level 100`          | `325584`             |
-| `captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json`        | `1 vs 1`  | `theirs won` | `1 player · t 1 · level 91`                                | `1 NPC · h 1 · level 99`           | `30698`              |
-| `captures/2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1.json` | `1 vs 2`  | `ours won`   | `1 player · t 1 · level 92`                                | `2 NPCs · h 1, w 1 · levels 97–99` | `4477`               |
-| `captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json`                | `10 vs 1` | `ours won`   | `10 players · b 1, h 1, m 1, p 1, t 3, w 3 · levels 36–52` | `1 NPC · b 1 · level 36`           | `43092`              |
-| `captures/2026-08-25-luvia-grupa-vs-draugr-auto-none-none.json`                   | `10 vs 1` | `theirs won` | `10 players · h 3, m 1, p 2, t 3, w 1 · levels 48–85`      | `1 NPC · w 1 · level 60`           | `184680`             |
-| `captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json`                        | `9 vs 1`  | `theirs won` | `9 players · m 1, p 3, t 5 · levels 48–83`                 | `1 NPC · w 1 · level 60`           | `184680`             |
-| `captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json`                   | `10 vs 1` | `ours won`   | `10 players · h 2, m 1, t 4, w 3 · levels 57–85`           | `1 NPC · w 1 · level 60`           | `184680`             |
-| `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`                  | `10 vs 1` | `theirs won` | `10 players · b 1, h 1, p 2, t 3, w 3 · levels 83–100`     | `1 NPC · p 1 · level 83`           | `209110`             |
-| `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json`                | `10 vs 1` | `ours won`   | `10 players · b 2, m 4, t 2, w 2 · levels 83–107`          | `1 NPC · p 1 · level 83`           | `209110`             |
-| `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json`         | `5 vs 1`  | `theirs won` | `5 players · m 2, p 1, t 1, w 1 · levels 23–61`            | `1 NPC · b 1 · level 36`           | `49124`              |
-| `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json`               | `2 vs 1`  | `ours won`   | `2 players · h 1, t 1 · level 70`                          | `1 player · w 1 · level 64`        | `15615`              |
-| `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`                 | `10 vs 1` | `ours won`   | `10 players · h 2, m 2, p 1, t 3, w 2 · levels 83–99`      | `1 NPC · p 1 · level 83`           | `209110`             |
-| `captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json`           | `10 vs 1` | `ours won`   | `10 players · b 1, h 2, m 3, t 3, w 1 · levels 28–60`      | `1 NPC · b 1 · level 36`           | `43092`              |
+| recording                                                                         | shape     | outcome      | ours                                                       | theirs                                            | their largest health |
+| --------------------------------------------------------------------------------- | --------- | ------------ | ---------------------------------------------------------- | ------------------------------------------------- | -------------------- |
+| `captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`            | `1 vs 3`  | `ours won`   | `1 player · h 1 · level 40`                                | `3 NPCs · w 3 · levels 40–41`                     | `763`                |
+| `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`             | `10 vs 1` | `ours won`   | `10 players · h 1, m 2, p 2, t 1, w 4 · levels 93–120`     | `1 NPC · m 1 · level 100`                         | `325584`             |
+| `captures/2026-08-11-tempest-tancerz-vs-wermont-1786441768914-none.json`          | `1 vs 1`  | `ours won`   | `1 player · b 1 · level 85`                                | `1 NPC · w 1 · level 85`                          | `4522`               |
+| `captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`    | `1 vs 1`  | `theirs won` | `1 player · b 1 · level 85`                                | `1 player · w 1 · level 83`                       | `23629`              |
+| `captures/2026-08-12-tempest-grupa-vs-draugr-1-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · h 2, m 3, p 1, t 1, w 3 · levels 63–83`      | `1 NPC · w 1 · level 60`                          | `184680`             |
+| `captures/2026-08-12-tempest-grupa-vs-draugr-2-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · b 2, m 2, p 2, t 2, w 2 · levels 63–83`      | `1 NPC · w 1 · level 60`                          | `184680`             |
+| `captures/2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · h 1, m 2, p 1, t 1, w 5 · levels 93–114`     | `1 NPC · m 1 · level 100`                         | `325584`             |
+| `captures/2026-08-12-tempest-grupa-vs-hildur-2-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · b 1, h 3, m 2, w 4 · levels 93–120`          | `1 NPC · m 1 · level 100`                         | `279072`             |
+| `captures/2026-08-14-tempest-grupa-vs-draugr-1-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · h 2, m 2, p 1, t 1, w 4 · levels 63–79`      | `1 NPC · w 1 · level 60`                          | `184680`             |
+| `captures/2026-08-14-tempest-grupa-vs-draugr-2-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · b 2, h 1, m 2, p 2, t 2, w 1 · levels 63–83` | `1 NPC · w 1 · level 60`                          | `184680`             |
+| `captures/2026-08-14-tempest-grupa-vs-hildur-1786514810315-none.json`             | `10 vs 1` | `ours won`   | `10 players · h 1, m 2, p 1, t 1, w 5 · levels 93–120`     | `1 NPC · m 1 · level 100`                         | `325584`             |
+| `captures/2026-08-15-tempest-grupa-vs-draugr-1-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · h 2, m 1, p 2, t 1, w 4 · levels 63–79`      | `1 NPC · w 1 · level 60`                          | `184680`             |
+| `captures/2026-08-15-tempest-grupa-vs-draugr-2-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · b 2, h 1, m 2, p 2, t 2, w 1 · levels 63–83` | `1 NPC · w 1 · level 60`                          | `184680`             |
+| `captures/2026-08-15-tempest-grupa-vs-hildur-1-1786514810315-none.json`           | `10 vs 1` | `theirs won` | `10 players · h 1, m 2, p 1, t 1, w 5 · levels 93–120`     | `1 NPC · m 1 · level 100`                         | `325584`             |
+| `captures/2026-08-15-tempest-grupa-vs-hildur-2-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · h 1, m 2, p 1, t 1, w 5 · levels 93–120`     | `1 NPC · m 1 · level 100`                         | `325584`             |
+| `captures/2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · b 1, h 3, m 2, w 4 · levels 93–120`          | `1 NPC · m 1 · level 100`                         | `279072`             |
+| `captures/2026-08-15-tempest-grupa-vs-hildur-4-1786514810315-none.json`           | `10 vs 1` | `ours won`   | `10 players · b 1, h 3, m 2, w 4 · levels 93–120`          | `1 NPC · m 1 · level 100`                         | `279072`             |
+| `captures/2026-08-17-tempest-grupa-vs-hildur-1786514810315-none.json`             | `10 vs 1` | `theirs won` | `10 players · h 2, m 1, p 1, t 1, w 5 · levels 93–120`     | `1 NPC · m 1 · level 100`                         | `325584`             |
+| `captures/2026-08-23-tempest-grupa-vs-hildur-1786514810315-none.json`             | `10 vs 1` | `ours won`   | `10 players · b 1, h 3, m 2, w 4 · levels 93–120`          | `1 NPC · m 1 · level 100`                         | `279072`             |
+| `captures/2026-08-23-tempest-grupa-vs-hildur-auto-1786514810315-none.json`        | `10 vs 1` | `theirs won` | `10 players · h 1, m 2, p 1, t 1, w 5 · levels 93–114`     | `1 NPC · m 1 · level 100`                         | `325584`             |
+| `captures/2026-08-24-tempest-tropiciel-vs-centaur-1786514810315-none.json`        | `1 vs 1`  | `theirs won` | `1 player · t 1 · level 91`                                | `1 NPC · h 1 · level 99`                          | `30698`              |
+| `captures/2026-08-24-tempest-tropiciel-vs-centaury-auto-1786514810315-0.8.1.json` | `1 vs 2`  | `ours won`   | `1 player · t 1 · level 92`                                | `2 NPCs · h 1, w 1 · levels 97–99`                | `4477`               |
+| `captures/2026-08-25-luvia-grupa-vs-mamlambo-auto-none-0.8.1.json`                | `10 vs 1` | `ours won`   | `10 players · b 1, h 1, m 1, p 1, t 3, w 3 · levels 36–52` | `1 NPC · b 1 · level 36`                          | `43092`              |
+| `captures/2026-08-25-luvia-grupa-vs-draugr-auto-none-none.json`                   | `10 vs 1` | `theirs won` | `10 players · h 3, m 1, p 2, t 3, w 1 · levels 48–85`      | `1 NPC · w 1 · level 60`                          | `184680`             |
+| `captures/2026-08-25-luvia-grupa-vs-draugr-none-none.json`                        | `9 vs 1`  | `theirs won` | `9 players · m 1, p 3, t 5 · levels 48–83`                 | `1 NPC · w 1 · level 60`                          | `184680`             |
+| `captures/2026-08-26-luvia-grupa-vs-draugr-53XkBRxF-0.8.1.json`                   | `10 vs 1` | `ours won`   | `10 players · h 2, m 1, t 4, w 3 · levels 57–85`           | `1 NPC · w 1 · level 60`                          | `184680`             |
+| `captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json`                  | `10 vs 1` | `theirs won` | `10 players · b 1, h 1, p 2, t 3, w 3 · levels 83–100`     | `1 NPC · p 1 · level 83`                          | `209110`             |
+| `captures/2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0.json`                | `10 vs 1` | `ours won`   | `10 players · b 2, m 4, t 2, w 2 · levels 83–107`          | `1 NPC · p 1 · level 83`                          | `209110`             |
+| `captures/2026-09-06-luvia-grupa-5-vs-mamlambo-auto-ne0iTNdg-0.14.0.json`         | `5 vs 1`  | `theirs won` | `5 players · m 2, p 1, t 1, w 1 · levels 23–61`            | `1 NPC · b 1 · level 36`                          | `49124`              |
+| `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json`               | `2 vs 1`  | `ours won`   | `2 players · h 1, t 1 · level 70`                          | `1 player · w 1 · level 64`                       | `15615`              |
+| `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`                 | `10 vs 1` | `ours won`   | `10 players · h 2, m 2, p 1, t 3, w 2 · levels 83–99`      | `1 NPC · p 1 · level 83`                          | `209110`             |
+| `captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json`           | `10 vs 1` | `ours won`   | `10 players · b 1, h 2, m 3, t 3, w 1 · levels 28–60`      | `1 NPC · b 1 · level 36`                          | `43092`              |
+| `captures/2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0.json`               | `1 vs 5`  | `theirs won` | `1 player · t 1 · level 83`                                | `5 players · h 1, m 2, p 1, w 1 · levels 300–303` | `120998`             |
 
 ## The recordings
 
@@ -110,24 +112,27 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json`               | `tempest`      | `ne0iTNdg`      | `0.14.0`      | `24`  | `124`    |
 | `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`                 | `luvia`        | `Cl9U89Zr`      | `0.15.0`      | `99`  | `475`    |
 | `captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json`           | `luvia`        | `Cl9U89Zr`      | `0.16.0`      | `1`   | `276`    |
+| `captures/2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0.json`               | `luvia`        | `Bb28FQty`      | `0.17.0`      | `3`   | `19`     |
 
 ## What the material does not hold
 
 Every gap below is readable off the tables above, and each is a reason to record something rather
 than a defect.
 
-- **No group fight between players.** Two recordings hold a player at both ends — the duel on
-  `experimental`, and a two-against-one on `tempest` — and in neither is a group facing a group, so
-  nothing here says what the panel does when both sides heal, resurrect and drink at scale.
-- **No fight of more than two sides**, and none where more than three opponents stood on the other
-  one. A wide enemy side is untested on real protocol.
+- **No group fight between players.** Three recordings hold a player at both ends — the duel on
+  `experimental`, a two-against-one on `tempest` and the bounty fight on `luvia` — and in none of
+  them is a group facing a group, so nothing here says what the panel does when both sides heal,
+  resurrect and drink at scale.
+- **No fight of more than two sides.** Two is all the material holds, so a third is untested on real
+  protocol. A wide side is no longer one of these gaps: the bounty fight puts five on the one
+  opposite the reader.
 - **No drawn fight.** The panel draws one, and the fight it draws it from is hand-built
   (`tests/ui/panel-reading.test.ts`).
 - **No fight broken off by an escape.** The same again, and for a key the corpus has never carried:
   `flee` is read off the client's own branch and the published help, and the panel's `ucieczka` is
   drawn from a fight the fabricator writes (`docs/protocol-keys.md`).
-- **Three worlds, and one of them once.** Everything but the duel and the nine recordings from
-  `luvia` comes from `tempest`; the duel is the one that happened once.
+- **Three worlds, and one of them once.** Everything but the duel and the recordings from `luvia`
+  comes from `tempest`; the duel is the one that happened once.
 
 A loss **is** held, in more than one recording — which is what the outcome column is for, since
 nothing else in the tables would say so.
@@ -289,6 +294,25 @@ evidence.
 
   It is also the third fight against this monster, and the third carrying `+stun2-c`. The entry for
   that key had written down what a third would settle: nothing. It did not.
+
+- `captures/2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0.json` — **six players and no
+  monster**, which makes it the largest fight here with nobody's side held by the game, and the only
+  one where more than three stood opposite the reader. It is a bounty fight: the log opens with the
+  game taking a share of the gold off everybody carrying a warrant, before anybody moves. The five
+  opposite stand at levels 300 to 303 against a corpus whose next highest is 120, and that is what
+  the recording is for — at those levels characters carry effects nobody below them does, and four
+  protocol keys reach this tree for the first time here: `heal_per-enemies`, `hp_per-allies`,
+  `sunshield_per` and `+actdmg` (`docs/protocol-keys.md`).
+
+  ⚠️ **One of them gains 500 points of health that no message announces**, and the answer is
+  `hp_per-allies`. The pool a percentage is read against grows on the initiation layer and the
+  snapshots state only the maximum after it, so the two readings either side of the declaration are
+  read against different pools. The health witness excuses a comparison that straddles one and no
+  other (`tests/core/health-witness.test.ts`); the combatant it happens to is the only one of the
+  six not standing at full health when the log opens, which is what says the raise is the cause.
+
+  Three engine calls carry it, which is the thinning and not a loss: the recording states no message
+  lost, and the opening call holds the fight whole.
 
 - `captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json` — **the second recording
   carrying no snapshot at all**, and the first is `2026-08-24-tempest-tropiciel-vs-centaury-auto`.

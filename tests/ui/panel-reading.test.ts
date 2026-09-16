@@ -688,7 +688,7 @@ Deno.test("every point a kind cut is made of states its kind, on every recording
     }
     // Zero is a boundary (**W5**): a walk that opened nothing would agree with every screen it
     // never cut, so the count it reached is stated beside what it found.
-    assertEquals(cut, 1871, "the kind rows the corpus draws, 2026-09-14");
+    assertEquals(cut, 1875, "the kind rows the corpus draws, 2026-09-16");
     // What a blow never carried, and what the cut would have had to call unknown before the key
     // it moved under was read as a kind: 639,400 over `captures/`, measured 2026-09-06.
     assertEquals(byKey, 669589, "and the health that moved outside a blow is named by its key");
@@ -1248,7 +1248,7 @@ Deno.test("a one-side list divides by the figure the strip states for that side"
             }
         }
     }
-    assertEquals(checked, 512, "every seat of the corpus, on every screen, both ways round");
+    assertEquals(checked, 528, "every seat of the corpus, on every screen, both ways round");
     assertEquals(charged, 92, "and this many of them stand over a figure charged to that side");
 });
 
@@ -1292,7 +1292,7 @@ Deno.test("what one side dealt with no striker named is what the other took from
             together += apart?.figure ?? 0;
         }
     }
-    assertEquals(seats, 64, "every seat of the corpus reads the mirror");
+    assertEquals(seats, 66, "every seat of the corpus reads the mirror");
     assertEquals(together, 639326, "and this is what it comes to over all of them");
 });
 
@@ -1593,7 +1593,7 @@ Deno.test("every recording states how it ended, and every seat in it reads a wor
         }
     }
     assertEquals(stated, readRecordingPaths().length, "every recording carries an outcome");
-    assertEquals(seats, 64, "and every one of them states two sides apiece");
+    assertEquals(seats, 66, "and every one of them states two sides apiece");
 });
 
 /**

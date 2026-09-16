@@ -949,7 +949,7 @@ Deno.test("every recording charges a turn to somebody who was already in the fig
             turns += figures.turnsTaken;
         }
     }
-    assertEquals(turns, 5567, "the turns the recordings hold, 2026-09-14");
+    assertEquals(turns, 5576, "the turns the recordings hold, 2026-09-16");
 });
 
 /**

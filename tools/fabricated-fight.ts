@@ -649,6 +649,7 @@ function actCriticalBlow(turn: FabricatedTurn): string[] {
     assert(turn.target.side !== turn.actor.side, "and never at its own side");
     return [composeBlow(turn, [
         composeValueless("+crit"),
+        composeFigureParameter("+actdmg", composeSmall(turn, 4)),
         composeFigureParameter("-blok", composeSmallHealth(turn, 210)),
     ])];
 }
@@ -975,6 +976,7 @@ function actAuraCast(turn: FabricatedTurn): string[] {
         composeFigureParameter("aura-resall", composeSmall(turn, 20)),
         composeFigureParameter("aura-sa_per", composeSmall(turn, 11)),
         composeFigureParameter("aura-adddmg2_per-meele", composeSmall(turn, 8)),
+        composeValueless("sunshield_per"),
     ])];
 }
 
@@ -999,6 +1001,8 @@ function actAlliesCast(turn: FabricatedTurn): string[] {
         composeValueless("removeslow-allies"),
         composeValueless("removestun-allies"),
         composeValueless("removedot-allies"),
+        composeFigureParameter("heal_per-allies", composeSmall(turn, 18)),
+        composeFigureParameter("hp_per-allies", composeSmall(turn, 9)),
     ])];
 }
 
@@ -1010,6 +1014,8 @@ function actEnemiesCast(turn: FabricatedTurn): string[] {
         composeFigureParameter("poison_lowdmg_per-enemies", composeSmall(turn, 27)),
         composeFigureParameter("active_decblock_per-enemies", composeSmall(turn, 19)),
         composeFigureParameter("-poison_lowdmg_per", composeSmall(turn, 14)),
+        composeFigureParameter("heal_per-enemies", composeSmall(turn, 15)),
+        composeFigureParameter("hp_per-enemies", composeSmall(turn, 7)),
     ])];
 }
 

@@ -54,6 +54,9 @@ const DESTROYED_KEYS = [
     "+resdmgc",
     "+resdmgf",
     "+resdmgl",
+    // One letter from the `+acdmg` opening this list, and a different pool: that empties armour
+    // in points, this a poison resistance in percentage points (`docs/protocol-keys.md`).
+    "+actdmg",
     "+abdest_per",
     "+abmdest_per",
 ];
@@ -285,6 +288,10 @@ const DECLARATION_KEYS = [
     "critval-allies",
     "en-regen",
     "energy",
+    "heal_per-allies",
+    "heal_per-enemies",
+    "hp_per-allies",
+    "hp_per-enemies",
     "lowheal_per-enemies",
     "mana",
     "poison_lowdmg_per-enemies",
@@ -314,7 +321,8 @@ const PROCS_WITH_A_VALUE = [
 /**
  * The same, stating the key and nothing else — and read **only** while they carry none. The
  * client composes `+legbon_holytouch` with a hole for a figure, so it is a declaration whose
- * figure is absent rather than a proc, and one arriving with a value goes back to unread.
+ * figure is absent rather than a proc, and one arriving with a value goes back to unread. A hole
+ * is not what membership means: `sunshield_per` is composed with none at all.
  */
 const VALUELESS_DECLARATION_KEYS = [
     "+legbon_anguish",
@@ -325,6 +333,7 @@ const VALUELESS_DECLARATION_KEYS = [
     "removeslow-allies",
     "removestun-allies",
     STEP_KEY,
+    "sunshield_per",
 ];
 /**
  * ⚠️ **One payload can carry a whole fight**, so this is not a bound on a fraction of one: a fight

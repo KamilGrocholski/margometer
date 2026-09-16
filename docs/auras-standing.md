@@ -128,7 +128,7 @@ one combatant held it twice. `at once` is the most that ever stood together.
 | key                    | two | past two | one twice | at once |
 | ---------------------- | --: | -------: | --------: | ------: |
 | `+spell-taken_dmg-all` | 177 |        0 |         0 |       2 |
-| `allslow_per`          | 541 |       64 |         0 |       3 |
+| `allslow_per`          | 544 |       64 |         0 |       3 |
 | `aura-ac_per`          | 115 |        0 |         0 |       2 |
 | `aura-resall`          | 115 |        0 |         0 |       2 |
 | `aura-sa_per`          | 305 |       44 |         0 |       4 |
@@ -157,11 +157,11 @@ a register of their own below.
 
 |  id | skill            | on | fights | at once | stated | reaches  |
 | --: | ---------------- | -: | -----: | ------: | -----: | -------- |
-|  76 | Aura ochrony     | 10 |     14 |       2 |      8 | caster's |
+|  76 | Aura ochrony     | 11 |     15 |       2 |      8 | caster's |
 |  89 | Podwójny dech    | 17 |     18 |       4 |      8 | caster's |
-| 123 | Szadź            | 17 |     21 |       3 |      8 | other    |
+| 123 | Szadź            | 19 |     22 |       3 |      8 | other    |
 | 219 | Jadowity podmuch |  1 |      1 |       1 |      8 | other    |
-| 264 | Piętno bestii    | 13 |     16 |       2 |      8 | other    |
+| 264 | Piętno bestii    | 14 |     17 |       2 |      8 | other    |
 
 **The published table dates more skills than the corpus has ever cast**, and the ones missing here
 are missing for want of a recording rather than by a verdict. That is the thin corpus `TODO.md`
@@ -204,7 +204,7 @@ announcement of it was ever seen to list.
 |  id | skill              | casters | fights | at once | stated | covers | names |
 | --: | ------------------ | ------: | -----: | ------: | -----: | -----: | ----: |
 |  25 | Prowokujący okrzyk |       3 |      5 |       1 |      3 |      6 |     1 |
-| 188 | Wyzywający okrzyk  |       9 |     16 |       2 |      3 |      6 |     2 |
+| 188 | Wyzywający okrzyk  |      10 |     17 |       2 |      3 |      6 |     2 |
 
 ⚠️ **`covers` is reported and drawn nowhere.** It was the input to the expansion **ADR 0064**
 removed; it stays here because it is a true reading of the published table and

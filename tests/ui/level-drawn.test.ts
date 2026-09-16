@@ -449,7 +449,7 @@ Deno.test("every level stands as tall as it drew, with one card per row and no t
     );
     // The reader is proved by what it reached as well as by what it passed: a walk that stopped
     // opening rows would agree with every level it never drew.
-    assertEquals(walked, 14_728, "every level the corpus draws, 2026-09-14");
+    assertEquals(walked, 14_808, "every level the corpus draws, 2026-09-16");
 });
 
 /**

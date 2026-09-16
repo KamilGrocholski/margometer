@@ -542,6 +542,9 @@ export const DESTROYED_WORD_BY_KEY: Record<string, { name: string; unit: string 
     resdmgf: { name: "odporność: ogień", unit: "p.p." },
     resdmgc: { name: "odporność: zimno", unit: "p.p." },
     resdmgl: { name: "odporność: błyskawice", unit: "p.p." },
+    // `acdmg` opening this table is one letter away and is armour in points, not this
+    // (`docs/protocol-keys.md`).
+    actdmg: { name: "odporność: trucizna", unit: "p.p." },
     abdest_per: { name: "wchłanianie", unit: "pkt" },
     abmdest_per: { name: "wchłanianie magiczne", unit: "pkt" },
 };

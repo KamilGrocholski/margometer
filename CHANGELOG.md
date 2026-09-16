@@ -36,6 +36,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Poprawka** — Cztery rzeczy, które robią postacie z najwyższych poziomów, są już rozpoznawane:
+  tarcza podnosząca pancerz i leczenie z przedmiotów, umiejętność powiększająca pulę zdrowia całej
+  drużynie oraz dwie obniżające przeciwnikom leczenie ze sprzętu i odporność na truciznę. Panel
+  przestaje przy nich ostrzegać, że nie wiedział, co znaczyła część tego, co powiedziała gra, a
+  zniszczona odporność na truciznę dostaje na karcie ciosu własny wiersz.
+
 - **Poprawka** — Rana osłabiona mrozem lub magią, a także obie osłabione rany zadane bronią
   pomocniczą, są już rozpoznawane. Panel przestaje ostrzegać, że nie wiedział, co znaczyła część
   tego, co powiedziała gra, a wszystkie liczą się w tym samym wierszu „osłabiona rana”, w którym do
