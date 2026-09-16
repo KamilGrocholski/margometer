@@ -1322,6 +1322,36 @@ _Evidence:_ article view,372 at the engine name `resdmg` (read 2026-08-09), and 
 `1785244275300`. 61 occurrences on
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`.
 
+### `+resdmgf` — decoded
+
+The same destruction as `+resdmg` above and in the same unit, narrowed to the **fire** resistance
+the target carries. A figure: the client states it with `%val%`, as the bare key does.
+
+⚠️ **No recording carries it.** `captures/` holds 2614 occurrences of `+resdmg` and none of this key
+or of the two below, as the set stood 2026-09-16, so the entry states no `_Shape:_` line. It is read
+because the client settles it and `+resdmg` was already read: a blow narrowing the same destruction
+to an element would otherwise raise a defect against a key this register explains.
+
+_Evidence:_ production build `Bb28FQty` composes `msg_+resdmgf %val%` on the one switch that
+composes `msg_+resdmg`, `msg_+resdmgc` and `msg_+resdmgl` the same way — all four cases read
+2026-09-16, and every one of them takes a figure. Which element each narrows to comes from the
+development build `1781609507010`, which keeps each branch's rendered sentence in a comment beside
+it: this one names fire, where `-c`'s names cold and `-l`'s lightning. The sentences themselves stay
+in that bundle and are not copied here (`AGENTS.md`). The published help names `resdmg` and none of
+the three narrowed keys, so what the unit is comes from the entry above rather than from an article
+of its own. None of the three states a `_Help:_` line: the claim would be one the frozen table has
+never counted, because `deno task game:help` has searched `resdmg` alone.
+
+### `+resdmgc` — decoded
+
+The same, narrowed to the **cold** resistance. `_Shape:_` is absent for the reason `+resdmgf` above
+gives, and the evidence is that entry's: one switch, four cases, the development build naming which
+element each is.
+
+### `+resdmgl` — decoded
+
+The same, narrowed to the **lightning** resistance. Evidence as above.
+
 ### `+abdest_per` — decoded
 
 Absorption of the target destroyed by this blow, **in points** — despite the name. The `_per`

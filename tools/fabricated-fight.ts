@@ -659,6 +659,9 @@ function actOffhandBlow(turn: FabricatedTurn): string[] {
     return [composeBlow(turn, [
         composeValueless("+of_crit"),
         composeFigureParameter("+resdmg", composeSmallHealth(turn, 31)),
+        composeFigureParameter("+resdmgf", composeSmallHealth(turn, 29)),
+        composeFigureParameter("+resdmgc", composeSmallHealth(turn, 23)),
+        composeFigureParameter("+resdmgl", composeSmallHealth(turn, 19)),
     ])];
 }
 

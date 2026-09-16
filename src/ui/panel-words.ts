@@ -532,6 +532,12 @@ export const DESTROYED_WORD_BY_KEY: Record<string, { name: string; unit: string 
     // took it rather than what it was (`docs/protocol-keys.md`).
     critpierce: { name: "pancerz z przebicia", unit: "pkt" },
     resdmg: { name: "odporność", unit: "p.p." },
+    // The element rides after a colon rather than after "na", which the bound decides:
+    // `odporność na błyskawice` is 23 characters against MAXIMUM_LABEL_CHARACTERS below,
+    // and a label the sheet folds stands the card at a height nobody measured.
+    resdmgf: { name: "odporność: ogień", unit: "p.p." },
+    resdmgc: { name: "odporność: zimno", unit: "p.p." },
+    resdmgl: { name: "odporność: błyskawice", unit: "p.p." },
     abdest_per: { name: "wchłanianie", unit: "pkt" },
     abmdest_per: { name: "wchłanianie magiczne", unit: "pkt" },
 };

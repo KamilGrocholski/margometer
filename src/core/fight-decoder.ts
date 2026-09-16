@@ -47,7 +47,16 @@ const APPLIED_SIGN = "-";
 /** The one pair the family rule cannot reach, because the key carries no marker. */
 const DAMAGE_KEYS = ["+thirdatt", "-thirdatt"];
 const PREVENTED_KEYS = ["-absorb", "-absorbm", "-blok"];
-const DESTROYED_KEYS = ["+acdmg", "+critpierce", "+resdmg", "+abdest_per", "+abmdest_per"];
+const DESTROYED_KEYS = [
+    "+acdmg",
+    "+critpierce",
+    "+resdmg",
+    "+resdmgc",
+    "+resdmgf",
+    "+resdmgl",
+    "+abdest_per",
+    "+abmdest_per",
+];
 /**
  * Which end of the blow a proc belongs to, and `unsettled` where nobody knows.
  *

@@ -36,6 +36,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Poprawka** — Obniżenie odporności na ogień, zimno i błyskawice jest już rozpoznawane. Panel
+  przestaje ostrzegać, że nie wiedział, co znaczyła część tego, co powiedziała gra, a na karcie
+  ciosu staje osobny wiersz dla każdego z trzech żywiołów — obok wiersza, który był tam do tej pory
+  dla odporności bez żywiołu.
+
 - **Poprawka** — Ogłuszenie w ognistej i błyskawicznej odmianie jest już rozpoznawane. W walkach z
   potworami, które je zadają, panel przestaje ostrzegać, że nie wiedział, co znaczyła część tego, co
   powiedziała gra, a przy ciosie staje „ogłuszenie" — tak samo jak przy pozostałych odmianach tego
