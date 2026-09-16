@@ -18,6 +18,7 @@ import {
 import { ANNOUNCEMENT_KEYS, isDamageKey, NAMED_DAMAGE_KEY } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
 import { composeReplayedMaterial } from "@/tools/fight-replay.ts";
+import { getBacktickedPhrases } from "@/tools/help-claim-register.ts";
 import { ProtocolKeyShapeError } from "@/tools/margometer-tool-error.ts";
 import { readRecordingPaths } from "@/project/repository-layout.ts";
 
@@ -56,6 +57,7 @@ export interface KeyShape {
 export interface RegisteredKey {
     key: string;
     line: number;
+    verdict: string;
     shape: KeyShape | null;
 }
 
@@ -78,6 +80,10 @@ const PLACEMENTS_STRONGEST_FIRST: readonly KeyPlacement[] = [
 const VALUE_KINDS: readonly KeyValue[] = ["no value", "a whole number", "a number", "text"];
 
 const HEADING_OPENER = "### ";
+/** What stands between a heading's key and its verdict. */
+const VERDICT_DASH = "—";
+/** The sentence in the preamble that names every verdict an entry may carry. */
+const VERDICTS_STATED = "**A verdict is one of ";
 const BACKTICK = "`";
 const SHAPE_MARKER = "_Shape:_";
 const OCCURRENCE_WORD = "occurrences";
@@ -214,8 +220,12 @@ export function composeKeyShapes(paths: readonly string[]): KeyShape[] {
     return shapes.sort(getShapeOrder);
 }
 
-/** The key a `### ` heading names, or null where the line is not one. Walked, never matched. */
-function getHeadingKey(line: string): string | null {
+/**
+ * The key and verdict a `### ` heading states, or null where the line is not one. Walked, never
+ * matched. The verdict keeps every word after the dash: `not a battle key` is three of them, and a
+ * reader taking the first would file it under a word the register does not use.
+ */
+function composeHeadingOfLine(line: string): RegisteredKey | null {
     if (!line.startsWith(HEADING_OPENER)) return null;
     const rest = line.slice(HEADING_OPENER.length);
     if (!rest.startsWith(BACKTICK)) return null;
@@ -223,7 +233,8 @@ function getHeadingKey(line: string): string | null {
     if (close === -1) return null;
     const key = rest.slice(1, close);
     if (key.length === 0) return null;
-    return key;
+    const said = rest.slice(close + 1).split(VERDICT_DASH).join("").trim();
+    return { key, line: 0, verdict: said, shape: null };
 }
 
 /**
@@ -284,6 +295,24 @@ function readValue(key: string, claim: string): KeyValue {
 }
 
 /**
+ * The verdicts the register says it uses, read off the one sentence that states them rather than
+ * spelled a second time here (**C15**). A verdict the document stops naming stops being legal, so
+ * the list and the guard can never drift apart.
+ */
+export function getStatedVerdicts(text: string): string[] {
+    assert(text.length > 0, "a register read for its vocabulary says something");
+    for (const line of text.split("\n")) {
+        if (!line.startsWith(VERDICTS_STATED)) continue;
+        const said = getBacktickedPhrases(line);
+        assert(said.length > 0, "the sentence naming the verdicts names at least one");
+        return said;
+    }
+    throw new ProtocolKeyShapeError(
+        `${REGISTER_PATH}: no sentence states which verdicts an entry may carry`,
+    );
+}
+
+/**
  * Every entry the register opens, with the claim under it. The `_Shape:_` line is taken from the
  * entry it stands in and never from the next one, so an entry that omits it reads as an omission
  * rather than as a borrowed claim from the heading below.
@@ -293,9 +322,9 @@ export function getRegisteredKeys(text: string): RegisteredKey[] {
     assert(text.length <= Number.MAX_SAFE_INTEGER, "and is a document rather than a stream");
     const entries: RegisteredKey[] = [];
     for (const [offset, line] of text.split("\n").entries()) {
-        const key = getHeadingKey(line);
-        if (key !== null) {
-            entries.push({ key, line: offset + 1, shape: null });
+        const heading = composeHeadingOfLine(line);
+        if (heading !== null) {
+            entries.push({ ...heading, line: offset + 1 });
             continue;
         }
         const open = entries.at(-1);

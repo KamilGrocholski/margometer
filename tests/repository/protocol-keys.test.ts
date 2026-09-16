@@ -11,6 +11,7 @@ import { assert, assertEquals } from "@std/assert";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import { SELF_SOURCED_HEALING_KEYS } from "@/src/core/fight-decoder.ts";
+import { getRegisteredKeys, getStatedVerdicts } from "@/tools/protocol-key-shape.ts";
 import {
     BACKTICK,
     getBacktickedPhrases,
@@ -219,4 +220,28 @@ Deno.test("a key the register calls absent from the client is absent from the fr
     const known = new Set<string>(FROZEN_PROTOCOL_KEYS.keys);
     const present = absent.filter((key) => known.has(key));
     assertEquals(present, [], "the client's own table knows a key the register calls absent");
+});
+
+Deno.test("every entry carries a verdict the register says it uses", () => {
+    const stated = "**A verdict is one of `decoded`, `investigated` or `not a battle key`**, and";
+    assertEquals(getStatedVerdicts(stated), [
+        "decoded",
+        "investigated",
+        "not a battle key",
+    ], "the vocabulary is read off the sentence that states it");
+
+    const register = Deno.readTextFileSync(REGISTER_PATH);
+    const legal = new Set(getStatedVerdicts(register));
+    assert(legal.size > 0, "the register names the verdicts an entry may carry");
+
+    const read = getRegisteredKeys("### `+crit` — decoded\n### `+swing` — investigated\n");
+    assertEquals(read.map((one) => one.verdict), ["decoded", "investigated"], "the reader works");
+    assertEquals(getRegisteredKeys("Each entry carries a verdict.\n"), [], "and flags no prose");
+
+    const entries = getRegisteredKeys(register);
+    assert(entries.length > 0, "the register opens entries to read");
+    const wrong = entries
+        .filter((one) => !legal.has(one.verdict))
+        .map((one) => `${REGISTER_PATH}:${one.line} says "${one.verdict}"`);
+    assertEquals(wrong, [], "a verdict outside the stated list is refused, not read as silence");
 });

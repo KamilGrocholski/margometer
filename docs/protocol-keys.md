@@ -8,6 +8,14 @@ citation from the game client with the build it was read on, or the game's publi
 date it was read (`deno task game:help`). A verdict without evidence is a guess someone will later
 mistake for a fact.
 
+**A verdict is one of `decoded`, `investigated` or `not a battle key`**, and a word outside that
+list is refused rather than read as silence, the way a phrase outside the vocabularies below is.
+`decoded` says the tree reads the key; `investigated` says it was looked into and deliberately left,
+so a fight carrying it still reports it unread; `not a battle key` says it never reaches this reader
+at all. The list matters because the guard that forces a decoded key all the way to the decoder is
+gated on the word — a misspelling there exempts the entry from the only reader that would have
+caught it, and nothing goes red.
+
 The help is the only source that says what an effect _does_, so it is the only one that can settle a
 _meaning_. It settles nothing else: the `*Health:*` line below is a measurement or it is absent, and
 no sentence of the game's is copied in here — an entry carries the locator and our own words.

@@ -552,7 +552,7 @@ the same thing a second way.
 | `tests/repository/workflows.test.ts`          | the three workflows pinned to one runtime                        |
 | `tests/repository/names.test.ts`              | N1, N3, N8, N11, N14, N15, N16, with samples                     |
 | `tests/repository/type-assertions.test.ts`    | C13, with a register read both ways                              |
-| `tests/repository/protocol-keys.test.ts`      | register help claims against the frozen counts                   |
+| `tests/repository/protocol-keys.test.ts`      | register help claims, and the verdict every entry carries        |
 | `tests/tools/protocol-key-shape.test.ts`      | every `_Shape:_` line against `captures/`                        |
 | `tests/repository/skill-durations.test.ts`    | the frozen durations, and the rule behind them                   |
 | `tests/repository/readmes.test.ts`            | the two READMEs, and both against the shot set                   |

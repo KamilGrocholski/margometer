@@ -20,17 +20,13 @@ import {
     isFabricatedPath,
 } from "@/tools/fabricated-fight.ts";
 import { FabricatedFightError } from "@/tools/margometer-tool-error.ts";
+import { getRegisteredKeys, REGISTER_PATH } from "@/tools/protocol-key-shape.ts";
 
-const REGISTER_PATH = "docs/protocol-keys.md";
-const SECTION_MARKER = "### ";
-const BACKTICK = "`";
 const DECODED_VERDICT = "decoded";
 const SEGMENT_SEPARATOR = ";";
 const VALUE_SEPARATOR = "=";
 /** Both ends of a message come first, and neither is a key. */
 const SIDE_SEGMENTS = 2;
-/** Past the heading count of the register, so the walk carries a stated bound. */
-const MAXIMUM_HEADINGS = 1024;
 /** What the script holds, read off the fight that reaches all of it rather than stated here. */
 const ACTS_SCRIPTED = 41;
 
@@ -44,21 +40,9 @@ const NOT_A_MESSAGE_KEY: Record<string, string> = {
     "?dmg*": "a family read by shape, and no key a message ever writes",
 };
 
-/** Every heading of the register, as the key it names and the verdict it carries. */
+/** The register's own reader, so one walk answers what a heading says (**C15**). */
 function getRegisterVerdicts(register: string): Map<string, string> {
-    const found = new Map<string, string>();
-    for (const line of register.split("\n")) {
-        if (!line.startsWith(SECTION_MARKER)) continue;
-        assert(found.size <= MAXIMUM_HEADINGS, "the walk stays inside its stated bound");
-        const body = line.slice(SECTION_MARKER.length);
-        if (!body.startsWith(BACKTICK)) continue;
-        const closes = body.indexOf(BACKTICK, 1);
-        if (closes === -1) continue;
-        const key = body.slice(1, closes);
-        const verdict = body.slice(closes + 1).split("—").join("").trim();
-        found.set(key, verdict);
-    }
-    return found;
+    return new Map(getRegisteredKeys(register).map((one) => [one.key, one.verdict]));
 }
 
 /** The keys one message states, which is every segment after its two ends. */
