@@ -17,11 +17,14 @@
 
 
 ## In Progress
-- [ ] !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and 10vs10 player vs. player fights (I really need this for further development, now I only know 1-93lvl)
+- [ ] Data: !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and 10vs10 player vs. player fights (I really need this for further development, now I only know 1-93lvl)
 
 ## Up Next
-- [ ] Should dmg applied and taken take into account only health or also absorbtion?
-- [ ] Do a manual audit
+- [ ] Readme: I need a better way to inform a user about how to install margometer and what is needed - step by step
+- [ ] Fix: the fight keeper's tip SHOULD show full name, break a line, if necessary
+- [ ] Feat: `Pomocnik` SHOULD show current provocation skills, because they also provide buffs/debuffs
+- [ ] Plan: Should dmg applied and taken take into account only health or also absorbtion?
+- [ ] Check: Do a manual audit
 - [ ] Plan: Add a fight visualization - a simple chart with bars or something
 
 ## Done
