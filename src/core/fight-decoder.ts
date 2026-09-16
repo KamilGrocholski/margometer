@@ -92,6 +92,10 @@ export const BLOW_END_BY_PROC_KEY: Record<string, ProcEnd> = {
     "+wound": "actor",
     "+of_wound": "actor",
     "+woundpoison": "actor",
+    "+woundfrost": "actor",
+    "+woundmagic": "actor",
+    "+of_woundpoison": "actor",
+    "+of_woundmagic": "actor",
     "+fastarrow": "actor",
     "+acdmg_destroyed": "actor",
     "+legbon_curse": "actor",
@@ -299,7 +303,13 @@ const DECLARATION_KEYS = [
  * read**: what the percentage is taken off is unsettled by the material, and a share quoted
  * against a wound would be a guess (**ADR 0085**, `docs/protocol-keys.md`).
  */
-const PROCS_WITH_A_VALUE = ["+woundpoison"];
+const PROCS_WITH_A_VALUE = [
+    "+woundpoison",
+    "+woundfrost",
+    "+woundmagic",
+    "+of_woundpoison",
+    "+of_woundmagic",
+];
 
 /**
  * The same, stating the key and nothing else — and read **only** while they carry none. The

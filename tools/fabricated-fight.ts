@@ -777,6 +777,10 @@ function actWeakenedWound(turn: FabricatedTurn): string[] {
     setStatusBit(turn.target, 0, turn.round);
     return [composeBlow(turn, [
         composeFigureParameter("+woundpoison", WOUND_WEAKENED_PERCENT),
+        composeFigureParameter("+woundfrost", WOUND_WEAKENED_PERCENT),
+        composeFigureParameter("+woundmagic", WOUND_WEAKENED_PERCENT),
+        composeFigureParameter("+of_woundpoison", WOUND_WEAKENED_PERCENT),
+        composeFigureParameter("+of_woundmagic", WOUND_WEAKENED_PERCENT),
     ])];
 }
 

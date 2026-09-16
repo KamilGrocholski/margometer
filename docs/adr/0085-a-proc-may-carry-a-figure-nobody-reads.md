@@ -1,6 +1,6 @@
 # 0085. A proc may carry a figure nobody reads
 
-- **Status:** Accepted
+- **Status:** Superseded by 0094 in part
 - **Date:** 2026-09-13
 
 ## Context

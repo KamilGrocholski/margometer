@@ -452,6 +452,10 @@ export const PROC_WORD_BY_KEY: Record<string, string> = {
     "+of_wound": "głęboka rana",
     /** A deep wound something weakened; the client writes the share into the sentence. */
     "+woundpoison": "osłabiona rana",
+    "+woundfrost": "osłabiona rana",
+    "+woundmagic": "osłabiona rana",
+    "+of_woundpoison": "osłabiona rana",
+    "+of_woundmagic": "osłabiona rana",
     "+fastarrow": "szybka strzała",
     "+acdmg_destroyed": "pancerz zniszczony",
     "-evade": "unik",

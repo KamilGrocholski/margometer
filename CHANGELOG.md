@@ -36,6 +36,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Poprawka** — Rana osłabiona mrozem lub magią, a także obie osłabione rany zadane bronią
+  pomocniczą, są już rozpoznawane. Panel przestaje ostrzegać, że nie wiedział, co znaczyła część
+  tego, co powiedziała gra, a wszystkie liczą się w tym samym wierszu „osłabiona rana”, w którym do
+  tej pory stała sama rana osłabiona trucizną.
+
 - **Poprawka** — Obniżenie odporności na ogień, zimno i błyskawice jest już rozpoznawane. Panel
   przestaje ostrzegać, że nie wiedział, co znaczyła część tego, co powiedziała gra, a na karcie
   ciosu staje osobny wiersz dla każdego z trzech żywiołów — obok wiersza, który był tam do tej pory

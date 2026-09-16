@@ -2482,9 +2482,10 @@ an `+of_` twin for the auxiliary weapon; `+woundfrost` has none.
 
 Read as a **proc on the attacker's end**, which is where `+wound` is read, and the figure it carries
 is not read at all: a percentage is a unit no total here keeps, and what the wound does to health
-arrives separately as the `wound` ticks the entry above reads. It is the one key in
-`BLOW_END_BY_PROC_KEY` read as a proc while stating a value, and `src/core/fight-decoder.ts` names
-that set rather than letting every proc take one.
+arrives separately as the `wound` ticks the entry above reads. It is one of five keys in
+`BLOW_END_BY_PROC_KEY` read as a proc while stating a value — the four below are the others — and
+`src/core/fight-decoder.ts` names that set rather than letting every proc take one (**ADR 0094**,
+which grew the set **ADR 0085** opened at this key alone).
 
 ⚠️ **What the percentage is taken off is not settled by this material.** All six occurrences state
 `50` while the ticks following them state 177, 265, 353, 177, 265 and 177, and the blows they ride
@@ -2509,6 +2510,39 @@ wound's own name and a share taken off it. The published help names nothing of t
 view,372, read 2026-09-09 — which is the whole of what it settles. Every occurrence rides a blow of
 one combatant in `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`, the one
 recording carrying it as the set stood 2026-09-11.
+
+### `+woundfrost` — decoded
+
+The same announcement as `+woundpoison` above, for the second of the three things that weaken a deep
+wound. Read as a **proc on the attacker's end** and the figure it carries is not read, for the
+reason that entry gives: the percentage is a share of something this material does not settle.
+
+⚠️ **No recording carries it, and it has no `+of_` twin.** The client composes an auxiliary-weapon
+variant for the other two weakeners and none for this one — a claim about the switch, read on
+production `Bb28FQty` 2026-09-16, not an absence of material. `captures/` carries none of the four
+keys this entry and the three below name, as the set stood 2026-09-16, so none states a `_Shape:_`
+line. None states a `_Help:_` line either: `deno task game:help` has searched `wound` and the stem
+alone, so a claim about the narrowed keys would be one the frozen table never counted.
+
+_Evidence:_ production build `Bb28FQty` composes `msg_woundfrost %val%` on the one switch that
+composes `msg_+wound`, `msg_woundpoison`, `msg_woundmagic`, `msg_of_woundpoison` and
+`msg_of_woundmagic` — all six cases read 2026-09-16. `+wound` and `+of_wound` take no `%val%` and
+the other four do, which is what puts these with `+woundpoison` rather than with the bare
+announcement. **ADR 0094.**
+
+### `+woundmagic` — decoded
+
+The third weakener, and the last of them. Evidence as above; it has an `+of_` twin below.
+
+### `+of_woundpoison` — decoded
+
+`+woundpoison` off the auxiliary weapon. It shares that key's word rather than taking one of its
+own, which is the rule `+of_wound` already stands under: a second row would split one mechanic over
+the hand that threw it (`src/ui/panel-words.ts`).
+
+### `+of_woundmagic` — decoded
+
+The same for `+woundmagic`. Evidence as above.
 
 ### `+legbon_anguish` — decoded
 
