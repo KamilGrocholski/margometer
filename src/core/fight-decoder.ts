@@ -364,7 +364,7 @@ interface NamedDamageReading {
     damage: DamageFigure;
 }
 
-interface SkillReading {
+interface AnnouncementReading {
     skillName: string;
     skillId: number | null;
 }
@@ -381,7 +381,7 @@ interface AttackReading {
     unaccounted: UnaccountedHealthReading[];
     outcomes: FightOutcomeEvent[];
     declared: DeclaredEffect[];
-    skill: SkillReading | null;
+    skill: AnnouncementReading | null;
     skillName: string | null;
     skillId: number | null;
     skillKeys: number;
@@ -574,7 +574,7 @@ function addSkillKey(
 }
 
 /** An id with no name is a skill nothing can put on screen, and the protocol has never sent one. */
-function closeSkillReading(reading: AttackReading): void {
+function closeAnnouncementReading(reading: AttackReading): void {
     assert(reading.skill === null, "a reading's announcement is closed once");
     assert(reading.skillKeys >= 0, "a key is counted once");
     if (reading.skillName !== null) {
@@ -686,7 +686,7 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
         }
         addAttackFigure(reading, parameter.key, amount);
     }
-    closeSkillReading(reading);
+    closeAnnouncementReading(reading);
     const read = countParametersRead(reading);
     assert(read === parameters.length, "every parameter is read or named unread, and none twice");
     assert(reading.raw.length <= parameters.length, "a reading holds no more than it was handed");
@@ -767,7 +767,7 @@ function composeNamedHealingEvent(
 
 function composeSkillUsedEvent(
     parsed: ProtocolMessage,
-    skill: SkillReading,
+    skill: AnnouncementReading,
     declared: DeclaredEffect[],
 ): SkillUsedEvent {
     assert(skill.skillName.length > 0, "an announcement names something");
@@ -802,7 +802,7 @@ function composeSkillUsedEvent(
  */
 function getAnnouncedForMessage(
     parsed: ProtocolMessage,
-    skill: SkillReading | null,
+    skill: AnnouncementReading | null,
     standing: AnnouncementStanding | null,
     isBlow: boolean,
 ): AnnouncedSkill | null {
@@ -1003,7 +1003,7 @@ function composeDeclarationEvent(
 
 function composeAnnouncedSkill(
     parsed: ProtocolMessage,
-    skill: SkillReading | null,
+    skill: AnnouncementReading | null,
 ): AnnouncedSkill | null {
     if (skill === null) return null;
     assert(skill.skillName.length > 0, "an announcement names something");

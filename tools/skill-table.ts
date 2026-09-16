@@ -77,7 +77,7 @@ export interface SkillEffectReading extends SkillEffectTurns {
     values: readonly number[];
 }
 
-export interface SkillReading {
+interface SkillReading {
     id: number;
     effects: readonly SkillEffectReading[];
 }
