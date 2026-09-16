@@ -10,7 +10,7 @@
 import { assert, assertEquals } from "@std/assert";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
-import { SELF_SOURCED_HEALING_KEYS } from "@/src/core/fight-decoder.ts";
+import { isDamageKey, SELF_SOURCED_HEALING_KEYS } from "@/src/core/fight-decoder.ts";
 import { getRegisteredKeys, getStatedVerdicts } from "@/tools/protocol-key-shape.ts";
 import {
     BACKTICK,
@@ -244,4 +244,32 @@ Deno.test("every entry carries a verdict the register says it uses", () => {
         .filter((one) => !legal.has(one.verdict))
         .map((one) => `${REGISTER_PATH}:${one.line} says "${one.verdict}"`);
     assertEquals(wrong, [], "a verdict outside the stated list is refused, not read as silence");
+});
+
+/**
+ * The verdict for a key that never reaches the battle reader at all, so the client's own switch
+ * is not where it would appear. `docs/protocol-keys.md`'s preamble says what it means.
+ */
+const NOT_A_BATTLE_KEY = "not a battle key";
+
+Deno.test("every entry names a key the client still composes", () => {
+    const sample =
+        "### `+crit` — decoded\n### `attack` — not a battle key\n### `-dmga` — decoded\n";
+    assertEquals(
+        getRegisteredKeys(sample).filter((one) => one.verdict !== NOT_A_BATTLE_KEY)
+            .filter((one) => !isDamageKey(one.key)).map((one) => one.key),
+        ["+crit"],
+        "the reader asks after the entries the client's switch answers for",
+    );
+
+    const composed = new Set<string>(FROZEN_PROTOCOL_KEYS.keys);
+    assert(composed.size > 0, "the frozen table names the keys the client composes");
+    const gone = getRegisteredKeys(Deno.readTextFileSync(REGISTER_PATH))
+        // A verdict saying the key is no battle key is saying the switch never carries it.
+        .filter((one) => one.verdict !== NOT_A_BATTLE_KEY)
+        // The family the client reads by shape has no case label, and neither has a member of it.
+        .filter((one) => !isDamageKey(one.key))
+        .filter((one) => !composed.has(one.key))
+        .map((one) => `${REGISTER_PATH}:${one.line} states \`${one.key}\``);
+    assertEquals(gone, [], "an entry documenting a key the client's own table no longer knows");
 });
