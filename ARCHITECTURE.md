@@ -779,12 +779,17 @@ commit that opens or closes one.
     closes the day CI runs the routine on a schedule, which is a decision about how often this
     repository may be red for somebody else's outage.
 
-16. **One recording carries a fight between players, and the corpus is otherwise N against one.**
-    `captures/2026-09-09-tempest-duet-vs-wojownik-…` is two players against one, written from side 2
-    — the first of both. It settled whom a shout holds (**ADR 0064**) and it is the whole of the
-    evidence for it: a shout naming three or more is still unrecorded, and so is a value naming
-    somebody the roster does not carry. `TODO.md` opens on this, and the register it moved is
-    `docs/captured-fights.md`'s shape census.
+16. **The corpus is no longer N against one, and a fight between players is no longer a single
+    recording.** `captures/2026-09-16-luvia-tropiciel-vs-grupa-…` arrived with a whole side of
+    players opposite the reader. Which recordings carry a player at both ends, and what shapes the
+    corpus holds at all, is `docs/captured-fights.md`'s census to state — re-earned from the
+    material rather than written here (**V5**).
+
+    `captures/2026-09-09-tempest-duet-vs-wojownik-…` is two players against one, written from side
+    2, and it settled whom a shout holds (**ADR 0064**): a shout naming three or more is still
+    unrecorded, and so is a value naming somebody the roster does not carry. The recording above
+    carries a shout of its own, and whether it settles anything that one did not is unread.
+    `TODO.md` opens on this.
 
 17. **What a standing effect comes to is written down and drawn nowhere.** `docs/auras-standing.md`
     carries the units, the cap at two sources from different Players, the additive sets and the half
