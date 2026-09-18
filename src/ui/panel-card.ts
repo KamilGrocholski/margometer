@@ -22,6 +22,7 @@ import {
     composeShareText,
     composeUsesText,
     getNoteForCaveat,
+    getSubWordsForBlowKey,
     getWordsForBlowKey,
     getWordsForCardMetric,
     getWordsForDestroyed,
@@ -198,13 +199,52 @@ function composeCardProcLines(
     translate: TranslateLabel | null,
 ): TipLine[] {
     const kept = parts.filter((part) => !without.includes(part.key));
-    return composeCardWordedParts(kept, translate).map((one) => ({
-        kind: "stat",
-        label: one.label,
-        stated: composeUsesText(one.figure),
-        isStrong: false,
-        caveat: null,
-    }));
+    const narrowed = composeCardProcSubParts(kept, translate);
+    const lines: TipLine[] = [];
+    for (const one of composeCardWordedParts(kept, translate)) {
+        lines.push({
+            kind: "stat",
+            label: one.label,
+            stated: composeUsesText(one.figure),
+            isStrong: false,
+            caveat: null,
+        });
+        for (const sub of narrowed.get(one.label) ?? []) {
+            lines.push({ kind: "sub", label: sub.label, stated: composeUsesText(sub.figure) });
+        }
+    }
+    return lines;
+}
+
+/**
+ * The runs standing under a row, by the word that row wears — which keys draw one at all is
+ * `src/ui/panel-words.ts`'s to say.
+ *
+ * **Sliced where `composeCardWordedParts` slices**, so the two walks see one list and no sub-line
+ * can count a part the row above it dropped. Pushed inside that row's own turn rather than sorted
+ * with the rest, because a sub-line is read through the line above it (`DESIGN.md`).
+ */
+function composeCardProcSubParts(
+    parts: readonly CutPart[],
+    translate: TranslateLabel | null,
+): Map<string, Array<{ label: string; figure: number }>> {
+    const byWords = new Map<string, Map<string, number>>();
+    for (const part of parts.slice(0, MAXIMUM_CARD_PARTS)) {
+        const words = getSubWordsForBlowKey(part.key);
+        if (words.length === 0) continue;
+        const label = getWordsForBlowKey(part.key, translate);
+        if (label.length === 0) continue;
+        const held = byWords.get(label) ?? new Map<string, number>();
+        held.set(words, (held.get(words) ?? 0) + part.figure);
+        byWords.set(label, held);
+    }
+    const folded = new Map<string, Array<{ label: string; figure: number }>>();
+    for (const [label, held] of byWords) {
+        const run = [...held].map(([words, figure]) => ({ label: words, figure }));
+        run.sort((one, other) => getRankedOrder(one.figure, other.figure, one.label, other.label));
+        folded.set(label, run);
+    }
+    return folded;
 }
 
 /**

@@ -450,17 +450,34 @@ export const PROC_WORD_BY_KEY: Record<string, string> = {
      * five stun keys were not given either.
      */
     "+of_wound": "głęboka rana",
-    /** A deep wound something weakened; the client writes the share into the sentence. */
-    "+woundpoison": "osłabiona rana",
-    "+woundfrost": "osłabiona rana",
-    "+woundmagic": "osłabiona rana",
-    "+of_woundpoison": "osłabiona rana",
-    "+of_woundmagic": "osłabiona rana",
+    /** A deep wound something weakened, which is a deep wound: `PROC_SUB_WORD_BY_KEY` says so. */
+    "+woundpoison": "głęboka rana",
+    "+woundfrost": "głęboka rana",
+    "+woundmagic": "głęboka rana",
+    "+of_woundpoison": "głęboka rana",
+    "+of_woundmagic": "głęboka rana",
     "+fastarrow": "szybka strzała",
     "+acdmg_destroyed": "pancerz zniszczony",
     "-evade": "unik",
     "-contra": "kontra",
     "-arrowblock": "blok strzały",
+};
+
+/**
+ * Counted in the row above rather than beside it, and named under it: the qualifier, never the
+ * mechanic. A wound something weakened is a wound, so a reader counting the ones they left reads
+ * every one of them off one line — over `captures/` on 2026-09-18 one combatant announced six deep
+ * wounds, all of them weakened, and their card stated no deep-wound count at all. **ADR 0095.**
+ *
+ * `+of_crit` is the same shape and is not here: the count it narrows is one of blows and not of
+ * announcements, so `src/ui/panel-card.ts` draws it against a figure this table has no unit for.
+ */
+export const PROC_SUB_WORD_BY_KEY: Record<string, string> = {
+    "+woundpoison": "osłabiona",
+    "+woundfrost": "osłabiona",
+    "+woundmagic": "osłabiona",
+    "+of_woundpoison": "osłabiona",
+    "+of_woundmagic": "osłabiona",
 };
 
 /**
@@ -519,6 +536,11 @@ function getClientWordsForKey(key: string, translate: TranslateLabel | null): st
     if (label.length > MAXIMUM_LABEL_CHARACTERS) return null;
     if (label.length === 0) return null;
     return label;
+}
+
+/** The word standing under the row a key's count landed on, and `""` where it stands alone. */
+export function getSubWordsForBlowKey(key: string): string {
+    return PROC_SUB_WORD_BY_KEY[key] ?? "";
 }
 
 /**

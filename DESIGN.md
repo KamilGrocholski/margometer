@@ -531,6 +531,13 @@ naming blows over it was a claim the figure does not keep (**ADR 0088**). Which 
 is read per key and never off its sign, so the heading is what says whose each line is. A run that
 came to nothing is not drawn, and neither is its heading. **ADR 0032.**
 
+**A count a second key narrows is one row, with the narrower count under it.** The row states what
+the mechanic came to and the line below it says how much of that was the narrower thing — the
+criticals with the ones off the auxiliary weapon under them, the deep wounds with the weakened ones.
+Two rows in place of that made a reader add them to answer the question the mechanic's own name
+asks, and on a combatant whose every wound was weakened the row answering it was not drawn at all.
+**ADR 0095.**
+
 **A line of a card never folds.** Its height is arithmetic and a stat line is counted as one, so a
 label too long for the column is cut with an ellipsis rather than wrapped — a card that folded a
 line would stand lower on the screen than it was measured for, which is the one direction that takes

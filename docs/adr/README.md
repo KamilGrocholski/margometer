@@ -239,3 +239,5 @@ edited to agree with the new rule.
   lookup it takes. **Accepted**
 - [0094](0094-the-proc-that-may-carry-a-figure-is-a-family.md) — The proc that may carry a figure is
   a family, not one key. **Accepted**
+- [0095](0095-a-weakened-wound-is-a-deep-wound.md) — A weakened wound is a deep wound, and the card
+  counts it as one. **Accepted**

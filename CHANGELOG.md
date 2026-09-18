@@ -36,6 +36,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Zmiana** — Wszystkie głębokie rany liczą się teraz na karcie ciosu w jednym wierszu, a pod nim
+  stoi, ile z nich coś osłabiło. Do tej pory osłabione rany stały w osobnym wierszu i postać, której
+  każdą ranę coś osłabiło, nie miała na karcie żadnej liczby ran.
+
 - **Poprawka** — Sześć rzeczy, które robią postacie z najwyższych poziomów, jest już rozpoznawanych:
   tarcza podnosząca pancerz i leczenie ze sprzętu, powiększenie puli zdrowia — swojej drużynie albo
   przeciwnikom — zmiana leczenia ze sprzętu w obie te strony oraz zniszczenie odporności na
@@ -44,8 +48,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 - **Poprawka** — Rana osłabiona mrozem lub magią, a także obie osłabione rany zadane bronią
   pomocniczą, są już rozpoznawane. Panel przestaje ostrzegać, że nie wiedział, co znaczyła część
-  tego, co powiedziała gra, a wszystkie liczą się w tym samym wierszu „osłabiona rana", w którym do
-  tej pory stała sama rana osłabiona trucizną.
+  tego, co powiedziała gra, a wszystkie liczą się tak samo jak rana osłabiona trucizną.
 
 - **Poprawka** — Obniżenie odporności na ogień, zimno i błyskawice jest już rozpoznawane. Panel
   przestaje ostrzegać, że nie wiedział, co znaczyła część tego, co powiedziała gra, a na karcie

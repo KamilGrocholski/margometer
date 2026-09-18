@@ -16,9 +16,11 @@ import {
     composeDestroyedText,
     DEFENCE_WORD_BY_KEY,
     DESTROYED_WORD_BY_KEY,
+    getSubWordsForBlowKey,
     getWordsForBlowKey,
     getWordsForDestroyed,
     MAXIMUM_LABEL_CHARACTERS,
+    PROC_SUB_WORD_BY_KEY,
     PROC_WORD_BY_KEY,
 } from "@/src/ui/panel-words.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
@@ -251,6 +253,9 @@ Deno.test("no label a card draws is longer than the column it is drawn in", () =
     for (const [key, words] of Object.entries(PROC_WORD_BY_KEY)) {
         if (words.length > MAXIMUM_LABEL_CHARACTERS) overlong.push(`${key} "${words}"`);
     }
+    for (const [key, words] of Object.entries(PROC_SUB_WORD_BY_KEY)) {
+        if (words.length > MAXIMUM_LABEL_CHARACTERS) overlong.push(`${key} "${words}"`);
+    }
     for (const [key, words] of Object.entries(DEFENCE_WORD_BY_KEY)) {
         if (words.length > MAXIMUM_LABEL_CHARACTERS) overlong.push(`${key} "${words}"`);
     }
@@ -282,4 +287,30 @@ Deno.test("no label a card draws is longer than the column it is drawn in", () =
         "absorpcja magiczna!!!!!".length > MAXIMUM_LABEL_CHARACTERS,
         "and the measure is the characters, not the entry",
     );
+});
+
+/**
+ * A sub-line narrows the row above it, so the key drawing one has to be a key that reaches a row
+ * at all (**ADR 0095**). Read both ways: a table that has stopped naming its keys and one that
+ * names a key no row draws fail differently, and only the pair catches both.
+ */
+Deno.test("a key naming a sub-line is a key a row already counts", () => {
+    const unplaced: string[] = [];
+    for (const key of Object.keys(PROC_SUB_WORD_BY_KEY)) {
+        if (PROC_WORD_BY_KEY[key] === undefined) unplaced.push(`${key} words no row`);
+        if (BLOW_END_BY_PROC_KEY[key] === undefined) unplaced.push(`${key} reaches no end`);
+    }
+    assertEquals(unplaced, [], "a sub-line under a row nothing draws is a line nobody reads");
+    // The other way: the five that narrow the wound's row, and the row they all fold into.
+    const narrowed = Object.keys(PROC_SUB_WORD_BY_KEY);
+    assertEquals(
+        narrowed.map((key) => PROC_WORD_BY_KEY[key]),
+        narrowed.map(() => getWordsForBlowKey("+wound")),
+        "every key narrowing a row lands on the row `+wound` opened",
+    );
+    // The sample that must not flag: the bare announcement and the crit stand alone.
+    assertEquals(getSubWordsForBlowKey("+wound"), "", "nothing weakened a bare wound");
+    assertEquals(getSubWordsForBlowKey("+crit"), "", "and a crit narrows no row of this kind");
+    // And the one that must: a weakened wound says so under the row it was counted in.
+    assertEquals(getSubWordsForBlowKey("+woundpoison"), "osłabiona", "a weakened one does");
 });

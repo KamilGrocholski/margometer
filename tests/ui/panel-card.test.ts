@@ -783,6 +783,105 @@ Deno.test("two keys the panel words the same way are one line, not two of one wo
     );
 });
 
+/** The run about striking, on somebody whose blows carried these and nothing else. */
+function readStrikingProcs(procs: readonly { key: string; figure: number }[]): string[] {
+    const card = composeCardReading({
+        name: "Amaimon Soploręki",
+        profession: "p",
+        sidePart: "nobody" as const,
+        detail: { ...NOBODY, blowsStruck: 20, procsWhenStriking: [...procs] },
+        metric: "damageDealtApplied",
+        doesOpen: false,
+        isRowNarrower: false,
+        translate: null,
+    });
+    const [, , striking] = card.groups;
+    assertExists(striking, "they struck, so the run about striking stands");
+    return readGroup(striking);
+}
+
+/**
+ * A wound something weakened is a wound, and it is counted in the wound's own row (**ADR 0095**).
+ * The row it used to have of its own answered a question nobody asked while the one a reader does
+ * ask — how many wounds did they leave — was on no line at all.
+ */
+Deno.test("every deep wound is counted in one row, and the weakened ones stand under it", () => {
+    assertEquals(
+        readStrikingProcs([
+            { key: "+wound", figure: 2 },
+            { key: "+of_wound", figure: 1 },
+            { key: "+woundpoison", figure: 3 },
+        ]),
+        [`[${CARD_WORDS.striking}]`, "głęboka rana ×6", "  osłabiona ×3"],
+        "the row counts all six, and the line under it says how many of them were weakened",
+    );
+});
+
+/**
+ * Zero is a boundary (**W5**), and this is the zero: the sub-line is not drawn reading nothing,
+ * because a row saying `×0` under it is a claim about a weakening that never happened.
+ *
+ * **It asserts an absence and nothing else on purpose.** Paired with the presence below it went
+ * red on every mutation that stopped sub-lines being drawn at all — which is the one outcome this
+ * test must call correct.
+ */
+Deno.test("a wound nothing weakened draws no sub-line", () => {
+    assertEquals(
+        readStrikingProcs([{ key: "+wound", figure: 2 }]),
+        [`[${CARD_WORDS.striking}]`, "głęboka rana ×2"],
+        "nothing weakened these, so there is nothing to say under the row",
+    );
+});
+
+/** And one is a boundary beside it: one weakened out of two is a sub-line, not a rounding. */
+Deno.test("one wound weakened out of two draws the sub-line all the same", () => {
+    assertEquals(
+        readStrikingProcs([{ key: "+wound", figure: 1 }, { key: "+woundpoison", figure: 1 }]),
+        [`[${CARD_WORDS.striking}]`, "głęboka rana ×2", "  osłabiona ×1"],
+        "two wounds, one of them weakened, and the line under the row says so",
+    );
+});
+
+/**
+ * The card the decision was made on. Combatant `28940` in
+ * `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json` announced six deep wounds,
+ * every one of them weakened by poison, and until **ADR 0095** their card carried no count of
+ * wounds at all — the row they could see was a part of one they could not.
+ */
+Deno.test("a combatant whose every wound was weakened still has a count of wounds", () => {
+    assertEquals(
+        readStrikingProcs([{ key: "+woundpoison", figure: 6 }]),
+        [`[${CARD_WORDS.striking}]`, "głęboka rana ×6", "  osłabiona ×6"],
+        "six wounds are six wounds, whatever weakened them",
+    );
+});
+
+/**
+ * A sub-line is read through the line above it (`DESIGN.md`), so it rides with that line.
+ *
+ * **A row stands on either side of the narrowed one**, because a wound row drawn last reads the
+ * same whether its sub-line rides with it or is pushed after every row on the card: moving the
+ * sub-lines to the end of the run lit nothing until a row stood below the one they narrow.
+ */
+Deno.test("a sub-line follows the row it narrows, whatever stands around that row", () => {
+    assertEquals(
+        readStrikingProcs([
+            { key: "+stun", figure: 9 },
+            { key: "+wound", figure: 1 },
+            { key: "+woundpoison", figure: 2 },
+            { key: "+freeze", figure: 2 },
+        ]),
+        [
+            `[${CARD_WORDS.striking}]`,
+            "ogłuszenie ×9",
+            "głęboka rana ×3",
+            "  osłabiona ×2",
+            "zamrożenie ×2",
+        ],
+        "the rows are sorted by their own counts and the sub-line goes with the row it narrows",
+    );
+});
+
 /**
  * The turn count stands on its own line and is divided into nothing (**ADR 0048**). Zero is a
  * boundary and so is one (**W5**): a combatant who took no turn has no line rather than a line

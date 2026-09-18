@@ -68,6 +68,7 @@ import {
     NEITHER_END_WORDS,
     PANEL_WORDS,
     type PanelRegion,
+    PROC_SUB_WORD_BY_KEY,
     PROC_WORD_BY_KEY,
     PROFESSION_WORD_BY_KEY,
     REGION_WORDS,
@@ -139,6 +140,7 @@ const TABLES = [
     ELEMENT_WORD_BY_KEY,
     HEALTH_LOSS_WORD_BY_KEY,
     HEALTH_SOURCE_WORD_BY_KEY,
+    PROC_SUB_WORD_BY_KEY,
     PROC_WORD_BY_KEY,
     PROFESSION_WORD_BY_KEY,
     STANDING_WORDS,
@@ -198,9 +200,9 @@ function getSentences(): string[] {
     }
     found.push(...getSentencesFromSuspicions());
     // ⚠️ **Every table the module keeps, and every word it hands out that a table does not.**
-    // Measured 2026-09-11 by putting `oth_dmg` into the first string of each of the twenty
-    // tables in `src/ui/panel-words.ts` and running this file: twelve lit, nine did not, and
-    // the sentences behind those nine were read by neither check below.
+    // Measured 2026-09-18 by putting `oth_dmg` into the first worded value of every table in
+    // `src/ui/panel-words.ts` and running this file: all but one lit, and the one that did not
+    // is `CLIENT_ID_BY_UNWORDED_KEY`, which `HOLDS_NO_WORD` excuses by name.
     for (const table of TABLES) {
         for (const words of Object.values(table)) found.push(String(words));
     }

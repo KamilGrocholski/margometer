@@ -2621,6 +2621,10 @@ The event a blow announces when a weapon's deep wound is applied, read as a proc
 fired with the attack and states no figure. `+of_wound` below is the auxiliary weapon's own half of
 the pair, read the same way and worded the same way.
 
+**This is the row every wound announcement lands on.** The five keys naming what weakened a wound
+fold into it and say so on a line under it rather than beside it, because a wound something weakened
+is a wound and a reader counting the ones they left wants all of them (**ADR 0095**).
+
 _Shape:_ 18 occurrences; on a blow; no value
 
 _Help:_ names `wound`, `wound1`, `of_wound1`
@@ -2638,7 +2642,8 @@ carrying either half of this pair as the set stood 2026-08-24.
 `+wound`'s other half: the deep wound an **auxiliary weapon** left, announced by the blow that left
 it and stating no figure. Read as a proc on the attacker's end, where `+wound` is read, and given
 `+wound`'s own word on the card rather than one of its own — one mechanic from two hands, and the
-panel has no column in which the hand is a thing a player acts on (`src/ui/panel-words.ts`).
+panel has no column in which the hand is a thing a player acts on (`src/ui/panel-words.ts`). It
+draws no line under that row either, because nothing weakened what it announces.
 
 What it announces ticks afterwards under `wound`, which names nobody at the striking end, so the
 ticks stand where the entry above says they stand and this key moves no health of its own.
@@ -2691,12 +2696,13 @@ poison; of frost or magic weakening a wound it says nothing (read 2026-09-15). W
 and `+woundmagic` weaken a wound _by_ is therefore taken from the client's own switch and from the
 symmetry of the three, not from an article.
 
-⚠️ **Both announcements reach the card, and the figure is the only difference between them.** The
-proc reader takes valueless keys, this one excepted and named — because a wound nothing weakened
-standing on the card while a weakened one does not is a hole in what a player sees, turning on
-something they cannot. The `[ASK]` this entry carried was put and granted on 2026-09-13 (**ADR
-0085**). What was **not** granted is reading the figure, and the help settling what it means has not
-changed that: the base it is a share of is a quantity no message carries.
+⚠️ **Both announcements reach the card, and both land on `+wound`'s row.** The proc reader takes
+valueless keys, this one excepted and named — because a wound nothing weakened standing on the card
+while a weakened one does not is a hole in what a player sees, turning on something they cannot. The
+`[ASK]` this entry carried was put and granted on 2026-09-13 (**ADR 0085**). What the card says of
+the difference is one line under that row, counting the weakened ones (**ADR 0095**). What was
+**not** granted is reading the figure, and the help settling what it means has not changed that: the
+base it is a share of is a quantity no message carries.
 
 _Shape:_ 6 occurrences; on a blow; a whole number
 
@@ -2737,10 +2743,10 @@ The third weakener, and the last of them. Evidence as above; it has an `+of_` tw
 
 ### `+of_woundpoison` — decoded
 
-`+woundpoison` off the auxiliary weapon. It shares that key's word rather than taking one of its
-own, which is the rule `+of_wound` already stands under: a second row would split one mechanic over
-the hand that threw it (`src/ui/panel-words.ts`). Evidence as above, where the switch this key sits
-on is enumerated.
+`+woundpoison` off the auxiliary weapon, read and worded exactly as that key is: `+wound`'s row,
+with the same line under it saying a wound was weakened. A row of its own would split one mechanic
+over the hand that threw it, which is the rule `+of_wound` already stands under
+(`src/ui/panel-words.ts`). Evidence as above, where the switch this key sits on is enumerated.
 
 ### `+of_woundmagic` — decoded
 
