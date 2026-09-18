@@ -243,7 +243,13 @@ function readProvokedNames(declared: readonly DeclaredEffect[]): string[] {
 
 /**
  * The cast this event is, or null where it is not one. A skill reaching one combatant is not an
- * aura, and one the published table dates no duration for cannot be drawn as elapsed of stated.
+ * aura.
+ *
+ * **Whether either half is dated is the walk's answer and not this one.** A cast the table dates
+ * nowhere is returned with both halves empty and reaches neither map, so refusing it here as well
+ * stated the same rule twice — and the copy here was the one nothing could observe: deleting it
+ * left the tree green, because a cast with no dated half is dropped either way (**W4**,
+ * 2026-09-18).
  *
  * ⚠️ **A shout is dated by its own row and never by the skill's longest** — **ADR 0063**.
  */
@@ -262,9 +268,6 @@ function getAuraCastFromEvent(
     const shout = shouted === undefined
         ? null
         : { turns: shouted.turns, names: readProvokedNames(event.declared) };
-    if (turnsStated === null) {
-        if (shout === null) return null;
-    }
     assert(turnsStated === null || turnsStated > 0, "a half that is dated runs for stated turns");
     assert(shout === null || shout.turns > 0, "and so does the other one");
     assert(turnsTaken > 0, "and the cast stands on a turn its caster has taken");
