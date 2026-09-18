@@ -74,13 +74,16 @@ Edge, Firefox i Safari.
 2. **W Chrome i w Edge włącz obsługę skryptów użytkownika.** Na stronie rozszerzenia, w
    `chrome://extensions`. Bez tego nic się nie uruchomi i nic o tym nie powie. Firefox i Safari nie
    wymagają tego kroku.
-3. **Otwórz [najnowsze wydanie][latest] i kliknij `margometer.user.js`.** Menedżer rozpozna plik i
-   zaproponuje instalację. Na tej samej stronie leży `margometer.meta.js` — plik służbowy, nie do
-   klikania: niesie sam nagłówek, bez ani jednej linii kodu.
+3. **Zainstaluj MargoMeter.** Kliknij [plik dodatku][install] — menedżer rozpozna go i zaproponuje
+   instalację. To samo można zrobić przyciskiem na [stronie z podglądem][preview]. Wszystkie
+   wydania, razem z poprzednimi, leżą na [stronie wydań][latest]; obok pliku dodatku leży tam
+   `margometer.meta.js` — plik służbowy, nie do klikania: niesie sam nagłówek, bez ani jednej linii
+   kodu.
 4. **Wejdź do gry i zacznij walkę.** Panel pojawi się nad grą. Jeśli go nie ma, wróć do kroku 2.
 
 Zainstalowana kopia sama sprawdza, czy jest nowsza wersja.
 
+[install]: https://github.com/KamilGrocholski/margometer/releases/latest/download/margometer.user.js
 [latest]: https://github.com/KamilGrocholski/margometer/releases/latest
 [tampermonkey]: https://www.tampermonkey.net/
 [violentmonkey]: https://violentmonkey.github.io/
@@ -88,6 +91,7 @@ Zainstalowana kopia sama sprawdza, czy jest nowsza wersja.
 ## Zobacz na żywo
 
 **[kamilgrocholski.github.io/margometer][preview]** odtwarza nagraną walkę w Twojej przeglądarce,
-rysowaną przez plik z najnowszego wydania. Nic tam nie łączy się z grą.
+rysowaną przez plik z najnowszego wydania — i na górze stoi przycisk instalacji. Nic tam nie łączy
+się z grą.
 
 [preview]: https://kamilgrocholski.github.io/margometer/

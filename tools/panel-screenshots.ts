@@ -11,10 +11,14 @@ import { assert, assertStrictEquals, assertStringIncludes } from "@std/assert";
 import { parseArgs } from "@std/cli";
 import { getVersionForRun } from "@/tools/declared-version.ts";
 import { composeJsonWriting, getJsonReading } from "@/libs/json-text.ts";
-import { getIntegerFromText } from "@/libs/number-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
-import { PANEL_WINDOW, STANDING_WINDOW } from "@/src/ui/panel-drag.ts";
 import { CLASS, PLACE, SPACE, TIP } from "@/src/ui/panel-look.ts";
+import {
+    composeWindowDragging,
+    composeWindowsCornered,
+    getSheetPixels,
+    PANEL_INSET,
+} from "@/tools/preview-windows.ts";
 import { composeUserscriptFiles } from "@/tools/build-userscript.ts";
 import { PanelShotError } from "@/tools/margometer-tool-error.ts";
 import { setPreviewServer } from "@/tools/preview-server.ts";
@@ -37,26 +41,8 @@ export const SIDECAR_NAME = "taken-at.json";
  * this tool left the tree unformatted after every run and `deno fmt` quietly widened it back.
  */
 const SIDECAR_INDENT_SPACES = 4;
-/** A length the sheet states, as the whole pixels it states it in. */
-function getSheetPixels(stated: string): number {
-    assert(stated.endsWith("px"), "a length read off the sheet is stated in pixels");
-    const read = getIntegerFromText(stated.slice(0, -2));
-    if (read === null) throw new PanelShotError(`the sheet states no whole pixels in ${stated}`);
-    assert(read > 0, "and a length a frame is built from is a length");
-    return read;
-}
-
-/** What the root calls the card and the window beside the panel — the sheet names both. */
+/** What the root calls the card — the sheet names it. */
 const TIP_SELECTOR = `.${CLASS.tip}`;
-const STANDING_SELECTOR = `.${CLASS.standing}`;
-/** How a window says which one a grip drags — `src/ui/panel-drag.ts` writes it. */
-const GRIP_SELECTOR = "data-grip";
-
-/** What the sheet leaves between the panel and the window beside it. */
-const PANEL_GAP = getSheetPixels(SPACE.small);
-
-/** `DESIGN.md`'s `panelInset`, read off the sheet that states it. */
-const PANEL_INSET = getSheetPixels(PLACE.inset);
 /**
  * The floor a window is opened at whatever it is asked for, measured on Chrome 152 (2026-08-31).
  * A picture is captured at the size asked for, so a frame under this is photographed after a
@@ -203,11 +189,7 @@ export function getEntryForMoment(moment: ShotMoment, calls: number): number {
 export function composeShotScript(steps: string): string {
     assert(steps.length > 0, "a picture is of a state something reached");
     assertStringIncludes(steps, "set", "and a state is reached by doing something");
-    return `var getPanelHost = function () {
-  var host = document.getElementById("MargoMeter-Panel");
-  if (host === null) throw new ReferenceError("there is no panel on this page");
-  return host;
-};
+    return `${composeShotScriptDrag()}
 
 var setPressed = function (selector, at) {
   var found = getPanelHost().shadowRoot.querySelectorAll(selector);
@@ -228,11 +210,7 @@ var setHovered = function (selector, at) {
   return true;
 };
 
-${composeShotScriptDrag()}
-
 ${composeShotScriptCorner()}
-
-${composeShotScriptBeside()}
 
 var strip = document.querySelector(".preview-strip");
 if (strip !== null) strip.style.display = "none";
@@ -240,6 +218,9 @@ var intro = document.querySelector(".preview-intro");
 if (intro !== null) intro.style.display = "none";
 
 setPanelInCorner();
+// After the move and never before it: a panel that moves writes its whole style attribute, so a
+// cap lifted first is lifted onto the attribute the drag then replaces.
+getPanelHost().style.maxHeight = "none";
 setStandingBeside();
 var shownHost = getPanelHost();
 
@@ -271,46 +252,15 @@ document.body.append(report);`;
 }
 
 /**
- * Both windows dragged, by the bar each says it belongs to. A window opens where the sheet puts
- * it (`src/ui/panel-drag.ts`) and neither follows the other, so a picture that is to hold the two
- * has to place the two.
- *
- * ⚠️ **A pointer this script dispatches is not one the browser has.** Measured on Chrome
- * 152.0.7977.64, 2026-09-05: both `setPointerCapture(0)` and its release throw
- * `NotFoundError: No active pointer with the given id is found`, so the drag earned two gesture
- * defects and the panel stated them in every picture of the set. A hand captures fine, so the
- * method is taken away rather than photographed — `src/ui/panel-drag.ts` calls it through `?.`
- * and a document offering none is a case it already answers for.
+ * The helpers, with the pointer capture taken away around them for as long as this page lives:
+ * a dumped page is photographed and closed, so nothing here gives the methods back. Why they go
+ * at all is `tools/preview-windows.ts`'s.
  */
 function composeShotScriptDrag(): string {
     return `delete Element.prototype.setPointerCapture;
 delete Element.prototype.releasePointerCapture;
 
-var getStandingWindow = function () {
-  var beside = getPanelHost().shadowRoot.querySelector("${STANDING_SELECTOR}");
-  if (beside === null) throw new ReferenceError("there is no window beside the panel");
-  return beside;
-};
-
-var setWindowDragged = function (name, acrossBy, downBy) {
-  var says = "[${GRIP_SELECTOR}=" + JSON.stringify(name) + "]";
-  var bar = getPanelHost().shadowRoot.querySelector(says);
-  if (bar === null) throw new ReferenceError(name + " has no bar to take hold of");
-  var box = bar.getBoundingClientRect();
-  // \`buttons\` and not only \`button\`: a move stating none is a hand that has let go, and a
-  // window ends its drag on one (\`src/ui/panel-drag.ts\`). A constructed PointerEvent states 0
-  // unless it is asked to, so a move without this leaves the window where it opened — which is a
-  // set photographed off centre with nothing about the run looking wrong.
-  var setPointer = function (type, left, top) {
-    bar.dispatchEvent(new PointerEvent(type, {
-      bubbles: true, composed: true, button: 0, buttons: 1, clientX: left, clientY: top
-    }));
-  };
-  setPointer("pointerdown", box.left, box.top);
-  setPointer("pointermove", box.left + acrossBy, box.top + downBy);
-  // Where a drag ends is where the window is written down as standing, so it is let go of.
-  setPointer("pointerup", box.left + acrossBy, box.top + downBy);
-};
+${composeWindowDragging()}
 
 var getFrameAcross = function () {
   // The frame the picture is taken at, which is not the window the page is laid out in: under the
@@ -323,41 +273,10 @@ var getFrameAcross = function () {
 };`;
 }
 
-/**
- * The panel taken to the corner the frame is measured against, by its own bar rather than by a
- * style written onto the host. A panel opens in the middle of the window (`src/ui/panel-drag.ts`)
- * and its card opens on the side of it with room; both read the position the panel keeps, which a
- * `right` set behind its back does not move. That is what photographed a card over the panel.
- */
+/** The corner the frame is measured against, and the window beside it. */
 function composeShotScriptCorner(): string {
     assert(MEASURING_WIDTH >= BROWSER_FLOOR_WIDTH, "and in a window the browser opens as asked");
-    return `var setPanelInCorner = function () {
-  var host = getPanelHost();
-  var box = host.getBoundingClientRect();
-  var across = getFrameAcross();
-  setWindowDragged(${JSON.stringify(PANEL_WINDOW)},
-    across - ${PANEL_INSET} - box.width - box.left, ${PANEL_INSET} - box.top);
-  // After the move and never before it: a panel that moves writes its whole style attribute, so
-  // a cap lifted first is lifted onto the attribute the drag then replaces.
-  host.style.maxHeight = "none";
-};`;
-}
-
-/**
- * The second window put back where the sheet would have it for a panel in the corner: beside it,
- * on the side the panel leaves, tops level. It is dragged apart from the panel (**ADR 0060**), so
- * a panel taken to the corner leaves it standing over the middle of the window — where the frame
- * measured against the right edge cuts it in half.
- */
-function composeShotScriptBeside(): string {
-    return `var setStandingBeside = function () {
-  var host = getPanelHost();
-  var beside = getStandingWindow();
-  var box = beside.getBoundingClientRect();
-  var panel = host.getBoundingClientRect();
-  setWindowDragged(${JSON.stringify(STANDING_WINDOW)},
-    panel.left - ${PANEL_GAP} - box.width - box.left, panel.top - box.top);
-};`;
+    return composeWindowsCornered("getFrameAcross()");
 }
 
 /** The report the page wrote, read out of a dumped document by walking it — **C7**. */

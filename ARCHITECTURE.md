@@ -114,7 +114,8 @@ tools/             Never ships. Each arrives with the question it answers.
   preview-page.ts      The harness page, whole, as one string. It speaks neither language.
   preview-state.ts     What the harness carries between two pages, in the address and nowhere else.
   preview-server.ts    That page served, rebuilt on a change under `src/`, and reloaded.
-  preview-site.ts      That page written down, one per recording, for somebody with no clone.
+  preview-site.ts      That page written down, and the band offering the file — ADR 0099.
+  preview-windows.ts   Both windows moved where a page wants them, by their own bars.
   panel-screenshots.ts The panel photographed, at a frame measured off the panel itself, in
                        whichever browser this machine turns out to have.
   panel-giving-way.ts  The panel with a region that will not draw, served or photographed, off a
@@ -503,6 +504,11 @@ change carries an explicit migration:
   key, because the old one is already in browsers.
 - **`main` is always exactly the newest `v*` tag.** That is what lets the published preview and the
   file somebody installs be one build.
+- **A release reaches the second host too.** A copy installed from Greasy Fork polls Greasy Fork: it
+  replaces `@downloadURL` and `@updateURL` with its own when it serves a script. A release not
+  posted there leaves those copies on the version they installed, and says nothing to the person
+  running one — the metadata file's failure, on a host this repository does not run. ADR 0099, and
+  `docs/releasing.md` carries the step.
 
 ## Quality gates
 
@@ -683,8 +689,9 @@ commit that opens or closes one.
    shorter than it was.
 
    What is left is what no machine holds: the audits before the number moves, opening every picture,
-   and the install afterwards. The table at the end of `docs/releasing.md` is where that split is
-   stated, and this entry stays only to say the list is now short.
+   the install afterwards, and the post to the second host (ADR 0099). The table at the end of
+   `docs/releasing.md` is where that split is stated, and this entry stays only to say the list is
+   now short.
 8. **A restatement in different words is unheld, and it is the worse kind.**
    `tests/repository/sources.test.ts` holds two bands of C15's second half now: a block standing
    twice **verbatim**, and a block standing in two **files** whatever its length — the second added

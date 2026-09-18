@@ -260,8 +260,10 @@ function composePageResponse(state: PreviewState, address: URL): Response {
             // copy of this page cannot say (`tools/preview-site.ts`).
             scriptDirectory: "/",
             words: PREVIEW_WORDS,
-            // Nothing to introduce: whoever opened this started the server.
+            // Nothing to introduce and nothing to offer: whoever opened this started the
+            // server, and has the file already.
             introduction: null,
+            install: null,
             appendedScript: state.appendedScript,
         }),
         { headers: { "content-type": "text/html; charset=utf-8" } },

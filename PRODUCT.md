@@ -85,6 +85,9 @@ Three things stand in for metrics:
 A claim about the add-on in a README or a release note is backed by one of those three, or it is not
 made.
 
+A second host publishes an install count of its own (ADR 0099). It is theirs, it counts one way in
+of two, and it is not a fourth item on that list — no claim here is backed by it.
+
 ## Non-goals
 
 MargoMeter does not, and will not within this horizon:

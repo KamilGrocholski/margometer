@@ -36,6 +36,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — MargoMeter instaluje się teraz jednym kliknięciem ze strony z podglądem. Na górze
+  stoi przycisk, obok niego numer wersji, a pod spodem to, co trzeba zrobić wcześniej — w Chrome i w
+  Edge łatwo ten krok przeoczyć, bo bez niego nic się nie uruchamia i nic o tym nie mówi.
+
 - **Nowość** — Pomocnik mówi teraz, który z dwóch okrzyków kogoś trzyma: jego nazwa stoi obok osoby,
   która go rzuciła. Te dwa okrzyki nie robią tego samego — jeden wzmacnia drużynę rzucającego, drugi
   osłabia przeciwników — więc sama liczba trzymanych osób nie wystarczała, żeby wiedzieć, co się

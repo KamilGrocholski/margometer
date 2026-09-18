@@ -20,6 +20,10 @@ const USERSCRIPT_FILE = `dist/${USERSCRIPT_NAME}`;
 export const METADATA_NAME = "margometer.meta.js";
 const METADATA_FILE = `dist/${METADATA_NAME}`;
 const HOMEPAGE = "https://github.com/KamilGrocholski/margometer";
+/** GitHub's redirect to the newest release's asset. The banner polls it; the band offers it. */
+export const USERSCRIPT_DOWNLOAD_ADDRESS =
+    `${HOMEPAGE}/releases/latest/download/${USERSCRIPT_NAME}`;
+const METADATA_DOWNLOAD_ADDRESS = `${HOMEPAGE}/releases/latest/download/${METADATA_NAME}`;
 
 /** Worlds live on per-world subdomains; these are the operator's own site, not a world. */
 const NON_GAME_HOSTS = ["www", "forum", "commons", "pomoc"];
@@ -40,10 +44,12 @@ function composeDirectives(version: string): [string, string][] {
         ["version", version],
         ["description", "Czyta przebieg walki i pokazuje, na co się złożyła"],
         ["homepageURL", HOMEPAGE],
-        // GitHub's own redirect to the newest release's asset, so no version is written into a
-        // URL that would then have to be edited on every release.
-        ["downloadURL", `${HOMEPAGE}/releases/latest/download/margometer.user.js`],
-        ["updateURL", `${HOMEPAGE}/releases/latest/download/margometer.meta.js`],
+        // On a second host the file travels with no README around it, so the banner is the only
+        // way back to somewhere a failure can be reported — ADR 0099.
+        ["supportURL", `${HOMEPAGE}/issues`],
+        // No version is written into a URL that would then have to be edited on every release.
+        ["downloadURL", USERSCRIPT_DOWNLOAD_ADDRESS],
+        ["updateURL", METADATA_DOWNLOAD_ADDRESS],
     ];
     for (const domain of GAME_DOMAINS) {
         // The trailing `/*` matters: a pattern without it never fires on a world carrying a query.

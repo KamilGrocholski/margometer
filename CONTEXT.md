@@ -195,6 +195,11 @@ _Avoid_: Other, remainder, misc, pozostałe
 at the other end of the blow. A cut of one combatant's figure, never of the fight's. _Avoid_:
 Breakdown, split, grouping, facet
 
+**Install band**: The header the published preview opens with — what the add-on is, the button that
+hands the file over, and what has to be true before it works. **Banner** is the one word it may not
+take: that already means the metadata block a script manager reads. _Avoid_: Banner, hero, CTA,
+landing
+
 ## The sources
 
 **Recording**: One captured fight in `captures/`: every call the engine made, with the raw protocol

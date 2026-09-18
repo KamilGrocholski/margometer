@@ -248,3 +248,5 @@ edited to agree with the new rule.
   okrzyk it is. **Accepted**
 - [0098](0098-a-person-beside-the-panel-is-answered-by-what-their-row-cut.md) — A person beside the
   panel is answered by what their row cut. **Accepted**
+- [0099](0099-the-preview-opens-with-the-install.md) — The published preview opens with the install,
+  and Greasy Fork is a second way in. **Accepted**

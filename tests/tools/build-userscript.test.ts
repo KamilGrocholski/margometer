@@ -13,8 +13,16 @@ import {
     composeUserscriptBanner,
     getOutboundCallsInText,
     setVersionInBundle,
+    USERSCRIPT_DOWNLOAD_ADDRESS,
 } from "@/tools/build-userscript.ts";
 import { UserscriptBuildError } from "@/tools/margometer-tool-error.ts";
+
+/**
+ * What the second host takes, which cannot be met by minifying because it forbids that in the
+ * same rule — so a file that outgrows it has lost the channel, and that is a thing to learn at
+ * the gate rather than at an upload. 365,337 bytes on 2026-09-18. **ADR 0099.**
+ */
+const MAXIMUM_PUBLISHED_BYTES = 2_000_000;
 
 Deno.test("the banner says what a script manager reads, and refuses to say nothing", () => {
     const banner = composeUserscriptBanner("1.2.3");
@@ -22,6 +30,16 @@ Deno.test("the banner says what a script manager reads, and refuses to say nothi
     assert(banner.trimEnd().endsWith("// ==/UserScript=="), "and closes the same way");
     assertStringIncludes(banner, "// @version      1.2.3", "carrying the version it was handed");
     assertStringIncludes(banner, "// @grant        none", "and asking the page for nothing");
+    assertStringIncludes(
+        banner,
+        "// @supportURL   https://github.com/KamilGrocholski/margometer/issues",
+        "and saying where a failure goes, for a copy travelling with no README around it",
+    );
+    assertStringIncludes(
+        banner,
+        `// @downloadURL  ${USERSCRIPT_DOWNLOAD_ADDRESS}`,
+        "the address the band offers and an installed copy polls is one address",
+    );
     assertThrows(() => composeUserscriptBanner(""), UserscriptBuildError, "the version");
 });
 
@@ -82,6 +100,15 @@ Deno.test("the file that would be installed carries the banner and no way out", 
     );
     assertEquals(getOutboundCallsInText(built), [], "and nothing in it can leave the browser");
     assert(built.length > 1000, "the bundle is in there beneath it");
+    assert(
+        built.length < MAXIMUM_PUBLISHED_BYTES,
+        "and stays inside what a host that forbids minifying will take",
+    );
+    assertStringIncludes(
+        built,
+        "jsr.io/@std/assert/",
+        "an inlined library names its own source, which is the attribution such a host asks for",
+    );
 
     const metadata = await Deno.readTextFile("dist/margometer.meta.js");
     assertEquals(metadata, composeUserscriptBanner("1.2.3"), "the metadata file is the banner");

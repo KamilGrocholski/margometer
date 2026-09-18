@@ -11,10 +11,25 @@ import { USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
 import {
     composePreviewPage,
     PREVIEW_GAME_SCRIPT_NAME,
+    PREVIEW_INSTALL_OPENING,
     type PreviewFightLink,
+    type PreviewInstall,
     type PreviewPageOptions,
     type PreviewWords,
 } from "@/tools/preview-page.ts";
+
+const INSTALL: PreviewInstall = {
+    name: "MargoMeter",
+    sentence: "what it counts",
+    offer: { label: "take it", address: "https://example.test/margometer.user.js" },
+    versionLine: "version 1.2.3",
+    stepsLine: "what to do",
+    steps: [
+        { text: "a manager first", isSilent: false },
+        { text: "the switch nothing tells you about", isSilent: true },
+        { text: "then a fight", isSilent: false },
+    ],
+};
 
 const WORDS: PreviewWords = {
     language: "en",
@@ -44,6 +59,7 @@ function composeOptions(calls: readonly unknown[]): PreviewPageOptions {
         scriptDirectory: "/",
         words: WORDS,
         introduction: null,
+        install: null,
         appendedScript: null,
     };
 }
@@ -150,6 +166,27 @@ Deno.test("the second half of the driver is the caller's, and so is the sentence
     assertStringIncludes(dressed, "window.__appended = 1;", "what the caller appended is appended");
     assert(dressed.indexOf("window.__appended") > dressed.indexOf("setFedTo(window.location"));
     assertStringIncludes(dressed, "what this is", "and the sentence stands over the page");
+});
+
+Deno.test("the band over the page is the caller's, and a served page carries none", () => {
+    const bare = composePreviewPage(composeOptions(CALLS));
+    assert(
+        !bare.includes(PREVIEW_INSTALL_OPENING),
+        "a reader who started the server has the file already",
+    );
+    const dressed = composePreviewPage({ ...composeOptions(CALLS), install: INSTALL });
+    assertStringIncludes(dressed, "<h1>MargoMeter</h1>", "the band says what is on offer");
+    assertStringIncludes(dressed, INSTALL.offer.address, "and hands over a file when pressed");
+    assertStringIncludes(dressed, INSTALL.versionLine, "stating which build that is");
+    assertStringIncludes(
+        dressed,
+        `<li class="preview-warn">the switch nothing tells you about</li>`,
+        "and the step whose failure says nothing, marked where it stands",
+    );
+    assert(
+        dressed.indexOf(PREVIEW_INSTALL_OPENING) < dressed.indexOf(`<div class="preview-strip">`),
+        "the band stands over the replay, which is the whole of why it is a band",
+    );
 });
 
 Deno.test("the scripts are asked for under the directory the caller answers on", () => {

@@ -29,8 +29,9 @@ Which branch holds what: **G6**. The order the three pushes go in, and where the
       `docs/adr/README.md`'s.
 - [ ] `ARCHITECTURE.md`'s known gaps — close what closed, and say what a release running has changed
       about the list.
-- [ ] Both READMEs, sentence by sentence. Every claim on the front page is about what a stranger is
-      about to install.
+- [ ] Both READMEs, sentence by sentence, and the band the published preview opens with
+      (`tools/preview-site.ts`). Every claim on any of the three is about what a stranger is about
+      to install.
 
 ## 2. The release commit — the number and the pictures, in one commit
 
@@ -123,8 +124,15 @@ publishes. Then, by hand:
       checking a 404 for good, silently. The protected contract is in `ARCHITECTURE.md`.
 - [ ] Install the published file into a browser and open a fight. The panel's title bar states the
       released number.
+- [ ] **The same file is posted to Greasy Fork** — the asset this release attached, as a new version
+      of the listing, never a local build. A copy installed there polls Greasy Fork's own copy and
+      never this repository's: it replaces `@downloadURL` and `@updateURL` when it serves a script,
+      so a release skipped there leaves those copies where they are and says nothing to the person
+      running one. The protected contract is in `ARCHITECTURE.md`; what may be posted at all is
+      **ADR 0099**.
 - [ ] The published preview — `.github/workflows/pages.yml` deploys it from `main` — states the same
-      number. Its panel is built with the same flag as the pictures.
+      number, in the band it opens with and in its panel. Its panel is built with the same flag as
+      the pictures.
 - [ ] The release notes read as the changelog section, with the install note under them.
 
 ## What is held by a machine, and what is not
@@ -137,6 +145,7 @@ publishes. Then, by hand:
 | the built files carry the tagged version             | `.github/workflows/release.yml`         |
 | the set was taken at the tagged version, unmarked    | `.github/workflows/release.yml`         |
 | the tag sits on `main`                               | `.github/workflows/release.yml`         |
+| the file stays inside what the second host takes     | `tests/tools/build-userscript.test.ts`  |
 
 Everything else on this page is held by somebody reading it: the audits in step 1, the pictures in
-step 2, and the install in step 5.
+step 2, and the install and the post to the second host in step 5.

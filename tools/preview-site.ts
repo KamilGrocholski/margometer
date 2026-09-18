@@ -10,13 +10,20 @@
 
 import { assert, assertStrictEquals } from "@std/assert";
 import { getVersionForRun } from "@/tools/declared-version.ts";
-import { composeUserscriptFiles, USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
+import {
+    composeUserscriptFiles,
+    USERSCRIPT_DOWNLOAD_ADDRESS,
+    USERSCRIPT_NAME,
+} from "@/tools/build-userscript.ts";
 import {
     composePreviewPage,
     PREVIEW_GAME_SCRIPT_NAME,
+    PREVIEW_INSTALL_OPENING,
     type PreviewFightLink,
+    type PreviewInstall,
     type PreviewWords,
 } from "@/tools/preview-page.ts";
+import { composeWindowDragging, composeWindowsCornered } from "@/tools/preview-windows.ts";
 import {
     getPreviewRecordedFight,
     getRecordedFights,
@@ -43,20 +50,95 @@ const PREVIEW_SITE_WORDS: PreviewWords = {
 };
 
 /**
- * Three things and no more: that this is a recording rather than a live game, that everything is
- * counted in the reader's own browser, and where the add-on itself is. A visitor who does not know
- * the first would read the panel as a live connection to somebody's account, which is the one
- * misunderstanding this page could cause.
+ * Two things and no more: that this is a recording rather than a live game, and that everything is
+ * counted in the reader's own browser. A visitor who does not know the first would read the panel
+ * as a live connection to somebody's account, which is the one misunderstanding this page could
+ * cause. What the add-on is, and where to get it, the band above this says.
  */
 const PREVIEW_SITE_INTRODUCTION = [
-    "<strong>MargoMeter</strong> to licznik obrażeń do Margonem.",
     "Poniżej odtwarzana jest nagrana walka — panel liczy ją w tej przeglądarce,",
     "tak samo jak liczyłby ją w grze. Nic nie łączy się tu z grą, nic nie jest wysyłane",
     "i nic tu nie zostaje.",
     `<a href="${HOMEPAGE}">kod źródłowy</a>`,
-    "·",
-    `<a href="${HOMEPAGE}/releases/latest">instalacja</a>`,
 ].join(" ");
+
+/**
+ * The band the published page opens with — **ADR 0099**. `chrome://extensions` is plain text and
+ * never a link: a browser refuses that navigation from a page, so an anchor there does nothing
+ * when it is pressed and reads as broken. Nothing here names the fight below it, because
+ * `index.html` is a copy of one recording's own page and the two are held equal.
+ */
+function composeSiteInstall(version: string): PreviewInstall {
+    assert(version.length > 0, "the band states the build behind its button");
+    assert(USERSCRIPT_DOWNLOAD_ADDRESS.length > 0, "and the file that button hands over");
+    return {
+        name: "MargoMeter",
+        sentence: "Licznik obrażeń do Margonem.",
+        offer: { label: "Zainstaluj MargoMeter", address: USERSCRIPT_DOWNLOAD_ADDRESS },
+        versionLine: `wersja ${version}`,
+        stepsLine: "Co trzeba zrobić:",
+        steps: [
+            {
+                text: "Zainstaluj menedżera skryptów użytkownika — " +
+                    '<a href="https://www.tampermonkey.net/">Tampermonkey</a> albo ' +
+                    '<a href="https://violentmonkey.github.io/">Violentmonkey</a>. ' +
+                    "Bez niego przeglądarka po prostu pobierze plik i nic się nie stanie.",
+                isSilent: false,
+            },
+            {
+                text: "⚠ W Chrome i w Edge włącz obsługę skryptów użytkownika — na stronie " +
+                    "rozszerzenia, w chrome://extensions. Bez tego nic się nie uruchomi i nic " +
+                    "o tym nie powie. Firefox i Safari nie wymagają tego kroku.",
+                isSilent: true,
+            },
+            {
+                text: "Kliknij przycisk powyżej. Menedżer rozpozna plik i zaproponuje " +
+                    "instalację.",
+                isSilent: false,
+            },
+            {
+                text: "Wejdź do gry i zacznij walkę. Panel pojawi się nad grą — taki jak ten " +
+                    "niżej.",
+                isSilent: false,
+            },
+        ],
+    };
+}
+
+/**
+ * Both windows taken to the corner they stand in on every picture in the READMEs, because the
+ * band needs the left of the page: a panel opens centred (`src/ui/panel-drag.ts`) and covers what
+ * it says. The capture is given back straight after, since the next drag is a visitor's own hand
+ * and a hand captures fine — `tools/preview-windows.ts` says why it goes at all.
+ *
+ * A page that finds no panel is still a page: the band and the replay are drawn either way, so
+ * the failure is one console line and never a reason to stop.
+ */
+function composeSiteWindows(): string {
+    return `${composeWindowDragging()}
+
+${composeWindowsCornered("window.innerWidth")}
+
+var setWindowsPlaced = function () {
+  var taken = Element.prototype.setPointerCapture;
+  var given = Element.prototype.releasePointerCapture;
+  delete Element.prototype.setPointerCapture;
+  delete Element.prototype.releasePointerCapture;
+  try {
+    setPanelInCorner();
+    setStandingBeside();
+  } catch (reason) {
+    console.warn("MargoMeter/Preview", reason);
+  } finally {
+    Element.prototype.setPointerCapture = taken;
+    Element.prototype.releasePointerCapture = given;
+  }
+};
+
+setWindowsPlaced();
+// A window made narrower leaves the panel at an offset that was a corner in the old one.
+window.addEventListener("resize", setWindowsPlaced);`;
+}
 
 /** What a browser is handed, before anything writes it down. */
 export interface PreviewSiteFile {
@@ -94,9 +176,14 @@ function composeFightLinks(fights: readonly RecordedFight[]): PreviewFightLink[]
     return links;
 }
 
-function composePageOfFight(fight: RecordedFight, links: readonly PreviewFightLink[]): string {
+function composePageOfFight(
+    fight: RecordedFight,
+    links: readonly PreviewFightLink[],
+    install: PreviewInstall,
+): string {
     assert(fight.calls.length > 0, "a page is written for a fight there is something to play");
     assert(links.length > 0, "and every other fight is offered beside it");
+    assert(install.name.length > 0, "and the band over it offers the file it is a preview of");
     return composePreviewPage({
         fightName: fight.name,
         // The finished fight, where a server opens on nothing: a visitor's first sight should be
@@ -108,23 +195,30 @@ function composePageOfFight(fight: RecordedFight, links: readonly PreviewFightLi
         scriptDirectory: "./",
         words: PREVIEW_SITE_WORDS,
         introduction: PREVIEW_SITE_INTRODUCTION,
-        // No process behind these pages, so nothing to listen to.
-        appendedScript: null,
+        install,
+        // No process behind these pages, so nothing to listen to — only the windows to place.
+        appendedScript: composeSiteWindows(),
     });
 }
 
-/** Every page of the site, which needs no bundle and therefore touches nothing. */
-export function composePreviewSitePages(): PreviewSiteFile[] {
+/**
+ * Every page of the site, which needs no bundle and therefore touches nothing. The version is
+ * required rather than defaulted: a default would let the published page lose the number it
+ * states without a single test noticing, which is the shape of failure this file is about.
+ */
+export function composePreviewSitePages(version: string): PreviewSiteFile[] {
+    assert(version.length > 0, "every page states which build drew it");
     const fights = getRecordedFights();
     const links = composeFightLinks(fights);
+    const install = composeSiteInstall(version);
     const landing = getPreviewRecordedFight(fights);
     const pages: PreviewSiteFile[] = [
-        { name: "index.html", text: composePageOfFight(landing, links) },
+        { name: "index.html", text: composePageOfFight(landing, links, install) },
     ];
     for (const fight of fights) {
         pages.push({
             name: composeFightPageName(fight.name),
-            text: composePageOfFight(fight, links),
+            text: composePageOfFight(fight, links, install),
         });
     }
     assertStrictEquals(
@@ -136,6 +230,10 @@ export function composePreviewSitePages(): PreviewSiteFile[] {
         new Set(pages.map((page) => page.name)).size,
         pages.length,
         "each filed once",
+    );
+    assert(
+        pages.every((page) => page.text.includes(PREVIEW_INSTALL_OPENING)),
+        "and every one a visitor can land on offers the file it is a preview of",
     );
     return pages;
 }
@@ -154,7 +252,7 @@ async function composePreviewSiteFiles(version: string): Promise<PreviewSiteFile
     );
     assert(bundle.script.length > 0, "the pages carry the add-on they are a preview of");
     const files = [
-        ...composePreviewSitePages(),
+        ...composePreviewSitePages(version),
         { name: USERSCRIPT_NAME, text: bundle.script },
         {
             name: PREVIEW_GAME_SCRIPT_NAME,

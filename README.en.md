@@ -73,14 +73,16 @@ like this one. MargoMeter works in every current desktop browser: Chrome, Edge, 
 2. **In Chrome and Edge, turn on user scripts.** On the extension's own page, in
    `chrome://extensions`. Without it nothing runs and nothing says so. Firefox and Safari need no
    such step.
-3. **Open [the latest release][latest] and click `margometer.user.js`.** The manager recognises the
-   file and offers to install it. The same page carries `margometer.meta.js` — a working file, not
-   one to click: it holds the banner and not a line of code.
+3. **Install MargoMeter.** Click [the add-on file][install] — the manager recognises it and offers
+   to install it. The button on [the preview page][preview] does the same. Every release, this one
+   and the ones before it, is on [the releases page][latest], where `margometer.meta.js` sits beside
+   the add-on — a working file, not one to click: it holds the banner and not a line of code.
 4. **Open the game and start a fight.** The panel appears over it. If it does not, go back to
    step 2.
 
 An installed copy checks for a newer version on its own.
 
+[install]: https://github.com/KamilGrocholski/margometer/releases/latest/download/margometer.user.js
 [latest]: https://github.com/KamilGrocholski/margometer/releases/latest
 [tampermonkey]: https://www.tampermonkey.net/
 [violentmonkey]: https://violentmonkey.github.io/
@@ -88,6 +90,7 @@ An installed copy checks for a newer version on its own.
 ## See it live
 
 **[kamilgrocholski.github.io/margometer][preview]** replays a recorded fight in your browser, drawn
-by the file the newest release ships. Nothing there is connected to the game.
+by the file the newest release ships — and the install button stands at the top of it. Nothing there
+is connected to the game.
 
 [preview]: https://kamilgrocholski.github.io/margometer/

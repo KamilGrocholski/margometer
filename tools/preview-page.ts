@@ -18,6 +18,14 @@ import { composePreviewStateReading, composePreviewStateWriting } from "@/tools/
 const PREVIEW_GAME_BUILD = "1785244275300";
 /** The decoy's filename, spelled once so the two consumers cannot disagree about it. */
 export const PREVIEW_GAME_SCRIPT_NAME = `main.min${PREVIEW_GAME_BUILD}.js`;
+/**
+ * The band's own tag, spelled once: the site tool asserts on it and so does its guard. The tag
+ * rather than the class, because the class also stands in the stylesheet of every page ever
+ * composed — a guard reading for that could not go red if the band vanished.
+ */
+export const PREVIEW_INSTALL_OPENING = `<header class="preview-install">`;
+/** Past which nobody reads as far as the button — **S11**. */
+const MAXIMUM_INSTALL_STEPS = 6;
 
 /** Every word the strip draws, so the language of a page is a value and never a branch. */
 export interface PreviewWords {
@@ -46,6 +54,36 @@ export interface PreviewFightLink {
     callsAddress: string | null;
 }
 
+/** Where a reader can take the file, and what the button on it says. */
+export interface PreviewInstallOffer {
+    label: string;
+    /** The file itself, so pressing it hands a manager something to install. */
+    address: string;
+}
+
+/** One thing to do, and whether it is the one whose failure says nothing. */
+export interface PreviewInstallStep {
+    text: string;
+    isSilent: boolean;
+}
+
+/**
+ * The band a page opens with, for a reader who arrived having installed nothing. It stands down
+ * the left of the page, which is free only because the page puts both windows in the corner
+ * (`tools/preview-windows.ts`): a panel opens **centred** in the window it is drawn over, over
+ * the middle of everything said here.
+ */
+export interface PreviewInstall {
+    name: string;
+    /** One sentence of what it is, for somebody who has never seen the panel. */
+    sentence: string;
+    offer: PreviewInstallOffer;
+    /** What the button hands over, so a reader sees which build they are taking. */
+    versionLine: string;
+    stepsLine: string;
+    steps: readonly PreviewInstallStep[];
+}
+
 export interface PreviewPageOptions {
     fightName: string;
     /** Where the replay stops. The caller clamps it; nothing here reads text into a number. */
@@ -61,6 +99,8 @@ export interface PreviewPageOptions {
     words: PreviewWords;
     /** A sentence for a reader who did not start the page, or null where they did. */
     introduction: string | null;
+    /** The band over that sentence, or null where the reader built the page themselves. */
+    install: PreviewInstall | null;
     /**
      * The driver's second half, or null. It runs after the replay and still synchronously —
      * a served page appends hot reloading, a photographed one appends its presses.
@@ -84,6 +124,7 @@ export function composePreviewPage(options: PreviewPageOptions): string {
     const introduction = options.introduction === null
         ? ""
         : `<p class="preview-intro">${options.introduction}</p>`;
+    const band = options.install === null ? "" : composePreviewInstall(options.install);
     return `<!doctype html>
 <html lang="${options.words.language}">
 <head>
@@ -94,6 +135,7 @@ ${composePreviewStyle()}
 </style>
 </head>
 <body>
+${band}
 ${introduction}
 ${composePreviewStrip(options.words)}
 <script>${composePreviewStateReading()}</script>
@@ -113,6 +155,46 @@ ${options.appendedScript ?? ""}
 `;
 }
 
+function composePreviewInstall(install: PreviewInstall): string {
+    assert(install.name.length > 0, "the band says what is on offer");
+    assert(install.sentence.length > 0, "and what it does, to somebody who has not seen it");
+    assert(install.versionLine.length > 0, "and which build the button hands over");
+    assert(install.offer.label.length > 0, "there is something to press");
+    // Absolute on purpose, where every other address on the page is relative: a reader saving or
+    // sending this one must land on the same file, and `./` beside a page is whatever that host
+    // last deployed.
+    assert(install.offer.address.startsWith("https://"), "and it hands over a file, not a path");
+    const button = `<a class="preview-get" href="${install.offer.address}">` +
+        `${install.offer.label}</a>`;
+    return `${PREVIEW_INSTALL_OPENING}
+  <h1>${install.name}</h1>
+  <p class="preview-lede">${install.sentence}</p>
+  <p class="preview-take">${button}
+    <span class="preview-version">${install.versionLine}</span></p>
+${composePreviewInstallSteps(install)}
+</header>`;
+}
+
+/**
+ * The step whose failure is silent is marked where it stands, in its own order: a reader walking
+ * a numbered list does not go looking for a warning beside it, and that step is the one whose
+ * omission leaves a clean page, no panel, and nothing said about either.
+ */
+function composePreviewInstallSteps(install: PreviewInstall): string {
+    assert(install.stepsLine.length > 0, "the steps say what they are for");
+    assert(install.steps.length > 0, "and there is at least one of them");
+    assert(install.steps.length <= MAXIMUM_INSTALL_STEPS, "and not more than a reader walks");
+    assert(install.steps.some((step) => step.isSilent), "the one that says nothing is among them");
+    const items = install.steps.map((step) => {
+        const marked = step.isSilent ? ` class="preview-warn"` : "";
+        return `    <li${marked}>${step.text}</li>`;
+    }).join("\n");
+    return `  <p class="preview-steps-line">${install.stepsLine}</p>
+  <ol class="preview-steps">
+${items}
+  </ol>`;
+}
+
 /** Somebody else's material, on its way into a tag it must not be able to close. */
 function composeEscapedJson(value: unknown): string {
     const written = JSON.stringify(value);
@@ -130,6 +212,20 @@ function composePreviewStyle(): string {
   font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }
 .preview-intro { margin: 0; padding: 18px 20px; max-width: 46em; color: #8f9bb0; }
 .preview-intro a { color: #8fb8e8; }
+.preview-install { padding: 20px 20px 0; max-width: min(46em, calc(100vw - 540px)); }
+.preview-install h1 { margin: 0; font-size: 21px; color: #e6eaf1; }
+.preview-lede { margin: 4px 0 14px; }
+.preview-take { margin: 0; }
+.preview-get { display: inline-block; padding: 9px 16px; border-radius: 6px;
+  background: #2f6f4f; border: 1px solid #3f8a63; color: #eaf5ee;
+  font-weight: 600; text-decoration: none; white-space: nowrap; }
+.preview-version { margin-left: 10px; color: #8f9bb0; }
+.preview-install a { color: #8fb8e8; }
+.preview-steps-line { margin: 16px 0 6px; color: #8f9bb0; }
+.preview-steps { margin: 0; padding-left: 20px; }
+.preview-steps li { margin-bottom: 5px; }
+.preview-warn { color: #e8b48b; }
+.preview-install + .preview-intro { padding-top: 14px; }
 .preview-strip { position: fixed; left: 12px; bottom: 12px; z-index: 9000;
   display: flex; flex-direction: column; gap: 6px; padding: 10px 12px;
   background: #1c2027; border: 1px solid #2c323c; border-radius: 8px;
@@ -152,6 +248,10 @@ function composePreviewStyle(): string {
     // judged against a darker page is a panel whose border reads as a colour it is not.
     assertStringIncludes(sheet, "#14171c", "the panel is judged against the colour the game draws");
     assertStringIncludes(sheet, "9000", "and the strip stands under the panel, never over it");
+    // The panel stands 260px wide at an 8px inset with a 210px window beside it, and the page
+    // puts both in that corner (`tools/preview-windows.ts`). The band ends before all three.
+    assertStringIncludes(sheet, "calc(100vw - 540px)", "the band ends where the windows begin");
+    assertStringIncludes(sheet, ".preview-get", "and the offer is a button, not a word in a line");
     return sheet;
 }
 
