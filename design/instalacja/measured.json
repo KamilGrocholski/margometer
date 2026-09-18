@@ -16,21 +16,21 @@
         "columnMaximum": 598,
         "paddingAcross": 40,
         "fullColumnFrom": 1138,
-        "characters": 682,
+        "characters": 500,
         "steps": [
             {
                 "order": 1,
                 "isSilent": false,
-                "characters": 128,
+                "characters": 86,
                 "links": 2,
-                "text": "Menedżer skryptów użytkownika: Tampermonkey albo Violentmonkey. Bez niego przeglądarka tylko pobierze plik i nic się nie stanie."
+                "text": "Menedżer skryptów: Tampermonkey albo Violentmonkey. Bez niego plik się tylko pobierze."
             },
             {
                 "order": 2,
                 "isSilent": true,
-                "characters": 191,
+                "characters": 159,
                 "links": 0,
-                "text": "W Chrome i w Edge włącz obsługę skryptów użytkownika — na stronie rozszerzenia, w chrome://extensions. Bez tego panel się nie pojawi i nic o tym nie powie. Firefox i Safari tego nie wymagają."
+                "text": "W Chrome i Edge włącz obsługę skryptów użytkownika — w chrome://extensions. Bez tego nic się nie uruchomi i nic o tym nie powie. Firefox i Safari — nie trzeba."
             }
         ],
         "columns": [

@@ -58,9 +58,8 @@ const PREVIEW_SITE_WORDS: PreviewWords = {
  * picture. What the add-on is, and where to get it, the band above this says.
  */
 const PREVIEW_SITE_INTRODUCTION = [
-    "Panel obok liczy nagraną walkę, w tej przeglądarce — tak samo, jak liczyłby ją w grze.",
-    "Kliknij wiersz, żeby zobaczyć, czym poszły te obrażenia; najedź na postać, żeby dostać",
-    "jej kartę. Nic nie łączy się tu z grą, nic nie jest wysyłane i nic tu nie zostaje.",
+    "Obok nagrana walka, liczona w tej przeglądarce. Kliknij wiersz albo najedź na postać.",
+    "Nic nie jest wysyłane i nic tu nie zostaje.",
     `<a href="${HOMEPAGE}">kod źródłowy</a>`,
 ].join(" ");
 
@@ -81,21 +80,21 @@ function composeSiteInstall(version: string): PreviewInstall {
         // Named for what the game leaves out rather than for what this is, because that is how
         // somebody recognises they want it. Every figure the second sentence promises is one the
         // panel draws: the ranking, the level under a row, and the person at the other end of it.
-        sentence: "Gra mówi tylko, że walka się skończyła. MargoMeter pokazuje, co się w niej " +
-            "stało — ile każdy zadał i dostał, czym i komu, po obu stronach.",
-        needsLine: "Potrzebujesz dwóch rzeczy — obu przed instalacją:",
+        sentence:
+            "Gra mówi tylko, że walka się skończyła. MargoMeter pokazuje, co się w niej stało.",
+        needsLine: "Zanim zainstalujesz:",
         needs: [
             {
-                text: "Menedżer skryptów użytkownika: " +
-                    '<a href="https://www.tampermonkey.net/">Tampermonkey</a> albo ' +
-                    '<a href="https://violentmonkey.github.io/">Violentmonkey</a>. ' +
-                    "Bez niego przeglądarka tylko pobierze plik i nic się nie stanie.",
+                text:
+                    'Menedżer skryptów: <a href="https://www.tampermonkey.net/">Tampermonkey</a> ' +
+                    'albo <a href="https://violentmonkey.github.io/">Violentmonkey</a>. ' +
+                    "Bez niego plik się tylko pobierze.",
                 isSilent: false,
             },
             {
-                text: "<strong>W Chrome i w Edge włącz obsługę skryptów użytkownika</strong> — " +
-                    "na stronie rozszerzenia, w chrome://extensions. Bez tego panel się nie " +
-                    "pojawi i nic o tym nie powie. Firefox i Safari tego nie wymagają.",
+                text: "<strong>W Chrome i Edge włącz obsługę skryptów użytkownika</strong> — " +
+                    "w chrome://extensions. Bez tego nic się nie uruchomi i nic o tym nie " +
+                    "powie. Firefox i Safari — nie trzeba.",
                 isSilent: true,
             },
         ],
@@ -103,8 +102,7 @@ function composeSiteInstall(version: string): PreviewInstall {
         versionLine: `wersja ${version}`,
         // `obok` and not `niżej`: the page takes both windows to the corner it is drawn in
         // (**ADR 0099**), so the panel stands to the right of this sentence and never under it.
-        afterLine: "Menedżer rozpozna plik i zaproponuje instalację. Potem wejdź do gry " +
-            "i zacznij walkę — panel pojawi się sam nad grą, taki jak ten obok.",
+        afterLine: "Potem wejdź do gry i zacznij walkę — panel pojawi się sam, taki jak ten obok.",
     };
 }
 
