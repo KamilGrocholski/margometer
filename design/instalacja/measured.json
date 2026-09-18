@@ -106,28 +106,28 @@
                 "viewportWidth": 1024,
                 "columnWidth": 484,
                 "bandWidth": 524,
-                "introWidth": 638,
+                "introWidth": 524,
                 "windowsBeginAt": 542,
                 "clearance": 18,
-                "introClearance": -96
+                "introClearance": 18
             },
             {
                 "viewportWidth": 900,
                 "columnWidth": 360,
                 "bandWidth": 400,
-                "introWidth": 638,
+                "introWidth": 400,
                 "windowsBeginAt": 418,
                 "clearance": 18,
-                "introClearance": -220
+                "introClearance": 18
             },
             {
                 "viewportWidth": 800,
                 "columnWidth": 260,
                 "bandWidth": 300,
-                "introWidth": 638,
+                "introWidth": 300,
                 "windowsBeginAt": 318,
                 "clearance": 18,
-                "introClearance": -320
+                "introClearance": 18
             }
         ]
     },

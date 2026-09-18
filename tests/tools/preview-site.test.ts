@@ -14,7 +14,7 @@ import {
     assertStringIncludes,
 } from "@std/assert";
 import { composeUserscriptBanner, USERSCRIPT_DOWNLOAD_ADDRESS } from "@/tools/build-userscript.ts";
-import { PREVIEW_INSTALL_OPENING } from "@/tools/preview-page.ts";
+import { MAXIMUM_COLUMN_WIDTH, PREVIEW_INSTALL_OPENING } from "@/tools/preview-page.ts";
 import { composePreviewSitePages } from "@/tools/preview-site.ts";
 import { getPreviewRecordedFight, getRecordedFights } from "@/tools/recorded-fights.ts";
 
@@ -46,6 +46,54 @@ function getLoadedAddressesInText(text: string): string[] {
     }
     return found;
 }
+
+const WIDTH_DECLARATION = "max-width: ";
+/**
+ * The one rule that bounds itself rather than the corner: the strip is anchored bottom-left, the
+ * windows sit top-right, and `tools/panel-screenshots.ts` hides it before it measures anything.
+ */
+const BOUNDED_BY_ITSELF = ".preview-strip";
+
+/** Every selector whose rule states a width, with the width it states. */
+function composeWidthsBySelector(sheet: string): Map<string, string> {
+    const widths = new Map<string, string>();
+    let selector = "";
+    for (const line of sheet.split("\n")) {
+        const opened = line.indexOf(" {");
+        if (opened > 0) selector = line.slice(0, opened).trim();
+        const stated = line.indexOf(WIDTH_DECLARATION);
+        if (stated < 0) continue;
+        const rest = line.slice(stated + WIDTH_DECLARATION.length);
+        const closed = rest.indexOf(";");
+        widths.set(selector, closed < 0 ? rest.trim() : rest.slice(0, closed).trim());
+    }
+    return widths;
+}
+
+Deno.test("every column of text on the page ends before the windows do", () => {
+    const [page] = composePreviewSitePages(VERSION);
+    assertExists(page, "there is a page to read the sheet off");
+    const widths = composeWidthsBySelector(page.text);
+    assert(widths.size > 1, "the sheet states more than one width, or this reads nothing");
+
+    const unbounded: string[] = [];
+    for (const [selector, width] of widths) {
+        if (selector === BOUNDED_BY_ITSELF) continue;
+        if (width === MAXIMUM_COLUMN_WIDTH) continue;
+        unbounded.push(`${selector}: ${width}`);
+    }
+    // The paragraph under the band held `46em` and no corner at all until 2026-09-18, and the
+    // band's own assertion passed on the band alone. A width that runs under the panel is silent.
+    assertEquals(unbounded, [], "a column not bounded by the corner runs under the windows");
+});
+
+Deno.test("the reader of widths finds a capped rule and an uncapped one alike", () => {
+    const widths = composeWidthsBySelector(
+        `.one { margin: 0; max-width: ${MAXIMUM_COLUMN_WIDTH}; }\n.other { max-width: 46em; }`,
+    );
+    assertEquals(widths.get(".one"), MAXIMUM_COLUMN_WIDTH, "the capped rule is read as capped");
+    assertEquals(widths.get(".other"), "46em", "and the uncapped one is not read as capped");
+});
 
 Deno.test("there is a page for every recording, and one a visitor lands on", () => {
     const pages = composePreviewSitePages(VERSION);

@@ -27,6 +27,15 @@ export const PREVIEW_INSTALL_OPENING = `<header class="preview-install">`;
 /** Past which nobody reads as far as the button — **S11**. */
 const MAXIMUM_INSTALL_STEPS = 6;
 
+/**
+ * Where a column of text ends, so nothing the page writes runs under the two windows the corner
+ * holds. Spelled once because the band carried it and the paragraph under it did not: measured on
+ * the built page, 2026-09-18, the paragraph ran 96px under them at a 1024px window and 320px at
+ * 800px, while the band above it was already narrowing. 540 is the 8px inset, the panel's 260, the
+ * 4px between and the 210px window beside it, with air (`tools/preview-windows.ts`).
+ */
+export const MAXIMUM_COLUMN_WIDTH = "min(46em, calc(100vw - 540px))";
+
 /** Every word the strip draws, so the language of a page is a value and never a branch. */
 export interface PreviewWords {
     /** What `<html lang>` declares, which a browser's offer to translate reads. */
@@ -210,9 +219,10 @@ function composeEscapedJson(value: unknown): string {
 function composePreviewStyle(): string {
     const sheet = `html, body { margin: 0; height: 100%; background: #14171c; color: #c8cdd6;
   font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }
-.preview-intro { margin: 0; padding: 18px 20px; max-width: 46em; color: #8f9bb0; }
+.preview-intro { margin: 0; padding: 18px 20px; max-width: ${MAXIMUM_COLUMN_WIDTH};
+  color: #8f9bb0; }
 .preview-intro a { color: #8fb8e8; }
-.preview-install { padding: 20px 20px 0; max-width: min(46em, calc(100vw - 540px)); }
+.preview-install { padding: 20px 20px 0; max-width: ${MAXIMUM_COLUMN_WIDTH}; }
 .preview-install h1 { margin: 0; font-size: 21px; color: #e6eaf1; }
 .preview-lede { margin: 4px 0 14px; }
 .preview-take { margin: 0; }
@@ -248,9 +258,9 @@ function composePreviewStyle(): string {
     // judged against a darker page is a panel whose border reads as a colour it is not.
     assertStringIncludes(sheet, "#14171c", "the panel is judged against the colour the game draws");
     assertStringIncludes(sheet, "9000", "and the strip stands under the panel, never over it");
-    // The panel stands 260px wide at an 8px inset with a 210px window beside it, and the page
-    // puts both in that corner (`tools/preview-windows.ts`). The band ends before all three.
-    assertStringIncludes(sheet, "calc(100vw - 540px)", "the band ends where the windows begin");
+    // Which rules take it, and which may not, is `tests/tools/preview-site.test.ts`'s to hold:
+    // one occurrence here passed while the paragraph under the band carried none.
+    assertStringIncludes(sheet, MAXIMUM_COLUMN_WIDTH, "a column ends where the windows begin");
     assertStringIncludes(sheet, ".preview-get", "and the offer is a button, not a word in a line");
     return sheet;
 }

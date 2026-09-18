@@ -177,7 +177,8 @@ function composeMeasuredSteps(band: string): MeasuredStep[] {
 /**
  * What the band's column comes to at a width, and what is left between it and the windows.
  * `max-width` binds the content box, so the padding stands outside it — which is why a clearance
- * measured off the column alone would be 40px kinder than the page.
+ * measured off the column alone would be 40px kinder than the page. Both columns take the same
+ * cap since `MAXIMUM_COLUMN_WIDTH`, and the pair is what this states rather than one of them.
  */
 function composeMeasuredColumns(
     emMaximum: number,
@@ -191,7 +192,7 @@ function composeMeasuredColumns(
     return VIEWPORT_WIDTHS.map((viewportWidth) => {
         const columnWidth = Math.min(columnMaximum, viewportWidth - reserved);
         const bandWidth = columnWidth + paddingAcross;
-        const introWidth = columnMaximum + introPaddingAcross;
+        const introWidth = columnWidth + introPaddingAcross;
         const windowsBeginAt = viewportWidth - takenAcross;
         return {
             viewportWidth,
@@ -280,8 +281,9 @@ function composeMeasured() {
 
     const band = readStyleRule(page, ".preview-install");
     /**
-     * The paragraph under the band takes the same `46em` and **not** the band's
-     * `calc(100vw - …)` cap, so the two stop agreeing the moment the cap binds.
+     * The paragraph under the band. It took the same `46em` and **none** of the band's
+     * `calc(100vw - …)` cap until `MAXIMUM_COLUMN_WIDTH` gave both rules one spelling, so this
+     * reads it the same way the band is read and the two are held equal below.
      */
     const intro = readStyleRule(page, ".preview-intro");
 
@@ -289,9 +291,11 @@ function composeMeasured() {
     const emMaximum = requireNumberAfter(band, "max-width: min(");
     const reserved = requireNumberAfter(band, "calc(100vw - ");
     const paddingAcross = requireNumberAfter(band, "padding: ") * 2;
-    const introEmMaximum = requireNumberAfter(intro, "max-width: ");
+    const introEmMaximum = requireNumberAfter(intro, "max-width: min(");
+    const introReserved = requireNumberAfter(intro, "calc(100vw - ");
     const introPaddingAcross = requireNumberAfter(intro, "padding: 18px ") * 2;
     assert(introEmMaximum === emMaximum, "both columns ask for the same measure in ems");
+    assert(introReserved === reserved, "and both end where the same two windows begin");
 
     const fights = getRecordedFights();
     const tick = requireNumberAfter(page, "    setPlayStopped();\n  }, ");
