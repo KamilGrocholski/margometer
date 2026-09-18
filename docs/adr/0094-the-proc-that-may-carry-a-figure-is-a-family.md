@@ -1,6 +1,6 @@
 # 0094. The proc that may carry a figure is a family, not one key
 
-- **Status:** Accepted
+- **Status:** Superseded by 0095 in part
 - **Date:** 2026-09-16
 
 ## Context

@@ -220,7 +220,7 @@ edited to agree with the new rule.
 - [0084](0084-a-kept-fight-states-its-day-and-the-place-pays.md) — A kept fight states its day, and
   the place pays for it. **Accepted**
 - [0085](0085-a-proc-may-carry-a-figure-nobody-reads.md) — A proc may carry a figure nobody reads.
-  **Superseded by 0094 in part**
+  **Superseded by 0094 in part, and by 0095 in part**
 - [0086](0086-the-crumb-names-the-way-back.md) — The crumb names the way back, and a row still does
   not. **Accepted**
 - [0087](0087-a-card-groups-by-what-a-figure-is-a-sum-over.md) — A card groups by what a figure is a
@@ -238,6 +238,6 @@ edited to agree with the new rule.
 - [0093](0093-a-lookup-table-is-named-for-the-lookup-it-takes.md) — A lookup table is named for the
   lookup it takes. **Accepted**
 - [0094](0094-the-proc-that-may-carry-a-figure-is-a-family.md) — The proc that may carry a figure is
-  a family, not one key. **Accepted**
+  a family, not one key. **Superseded by 0095 in part**
 - [0095](0095-a-weakened-wound-is-a-deep-wound.md) — A weakened wound is a deep wound, and the card
   counts it as one. **Accepted**
