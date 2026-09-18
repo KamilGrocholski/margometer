@@ -2234,8 +2234,12 @@ _Shape:_ 165 occurrences; on a skill announcement; text
 _Help:_ names `shout`
 
 _Evidence:_ article view,372 (read 2026-08-09) at the engine name `shout`, described as forcing
-covered characters to attack a chosen target. Every occurrence sits on an announcement that also
-carries `active_decblock_per-enemies` and `alllowdmg`.
+covered characters to attack a chosen target. **The two skills carrying it carry different keys
+beside it**, and neither shape is the other's: over every recording, `Wyzywający okrzyk`
+(`skillId=188`) announces it beside `active_decblock_per-enemies` and `alllowdmg`, and
+`Prowokujący okrzyk` (`skillId=25`) beside `aura-adddmg2_per-meele` and neither of those two. The
+split is re-earnable without opening a recording — the three keys' own `_Shape:_` lines come to this
+one's — and `docs/auras-standing.md` holds it against the material.
 
 ### `surpass_bonus_total` — decoded
 
