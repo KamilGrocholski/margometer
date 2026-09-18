@@ -36,6 +36,14 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Pomocnik mówi teraz, który z dwóch okrzyków kogoś trzyma: jego nazwa stoi obok osoby,
+  która go rzuciła. Te dwa okrzyki nie robią tego samego — jeden wzmacnia drużynę rzucającego, drugi
+  osłabia przeciwników — więc sama liczba trzymanych osób nie wystarczała, żeby wiedzieć, co się
+  dzieje.
+
+- **Nowość** — To, co okrzyk robi poza trzymaniem, stoi teraz w „Co stoi" i liczy własne tury. Przy
+  jednym z okrzyków trwa to dwie tury dłużej niż samo trzymanie, a panel nie mówił o tym dotąd nic.
+
 - **Zmiana** — Wszystkie głębokie rany liczą się teraz na karcie ciosu w jednym wierszu, a pod nim
   stoi, ile z nich coś osłabiło. Do tej pory osłabione rany stały w osobnym wierszu i postać, której
   każdą ranę coś osłabiło, nie miała na karcie żadnej liczby ran.

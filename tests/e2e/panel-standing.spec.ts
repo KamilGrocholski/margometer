@@ -176,6 +176,57 @@ test("a shout is drawn under whoever holds it, and no rest is claimed", async ({
 });
 
 /**
+ * ⚠️ **Three cells on one row, and only a browser lays them out.** The unit suite drew this row
+ * and saw nothing: measured in Chrome on 2026-09-18, the panel's own `flex:1` on a row's name
+ * gave `Gracz 4` 3px of the 42 it wanted, because the okrzyk had taken the row's width as its
+ * basis first — and reversing that erased the okrzyk to 4px behind a long nickname instead.
+ *
+ * So the order is stated and held here: **the name is drawn whole while it fits, and the cast is
+ * the cell that gives way — down to a floor it never goes under.** Both okrzyki differ from their
+ * first letter, so what survives the cut still says which one is holding. **ADR 0097.**
+ */
+test("the name is drawn whole, and the cast gives way to a floor", async ({ panel }) => {
+    const measured = await panel.page.evaluate(() => {
+        const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
+        const cast = root?.querySelector(".MargoMeter-standing .standing-cast") ?? null;
+        const row = cast?.closest(".row") ?? null;
+        const name = row?.querySelector(".row-name") ?? null;
+        if (cast === null || row === null || name === null) return null;
+        // ⚠️ `scrollWidth` answers the **box** wherever the text fits inside it, so it cannot say
+        // what the text wanted. A range over the text node measures the text and nothing else.
+        const range = document.createRange();
+        range.selectNodeContents(name);
+        const shortWanted = range.getBoundingClientRect().width;
+        const shortDrawn = name.getBoundingClientRect().width;
+        const was = name.textContent ?? "";
+        name.textContent = "Nieprzeciętnie Długi Nick";
+        range.selectNodeContents(name);
+        const longWanted = range.getBoundingClientRect().width;
+        const longDrawn = name.getBoundingClientRect().width;
+        const longCast = cast.getBoundingClientRect().width;
+        name.textContent = was;
+        return { shortWanted, shortDrawn, longWanted, longDrawn, longCast };
+    });
+    expect(measured, "the fight leaves somebody holding somebody else").not.toBeNull();
+    // Drawn at what it asks for and no more: the row sizes the name by its own text and hands
+    // what is left to the cast. Sharing the row evenly instead draws the name whole as well and
+    // leaves the okrzyk 11px shorter, which is why this is an equality and not a floor.
+    expect(
+        Math.round(measured?.shortDrawn ?? 0),
+        "a name the row has room for takes its own width, and no more",
+    ).toBe(Math.round(measured?.shortWanted ?? 0));
+    expect(
+        measured?.longWanted ?? 0,
+        "the long name asked for more than the row has, so the row had to choose",
+    ).toBeGreaterThan(measured?.longDrawn ?? 0);
+    // 48px is the floor `panel-look.ts` states, and it carries the measurement behind it.
+    expect(
+        measured?.longCast ?? 0,
+        "and the okrzyk keeps enough width to say which of the two it is",
+    ).toBeGreaterThanOrEqual(48);
+});
+
+/**
  * The rule, not the instance. One line of this window was written as a row and cut with an
  * ellipsis, hiding the very name it was drawn to say — and this window has no gesture to reach the
  * rest with. So: **a sentence is never cut, and a row is the only thing allowed to.**

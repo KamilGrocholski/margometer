@@ -125,13 +125,20 @@ its added points cannot be destroyed. The aura is not in the stated number.
 where three or more did — which is where the cap costs a figure — and `one twice` the moments where
 one combatant held it twice. `at once` is the most that ever stood together.
 
-| key                    | two | past two | one twice | at once |
-| ---------------------- | --: | -------: | --------: | ------: |
-| `+spell-taken_dmg-all` | 177 |        0 |         0 |       2 |
-| `allslow_per`          | 544 |       64 |         0 |       3 |
-| `aura-ac_per`          | 115 |        0 |         0 |       2 |
-| `aura-resall`          | 115 |        0 |         0 |       2 |
-| `aura-sa_per`          | 305 |       44 |         0 |       4 |
+| key                           | two | past two | one twice | at once |
+| ----------------------------- | --: | -------: | --------: | ------: |
+| `+spell-taken_dmg-all`        | 177 |        0 |         0 |       2 |
+| `active_decblock_per-enemies` |   3 |        0 |         0 |       2 |
+| `alllowdmg`                   |   3 |        0 |         0 |       2 |
+| `allslow_per`                 | 544 |       64 |         0 |       3 |
+| `aura-ac_per`                 | 115 |        0 |         0 |       2 |
+| `aura-resall`                 | 115 |        0 |         0 |       2 |
+| `aura-sa_per`                 | 305 |       44 |         0 |       4 |
+| `shout`                       |  16 |        0 |         0 |       2 |
+
+The last three arrived with **ADR 0097**: an okrzyk stands on a side now, so the keys it announces
+are counted here like any other. `shout` is in the table because it rides a cast that stands, and
+its own row below is what says whom it holds.
 
 **The cap is reachable on the material this repository holds**, which is unusual for anything in
 this document: `Szadź` and `Podwójny dech` both stand past two sources, so a panel that summed every
@@ -148,20 +155,26 @@ nothing so far. It is shape rather than measurement until a recording contradict
 heading. `stated` is what the published table gives it, and what a row leaves on.
 
 `reaches` is **which side**, stated relative to the caster and never who on it: `caster's`, `other`,
-and `—` where nothing settles it. **The window draws none of it**: a cast reaching a whole side says
-nothing about whom, because there is nothing to say (**ADR 0062**). The column is here so the claim
-stays re-earnable.
+`both` where one announcement does the two of them, and `—` where nothing settles it. **The window
+draws none of it**: a cast reaching a whole side says nothing about whom, because there is nothing
+to say (**ADR 0062**). The column is here so the claim stays re-earnable.
 
-The two okrzyki are not in this table. They hold characters rather than standing on a side, and have
-a register of their own below.
+**The two okrzyki are in this table as well as in the one below**, because the published table dates
+their two halves apart and each half is a thing that stands: `Wyzywający okrzyk` shouts for three
+turns and debuffs the other side for five. Its `stated` here is the side-wide half's and never the
+shout's, which is the register below's. **ADR 0097**, and the two rows are what holds the claim —
+were the okrzyki one shape, skill 25 would read `other` and five here rather than `caster's` and
+three.
 
-|  id | skill            | on | fights | at once | stated | reaches  |
-| --: | ---------------- | -: | -----: | ------: | -----: | -------- |
-|  76 | Aura ochrony     | 11 |     15 |       2 |      8 | caster's |
-|  89 | Podwójny dech    | 17 |     18 |       4 |      8 | caster's |
-| 123 | Szadź            | 19 |     22 |       3 |      8 | other    |
-| 219 | Jadowity podmuch |  1 |      1 |       1 |      8 | other    |
-| 264 | Piętno bestii    | 14 |     17 |       2 |      8 | other    |
+|  id | skill              | on | fights | at once | stated | reaches  |
+| --: | ------------------ | -: | -----: | ------: | -----: | -------- |
+|  25 | Prowokujący okrzyk |  4 |      6 |       1 |      3 | caster's |
+|  76 | Aura ochrony       | 11 |     15 |       2 |      8 | caster's |
+|  89 | Podwójny dech      | 17 |     18 |       4 |      8 | caster's |
+| 123 | Szadź              | 19 |     22 |       3 |      8 | other    |
+| 188 | Wyzywający okrzyk  | 10 |     17 |       2 |      5 | both     |
+| 219 | Jadowity podmuch   |  1 |      1 |       1 |      8 | other    |
+| 264 | Piętno bestii      | 14 |     17 |       2 |      8 | other    |
 
 **The published table dates more skills than the corpus has ever cast**, and the ones missing here
 are missing for want of a recording rather than by a verdict. That is the thin corpus `TODO.md`

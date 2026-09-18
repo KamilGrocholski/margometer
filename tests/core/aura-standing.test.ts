@@ -98,6 +98,13 @@ function composeCast(
     };
 }
 
+/** As many of that caster's own turns as a sample needs to pass, each opened by a blow. */
+function composeTurns(actorId: number, turns: number): BattleEvent[] {
+    const found: BattleEvent[] = [];
+    for (let at = 0; at < turns; at += 1) found.push(composeBlow(actorId));
+    return found;
+}
+
 /** A blow standing behind no announcement, which is what opens the caster's next turn. */
 function composeBlow(actorId: number): BattleEvent {
     return {
@@ -319,19 +326,45 @@ Deno.test("a shout is dated by its own row, and never by the skill's longest eff
     assertStrictEquals(held[0]?.turnsStated, 3, "the shout's own turns");
 });
 
-Deno.test("a shout the table dates nowhere holds nobody, rather than standing on a side", () => {
+Deno.test("a shout the table dates nowhere holds nobody, and its other half still stands", () => {
     const dated = composeStated([{ id: 188, turns: 5 }], []);
     const events = [composeCast(1, 188, "shout alllowdmg", 9, "Ktoś 9")];
     assertEquals(
         composeFightStandings(events, dated, ROSTER).provocations,
         [],
-        "an id the frozen shouts do not name",
+        "an id the frozen shouts do not name holds nobody",
+    );
+    assertEquals(
+        composeFightStandings(events, dated, ROSTER).standings.map((one) => one.turnsStated),
+        [5],
+        "and the debuff on the same announcement is dated by itself, so it stands (**ADR 0097**)",
+    );
+});
+
+Deno.test("a cast the aura table dates nowhere still shouts, and stands on no side", () => {
+    const dated = composeStated([], SHOUTS);
+    const events = [composeCast(1, 188, "shout alllowdmg", 9, "Ktoś 9")];
+    assertStrictEquals(
+        composeFightStandings(events, dated, ROSTER).provocations.length,
+        1,
+        "the half the table does date is the half that is read",
     );
     assertEquals(
         composeFightStandings(events, dated, ROSTER).standings,
         [],
-        "and it does not fall back to standing on a side either",
+        "and an undated side-wide half stands nowhere rather than borrowing the shout's turns",
     );
+});
+
+Deno.test("an okrzyk dated on neither half is no cast at all", () => {
+    const dated = composeStated([], []);
+    const held = composeFightStandings(
+        [composeCast(1, 188, "shout alllowdmg", 9, "Ktoś 9")],
+        dated,
+        ROSTER,
+    );
+    assertEquals(held.provocations, [], "nothing holds anybody");
+    assertEquals(held.standings, [], "and nothing stands");
 });
 
 /**
@@ -373,22 +406,49 @@ Deno.test("a later shout takes over each character it names, and leaves the rest
     );
 });
 
-Deno.test("a shout reaches the provocation and nothing else, so no cast is counted twice", () => {
+/**
+ * ⚠️ **This is the test ADR 0097 turned round.** It read the other way until 2026-09-18 — the
+ * okrzyk stood under the provocation and nowhere else, so that one announcement was one thing.
+ * The published table dates its two halves apart, which is what makes them two.
+ */
+Deno.test("an okrzyk stands beside the whole-team casts as well as holding somebody", () => {
     const dated = composeStated([{ id: 188, turns: 5 }, { id: 264, turns: 8 }], SHOUTS);
     const events = [
         composeCast(1, 188, "shout alllowdmg", 9, "Ktoś 9"),
         composeCast(1, 264, "+spell-taken_dmg-all"),
     ];
     assertEquals(
-        composeFightStandings(events, dated, ROSTER).standings.map((one) => one.skillId),
-        [264],
-        "the okrzyk stands under the provocation rather than beside the whole-team casts",
+        composeFightStandings(events, dated, ROSTER).standings.map((one) => one.skillId).sort(),
+        [188, 264],
+        "the okrzyk's side-wide half stands where every other cast reaching a side does",
     );
     assertStrictEquals(
         composeFightStandings(events, dated, ROSTER).provocations.length,
         1,
-        "and there once",
+        "and it holds the character it named exactly once",
     );
+});
+
+/**
+ * The whole of what **ADR 0097** is for: `Wyzywający okrzyk` shouts for three turns and debuffs
+ * for five, so there are two turns where the panel drew nothing and the debuff was standing.
+ * **W5**: the turn the shout runs out on is a boundary, and the turn before it stands beside it.
+ */
+Deno.test("an okrzyk's two halves run out apart, and the longer one outlives the shout", () => {
+    const dated = composeStated([{ id: 188, turns: 5 }], SHOUTS);
+    const cast = composeCast(1, 188, "shout alllowdmg", 9, "Ktoś 9");
+    for (const elapsed of [0, 1, 2]) {
+        const held = composeFightStandings([cast, ...composeTurns(1, elapsed)], dated, ROSTER);
+        assertStrictEquals(held.provocations.length, 1, `at ${elapsed} turns the shout holds`);
+        assertStrictEquals(held.standings.length, 1, `and at ${elapsed} the debuff stands`);
+    }
+    for (const elapsed of [3, 4]) {
+        const held = composeFightStandings([cast, ...composeTurns(1, elapsed)], dated, ROSTER);
+        assertEquals(held.provocations, [], `at ${elapsed} turns the game has let them go`);
+        assertStrictEquals(held.standings[0]?.turnsElapsed, elapsed, `and the debuff stands on`);
+    }
+    const over = composeFightStandings([cast, ...composeTurns(1, 5)], dated, ROSTER);
+    assertEquals(over.standings, [], "and at five the debuff has run out too");
 });
 
 Deno.test("a target slot nobody shouted at holds nobody", () => {
@@ -437,9 +497,14 @@ Deno.test(`${BOTH_OKRZYKI}: two casters at one monster leave one provocation sta
         "Amaimon Soploręki",
         "and the monster is who is held",
     );
-    assert(
-        composeFightStandings(events, DATED, roster).standings.every((one) => one.skillId !== 25),
-        "with neither okrzyk standing a second time among the whole-team casts",
+    // ADR 0097: the okrzyk holding the monster stands among the whole-team casts as well. Its two
+    // halves are both dated 3 by the frozen table, so on this recording they run out together —
+    // which is why the pairing is what is asserted and not a second turn figure.
+    const standing = composeFightStandings(events, DATED, roster).standings;
+    assertEquals(
+        standing.filter((one) => one.skillId === 25).map((one) => one.turnsStated),
+        [3],
+        "the okrzyk that is holding somebody also stands on its caster's side, once",
     );
 });
 

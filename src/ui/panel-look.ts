@@ -134,6 +134,10 @@ export const CLASS = {
     /** A row nested under the one above it, whoever stands in either. */
     standingUnder: "standing-under",
     standingOurs: "standing-ours",
+    /** The okrzyk a holder is holding somebody with, drawn on their row (**ADR 0097**). */
+    standingCast: "standing-cast",
+    /** The row that carries one, which is the only row where the name gives way last. */
+    standingHolding: "standing-holding",
     standingPips: "standing-pips",
     standingPip: "standing-pip",
     standingPipLit: "standing-pip-lit",
@@ -188,6 +192,14 @@ export const STANDING = {
 
 /** A dot small enough that four of them and a figure fit the window's own width. */
 const PIP_SIZE = "5px";
+/**
+ * The least an okrzyk's name is drawn at, so a long nickname on the same row cannot erase it.
+ *
+ * Measured in Chrome at the panel's own size on 2026-09-18: `Wyzywa` is 49px and `Prowok` 44px,
+ * and the two okrzyki differ from their first letter — so this shows enough of either to say
+ * which. Without it a 25-character nickname left the cast 4px, which is the feature gone.
+ */
+const MINIMUM_CAST_WIDTH = "48px";
 /**
  * The caveat mark's ring, across and down. Ten against an 11px body and an 18px row: smaller
  * reads as a speck beside a figure, larger sits taller than the digits it stands next to — and
@@ -856,6 +868,24 @@ function composeStandingRules(): string {
         `.${CLASS.standing}.${CLASS.standingFolded} .${CLASS.standingBody}{display:none;}` +
         // What stands under the row above it, inset so the pair reads as one thing.
         `.${CLASS.standingUnder}{margin-left:var(${VARIABLE_PREFIX}wide);}` +
+        // ⚠️ **Three cells on one row, and the order they give way in is stated here rather than
+        // left to the panel's own rule.** That rule gives a row's name `flex:1`, which is basis
+        // `0` — the name takes what is left rather than what it needs — and measured in Chrome on
+        // 2026-09-18 it drew `Gracz 4` at 3px of the 42 it wanted, because the okrzyk beside it
+        // had claimed the row's width as its basis first. A nickname cut to `Gracz…` has lost the
+        // digit that tells two players apart, which is the whole of what a name is for here.
+        //
+        // So on this row the name is sized by its own text and the **cast** takes what is left:
+        // cutting the okrzyk costs less, because the two spellings differ in their first word —
+        // `Prowokujący okrzyk` against `Wyzywający okrzyk` — so a clipped end still tells them
+        // apart. The name keeps its shrink, so a nickname too long for the row still folds rather
+        // than running off it. Scoped to the row that carries a cast, because every other row in
+        // this window has two cells and wants the panel's rule (**ADR 0097**).
+        `.${CLASS.standingHolding} .${CLASS.rowName}{flex:0 1 auto;}` +
+        `.${CLASS.standingCast}{color:var(${VARIABLE_PREFIX}quiet);flex:1 1 0;` +
+        `min-width:min(${MINIMUM_CAST_WIDTH},100%);` +
+        `overflow:hidden;text-overflow:ellipsis;white-space:nowrap;` +
+        `padding-left:var(${VARIABLE_PREFIX}small);}` +
         // One dot per turn of the charge, which is how the game's own bar is cut: it draws
         // `total_turns - 1` dividers across it (build `Cl9U89Zr`, read 2026-09-09). Nothing
         // else in the panel is round, so the shape means this and nothing else.

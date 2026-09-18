@@ -801,6 +801,7 @@ function composeStandingNow(document: PanelDocument, reading: StandingReading): 
     }
     const row = composeStandingPersonElement(document, {
         name: holder.name,
+        skillName: null,
         colour: holder.colour,
         sidePart: holder.sidePart,
         turns: null,
@@ -885,6 +886,7 @@ function composeProvokedElements(
     for (const provocation of reading.provoked) {
         drawn.push(composeStandingPersonElement(document, {
             name: provocation.casterName,
+            skillName: provocation.skillName,
             colour: provocation.casterColour,
             sidePart: provocation.casterSidePart,
             turns: composeStandingTurnsText(provocation.turnsElapsed, provocation.turnsStated),
@@ -893,6 +895,7 @@ function composeProvokedElements(
         for (const held of provocation.provoked) {
             drawn.push(composeStandingPersonElement(document, {
                 name: held.name,
+                skillName: null,
                 colour: held.colour,
                 sidePart: held.sidePart,
                 turns: null,
@@ -908,11 +911,17 @@ function composeProvokedElements(
  * skill, who is holding somebody, and whom. Their profession is the cap and their side the rule
  * on the edge (**ADR 0065**); a row nested under the one above wears the indent and no other
  * difference.
+ *
+ * ⚠️ **The cast rides this row and never a line of its own.** ADR 0067 deleted a wrapping
+ * sentence under the holder and took a line back with it; what returns here is two spans on the
+ * row that was already there, so the section costs what it cost. **ADR 0097.**
  */
 function composeStandingPersonElement(
     document: PanelDocument,
     person: {
         name: string;
+        /** The okrzyk they are holding somebody with, or null wherever nobody is holding. */
+        skillName: string | null;
         colour: string;
         sidePart: PanelSidePart;
         /** Null where the figure belongs to the row above rather than to this one. */
@@ -921,13 +930,22 @@ function composeStandingPersonElement(
     },
 ): PanelElement {
     const nested = person.isUnder ? ` ${CLASS.standingUnder}` : "";
-    const row = composeElement(document, "div", `${CLASS.row}${nested}`);
+    const holding = person.skillName === null ? "" : ` ${CLASS.standingHolding}`;
+    const row = composeElement(document, "div", `${CLASS.row}${nested}${holding}`);
     const cap = composeElement(document, "div", CLASS.barCap);
     cap.setAttribute(STYLE_ATTRIBUTE, `background:${person.colour}`);
     const name = composeElement(document, "span", CLASS.rowName);
     name.textContent = person.name;
     row.append(cap);
     row.append(name);
+    if (person.skillName !== null) {
+        const between = composeElement(document, "span", CLASS.rowShare);
+        between.textContent = STANDING_WORDS.castSeparator;
+        const cast = composeElement(document, "span", CLASS.standingCast);
+        cast.textContent = person.skillName;
+        row.append(between);
+        row.append(cast);
+    }
     if (person.turns !== null) {
         const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
         value.textContent = person.turns;
@@ -1000,6 +1018,8 @@ function composeStandingRowElements(
         for (const caster of row.casters) {
             drawn.push(composeStandingPersonElement(document, {
                 name: caster.name,
+                // The skill stands on the row above, which is the row these open under.
+                skillName: null,
                 colour: caster.colour,
                 sidePart: caster.sidePart,
                 turns: composeStandingTurnsText(caster.turnsElapsed, caster.turnsStated),

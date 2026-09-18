@@ -50,10 +50,15 @@ export interface StandingProvoked {
 /**
  * Whoever is holding somebody, and whom. The turns are the **cast's** and stand here once: over
  * `captures/` 2026-09-09, 11 casts held two characters and all 11 stated one figure. **ADR 0067.**
+ *
+ * The okrzyk is named here because the two of them are not one state: the table dates their
+ * side-wide halves apart, so which one holds somebody is something a reader acts on. **ADR 0097.**
  */
 export interface StandingProvocation {
     casterId: number;
     casterName: string;
+    skillId: number;
+    skillName: string;
     casterColour: string;
     casterSidePart: PanelSidePart;
     turnsElapsed: number;
@@ -158,18 +163,26 @@ function composeStandingProvoked(
  * provocation by the character it holds, so every entry handed here is an already-settled pair and
  * a character cannot arrive twice. That is what keeps this clear of the alternative **ADR 0062**
  * rejected. **ADR 0067.**
+ *
+ * ⚠️ **The fold takes the cast and not the caster**, because the group is drawn under the okrzyk's
+ * name: one caster shouting both of them would otherwise be one group under one name, and the
+ * name would be wrong for half of it. No moment in `captures/` shows that, so what this holds is
+ * the label rather than a reading anything has seen go wrong. **ADR 0097.**
  */
 function composeStandingProvocations(
     provocations: readonly ProvocationStanding[],
     roster: CombatantRoster,
     readerSide: number | null,
 ): StandingProvocation[] {
-    const byCasterId = new Map<number, StandingProvocation>();
+    const byCast = new Map<string, StandingProvocation>();
     for (const standing of provocations) {
         const caster = roster.byId.get(standing.casterId);
-        const held = byCasterId.get(standing.casterId) ?? {
+        const key = `${standing.casterId}/${standing.skillId}`;
+        const held = byCast.get(key) ?? {
             casterId: standing.casterId,
             casterName: caster?.name ?? PANEL_WORDS.withoutActor,
+            skillId: standing.skillId,
+            skillName: standing.skillName,
             casterColour: getColourForProfession(caster?.profession ?? null),
             casterSidePart: getPartOfSide(caster?.side ?? null, readerSide),
             turnsElapsed: standing.turnsElapsed,
@@ -177,9 +190,9 @@ function composeStandingProvocations(
             provoked: [],
         };
         held.provoked.push(composeStandingProvoked(standing, roster, readerSide));
-        byCasterId.set(standing.casterId, held);
+        byCast.set(key, held);
     }
-    return [...byCasterId.values()];
+    return [...byCast.values()];
 }
 
 /** Whose side a cast is on, or null where the client named no side of the reader's own. */

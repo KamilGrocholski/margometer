@@ -582,17 +582,21 @@ commit that opens or closes one.
    skill reaching a side, and a press opens the casters under it with what has passed of what the
    published table gives them — never what is left (**ADR 0059**) — each wearing their own
    profession's hue and the same side rule the ranking wears (**ADR 0065**). A cast reaching a whole
-   side says nothing about whom, because there is nothing to say; the two okrzyki stand in a section
-   of their own, drawn under whoever threw them with the characters they hold as rows beneath, the
-   turns stated once because they are the cast's (**ADR 0062**, **ADR 0067**). It draws a third band
-   above them where a combatant is making a **charged skill** ready: one row, the game's own name
-   for the blow, one dot per turn of the charge lit to what has passed, and the pair of figures the
-   client itself divides — never the percentage that division comes to. The two ends the protocol
-   names stand for one turn after the fact and then the band is gone, which is one payload: the
-   game's own turn number moves by one on the very next one, 24 times out of 24 over `captures/`
-   2026-09-11. Whom a shout holds is **read off its value**, which names every provoked character
-   separated by a comma and a space, and a name the roster cannot place is dropped rather than
-   guessed at (**ADR 0064**). That table is the third frozen reading (**ADR 0058**), and
+   side says nothing about whom, because there is nothing to say; the two okrzyki hold characters in
+   a section of their own, drawn under whoever threw them and named there, with the characters they
+   hold as rows beneath and the turns stated once because they are the cast's (**ADR 0062**, **ADR
+   0067**, **ADR 0097**). An okrzyk **also** stands among the rows above, on the turns the table
+   gives its side-wide half rather than its shout's — five against three on `Wyzywający
+   okrzyk` —
+   because one announcement carrying two dated halves is two things standing (**ADR 0097**). It
+   draws a third band above them where a combatant is making a **charged skill** ready: one row, the
+   game's own name for the blow, one dot per turn of the charge lit to what has passed, and the pair
+   of figures the client itself divides — never the percentage that division comes to. The two ends
+   the protocol names stand for one turn after the fact and then the band is gone, which is one
+   payload: the game's own turn number moves by one on the very next one, 24 times out of 24 over
+   `captures/` 2026-09-11. Whom a shout holds is **read off its value**, which names every provoked
+   character separated by a comma and a space, and a name the roster cannot place is dropped rather
+   than guessed at (**ADR 0064**). That table is the third frozen reading (**ADR 0058**), and
    `docs/auras-standing.md` is its register over `captures/`. Both READMEs are written and show the
    set `deno task panel:shots` takes, so the release plumbing is whole and has now run at a tag —
    what is left of it is held by a person, which is what the gap below it is about.

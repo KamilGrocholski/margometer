@@ -70,7 +70,9 @@ function composeProvocation(
         skillName: "Wyzywający okrzyk",
         casterId,
         turnsElapsed: 2,
-        turnsStated: 5,
+        // The shout's own three and not the five its debuff runs: one okrzyk states both, and a
+        // fixture carrying the wrong one of them reads as the bug **ADR 0097** was about.
+        turnsStated: 3,
         ...over,
     };
 }
@@ -495,7 +497,7 @@ Deno.test("a shout is drawn under whoever is holding it, and the turns are the c
     );
     assertEquals(
         getTextsByClass(getWindow(host), "row-value figure"),
-        ["2 z 5 tur"],
+        ["2 z 3 tur"],
         "the turns stand once, on the cast, and never on the character it holds",
     );
     const rows = getElementsWithin(getWindow(host)).filter((one) =>
@@ -527,6 +529,116 @@ Deno.test("a shout is drawn under whoever is holding it, and the turns are the c
     );
 });
 
+/**
+ * ⚠️ **ADR 0067 drew the okrzyk's name nowhere**, on the ground that both of them ran three turns
+ * and covered six, so naming one distinguished nothing. Their side-wide halves are not the same
+ * length — three against five — so it distinguishes what a reader is looking at. **ADR 0097.**
+ */
+Deno.test("the row holding somebody names the okrzyk, and the held row does not", () => {
+    const reading = composeStandingReading(
+        [],
+        [composeProvocation(21, 11)],
+        [],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        null,
+    );
+    const { host } = draw(reading);
+    assertEquals(
+        getTextsByClass(getWindow(host), "standing-cast"),
+        ["Wyzywający okrzyk"],
+        "the cast is named once, on the row of whoever is holding with it",
+    );
+    const rows = getElementsWithin(getWindow(host)).filter((one) =>
+        one.className.split(" ")[0] === "row"
+    );
+    assertEquals(
+        rows.map((one) => one.children.some((part) => part.className === "standing-cast")),
+        [true, false],
+        "and the character held carries no cast of their own, because they cast nothing",
+    );
+    assertEquals(
+        getTextsByClass(getWindow(host), "row-share"),
+        [STANDING_WORDS.castSeparator],
+        "divided from the name by the mark, in the quiet ink the separator is drawn in",
+    );
+});
+
+/**
+ * The corpus holds no moment where one caster shouted both okrzyki — ADR 0067 measured 0 — so this
+ * is constructed. It is what keeps the drawn name true rather than lucky: fold by the caster and
+ * one group would stand under one name for two casts. **ADR 0097.**
+ */
+Deno.test("one caster shouting both okrzyki is two groups, each under its own name", () => {
+    const other = { skillId: 25, skillName: "Prowokujący okrzyk" };
+    const reading = composeStandingReading(
+        [],
+        [composeProvocation(21, 11), composeProvocation(12, 11, other)],
+        [],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        null,
+    );
+    const { host } = draw(reading);
+    assertEquals(
+        getTextsByClass(getWindow(host), "standing-cast"),
+        ["Wyzywający okrzyk", "Prowokujący okrzyk"],
+        "one group per cast, in the order the fight named them",
+    );
+    assertEquals(
+        getTextsByClass(getWindow(host), "row-name"),
+        ["Gracz 1", "Renegat 1", "Gracz 1", "Gracz 2"],
+        "and the one caster stands at the head of both, once for each cast",
+    );
+});
+
+/**
+ * The half ADR 0097 stopped throwing away. It is an ordinary row of the section: the name and the
+ * casters counted, with the turns a press away — the shape every other cast reaching a side has.
+ */
+Deno.test("an okrzyk stands among the whole-team casts, on its own half's turns", () => {
+    const debuff = composeStanding(11, 188, {
+        skillName: "Wyzywający okrzyk",
+        turnsElapsed: 4,
+        turnsStated: 5,
+        reach: "both-sides",
+    });
+    const shut = composeStandingReading(
+        [debuff],
+        [composeProvocation(21, 11)],
+        [],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        null,
+    );
+    // The counted row's own figure is empty here: it carries its two sides in child spans, and a
+    // fight the client named no reader side on is what puts text on it directly.
+    const drawnShut = getTextsByClass(getWindow(draw(shut).host), "row-value figure");
+    assertEquals(
+        drawnShut.filter((one) => one.length > 0),
+        ["2 z 3 tur"],
+        "shut, the section states the shout's turns and the counted row above states none",
+    );
+    const open = composeStandingReading(
+        [debuff],
+        [composeProvocation(21, 11)],
+        [],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        188,
+    );
+    const drawnOpen = getTextsByClass(getWindow(draw(open).host), "row-value figure");
+    assertEquals(
+        drawnOpen.filter((one) => one.length > 0),
+        ["4 z 5 tur", "2 z 3 tur"],
+        "and opened, the debuff states five where the shout holding the same person states three",
+    );
+});
+
 Deno.test("one cast holding two characters is one row, and states its turns once", () => {
     // The case the fold exists for. `captures/` holds it once, in the fight written from side 2:
     // one shout naming two players, measured 2026-09-09.
@@ -549,7 +661,7 @@ Deno.test("one cast holding two characters is one row, and states its turns once
     );
     assertEquals(
         getTextsByClass(getWindow(host), "row-value figure"),
-        ["2 z 5 tur"],
+        ["2 z 3 tur"],
         "one figure and not two: over `captures/` every such cast stated one",
     );
     // **ADR 0062**: the heading counts characters held, which the fold does not change.

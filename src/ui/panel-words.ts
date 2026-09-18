@@ -742,6 +742,8 @@ export const STANDING_WORDS = {
     sideSeparator: "|",
     /** The two okrzyki share one state, so they share one heading — **ADR 0062**. */
     provocation: "Prowokacja",
+    /** Between whoever is holding somebody and the okrzyk they hold them with — **ADR 0097**. */
+    castSeparator: "·",
     /** The game's own name for it, taken from the client's own label — **N13**, **L2**. */
     chargedSkill: "Cios specjalny",
 } as const;

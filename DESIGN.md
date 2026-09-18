@@ -225,6 +225,14 @@ never on a row with nobody behind it, and **never at all on a fight the client n
 reader's own on** — a panel that cannot place somebody says nothing rather than drawing a grey
 answer.
 
+**A row that names two things says which of them gives way.** In the window beside the panel, the
+row for whoever is holding somebody carries three cells: the holder's name, the okrzyk they hold
+with in the quiet ink, and the cast's turns. The name is sized by its own text, the turns do not
+fold, and the **okrzyk** is what shrinks — down to a floor it never goes under, because a cut that
+leaves nothing says less than no okrzyk at all. The panel's ordinary rule gives the name whatever is
+left over instead, which on this row drew a nickname at three pixels. The measurements and the floor
+are `src/ui/panel-look.ts`'s, beside the rule they set. **ADR 0097.**
+
 The rule is colour, so it carries a word: the card names the side in full — `Mag (120) · My` — which
 is what _Colour Never Alone_ asks and what the strip under the list already anchors the two inks to.
 The lightness of the name was measured and refused instead: a row's name sits over its own bar, and

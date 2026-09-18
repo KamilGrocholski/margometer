@@ -243,3 +243,6 @@ edited to agree with the new rule.
   counts it as one. **Accepted**
 - [0096](0096-the-name-a-card-opens-with-folds.md) — The name a card opens with folds, and the count
   folds with it. **Accepted**
+- [0097](0097-an-okrzyk-stands-twice-because-the-table-dates-it-twice.md) — An okrzyk is two dated
+  halves on one announcement: the side-wide one stands, the shout holds, and the row names which
+  okrzyk it is. **Accepted**

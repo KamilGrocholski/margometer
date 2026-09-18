@@ -185,15 +185,25 @@ Deno.test("the provocation register is what the recordings hold, and the other w
     );
 });
 
-Deno.test("a shout is in one register or the other, and never in both", () => {
+/**
+ * ⚠️ **This read the other way until 2026-09-18**, when an okrzyk was in one register or the
+ * other and never in both. It is in both because it *is* both: the published table dates the
+ * shout and the side-wide half apart, and the second half was being thrown away. **ADR 0097.**
+ */
+Deno.test("an okrzyk is in both registers, because the table dates both of its halves", () => {
     const stood = new Set(composeAuraRows(readRecordingPaths()).map((one) => one.skillId));
-    for (const row of composeProvocationRows(readRecordingPaths())) {
+    const shouted = composeProvocationRows(readRecordingPaths());
+    assert(shouted.length > 0, "the corpus holds shouts for the registers to disagree about");
+    for (const row of shouted) {
         assert(
-            !stood.has(row.skillId),
-            `${row.skillName}: a shout holds characters rather than standing on a side`,
+            stood.has(row.skillId),
+            `${row.skillName}: an okrzyk the table dates on both halves stands on both`,
         );
     }
-    assert(stood.size > 0, "and the whole-team casts are still registered beside them");
+    assert(
+        stood.size > shouted.length,
+        "and the whole-team casts are still registered beside them",
+    );
 });
 
 Deno.test("the source register is what the recordings hold, and the other way", () => {
