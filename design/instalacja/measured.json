@@ -16,35 +16,21 @@
         "columnMaximum": 598,
         "paddingAcross": 40,
         "fullColumnFrom": 1138,
-        "characters": 624,
+        "characters": 686,
         "steps": [
             {
                 "order": 1,
                 "isSilent": false,
-                "characters": 145,
+                "characters": 128,
                 "links": 2,
-                "text": "Zainstaluj menedżera skryptów użytkownika — Tampermonkey albo Violentmonkey. Bez niego przeglądarka po prostu pobierze plik i nic się nie stanie."
+                "text": "Menedżer skryptów użytkownika: Tampermonkey albo Violentmonkey. Bez niego przeglądarka tylko pobierze plik i nic się nie stanie."
             },
             {
                 "order": 2,
                 "isSilent": true,
-                "characters": 199,
+                "characters": 191,
                 "links": 0,
-                "text": "⚠ W Chrome i w Edge włącz obsługę skryptów użytkownika — na stronie rozszerzenia, w chrome://extensions. Bez tego nic się nie uruchomi i nic o tym nie powie. Firefox i Safari nie wymagają tego kroku."
-            },
-            {
-                "order": 3,
-                "isSilent": false,
-                "characters": 74,
-                "links": 0,
-                "text": "Kliknij przycisk powyżej. Menedżer rozpozna plik i zaproponuje instalację."
-            },
-            {
-                "order": 4,
-                "isSilent": false,
-                "characters": 76,
-                "links": 0,
-                "text": "Wejdź do gry i zacznij walkę. Panel pojawi się nad grą — taki jak ten niżej."
+                "text": "W Chrome i w Edge włącz obsługę skryptów użytkownika — na stronie rozszerzenia, w chrome://extensions. Bez tego panel się nie pojawi i nic o tym nie powie. Firefox i Safari tego nie wymagają."
             }
         ],
         "columns": [

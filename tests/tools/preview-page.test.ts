@@ -23,12 +23,12 @@ const INSTALL: PreviewInstall = {
     sentence: "what it counts",
     offer: { label: "take it", address: "https://example.test/margometer.user.js" },
     versionLine: "version 1.2.3",
-    stepsLine: "what to do",
-    steps: [
+    needsLine: "what has to be true",
+    needs: [
         { text: "a manager first", isSilent: false },
         { text: "the switch nothing tells you about", isSilent: true },
-        { text: "then a fight", isSilent: false },
     ],
+    afterLine: "then a fight",
 };
 
 const WORDS: PreviewWords = {
@@ -180,12 +180,46 @@ Deno.test("the band over the page is the caller's, and a served page carries non
     assertStringIncludes(dressed, INSTALL.versionLine, "stating which build that is");
     assertStringIncludes(
         dressed,
-        `<li class="preview-warn">the switch nothing tells you about</li>`,
-        "and the step whose failure says nothing, marked where it stands",
+        "the switch nothing tells you about</li>",
+        "and the need whose failure says nothing, in the item it stands in",
     );
+    assertStringIncludes(dressed, INSTALL.afterLine, "and what follows once it is pressed");
     assert(
         dressed.indexOf(PREVIEW_INSTALL_OPENING) < dressed.indexOf(`<div class="preview-strip">`),
         "the band stands over the replay, which is the whole of why it is a band",
+    );
+});
+
+Deno.test("what has to be true stands above the offer, and what follows it below", () => {
+    const dressed = composePreviewPage({ ...composeOptions(CALLS), install: INSTALL });
+    const needs = dressed.indexOf(`<ol class="preview-needs">`);
+    const offer = dressed.indexOf(`<a class="preview-get"`);
+    const after = dressed.indexOf(`<p class="preview-after">`);
+    assert(needs > 0, "the needs are drawn");
+    assert(offer > 0, "so is the offer");
+    // The order is the decision, not the wording: a reader who presses first installs, sees
+    // nothing, and only then reaches the line that would have told them why.
+    assert(needs < offer, "what has to be true is read before the button, not after it");
+    assert(offer < after, "and what happens next is read after it");
+});
+
+Deno.test("the mark on the silent need is drawn rather than spelled", () => {
+    const dressed = composePreviewPage({ ...composeOptions(CALLS), install: INSTALL });
+    const marked = dressed.indexOf(`<li class="preview-warn">`);
+    assert(marked > 0, "the silent need is the marked one");
+    assertStringIncludes(
+        dressed.slice(marked, marked + 120),
+        "<svg",
+        "ADR 0092: the mark is drawn, so no glyph set decides whether it renders",
+    );
+    const plain = composePreviewPage({
+        ...composeOptions(CALLS),
+        install: { ...INSTALL, needs: [{ text: "only this", isSilent: true }] },
+    });
+    assertEquals(
+        plain.includes(`<li>only this</li>`),
+        false,
+        "and an unmarked item carries neither the class nor the mark",
     );
 });
 

@@ -17,9 +17,9 @@ a:hover { color: #b9d4f2; }
 <div style="width: 1280px; height: 940px; box-sizing: border-box; background: #0b0d10; display: flex; flex-direction: column;">
 
   <div style="padding: 22px 24px 14px; display: flex; flex-direction: column; gap: 6px;">
-    <div style="font-size: 26px; font-weight: 600; color: #e6eaf1;">Rekomendacja — warunki nad przyciskiem</div>
+    <div style="display: flex; align-items: center; gap: 12px;"><span style="font-size: 26px; font-weight: 600; color: #e6eaf1;">Rekomendacja — warunki nad przyciskiem</span><span style="padding: 3px 9px; border-radius: 4px; background: #1e3226; border: 1px solid #3f8a63; color: #9fd7b6; font-size: 12px; font-weight: 600;">wdrożone</span></div>
     <div style="font-size: 14px; color: #a8b2c0;">Ten sam pas, ta sama strona, inna kolejność: najpierw to, co musi być prawdą, potem przycisk, potem jedno zdanie o tym, co się stanie.</div>
-    <div style="font-size: 12px; color: #737f8f;">Runda kończy się rekomendacją i nie rusza <span style="color: #9aa6b6;">tools/preview-site.ts</span>. Panel rysowany z <span style="color: #9aa6b6;">measured.json</span> w prawdziwych 260&nbsp;px.</div>
+    <div style="font-size: 12px; color: #737f8f;">Ten układ stoi na stronie od 2026-09-18: <span style="color: #9aa6b6;">composeSiteInstall</span> w <span style="color: #9aa6b6;">tools/preview-site.ts</span>, kolejność trzymana przez dwa strażniki. Panel rysowany z <span style="color: #9aa6b6;">measured.json</span> w prawdziwych 260&nbsp;px.</div>
   </div>
 
   <div style="position: relative; width: 1280px; height: 760px; background: #14171c; color: #c8cdd6; font-size: 13px; line-height: 1.5; border-top: 1px solid #2c323c; border-bottom: 1px solid #2c323c; overflow: hidden;">
@@ -99,7 +99,7 @@ a:hover { color: #b9d4f2; }
     <div style="width: 300px; font-size: 12.5px; line-height: 1.55; color: #a8b2c0;"><span style="color: #7fd18a; font-weight: 600;">Warunek przed ofertą.</span> Oba kroki, bez których nic nie zadziała, stoją nad przyciskiem. Kto klika od razu, przeczytał je po drodze.</div>
     <div style="width: 300px; font-size: 12.5px; line-height: 1.55; color: #a8b2c0;"><span style="color: #7fd18a; font-weight: 600;">Cichy krok ma własną ramkę.</span> Nie pozycja 2 z 4 w jednej liście, tylko kafelek z własnym obrysem i znakiem — rysowanym, nie pisanym (ADR&nbsp;0092 robi tak z zastrzeżeniem w panelu).</div>
     <div style="width: 300px; font-size: 12.5px; line-height: 1.55; color: #a8b2c0;"><span style="color: #7fd18a; font-weight: 600;">Cztery kroki na trzy zdania.</span> Kroki 3 i 4 (74 i 76 znaków) mówiły, co zrobi menedżer i co zrobisz potem — to jedno zdanie pod przyciskiem, nie dwie pozycje listy.</div>
-    <div style="flex-grow: 1; font-size: 12.5px; line-height: 1.55; color: #8f9bb0;"><span style="color: #e8b48b; font-weight: 600;">Do rozstrzygnięcia.</span> Czy kafelek Chrome/Edge ma się sam chować poza Chrome i Edge — arkusz <span style="color: #dfe6ef;">Instalacja</span>.</div>
+    <div style="flex-grow: 1; font-size: 12.5px; line-height: 1.55; color: #8f9bb0;"><span style="color: #e8b48b; font-weight: 600;">Zostaje otwarte.</span> Czy kafelek Chrome/Edge ma się sam chować poza Chrome i Edge — arkusz <span style="color: #dfe6ef;">Instalacja</span>, wariant C. Nie wdrożone.</div>
   </div>
 
 </div>

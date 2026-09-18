@@ -200,7 +200,7 @@ Deno.test("the band states the version behind its button", () => {
     assert(!band.includes("0.0.0"), "and never the constant a build writes over");
 });
 
-Deno.test("the step whose failure is silent is on the page, and it is marked", () => {
+Deno.test("the need whose failure is silent is on the page, and it is marked", () => {
     const landing = composePreviewSitePages(VERSION)[0];
     assertExists(landing, "there is a page to read");
     const band = getInstallBandInText(landing.text);
@@ -208,8 +208,25 @@ Deno.test("the step whose failure is silent is on the page, and it is marked", (
     assertStringIncludes(band, "chrome://extensions", "the switch is named where it is thrown");
     assertStringIncludes(band, "nic o tym nie powie", "and what happens to somebody who misses it");
     const marked = band.indexOf(`<li class="preview-warn">`);
-    assert(marked > 0, "it is marked where it stands, among the steps rather than beside them");
-    assert(marked < band.indexOf("chrome://extensions"), "and that is the step so marked");
+    assert(marked > 0, "it is marked where it stands, among the needs rather than beside them");
+    assert(marked < band.indexOf("chrome://extensions"), "and that is the need so marked");
+});
+
+Deno.test("the published band states both needs before it offers the file", () => {
+    const landing = composePreviewSitePages(VERSION)[0];
+    assertExists(landing, "there is a page to read");
+    const band = getInstallBandInText(landing.text);
+    assertExists(band, "which opens with the band");
+    const switchAt = band.indexOf("chrome://extensions");
+    const managerAt = band.indexOf("tampermonkey.net");
+    const offerAt = band.indexOf(`<a class="preview-get"`);
+    assert(managerAt > 0, "the manager is one of them");
+    assert(switchAt > 0, "the switch nobody is told about is the other");
+    // Both are preconditions, so a reader meeting the button first has already been told what
+    // it will not do on its own. The switch was the second of four items under it until
+    // 2026-09-18, and the longest of them.
+    assert(managerAt < offerAt, "the manager is read before the button");
+    assert(switchAt < offerAt, "and so is the switch");
 });
 
 Deno.test("the reader over what a page loads flags a stylesheet and not a link", () => {

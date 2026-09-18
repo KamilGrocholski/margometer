@@ -67,41 +67,37 @@ const PREVIEW_SITE_INTRODUCTION = [
  * never a link: a browser refuses that navigation from a page, so an anchor there does nothing
  * when it is pressed and reads as broken. Nothing here names the fight below it, because
  * `index.html` is a copy of one recording's own page and the two are held equal.
+ *
+ * The two needs stand above the button and what follows it is one sentence; why that order is
+ * `PreviewInstall`'s to say, and `design/instalacja/` measured it.
  */
 function composeSiteInstall(version: string): PreviewInstall {
     assert(version.length > 0, "the band states the build behind its button");
     assert(USERSCRIPT_DOWNLOAD_ADDRESS.length > 0, "and the file that button hands over");
     return {
         name: "MargoMeter",
-        sentence: "Licznik obrażeń do Margonem.",
-        offer: { label: "Zainstaluj MargoMeter", address: USERSCRIPT_DOWNLOAD_ADDRESS },
-        versionLine: `wersja ${version}`,
-        stepsLine: "Co trzeba zrobić:",
-        steps: [
+        sentence: "Licznik obrażeń do Margonem. Pokazuje, ile każda postać zadała i dostała " +
+            "w walce, którą właśnie stoczyłeś.",
+        needsLine: "Potrzebujesz dwóch rzeczy — obu przed instalacją:",
+        needs: [
             {
-                text: "Zainstaluj menedżera skryptów użytkownika — " +
+                text: "Menedżer skryptów użytkownika: " +
                     '<a href="https://www.tampermonkey.net/">Tampermonkey</a> albo ' +
                     '<a href="https://violentmonkey.github.io/">Violentmonkey</a>. ' +
-                    "Bez niego przeglądarka po prostu pobierze plik i nic się nie stanie.",
+                    "Bez niego przeglądarka tylko pobierze plik i nic się nie stanie.",
                 isSilent: false,
             },
             {
-                text: "⚠ W Chrome i w Edge włącz obsługę skryptów użytkownika — na stronie " +
-                    "rozszerzenia, w chrome://extensions. Bez tego nic się nie uruchomi i nic " +
-                    "o tym nie powie. Firefox i Safari nie wymagają tego kroku.",
+                text: "<strong>W Chrome i w Edge włącz obsługę skryptów użytkownika</strong> — " +
+                    "na stronie rozszerzenia, w chrome://extensions. Bez tego panel się nie " +
+                    "pojawi i nic o tym nie powie. Firefox i Safari tego nie wymagają.",
                 isSilent: true,
             },
-            {
-                text: "Kliknij przycisk powyżej. Menedżer rozpozna plik i zaproponuje " +
-                    "instalację.",
-                isSilent: false,
-            },
-            {
-                text: "Wejdź do gry i zacznij walkę. Panel pojawi się nad grą — taki jak ten " +
-                    "niżej.",
-                isSilent: false,
-            },
         ],
+        offer: { label: "Zainstaluj MargoMeter", address: USERSCRIPT_DOWNLOAD_ADDRESS },
+        versionLine: `wersja ${version}`,
+        afterLine: "Menedżer rozpozna plik i zaproponuje instalację. Potem wejdź do gry " +
+            "i zacznij walkę — panel pojawi się nad nią, taki jak ten niżej.",
     };
 }
 

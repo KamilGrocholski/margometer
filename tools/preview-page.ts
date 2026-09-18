@@ -25,7 +25,22 @@ export const PREVIEW_GAME_SCRIPT_NAME = `main.min${PREVIEW_GAME_BUILD}.js`;
  */
 export const PREVIEW_INSTALL_OPENING = `<header class="preview-install">`;
 /** Past which nobody reads as far as the button — **S11**. */
-const MAXIMUM_INSTALL_STEPS = 6;
+/**
+ * What must be true before the button, and no more than a person reads standing up. The band
+ * exists because somebody will not read a README, so a band long enough to need reading is the
+ * failure it was written against.
+ */
+const MAXIMUM_INSTALL_NEEDS = 4;
+
+/**
+ * The mark on the need whose failure is silent, **drawn rather than spelled** — **ADR 0092** does
+ * the same to the panel's caveat and for the same reason: a glyph out of a set takes a face the
+ * page never asked for, and renders as a box where that face is missing. This band is the one
+ * thing on the page that has to be read.
+ */
+const SILENT_MARK = '<svg class="preview-mark" viewBox="0 0 18 18" aria-hidden="true">' +
+    '<path d="M9 2.4 16.2 15H1.8Z"></path><path d="M9 7v4"></path>' +
+    '<path d="M9 13.2v.1"></path></svg>';
 
 /**
  * Where a column of text ends, so nothing the page writes runs under the two windows the corner
@@ -70,8 +85,8 @@ export interface PreviewInstallOffer {
     address: string;
 }
 
-/** One thing to do, and whether it is the one whose failure says nothing. */
-export interface PreviewInstallStep {
+/** One thing that must be true before the button, and whether its failure says nothing. */
+export interface PreviewInstallNeed {
     text: string;
     isSilent: boolean;
 }
@@ -86,11 +101,19 @@ export interface PreviewInstall {
     name: string;
     /** One sentence of what it is, for somebody who has never seen the panel. */
     sentence: string;
+    needsLine: string;
+    /**
+     * Stated **above** the offer, which is the whole of what this ordering is for: a reader who
+     * presses first installs, sees nothing, and only then reaches the line that would have told
+     * them why. Measured on the band as it stood on 2026-09-18: the one whose failure is silent
+     * was the longest of four at 199 characters, second in the list, and under the button.
+     */
+    needs: readonly PreviewInstallNeed[];
     offer: PreviewInstallOffer;
     /** What the button hands over, so a reader sees which build they are taking. */
     versionLine: string;
-    stepsLine: string;
-    steps: readonly PreviewInstallStep[];
+    /** What happens once it is pressed, which is the only thing left to say afterwards. */
+    afterLine: string;
 }
 
 export interface PreviewPageOptions {
@@ -173,14 +196,16 @@ function composePreviewInstall(install: PreviewInstall): string {
     // sending this one must land on the same file, and `./` beside a page is whatever that host
     // last deployed.
     assert(install.offer.address.startsWith("https://"), "and it hands over a file, not a path");
+    assert(install.afterLine.length > 0, "and what happens once it is pressed");
     const button = `<a class="preview-get" href="${install.offer.address}">` +
         `${install.offer.label}</a>`;
     return `${PREVIEW_INSTALL_OPENING}
   <h1>${install.name}</h1>
   <p class="preview-lede">${install.sentence}</p>
+${composePreviewInstallNeeds(install)}
   <p class="preview-take">${button}
     <span class="preview-version">${install.versionLine}</span></p>
-${composePreviewInstallSteps(install)}
+  <p class="preview-after">${install.afterLine}</p>
 </header>`;
 }
 
@@ -189,17 +214,17 @@ ${composePreviewInstallSteps(install)}
  * a numbered list does not go looking for a warning beside it, and that step is the one whose
  * omission leaves a clean page, no panel, and nothing said about either.
  */
-function composePreviewInstallSteps(install: PreviewInstall): string {
-    assert(install.stepsLine.length > 0, "the steps say what they are for");
-    assert(install.steps.length > 0, "and there is at least one of them");
-    assert(install.steps.length <= MAXIMUM_INSTALL_STEPS, "and not more than a reader walks");
-    assert(install.steps.some((step) => step.isSilent), "the one that says nothing is among them");
-    const items = install.steps.map((step) => {
-        const marked = step.isSilent ? ` class="preview-warn"` : "";
-        return `    <li${marked}>${step.text}</li>`;
+function composePreviewInstallNeeds(install: PreviewInstall): string {
+    assert(install.needsLine.length > 0, "the needs say what they are for");
+    assert(install.needs.length > 0, "and there is at least one of them");
+    assert(install.needs.length <= MAXIMUM_INSTALL_NEEDS, "and not more than a reader walks");
+    assert(install.needs.some((need) => need.isSilent), "the one that says nothing is among them");
+    const items = install.needs.map((need) => {
+        if (!need.isSilent) return `    <li>${need.text}</li>`;
+        return `    <li class="preview-warn">${SILENT_MARK}${need.text}</li>`;
     }).join("\n");
-    return `  <p class="preview-steps-line">${install.stepsLine}</p>
-  <ol class="preview-steps">
+    return `  <p class="preview-needs-line">${install.needsLine}</p>
+  <ol class="preview-needs">
 ${items}
   </ol>`;
 }
@@ -231,10 +256,15 @@ function composePreviewStyle(): string {
   font-weight: 600; text-decoration: none; white-space: nowrap; }
 .preview-version { margin-left: 10px; color: #8f9bb0; }
 .preview-install a { color: #8fb8e8; }
-.preview-steps-line { margin: 16px 0 6px; color: #8f9bb0; }
-.preview-steps { margin: 0; padding-left: 20px; }
-.preview-steps li { margin-bottom: 5px; }
-.preview-warn { color: #e8b48b; }
+.preview-needs-line { margin: 16px 0 8px; color: #8f9bb0; }
+.preview-needs { margin: 0 0 16px; padding: 0 0 0 26px; display: flex;
+  flex-direction: column; gap: 8px; }
+.preview-needs li { padding: 9px 12px; border: 1px solid #2c323c; border-radius: 6px;
+  background: #181c22; }
+.preview-warn { border-color: #5c4530; background: #211c17; color: #e8c3a2; }
+.preview-mark { width: 18px; height: 18px; margin: 0 6px -4px 0; fill: none;
+  stroke: #e8b48b; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.preview-after { margin: 8px 0 0; color: #8f9bb0; }
 .preview-install + .preview-intro { padding-top: 14px; }
 .preview-strip { position: fixed; left: 12px; bottom: 12px; z-index: 9000;
   display: flex; flex-direction: column; gap: 6px; padding: 10px 12px;

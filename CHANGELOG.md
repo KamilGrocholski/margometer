@@ -36,9 +36,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
-- **Nowość** — MargoMeter instaluje się teraz jednym kliknięciem ze strony z podglądem. Na górze
-  stoi przycisk, obok niego numer wersji, a pod spodem to, co trzeba zrobić wcześniej — w Chrome i w
-  Edge łatwo ten krok przeoczyć, bo bez niego nic się nie uruchamia i nic o tym nie mówi.
+- **Nowość** — MargoMeter instaluje się teraz jednym kliknięciem ze strony z podglądem. Najpierw
+  stoją dwie rzeczy, bez których nic nie zadziała: menedżer skryptów, a w Chrome i w Edge
+  przełącznik, który łatwo przeoczyć, bo bez niego nic się nie uruchamia i nic o tym nie mówi.
+  Dopiero pod nimi przycisk i numer wersji, a pod przyciskiem jedno zdanie o tym, co będzie dalej.
 
 - **Nowość** — Pomocnik mówi teraz, który z dwóch okrzyków kogoś trzyma: jego nazwa stoi obok osoby,
   która go rzuciła. Te dwa okrzyki nie robią tego samego — jeden wzmacnia drużynę rzucającego, drugi
@@ -51,6 +52,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Zmiana** — Wszystkie głębokie rany liczą się teraz na karcie ciosu w jednym wierszu, a pod nim
   stoi, ile z nich coś osłabiło. Do tej pory osłabione rany stały w osobnym wierszu i postać, której
   każdą ranę coś osłabiło, nie miała na karcie żadnej liczby ran.
+
+- **Poprawka** — Na stronie z podglądem zdanie pod przyciskiem nie chowa się już za panelem przy
+  węższym oknie. Mówi ono jako jedyne, że walka niżej jest nagraniem, a nie żywą grą, i że wszystko
+  liczy się w tej przeglądarce — przy oknie szerokim na 800 punktów jego ostatnia trzecia część
+  leżała pod panelem.
 
 - **Poprawka** — W Pomocniku każdy wiersz z postacią ma teraz okienko z opisem: cały nick, okrzyk
   albo umiejętność, pod którą ta postać stoi, i tury. Do tej pory, kiedy nick albo nazwa okrzyku nie
