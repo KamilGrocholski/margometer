@@ -13,6 +13,7 @@ import { PLACE, STANDING } from "@/src/ui/panel-look.ts";
 import { PANEL_GAP, PANEL_INSET, getSheetPixels } from "@/tools/preview-windows.ts";
 import { PREVIEW_INSTALL_OPENING } from "@/tools/preview-page.ts";
 import { composeFightReplay } from "@/tools/fight-replay.ts";
+import { composePanelReading } from "@/src/ui/panel-reading.ts";
 import {
     getPreviewRecordedFight,
     getRecordedFights,
@@ -238,6 +239,55 @@ function composeMeasuredReach(stripLeft: number, panelWidth: number, inset: numb
     }));
 }
 
+/**
+ * The panel as the panel composes it, and never as a sheet remembers it. A share here is
+ * `shareText` off the shipped reading: the screen is counted a second time from the statistics,
+ * so a row's percent is not its figure over the sum of the rows, and a sheet dividing for itself
+ * draws a column that does not add up to the one a reader sees.
+ */
+function composeMeasuredPanel(replay: ReturnType<typeof composeFightReplay>) {
+    const reading = composePanelReading(
+        replay.statistics,
+        replay.roster,
+        "damageDealtApplied",
+        "everyone",
+        replay.reading.readerSide,
+        {
+            messagesLost: replay.reading.messagesLost,
+            hasJoinedInProgress: replay.reading.hasJoinedInProgress,
+            messagesRead: replay.reading.messagesRead,
+        },
+    );
+    const bySide = new Map<number, number>();
+    for (const one of replay.roster.byId.values()) {
+        bySide.set(one.side, (bySide.get(one.side) ?? 0) + 1);
+    }
+    assert(reading.rows.length > 0, "the fight the landing page opens on draws rows");
+    return {
+        outcome: reading.outcome,
+        headcountBySide: [...bySide.entries()].map(([side, count]) => ({ side, count })),
+        total: reading.total,
+        visibleRows: reading.visibleRows,
+        rows: reading.rows.map((row, at) => ({
+            rank: at + 1,
+            name: row.name,
+            side: row.side,
+            profession: row.profession,
+            figure: row.figure,
+            fill: row.fill,
+            shareText: row.shareText,
+        })),
+        pinned: reading.pinned.map((one) => ({
+            case: one.case,
+            standing: one.standing,
+            figure: one.figure,
+            fill: one.fill,
+            shareText: one.shareText,
+        })),
+        sides: reading.sides,
+    };
+}
+
 function composeMeasuredFight() {
     const fight = getPreviewRecordedFight(getRecordedFights());
     const replay = composeFightReplay(fight);
@@ -264,6 +314,7 @@ function composeMeasuredFight() {
         isOver: replay.reading.isOver,
         readerSide: replay.reading.readerSide,
         combatants,
+        panel: composeMeasuredPanel(replay),
         totals: {
             damageDealtApplied: replay.statistics.totals.damageDealtApplied,
             healthGiven: replay.statistics.totals.healthGiven,

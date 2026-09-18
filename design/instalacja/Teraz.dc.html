@@ -51,7 +51,7 @@ a:hover { color: #b9d4f2; }
     <div style="position: absolute; left: 1012px; top: 8px; width: 260px; background: #0f161d; border: 1px solid #232b33; border-radius: 8px; overflow: hidden; font-size: 11px; line-height: 15px; color: #e3e7ea;">
       <div style="height: 21px; padding: 0 6px; display: flex; align-items: center; justify-content: space-between; background: #171e25; border-bottom: 1px solid #232b33; font-size: 11px; line-height: 13px; letter-spacing: 0.06em; color: #979fa8;"><span>MargoMeter</span><span>0.17.0</span></div>
       <div style="padding: 5px 7px; display: flex; flex-direction: column; gap: 4px;">
-        <div style="display: flex; justify-content: space-between; color: #979fa8;"><span>11 postaci</span><span>wygrana</span></div>
+        <div style="display: flex; justify-content: space-between; color: #979fa8;"><span>10 vs 1</span><span style="letter-spacing: 0.06em; font-size: 10px;">PRZEGRANA</span></div>
         <div style="display: flex; gap: 4px; color: #979fa8;"><span style="color: #e3e7ea;">Obrażenia zadane</span><span style="margin-left: auto;">Wszyscy</span></div>
         <div style="display: flex; flex-direction: column;">
           <sc-for list="{{rows}}" as="row" hint-placeholder-count="11">
@@ -68,8 +68,17 @@ a:hover { color: #b9d4f2; }
             </div>
           </sc-for>
         </div>
-        <div style="color: #979fa8; letter-spacing: 0.06em; font-size: 10px; padding-top: 2px;">POZA RANKINGIEM</div>
-        <div style="display: flex; justify-content: space-between;"><span>Poza wierszami</span><span style="font-variant-numeric: tabular-nums;">13 427</span></div>
+        <div style="position: relative; height: 18px; border-radius: 3px; overflow: hidden; background: #1b232a; margin-top: 2px;">
+          <div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{unnamed.barWidth}}; background: repeating-linear-gradient(135deg, #2a333c 0 4px, #1b232a 4px 8px);"></div>
+          <div style="position: relative; display: flex; align-items: center; height: 18px; padding: 0 6px 0 7px; gap: 4px;">
+            <span style="width: 22px;"></span>
+            <span style="color: #9299a0;">Nieznany sprawca</span>
+            <span style="margin-left: auto; font-variant-numeric: tabular-nums;">{{unnamed.figure}}</span>
+            <span style="color: #979fa8; font-variant-numeric: tabular-nums;">{{unnamed.share}}</span>
+          </div>
+        </div>
+        <div style="display: flex; justify-content: space-between; padding-top: 2px; font-variant-numeric: tabular-nums;"><span style="color: #00d083;">{{sides.reader}}</span><span style="color: #979fa8;">My / Oni</span><span style="color: #ff8685;">{{sides.opposing}}</span></div>
+        <div style="display: flex; height: 3px; border-radius: 3px; overflow: hidden;"><div style="width: {{sides.readerShare}}; background: #00d083;"></div><div style="flex-grow: 1; background: #ff8685;"></div></div>
       </div>
     </div>
 
@@ -103,32 +112,43 @@ class Component extends DCLogic {
   renderVals() {
     const palette = { m: '#157cd0', h: '#3f8e2b', p: '#bb4a7f', t: '#9d6f00', b: '#008e71', w: '#c2502b' };
     const bar = { m: 'rgb(25 76 128)', h: 'rgb(47 94 43)', p: 'rgb(115 56 89)', t: 'rgb(99 77 19)', b: 'rgb(12 94 81)', w: 'rgb(119 60 43)' };
+    // Every figure below is measured.json's, and a share is the panel's own shareText: the screen
+    // is counted a second time from the statistics, so a row's percent is not its figure over the
+    // sum of the rows. A sheet dividing for itself drew 64,8% where the panel draws 63%.
     const read = [
-      { name: 'Amaimon Soploręki', profession: 'p', side: 2, figure: 241367 },
-      { name: 'Gracz 4', profession: 'b', side: 1, figure: 33251 },
-      { name: 'Gracz 2', profession: 'h', side: 1, figure: 21733 },
-      { name: 'Gracz 8', profession: 't', side: 1, figure: 17301 },
-      { name: 'Gracz 6', profession: 'w', side: 1, figure: 16807 },
-      { name: 'Gracz 7', profession: 'p', side: 1, figure: 13050 },
-      { name: 'Gracz 5', profession: 'p', side: 1, figure: 8326 },
-      { name: 'Gracz 9', profession: 't', side: 1, figure: 7982 },
-      { name: 'Gracz 10', profession: 't', side: 1, figure: 7945 },
-      { name: 'Gracz 1', profession: 'w', side: 1, figure: 4781 },
-      { name: 'Gracz 3', profession: 'w', side: 1, figure: 0 }
+      { name: "Amaimon Soploręki", profession: "p", side: 2, figure: 241367, share: '63%', fill: 1.000000 },
+      { name: "Gracz 4", profession: "b", side: 1, figure: 33251, share: '9%', fill: 0.137761 },
+      { name: "Gracz 2", profession: "h", side: 1, figure: 21733, share: '6%', fill: 0.090041 },
+      { name: "Gracz 8", profession: "t", side: 1, figure: 17301, share: '5%', fill: 0.071679 },
+      { name: "Gracz 6", profession: "w", side: 1, figure: 16807, share: '4%', fill: 0.069633 },
+      { name: "Gracz 7", profession: "p", side: 1, figure: 13050, share: '3%', fill: 0.054067 },
+      { name: "Gracz 5", profession: "p", side: 1, figure: 8326, share: '2%', fill: 0.034495 },
+      { name: "Gracz 9", profession: "t", side: 1, figure: 7982, share: '2%', fill: 0.033070 },
+      { name: "Gracz 10", profession: "t", side: 1, figure: 7945, share: '2%', fill: 0.032917 },
+      { name: "Gracz 1", profession: "w", side: 1, figure: 4781, share: '1%', fill: 0.019808 },
+      { name: "Gracz 3", profession: "w", side: 1, figure: 0, share: '0%', fill: 0.000000 }
     ];
-    const total = 372543;
-    const largest = 241367;
     const rows = read.map((one, at) => ({
       rank: String(at + 1),
       name: one.name,
       figure: one.figure.toLocaleString('pl-PL'),
-      share: '(' + (one.figure * 100 / total).toFixed(1).replace('.', ',') + '%)',
-      barWidth: (one.figure * 100 / largest).toFixed(1) + '%',
+      share: '(' + one.share + ')',
+      barWidth: (one.fill * 100).toFixed(1) + '%',
       barColour: bar[one.profession],
       professionColour: palette[one.profession],
       sideColour: one.side === 1 ? '#00d083' : '#ff8685'
     }));
-    return { rows };
+    const unnamed = {
+      figure: (13427).toLocaleString('pl-PL'),
+      share: '(3%)',
+      barWidth: (0.055629 * 100).toFixed(1) + '%'
+    };
+    const sides = {
+      reader: (141710).toLocaleString('pl-PL'),
+      opposing: (244260).toLocaleString('pl-PL'),
+      readerShare: (141710 * 100 / 385970).toFixed(1) + '%'
+    };
+    return { rows, unnamed, sides };
   }
 }
 </script>

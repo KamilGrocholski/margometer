@@ -16,7 +16,7 @@
         "columnMaximum": 598,
         "paddingAcross": 40,
         "fullColumnFrom": 1138,
-        "characters": 686,
+        "characters": 682,
         "steps": [
             {
                 "order": 1,
@@ -458,6 +458,136 @@
                 "healthGiven": 292
             }
         ],
+        "panel": {
+            "outcome": "lost",
+            "headcountBySide": [
+                {
+                    "side": 1,
+                    "count": 10
+                },
+                {
+                    "side": 2,
+                    "count": 1
+                }
+            ],
+            "total": 372543,
+            "visibleRows": 11,
+            "rows": [
+                {
+                    "rank": 1,
+                    "name": "Amaimon Soploręki",
+                    "side": 2,
+                    "profession": "p",
+                    "figure": 241367,
+                    "fill": 1,
+                    "shareText": "63%"
+                },
+                {
+                    "rank": 2,
+                    "name": "Gracz 4",
+                    "side": 1,
+                    "profession": "b",
+                    "figure": 33251,
+                    "fill": 0.13776116867674537,
+                    "shareText": "9%"
+                },
+                {
+                    "rank": 3,
+                    "name": "Gracz 2",
+                    "side": 1,
+                    "profession": "h",
+                    "figure": 21733,
+                    "fill": 0.0900413063923403,
+                    "shareText": "6%"
+                },
+                {
+                    "rank": 4,
+                    "name": "Gracz 8",
+                    "side": 1,
+                    "profession": "t",
+                    "figure": 17301,
+                    "fill": 0.07167922706915196,
+                    "shareText": "5%"
+                },
+                {
+                    "rank": 5,
+                    "name": "Gracz 6",
+                    "side": 1,
+                    "profession": "w",
+                    "figure": 16807,
+                    "fill": 0.06963255126011426,
+                    "shareText": "4%"
+                },
+                {
+                    "rank": 6,
+                    "name": "Gracz 7",
+                    "side": 1,
+                    "profession": "p",
+                    "figure": 13050,
+                    "fill": 0.05406704313348552,
+                    "shareText": "3%"
+                },
+                {
+                    "rank": 7,
+                    "name": "Gracz 5",
+                    "side": 1,
+                    "profession": "p",
+                    "figure": 8326,
+                    "fill": 0.034495187826007696,
+                    "shareText": "2%"
+                },
+                {
+                    "rank": 8,
+                    "name": "Gracz 9",
+                    "side": 1,
+                    "profession": "t",
+                    "figure": 7982,
+                    "fill": 0.03306997228287214,
+                    "shareText": "2%"
+                },
+                {
+                    "rank": 9,
+                    "name": "Gracz 10",
+                    "side": 1,
+                    "profession": "t",
+                    "figure": 7945,
+                    "fill": 0.03291667875061628,
+                    "shareText": "2%"
+                },
+                {
+                    "rank": 10,
+                    "name": "Gracz 1",
+                    "side": 1,
+                    "profession": "w",
+                    "figure": 4781,
+                    "fill": 0.019808010208520636,
+                    "shareText": "1%"
+                },
+                {
+                    "rank": 11,
+                    "name": "Gracz 3",
+                    "side": 1,
+                    "profession": "w",
+                    "figure": 0,
+                    "fill": 0,
+                    "shareText": "0%"
+                }
+            ],
+            "pinned": [
+                {
+                    "case": "dealtWithNoActor",
+                    "standing": "apart",
+                    "figure": 13427,
+                    "fill": 0.055628979935119546,
+                    "shareText": "3%"
+                }
+            ],
+            "sides": {
+                "reader": 141710,
+                "opposing": 244260,
+                "nobody": 0
+            }
+        },
         "totals": {
             "damageDealtApplied": 372543,
             "healthGiven": 57456,
