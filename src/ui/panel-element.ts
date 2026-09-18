@@ -264,6 +264,16 @@ const TIP_ATTRIBUTE = "data-tip";
  */
 const CRUMB_TIP_KEY = "crumb:back";
 const STANDING_TIP_PREFIX = "standing:";
+/** The one person's row there is only ever one of, whoever is standing on it. */
+const STANDING_NOW_TIP_KEY = `${STANDING_TIP_PREFIX}now`;
+/**
+ * The three kinds of person's row there may be several of, each keyed by what the window already
+ * keys it by. The word in front of the ids says which section drew the row, and keeps all three
+ * clear of `standing:<skillId>`, which is a bare figure and is a counted row's own.
+ */
+const STANDING_CAST_TIP_PREFIX = `${STANDING_TIP_PREFIX}cast:`;
+const STANDING_HOLDING_TIP_PREFIX = `${STANDING_TIP_PREFIX}holding:`;
+const STANDING_HELD_TIP_PREFIX = `${STANDING_TIP_PREFIX}held:`;
 const TITLE_ATTRIBUTE = "title";
 /** What a row's bar is written on, since a length and a hue are data rather than tokens. */
 const STYLE_ATTRIBUTE = "style";
@@ -784,7 +794,11 @@ function composeStandingBar(document: PanelDocument, isCollapsed: boolean): Pane
 }
 
 /** Whose turn the game numbers, or the sentence naming why it numbers none — **ADR 0072**. */
-function composeStandingNow(document: PanelDocument, reading: StandingReading): PanelElement[] {
+function composeStandingNow(
+    document: PanelDocument,
+    reading: StandingReading,
+    register: TipRegister,
+): PanelElement[] {
     const said = reading.turnOrdinal === null ? "" : composeTurnOrdinalText(reading.turnOrdinal);
     const section = composeElement(document, "div", CLASS.section);
     const words = composeElement(document, "span", CLASS.sectionWords);
@@ -799,7 +813,7 @@ function composeStandingNow(document: PanelDocument, reading: StandingReading): 
         empty.textContent = getWordsForTurnState(reading.turnState);
         return [section, empty];
     }
-    const row = composeStandingPersonElement(document, {
+    const row = composeStandingPersonElement(document, register, STANDING_NOW_TIP_KEY, {
         name: holder.name,
         skillName: null,
         colour: holder.colour,
@@ -875,6 +889,7 @@ function composeChargedSkillElements(
 function composeProvokedElements(
     document: PanelDocument,
     reading: StandingReading,
+    register: TipRegister,
 ): PanelElement[] {
     if (reading.provoked.length === 0) return [];
     // The characters held, and never the casts holding them: **ADR 0062**'s heading counts people.
@@ -884,18 +899,35 @@ function composeProvokedElements(
         composeSectionElement(document, STANDING_WORDS.provocation, counted),
     ];
     for (const provocation of reading.provoked) {
-        drawn.push(composeStandingPersonElement(document, {
-            name: provocation.casterName,
-            skillName: provocation.skillName,
-            colour: provocation.casterColour,
-            sidePart: provocation.casterSidePart,
-            turns: composeStandingTurnsText(provocation.turnsElapsed, provocation.turnsStated),
-            isUnder: false,
-        }));
+        // The fold's own key, so a card is filed under the cast rather than under the person: one
+        // caster shouting both okrzyki stands twice (**ADR 0097**).
+        const cast = `${composeIntegerText(provocation.casterId)}/${
+            composeIntegerText(provocation.skillId)
+        }`;
+        drawn.push(composeStandingPersonElement(
+            document,
+            register,
+            `${STANDING_HOLDING_TIP_PREFIX}${cast}`,
+            {
+                name: provocation.casterName,
+                skillName: provocation.skillName,
+                colour: provocation.casterColour,
+                sidePart: provocation.casterSidePart,
+                turns: composeStandingTurnsText(provocation.turnsElapsed, provocation.turnsStated),
+                isUnder: false,
+            },
+        ));
         for (const held of provocation.provoked) {
-            drawn.push(composeStandingPersonElement(document, {
+            // The cast as well as whoever it holds, although `core/aura-standing.ts` keys a
+            // provocation by that character and so hands each one over once. A key that leans on
+            // somebody else's keying fails silently the day it moves: the register refuses the
+            // second of two rows without a word, and that row then wears its neighbour's card.
+            const key = `${STANDING_HELD_TIP_PREFIX}${cast}/${composeIntegerText(held.provokedId)}`;
+            drawn.push(composeStandingPersonElement(document, register, key, {
                 name: held.name,
-                skillName: null,
+                // Named on the card and never on the row: the row above draws it already, and the
+                // turns under it are the cast's rather than this character's (**ADR 0067**).
+                skillName: provocation.skillName,
                 colour: held.colour,
                 sidePart: held.sidePart,
                 turns: null,
@@ -904,6 +936,48 @@ function composeProvokedElements(
         }
     }
     return drawn;
+}
+
+/** A person as a row of the window beside the panel states them. */
+interface StandingPerson {
+    name: string;
+    /**
+     * The okrzyk this row is about, or null where no cast is. Drawn beside whoever cast it and
+     * never on a row nested under them, where the row above already names it — the card says it
+     * either way, because a card is read away from the row it came from.
+     */
+    skillName: string | null;
+    colour: string;
+    sidePart: PanelSidePart;
+    /** Null where the figure belongs to the row above rather than to this one. */
+    turns: string | null;
+    isUnder: boolean;
+}
+
+/** The okrzyk this row draws, and null on a row standing under the one that already names it. */
+function getStandingPersonCastName(person: StandingPerson): string | null {
+    if (person.isUnder) return null;
+    return person.skillName;
+}
+
+/**
+ * What a person's row had to cut, handed back whole: the name, the okrzyk the row is about under
+ * it, and the turns wherever the row states them. **It is not the ranking's person card** — the
+ * figures of the fight are the panel's and never reach this window, so what stands here is the
+ * card a skill and a fight on the shelf already get. **ADR 0098.**
+ */
+function composeStandingPersonTipReading(person: StandingPerson): TipReading {
+    if (person.turns === null) {
+        return { name: person.name, subtitle: person.skillName, groups: [] };
+    }
+    const stated: TipLine = {
+        kind: "stat",
+        label: STANDING_WORDS.turnsPassed,
+        stated: person.turns,
+        isStrong: false,
+        caveat: null,
+    };
+    return { name: person.name, subtitle: person.skillName, groups: [{ lines: [stated] }] };
 }
 
 /**
@@ -915,43 +989,51 @@ function composeProvokedElements(
  * ⚠️ **The cast rides this row and never a line of its own.** ADR 0067 deleted a wrapping
  * sentence under the holder and took a line back with it; what returns here is two spans on the
  * row that was already there, so the section costs what it cost. **ADR 0097.**
+ *
+ * Both of the cells it draws shorten, so it wears the leaf's cursor and carries the card that
+ * hands them back — **ADR 0098**.
  */
 function composeStandingPersonElement(
     document: PanelDocument,
-    person: {
-        name: string;
-        /** The okrzyk they are holding somebody with, or null wherever nobody is holding. */
-        skillName: string | null;
-        colour: string;
-        sidePart: PanelSidePart;
-        /** Null where the figure belongs to the row above rather than to this one. */
-        turns: string | null;
-        isUnder: boolean;
-    },
+    register: TipRegister,
+    tipKey: string,
+    person: StandingPerson,
 ): PanelElement {
     const nested = person.isUnder ? ` ${CLASS.standingUnder}` : "";
-    const holding = person.skillName === null ? "" : ` ${CLASS.standingHolding}`;
-    const row = composeElement(document, "div", `${CLASS.row}${nested}${holding}`);
+    const castName = getStandingPersonCastName(person);
+    const holding = castName === null ? "" : ` ${CLASS.standingHolding}`;
+    const classes = `${CLASS.row} ${CLASS.rowLeaf}${nested}${holding}`;
+    const row = composeElement(document, "div", classes);
     const cap = composeElement(document, "div", CLASS.barCap);
     cap.setAttribute(STYLE_ATTRIBUTE, `background:${person.colour}`);
     const name = composeElement(document, "span", CLASS.rowName);
     name.textContent = person.name;
     row.append(cap);
     row.append(name);
-    if (person.skillName !== null) {
+    const parts = [cap, name];
+    if (castName !== null) {
         const between = composeElement(document, "span", CLASS.rowShare);
         between.textContent = STANDING_WORDS.castSeparator;
         const cast = composeElement(document, "span", CLASS.standingCast);
-        cast.textContent = person.skillName;
+        cast.textContent = castName;
         row.append(between);
         row.append(cast);
+        parts.push(between, cast);
     }
     if (person.turns !== null) {
         const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
         value.textContent = person.turns;
         row.append(value);
+        parts.push(value);
     }
-    for (const rule of composeSideRuleElements(document, person.sidePart)) row.append(rule);
+    for (const rule of composeSideRuleElements(document, person.sidePart)) {
+        row.append(rule);
+        parts.push(rule);
+    }
+    register.add(tipKey, () => composeStandingPersonTipReading(person));
+    // Every span and not the row alone, for `composeRowElement`'s own reason: a pointer lands on
+    // the node under it, and `getAttribute` is never walked up.
+    setRowMarks([row, ...parts], TIP_ATTRIBUTE, tipKey);
     return row;
 }
 
@@ -1016,15 +1098,24 @@ function composeStandingRowElements(
         drawn.push(element);
         if (row.skillId !== reading.openSkillId) continue;
         for (const caster of row.casters) {
-            drawn.push(composeStandingPersonElement(document, {
-                name: caster.name,
-                // The skill stands on the row above, which is the row these open under.
-                skillName: null,
-                colour: caster.colour,
-                sidePart: caster.sidePart,
-                turns: composeStandingTurnsText(caster.turnsElapsed, caster.turnsStated),
-                isUnder: true,
-            }));
+            const under = `${composeIntegerText(row.skillId)}/${
+                composeIntegerText(caster.casterId)
+            }`;
+            drawn.push(composeStandingPersonElement(
+                document,
+                register,
+                `${STANDING_CAST_TIP_PREFIX}${under}`,
+                {
+                    name: caster.name,
+                    // The skill stands on the row above, which is the row these open under, so
+                    // the row draws none of it and the card is where it is named.
+                    skillName: row.skillName,
+                    colour: caster.colour,
+                    sidePart: caster.sidePart,
+                    turns: composeStandingTurnsText(caster.turnsElapsed, caster.turnsStated),
+                    isUnder: true,
+                },
+            ));
         }
     }
     return drawn;
@@ -1051,7 +1142,7 @@ function composeStandingBody(
     register: TipRegister,
 ): PanelElement {
     const body = composeElement(document, "div", CLASS.standingBody);
-    for (const element of composeStandingNow(document, reading)) body.append(element);
+    for (const element of composeStandingNow(document, reading, register)) body.append(element);
     for (const element of composeChargedSkillElements(document, reading)) body.append(element);
     body.append(composeSectionElement(document, STANDING_WORDS.standing, reading.rows.length));
     if (reading.rows.length === 0) {
@@ -1061,13 +1152,17 @@ function composeStandingBody(
             body.append(empty);
             return body;
         }
-        for (const element of composeProvokedElements(document, reading)) body.append(element);
+        for (const element of composeProvokedElements(document, reading, register)) {
+            body.append(element);
+        }
         return body;
     }
     for (const element of composeStandingRowElements(document, reading, register)) {
         body.append(element);
     }
-    for (const element of composeProvokedElements(document, reading)) body.append(element);
+    for (const element of composeProvokedElements(document, reading, register)) {
+        body.append(element);
+    }
     return body;
 }
 

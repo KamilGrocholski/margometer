@@ -246,3 +246,5 @@ edited to agree with the new rule.
 - [0097](0097-an-okrzyk-stands-twice-because-the-table-dates-it-twice.md) — An okrzyk is two dated
   halves on one announcement: the side-wide one stands, the shout holds, and the row names which
   okrzyk it is. **Accepted**
+- [0098](0098-a-person-beside-the-panel-is-answered-by-what-their-row-cut.md) — A person beside the
+  panel is answered by what their row cut. **Accepted**

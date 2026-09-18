@@ -290,6 +290,7 @@ tests/
   shown-screen.ts          A whole view around one reading, for a test changing one field.
   markdown-document.ts     A section, a table row and a quoted cell, for the guards over one.
   share-text.ts            A share the panel drew, read back into the points it states.
+  drawn-card.ts            The card a row opened, read back out of the root it stands in.
   userscript-entry.test.ts  Every layer at once, driven the way a browser drives them.
   source-line.ts           A line of TypeScript with its string literals taken out.
   style-sheet.ts           The panel's stylesheet read back, for the guards that read it.

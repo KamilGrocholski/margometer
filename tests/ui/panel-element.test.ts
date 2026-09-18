@@ -20,6 +20,7 @@ import { composeFightStatistics } from "@/src/core/fight-statistics.ts";
 import { BUILD_VERSION } from "@/src/build-version.ts";
 import { composePanelHost, type PanelPress, type ShownScreen } from "@/src/ui/panel-element.ts";
 import { composeShownScreen, SHOWN_LIST } from "@/tests/shown-screen.ts";
+import { readTip } from "@/tests/drawn-card.ts";
 import {
     composeDrillReading,
     composeHalfNamedReading,
@@ -1323,55 +1324,6 @@ Deno.test("the panel says which build drew it, in the bar and on the host", () =
         "with the place still drawn, on the header where it belongs",
     );
 });
-
-/** Whatever the detail is saying right now, read back out of the root it stands in. */
-/** One line of the card as a reader meets it: what it is of, what it says, and how it is drawn. */
-interface TipLineRead {
-    label: string;
-    value: string;
-    isStrong: boolean;
-    isSub: boolean;
-}
-
-function readTip(host: FakeElement): {
-    className: string;
-    name: string[];
-    subtitle: string[];
-    notes: string[];
-    headings: string[];
-    groups: number;
-    lines: string[];
-    stated: TipLineRead[];
-} {
-    const tip = (host.shadow ?? []).find((one) => one.className.startsWith(CLASS.tip));
-    assertExists(tip, "the detail is a region of the panel like any other");
-    const name = getTextsByClass(tip, CLASS.tipName);
-    return {
-        className: tip.className,
-        name,
-        subtitle: getTextsByClass(tip, CLASS.tipSubtitle),
-        // By the class among its classes, not by the whole attribute: a note carrying a tone
-        // wears a second class, and an exact match read past every suspicion the panel drew.
-        notes: getElementsWithin(tip)
-            .filter((one) => one.className.split(" ").includes(CLASS.tipNote))
-            .map((one) => one.textContent),
-        headings: getTextsByClass(tip, CLASS.tipHeading),
-        groups: getElementsWithin(tip).filter((one) => one.className === CLASS.tipGroup).length,
-        lines: [
-            ...name,
-            ...getTextsByClass(tip, CLASS.tipLabel),
-            ...getTextsByClass(tip, CLASS.tipValue),
-        ],
-        stated: getElementsWithin(tip)
-            .filter((one) => one.className.startsWith(CLASS.tipLine))
-            .map((one) => ({
-                label: getTextsByClass(one, CLASS.tipLabel)[0] ?? "",
-                value: getTextsByClass(one, CLASS.tipValue)[0] ?? "",
-                isStrong: one.className.includes(CLASS.tipStrong),
-                isSub: one.className.includes(CLASS.tipSub),
-            })),
-    };
-}
 
 /** Whether a `font` shorthand states the whole-pixel line the rest of the panel is drawn on. */
 function getIsLineWhole(font: string): boolean {

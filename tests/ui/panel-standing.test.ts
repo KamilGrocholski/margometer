@@ -30,8 +30,10 @@ import {
     getElementsWithin,
     getPanelWithin,
     getTextsByClass,
+    pointAtElement,
     pressElement,
 } from "@/tests/fake-document.ts";
+import { readTip } from "@/tests/drawn-card.ts";
 
 const OURS = 1;
 const THEIRS = 2;
@@ -237,7 +239,8 @@ Deno.test("whoever holds the turn is drawn as a person, hue, side and all", () =
     );
     assertEquals(reading.holder?.name, "Renegat 1", "the roster places whoever holds it");
     const { host } = draw(reading);
-    const row = getElementsWithin(getWindow(host)).find((one) => one.className === "row");
+    const row = getElementsWithin(getWindow(host))
+        .find((one) => one.className.split(" ")[0] === "row");
     assertExists(row, "and they are drawn as a row");
     assertEquals(
         row.children.find((one) => one.className === "bar-cap")?.getAttribute("style"),
@@ -932,4 +935,161 @@ Deno.test("a press anywhere on a row that opens opens it, every span included", 
         if (pressed.length === 0) deaf.push(`${part.className}:${part.textContent}`);
     }
     assertEquals(deaf, [], "every span of a row that opens answers the press that lands on it");
+});
+
+/**
+ * Both cells of a person's row shorten — the name by the panel's own rule, the okrzyk down to the
+ * floor **ADR 0097** gave it — and until **ADR 0098** no row here carried a card, so what either
+ * of them cut was cut for good. A nickname past the 27 characters a card's name folds at is what
+ * makes the claim mean something: the row states a prefix, the card states the lot.
+ */
+const CUT_NAME = "NajdluzszyNickJakiPrzeszedl";
+
+const CUT_ROSTER = composeCombatantRoster([
+    { id: 11, name: CUT_NAME, side: OURS, profession: "m", level: 40, healthMaximum: 100 },
+    { id: 21, name: "Renegat 1", side: THEIRS, profession: "t", level: 40, healthMaximum: 100 },
+]);
+
+/** Every row a person stands on, in the order the window draws them. */
+function getPersonRows(host: FakeElement): FakeElement[] {
+    return getElementsWithin(getWindow(host)).filter((one) => {
+        const classes = one.className.split(" ");
+        if (classes[0] !== "row") return false;
+        return classes.includes("leaf");
+    });
+}
+
+Deno.test("every person's row in the window carries a card, and no two share one", () => {
+    // One cast holding two characters, because that is the shape where the ids in a key have to
+    // carry whoever is held: both rows stand under one caster and one okrzyk.
+    const reading = composeStandingReading(
+        [composeStanding(11), composeStanding(21)],
+        [composeProvocation(21, 11), composeProvocation(12, 11)],
+        [],
+        ROSTER,
+        OURS,
+        composeTurn({ ordinal: 48, combatantId: 12 }),
+        264,
+    );
+    const { host } = draw(reading);
+    const rows = getPersonRows(host);
+    assertStrictEquals(rows.length, 6, "the turn's holder, two casters, and a cast holding two");
+    const keys = rows.map((one) => one.getAttribute("data-tip"));
+    assert(keys.every((key) => key !== null), "each of them says which card it opens");
+    assertStrictEquals(
+        new Set(keys).size,
+        keys.length,
+        "and no row wears its neighbour's, which the register would refuse in silence",
+    );
+    const skills = getElementsWithin(getWindow(host))
+        .filter((one) => one.className.split(" ").includes("drillable"))
+        .map((one) => one.getAttribute("data-tip"));
+    assertStrictEquals(
+        new Set([...keys, ...skills]).size,
+        keys.length + skills.length,
+        "and a person's key is never a skill row's, which is a bare figure",
+    );
+});
+
+Deno.test("the card of a row holding somebody hands back the name and the okrzyk whole", () => {
+    const reading = composeStandingReading(
+        [],
+        [composeProvocation(21, 11)],
+        [],
+        CUT_ROSTER,
+        OURS,
+        composeTurn(null),
+        null,
+    );
+    const { host } = draw(reading);
+    const rows = getPersonRows(host);
+    const holding = rows[0];
+    assertExists(holding, "the row of whoever is holding stands first");
+    const name = holding.children.find((one) => one.className === "row-name");
+    assertExists(name, "and it draws the name in the cell that shortens");
+    pointAtElement(host, "pointermove", name, 200);
+    const card = readTip(host);
+    assertEquals(card.name, [CUT_NAME], "the card opens with the whole nickname");
+    assertEquals(
+        card.subtitle,
+        ["Wyzywający okrzyk"],
+        "and names the okrzyk under it, which is the cell that gives way first",
+    );
+    assertEquals(
+        card.stated.map((one) => [one.label, one.value]),
+        [[STANDING_WORDS.turnsPassed, "2 z 3 tur"]],
+        "with the turns the row states, under a label of their own",
+    );
+});
+
+/**
+ * **W5: zero is a boundary.** The card above states one figure and this one states none, which is
+ * the difference between a card with a run and a card that is a name and a line under it.
+ */
+Deno.test("a held character's card states no turns, because the turns are the cast's", () => {
+    const reading = composeStandingReading(
+        [],
+        [composeProvocation(21, 11)],
+        [],
+        CUT_ROSTER,
+        OURS,
+        composeTurn(null),
+        null,
+    );
+    const { host } = draw(reading);
+    const held = getPersonRows(host)[1];
+    assertExists(held, "the character held stands under whoever is holding them");
+    pointAtElement(host, "pointermove", held, 200);
+    const card = readTip(host);
+    assertEquals(card.name, ["Renegat 1"], "their card opens with their own name");
+    assertEquals(
+        card.subtitle,
+        ["Wyzywający okrzyk"],
+        "and names what is holding them, which their row leaves to the row above",
+    );
+    assertStrictEquals(card.groups, 0, "and states no turns, which are the cast's (**ADR 0067**)");
+});
+
+Deno.test("a caster's card names the skill their row opened under", () => {
+    const reading = composeStandingReading(
+        [composeStanding(11)],
+        [],
+        [],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        264,
+    );
+    const { host } = draw(reading);
+    const caster = getPersonRows(host)[0];
+    assertExists(caster, "the caster stands under the row that opened");
+    pointAtElement(host, "pointermove", caster, 200);
+    const card = readTip(host);
+    assertEquals(card.name, ["Gracz 1"], "the card opens with whoever cast it");
+    assertEquals(card.subtitle, ["Piętno bestii"], "under the skill the row above names");
+    assertEquals(
+        card.stated.map((one) => one.value),
+        ["3 z 8 tur"],
+        "and states the turns their own row states",
+    );
+});
+
+Deno.test("the row under `Teraz` carries a card of the name alone", () => {
+    const reading = composeStandingReading(
+        [],
+        [],
+        [],
+        CUT_ROSTER,
+        OURS,
+        composeTurn({ ordinal: 48, combatantId: 11 }),
+        null,
+    );
+    const { host } = draw(reading);
+    const row = getPersonRows(host)[0];
+    assertExists(row, "whoever the turn is numbered for is drawn as a person");
+    pointAtElement(host, "pointermove", row, 200);
+    const card = readTip(host);
+    assertEquals(card.name, [CUT_NAME], "the whole nickname, which the row had to cut");
+    assertEquals(card.subtitle, [], "nothing under it, because no cast is what this row is about");
+    assertStrictEquals(card.groups, 0, "and no figure, because the row states none");
 });

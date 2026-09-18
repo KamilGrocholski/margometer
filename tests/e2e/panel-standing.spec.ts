@@ -47,6 +47,8 @@ const STANDING_FOLD_KEY = "MargoMeter-pomocnik-folded";
 /** The air the sheet keeps between a window and the card beside it, as `SPACE.small` states it. */
 const GAP = 4;
 const FOLD_MARK = "—";
+/** The card while it is open, as `tests/e2e/panel-tip.spec.ts` names it. */
+const CARD_OPEN = ".MargoMeter-tip:not(.tip-hidden)";
 const UNFOLD_MARK = "+";
 
 test("the window stands beside the panel and never under it", async ({ panel }) => {
@@ -383,4 +385,92 @@ test("a row of the window says on its card that it opens", async ({ panel }) => 
     await expect(panel.at(".MargoMeter-tip .tip-name"), "which names that row").toHaveText(named);
     expect(await panel.at(".MargoMeter-tip").innerText(), "and says the row opens")
         .toContain("LPM — kto rzucił");
+});
+
+/** A cell as the browser draws it: what it holds, and whether the box is showing all of it. */
+async function readCell(page: Page, selector: string): Promise<
+    { said: string; scrollWidth: number; clientWidth: number; scrollHeight: number } | null
+> {
+    return await page.evaluate((one) => {
+        const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
+        const cell = root?.querySelector(one) ?? null;
+        if (cell === null) return null;
+        return {
+            // `textContent` and never `innerText`: a cell cut by the sheet still holds the whole
+            // of what it was given, which is exactly the gap this pair of readings measures.
+            said: cell.textContent ?? "",
+            scrollWidth: cell.scrollWidth,
+            clientWidth: cell.clientWidth,
+            scrollHeight: cell.scrollHeight,
+        };
+    }, selector);
+}
+
+/**
+ * The `Prowokacja` section had no card at all until **ADR 0098**, so both of its cells cut for
+ * good: the nickname by the panel's own rule and the okrzyk by **ADR 0097**'s, which made it the
+ * cell that gives way. Held here and not in the suite without a browser, because a fake document
+ * cuts nothing — it reads a whole name off a row the browser is drawing short.
+ */
+test("a row holding somebody hands back on its card what its cells cut", async ({ panel }) => {
+    const rows = panel.at(".MargoMeter-standing .row.standing-holding");
+    await expect(rows, "the fight leaves somebody holding somebody").not.toHaveCount(0);
+    const cast = await readCell(panel.page, ".MargoMeter-standing .row.standing-holding .row-name");
+    const okrzyk = await readCell(
+        panel.page,
+        ".MargoMeter-standing .row.standing-holding .standing-cast",
+    );
+    expect(cast, "the row draws a name").not.toBeNull();
+    expect(okrzyk, "and the okrzyk beside it").not.toBeNull();
+    if (cast === null) return;
+    if (okrzyk === null) return;
+
+    await rows.first().hover();
+
+    await expect(panel.at(CARD_OPEN), "hovering it opens a card").toHaveCount(1);
+    const name = await readCell(panel.page, `${CARD_OPEN} .tip-name`);
+    const under = await readCell(panel.page, `${CARD_OPEN} .tip-subtitle`);
+    expect(name?.said, "which opens with the whole name").toBe(cast.said);
+    expect(under?.said, "and names the okrzyk under it, whole").toBe(okrzyk.said);
+    // The okrzyk is the cell ADR 0097 made give way, so it is the one that has to be cut for the
+    // card to be giving anything back. If this ever reads false the fixture stopped exercising it.
+    expect(okrzyk.scrollWidth, "the row itself cut the okrzyk")
+        .toBeGreaterThan(okrzyk.clientWidth);
+    expect(under?.scrollWidth ?? 0, "and the card does not cut it a second time")
+        .toBeLessThanOrEqual((under?.clientWidth ?? 0) + 1);
+    // The key carries this window's own prefix, which is what opens the card beside this window
+    // rather than beside the panel (**ADR 0090**) — a claim only a browser can be asked for.
+    const card = await readEdgesOf(panel.page, CARD_OPEN);
+    const window = await readEdgesOf(panel.page, ".MargoMeter-standing");
+    expect(
+        getIsClearOf(card, window),
+        `the card at ${card.left}..${card.right} is off the window at ` +
+            `${window.left}..${window.right}`,
+    ).toBe(true);
+    await panel.expectHonest("a card open over the row of whoever is holding somebody");
+});
+
+/**
+ * The two rows of one cast name the same okrzyk and the same caster, so a key composed off those
+ * alone would be one key on two rows — and the register refuses the second without a word, leaving
+ * a row wearing its neighbour's card. **ADR 0098** puts the section in the key for this.
+ */
+test("the character a shout holds opens a card of their own", async ({ panel }) => {
+    const held = panel.at(".MargoMeter-standing .row.standing-under");
+    await expect(held, "the fight leaves somebody provoked").not.toHaveCount(0);
+    const holder = await readCell(
+        panel.page,
+        ".MargoMeter-standing .row.standing-holding .row-name",
+    );
+    const under = await readCell(panel.page, ".MargoMeter-standing .row.standing-under .row-name");
+    expect(holder, "the row of whoever is holding draws a name").not.toBeNull();
+    expect(under, "and so does the row under it").not.toBeNull();
+
+    await held.first().hover();
+
+    await expect(panel.at(CARD_OPEN), "hovering it opens a card").toHaveCount(1);
+    const name = await readCell(panel.page, `${CARD_OPEN} .tip-name`);
+    expect(name?.said, "naming whoever is held").toBe(under?.said);
+    expect(name?.said, "and never whoever is holding them").not.toBe(holder?.said);
+    await panel.expectHonest("a card open over a character a shout is holding");
 });

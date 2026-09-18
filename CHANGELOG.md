@@ -48,6 +48,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   stoi, ile z nich coś osłabiło. Do tej pory osłabione rany stały w osobnym wierszu i postać, której
   każdą ranę coś osłabiło, nie miała na karcie żadnej liczby ran.
 
+- **Poprawka** — W Pomocniku każdy wiersz z postacią ma teraz okienko z opisem: cały nick, okrzyk
+  albo umiejętność, pod którą ta postać stoi, i tury. Do tej pory, kiedy nick albo nazwa okrzyku nie
+  mieściły się w wierszu, były ucinane i nie dało się ich nigdzie doczytać.
+
 - **Poprawka** — Okienko z opisem pokazuje teraz całą nazwę, łamiąc ją na kolejne wiersze, kiedy
   jest za długa. Przy zapisanych walkach nazwa miejsca bywała ucięta dwa razy: raz w wierszu, na
   który nie starczało miejsca, i drugi raz w okienku, które miało ją pokazać w całości.

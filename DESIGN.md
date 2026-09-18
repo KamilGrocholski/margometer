@@ -490,15 +490,15 @@ run's own edge and never inside one. A card that gave anything up says so, in on
 scrolls: the card takes no pointer, because a press on it belongs to the row underneath.
 **ADR 0054.**
 
-**Wherever a person's row stands, the tooltip is a card.** The name in full, then what they are and
-how far along on one line under it — which is where the hue on the bar is finally said in words, and
-the only place it is. Then the figures of the whole fight under a heading naming that scope — every
-one they have rather than the one the screen is showing, with that one in bold, and the screen's own
-standing even at nought while the others do not: a screen showing somebody at nothing has to say
-nothing, and the rest at nought answer nobody. Under each, the part of it the protocol named only
-that row's end of; then how they fought at each end, and last what qualifies every figure above —
-**the gaps naming this person, and no others** (**ADR 0069**): one naming nobody is said under the
-ranking, once.
+**Wherever a person's row stands in the panel, the tooltip is a card.** The name in full, then what
+they are and how far along on one line under it — which is where the hue on the bar is finally said
+in words, and the only place it is. Then the figures of the whole fight under a heading naming that
+scope — every one they have rather than the one the screen is showing, with that one in bold, and
+the screen's own standing even at nought while the others do not: a screen showing somebody at
+nothing has to say nothing, and the rest at nought answer nobody. Under each, the part of it the
+protocol named only that row's end of; then how they fought at each end, and last what qualifies
+every figure above — **the gaps naming this person, and no others** (**ADR 0069**): one naming
+nobody is said under the ranking, once.
 
 **Every block is cut by what its figures are a sum over, and its heading names that.** A figure
 stated before reduction stands in the run of the end it belongs to and never under a figure of the
@@ -511,9 +511,16 @@ void at once, because one named pair licenses the rest by omission. A count shar
 figure of damage wears the sign that marks it a count. **ADR 0087.** **A card whose row states a
 narrower figure says so**, in one sentence under the suspicions and over the instruction: the card
 is about the person and its figures are the fight's, while the row it stands over is one cut of
-them. Nowhere else is it a card, because nowhere else is there a person to compose one from: a
-skill, a kind and a fight on the shelf each get the name their own cell had to cut, whole and over
-as many lines as it takes.
+them. Nowhere else is it a card, because nowhere else is there a fight's worth of figures to compose
+one from: a skill, a kind, a fight on the shelf and every person standing in the window beside the
+panel each get the name their own cell had to cut, whole and over as many lines as it takes.
+
+**A person in the window beside the panel is answered by what their row cut, and not by a card.**
+That window's reading carries no figure of the fight, so there is no card to compose there — what
+stands instead is the name whole, the okrzyk or the skill the row is about under it, and the turns
+the row states. It reaches every person's row in that window and not the provocation section alone:
+one builder draws them all, and a rule that reached three of the four would be held by whoever
+remembered it. **ADR 0098.**
 
 **A row the protocol left an end of says which end, and where its figure stands.** It is not a card
 and names nobody — that is what the row is — but the two lines every leaf gets are not an answer to

@@ -17,7 +17,7 @@ import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
 /** Past every skill the corpus casts at a side in one fight, and a clamp rather than a bound. */
 export const MAXIMUM_STANDING_ROWS = 24;
 /** Past the most casters one skill has ever stood on at once. */
-const MAXIMUM_CASTERS = 12;
+export const MAXIMUM_CASTERS = 12;
 /**
  * Past every character a shout could hold at once: the game's own party limit is smaller, and the
  * corpus has never held more than one, because every recording in it is ten against one.

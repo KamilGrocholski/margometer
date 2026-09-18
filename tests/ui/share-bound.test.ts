@@ -12,7 +12,11 @@ import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { getPointsFromShareText } from "@/tests/share-text.ts";
 import { MAXIMUM_CUT_PARTS, MAXIMUM_SKILLS } from "@/src/ui/panel-reading.ts";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
-import { MAXIMUM_STANDING_ROWS } from "@/src/ui/panel-standing.ts";
+import {
+    MAXIMUM_CASTERS,
+    MAXIMUM_PROVOKED,
+    MAXIMUM_STANDING_ROWS,
+} from "@/src/ui/panel-standing.ts";
 import { MAXIMUM_TIPS } from "@/src/ui/panel-tip.ts";
 import { composeShareTexts, MAXIMUM_SHARES } from "@/src/ui/panel-words.ts";
 
@@ -52,14 +56,23 @@ Deno.test("the card register holds every row the widest screen can draw", () => 
 });
 
 /**
+ * And the widest that window: the row the turn is numbered for, every skill row it clamps to, the
+ * casters under the one row that is open, and the provocation section — a held character and the
+ * cast holding them, because the clamp is over the pairs and the widest is one cast each
+ * (**ADR 0098**).
+ */
+const WIDEST_STANDING_WINDOW = 1 + MAXIMUM_STANDING_ROWS + MAXIMUM_CASTERS +
+    MAXIMUM_PROVOKED * 2;
+
+/**
  * The window beside the panel fills a register of its own, because it is drawn before the panel
- * and the panel's own draw resets the panel's (**ADR 0086**). So its width is asked separately:
- * one card per row it clamps to, and nothing under them registers one.
+ * and the panel's own draw resets the panel's (**ADR 0086**). So its width is asked separately,
+ * and every person's row under a skill row registers a card of its own (**ADR 0098**).
  */
 Deno.test("the card register holds every row the window beside the panel can draw", () => {
     assert(
-        MAXIMUM_TIPS >= MAXIMUM_STANDING_ROWS,
-        `${MAXIMUM_TIPS} cards is under the ${MAXIMUM_STANDING_ROWS} rows that window may come to`,
+        MAXIMUM_TIPS >= WIDEST_STANDING_WINDOW,
+        `${MAXIMUM_TIPS} cards is under the ${WIDEST_STANDING_WINDOW} rows that window may come to`,
     );
 });
 

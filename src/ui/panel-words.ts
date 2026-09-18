@@ -744,6 +744,13 @@ export const STANDING_WORDS = {
     provocation: "Prowokacja",
     /** Between whoever is holding somebody and the okrzyk they hold them with — **ADR 0097**. */
     castSeparator: "·",
+    /**
+     * What a person's card states its turns under. Never `PANEL_WORDS.turns`: that one names the
+     * turns a combatant took and carries the caveat that the game publishes none of them, while
+     * these are the cast's own duration, which the published skill table does state. And never
+     * the noun, because the figure beside it already ends in one — `Minęło · 2 z 3 tur`.
+     */
+    turnsPassed: "Minęło",
     /** The game's own name for it, taken from the client's own label — **N13**, **L2**. */
     chargedSkill: "Cios specjalny",
 } as const;
