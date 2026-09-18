@@ -65,14 +65,25 @@ Walka dziesięciu na jednego, na ekranie obrażeń otrzymanych.
 
 ## Instalacja
 
-Otwórz [najnowsze wydanie][latest] i kliknij `margometer.user.js` — Tampermonkey rozpozna plik,
-zainstaluje go i będzie aktualizował.
+Potrzebne są dwie rzeczy: przeglądarka na komputerze i menedżer skryptów użytkownika — rozszerzenie,
+które uruchamia dodatki takie jak ten. MargoMeter działa w każdej aktualnej przeglądarce: Chrome,
+Edge, Firefox i Safari.
 
-Działa w każdej aktualnej przeglądarce na komputerze: Chrome, Edge, Firefox i Safari. W Chrome i w
-Edge trzeba jeszcze włączyć obsługę skryptów użytkownika na stronie rozszerzenia, w
-`chrome://extensions` — bez tego nic się nie uruchomi i nic o tym nie powie.
+1. **Zainstaluj menedżer skryptów.** [Tampermonkey][tampermonkey] jest na każdą z tych przeglądarek,
+   [Violentmonkey][violentmonkey] na Chrome, Edge i Firefoksa. Wystarczy jeden.
+2. **W Chrome i w Edge włącz obsługę skryptów użytkownika.** Na stronie rozszerzenia, w
+   `chrome://extensions`. Bez tego nic się nie uruchomi i nic o tym nie powie. Firefox i Safari nie
+   wymagają tego kroku.
+3. **Otwórz [najnowsze wydanie][latest] i kliknij `margometer.user.js`.** Menedżer rozpozna plik i
+   zaproponuje instalację. Na tej samej stronie leży `margometer.meta.js` — plik służbowy, nie do
+   klikania: niesie sam nagłówek, bez ani jednej linii kodu.
+4. **Wejdź do gry i zacznij walkę.** Panel pojawi się nad grą. Jeśli go nie ma, wróć do kroku 2.
+
+Zainstalowana kopia sama sprawdza, czy jest nowsza wersja.
 
 [latest]: https://github.com/KamilGrocholski/margometer/releases/latest
+[tampermonkey]: https://www.tampermonkey.net/
+[violentmonkey]: https://violentmonkey.github.io/
 
 ## Zobacz na żywo
 

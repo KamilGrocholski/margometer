@@ -65,14 +65,25 @@ A ten-against-one fight, on the damage-taken screen.
 
 ## Install
 
-Open [the latest release][latest] and click `margometer.user.js` — Tampermonkey recognises the file,
-installs it, and keeps it updated.
+Two things are needed: a desktop browser and a userscript manager — the extension that runs add-ons
+like this one. MargoMeter works in every current desktop browser: Chrome, Edge, Firefox and Safari.
 
-It works in every current desktop browser: Chrome, Edge, Firefox and Safari. Chrome and Edge need
-one more step — turn on user scripts on the extension's own page, in `chrome://extensions` — or
-nothing runs and nothing says so.
+1. **Install a userscript manager.** [Tampermonkey][tampermonkey] exists for all four,
+   [Violentmonkey][violentmonkey] for Chrome, Edge and Firefox. One is enough.
+2. **In Chrome and Edge, turn on user scripts.** On the extension's own page, in
+   `chrome://extensions`. Without it nothing runs and nothing says so. Firefox and Safari need no
+   such step.
+3. **Open [the latest release][latest] and click `margometer.user.js`.** The manager recognises the
+   file and offers to install it. The same page carries `margometer.meta.js` — a working file, not
+   one to click: it holds the banner and not a line of code.
+4. **Open the game and start a fight.** The panel appears over it. If it does not, go back to
+   step 2.
+
+An installed copy checks for a newer version on its own.
 
 [latest]: https://github.com/KamilGrocholski/margometer/releases/latest
+[tampermonkey]: https://www.tampermonkey.net/
+[violentmonkey]: https://violentmonkey.github.io/
 
 ## See it live
 
