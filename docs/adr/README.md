@@ -184,7 +184,7 @@ edited to agree with the new rule.
 - [0066](0066-the-ranking-says-whose-turn-it-is.md) — The ranking says whose turn it is.
   **Accepted**
 - [0067](0067-a-shout-is-drawn-under-whoever-is-holding-it.md) — A shout is drawn under whoever is
-  holding it. **Accepted**
+  holding it. **Superseded by 0097 in part**
 - [0068](0068-a-card-stands-over-the-window-beside-the-panel.md) — A card stands over the window
   beside the panel. **Accepted**
 - [0069](0069-a-card-says-only-what-names-its-own-person.md) — A card says only the gaps that name
