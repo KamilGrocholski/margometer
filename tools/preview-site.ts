@@ -50,15 +50,17 @@ const PREVIEW_SITE_WORDS: PreviewWords = {
 };
 
 /**
- * Two things and no more: that this is a recording rather than a live game, and that everything is
- * counted in the reader's own browser. A visitor who does not know the first would read the panel
- * as a live connection to somebody's account, which is the one misunderstanding this page could
- * cause. What the add-on is, and where to get it, the band above this says.
+ * Three things. That this is a recording rather than a live game — a visitor who does not know it
+ * reads the panel as a live connection to somebody's account, which is the one misunderstanding
+ * this page could cause. That everything is counted in the reader's own browser. And **that the
+ * panel answers a pointer**, which nothing else on the page says: the strongest thing here is a
+ * row opening onto what a figure was dealt with, and a visitor who never presses one sees a
+ * picture. What the add-on is, and where to get it, the band above this says.
  */
 const PREVIEW_SITE_INTRODUCTION = [
-    "Poniżej odtwarzana jest nagrana walka — panel liczy ją w tej przeglądarce,",
-    "tak samo jak liczyłby ją w grze. Nic nie łączy się tu z grą, nic nie jest wysyłane",
-    "i nic tu nie zostaje.",
+    "Panel obok liczy nagraną walkę, w tej przeglądarce — tak samo, jak liczyłby ją w grze.",
+    "Kliknij wiersz, żeby zobaczyć, czym poszły te obrażenia; najedź na postać, żeby dostać",
+    "jej kartę. Nic nie łączy się tu z grą, nic nie jest wysyłane i nic tu nie zostaje.",
     `<a href="${HOMEPAGE}">kod źródłowy</a>`,
 ].join(" ");
 
@@ -76,8 +78,11 @@ function composeSiteInstall(version: string): PreviewInstall {
     assert(USERSCRIPT_DOWNLOAD_ADDRESS.length > 0, "and the file that button hands over");
     return {
         name: "MargoMeter",
-        sentence: "Licznik obrażeń do Margonem. Pokazuje, ile każda postać zadała i dostała " +
-            "w walce, którą właśnie stoczyłeś.",
+        // Named for what the game leaves out rather than for what this is, because that is how
+        // somebody recognises they want it. Every figure the second sentence promises is one the
+        // panel draws: the ranking, the level under a row, and the person at the other end of it.
+        sentence: "Gra mówi tylko, że walka się skończyła. MargoMeter pokazuje, co się w niej " +
+            "stało — ile każdy zadał i dostał, czym i komu, po obu stronach.",
         needsLine: "Potrzebujesz dwóch rzeczy — obu przed instalacją:",
         needs: [
             {
@@ -96,8 +101,10 @@ function composeSiteInstall(version: string): PreviewInstall {
         ],
         offer: { label: "Zainstaluj MargoMeter", address: USERSCRIPT_DOWNLOAD_ADDRESS },
         versionLine: `wersja ${version}`,
+        // `obok` and not `niżej`: the page takes both windows to the corner it is drawn in
+        // (**ADR 0099**), so the panel stands to the right of this sentence and never under it.
         afterLine: "Menedżer rozpozna plik i zaproponuje instalację. Potem wejdź do gry " +
-            "i zacznij walkę — panel pojawi się nad nią, taki jak ten niżej.",
+            "i zacznij walkę — panel pojawi się sam nad grą, taki jak ten obok.",
     };
 }
 

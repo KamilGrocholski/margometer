@@ -143,18 +143,51 @@ Deno.test("nothing on a published page asks a domain root, or a process, for any
     assertEquals(fetching, [], "and a pick here is the navigation it always was");
 });
 
+/** The letters that are in no English sentence, which is what makes this decidable. */
+const POLISH_LETTERS = "ąćęłńóśźż";
+
+function getIsWrittenInPolish(text: string): boolean {
+    for (const letter of POLISH_LETTERS) {
+        if (text.includes(letter)) return true;
+    }
+    return false;
+}
+
+/** What one element of a class says, between its opening tag and the first close after it. */
+function getTextInClassName(text: string, name: string): string | null {
+    const opened = text.indexOf(`class="${name}"`);
+    if (opened < 0) return null;
+    const began = text.indexOf(">", opened);
+    if (began < 0) return null;
+    const closed = text.indexOf("<", began);
+    if (closed < 0) return null;
+    return text.slice(began + 1, closed);
+}
+
 Deno.test("a published page speaks to a player, in the language a player reads", () => {
     const pages = composePreviewSitePages(VERSION);
     const landing = pages[0];
     assertExists(landing, "there is a page to read");
     assertStringIncludes(landing.text, `lang="pl"`, "the document says which language it is in");
     assertStringIncludes(landing.text, "od początku", "and the strip is written in it");
-    assertStringIncludes(
-        landing.text,
-        "Licznik obrażeń",
-        "with a sentence for a reader who arrived — which now opens the band, and so its word",
-    );
+    // The sentence and not its wording. This held the literal `Licznik obrażeń` until 2026-09-19,
+    // so rewriting the one sentence a stranger reads first reddened a guard that meant to ask
+    // whether the band speaks Polish at all.
+    const lede = getTextInClassName(landing.text, "preview-lede");
+    assertExists(lede, "the band opens with a sentence for a reader who arrived");
+    assert(getIsWrittenInPolish(lede), "and that sentence is in Polish, whatever it says");
     assert(!landing.text.includes("build ok"), "and no claim about a build nobody ran");
+});
+
+Deno.test("the reader of a language flags a Polish sentence and not an English one", () => {
+    assertEquals(getIsWrittenInPolish("ile każdy zadał"), true, "a Polish sentence is read as one");
+    assertEquals(getIsWrittenInPolish("a damage meter"), false, "and one in ours is not");
+    assertEquals(
+        getTextInClassName(`<p class="preview-lede">co się stało</p>`, "preview-lede"),
+        "co się stało",
+        "and the sentence is taken from the element that carries it",
+    );
+    assertEquals(getTextInClassName("<p>no class here</p>", "preview-lede"), null, "or nothing");
 });
 
 Deno.test("every published page opens with the band, and it says the same on each", () => {
