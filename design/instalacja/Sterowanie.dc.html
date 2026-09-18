@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Gdzie stoi sterowanie</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0b0d10; }
+a { color: #8fb8e8; }
+a:hover { color: #b9d4f2; }
+</style>
+</helmet>
+<div style="width: 1360px; height: 1100px; box-sizing: border-box; background: #0b0d10; padding: 24px 40px 28px; display: flex; flex-direction: column; gap: 18px;">
+
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <div style="font-size: 26px; font-weight: 600; color: #e6eaf1;">Sterowanie — pasek jest w przeciwnym rogu niż to, czym steruje</div>
+    <div style="font-size: 14px; color: #a8b2c0;">Pasek stoi w lewym dolnym rogu, panel w prawym górnym. Przy oknie 1280&nbsp;px to <span style="color: #dfe6ef;">1000&nbsp;px</span> w poziomie, przy 1920&nbsp;px — <span style="color: #dfe6ef;">1640&nbsp;px</span>, plus cała wysokość okna w pionie.</div>
+    <div style="font-size: 12px; color: #737f8f;">Zdjęcia paska nie trzymają: <span style="color: #9aa6b6;">tools/panel-screenshots.ts</span> chowa go przed pomiarem. Warstwa paska to 9000, panelu 9999 — pasek nigdy panelu nie zakryje.</div>
+  </div>
+
+  <div style="display: flex; flex-wrap: wrap; gap: 22px;">
+    <sc-for list="{{options}}" as="one" hint-placeholder-count="6">
+      <div style="width: 405px; display: flex; flex-direction: column; gap: 10px; padding: 14px; background: #101318; border: 1px solid {{one.edge}}; border-radius: 8px; box-sizing: border-box;">
+        <div style="display: flex; align-items: baseline; gap: 8px;">
+          <span style="font-size: 15px; font-weight: 600; color: {{one.titleInk}};">{{one.title}}</span>
+        </div>
+        <div style="position: relative; width: 375px; height: 224px; background: #14171c; border: 1px solid #2c323c; border-radius: 4px; overflow: hidden;">
+          <div style="position: absolute; left: 0; top: 0; width: 187px; height: 78px; background: #1a2620; border-right: 1px solid #2f5a42; border-bottom: 1px solid #2f5a42;"></div>
+          <div style="position: absolute; left: 6px; top: 6px; font-size: 9px; color: #6f8b7c;">pas</div>
+          <div style="position: absolute; right: 2px; top: 2px; width: 76px; height: 118px; background: #1c2630; border: 1px solid #3c4a5a; border-radius: 2px;"></div>
+          <div style="position: absolute; right: 80px; top: 2px; width: 61px; height: 70px; background: #181f27; border: 1px solid #2c3743; border-radius: 2px;"></div>
+          <div style="position: absolute; right: 6px; top: 6px; font-size: 9px; color: #8f9bb0;">panel</div>
+          <div style="position: absolute; left: {{one.stripLeft}}; right: {{one.stripRight}}; top: {{one.stripTop}}; bottom: {{one.stripBottom}}; height: {{one.stripHeight}}; background: #2b3340; border: 1px solid {{one.stripEdge}}; border-radius: 3px;"></div>
+          <div style="position: absolute; left: {{one.markLeft}}; right: {{one.markRight}}; top: {{one.markTop}}; bottom: {{one.markBottom}}; font-size: 9px; color: {{one.stripEdge}};">{{one.stripLabel}}</div>
+        </div>
+        <div style="font-size: 12px; line-height: 1.55; color: #a8b2c0;">{{one.good}}</div>
+        <div style="font-size: 12px; line-height: 1.55; color: #8f9bb0;">{{one.cost}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display: flex; gap: 24px; align-items: flex-start; padding-top: 4px; border-top: 1px solid #1e242c;">
+    <div style="width: 560px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 15px; font-weight: 600; color: #e8b48b;">Osobna sprawa: sama lista walk</div>
+      <div style="font-size: 12.5px; line-height: 1.6; color: #a8b2c0;">Gdziekolwiek stanie, to dziś <span style="color: #dfe6ef;">&lt;select&gt;</span> z 33 nagraniami o nazwach do 65 znaków — <span style="color: #c8cdd6; font-family: ui-monospace, monospace; font-size: 11.5px;">2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0</span>. Odwiedzający nie odróżni jednej od drugiej, więc nie kliknie żadnej.</div>
+      <div style="font-size: 12.5px; line-height: 1.6; color: #8f9bb0;">Czym są te walki, mówi <span style="color: #c8cdd6;">docs/captured-fights.md</span> — i to on jest właścicielem każdej nazwy, jaka by tu stanęła. Trzy widoczne pozycje plus reszta w liście to zmiana niezależna od tego, gdzie stoi pasek.</div>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 15px; font-weight: 600; color: #e6eaf1;">Co to rozstrzyga</div>
+      <div style="font-size: 12.5px; line-height: 1.6; color: #a8b2c0;">Jeśli walka odtwarza się sama (arkusz <span style="color: #dfe6ef;">Ruch</span>), sterowanie odtwarzaniem przestaje być tym, po co ktoś sięga — zostaje tylko zmiana walki. Wtedy <span style="color: #7fd18a;">C</span> jest tańsze niż <span style="color: #dfe6ef;">B</span>: przenosi jedną rzecz, nie wszystkie.</div>
+      <div style="font-size: 12.5px; line-height: 1.6; color: #8f9bb0;">Bez automatu bliżej jest <span style="color: #dfe6ef;">B</span>, bo wtedy sięga się po odtwarzanie, a nie po listę. Kolejność ma znaczenie: najpierw Ruch, potem to.</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const away = { edge: '#2c323c', titleInk: '#e6eaf1', stripEdge: '#8f9bb0' };
+    const near = { edge: '#3a4a3f', titleInk: '#7fd18a', stripEdge: '#7fd18a' };
+    const options = [
+      Object.assign({
+        title: 'A — dziś, lewy dolny róg',
+        stripLeft: '4px', stripRight: 'auto', stripTop: 'auto', stripBottom: '4px', stripHeight: '26px',
+        markLeft: '4px', markRight: 'auto', markTop: 'auto', markBottom: '34px',
+        stripLabel: 'pasek — 1000 px stąd do panelu',
+        good: 'Nic nie zasłania, nic nie wchodzi w kadr. Tak jest i tak działa.',
+        cost: 'Wybór walki stoi najdalej od tego, co zmienia. Przekątna rośnie z szerokością okna: im większy ekran, tym gorzej.'
+      }, away),
+      Object.assign({
+        title: 'B — pasek pod panelem',
+        stripLeft: 'auto', stripRight: '2px', stripTop: '124px', stripBottom: 'auto', stripHeight: '38px',
+        markLeft: 'auto', markRight: '2px', markTop: '166px', markBottom: 'auto',
+        stripLabel: 'pasek pod panelem',
+        good: 'Sterowanie tam, gdzie patrzysz. Ruch myszką pionowy i krótki.',
+        cost: 'Pasek ma dziś do 560 px i dwie linie; pod panelem ma 260. Albo się zwęża do czterech linii, albo wystaje poza panel i przy wąskim oknie wchodzi nad pas instalacyjny.'
+      }, away),
+      Object.assign({
+        title: 'C — lista walk przy panelu, reszta zostaje',
+        stripLeft: '4px', stripRight: 'auto', stripTop: 'auto', stripBottom: '4px', stripHeight: '26px',
+        markLeft: 'auto', markRight: '2px', markTop: '124px', markBottom: 'auto',
+        stripLabel: 'lista walk tutaj',
+        good: 'Rozdziela dwie różne rzeczy: „którą walkę oglądam" idzie do panelu, „gdzie jestem w walce" zostaje pod ręką.',
+        cost: 'Dwa miejsca zamiast jednego. Crawl w tests/e2e/ chodzi po każdej kontrolce panelu — dojdzie mu druga ścieżka.'
+      }, near),
+      Object.assign({
+        title: 'D — pasek na całą szerokość, u dołu',
+        stripLeft: '2px', stripRight: '2px', stripTop: 'auto', stripBottom: '2px', stripHeight: '30px',
+        markLeft: '6px', markRight: 'auto', markTop: 'auto', markBottom: '36px',
+        stripLabel: 'pasek przez całą stronę',
+        good: 'Blisko wszystkiego, niezależnie od szerokości okna. Nadal pod panelem — warstwa 9000.',
+        cost: 'Pasek przestaje być narzędziem w rogu i staje się chromem strony. A strona ma pokazywać panel nad grą, nie aplikację z paskiem narzędzi.'
+      }, away),
+      Object.assign({
+        title: 'E — nie ruszać, usunąć powód',
+        stripLeft: '4px', stripRight: 'auto', stripTop: 'auto', stripBottom: '4px', stripHeight: '26px',
+        markLeft: '4px', markRight: 'auto', markTop: 'auto', markBottom: '34px',
+        stripLabel: 'pasek bez zmian',
+        good: 'Zero zmian układu. Jeśli walka leci sama, nikt nie sięga po odtwarzanie — a przeciętny odwiedzający nie zmienia walki wcale.',
+        cost: 'Nie pomaga temu, kto jednak chce zmienić. Zakłada, że automat z arkusza Ruch wejdzie pierwszy.'
+      }, away),
+      Object.assign({
+        title: 'F — pasek idzie za panelem',
+        stripLeft: 'auto', stripRight: '2px', stripTop: 'auto', stripBottom: '4px', stripHeight: '26px',
+        markLeft: 'auto', markRight: '2px', markTop: 'auto', markBottom: '34px',
+        stripLabel: 'pasek pod tą samą krawędzią',
+        good: 'Ten sam róg co panel, bez wciskania się w 260 px. Pionowo daleko, poziomo zero.',
+        cost: 'Przy niskim oknie pasek i panel spotykają się na tej samej krawędzi. Panel bierze do 66vh, więc przy 700 px wysokości zostaje na pasek niecałe 220 px.'
+      }, away)
+    ];
+    return { options };
+  }
+}
+</script>
+</body>
+</html>

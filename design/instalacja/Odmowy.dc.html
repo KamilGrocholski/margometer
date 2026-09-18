@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Odmowy rundy</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0b0d10; }
+a { color: #8fb8e8; }
+a:hover { color: #b9d4f2; }
+</style>
+</helmet>
+<div style="width: 1000px; height: 1010px; box-sizing: border-box; background: #0b0d10; padding: 24px 36px 28px; display: flex; flex-direction: column; gap: 20px;">
+
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <div style="font-size: 26px; font-weight: 600; color: #e6eaf1;">Odmowy — i kto tak powiedział</div>
+    <div style="font-size: 14px; color: #a8b2c0;">Czego ta runda nie proponuje, i dokument, który to rozstrzygnął. Żeby nikt nie otwierał tego znowu za pół roku, nie przeczytawszy dlaczego.</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; border: 1px solid #2c323c; border-radius: 8px; overflow: hidden;">
+    <div style="display: flex; background: #171b21; font-size: 11px; letter-spacing: 0.06em; color: #8f9bb0; padding: 8px 14px;">
+      <div style="width: 300px;">ODMOWA</div>
+      <div style="width: 190px;">WŁAŚCICIEL</div>
+      <div style="flex-grow: 1;">DLACZEGO</div>
+    </div>
+    <sc-for list="{{refusals}}" as="one" hint-placeholder-count="10">
+      <div style="display: flex; padding: 11px 14px; border-top: 1px solid #1e242c; background: #101318; font-size: 12.5px; line-height: 1.5;">
+        <div style="width: 300px; padding-right: 14px; box-sizing: border-box; color: #dfe6ef;">{{one.refusal}}</div>
+        <div style="width: 190px; padding-right: 14px; box-sizing: border-box; color: #8fb8e8;">{{one.owner}}</div>
+        <div style="flex-grow: 1; color: #a8b2c0;">{{one.why}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display: flex; gap: 22px; align-items: flex-start; padding-top: 4px; border-top: 1px solid #1e242c;">
+    <div style="width: 440px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 15px; font-weight: 600; color: #e6eaf1;">Co runda kończy</div>
+      <div style="font-size: 12.5px; line-height: 1.6; color: #a8b2c0;">Rekomendacją. Nie rusza reguły, strażnika ani <span style="color: #dfe6ef;">tools/preview-site.ts</span>. Decyzja zapada w commicie, który to wdroży — a jeśli ruszy postanowienia ADR&nbsp;0099, w osobnym ADR.</div>
+    </div>
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 15px; font-weight: 600; color: #e6eaf1;">Co zostaje otwarte</div>
+      <div style="font-size: 12.5px; line-height: 1.6; color: #8f9bb0;">Czym odczytać przeglądarkę, żeby wariant C mógł cokolwiek napisać — <span style="color: #c8cdd6;">V3</span> każe podać silnik, wersję i datę odczytu. Runda tego nie odczytała.</div>
+      <div style="font-size: 12.5px; line-height: 1.6; color: #8f9bb0;">Czy pas ma stać na stronie wydań Greasy Forka, gdy ten listing powstanie. Dziś go nie ma, więc makieta nie ma na czym stanąć.</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1000,"height":1010}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const refusals = [
+      {
+        refusal: 'Osobna strona wejściowa, dowód o jedną nawigację dalej',
+        owner: 'ADR 0099, Alternatives',
+        why: 'Dwa dokumenty mówiące, czym jest dodatek, się rozjeżdżają, a dowód przestaje być tym, na co czytelnik trafia.'
+      },
+      {
+        refusal: 'Licznik instalacji, odznaka, jakakolwiek telemetria',
+        owner: 'PRODUCT.md, non-goals',
+        why: 'Odznaka to żądanie na każde wejście. Licznik Greasy Forka jest ich, i żadne twierdzenie tutaj na nim nie stoi.'
+      },
+      {
+        refusal: 'Krój z sieci, obraz z zewnątrz, cokolwiek pobieranego',
+        owner: 'tests/tools/preview-site.test.ts',
+        why: 'Strona nie wykonuje żadnego żądania i to trzyma strażnik nad złożonymi stronami, nie zdanie w dokumencie.'
+      },
+      {
+        refusal: 'Greasy Fork jako główna droga instalacji',
+        owner: 'decyzja maintainera, 2026-09-18',
+        why: 'docs/releasing.md każe tam wystawiać plik, ale listing jeszcze nie istnieje. Makieta wyprzedziłaby stan.'
+      },
+      {
+        refusal: 'Powiększenie panelu na stronie, żeby lepiej wyglądał',
+        owner: 'ADR 0019, ADR 0091',
+        why: 'Panel jest gościem na cudzym ekranie i ma 260 px w grze. Strona pokazująca inny panel pokazuje nie ten dodatek.'
+      },
+      {
+        refusal: 'Instalacja z kopii leżącej obok strony',
+        owner: 'ADR 0099, Alternatives',
+        why: 'dist/preview/margometer.user.js to ostatni main, nie wydanie. Adres zapisany przez czytelnika rozjechałby się z tym, który poluje jego kopia.'
+      },
+      {
+        refusal: 'Zdania gry przepisane na stronę',
+        owner: 'AGENTS.md, Never',
+        why: 'Klucze i identyfikatory są funkcjonalne. Wyświetlane zdania są czyjąś pracą i nie wchodzą tu ani na stronę.'
+      },
+      {
+        refusal: 'Odtwarzanie w pętli, w kółko',
+        owner: 'ta runda, arkusz Ruch',
+        why: 'Strona ma pokazać, czym to jest, i zostać na pełnym rankingu. Ruch bez końca obok tekstu przeszkadza w czytaniu pasa.'
+      },
+      {
+        refusal: 'Odtwarzanie samo z siebie na stronie serwowanej',
+        owner: 'ADR 0028',
+        why: 'Ta strona jest czytana przy zmianie w src/ui/ i ma otwierać się na pełnym panelu. Automat dotyczy wydanej strony, nie tamtej.'
+      },
+      {
+        refusal: 'Chowanie cichego kroku poza Chrome i Edge',
+        owner: 'ta runda, arkusz Instalacja',
+        why: 'Zły odczyt chowa krok komuś, kto go potrzebuje — i awaria znów jest cicha. Wariant C zamiast tego oznacza, czy dotyczy.'
+      }
+    ];
+    return { refusals };
+  }
+}
+</script>
+</body>
+</html>

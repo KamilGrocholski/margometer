@@ -1,7 +1,9 @@
 # Design rounds
 
-A round is one question about the panel, asked over the recordings and answered on a canvas. There
-are none here. A round appears when there is a question worth measuring, and not before (**C9**).
+A round is one question about a surface this repository draws — the panel, or the page the panel is
+published on — asked over what can be measured and answered on a canvas. `instalacja/` is the first,
+and asks how somebody who has installed nothing gets to a working panel. A round appears when there
+is a question worth measuring, and not before (**C9**).
 
 ## What a round is
 
@@ -12,7 +14,8 @@ A directory named for its question, in one word, holding:
 - `canvas.json` — where each artboard sits, the pages they are grouped on, and the notes beside
   them.
 - `measure.ts` — run by hand, and it earns no `deno task` entry because it has one consumer
-  (**C9**). It replays `captures/` through the shipped modules and writes `measured.json`.
+  (**C9**). It reads what its round is about — the recordings through the shipped modules, the built
+  page, or both — and writes `measured.json`.
 - `measured.json` — what it read, and the material it read it on.
 - The published canvas, named for the round's question, which the artboards are seeded into.
 

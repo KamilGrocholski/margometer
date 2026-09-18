@@ -1,0 +1,121 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Pas instalacyjny w szczególe</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0b0d10; }
+a { color: #8fb8e8; }
+a:hover { color: #b9d4f2; }
+</style>
+</helmet>
+<div style="width: 1360px; height: 1080px; box-sizing: border-box; background: #0b0d10; padding: 24px 40px 28px; display: flex; flex-direction: column; gap: 22px;">
+
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <div style="font-size: 26px; font-weight: 600; color: #e6eaf1;">Pas instalacyjny — kolejność i cichy krok</div>
+    <div style="font-size: 14px; color: #a8b2c0;">Obie kolumny w prawdziwej mierze pasa: 598&nbsp;px, czcionka strony 13&nbsp;px/1,5. Tyle widzi czytelnik przy każdym oknie szerszym niż 1138&nbsp;px.</div>
+  </div>
+
+  <div style="display: flex; gap: 44px; align-items: flex-start;">
+
+    <div style="width: 598px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: baseline; gap: 10px;">
+        <span style="font-size: 15px; font-weight: 600; color: #e6eaf1;">Dziś</span>
+        <span style="font-size: 12px; color: #8f9bb0;">624 znaki, cztery pozycje jednej listy</span>
+      </div>
+      <div style="padding: 20px; background: #14171c; border: 1px solid #2c323c; border-radius: 8px; color: #c8cdd6; font-size: 13px; line-height: 1.5;">
+        <h2 style="margin: 0; font-size: 21px; font-weight: 400; color: #e6eaf1;">MargoMeter</h2>
+        <p style="margin: 4px 0 14px;">Licznik obrażeń do Margonem.</p>
+        <p style="margin: 0;"><a href="https://github.com/KamilGrocholski/margometer/releases/latest/download/margometer.user.js" style="display: inline-block; padding: 9px 16px; border-radius: 6px; background: #2f6f4f; border: 1px solid #3f8a63; color: #eaf5ee; font-weight: 600; text-decoration: none;">Zainstaluj MargoMeter</a><span style="margin-left: 10px; color: #8f9bb0;">wersja 0.17.0</span></p>
+        <p style="margin: 16px 0 6px; color: #8f9bb0;">Co trzeba zrobić:</p>
+        <ol style="margin: 0; padding-left: 20px;">
+          <li style="margin-bottom: 5px;">Zainstaluj menedżera skryptów użytkownika — Tampermonkey albo Violentmonkey. Bez niego przeglądarka po prostu pobierze plik i nic się nie stanie.</li>
+          <li style="margin-bottom: 5px; color: #e8b48b;">⚠ W Chrome i w Edge włącz obsługę skryptów użytkownika — na stronie rozszerzenia, w chrome://extensions. Bez tego nic się nie uruchomi i nic o tym nie powie. Firefox i Safari nie wymagają tego kroku.</li>
+          <li style="margin-bottom: 5px;">Kliknij przycisk powyżej. Menedżer rozpozna plik i zaproponuje instalację.</li>
+          <li style="margin-bottom: 5px;">Wejdź do gry i zacznij walkę. Panel pojawi się nad grą — taki jak ten niżej.</li>
+        </ol>
+      </div>
+      <div style="font-size: 12.5px; line-height: 1.55; color: #9aa6b6;">Przycisk stoi <span style="color: #e8836f;">nad</span> oboma warunkami. Najdłuższa pozycja (199 znaków) jest tą, której awaria jest niewidoczna, i nie niesie żadnego odnośnika — oba odnośniki są w pozycji nad nią.</div>
+    </div>
+
+    <div style="width: 598px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="display: flex; align-items: baseline; gap: 10px;">
+        <span style="font-size: 15px; font-weight: 600; color: #e6eaf1;">Propozycja</span>
+        <span style="font-size: 12px; color: #8f9bb0;">dwa warunki, przycisk, jedno zdanie</span>
+      </div>
+      <div style="padding: 20px; background: #14171c; border: 1px solid #3a4a3f; border-radius: 8px; color: #c8cdd6; font-size: 13px; line-height: 1.5;">
+        <h2 style="margin: 0; font-size: 21px; font-weight: 400; color: #e6eaf1;">MargoMeter</h2>
+        <p style="margin: 4px 0 16px;">Licznik obrażeń do Margonem. Pokazuje, ile każda postać zadała i dostała w walce, którą właśnie stoczyłeś.</p>
+        <p style="margin: 0 0 8px; color: #8f9bb0;">Potrzebujesz dwóch rzeczy — obu przed instalacją:</p>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <div style="display: flex; gap: 10px; padding: 10px 12px; border: 1px solid #2c323c; border-radius: 6px; background: #181c22;">
+            <span style="flex-shrink: 0; width: 20px; height: 20px; border-radius: 10px; background: #262c35; font-size: 12px; font-weight: 600; display: flex; align-items: center; justify-content: center;">1</span>
+            <span style="flex-grow: 1;">Menedżer skryptów użytkownika: Tampermonkey albo Violentmonkey. Bez niego przeglądarka tylko pobierze plik.</span>
+          </div>
+          <div style="display: flex; gap: 10px; padding: 10px 12px; border: 1px solid #5c4530; border-radius: 6px; background: #211c17;">
+            <span style="flex-shrink: 0; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">
+              <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="#e8b48b" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2.4 16.2 15H1.8Z"></path><path d="M9 7v4"></path><path d="M9 13.2v.1"></path></svg>
+            </span>
+            <span style="flex-grow: 1; color: #e8c3a2;"><strong style="color: #f0d3b8; font-weight: 600;">Chrome i Edge: włącz obsługę skryptów użytkownika</strong> — na stronie rozszerzenia, w chrome://extensions. Bez tego panel się nie pojawi i nic o tym nie powie. Firefox i Safari tego nie wymagają.</span>
+          </div>
+        </div>
+        <p style="margin: 16px 0 0;"><a href="https://github.com/KamilGrocholski/margometer/releases/latest/download/margometer.user.js" style="display: inline-block; padding: 9px 16px; border-radius: 6px; background: #2f6f4f; border: 1px solid #3f8a63; color: #eaf5ee; font-weight: 600; text-decoration: none;">Zainstaluj MargoMeter</a><span style="margin-left: 10px; color: #8f9bb0;">wersja 0.17.0</span></p>
+        <p style="margin: 8px 0 0; color: #8f9bb0;">Menedżer rozpozna plik i zaproponuje instalację. Potem wejdź do gry i zacznij walkę — panel pojawi się nad nią, taki jak ten obok.</p>
+      </div>
+      <div style="font-size: 12.5px; line-height: 1.55; color: #9aa6b6;">Znak przy cichym kroku jest <span style="color: #dfe6ef;">rysowany</span>, nie pisany — tak jak zastrzeżenie w panelu po ADR&nbsp;0092, i z tego samego powodu: znak ze zbioru bierze krój, którego strona nie zamawia.</div>
+    </div>
+
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 12px; padding-top: 6px; border-top: 1px solid #1e242c;">
+    <div style="display: flex; align-items: baseline; gap: 12px;">
+      <span style="font-size: 17px; font-weight: 600; color: #e6eaf1;">Wariant: strona wie, w czym jest otwarta</span>
+      <span style="font-size: 12.5px; color: #8f9bb0;">czyta lokalnie <span style="color: #c8cdd6;">navigator</span>, żadnego żądania — do rozstrzygnięcia, nie postanowione</span>
+    </div>
+
+    <div style="display: flex; gap: 20px; align-items: stretch;">
+
+      <div style="width: 400px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 600; color: #a8b2c0;">A — zawsze tak samo (dziś)</div>
+        <div style="flex-grow: 1; padding: 10px 12px; border: 1px solid #5c4530; border-radius: 6px; background: #211c17; color: #e8c3a2; font-size: 12.5px; line-height: 1.5;">Chrome i Edge: włącz obsługę skryptów użytkownika. Firefox i Safari tego nie wymagają.</div>
+        <div style="font-size: 12px; line-height: 1.5; color: #8f9bb0;">Każdy czyta zdanie o dwóch przeglądarkach, z których ma jedną. Nic nie może się pomylić.</div>
+      </div>
+
+      <div style="width: 400px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 600; color: #a8b2c0;">B — chowa, gdy nie dotyczy</div>
+        <div style="flex-grow: 1; padding: 10px 12px; border: 1px dashed #39404b; border-radius: 6px; background: #15181d; color: #6f7883; font-size: 12.5px; line-height: 1.5; display: flex; align-items: center;">(w Firefoksie kafelka nie ma)</div>
+        <div style="font-size: 12px; line-height: 1.5; color: #e8836f;">Źle rozpoznana przeglądarka chowa krok komuś, kto go potrzebuje — i awaria znów jest cicha. To jest ta awaria, którą pas istnieje po to, żeby uprzedzić.</div>
+      </div>
+
+      <div style="width: 400px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="font-size: 13px; font-weight: 600; color: #7fd18a;">C — stoi zawsze, mówi, czy dotyczy</div>
+        <div style="flex-grow: 1; padding: 10px 12px; border: 1px solid #5c4530; border-radius: 6px; background: #211c17; color: #e8c3a2; font-size: 12.5px; line-height: 1.5;"><span style="display: inline-block; margin-bottom: 4px; padding: 1px 6px; border-radius: 4px; background: #3a2c1e; color: #f0d3b8; font-size: 11px; font-weight: 600;">dotyczy Twojej przeglądarki</span><br>Włącz obsługę skryptów użytkownika — na stronie rozszerzenia, w chrome://extensions.</div>
+        <div style="font-size: 12px; line-height: 1.5; color: #9aa6b6;">Zły odczyt kosztuje jedną etykietę, nie cały krok. Krok stoi tak czy tak, więc nic nie znika komuś, kto tego nie wie.</div>
+      </div>
+
+      <div style="flex-grow: 1; padding: 12px 14px; border: 1px solid #2c323c; border-radius: 6px; background: #12151a; font-size: 12px; line-height: 1.55; color: #8f9bb0;">
+        <div style="color: #dfe6ef; font-weight: 600; margin-bottom: 6px;">Czego runda nie zmierzyła</div>
+        Ilu czytelników siedzi w Chrome — niezmierzone i tu niezmierzalne (brak telemetrii, <span style="color: #c8cdd6;">PRODUCT.md</span>).<br><br>
+        Czym odczytać silnik: <span style="color: #c8cdd6;">V3</span> każe podać silnik, wersję i datę. Runda tego nie odczytała, więc wariant C zostaje wnioskiem, nie planem.<br><br>
+        <span style="color: #c8cdd6;">tools/preview-page.ts</span> dziś nie mówi żadnym językiem — każdy wariant musi przyjść jako wartość, nie jako <span style="color: #c8cdd6;">if</span> w module.
+      </div>
+
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Podgląd i wąskie okno</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0b0d10; }
+a { color: #8fb8e8; }
+a:hover { color: #b9d4f2; }
+</style>
+</helmet>
+<div style="width: 1360px; height: 860px; box-sizing: border-box; background: #0b0d10; padding: 24px 40px 28px; display: flex; flex-direction: column; gap: 20px;">
+
+  <div style="display: flex; flex-direction: column; gap: 6px;">
+    <div style="font-size: 26px; font-weight: 600; color: #e6eaf1;">Dolna połowa — gdzie tekst wchodzi pod okna</div>
+    <div style="font-size: 14px; color: #a8b2c0;">Pas ma czapkę <span style="color: #dfe6ef;">calc(100vw − 540px)</span>, akapit pod nim jej nie ma. Poniżej 1138&nbsp;px pas się zwęża, akapit nie — i wchodzi pod panel.</div>
+    <div style="font-size: 12px; color: #737f8f;">Rysowane w skali 1:2 z <span style="color: #9aa6b6;">measured.json</span>, kolumna <span style="color: #9aa6b6;">band.columns</span>. Okna zajmują 482&nbsp;px: 8 + 260 + 4 + 210.</div>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 14px;">
+    <sc-for list="{{widths}}" as="one" hint-placeholder-count="4">
+      <div style="display: flex; gap: 16px; align-items: flex-start;">
+        <div style="width: 96px; flex-shrink: 0; padding-top: 4px; text-align: right; font-size: 13px; color: #c8cdd6; font-variant-numeric: tabular-nums;">{{one.label}}</div>
+        <div style="position: relative; width: {{one.trackWidth}}; height: 78px; background: #14171c; border: 1px solid #2c323c; border-radius: 4px; overflow: hidden;">
+          <div style="position: absolute; right: 0; top: 0; bottom: 0; width: {{one.windowsWidth}}; background: #191f26; border-left: 1px solid #39404b;"></div>
+          <div style="position: absolute; right: 4px; top: 6px; font-size: 10px; color: #6f7883;">panel + Pomocnik</div>
+          <div style="position: absolute; left: 0; top: 8px; height: 26px; width: {{one.bandWidth}}; background: #223026; border: 1px solid #3f8a63; border-radius: 3px; box-sizing: border-box; font-size: 10px; line-height: 24px; padding-left: 6px; color: #9fd7b6;">pas instalacyjny</div>
+          <div style="position: absolute; left: 0; top: 42px; height: 24px; width: {{one.introWidth}}; background: {{one.introFill}}; border: 1px solid {{one.introEdge}}; border-radius: 3px; box-sizing: border-box; font-size: 10px; line-height: 22px; padding-left: 6px; color: {{one.introInk}};">akapit pod pasem</div>
+        </div>
+        <div style="flex-grow: 1; padding-top: 2px; font-size: 12.5px; line-height: 1.5; color: {{one.noteInk}};">{{one.note}}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display: flex; gap: 24px; align-items: flex-start; padding-top: 6px; border-top: 1px solid #1e242c;">
+
+    <div style="width: 430px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 15px; font-weight: 600; color: #e6eaf1;">Co to kosztuje</div>
+      <div style="font-size: 12.5px; line-height: 1.6; color: #a8b2c0;">Akapit mówi jedyne dwie rzeczy, których strona nie powie nigdzie indziej: że to nagranie, a nie żywa gra, i że wszystko liczy się w tej przeglądarce. Przy 800&nbsp;px ostatnie 320&nbsp;px tego zdania leży pod panelem.</div>
+      <div style="font-size: 12.5px; line-height: 1.6; color: #8f9bb0;">Strażnik tego nie widzi: <span style="color: #c8cdd6;">tests/tools/preview-site.test.ts</span> czyta, że czapka jest w arkuszu, i nie pyta, na której regule stoi.</div>
+    </div>
+
+    <div style="width: 430px; display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 15px; font-weight: 600; color: #7fd18a;">Rekomendacja</div>
+      <div style="font-size: 12.5px; line-height: 1.6; color: #a8b2c0;">Akapit bierze tę samą czapkę co pas. Jedna deklaracja w <span style="color: #dfe6ef;">composePreviewStyle</span>, żadnej nowej reguły układu.</div>
+      <div style="padding: 10px 12px; background: #12151a; border: 1px solid #2c323c; border-radius: 6px; font-family: ui-monospace, monospace; font-size: 11.5px; line-height: 1.6; color: #c8cdd6;">.preview-intro { … max-width:<br>&nbsp;&nbsp;min(46em, calc(100vw − 540px)); }</div>
+      <div style="font-size: 12.5px; line-height: 1.6; color: #8f9bb0;">I asercja obok tej, która już stoi: obie kolumny kończą się tam, gdzie zaczynają okna — nie tylko jedna.</div>
+    </div>
+
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 8px;">
+      <div style="font-size: 15px; font-weight: 600; color: #e6eaf1;">Czego runda nie rusza</div>
+      <div style="font-size: 12.5px; line-height: 1.6; color: #8f9bb0;">Panel zostaje w rogu i w swoich 260&nbsp;px. Pasek sterowania zostaje na dole po lewej, pod panelem (warstwa 9000 pod 9999).</div>
+      <div style="font-size: 12.5px; line-height: 1.6; color: #8f9bb0;">Okno węższe niż 800&nbsp;px nie było mierzone: panel jest gościem na cudzej stronie i gra przy takiej szerokości ma własne kłopoty.</div>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":860}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const scale = 2;
+    const read = [
+      { viewportWidth: 1280, bandWidth: 638, introWidth: 638, windowsBeginAt: 798, introClearance: 160 },
+      { viewportWidth: 1024, bandWidth: 524, introWidth: 638, windowsBeginAt: 542, introClearance: -96 },
+      { viewportWidth: 900, bandWidth: 400, introWidth: 638, windowsBeginAt: 418, introClearance: -220 },
+      { viewportWidth: 800, bandWidth: 300, introWidth: 638, windowsBeginAt: 318, introClearance: -320 }
+    ];
+    const widths = read.map((one) => {
+      const isUnder = one.introClearance < 0;
+      return {
+        label: one.viewportWidth + ' px',
+        trackWidth: (one.viewportWidth / scale) + 'px',
+        windowsWidth: ((one.viewportWidth - one.windowsBeginAt) / scale) + 'px',
+        bandWidth: (one.bandWidth / scale) + 'px',
+        introWidth: (one.introWidth / scale) + 'px',
+        introFill: isUnder ? '#2e1c1a' : '#1b232a',
+        introEdge: isUnder ? '#e8836f' : '#39404b',
+        introInk: isUnder ? '#f0a897' : '#8f9bb0',
+        noteInk: isUnder ? '#e8836f' : '#8f9bb0',
+        note: isUnder
+          ? 'Akapit wchodzi ' + Math.abs(one.introClearance) + ' px pod okna. Pas jest już zwężony, akapit nie.'
+          : 'Obie kolumny mieszczą się: ' + one.introClearance + ' px wolnego do okien.'
+      };
+    });
+    return { widths };
+  }
+}
+</script>
+</body>
+</html>
