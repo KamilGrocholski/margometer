@@ -19,6 +19,7 @@ import {
     type EnginePresence,
     GAME_SCRIPT_NAME,
     PAGE_ORIGIN,
+    PLACE_NAME,
     readRecordedCalls,
 } from "@/tests/e2e/panel-page.ts";
 
@@ -41,6 +42,8 @@ export interface PanelOptions {
      * ahead of the scripts, or the poll the add-on already started keeps the real one.
      */
     doesFakeClock: boolean;
+    /** Where the game says the fight is, for a test about a place too long for its own row. */
+    place: string;
 }
 
 export interface PanelHandle {
@@ -164,6 +167,7 @@ export const test = base.extend<PanelFixtures & PanelOptions, PanelWorkerFixture
     engine: ["before", { option: true }],
     doesLoadTwice: [false, { option: true }],
     doesFakeClock: [false, { option: true }],
+    place: [PLACE_NAME, { option: true }],
 
     // Worker-scoped: the build is on disk by global setup, and reading it once per worker is the
     // difference between one file read and one per test.
@@ -193,7 +197,7 @@ export const test = base.extend<PanelFixtures & PanelOptions, PanelWorkerFixture
     }, { auto: true }],
 
     panel: async (
-        { page, built, recording, fedThrough, engine, doesLoadTwice, doesFakeClock },
+        { page, built, recording, fedThrough, engine, doesLoadTwice, doesFakeClock, place },
         use,
         info,
     ) => {
@@ -203,7 +207,13 @@ export const test = base.extend<PanelFixtures & PanelOptions, PanelWorkerFixture
             : fedThrough === "none"
             ? 0
             : fedThrough;
-        const html = composePanelPage({ calls, fedThrough: through, engine, doesLoadTwice });
+        const html = composePanelPage({
+            calls,
+            fedThrough: through,
+            engine,
+            doesLoadTwice,
+            place,
+        });
         await setPageServed(page, built.script, html);
         if (doesFakeClock) await page.clock.install();
         await page.goto(`${PAGE_ORIGIN}/`);
@@ -211,7 +221,13 @@ export const test = base.extend<PanelFixtures & PanelOptions, PanelWorkerFixture
         // spec is about; every other test starts on a panel that has already drawn.
         if (engine === "before") await page.waitForSelector(HOST_SELECTOR);
         await use(composePanelHandle(page, built.version, async () => {
-            const empty = composePanelPage({ calls, fedThrough: 0, engine, doesLoadTwice });
+            const empty = composePanelPage({
+                calls,
+                fedThrough: 0,
+                engine,
+                doesLoadTwice,
+                place,
+            });
             await setPageServed(page, built.script, empty);
         }));
     },

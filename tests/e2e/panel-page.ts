@@ -55,6 +55,11 @@ export interface PanelPageOptions {
     fedThrough: number;
     engine: EnginePresence;
     doesLoadTwice: boolean;
+    /**
+     * Where the game says the fight is. A map name is the game's own and nothing in `src/` bounds
+     * it, so a test that needs a long one says so rather than the suite carrying one everywhere.
+     */
+    place: string;
 }
 
 /** The payloads of a recording, in order, as the game delivered them. */
@@ -88,7 +93,7 @@ function composeProbe(): string {
  * (`src/game/engine-attachment.ts`). Both roster names are needed — with only `w` every snapshot
  * read under `warriorsList` comes out empty (`src/game/engine-warrior.ts`).
  */
-function composeGame(): string {
+function composeGame(place: string): string {
     return `window.Engine = {
   battle: {
     w: {},
@@ -104,15 +109,15 @@ function composeGame(): string {
       return ${JSON.stringify(ENGINE_ANSWER)};
     }
   },
-  map: { d: { name: ${JSON.stringify(PLACE_NAME)} } },
+  map: { d: { name: ${JSON.stringify(place)} } },
   hero: { d: { x: 1, y: 1 } }
 };`;
 }
 
 /** The game arriving after the bundle has already looked for it once and missed. */
-function composeGameLate(): string {
+function composeGameLate(place: string): string {
     return `window.setTimeout(function standTheGameUp() {
-${composeGame()}
+${composeGame(place)}
 }, ${ENGINE_LATE_MILLISECONDS});`;
 }
 
@@ -156,8 +161,8 @@ export function composePanelPage(options: PanelPageOptions): string {
     const game = options.engine === "none"
         ? ""
         : options.engine === "late"
-        ? composeGameLate()
-        : composeGame();
+        ? composeGameLate(options.place)
+        : composeGame(options.place);
     const second = options.doesLoadTwice ? `<script src="/${USERSCRIPT_NAME}"></script>\n` : "";
     return `<!doctype html>
 <html lang="en">

@@ -465,16 +465,15 @@ one whose first line is off the top.
 
 **Nothing here is measured off the document.** The page states its own size, the pointer states
 where it is, and the height is arithmetic — the lines the draw counted times what a line costs, plus
-the rule and the air each run of them spends over itself. A wrapping sentence is counted at a floor
-of characters per line, so the count is never short: a card reserving a line it did not need stands
+the rule and the air each run of them spends over itself. A line that wraps is counted at a floor of
+characters per line, so the count is never short: a card reserving a line it did not need stands
 higher up the screen, which is the direction that keeps it on one.
 
 **The width is the sheet's, and it is the one thing here nobody counts.** A card is laid out at its
 content's own width under the bound, so what decides it is the browser's own type metrics — which
 differ by the machine the reader is on, and which no arithmetic in this tree could stand in for. The
-height arithmetic survives it: a card is narrower than the bound only where every sentence on it
-already fits one line, so the floor above is never counting a wrap the card no longer has.
-**ADR 0091.**
+height arithmetic survives it: a card is narrower than the bound only where every line on it already
+fits one, so the floor above is never counting a wrap the card no longer has. **ADR 0091.**
 
 **A card taller than the window gives up a run rather than being cut around.** The block of the
 fight's own figures stands whatever the window, and so do the notes — a suspicion is a claim about a
@@ -505,7 +504,8 @@ figure of damage wears the sign that marks it a count. **ADR 0087.** **A card wh
 narrower figure says so**, in one sentence under the suspicions and over the instruction: the card
 is about the person and its figures are the fight's, while the row it stands over is one cut of
 them. Nowhere else is it a card, because nowhere else is there a person to compose one from: a
-skill, a kind and a fight on the shelf each get the name their own cell had to cut.
+skill, a kind and a fight on the shelf each get the name their own cell had to cut, whole and over
+as many lines as it takes.
 
 **A row the protocol left an end of says which end, and where its figure stands.** It is not a card
 and names nobody — that is what the row is — but the two lines every leaf gets are not an answer to
@@ -538,10 +538,14 @@ Two rows in place of that made a reader add them to answer the question the mech
 asks, and on a combatant whose every wound was weakened the row answering it was not drawn at all.
 **ADR 0095.**
 
-**A line of a card never folds.** Its height is arithmetic and a stat line is counted as one, so a
-label too long for the column is cut with an ellipsis rather than wrapped — a card that folded a
-line would stand lower on the screen than it was measured for, which is the one direction that takes
-it off the bottom.
+**A figure's line never folds, and the words a card opens with always do.** The height is
+arithmetic, and what decides which way a line goes is whether the arithmetic counts it: a stat line
+and a heading are counted as one, so a label too long for its column is cut with an ellipsis rather
+than wrapped, and `MAXIMUM_LABEL_CHARACTERS` is where that bound sits. The name, the line under it
+and the sentences at the foot are counted at the lines they fold to, so they fold — the name on a
+**lower** floor than the rest, because it alone is drawn bold and bold is wider. A line that folds
+uncounted is what stands a card lower on the screen than it is tall, which is the one direction that
+takes it off the bottom. **ADR 0096.**
 
 **The panel is moved by its bar.** The grip says so before anybody tries it, and the whole bar is
 the handle — except its controls, where a press is that control's. A title bar's worth of the panel

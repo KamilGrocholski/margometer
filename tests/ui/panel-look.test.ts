@@ -638,6 +638,42 @@ function getShorteningMissing(sheet: string, selector: string): string[] {
  * separator inside a figure is `src/ui/panel-words.ts`'s to keep unbreakable — this holds the
  * cells around it, which is the other half of the same rule.
  */
+/**
+ * The other side of the rule below, and the one cell written against it. Every other run of words
+ * on this panel is cut where it will not fit, because its height is counted as one line. The name
+ * a card opens with is the **answer** to a name a row had to cut (**ADR 0084**), and an answer cut
+ * again answers nothing — so it folds, and `src/ui/panel-tip.ts` counts the lines it folds to.
+ */
+Deno.test("the name a card opens with folds rather than shortening", () => {
+    // A reader is proved by a sample it must flag and one it must not.
+    assertEquals(
+        getShorteningMissing("}.a{font-weight:600;overflow-wrap:break-word;}", ".a").length,
+        SHORTENING.length,
+        "a rule stating none of the four is one that shortens nothing",
+    );
+    assertEquals(
+        getShorteningMissing(
+            "}.a{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}",
+            ".a",
+        ),
+        [],
+        "and one stating all four still reads as a cell that shortens",
+    );
+
+    const sheet = composeStyleSheet();
+    assertEquals(
+        getShorteningMissing(sheet, `.${CLASS.tipName}`).length,
+        SHORTENING.length,
+        "the name states none of them, so nothing cuts it",
+    );
+    const body = getRuleBody(sheet, `.${CLASS.tipName}`);
+    assertEquals(
+        getDeclaration(body, "overflow-wrap"),
+        "break-word",
+        "and a word with no space to break at breaks rather than running off the card",
+    );
+});
+
 Deno.test("a cell carrying a figure refuses to fold, and its neighbour shortens", () => {
     // A reader is proved by a sample it must flag and one it must not.
     assertEquals(

@@ -27,8 +27,8 @@ import { composeReplayedMaterial, type FightReplay } from "@/tools/fight-replay.
 import { CardHeightError } from "@/tools/margometer-tool-error.ts";
 
 /**
- * Past the corpus by a wide margin: 296 ranking rows over `captures/` on 2026-09-14 times the four
- * screens is 1,184. The bound is loud rather than a clamp (**E7**), because a walk that stopped
+ * Past the corpus by a wide margin: 302 ranking rows over `captures/` on 2026-09-18 times the four
+ * screens is 1,208. The bound is loud rather than a clamp (**E7**), because a walk that stopped
  * counting would report a median over the cards it reached and read like one over all of them.
  */
 const MAXIMUM_CARDS = 65_536;

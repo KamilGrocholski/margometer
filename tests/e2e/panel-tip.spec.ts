@@ -372,3 +372,101 @@ test("a card keeps the edge facing its window, whatever width it draws at", asyn
         .toBeLessThanOrEqual(standing.left);
     expect(gap, "so it stands the same gap, pinned by the edge that faces the window").toBe(GAP);
 });
+
+/**
+ * ⚠️ **A place too long for its own row is the case the card exists to answer** (**ADR 0084**),
+ * and it is the one case no recording can carry: a map name reaches the panel off the game's own
+ * page state, never off a payload. So the suite says where the fight is, and these two say it at
+ * lengths the row cannot hold.
+ *
+ * Long enough to fold to **three** lines and not two. What a mutation to the count has to move is
+ * a card standing 17 px above what it draws, measured over this corpus on 2026-09-06 — one line of
+ * 15 px disappears into that slack and two do not.
+ */
+const LONG_PLACE = "E2E Nieprzebyta Puszcza Grzybiarzy Polnocna Zachodnia Dolina Wschodnia";
+/** One word with nowhere to break, which is what `overflow-wrap:break-word` is bought for. */
+const UNBROKEN_PLACE = "E2E" + "w".repeat(56);
+/** What the stub's own hero stands on, which `composePlaceWords` puts after the name. */
+const TILE = " (1, 1)";
+/** `LINE_HEIGHT`, as the number a drawn name is measured in. */
+const LINE = 15;
+
+/** The name on the open card, as the browser laid it out. */
+async function readCardName(page: import("@playwright/test").Page) {
+    return await page.evaluate(() => {
+        const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
+        const name = root?.querySelector(".MargoMeter-tip:not(.tip-hidden) .tip-name") ?? null;
+        if (name === null) return null;
+        return {
+            said: name.textContent ?? "",
+            height: Math.round(name.getBoundingClientRect().height),
+            // What the box holds against what it shows, both ways: a name cut sideways and a name
+            // cut off the bottom read differently, and neither may happen.
+            scrollWidth: name.scrollWidth,
+            clientWidth: name.clientWidth,
+            scrollHeight: name.scrollHeight,
+            clientHeight: name.clientHeight,
+        };
+    });
+}
+
+/** The shelf, and the card its live row opens — the row that carries the place. */
+async function setShelfCardOpen(panel: PanelHandle): Promise<void> {
+    await panel.at("[data-shelf]").click();
+    await expect(panel.at(".list .row[data-fight]"), "the shelf draws the fight going on")
+        .not.toHaveCount(0);
+    await panel.at(".list .row[data-fight]").first().hover();
+    await expect(panel.at(CARD_OPEN), "which opens a card of its own").toHaveCount(1);
+}
+
+test.describe("a place too long for its row", () => {
+    test.use({ place: LONG_PLACE });
+
+    test("is drawn whole on the card, over as many lines as it takes", async ({ panel }) => {
+        await setShelfCardOpen(panel);
+        const name = await readCardName(panel.page);
+        expect(name, "the card names the fight").not.toBeNull();
+        if (name === null) return;
+
+        expect(name.said, "and it says the whole place, which the row could not")
+            .toBe(`${LONG_PLACE}${TILE}`);
+        expect(name.height, "over more than one line").toBeGreaterThan(LINE * 2);
+        // The claim no unit test can make: a fake document folds nothing, so it reads a name that
+        // is whole while the browser is drawing one that is cut.
+        expect(name.scrollWidth, "with nothing running off its side")
+            .toBeLessThanOrEqual(name.clientWidth + 1);
+        expect(name.scrollHeight, "and nothing cut off its foot")
+            .toBeLessThanOrEqual(name.clientHeight + 1);
+        await panel.expectHonest("a card naming a place too long for its row");
+    });
+
+    test("is counted at the lines it draws, so the card stays on the screen", async ({ panel }) => {
+        await setShelfCardOpen(panel);
+        const seen = await readCardHeight(panel.page);
+        expect(seen, "the card opened").not.toBeNull();
+        if (seen === null) return;
+        expect(seen.counted, "a card counted under what it draws is one the clamp may put off it")
+            .toBeGreaterThanOrEqual(seen.drawn);
+        expect(seen.drawn, "and the box shows the whole of what it drew")
+            .toBeLessThanOrEqual(seen.shown + 1);
+        expect(seen.bottom, "with its bottom edge on the screen")
+            .toBeLessThanOrEqual(seen.viewport);
+    });
+});
+
+test.describe("a place with nowhere to break", () => {
+    test.use({ place: UNBROKEN_PLACE });
+
+    test("breaks inside the word rather than running off the card", async ({ panel }) => {
+        await setShelfCardOpen(panel);
+        const name = await readCardName(panel.page);
+        expect(name, "the card names the fight").not.toBeNull();
+        if (name === null) return;
+
+        expect(name.said, "the whole of it is there").toBe(`${UNBROKEN_PLACE}${TILE}`);
+        expect(name.height, "on more than one line, because it was broken").toBeGreaterThan(LINE);
+        expect(name.scrollWidth, "and none of it is off the side of the card")
+            .toBeLessThanOrEqual(name.clientWidth + 1);
+        await panel.expectHonest("a card naming a place with no space in it");
+    });
+});

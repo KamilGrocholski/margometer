@@ -40,6 +40,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   stoi, ile z nich coś osłabiło. Do tej pory osłabione rany stały w osobnym wierszu i postać, której
   każdą ranę coś osłabiło, nie miała na karcie żadnej liczby ran.
 
+- **Poprawka** — Okienko z opisem pokazuje teraz całą nazwę, łamiąc ją na kolejne wiersze, kiedy
+  jest za długa. Przy zapisanych walkach nazwa miejsca bywała ucięta dwa razy: raz w wierszu, na
+  który nie starczało miejsca, i drugi raz w okienku, które miało ją pokazać w całości.
+
 - **Poprawka** — Sześć rzeczy, które robią postacie z najwyższych poziomów, jest już rozpoznawanych:
   tarcza podnosząca pancerz i leczenie ze sprzętu, powiększenie puli zdrowia — swojej drużynie albo
   przeciwnikom — zmiana leczenia ze sprzętu w obie te strony oraz zniszczenie odporności na

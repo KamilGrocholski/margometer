@@ -728,8 +728,13 @@ function composeTipRules(): string {
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:var(${VARIABLE_PREFIX}radius);box-shadow:${SHAPE.windowShadow};}` +
         `.${CLASS.tipHidden}{display:none;}` +
-        `.${CLASS.tipName}{font-weight:600;overflow:hidden;text-overflow:ellipsis;` +
-        `white-space:nowrap;}` +
+        // The one cell on this panel that folds rather than shortening: it is the answer to
+        // the name a row had to cut, and an answer cut again is no answer (`DESIGN.md`).
+        // `break-word` and not `break-all`, which splits a word where a space was free, nor
+        // `anywhere`, which shrinks the min-content width the card is laid out against
+        // (**ADR 0091**). ⚠️ The lines it folds to are counted in `src/ui/panel-tip.ts`, and
+        // a rule folding here while the count reserves one line is a card off the screen.
+        `.${CLASS.tipName}{font-weight:600;overflow-wrap:break-word;}` +
         `.${CLASS.tipSubtitle}{color:var(${VARIABLE_PREFIX}quiet);}` +
         `.${CLASS.tipGroup}{margin-top:var(${VARIABLE_PREFIX}small);` +
         `padding-top:var(${VARIABLE_PREFIX}small);` +

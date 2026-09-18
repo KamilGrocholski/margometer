@@ -165,6 +165,86 @@ Deno.test("how tall a card stands is counted, and a note as the lines it wraps t
     );
 });
 
+/**
+ * ⚠️ **The floors are spelled here rather than imported, and that is deliberate.** A test reading
+ * the constant it is checking would pass at any value of it, including the one that stands a card
+ * off the bottom of the screen. The numbers are `src/ui/panel-tip.ts`'s, measured in Chrome.
+ */
+const NAME_ON_ONE_LINE = 27;
+const SUBTITLE_ON_ONE_LINE = 32;
+
+/** A card of a name alone, which is the shape the shelf's own row opens (**ADR 0084**). */
+function composeNamed(length: number): TipReading {
+    return { name: "x".repeat(length), subtitle: null, groups: [] };
+}
+
+/**
+ * The name is the one cell on this panel that folds rather than shortening, so it is the one the
+ * height arithmetic has to count. A count reserving one line for a name drawn on two puts the card
+ * that much lower than it is tall, and the clamp in `composeTipTop` then hangs its last line off
+ * the bottom of the screen — silently, because the box carries `overflow:hidden` and takes no
+ * pointer.
+ */
+Deno.test("a name too long for one line is counted as the lines it folds to", () => {
+    assertEquals(
+        getTipSize(composeNamed(NAME_ON_ONE_LINE)).lines,
+        1,
+        "what a line holds stands on one",
+    );
+    assertEquals(
+        getTipSize(composeNamed(NAME_ON_ONE_LINE + 1)).lines,
+        2,
+        "and one character past it costs the whole of the next line",
+    );
+    assertEquals(
+        getTipSize(composeNamed(NAME_ON_ONE_LINE * 2 + 1)).lines,
+        3,
+        "which goes on holding past the second line as well",
+    );
+    // Zero is a boundary, and a card with no name to draw still stands on the line it is drawn on.
+    assertEquals(getTipSize(composeNamed(0)).lines, 1, "a name of nothing is still a line");
+    assertEquals(getTipSize(composeNamed(1)).lines, 1, "and so is a name of one letter");
+});
+
+/**
+ * The name is drawn at `font-weight:600` and the sentences under it are not, so the same number of
+ * characters takes more room on the first line of a card than anywhere below it. One floor for
+ * both would be wrong in one of the two directions, and the direction it would be wrong in for the
+ * name is the one that takes a card off the screen.
+ */
+Deno.test("a name is counted on a lower floor than a sentence, because it is drawn bold", () => {
+    const between = NAME_ON_ONE_LINE + 1;
+    assert(between <= SUBTITLE_ON_ONE_LINE, "there is a length the two floors answer differently");
+    assertEquals(
+        getTipSize(composeNamed(between)).lines,
+        2,
+        "a name of that length has folded",
+    );
+    assertEquals(
+        getTipSize({
+            name: "x",
+            subtitle: null,
+            groups: [{ lines: [{ kind: "note", text: "x".repeat(between), tone: "plain" }] }],
+        }).lines - 1,
+        1,
+        "while a sentence of the same length has not",
+    );
+});
+
+/**
+ * ⚠️ **The line under the name folds today and was counted as one.** `.tip-subtitle` spells no
+ * `white-space`, so it has always wrapped, and the count that stood above it reserved a single
+ * line whatever it said — the same under-count as the name's, one row lower on the card.
+ */
+Deno.test("the line under the name is counted as the lines it folds to", () => {
+    const named = composeNamed(1);
+    const cost = (length: number): number =>
+        getTipSize({ ...named, subtitle: "x".repeat(length) }).lines - getTipSize(named).lines;
+    assertEquals(cost(SUBTITLE_ON_ONE_LINE), 1, "what a line holds costs one");
+    assertEquals(cost(SUBTITLE_ON_ONE_LINE + 1), 2, "and one character past it costs two");
+    assertEquals(cost(0), 1, "a line saying nothing is still drawn, so it still costs one");
+});
+
 Deno.test("hiding and showing write the class, and nothing else moves", () => {
     const document = composeFakeDocument();
     const tip = composeTipElement(document, HILDUR) as FakeElement;

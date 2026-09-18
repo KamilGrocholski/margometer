@@ -241,3 +241,5 @@ edited to agree with the new rule.
   a family, not one key. **Superseded by 0095 in part**
 - [0095](0095-a-weakened-wound-is-a-deep-wound.md) — A weakened wound is a deep wound, and the card
   counts it as one. **Accepted**
+- [0096](0096-the-name-a-card-opens-with-folds.md) — The name a card opens with folds, and the count
+  folds with it. **Accepted**

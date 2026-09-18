@@ -135,9 +135,10 @@ Properties: `align-items` · `align-self` · `all` · `background` · `border` �
 `font-variant-numeric` · `font-weight` · `gap` · `height` · `justify-content` · `left` ·
 `letter-spacing` · `line-height` · `margin` · `margin-bottom` · `margin-left` · `margin-right` ·
 `margin-top` · `max-height` · `max-width` · `min-height` · `min-width` · `opacity` · `overflow` ·
-`overflow-x` · `overflow-y` · `order` · `padding` · `padding-bottom` · `padding-left` ·
-`padding-right` · `padding-top` · `pointer-events` · `position` · `right` · `text-align` ·
-`text-overflow` · `text-transform` · `top` · `touch-action` · `white-space` · `width` · `z-index`
+`overflow-wrap` · `overflow-x` · `overflow-y` · `order` · `padding` · `padding-bottom` ·
+`padding-left` · `padding-right` · `padding-top` · `pointer-events` · `position` · `right` ·
+`text-align` · `text-overflow` · `text-transform` · `top` · `touch-action` · `white-space` · `width`
+· `z-index`
 
 Pairs: `-webkit-user-select: none` · `align-items: baseline` · `align-items: center` ·
 `align-items: flex-start` · `align-self: center` · `align-self: flex-start` · `align-self: stretch`
@@ -148,11 +149,11 @@ Pairs: `-webkit-user-select: none` · `align-items: baseline` · `align-items: c
 · `flex: auto` · `flex: none` · `flex-direction: column` · `flex-wrap: wrap` · `font: sans-serif` ·
 `font: system-ui` · `font-style: italic` · `font-style: normal` ·
 `font-variant-numeric: tabular-nums` · `justify-content: center` · `justify-content: space-between`
-· `margin-left: auto` · `mask-image: transparent` · `overflow: hidden` · `overflow-x: hidden` ·
-`overflow-y: auto` · `pointer-events: none` · `position: absolute` · `position: fixed` ·
-`position: relative` · `position: sticky` · `scrollbar-width: none` · `text-align: center` ·
-`text-align: right` · `text-overflow: ellipsis` · `text-transform: uppercase` · `touch-action: none`
-· `user-select: none` · `white-space: nowrap` · `width: max-content`
+· `margin-left: auto` · `mask-image: transparent` · `overflow: hidden` · `overflow-wrap: break-word`
+· `overflow-x: hidden` · `overflow-y: auto` · `pointer-events: none` · `position: absolute` ·
+`position: fixed` · `position: relative` · `position: sticky` · `scrollbar-width: none` ·
+`text-align: center` · `text-align: right` · `text-overflow: ellipsis` · `text-transform: uppercase`
+· `touch-action: none` · `user-select: none` · `white-space: nowrap` · `width: max-content`
 
 Functions: `calc` · `clamp` · `min` · `repeating-linear-gradient` · `rgb` · `var`
 

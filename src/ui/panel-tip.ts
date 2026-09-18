@@ -100,6 +100,9 @@ export const MAXIMUM_TIPS = 512;
  * Chrome on 2026-08-29, the longest note this panel composes ran 104 characters over three lines
  * and the shortest 31 over one. Counting low leaves the window standing higher up the screen than
  * it had to, which is the direction that keeps a card on it.
+ *
+ * **The line under the name is counted on this floor too**, and not on the name's: it is drawn in
+ * the same face at the same size in the same box, so what a sentence costs is what it costs.
  */
 const NOTE_CHARACTERS_PER_LINE = 32;
 /**
@@ -108,10 +111,24 @@ const NOTE_CHARACTERS_PER_LINE = 32;
  */
 const NOTE_MARK_CHARACTERS = 2;
 /**
+ * The same floor for the name a card opens with, which is lower because the name is the one thing
+ * on a card drawn bold and bold is wider. Measured in Chrome 152 on 2026-09-18 at **240 pixels**
+ * of type — the 250px bound less the card's padding and its border — over the 31 names `captures/`
+ * carries, composed into the place shape a shelf row states (`Nazwa (x, y)`) and read at every
+ * prefix length: 2,211 readings, and 27 is the **largest** floor that under-counts none of them.
+ * Twenty-eight under-counts four.
+ *
+ * ⚠️ **A floor over characters cannot see where a line broke.** What it is short by is a name whose
+ * last word is long, and the margin is what absorbs that; the one case measured past the margin is
+ * an unbroken run of capitals — 60 of them draw four lines and count three. A real name is not
+ * that, and the card carries the air to survive one line of it.
+ */
+const NAME_CHARACTERS_PER_LINE = 27;
+/**
  * Past every card this panel composes: four figures and their parts, the counters, both runs —
  * the criticals, the defences, the procs and what a blow destroyed — and the notes. The tallest
- * card any recording composes is 31 lines and the median 24, over the 1,184 cards the ranking of
- * `captures/` opens on 2026-09-14 — `deno task panel:cards` is what measures it, and this is
+ * card any recording composes is 31 lines and the median 24, over the 1,208 cards the ranking of
+ * `captures/` opens on 2026-09-18 — `deno task panel:cards` is what measures it, and this is
  * headroom rather than a limit anything meets.
  */
 const MAXIMUM_TIP_LINES = 64;
@@ -151,8 +168,20 @@ export function composeTipRegister(): TipRegister {
 }
 
 /**
- * What one line costs the height. A note wraps, so it costs the lines its text runs to; every
- * other kind is held to one by the stylesheet, which cuts a long label rather than folding it.
+ * What a run of text costs the height, on the floor its face is counted at. A floor of nought or
+ * less would answer infinity, and a text of nothing still stands on the line it is drawn on, so
+ * the answer is never under one.
+ */
+function getTipLinesForCharacters(characters: number, charactersPerLine: number): number {
+    const wrapped = Math.ceil(characters / charactersPerLine);
+    if (wrapped < 1) return 1;
+    return wrapped;
+}
+
+/**
+ * What one line of a run costs the height. A note wraps, so it costs the lines its text runs to;
+ * every other kind is held to one by the stylesheet, which cuts a long label rather than folding
+ * it. The name a card opens with is neither, and `getTipSize` counts it.
  *
  * ⚠️ **A caveated note's mark is counted although it is not in the text.** It is drawn from the
  * tone since **ADR 0092**, and a count reading `text` alone would shorten every one of those
@@ -162,14 +191,15 @@ export function composeTipRegister(): TipRegister {
 function getTipLineCost(line: TipLine): number {
     if (line.kind !== "note") return 1;
     const marked = line.tone === "caveat" ? NOTE_MARK_CHARACTERS : 0;
-    const wrapped = Math.ceil((line.text.length + marked) / NOTE_CHARACTERS_PER_LINE);
-    if (wrapped < 1) return 1;
-    return wrapped;
+    return getTipLinesForCharacters(line.text.length + marked, NOTE_CHARACTERS_PER_LINE);
 }
 
 export function getTipSize(reading: TipReading | null): TipSize {
     if (reading === null) return { lines: 1, groups: 0 };
-    let lines = reading.subtitle === null ? 1 : 2;
+    let lines = getTipLinesForCharacters(reading.name.length, NAME_CHARACTERS_PER_LINE);
+    if (reading.subtitle !== null) {
+        lines += getTipLinesForCharacters(reading.subtitle.length, NOTE_CHARACTERS_PER_LINE);
+    }
     for (const group of reading.groups) {
         for (const line of group.lines) {
             lines += getTipLineCost(line);
@@ -275,8 +305,8 @@ export function composeTipElement(
     const tip = document.createElement("div");
     tip.className = reading === null ? `${CLASS.tip} ${CLASS.tipHidden}` : CLASS.tip;
     if (reading === null) return tip;
-    // A block rather than a span: `text-overflow` reads nothing on an inline box, so a name too
-    // long for the window would be cut off flat instead of ending in the ellipsis the row uses.
+    // A block rather than a span, because the name folds and an inline box would fold around
+    // whatever stood beside it. What its lines cost is `getTipSize` above.
     const name = document.createElement("div");
     name.className = CLASS.tipName;
     name.textContent = reading.name;
