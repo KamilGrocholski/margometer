@@ -266,7 +266,7 @@ Deno.test("what opened the turns partitions them, and the keys all but the blows
         turns += one.turns;
         if (one.opener === "attack") blows += one.turns;
     }
-    assertStrictEquals(turns, 5576, "every turn the corpus opened, 2026-09-16");
+    assertStrictEquals(turns, 5591, "every turn the corpus opened, 2026-09-19");
     let adds = 0;
     for (const one of composeKeyTally(getRecordedFights())) adds += one.adds;
     assertStrictEquals(adds + blows, turns, "a turn is added by a key or opened by a blow");

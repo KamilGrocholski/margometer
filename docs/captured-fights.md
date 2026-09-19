@@ -29,7 +29,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 
 | shape     | recordings |
 | --------- | ---------- |
-| `1 vs 1`  | `3`        |
+| `1 vs 1`  | `4`        |
 | `1 vs 2`  | `1`        |
 | `1 vs 3`  | `1`        |
 | `1 vs 5`  | `1`        |
@@ -75,6 +75,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`                 | `10 vs 1` | `ours won`   | `10 players · h 2, m 2, p 1, t 3, w 2 · levels 83–99`      | `1 NPC · p 1 · level 83`                          | `209110`             |
 | `captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json`           | `10 vs 1` | `ours won`   | `10 players · b 1, h 2, m 3, t 3, w 1 · levels 28–60`      | `1 NPC · b 1 · level 36`                          | `43092`              |
 | `captures/2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0.json`               | `1 vs 5`  | `theirs won` | `1 player · t 1 · level 83`                                | `5 players · h 1, m 2, p 1, w 1 · levels 300–303` | `120998`             |
+| `captures/2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0.json`                 | `1 vs 1`  | `theirs won` | `1 player · t 1 · level 64`                                | `1 player · m 1 · level 64`                       | `9492`               |
 
 ## The recordings
 
@@ -113,16 +114,17 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0.json`                 | `luvia`        | `Cl9U89Zr`      | `0.15.0`      | `99`  | `475`    |
 | `captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json`           | `luvia`        | `Cl9U89Zr`      | `0.16.0`      | `1`   | `276`    |
 | `captures/2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0.json`               | `luvia`        | `Bb28FQty`      | `0.17.0`      | `3`   | `19`     |
+| `captures/2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0.json`                 | `luvia`        | `Bb28FQty`      | `0.17.0`      | `12`  | `55`     |
 
 ## What the material does not hold
 
 Every gap below is readable off the tables above, and each is a reason to record something rather
 than a defect.
 
-- **No group fight between players.** Three recordings hold a player at both ends — the duel on
-  `experimental`, a two-against-one on `tempest` and the bounty fight on `luvia` — and in none of
-  them is a group facing a group, so nothing here says what the panel does when both sides heal,
-  resurrect and drink at scale.
+- **No group fight between players.** Four recordings hold a player at both ends — two duels, one on
+  `experimental` and one on `luvia`, a two-against-one on `tempest` and the bounty fight on `luvia`
+  — and in none of them is a group facing a group, so nothing here says what the panel does when
+  both sides heal, resurrect and drink at scale.
 - **No fight of more than two sides.** Two is all the material holds, so a third is untested on real
   protocol. A wide side is no longer one of these gaps: the bounty fight puts five on the one
   opposite the reader.
@@ -339,3 +341,16 @@ evidence.
   health for the same opponent than the other Hildur fights do. The opponent is the same; the
   strength it is met at is not, so a health figure quoted from one recording is a figure about that
   recording and not about the boss.
+
+- `captures/2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0.json` — **the only recording carrying
+  `-manadest`**, and the register had written down that none did. Mana is a pool no total here
+  keeps, so the key is read as a declaration beside `-endest` (`docs/protocol-keys.md`). The
+  fabricated fight states it too, and that is never material — it is what stands where `captures/`
+  is silent (`tools/fabricated-fight.ts`).
+
+  ⚠️ **It carries `-endest` as well, and both keys state one figure for the whole fight** — 10 twice
+  and 4 three times — where the published help describes a bonus weakening by 5% of its initial
+  value each turn. That disagreement stood on one recording and one build; this is the second of
+  each, and it is still recorded rather than resolved (**V6**).
+
+  It is the second duel between two players, and the first on `luvia`.

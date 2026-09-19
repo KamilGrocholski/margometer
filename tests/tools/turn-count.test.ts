@@ -143,7 +143,7 @@ Deno.test("a turn the game numbered on its own goes onto the row the game named"
         placed += grade.placed;
         assertStrictEquals(grade.elsewhere, 0, `${grade.name}: a turn went onto the wrong row`);
     }
-    assertStrictEquals(placed, 517, "the boundaries narrow enough to ask it of, 2026-09-11");
+    assertStrictEquals(placed, 520, "the boundaries narrow enough to ask it of, 2026-09-19");
 });
 
 /**
@@ -168,10 +168,10 @@ Deno.test("the count agrees with the numbering at all but three boundaries", () 
     }
     assertStrictEquals(
         total.bounded,
-        1114,
-        "the boundaries the game numbered and told, 2026-09-11",
+        1122,
+        "the boundaries the game numbered and told, 2026-09-19",
     );
-    assertStrictEquals(total.exact, 1111, "and the ones the count agreed with, 2026-09-11");
+    assertStrictEquals(total.exact, 1119, "and the ones the count agreed with, 2026-09-19");
     assertStrictEquals(total.over, 0, "no turn is opened where the game numbered none");
     assertStrictEquals(total.under, 3, "and three the game numbered opened nothing");
     assertStrictEquals(total.untold, 1, "one stretch the game numbered and never narrated");

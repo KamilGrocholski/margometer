@@ -39,7 +39,7 @@ Deno.test("every tick names its victim in the actor slot and nobody at the other
             assertEquals(parsed.target, null, `${path}: and states nobody at the other end`);
         }
     }
-    assertEquals(ticks, 71, "every tick the material carries was read, 2026-09-14");
+    assertEquals(ticks, 73, "every tick the material carries was read, 2026-09-19");
 });
 
 /**
@@ -59,8 +59,8 @@ Deno.test("the announcement carries no figure, so nothing says which application
     }
     assertEquals(
         announcements,
-        19,
-        "every announcement the material carries was read, 2026-09-14",
+        20,
+        "every announcement the material carries was read, 2026-09-19",
     );
 });
 

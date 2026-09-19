@@ -220,7 +220,7 @@ it is written down per key instead of derived from the grammar.
 The combatants on the winning side, as a single string, names separated by a comma and a space.
 Appears in a message that names no combatant at all: it is about the fight, not about anyone in it.
 
-_Shape:_ 33 occurrences; alone in its message; text
+_Shape:_ 34 occurrences; alone in its message; text
 
 _Help:_ names `max_moves`
 
@@ -235,7 +235,7 @@ The same, for the losing side — with the one exception the entry above states:
 spends on a fight nobody won is not a value this one carries, and it is left unread here rather than
 read as a side of that name.
 
-_Shape:_ 33 occurrences; alone in its message; text
+_Shape:_ 34 occurrences; alone in its message; text
 
 _Evidence:_ as above, which measures the pair.
 
@@ -374,7 +374,7 @@ _Help:_ names `( heal )`
 value and no direction. This entry is why production decides: read there, the member looks like a
 plain number, and the half that makes it legible is missing.
 
-_Shape:_ 2399 occurrences; alone in its message; text
+_Shape:_ 2414 occurrences; alone in its message; text
 
 _Evidence:_ of the four ways to sign `heal` and `poison`, only healing added and poison subtracted
 closes the stated percentages — the other three leave hundreds of comparisons disagreeing. Applying
@@ -473,7 +473,7 @@ _Health:_ moves health
 
 _Cause:_ nobody
 
-_Shape:_ 78 occurrences; alone in its message; text
+_Shape:_ 85 occurrences; alone in its message; text
 
 _Help:_ names `( light )`
 
@@ -502,7 +502,7 @@ _Health:_ moves health
 
 _Cause:_ nobody
 
-_Shape:_ 71 occurrences; alone in its message; a whole number
+_Shape:_ 73 occurrences; alone in its message; a whole number
 
 _Help:_ names `anguish`
 
@@ -858,7 +858,7 @@ since.
 The same for magical absorption, which the help documents against fire, cold and lightning rather
 than physical damage, with a higher cap.
 
-_Shape:_ 302 occurrences; on a blow; a whole number
+_Shape:_ 315 occurrences; on a blow; a whole number
 
 _Help:_ names `absorbm`, `absorpcja magiczna`
 
@@ -887,7 +887,7 @@ which is why it is grouped with them.
 A critical hit fired on this blow. **Carries no figure at all**: the protocol states the key and
 stops, and the client's branch composes its sentence without reading a value.
 
-_Shape:_ 962 occurrences; on a blow; no value
+_Shape:_ 963 occurrences; on a blow; no value
 
 _Help:_ names `crit`
 
@@ -925,7 +925,7 @@ corroborates the meaning outside the battle log — `this.of_crit` writes the ch
 Armour piercing fired on this blow — the help states that within such a blow the target's armour
 does not reduce the damage. No figure, like `+crit`.
 
-_Shape:_ 424 occurrences; on a blow; no value
+_Shape:_ 425 occurrences; on a blow; no value
 
 _Help:_ names `pierce`
 
@@ -1128,7 +1128,7 @@ groups it with two siblings the client also has keys for — `+distract` and `-l
 states that only one of the three may sit on a combatant at a time, and that stunning is spent
 before any of them.
 
-_Shape:_ 14 occurrences; on a blow; no value
+_Shape:_ 15 occurrences; on a blow; no value
 
 _Help:_ names `curse`
 
@@ -1197,7 +1197,7 @@ anybody checks. Measured over every recording as the set stood 2026-08-25: ten a
 `-dmg=0` and thirteen beside `-dmgd=0`, none beside a non-zero one, and none beside no applied
 figure at all.
 
-_Shape:_ 57 occurrences; on a blow; no value
+_Shape:_ 58 occurrences; on a blow; no value
 
 _Help:_ names `evade`
 
@@ -1299,7 +1299,7 @@ pedantic: the help describes it as lowering a statistic before the blow's reduct
 with a floor below which it cannot go. Summed together with `dealt` it would be a total of two
 different things.
 
-_Shape:_ 1054 occurrences; on a blow; a whole number
+_Shape:_ 1070 occurrences; on a blow; a whole number
 
 _Help:_ names `acdmg`
 
@@ -1349,7 +1349,7 @@ Elemental resistance of the target destroyed by this blow, which the help states
 points** rather than in the points `+acdmg` uses. The two are kept in one shape here because the
 protocol gives no unit either way; what the figure means is the entry's job, not the type's.
 
-_Shape:_ 1307 occurrences; on a blow; a whole number
+_Shape:_ 1322 occurrences; on a blow; a whole number
 
 _Help:_ names `resdmg`
 
@@ -1418,7 +1418,7 @@ Absorption of the target destroyed by this blow, **in points** — despite the n
 belongs to the share the skill announces, not to what this reports: the figure is the quantity that
 share removed.
 
-_Shape:_ 257 occurrences; on a blow; a whole number
+_Shape:_ 260 occurrences; on a blow; a whole number
 
 _Evidence:_ as below, which measures both entries together.
 
@@ -1427,7 +1427,7 @@ _Evidence:_ as below, which measures both entries together.
 The same for magical absorption. The two always arrive together and are read identically; nothing
 separates them but which pool they empty.
 
-_Shape:_ 257 occurrences; on a blow; a whole number
+_Shape:_ 260 occurrences; on a blow; a whole number
 
 _Evidence:_ both entries, measured on
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`: 18 occurrences each, every
@@ -1450,7 +1450,7 @@ This is the key an announcement always carries where `skillId` is the one it som
 that asymmetry decides how far the announcement reaches: `skillId` says which. `tcustom` is the
 id-less spelling by construction and takes the same answer.
 
-_Shape:_ 3534 occurrences; on a skill announcement; text
+_Shape:_ 3545 occurrences; on a skill announcement; text
 
 _Help:_ names nothing of `tspell`, `( tspell )`, `skillId`, `( skillId )`
 
@@ -1481,7 +1481,7 @@ announcement did carry is one the table carries — 0 exceptions of 3,129, 2026-
 makes a missing id the whole of that case, and `tests/repository/skill-durations.test.ts` re-earns
 it.
 
-_Shape:_ 3162 occurrences; on a skill announcement; a whole number
+_Shape:_ 3173 occurrences; on a skill announcement; a whole number
 
 _Evidence:_ production build `1785244275300` for the empty branch. Measured on the captures: present
 on 182 of the 197 announcements, absent from 15, and never once on a message that does not also
@@ -1581,7 +1581,7 @@ descriptions. That switch is not about battle messages, and the frozen table is 
 balance so it holds only the battle one — the trap of matching a name rather than the shape it
 stands in, met again here.
 
-_Shape:_ 484 occurrences; on a skill announcement; a whole number
+_Shape:_ 487 occurrences; on a skill announcement; a whole number
 
 _Help:_ names `active_absorbdest_per`
 
@@ -1641,7 +1641,7 @@ the two critical-hit flags.
 
 Energy destroyed on the combatant this blow struck. Rides the blow and states a whole number.
 
-_Shape:_ 8 occurrences; on a blow; a whole number
+_Shape:_ 11 occurrences; on a blow; a whole number
 
 _Help:_ names `endest`
 
@@ -1651,17 +1651,21 @@ points on their turn, weakening by 5% of its initial value each turn and floored
 build `1786514810315` composes it through the shared `msg_<key> %val%` branch it shares with
 `+endest`, with a second form for a two-member value.
 
-⚠️ **The decay the help describes is not visible here.** On
+⚠️ **The decay the help describes is not visible here, on either recording that carries it.** On
 `captures/2026-08-12-experimental-tancerz-vs-wojownik-1781609507010-none.json`, all 8 occurrences
-state 5 across a fight of 41 blows, where the documented rule would have them falling. The material
-is one fight and the help is about an equipment bonus rather than about the key, so this is recorded
-as a disagreement and not resolved either way — what is settled is the unit, which is all the
-reading rests on.
+state 5 across a fight of 41 blows; on
+`captures/2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0.json`, all 3 state 4 across a fight of
+17, on a second build. The documented rule would have them falling in both. The help is about an
+equipment bonus rather than about the key, so this is recorded as a disagreement and not resolved
+either way — what is settled is the unit, which is all the reading rests on. `-manadest` below
+states the same figure twice on the same recording, so the disagreement is one shape and not two.
 
 ### `-manadest` — decoded
 
 Mana destroyed on the combatant this blow struck. Rides the blow and states a whole number. Mana is
 a pool no total here keeps, so the figure is a declaration charged to nobody, as `-endest` above is.
+
+_Shape:_ 2 occurrences; on a blow; a whole number
 
 _Help:_ names `manadest`
 
@@ -1672,10 +1676,12 @@ rule the article gives for `endest` above. Production build `Bb28FQty` composes 
 shared `msg_<key> %val%` branch it shares with `+manadest`, with a second form for a two-member
 value.
 
-⚠️ **No recording carries it, which is why this entry states no shape** — and why the decay the help
-describes is measured nowhere here. The key reaches the decoder through the fabricated fight alone,
-which is what `tests/tools/fabricated-fight.test.ts` holds it to. The day a recording carries one is
-the day this entry earns a `_Shape:_` line.
+⚠️ **One recording carries it, and the decay the help describes is not visible on it.** Both
+occurrences state 10, on two blows struck by one combatant in
+`captures/2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0.json`, where the documented rule would
+have the second below the first — the same disagreement `-endest` above carries, and read the same
+way. The fabricated fight states the key as well, which is what
+`tests/tools/fabricated-fight.test.ts` holds every key this register calls `decoded` to.
 
 ### `+critslow_per` — decoded
 
@@ -1707,7 +1713,7 @@ over every recording sits beside `+crit` and states the same value (read 2026-09
 A legendary bonus riding the blow, stating a whole number. Nothing establishes what the number
 counts.
 
-_Shape:_ 16 occurrences; on a blow; a whole number
+_Shape:_ 17 occurrences; on a blow; a whole number
 
 ⚠️ **The register said this key was undocumented, and it was wrong.** The search was for
 `legbon_facade` and `legbon`; the help prints the engine name without the protocol's prefix, so
@@ -1883,7 +1889,7 @@ report, without saying whether the attack that triggers it is one the character 
 took. So the question the verdict turns on is still open, and this stays a declaration rather than
 something a row could carry.
 
-_Shape:_ 3 occurrences; on a blow; a whole number
+_Shape:_ 18 occurrences; on a blow; a whole number
 
 _Help:_ names `absorbm`, `absagain_per`
 
@@ -1921,7 +1927,7 @@ the attack that triggers the renewal is one the character landed or one they too
 does not say either: both keys name an attacker and the combatant whose absorption stopped damage,
 and state nowhere which of the two gained. So both stay declarations.
 
-_Shape:_ 3 occurrences; on a blow; a whole number
+_Shape:_ 8 occurrences; on a blow; a whole number
 
 _Help:_ names `absorb`, `absagain_per`
 
@@ -2480,7 +2486,7 @@ name and the separator the game puts after it, and the game's other lines about 
 full stop. The decoder resolves the name against the roster and passes on an id (**ADR 0049**);
 `docs/turns-taken.md` carries what that comes to.
 
-_Shape:_ 411 occurrences; alone in its message; text
+_Shape:_ 412 occurrences; alone in its message; text
 
 _Help:_ names nothing of `txt`
 
@@ -2789,7 +2795,7 @@ neighbour rather than an answer. The absence is asserted over the material rathe
 here (`tests/core/anguish-rule.test.ts`), so a recording that brings a figure fails rather than
 passing under a reading it invalidates.
 
-_Shape:_ 19 occurrences; on a blow; no value
+_Shape:_ 20 occurrences; on a blow; no value
 
 _Help:_ names `anguish`
 
