@@ -1039,6 +1039,7 @@ function actResources(turn: FabricatedTurn): string[] {
         composeValueless("en-regen-cast"),
         composeFigureParameter("+engback", composeSmall(turn, 9)),
         composeFigureParameter("-endest", composeSmall(turn, 7)),
+        composeFigureParameter("-manadest", composeSmall(turn, 9)),
     ])];
 }
 

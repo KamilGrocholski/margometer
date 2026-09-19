@@ -1658,6 +1658,25 @@ is one fight and the help is about an equipment bonus rather than about the key,
 as a disagreement and not resolved either way — what is settled is the unit, which is all the
 reading rests on.
 
+### `-manadest` — decoded
+
+Mana destroyed on the combatant this blow struck. Rides the blow and states a whole number. Mana is
+a pool no total here keeps, so the figure is a declaration charged to nobody, as `-endest` above is.
+
+_Help:_ names `manadest`
+
+_Evidence:_ article view,372 at the engine name `manadest` (read 2026-09-15): _słabnące niszczenie
+many przeciwnika_, a withdrawn equipment bonus that takes a fixed number of the opponent's mana
+points on their turn, weakening by 5% of its initial value each turn and floored at zero — the same
+rule the article gives for `endest` above. Production build `Bb28FQty` composes it through the
+shared `msg_<key> %val%` branch it shares with `+manadest`, with a second form for a two-member
+value.
+
+⚠️ **No recording carries it, which is why this entry states no shape** — and why the decay the help
+describes is measured nowhere here. The key reaches the decoder through the fabricated fight alone,
+which is what `tests/tools/fabricated-fight.test.ts` holds it to. The day a recording carries one is
+the day this entry earns a `_Shape:_` line.
+
 ### `+critslow_per` — decoded
 
 An attack-speed reduction applied by a critical hit. States a whole number, and every occurrence

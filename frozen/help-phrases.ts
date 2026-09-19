@@ -79,6 +79,7 @@ export const FROZEN_HELP_PHRASES = {
         "lastheal": 1,
         "lowheal_per-enemies": 8,
         "mana": 43,
+        "manadest": 10,
         "max_moves": 2,
         "nieuchronne": 10,
         "of_wound1": 1,

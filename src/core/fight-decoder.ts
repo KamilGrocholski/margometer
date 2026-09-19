@@ -271,6 +271,7 @@ const DECLARATION_KEYS = [
     "-endest",
     "-legbon_critred",
     "-legbon_facade",
+    "-manadest",
     "-poison_lowdmg_per",
     "active_absorbdest_per",
     "active_block_per",

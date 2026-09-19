@@ -86,6 +86,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   powiedziała gra, a przy ciosie staje „ogłuszenie" — tak samo jak przy pozostałych odmianach tego
   samego zdarzenia.
 
+- **Poprawka** — Niszczenie many przeciwnika jest już rozpoznawane. W walkach z kimś, kto je niesie,
+  panel przestaje ostrzegać, że nie wiedział, co znaczyła część tego, co powiedziała gra. Sama mana
+  nie wchodzi przy tym do żadnej liczby na karcie — panel jej nie prowadzi, tak samo jak nie
+  prowadzi energii.
+
 ## [0.17.0] — 2026-09-15
 
 - **Nowość** — Liczba, która znaczy mniej, niż mówi jej nazwa, ma teraz obok siebie niebieski znak,
