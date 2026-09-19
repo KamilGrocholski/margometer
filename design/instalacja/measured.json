@@ -1,5 +1,5 @@
 {
-    "takenAt": "2026-09-18",
+    "takenAt": "2026-09-19",
     "material": "dist/preview/index.html, src/ui/panel-look.ts, captures/",
     "windows": {
         "panelWidth": 260,
@@ -16,7 +16,7 @@
         "columnMaximum": 598,
         "paddingAcross": 40,
         "fullColumnFrom": 1138,
-        "characters": 500,
+        "characters": 504,
         "steps": [
             {
                 "order": 1,
@@ -114,6 +114,121 @@
                 "windowsBeginAt": 318,
                 "clearance": 18,
                 "introClearance": 18
+            }
+        ]
+    },
+    "stage": {
+        "across": 1280,
+        "stripAcross": 586,
+        "stripUnderPanelFrom": 1232,
+        "places": [
+            {
+                "viewportWidth": 1920,
+                "stageLeft": 320,
+                "stageAcross": 1280,
+                "columnWidth": 598,
+                "textRight": 958,
+                "standingLeft": 1118,
+                "panelLeft": 1332,
+                "clearance": 160,
+                "stripStartsAt": 1006,
+                "stripClearsTextBy": 48
+            },
+            {
+                "viewportWidth": 1600,
+                "stageLeft": 160,
+                "stageAcross": 1280,
+                "columnWidth": 598,
+                "textRight": 798,
+                "standingLeft": 958,
+                "panelLeft": 1172,
+                "clearance": 160,
+                "stripStartsAt": 846,
+                "stripClearsTextBy": 48
+            },
+            {
+                "viewportWidth": 1440,
+                "stageLeft": 80,
+                "stageAcross": 1280,
+                "columnWidth": 598,
+                "textRight": 718,
+                "standingLeft": 878,
+                "panelLeft": 1092,
+                "clearance": 160,
+                "stripStartsAt": 766,
+                "stripClearsTextBy": 48
+            },
+            {
+                "viewportWidth": 1366,
+                "stageLeft": 43,
+                "stageAcross": 1280,
+                "columnWidth": 598,
+                "textRight": 681,
+                "standingLeft": 841,
+                "panelLeft": 1055,
+                "clearance": 160,
+                "stripStartsAt": 729,
+                "stripClearsTextBy": 48
+            },
+            {
+                "viewportWidth": 1280,
+                "stageLeft": 0,
+                "stageAcross": 1280,
+                "columnWidth": 598,
+                "textRight": 638,
+                "standingLeft": 798,
+                "panelLeft": 1012,
+                "clearance": 160,
+                "stripStartsAt": 686,
+                "stripClearsTextBy": 48
+            },
+            {
+                "viewportWidth": 1152,
+                "stageLeft": 0,
+                "stageAcross": 1152,
+                "columnWidth": 598,
+                "textRight": 638,
+                "standingLeft": 670,
+                "panelLeft": 884,
+                "clearance": 32,
+                "stripStartsAt": 558,
+                "stripClearsTextBy": -80
+            },
+            {
+                "viewportWidth": 1024,
+                "stageLeft": 0,
+                "stageAcross": 1024,
+                "columnWidth": 484,
+                "textRight": 524,
+                "standingLeft": 542,
+                "panelLeft": 756,
+                "clearance": 18,
+                "stripStartsAt": 430,
+                "stripClearsTextBy": -94
+            },
+            {
+                "viewportWidth": 900,
+                "stageLeft": 0,
+                "stageAcross": 900,
+                "columnWidth": 360,
+                "textRight": 400,
+                "standingLeft": 418,
+                "panelLeft": 632,
+                "clearance": 18,
+                "stripStartsAt": 306,
+                "stripClearsTextBy": -94
+            },
+            {
+                "viewportWidth": 800,
+                "stageLeft": 0,
+                "stageAcross": 800,
+                "columnWidth": 260,
+                "textRight": 300,
+                "standingLeft": 318,
+                "panelLeft": 532,
+                "clearance": 18,
+                "stripStartsAt": 206,
+                "stripClearsTextBy": -94
             }
         ]
     },

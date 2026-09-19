@@ -32,6 +32,23 @@ const MEASURED_FILE = "design/instalacja/measured.json";
 const VIEWPORT_WIDTHS = [1920, 1600, 1440, 1366, 1280, 1152, 1024, 900, 800];
 
 /**
+ * The width the round proposes the whole composition be capped at, so the column and the windows
+ * stop drifting apart on a wide screen. 1280 and not a rounder figure: the column's `46em` with
+ * its padding is 638 and the two windows reserve 540, which is 1178 of page that is already
+ * spoken for — a stage wider than the sum plus air is the hole back again, and one narrower makes
+ * the column give up ems it has at 1280 today.
+ */
+const PROPOSED_STAGE_WIDTH = 1280;
+
+/**
+ * What the control strip comes to drawn, which is the one figure here a browser has to answer:
+ * it is a `<select>` over every recording's name in the page's own font, and no rule in the
+ * stylesheet states a width. Read on Chrome 152.0.7977.64, 2026-09-19, over the built page at
+ * every width below — 586px at all of them, because the longest name sets it either way.
+ */
+const MEASURED_STRIP_ACROSS = 586;
+
+/**
  * What one recording a visitor may watch takes, end to end, at the rate the page's own driver
  * steps at. The rate is a raw number inside the emitted script and is read off the built page.
  */
@@ -57,6 +74,19 @@ interface MeasuredColumn {
     windowsBeginAt: number;
     clearance: number;
     introClearance: number;
+}
+
+interface MeasuredStagePlace {
+    viewportWidth: number;
+    stageLeft: number;
+    stageAcross: number;
+    columnWidth: number;
+    textRight: number;
+    standingLeft: number;
+    panelLeft: number;
+    clearance: number;
+    stripStartsAt: number;
+    stripClearsTextBy: number;
 }
 
 function readBuiltPage(): string {
@@ -240,6 +270,47 @@ function composeMeasuredReach(stripLeft: number, panelWidth: number, inset: numb
 }
 
 /**
+ * The same page with the composition capped and centred, and the strip taken to under the panel
+ * it drives — the variant this round recommends, laid out arithmetically from the figures the
+ * page already lays itself out by, so it is comparable with `band.columns` row for row.
+ *
+ * Every length here is the stage's, not the window's: above the cap the two windows stand at the
+ * stage's right edge rather than the viewport's, which is the whole of the change and the reason
+ * `clearance` stops moving with the screen.
+ */
+function composeMeasuredStage(
+    stageWidth: number,
+    columnMaximum: number,
+    reserved: number,
+    paddingAcross: number,
+    takenAcross: number,
+): MeasuredStagePlace[] {
+    assert(stageWidth > reserved, "a stage holds the windows it reserves room for");
+    assert(MEASURED_STRIP_ACROSS > 0, "and the strip was read at a width somebody measured");
+    return VIEWPORT_WIDTHS.map((viewportWidth) => {
+        const stageAcross = Math.min(viewportWidth, stageWidth);
+        const stageLeft = Math.max(0, (viewportWidth - stageWidth) / 2);
+        const columnWidth = Math.min(columnMaximum, stageAcross - reserved);
+        const textRight = stageLeft + columnWidth + paddingAcross;
+        const standingLeft = stageLeft + stageAcross - takenAcross;
+        const panelRight = stageLeft + stageAcross - PANEL_INSET;
+        const stripStartsAt = panelRight - MEASURED_STRIP_ACROSS;
+        return {
+            viewportWidth,
+            stageLeft,
+            stageAcross,
+            columnWidth,
+            textRight,
+            standingLeft,
+            panelLeft: standingLeft + getSheetPixels(STANDING.width) + PANEL_GAP,
+            clearance: standingLeft - textRight,
+            stripStartsAt,
+            stripClearsTextBy: stripStartsAt - textRight,
+        };
+    });
+}
+
+/**
  * The panel as the panel composes it, and never as a sheet remembers it. A share here is
  * `shareText` off the shipped reading: the screen is counted a second time from the statistics,
  * so a row's percent is not its figure over the sum of the rows, and a sheet dividing for itself
@@ -385,6 +456,20 @@ function composeMeasured() {
                 paddingAcross,
                 takenAcross,
                 introPaddingAcross,
+            ),
+        },
+        stage: {
+            across: PROPOSED_STAGE_WIDTH,
+            stripAcross: MEASURED_STRIP_ACROSS,
+            /** Where the strip's left edge first clears the column, so it may stand under it. */
+            stripUnderPanelFrom: PANEL_INSET + MEASURED_STRIP_ACROSS + columnMaximum +
+                paddingAcross,
+            places: composeMeasuredStage(
+                PROPOSED_STAGE_WIDTH,
+                columnMaximum,
+                reserved,
+                paddingAcross,
+                takenAcross,
             ),
         },
         strip: {

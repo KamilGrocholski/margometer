@@ -49,6 +49,13 @@
       "w": 1280,
       "x": 1360,
       "y": 0
+    },
+    "Uklad.dc.html": {
+      "h": 1180,
+      "title": "Układ",
+      "w": 1360,
+      "x": 0,
+      "y": 4300
     }
   },
   "createdOnFiles": {
@@ -90,6 +97,14 @@
       "w": 240,
       "x": 0,
       "y": 2600
+    },
+    "uklad": {
+      "kind": "title1",
+      "maxW": 1360,
+      "text": "Układ strony: gdzie co stoi, i czy odstęp rośnie razem z ekranem",
+      "w": 240,
+      "x": 0,
+      "y": 4000
     }
   },
   "order": [
@@ -99,7 +114,8 @@
     "Ruch.dc.html",
     "Sterowanie.dc.html",
     "Podglad.dc.html",
-    "Odmowy.dc.html"
+    "Odmowy.dc.html",
+    "Uklad.dc.html"
   ],
   "pages": [],
   "title": "Instalacja",
