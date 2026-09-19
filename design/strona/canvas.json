@@ -1,0 +1,115 @@
+{
+  "attachments": {},
+  "boards": {
+    "Main.dc.html": {
+      "h": 980,
+      "title": "Rekomendacja",
+      "w": 1280,
+      "x": 0,
+      "y": 0
+    },
+    "Teraz.dc.html": {
+      "h": 980,
+      "title": "Teraz",
+      "w": 1360,
+      "x": 1360,
+      "y": 0
+    },
+    "Dowod.dc.html": {
+      "h": 1040,
+      "title": "A — Dowód",
+      "w": 1360,
+      "x": 0,
+      "y": 1460
+    },
+    "Glebia.dc.html": {
+      "h": 1040,
+      "title": "B — Głębia",
+      "w": 1360,
+      "x": 1440,
+      "y": 1460
+    },
+    "Wizytowka.dc.html": {
+      "h": 1040,
+      "title": "C — Wizytówka",
+      "w": 1360,
+      "x": 2880,
+      "y": 1460
+    },
+    "Katalog.dc.html": {
+      "h": 1040,
+      "title": "D — Katalog",
+      "w": 1360,
+      "x": 4320,
+      "y": 1460
+    },
+    "Jezyk.dc.html": {
+      "h": 1000,
+      "title": "Język",
+      "w": 1360,
+      "x": 0,
+      "y": 2980
+    },
+    "Odmowy.dc.html": {
+      "h": 1000,
+      "title": "Odmowy",
+      "w": 1000,
+      "x": 1440,
+      "y": 2980
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-19T08:07:54Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "pytanie": {
+      "kind": "title1",
+      "maxW": 2720,
+      "text": "Czym ta strona jest jako jedna zaprojektowana rzecz — dziś jest trzema rzeczami w trzech rogach",
+      "w": 240,
+      "x": 0,
+      "y": -300
+    },
+    "material": {
+      "color": "gray",
+      "text": "Materiał: measured.json — tools/preview-site.ts, src/ui/panel-look.ts, captures/, tests/tools/preview-*.test.ts. Dziury układu cytowane z rundy instalacja, nieliczone drugi raz. Runda kończy się rekomendacją i nie rusza żadnej reguły ani strażnika.",
+      "w": 400,
+      "x": 2800,
+      "y": 0
+    },
+    "kierunki": {
+      "kind": "title1",
+      "maxW": 5680,
+      "text": "Cztery kierunki, każdy z panelem w prawdziwych 260 px i z jedną linią o tym, co łamie",
+      "w": 240,
+      "x": 0,
+      "y": 1160
+    },
+    "jezyk": {
+      "kind": "title1",
+      "maxW": 2440,
+      "text": "Czym rysować stronę, która nie może nic pobrać — i czego runda nie proponuje",
+      "w": 240,
+      "x": 0,
+      "y": 2680
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Teraz.dc.html",
+    "Dowod.dc.html",
+    "Glebia.dc.html",
+    "Wizytowka.dc.html",
+    "Katalog.dc.html",
+    "Jezyk.dc.html",
+    "Odmowy.dc.html"
+  ],
+  "pages": [],
+  "title": "Strona",
+  "v": 3
+}

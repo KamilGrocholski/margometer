@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Język — czym rysować stronę, która nie może nic pobrać</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0b0d10; }
+</style>
+</helmet>
+<div style="width: 1360px; height: 1000px; box-sizing: border-box; background: #0b0d10; color: #c8cdd6; font-size: 13px; line-height: 1.5; display: flex; flex-direction: column;">
+
+  <div style="padding: 22px 24px 14px; display: flex; flex-direction: column; gap: 6px;">
+    <div style="display: flex; align-items: center; gap: 12px;"><span style="font-size: 26px; font-weight: 600; color: #e6eaf1;">Język — czym rysować stronę, która nie może nic pobrać</span></div>
+    <div style="font-size: 14px; color: #a8b2c0;">Strona nie ma prawa do jednego żądania: ani kroju, ani obrazu, ani ikony. To nie jest ograniczenie do obejścia — to jest opis materiału. <span style="color: #dfe6ef;">Zostaje font systemowy, kolor, prostokąt i wrysowana kreska.</span></div>
+    <div style="font-size: 12px; color: #737f8f;">Zakaz trzymany przez <span style="color: #9aa6b6;">„a published page fetches nothing of its own accord, band and all"</span>. Tokeny z <span style="color: #9aa6b6;">src/ui/panel-look.ts</span>, trzymane obustronnie przez <span style="color: #9aa6b6;">tests/repository/design-tokens.test.ts</span>.</div>
+  </div>
+
+  <div style="padding: 0 24px 14px;">
+    <div style="padding: 14px 16px; border: 1px solid #00d083; border-radius: 8px; background: #16241d;">
+      <div style="display: flex; align-items: baseline; gap: 14px;">
+        <span style="font-size: 40px; font-weight: 700; color: #00d083; line-height: 1;">1</span>
+        <span style="font-size: 15px; color: #a8d8c0; line-height: 1.5;">kolor, którego panel nie nazywa — i jest nim <span style="color: #e6eaf1;">#14171c</span>, kolor strony gry odczytany ze zrzutu v0.10.1. To dowód, nie wybór: panel sądzony nad innym tłem ma obrys w kolorze, którego nie ma. Wszystko poza nim — odnośnik, przycisk, ostrzeżenie — panel już nazywa. Przed tą rundą strona wymyślała <span style="font-weight: 700; color: #e8b48b;">21</span>.</span>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex-grow: 1; padding: 0 24px; display: flex; gap: 16px; align-items: stretch;">
+
+    <div style="width: 430px; padding: 14px 16px; border: 1px solid #2c323c; border-radius: 8px; background: #14171c; display: flex; flex-direction: column;">
+      <div style="font-size: 11px; letter-spacing: .06em; color: #8f9bb0; margin-bottom: 10px;">PALETA — CAŁA Z PANELU</div>
+      <div style="display: flex; flex-direction: column; gap: 5px;">
+        <sc-for list="{{tokens}}" as="one">
+          <div style="display: flex; align-items: center; gap: 10px;">
+            <div style="width: 40px; height: 24px; border-radius: 4px; border: 1px solid #232b33; background: {{one.value}}; flex-shrink: 0;"></div>
+            <span style="width: 74px; font-size: 11px; color: #c8cdd6; font-variant-numeric: tabular-nums;">{{one.value}}</span>
+            <span style="width: 74px; font-size: 11.5px; color: #e6eaf1;">{{one.token}}</span>
+            <span style="flex-grow: 1; font-size: 11.5px; color: #8f9bb0;">{{one.use}}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="margin-top: auto; padding-top: 12px; font-size: 12px; color: #8f9bb0; line-height: 1.55;">Tło strony zostaje kolorem gry. Panel czyta się jako obiekt przez <span style="color: #dfe6ef;">obrys</span> i przez to, że jest jaśniejszy od strony — nie przez trzeci szary wymyślony osobno.</div>
+    </div>
+
+    <div style="width: 430px; padding: 14px 16px; border: 1px solid #2c323c; border-radius: 8px; background: #14171c; display: flex; flex-direction: column;">
+      <div style="font-size: 11px; letter-spacing: .06em; color: #8f9bb0; margin-bottom: 10px;">SKALA — STOS SYSTEMOWY, ŻADNEGO KROJU Z SIECI</div>
+      <div style="display: flex; flex-direction: column; gap: 9px;">
+        <sc-for list="{{scale}}" as="one">
+          <div>
+            <div style="display: flex; align-items: baseline; gap: 8px;">
+              <span style="width: 58px; font-size: 10.5px; color: #737f8f; font-variant-numeric: tabular-nums;">{{one.size}}</span>
+              <span style="font-size: {{one.size}}; line-height: {{one.leading}}; font-weight: {{one.weight}}; color: {{one.colour}}; letter-spacing: {{one.tracking}};">{{one.sample}}</span>
+            </div>
+            <div style="margin-left: 66px; font-size: 10.5px; color: #737f8f;">{{one.role}}</div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="margin-top: auto; padding-top: 10px; font-size: 12px; color: #8f9bb0; line-height: 1.55;">Ostatnia linijka to panel i ona jest nietykalna: 11 px na 15 px, bo tyle ma w grze (<span style="color: #dfe6ef;">ADR 0019</span>, <span style="color: #dfe6ef;">ADR 0091</span>). Strona rośnie wokół niej, on nie rośnie nigdy.</div>
+    </div>
+
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 16px;">
+      <div style="padding: 14px 16px; border: 1px solid #2c323c; border-radius: 8px; background: #14171c;">
+        <div style="font-size: 11px; letter-spacing: .06em; color: #8f9bb0; margin-bottom: 10px;">ZNAKI — WRYSOWANE, NIE ZE ZNAKÓW PISMA</div>
+        <div style="display: flex; gap: 14px; align-items: center;">
+          <svg width="22" height="22" viewBox="0 0 18 18" fill="none" stroke="#ed9c00" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2.4 16.2 15H1.8Z"></path><path d="M9 7v4"></path><path d="M9 13.2v.1"></path></svg>
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#979fa8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 11h14"></path><path d="M13 6l5 5-5 5"></path></svg>
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#6bb5ff" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7.5"></circle><path d="M11 10.5v4.5"></path><path d="M11 7.4v.1"></path></svg>
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" stroke="#00d083" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 11.5l4.5 4.5 8.5-10"></path></svg>
+          <span style="font-size: 11.5px; color: #8f9bb0; line-height: 1.5;">Obrys 1,4–1,5, końce zaokrąglone, <span style="color: #dfe6ef;">viewBox 18 albo 22</span>. Nigdy emoji ani znaku z kroju: kroju z sieci nie ma, a systemowy narysuje ramkę tam, gdzie brakuje mu glifu (<span style="color: #dfe6ef;">ADR 0092</span>).</span>
+        </div>
+      </div>
+
+      <div style="padding: 14px 16px; border: 1px solid #2c323c; border-radius: 8px; background: #14171c;">
+        <div style="font-size: 11px; letter-spacing: .06em; color: #8f9bb0; margin-bottom: 10px;">KSZTAŁT I ODSTĘP</div>
+        <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 8px;">
+          <div style="width: 54px; height: 30px; border-radius: 8px; border: 1px solid #232b33; background: #171e25;"></div>
+          <span style="font-size: 11.5px; color: #8f9bb0;">promień <span style="color: #dfe6ef;">8</span> — karta, okno, przycisk</span>
+          <div style="width: 40px; height: 18px; border-radius: 3px; background: #1b232a;"></div>
+          <span style="font-size: 11.5px; color: #8f9bb0;">promień <span style="color: #dfe6ef;">3</span> — wnętrze panelu i drobny klawisz</span>
+        </div>
+        <div style="display: flex; gap: 6px; align-items: flex-end;">
+          <sc-for list="{{spacing}}" as="one">
+            <div style="text-align: center;">
+              <div style="width: {{one.size}}; height: 16px; background: #2f4a63; border-radius: 2px;"></div>
+              <div style="font-size: 10px; color: #737f8f; margin-top: 3px; font-variant-numeric: tabular-nums;">{{one.size}}</div>
+            </div>
+          </sc-for>
+          <span style="margin-left: 8px; font-size: 11.5px; color: #8f9bb0;">Strona skacze co 4; panel zostaje przy swoich 2, 4, 5, 7, 8.</span>
+        </div>
+      </div>
+
+      <div style="flex-grow: 1; padding: 14px 16px; border: 1px solid #2c323c; border-radius: 8px; background: #14171c;">
+        <div style="font-size: 11px; letter-spacing: .06em; color: #8f9bb0; margin-bottom: 8px;">CICHA STRONA</div>
+        <div style="font-size: 12.5px; color: #a8b2c0; line-height: 1.6;"><span style="color: #dfe6ef;">The Quiet Panel Rule</span> wiąże panel. Dla strony brzmi to w jednym zdaniu: <span style="color: #e6eaf1;">rusza się jedna rzecz i tylko dopóki nikt nie działa</span>. Tą rzeczą jest walka w podglądzie — strona otwiera się na niej skończonej, trzyma 2,6 s, potem odgrywa w kółko, a pierwsze naciśnięcie, klawisz albo kółko myszy gasi to na stałe. <span style="color: #dfe6ef;">Nic poza nią</span>: żadnej animacji przy przewijaniu, żadnego odsłaniania, żadnego ruchu w tekście.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div style="padding: 14px 24px 18px; font-size: 12.5px; color: #8f9bb0; line-height: 1.55;">Ten arkusz nie jest propozycją układu — służy temu kierunkowi, który wygra. <span style="color: #dfe6ef;">Gdyby wygrał którykolwiek</span>, strona przestaje wypisywać dwadzieścia jeden własnych szarości i zaczyna mówić tym samym, czym mówi rzecz, którą pokazuje.</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":1000}}'>
+class Component extends DCLogic {
+  renderVals() {
+    // measured.json → tokens. Kolumna „do czego" to propozycja tej rundy, nie odczyt: panel
+    // używa tych wartości do swoich rzeczy, a tu jest napisane, czym mają być na stronie.
+    const tokens = [
+      { token: '— (gra)', value: '#14171c', use: 'tło strony: kolor gry, jedyny spoza panelu' },
+      { token: 'panel', value: '#0f161d', use: 'tło panelu i pole dziennika' },
+      { token: 'raised', value: '#171e25', use: 'karta, pas sterowania, przycisk' },
+      { token: 'track', value: '#1b232a', use: 'pole, tor paska, klawisz' },
+      { token: 'border', value: '#232b33', use: 'każdy obrys, bez wyjątku' },
+      { token: 'plain', value: '#e3e7ea', use: 'zdanie, nagłówek, liczba' },
+      { token: 'quiet', value: '#979fa8', use: 'podpis, etykieta, jednostka' },
+      { token: 'ours', value: '#00d083', use: 'przycisk instalacji, nasza strona' },
+      { token: 'theirs', value: '#ff8685', use: 'druga strona, nic więcej' },
+      { token: 'suspect', value: '#ed9c00', use: 'cichy krok Chrome i Edge' },
+      { token: 'caveat', value: '#6bb5ff', use: 'odnośnik' },
+      { token: 'unknown', value: '#9299a0', use: 'czego gra nie nazwała' }
+    ];
+    const scale = [
+      { size: '38px', leading: '1.15', weight: '600', tracking: '-0.015em', colour: '#e3e7ea', sample: 'Co się stało', role: 'nagłówek strony — jeden na stronę' },
+      { size: '27px', leading: '1.2', weight: '600', tracking: '-0.01em', colour: '#e3e7ea', sample: 'MargoMeter', role: 'nazwa' },
+      { size: '15px', leading: '1.5', weight: '400', tracking: '0', colour: '#e3e7ea', sample: 'Gra mówi tylko, że walka się skończyła.', role: 'zdanie wiodące' },
+      { size: '13px', leading: '1.55', weight: '400', tracking: '0', colour: '#c8cdd6', sample: 'Obok nagrana walka, liczona w tej przeglądarce.', role: 'tekst' },
+      { size: '11px', leading: '1.36', weight: '400', tracking: '0.06em', colour: '#979fa8', sample: 'ZANIM ZAINSTALUJESZ', role: 'etykieta — wersaliki' },
+      { size: '11px', leading: '15px', weight: '400', tracking: '0', colour: '#e3e7ea', sample: 'Amaimon Soploręki  241 367  (63%)', role: 'panel — nietykalne' }
+    ];
+    const spacing = [
+      { size: '4px' }, { size: '8px' }, { size: '12px' }, { size: '16px' }, { size: '24px' }, { size: '44px' }
+    ];
+    return { tokens, scale, spacing };
+  }
+}
+</script>
+</body>
+</html>

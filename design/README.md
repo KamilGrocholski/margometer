@@ -1,9 +1,14 @@
 # Design rounds
 
 A round is one question about a surface this repository draws — the panel, or the page the panel is
-published on — asked over what can be measured and answered on a canvas. `instalacja/` is the first,
-and asks how somebody who has installed nothing gets to a working panel. A round appears when there
+published on — asked over what can be measured and answered on a canvas. A round appears when there
 is a question worth measuring, and not before (**C9**).
+
+- [`instalacja/`](instalacja/) — how somebody who has installed nothing gets to a working panel.
+  Owns the install band, the step whose failure is silent, and the offer button.
+- [`strona/`](strona/) — what the published page is as one designed thing. It owns the page's own
+  visual language, which `DESIGN.md` never gave it: that document is about the panel, and the page
+  went on to invent a palette of its own rather than take the one the panel already states.
 
 ## What a round is
 

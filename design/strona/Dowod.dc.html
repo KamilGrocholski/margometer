@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Kierunek A — strona jest dowodem</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0b0d10; }
+</style>
+</helmet>
+<div style="width: 1360px; height: 1040px; box-sizing: border-box; background: #0b0d10; color: #c8cdd6; font-size: 13px; line-height: 1.5; display: flex; flex-direction: column;">
+
+  <div style="padding: 22px 24px 14px; display: flex; flex-direction: column; gap: 6px;">
+    <div style="display: flex; align-items: center; gap: 12px;"><span style="font-size: 26px; font-weight: 600; color: #e6eaf1;">A — strona jest dowodem</span><span style="padding: 3px 9px; border-radius: 4px; background: #16241d; border: 1px solid #00d083; color: #00d083; font-size: 12px; font-weight: 600;">nie łamie niczego</span></div>
+    <div style="font-size: 14px; color: #a8b2c0;">Strona i panel to jedna powierzchnia. Strona bierze <span style="color: #dfe6ef;">SURFACE</span>, <span style="color: #dfe6ef;">TEXT</span> i promień 8 z <span style="color: #dfe6ef;">panel-look.ts</span> — te same {{tokens.count}} wartości, które rysują panel. Sterowanie dokuje pod tym, czym steruje. Proza schodzi do zdania wiodącego i jednego zdania po przycisku.</div>
+    <div style="font-size: 12px; color: #737f8f;">Panel w prawdziwych 260 px, wiersz 18 px, interlinia 15 px. Wiersze z <span style="color: #9aa6b6;">measured.json → landing</span> — nagranie <span style="color: #9aa6b6;">…Cl9U89Zr-0.15.0</span>, 99 wpisów, mierzone w tej rundzie.</div>
+  </div>
+
+  <div style="padding: 0 24px;">
+    <div style="position: relative; width: 1312px; height: 596px; box-sizing: border-box; background: #0f161d; border: 1px solid #232b33; border-radius: 8px; overflow: hidden;">
+
+      <div style="position: absolute; left: 28px; top: 26px; width: 560px;">
+        <div style="font-size: 27px; font-weight: 600; color: #e3e7ea; letter-spacing: -0.01em;">MargoMeter</div>
+        <div style="margin-top: 6px; font-size: 15px; line-height: 1.5; color: #e3e7ea;">Licznik obrażeń do Margonem. Pokazuje, kto ile zadał, kto ile oberwał i czym.</div>
+
+        <div style="margin-top: 20px; font-size: 11px; letter-spacing: .06em; color: #979fa8;">ZANIM ZAINSTALUJESZ</div>
+        <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; gap: 10px; padding: 10px 12px; border: 1px solid #232b33; border-radius: 8px; background: #171e25;">
+            <span style="flex-shrink: 0; width: 18px; height: 18px; border-radius: 9px; background: #1b232a; color: #979fa8; font-size: 11px; font-weight: 600; display: flex; align-items: center; justify-content: center;">1</span>
+            <span style="flex-grow: 1; color: #e3e7ea;">Menedżer skryptów: <span style="color: #6bb5ff;">Tampermonkey</span> albo <span style="color: #6bb5ff;">Violentmonkey</span>. Bez niego plik się tylko pobierze.</span>
+          </div>
+          <div style="display: flex; gap: 10px; padding: 10px 12px; border: 1px solid #ed9c00; border-radius: 8px; background: #171e25;">
+            <span style="flex-shrink: 0; width: 18px; height: 18px; display: flex; align-items: center; justify-content: center;">
+              <svg width="16" height="16" viewBox="0 0 18 18" fill="none" stroke="#ed9c00" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 2.4 16.2 15H1.8Z"></path><path d="M9 7v4"></path><path d="M9 13.2v.1"></path></svg>
+            </span>
+            <span style="flex-grow: 1; color: #e3e7ea;"><strong style="font-weight: 600;">W Chrome i Edge włącz obsługę skryptów użytkownika</strong> — w chrome://extensions. Bez tego nic się nie uruchomi i nic o tym nie powie. Firefox i Safari — nie trzeba.</span>
+          </div>
+        </div>
+
+        <div style="margin-top: 18px; display: flex; align-items: center; gap: 12px;">
+          <span style="display: inline-block; padding: 9px 18px; border-radius: 8px; background: #171e25; border: 1px solid #00d083; color: #00d083; font-weight: 600;">Zainstaluj MargoMeter</span>
+          <span style="color: #979fa8;">wersja 0.17.0</span>
+        </div>
+        <div style="margin-top: 10px; color: #979fa8;">Potem wejdź do gry i zacznij walkę — panel pojawi się sam, taki jak obok.</div>
+      </div>
+
+      <div style="position: absolute; left: 28px; bottom: 24px; width: 560px; font-size: 12.5px; color: #979fa8; line-height: 1.55;">Obok nagrana walka, liczona w tej przeglądarce. <span style="color: #e3e7ea;">Kliknij wiersz</span> — pod każdym stoi kolejny poziom. Nic nie jest wysyłane i nic tu nie zostaje. <span style="color: #6bb5ff;">kod źródłowy</span></div>
+
+      <div style="position: absolute; left: 810px; top: 24px; width: 210px; background: #0f161d; border: 1px solid #232b33; border-radius: 8px; overflow: hidden;">
+        <div style="height: 21px; padding: 0 7px; display: flex; align-items: center; background: #171e25; border-bottom: 1px solid #232b33; font-size: 11px; line-height: 13px; letter-spacing: 0.06em; color: #979fa8;">Pomocnik</div>
+        <div style="padding: 5px 7px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="height: 10px; border-radius: 3px; background: #1b232a; width: 86%;"></div>
+          <div style="height: 10px; border-radius: 3px; background: #1b232a; width: 64%;"></div>
+          <div style="height: 10px; border-radius: 3px; background: #1b232a; width: 72%;"></div>
+          <div style="font-size: 10px; line-height: 15px; color: #979fa8;">zawartość poza tą rundą</div>
+        </div>
+      </div>
+
+      <div style="position: absolute; left: 1024px; top: 24px; width: 260px; background: #0f161d; border: 1px solid #232b33; border-radius: 8px; overflow: hidden; font-size: 11px; line-height: 15px; color: #e3e7ea;">
+        <div style="height: 21px; padding: 0 7px; display: flex; align-items: center; justify-content: space-between; background: #171e25; border-bottom: 1px solid #232b33; font-size: 11px; line-height: 13px; letter-spacing: 0.06em; color: #979fa8;"><span>MargoMeter</span><span>0.17.0</span></div>
+        <div style="padding: 5px 7px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; justify-content: space-between; color: #979fa8;"><span>10 vs 1</span><span style="letter-spacing: 0.06em; font-size: 10px;">WYGRANA</span></div>
+          <div style="display: flex; gap: 4px; color: #979fa8;"><span style="color: #e3e7ea;">Obrażenia zadane</span><span style="margin-left: auto;">Wszyscy</span></div>
+          <div style="display: flex; flex-direction: column;">
+            <sc-for list="{{rows}}" as="row">
+              <div style="position: relative; height: 18px; border-radius: 3px; overflow: hidden; background: #1b232a;">
+                <div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{row.barWidth}}; background: {{row.barColour}};"></div>
+                <div style="position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: {{row.professionColour}};"></div>
+                <div style="position: absolute; right: 0; top: 0; bottom: 0; width: 2px; background: {{row.sideColour}};"></div>
+                <div style="position: relative; display: flex; align-items: center; height: 18px; padding: 0 7px; gap: 4px;">
+                  <span style="width: 22px; color: #979fa8; font-variant-numeric: tabular-nums;">{{row.rank}}</span>
+                  <span style="overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">{{row.name}}</span>
+                  <span style="margin-left: auto; font-variant-numeric: tabular-nums;">{{row.figure}}</span>
+                  <span style="color: #979fa8; font-variant-numeric: tabular-nums;">{{row.share}}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="position: relative; height: 18px; border-radius: 3px; overflow: hidden; background: #1b232a; margin-top: 2px;">
+            <div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{unnamed.barWidth}}; background: repeating-linear-gradient(135deg, #232b33 0 4px, #1b232a 4px 8px);"></div>
+            <div style="position: relative; display: flex; align-items: center; height: 18px; padding: 0 7px; gap: 4px;">
+              <span style="width: 22px;"></span>
+              <span style="color: #9299a0;">Nieznany sprawca</span>
+              <span style="margin-left: auto; font-variant-numeric: tabular-nums;">{{unnamed.figure}}</span>
+              <span style="color: #979fa8; font-variant-numeric: tabular-nums;">{{unnamed.share}}</span>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; padding-top: 2px; font-variant-numeric: tabular-nums;"><span style="color: #00d083;">{{sides.reader}}</span><span style="color: #979fa8;">My / Oni</span><span style="color: #ff8685;">{{sides.opposing}}</span></div>
+          <div style="display: flex; height: 3px; border-radius: 3px; overflow: hidden;"><div style="width: {{sides.readerShare}}; background: #00d083;"></div><div style="flex-grow: 1; background: #ff8685;"></div></div>
+        </div>
+      </div>
+
+      <div style="position: absolute; left: 810px; top: 300px; width: 474px; box-sizing: border-box; padding: 10px 12px; background: #171e25; border: 1px solid #232b33; border-radius: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 11px; line-height: 15px;">
+          <span style="letter-spacing: .06em; color: #979fa8;">PODGLĄD</span>
+          <span style="margin-left: auto; color: #979fa8; font-variant-numeric: tabular-nums;">wpis 15 / 15</span>
+        </div>
+        <div style="margin-top: 7px; display: flex; gap: 6px; align-items: center;">
+          <span style="padding: 3px 9px; border-radius: 5px; background: #1b232a; border: 1px solid #232b33; color: #e3e7ea; font-size: 11px;">od początku</span>
+          <span style="padding: 3px 9px; border-radius: 5px; background: #1b232a; border: 1px solid #232b33; color: #e3e7ea; font-size: 11px;">◀</span>
+          <span style="padding: 3px 9px; border-radius: 5px; background: #1b232a; border: 1px solid #232b33; color: #e3e7ea; font-size: 11px;">▶</span>
+          <span style="padding: 3px 9px; border-radius: 5px; background: #1b232a; border: 1px solid #232b33; color: #e3e7ea; font-size: 11px;">odtwórz</span>
+          <span style="padding: 3px 9px; border-radius: 5px; background: #1b232a; border: 1px solid #232b33; color: #e3e7ea; font-size: 11px;">do końca</span>
+          <span style="flex-grow: 1; padding: 3px 9px; border-radius: 5px; background: #1b232a; border: 1px solid #232b33; color: #979fa8; font-size: 11px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;">2026-08-27-luvia-grupa-vs-amaimon ▾</span>
+        </div>
+      </div>
+
+      <div style="position: absolute; left: 622px; top: 24px; bottom: 24px; width: 1px; background: #232b33;"></div>
+      <div style="position: absolute; left: 640px; top: 300px; width: 150px; font-size: 11px; line-height: 1.5; color: #979fa8;">Jedna powierzchnia: strona i panel dzielą <span style="color: #e3e7ea;">#0f161d</span>, <span style="color: #e3e7ea;">#171e25</span>, <span style="color: #e3e7ea;">#232b33</span> i promień 8.</div>
+    </div>
+  </div>
+
+  <div style="padding: 14px 24px 0; display: flex; gap: 18px; align-items: flex-start;">
+    <div style="width: 306px; font-size: 12.5px; line-height: 1.55; color: #a8b2c0;"><span style="color: #00d083; font-weight: 600;">Panel przestaje być wklejką.</span> Dziś strona wypisuje 21 kolorów i żaden z nich nie jest kolorem panelu — panel leży na obcym szarym. Tu tło strony to <span style="color: #dfe6ef;">#0f161d</span>, czyli dokładnie powierzchnia panelu.</div>
+    <div style="width: 306px; font-size: 12.5px; line-height: 1.55; color: #a8b2c0;"><span style="color: #00d083; font-weight: 600;">Sterowanie przy tym, czym steruje.</span> Pasek odkleja się od <span style="color: #dfe6ef;">left:12px bottom:12px</span> i dokuje pod panelem, prawe krawędzie równo. Dziś dzieli je 1 640 px.</div>
+    <div style="width: 306px; font-size: 12.5px; line-height: 1.55; color: #a8b2c0;"><span style="color: #00d083; font-weight: 600;">Kolejność ADR 0099 nietknięta.</span> Dwa warunki nad przyciskiem, cichy krok z własnym obrysem i wrysowanym znakiem, zdanie po przycisku. Pas dalej otwiera dokument.</div>
+    <div style="flex-grow: 1; font-size: 12.5px; line-height: 1.55; color: #8f9bb0;"><span style="color: #e8b48b; font-weight: 600;">Czego nie robi.</span> Nie pokazuje głębi panelu ani korpusu — dalej jeden ekran i jedna walka. To cena za to, że nie rusza niczego.</div>
+  </div>
+
+  <div style="margin: 14px 24px 18px; padding: 10px 14px; border: 1px solid #00d083; border-radius: 8px; background: #16241d; font-size: 12.5px; color: #a8d8c0;"><strong style="color: #00d083;">Co to łamie: nic.</strong> Pas dalej otwiera każdą stronę, warunki dalej stoją przed przyciskiem, <span style="color: #dfe6ef;">.preview-strip</span> jest już wyjęty spod wspólnego <span style="color: #dfe6ef;">max-width</span>, a kolumna tekstu dalej kończy się przed oknami. Sprawdzalne przeciw <span style="color: #dfe6ef;">measured.json → guards</span>: {{guards.count}} tytułów, żaden nie mówi o kolorze ani o tym, w którym rogu stoi pasek.</div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const palette = { m: '#157cd0', h: '#3f8e2b', p: '#bb4a7f', t: '#9d6f00', b: '#008e71', w: '#c2502b' };
+    const bar = { m: 'rgb(25 76 128)', h: 'rgb(47 94 43)', p: 'rgb(115 56 89)', t: 'rgb(99 77 19)', b: 'rgb(12 94 81)', w: 'rgb(119 60 43)' };
+    // measured.json → landing, mierzone w tej rundzie. Udział to
+    // shareText panelu, nie iloraz liczony tutaj: ekran liczy się drugi raz ze statystyk.
+    const read = [
+      { name: "Amaimon Soploręki", profession: "p", side: 2, figure: 85396, share: '27%', fill: 1.000000 },
+      { name: "Gracz 2", profession: "h", side: 1, figure: 35646, share: '11%', fill: 0.417420 },
+      { name: "Gracz 7", profession: "t", side: 1, figure: 35239, share: '11%', fill: 0.412654 },
+      { name: "Gracz 9", profession: "t", side: 1, figure: 31763, share: '10%', fill: 0.371950 },
+      { name: "Gracz 3", profession: "w", side: 1, figure: 30283, share: '10%', fill: 0.354618 },
+      { name: "Gracz 4", profession: "h", side: 1, figure: 26709, share: '9%', fill: 0.312766 },
+      { name: "Gracz 1", profession: "m", side: 1, figure: 25868, share: '8%', fill: 0.302918 },
+      { name: "Gracz 10", profession: "t", side: 1, figure: 8509, share: '3%', fill: 0.099642 },
+      { name: "Gracz 5", profession: "p", side: 1, figure: 7334, share: '2%', fill: 0.085882 },
+      { name: "Gracz 6", profession: "m", side: 1, figure: 4912, share: '2%', fill: 0.057520 },
+      { name: "Gracz 8", profession: "w", side: 1, figure: 3382, share: '1%', fill: 0.039604 }
+    ];
+    const rows = read.map((one, at) => ({
+      rank: String(at + 1),
+      name: one.name,
+      figure: one.figure.toLocaleString('pl-PL'),
+      share: '(' + one.share + ')',
+      barWidth: (one.fill * 100).toFixed(1) + '%',
+      barColour: bar[one.profession],
+      professionColour: palette[one.profession],
+      sideColour: one.side === 1 ? '#00d083' : '#ff8685'
+    }));
+    const unnamed = {
+      figure: (19437).toLocaleString('pl-PL'),
+      share: '(6%)',
+      barWidth: (0.227610 * 100).toFixed(1) + '%'
+    };
+    const sides = {
+      reader: (220113).toLocaleString('pl-PL'),
+      opposing: (94365).toLocaleString('pl-PL'),
+      readerShare: (220113 * 100 / 314478).toFixed(1) + '%'
+    };
+    return { rows, unnamed, sides, tokens: { count: 20 }, guards: { count: 28 } };
+  }
+}
+</script>
+</body>
+</html>
