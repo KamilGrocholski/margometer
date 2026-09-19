@@ -80,12 +80,16 @@ export type ShotMoment = "underway" | "over";
 /**
  * The payload the underway pictures are taken after. Measured over the recording
  * `getPreviewRecordedFight` hands back — the material is named there, and named once —
- * replayed payload by payload on 2026-09-11: the fight is still going, the turn stated is one of
- * ours, and the far side is three turns into the four the game states for `Lodowe Pandemonium` —
- * so the second window draws a turn, a charge with a turn still to run, and both sides' hues at
- * once. Eleven payloads of fifteen, holding 349548 of the 385970 the whole fight comes to.
+ * replayed payload by payload on 2026-09-19, when that recording changed: **twenty of its
+ * ninety-nine payloads leave a fight going on with exactly one charge standing and a turn left to
+ * run** (41 to 48, and 73 to 84), and this is taken from the longer run of the two, far enough in
+ * that the ranking is filled.
+ *
+ * Re-earn it whenever the recording moves. The guard beside this reads the same twenty and the
+ * end of the same fight, so a number that stops qualifying reddens rather than quietly shifting
+ * what five of the pictures are of.
  */
-export const UNDERWAY_ENTRY = 11;
+export const UNDERWAY_ENTRY = 78;
 
 /** One picture, when it is taken, and the presses that reach the state it is of. */
 export interface PanelShot {
@@ -276,7 +280,7 @@ var getFrameAcross = function () {
 /** The corner the frame is measured against, and the window beside it. */
 function composeShotScriptCorner(): string {
     assert(MEASURING_WIDTH >= BROWSER_FLOOR_WIDTH, "and in a window the browser opens as asked");
-    return composeWindowsCornered("getFrameAcross()");
+    return composeWindowsCornered("getFrameAcross()", String(PANEL_INSET));
 }
 
 /** The report the page wrote, read out of a dumped document by walking it — **C7**. */

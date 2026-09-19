@@ -60,6 +60,7 @@ const PREVIEW_WORDS: PreviewWords = {
     play: "play",
     pause: "pause",
     entry: "entry",
+    playing: "playing",
 };
 
 /**
@@ -259,6 +260,11 @@ function composePageResponse(state: PreviewState, address: URL): Response {
             // Everything is answered from the root here, which is the one thing a published
             // copy of this page cannot say (`tools/preview-site.ts`).
             scriptDirectory: "/",
+            // The served page keeps the moment in its address: whoever is reading a change in
+            // `src/ui/` reloads onto the state they were looking at, and picks another recording
+            // from the bar. A published page does neither — `tools/preview-site.ts`.
+            doesAddressCarryState: true,
+            doesStartFromEmpty: true,
             words: PREVIEW_WORDS,
             // Nothing to introduce and nothing to offer: whoever opened this started the
             // server, and has the file already.

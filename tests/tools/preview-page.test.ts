@@ -41,6 +41,7 @@ const WORDS: PreviewWords = {
     play: "play",
     pause: "pause",
     entry: "entry",
+    playing: "playing",
 };
 
 const FIGHTS: PreviewFightLink[] = [
@@ -57,6 +58,8 @@ function composeOptions(calls: readonly unknown[]): PreviewPageOptions {
         calls,
         fights: FIGHTS,
         scriptDirectory: "/",
+        doesAddressCarryState: true,
+        doesStartFromEmpty: true,
         words: WORDS,
         introduction: null,
         install: null,

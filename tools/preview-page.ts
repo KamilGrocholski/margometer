@@ -8,8 +8,13 @@
  */
 
 import { assert, assertStringIncludes } from "@std/assert";
+import { SHAPE, SIGNAL, SURFACE, TEXT } from "@/src/ui/panel-look.ts";
 import { USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
-import { composePreviewStateReading, composePreviewStateWriting } from "@/tools/preview-state.ts";
+import {
+    composePreviewStateBare,
+    composePreviewStateReading,
+    composePreviewStateWriting,
+} from "@/tools/preview-state.ts";
 
 /**
  * A build id in the shape `src/core/game-build.ts` reads. The tag naming it loads nothing: only
@@ -48,8 +53,51 @@ const SILENT_MARK = '<svg class="preview-mark" viewBox="0 0 18 18" aria-hidden="
  * the built page, 2026-09-18, the paragraph ran 96px under them at a 1024px window and 320px at
  * 800px, while the band above it was already narrowing. 540 is the 8px inset, the panel's 260, the
  * 4px between and the 210px window beside it, with air (`tools/preview-windows.ts`).
+ *
+ * **Three terms because the page lays itself out two ways and one bound has to hold both.** Wide
+ * enough for the split (`SPLIT_FROM` up), the text keeps its own half and the windows the other,
+ * so `50vw` less the halves' padding is what binds; narrower, the page is one column with the
+ * windows cornered over it, and the `540px` reserve is. Taking the lesser of the two everywhere
+ * costs 22px of measure at 1280 and means the guard over this still reads one value.
  */
-export const MAXIMUM_COLUMN_WIDTH = "min(46em, calc(100vw - 540px))";
+export const MAXIMUM_COLUMN_WIDTH = "min(46em, calc(100vw - 540px), calc(50vw - 64px))";
+
+/**
+ * Below this the page is one column again. The two windows take 482px of it — inset, panel, gap
+ * and the window beside it — so a half narrower than that would have them standing in the text's
+ * half instead of their own. 1024 is the first standard width whose half clears it, with 30px to
+ * spare, and it is a width a desktop Chrome really opens at.
+ */
+export const SPLIT_FROM_PIXELS = 1024;
+const SPLIT_FROM = `${SPLIT_FROM_PIXELS}px`;
+/**
+ * The height below which the left half tightens. A 1366×768 screen gives Chrome about 625px of
+ * page and a 1280×720 one about 577; measured 2026-09-19, the column ran 18px past the fold at
+ * the second. What gives is the heading and the air around it, never a card or the button.
+ */
+const SPLIT_SHORT = "780px";
+
+/** What a pressed replay runs for, whatever the recording holds. */
+const PLAY_SECONDS = 12;
+/** Under this a step reads as a flicker; over it, a short recording stalls on one entry. */
+const PLAY_STEP_LEAST = 90;
+const PLAY_STEP_MOST = 900;
+
+/**
+ * The one colour on this page the panel does not state, and it is evidence rather than a choice:
+ * the game's own page colour, read off v0.10.1's `screenshots/panel-taken.png`. A panel judged
+ * against a darker page is a panel whose border reads as a colour it is not — and judging the
+ * panel against the ground it really stands on is the whole of what this page is for.
+ */
+const GAME_PAGE_COLOUR = "#14171c";
+
+/**
+ * How a page names the two regions its own script has to find. Spelled here and read in
+ * `tools/preview-site.ts`, so the sheet and the script cannot drift onto two names.
+ */
+export const PREVIEW_STRIP_SELECTOR = ".preview-strip";
+export const PREVIEW_SPLIT_SELECTOR = ".preview-split";
+export const PREVIEW_SAID_SELECTOR = ".preview-said";
 
 /** Every word the strip draws, so the language of a page is a value and never a branch. */
 export interface PreviewWords {
@@ -67,6 +115,11 @@ export interface PreviewWords {
     pause: string;
     /** Drawn before the two numbers — `entry 12 / 102`. */
     entry: string;
+    /**
+     * What the bar says while the replay is running without being asked, and nothing while it is
+     * not. A page whose figures move with no word for it reads as a page doing something unasked.
+     */
+    playing: string;
 }
 
 /** A recording the picker offers, and where choosing it goes. */
@@ -131,6 +184,21 @@ export interface PreviewPageOptions {
     words: PreviewWords;
     /** A sentence for a reader who did not start the page, or null where they did. */
     introduction: string | null;
+    /**
+     * Whether a link to this page may carry the moment inside it — the entry, the screen and what
+     * the panel kept. The served page does, because whoever is reading a change in `src/ui/`
+     * reloads onto the state they were looking at. A published page does not: it is one page over
+     * one recording, and a link to it is a link to the page (`tools/preview-site.ts`).
+     */
+    doesAddressCarryState: boolean;
+    /**
+     * What `from the start` reaches. The served page reaches the state **before the first call**
+     * — an empty panel, which is worth looking at while `src/ui/` is being changed and which only
+     * a fresh document can give, because the stub engine merges every roster and never clears. A
+     * published page reaches the **first call** instead: a visitor pressing this wants the fight
+     * to start over, and a reload gives them the page blinking at them (2026-09-19).
+     */
+    doesStartFromEmpty: boolean;
     /** The band over that sentence, or null where the reader built the page themselves. */
     install: PreviewInstall | null;
     /**
@@ -143,7 +211,9 @@ export interface PreviewPageOptions {
 export function composePreviewPage(options: PreviewPageOptions): string {
     assert(options.calls.length > 0, "a page draws a fight that has something in it");
     assert(options.entryIndex <= options.calls.length, "and stops somewhere inside that fight");
-    assert(options.fights.length > 0, "with at least one recording to choose between");
+    // No assertion on `fights`: a published page offers none, and an empty picker is the way it
+    // says so. What must hold is that a page offering a choice can act on it, which the picker's
+    // own composer states.
     assert(options.scriptDirectory.endsWith("/"), "its scripts are asked for under a directory");
     const settings = composeEscapedJson({
         fightName: options.fightName,
@@ -157,6 +227,13 @@ export function composePreviewPage(options: PreviewPageOptions): string {
         ? ""
         : `<p class="preview-intro">${options.introduction}</p>`;
     const band = options.install === null ? "" : composePreviewInstall(options.install);
+    // The two halves are the published page's, and only its: a served page carries no band, so
+    // there is nothing to put on the left and the panel keeps the whole window it is judged in.
+    const said = options.install === null
+        ? `${band}
+${introduction}`
+        : `<main class="preview-split"><div class="preview-said">${band}
+${introduction}</div><div class="preview-stage"></div></main>`;
     return `<!doctype html>
 <html lang="${options.words.language}">
 <head>
@@ -167,10 +244,11 @@ ${composePreviewStyle()}
 </style>
 </head>
 <body>
-${band}
-${introduction}
-${composePreviewStrip(options.words)}
-<script>${composePreviewStateReading()}</script>
+${said}
+${composePreviewStrip(options.words, options.fights.length > 0)}
+<script>${
+        options.doesAddressCarryState ? composePreviewStateReading() : composePreviewStateBare()
+    }</script>
 <script>${composePreviewStore()}</script>
 <script>${composePreviewGame(options.words)}</script>
 <script src="${options.scriptDirectory}${PREVIEW_GAME_SCRIPT_NAME}"></script>
@@ -178,8 +256,8 @@ ${composePreviewStrip(options.words)}
 <script id="preview-settings" type="application/json">${settings}</script>
 <script>
 ${composePreviewDriver()}
-${composePreviewStateWriting()}
-${composePreviewPicks()}
+${options.doesAddressCarryState ? composePreviewStateWriting() : ""}
+${composePreviewPicks(options.doesStartFromEmpty)}
 ${options.appendedScript ?? ""}
 </script>
 </body>
@@ -238,55 +316,132 @@ function composeEscapedJson(value: unknown): string {
 }
 
 /**
+ * The page in two halves: what is said on the left, the thing being said about on the right.
+ *
+ * Only from `SPLIT_FROM` up. Below it the page is one column with both windows cornered over it,
+ * which is what it has always been, and the rules here simply do not apply — a half narrower than
+ * the 482px those windows take would put them in the text's half instead of their own.
+ *
+ * Both halves start at the same line, under the bar: the panel is a window that sits at the top
+ * of a screen and the text beside it has no reason to sit lower. Centred down its half instead,
+ * the text stood 750px below the panel on a 4K screen — two compositions on one page.
+ *
+ * The heading takes the page scale here and the panel's 21px nowhere near it — a half of the
+ * window is the one place on this page where something may be the size of a title.
+ *
+ * The left half is the only surface on the page that is not the game's colour: the right half is
+ * where the panel stands and stays the ground the panel is judged against (`GAME_PAGE_COLOUR`).
+ * One border between them, out of the panel's own tokens, is what makes the seam a seam.
+ *
+ * **The bar goes over the half it drives and not over both.** It carries the picker and the
+ * replay, which change the panel and nothing on the left, so a bar spanning the whole page would
+ * sit over an install band it has no say in — and the left half would start below a control that
+ * is not its own. Split, it takes the right half's width and the seam runs on up through it.
+ */
+function composeSplitStyle(): string {
+    return `.preview-split { display: block; }
+.preview-stage { display: none; }
+@media (min-width: ${SPLIT_FROM}) {
+  .preview-split { display: flex; align-items: stretch; min-height: 100vh;
+    box-sizing: border-box; }
+  .preview-said { width: 50vw; flex-shrink: 0; box-sizing: border-box;
+    padding: 32px; background: ${SURFACE.panel};
+    border-right: 1px solid ${SURFACE.border};
+    display: flex; flex-direction: column; align-items: flex-end;
+    overflow-y: auto; }
+  .preview-stage { display: block; flex-grow: 1; background: ${GAME_PAGE_COLOUR}; }
+  .preview-install { padding: 0; }
+  .preview-install h1 { font-size: 38px; letter-spacing: -0.015em; }
+  .preview-take { margin-top: 24px; text-align: center; }
+  .preview-version { display: block; margin: 10px 0 0; }
+  .preview-lede { margin: 10px 0 22px; font-size: 15px; color: ${TEXT.plain}; }
+  .preview-intro { padding-left: 0; padding-right: 0; }
+  .preview-strip { left: 50vw; right: 0; border-left: 1px solid ${SURFACE.border}; }
+  .preview-strip select { width: auto; flex: 1 1 14em; min-width: 0; }
+  /* The band beside it already says MargoMeter in 38px; the bar repeating it costs a row. */
+  .preview-title { display: none; }
+}
+@media (min-width: ${SPLIT_FROM}) and (max-height: ${SPLIT_SHORT}) {
+  .preview-install h1 { font-size: 30px; }
+  .preview-lede { margin: 8px 0 16px; }
+  .preview-needs { margin-bottom: 12px; }
+  .preview-take { margin-top: 16px; }
+}`;
+}
+
+/**
  * The strip's own layer sits under the panel's 9999 (`src/ui/panel-look.ts`) and in the corner
  * the panel does not start in: harness chrome covering the thing under test is worse than none.
+ *
+ * ⚠️ **Every colour here but the page's own ground is the panel's**, out of `src/ui/panel-look.ts`
+ * rather than chosen again. Measured 2026-09-19 over the built page: the sheet spelled 21 colours
+ * and **none of them was a colour the panel states**, so the thing the page exists to show sat on
+ * a surface it shared no value with. `DESIGN.md` is about the panel and says nothing about this
+ * page, which is how that happened; `design/strona/` carries the reading.
  */
 function composePreviewStyle(): string {
-    const sheet = `html, body { margin: 0; height: 100%; background: #14171c; color: #c8cdd6;
+    const sheet = `html, body { margin: 0; height: 100%; background: ${GAME_PAGE_COLOUR};
+  color: ${TEXT.plain};
   font: 13px/1.5 ui-sans-serif, system-ui, sans-serif; }
 .preview-intro { margin: 0; padding: 18px 20px; max-width: ${MAXIMUM_COLUMN_WIDTH};
-  color: #8f9bb0; }
-.preview-intro a { color: #8fb8e8; }
+  color: ${TEXT.quiet}; }
+.preview-intro a { color: ${SIGNAL.caveat}; }
 .preview-install { padding: 20px 20px 0; max-width: ${MAXIMUM_COLUMN_WIDTH}; }
-.preview-install h1 { margin: 0; font-size: 21px; color: #e6eaf1; }
+.preview-install h1 { margin: 0; font-size: 21px; color: ${TEXT.plain}; }
 .preview-lede { margin: 4px 0 14px; }
 .preview-take { margin: 0; }
-.preview-get { display: inline-block; padding: 9px 16px; border-radius: 6px;
-  background: #2f6f4f; border: 1px solid #3f8a63; color: #eaf5ee;
-  font-weight: 600; text-decoration: none; white-space: nowrap; }
-.preview-version { margin-left: 10px; color: #8f9bb0; }
-.preview-install a { color: #8fb8e8; }
-.preview-needs-line { margin: 16px 0 8px; color: #8f9bb0; }
+/* Specificity, not order: \`.preview-install a\` colours every link in the band and would take
+   the button's own ink with it — a green fill under link blue. */
+.preview-install a.preview-get { display: inline-block; padding: 13px 28px;
+  border-radius: ${SHAPE.radius};
+  background: ${SIGNAL.ours}; border: 1px solid ${SIGNAL.ours}; color: ${TEXT.inkDark};
+  font-size: 16px; font-weight: 600; text-decoration: none; white-space: nowrap; }
+.preview-version { margin-left: 10px; color: ${TEXT.quiet}; }
+.preview-install a { color: ${SIGNAL.caveat}; }
+.preview-needs-line { margin: 16px 0 8px; color: ${TEXT.quiet}; }
 .preview-needs { margin: 0 0 16px; padding: 0 0 0 26px; display: flex;
   flex-direction: column; gap: 8px; }
-.preview-needs li { padding: 9px 12px; border: 1px solid #2c323c; border-radius: 6px;
-  background: #181c22; }
-.preview-warn { border-color: #5c4530; background: #211c17; color: #e8c3a2; }
+.preview-needs li { padding: 9px 12px; border: 1px solid ${SURFACE.border};
+  border-radius: ${SHAPE.radius}; background: ${SURFACE.raised}; }
+.preview-warn { border-color: ${SIGNAL.suspect}; background: ${SURFACE.track}; }
+.preview-warn strong { color: ${SIGNAL.suspect}; }
 .preview-mark { width: 18px; height: 18px; margin: 0 6px -4px 0; fill: none;
-  stroke: #e8b48b; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
-.preview-after { margin: 8px 0 0; color: #8f9bb0; }
+  stroke: ${SIGNAL.suspect}; stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round; }
+.preview-after { margin: 8px 0 0; color: ${TEXT.quiet}; }
 .preview-install + .preview-intro { padding-top: 14px; }
-.preview-strip { position: fixed; left: 12px; bottom: 12px; z-index: 9000;
-  display: flex; flex-direction: column; gap: 6px; padding: 10px 12px;
-  background: #1c2027; border: 1px solid #2c323c; border-radius: 8px;
-  max-width: min(560px, calc(100vw - 24px)); }
+.preview-said > :first-child { padding-top: 0; }
+.preview-strip { position: fixed; left: 0; right: 0; top: 0; z-index: 9000;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px;
+  padding: 8px 16px;
+  background: ${SURFACE.raised}; border-bottom: 1px solid ${SURFACE.border}; }
 .preview-line { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .preview-strip button, .preview-strip select {
-  font: inherit; color: inherit; background: #262c35; border: 1px solid #39404b;
-  border-radius: 5px; padding: 3px 9px; cursor: pointer; }
-.preview-title { font-weight: 600; color: #8f9bb0; letter-spacing: .04em; }
-.preview-count { font-variant-numeric: tabular-nums; color: #8f9bb0; }
+  font: inherit; color: inherit; background: ${SURFACE.track};
+  border: 1px solid ${SURFACE.border};
+  border-radius: ${SHAPE.radiusSmall}; padding: 3px 9px; cursor: pointer; }
+.preview-strip select { width: 26em; }
+.preview-line { flex-wrap: nowrap; overflow: auto; }
+.preview-title { font-weight: 600; color: ${TEXT.quiet}; letter-spacing: .04em; }
+.preview-count { font-variant-numeric: tabular-nums; color: ${TEXT.quiet}; }
+.preview-opening:empty { display: none; }
+.preview-opening { padding: 2px 9px; border-radius: ${SHAPE.radiusSmall};
+  background: ${SURFACE.track}; border: 1px solid ${SIGNAL.ours}; color: ${SIGNAL.ours}; }
 .preview-build { margin-left: auto; }
-.preview-ok { color: #7fd18a; }
-.preview-bad { color: #e8836f; }
-.preview-log { display: none; margin: 0; padding: 8px; overflow: auto;
-  max-height: 30vh; white-space: pre-wrap; background: #12151a;
-  border: 1px solid #43301f; border-radius: 5px; color: #e8b48b;
+.preview-ok { color: ${SIGNAL.ours}; }
+.preview-bad { color: ${SIGNAL.theirs}; }
+.preview-log { display: none; flex-basis: 100%; margin: 0; padding: 8px; overflow: auto;
+  max-height: 30vh; white-space: pre-wrap; background: ${SURFACE.panel};
+  border: 1px solid ${SIGNAL.suspect}; border-radius: ${SHAPE.radiusSmall};
+  color: ${SIGNAL.suspect};
   font: 12px/1.45 ui-monospace, monospace; }
-.preview-log[data-shown="yes"] { display: block; }`;
-    // The game's own page colour, read off v0.10.1's `screenshots/panel-taken.png`: a panel
-    // judged against a darker page is a panel whose border reads as a colour it is not.
-    assertStringIncludes(sheet, "#14171c", "the panel is judged against the colour the game draws");
+.preview-log[data-shown="yes"] { display: block; }
+${composeSplitStyle()}`;
+    assertStringIncludes(
+        sheet,
+        GAME_PAGE_COLOUR,
+        "the panel is judged against the game's own page",
+    );
+    assertStringIncludes(sheet, SURFACE.border, "and everything else takes the panel's own token");
     assertStringIncludes(sheet, "9000", "and the strip stands under the panel, never over it");
     // Which rules take it, and which may not, is `tests/tools/preview-site.test.ts`'s to hold:
     // one occurrence here passed while the paragraph under the band carried none.
@@ -295,13 +450,14 @@ function composePreviewStyle(): string {
     return sheet;
 }
 
-function composePreviewStrip(words: PreviewWords): string {
+function composePreviewStrip(words: PreviewWords, doesOfferFights: boolean): string {
     assert(words.title.length > 0, "the strip says what it is");
     assert(words.entry.length > 0, "and what it is counting");
+    assert(words.playing.length > 0, "and what it is doing when it does it unasked");
     return `<div class="preview-strip">
   <div class="preview-line">
     <span class="preview-title">${words.title}</span>
-    <select id="preview-fight"></select>
+    ${doesOfferFights ? `<select id="preview-fight"></select>` : ""}
     <span class="preview-build" id="preview-build"></span>
   </div>
   <div class="preview-line">
@@ -311,6 +467,7 @@ function composePreviewStrip(words: PreviewWords): string {
     <button id="preview-play">${words.play}</button>
     <button id="preview-end">${words.end}</button>
     <span class="preview-count" id="preview-count"></span>
+    <span class="preview-opening" id="preview-opening"></span>
   </div>
   <pre class="preview-log" id="preview-log"></pre>
 </div>`;
@@ -427,13 +584,14 @@ var getPreviewElement = function (id) {
 };
 
 var countLabel = getPreviewElement("preview-count");
-var picker = getPreviewElement("preview-fight");
+var picker = document.getElementById("preview-fight");
 
 var renderCount = function () {
   countLabel.textContent = PREVIEW.words.entry + " " + fedCount + " / " + PREVIEW.entryCount;
 };
 
 var renderPicker = function () {
+  if (picker === null) return;
   for (var at = 0; at < PREVIEW.fights.length; at += 1) {
     var option = document.createElement("option");
     option.value = PREVIEW.fights[at].address;
@@ -476,15 +634,18 @@ var setFedTo = function (target) {
  * and never clears, so the fight being left behind would otherwise stand in the roster of the one
  * arriving. A caller that offered no address navigates instead.
  */
-function composePreviewPicks(): string {
+function composePreviewPicks(doesStartFromEmpty: boolean): string {
     const picks = [
-        composePreviewPicksReaders(),
+        composePreviewPicksReaders(doesStartFromEmpty),
         composePreviewPicksHandlers(),
         composePreviewPicksBindings(),
     ].join("\n\n");
+    // Which state `from the start` reaches is the caller's (`doesStartFromEmpty`), so what is
+    // asserted is that it reaches one: the empty panel a fresh document gives, or the first call
+    // a replay does. A button that reaches neither would be a button doing nothing.
     assert(
-        picks.includes("composePreviewStateHashAt(0)"),
-        "the state before the first call is reachable",
+        picks.includes(doesStartFromEmpty ? "composePreviewStateHashAt(0)" : "setFedTo(1)"),
+        "the button that goes back to the start arrives somewhere",
     );
     assertStringIncludes(
         picks,
@@ -495,7 +656,31 @@ function composePreviewPicks(): string {
 }
 
 /** Reading a recording out of the page's own list, and standing the page in front of one. */
-function composePreviewPicksReaders(): string {
+/**
+ * What the `from the start` button does, which is the one control that means two things.
+ *
+ * Reaching the empty panel costs a fresh document; reaching the first call costs a replay. Which
+ * is wanted is the caller's, and `PreviewPageOptions` says why each one wants what it does.
+ */
+function composePreviewStart(doesStartFromEmpty: boolean): string {
+    if (!doesStartFromEmpty) {
+        return `var setStartOpened = function () {
+  setFedTo(1);
+};`;
+    }
+    return `var setStartOpened = function () {
+  var opened = composePreviewStateHashAt(0);
+  if (shownFight !== null) {
+    window.location.href = shownFight.address + opened;
+    return;
+  }
+  // Empty where the address carries no state, and an empty assignment still leaves a hash.
+  if (opened.length > 0) window.location.hash = opened;
+  window.location.reload();
+};`;
+}
+
+function composePreviewPicksReaders(doesStartFromEmpty: boolean): string {
     const readers = `var getFightByAddress = function (address) {
   for (var at = 0; at < PREVIEW.fights.length; at += 1) {
     if (PREVIEW.fights[at].address === address) return PREVIEW.fights[at];
@@ -523,15 +708,7 @@ var setFightShown = function (fight, calls) {
   setPreviewStateWritten();
 };
 
-var setStartOpened = function () {
-  var opened = composePreviewStateHashAt(0);
-  if (shownFight !== null) {
-    window.location.href = shownFight.address + opened;
-    return;
-  }
-  window.location.hash = opened;
-  window.location.reload();
-};`;
+${composePreviewStart(doesStartFromEmpty)}`;
     assertStringIncludes(
         readers,
         "getFightByAddress",
@@ -545,9 +722,39 @@ var setStartOpened = function () {
     return readers;
 }
 
+/**
+ * How long one entry of a pressed replay rests on screen: **the whole runs for a stated time, and
+ * the step is what falls out of it.**
+ *
+ * A fixed 220ms tick made the control mean a different thing on every recording. Measured over
+ * `captures/` on 2026-09-18: pressing play ran **0,22s on the shortest fight and 24,4s on the
+ * longest** — the same press, a hundredfold apart, and a visitor has no way of telling which they
+ * are about to get. A stated duration divided by the entries gives 800ms a step on a fight of 15
+ * and 108ms on one of 111, and both are over when the visitor expects them to be.
+ *
+ * The bounds are what keep the arithmetic honest at the ends: a recording of one entry has nothing
+ * to spread over ${PLAY_SECONDS} seconds, and one long enough to drive the step under the floor
+ * would flicker rather than replay.
+ *
+ * This is the tempo of a replay somebody asked for. It is **not** the published page playing by
+ * itself, which `design/instalacja/` drew, measured and did not get taken up: the page still opens
+ * on the finished fight (**ADR 0028**) and still moves for nothing but a hand.
+ */
+function composePlayStep(): string {
+    assert(PLAY_STEP_LEAST < PLAY_STEP_MOST, "a step has room between its bounds");
+    return `var getPlayStep = function () {
+  var entries = PREVIEW.entryCount;
+  if (entries < 1) return ${PLAY_STEP_MOST};
+  var even = Math.round(${PLAY_SECONDS * 1000} / entries);
+  return Math.min(${PLAY_STEP_MOST}, Math.max(${PLAY_STEP_LEAST}, even));
+};`;
+}
+
 /** The two controls that answer a reader: playing the calls, and choosing another recording. */
 function composePreviewPicksHandlers(): string {
-    const handlers = `var handlePlay = function () {
+    const handlers = `${composePlayStep()}
+
+var handlePlay = function () {
   if (playTimer !== null) {
     setPlayStopped();
     return;
@@ -556,10 +763,11 @@ function composePreviewPicksHandlers(): string {
   playTimer = window.setInterval(function handleTick() {
     if (setNextFed()) return;
     setPlayStopped();
-  }, 220);
+  }, getPlayStep());
 };
 
 var handlePick = function () {
+  if (picker === null) return null;
   var chosen = getFightByAddress(picker.value);
   if (chosen === null) return null;
   setPlayStopped();
@@ -598,7 +806,7 @@ getPreviewElement("preview-back").addEventListener("click", function handleBack(
 });
 getPreviewElement("preview-play").addEventListener("click", handlePlay);
 getPreviewElement("preview-start").addEventListener("click", setStartOpened);
-picker.addEventListener("change", handlePick);
+if (picker !== null) picker.addEventListener("change", handlePick);
 
 renderPicker();
 setFedTo(PREVIEW_STATE.entry === null ? PREVIEW.entryIndex : PREVIEW_STATE.entry);`;

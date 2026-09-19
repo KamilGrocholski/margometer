@@ -75,19 +75,22 @@ var setWindowDragged = function (name, acrossBy, downBy) {
 /**
  * The panel taken to its corner, and the window beside it put where the sheet would have it for a
  * panel in one: on the side the panel leaves, tops level. The second is dragged apart from the
- * first (**ADR 0060**), so a panel cornered alone otherwise leaves it over the middle. The width
- * across is an expression because the callers measure different things — a picture is taken at a
- * frame the browser may not have opened at, a published page in the window a visitor has.
+ * first (**ADR 0060**), so a panel cornered alone otherwise leaves it over the middle. Both edges
+ * are expressions because the callers measure different things — a picture is taken at a frame the
+ * browser may not have opened at, a published page in the window a visitor has, and that page
+ * carries a bar along its top that the windows have to start below.
  */
-export function composeWindowsCornered(acrossWidth: string): string {
+export function composeWindowsCornered(acrossWidth: string, downFrom: string): string {
     assert(acrossWidth.length > 0, "a corner is measured from an edge somebody states");
+    assert(downFrom.length > 0, "and from a top edge somebody states as well");
     assert(PANEL_INSET > 0, "and stands off it by what the sheet leaves");
     return `var setPanelInCorner = function () {
   var host = getPanelHost();
   var box = host.getBoundingClientRect();
   var across = ${acrossWidth};
+  var down = ${downFrom};
   setWindowDragged("${PANEL_WINDOW}",
-    across - ${PANEL_INSET} - box.width - box.left, ${PANEL_INSET} - box.top);
+    across - ${PANEL_INSET} - box.width - box.left, down - box.top);
 };
 
 var setStandingBeside = function () {

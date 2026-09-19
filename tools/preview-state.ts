@@ -229,3 +229,28 @@ var panelTimer = window.setInterval(function handlePanelWaited() {
     assertStringIncludes(watch, `>= ${STATE_WAIT_TRIES}`, "and one that never does is given up on");
     return watch;
 }
+
+/**
+ * The same three names, saying that nothing was carried and nothing will be written.
+ *
+ * A published page keeps no state in its address (`tools/preview-site.ts`): there is one page, one
+ * recording, and a link to it is a link to the page rather than to a moment inside it. The driver
+ * still reads `PREVIEW_STATE` and still calls the writer, so both stand here as the answers they
+ * would give over an empty hash — a page without them is a page with a `ReferenceError` in it.
+ */
+export function composePreviewStateBare(): string {
+    const bare = `var PREVIEW_STATE = { entry: null, screen: null, store: {} };
+
+var composePreviewStateHashAt = function () {
+  return "";
+};
+
+var composePreviewStateHash = function () {
+  return "";
+};
+
+var setPreviewStateWritten = function () {};`;
+    assertStringIncludes(bare, "PREVIEW_STATE", "the driver finds the state it reads");
+    assertStringIncludes(bare, "setPreviewStateWritten", "and the writer it calls after a feed");
+    return bare;
+}

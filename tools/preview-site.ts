@@ -19,17 +19,48 @@ import {
     composePreviewPage,
     PREVIEW_GAME_SCRIPT_NAME,
     PREVIEW_INSTALL_OPENING,
-    type PreviewFightLink,
+    PREVIEW_SAID_SELECTOR,
+    PREVIEW_SPLIT_SELECTOR,
+    PREVIEW_STRIP_SELECTOR,
     type PreviewInstall,
     type PreviewWords,
+    SPLIT_FROM_PIXELS,
 } from "@/tools/preview-page.ts";
-import { composeWindowDragging, composeWindowsCornered } from "@/tools/preview-windows.ts";
+import {
+    composeWindowDragging,
+    composeWindowsCornered,
+    getSheetPixels,
+    PANEL_GAP,
+    PANEL_INSET,
+} from "@/tools/preview-windows.ts";
+import { PLACE, STANDING } from "@/src/ui/panel-look.ts";
 import {
     getPreviewRecordedFight,
     getRecordedFights,
     type RecordedFight,
 } from "@/tools/recorded-fights.ts";
 
+/** What the two windows take across, inset and all — the same sum the sheet reserves for them. */
+const TAKEN_ACROSS = PANEL_INSET + getSheetPixels(PLACE.width) + PANEL_GAP +
+    getSheetPixels(STANDING.width);
+
+/** What the pair stands off the seam by, level with the padding the half beside it carries. */
+const SEAM_GUTTER = 32;
+
+/**
+ * How long the finished fight stands before the opening replay starts it over. Long enough to read
+ * a ranking of eleven rows, which is what the page is showing it for.
+ */
+const OPENING_HOLD_MILLISECONDS = 2600;
+/**
+ * How long one entry of the opening replay rests on screen. Slower than a pressed one on purpose:
+ * a visitor pressing play is waiting for it to be over, and one who pressed nothing is watching.
+ * The landing recording carries 99 calls, so the opening runs about half a minute and the figures
+ * climb rather than jump.
+ */
+const OPENING_STEP_MILLISECONDS = 300;
+
+const LANDING_PAGE = "index.html";
 const OUTPUT_DIRECTORY = "dist/preview";
 const HOMEPAGE = "https://github.com/KamilGrocholski/margometer";
 
@@ -47,6 +78,7 @@ const PREVIEW_SITE_WORDS: PreviewWords = {
     play: "odtwórz",
     pause: "pauza",
     entry: "wpis",
+    playing: "odtwarzanie",
 };
 
 /**
@@ -77,11 +109,11 @@ function composeSiteInstall(version: string): PreviewInstall {
     assert(USERSCRIPT_DOWNLOAD_ADDRESS.length > 0, "and the file that button hands over");
     return {
         name: "MargoMeter",
-        // Named for what the game leaves out rather than for what this is, because that is how
-        // somebody recognises they want it. Every figure the second sentence promises is one the
-        // panel draws: the ranking, the level under a row, and the person at the other end of it.
-        sentence:
-            "Gra mówi tylko, że walka się skończyła. MargoMeter pokazuje, co się w niej stało.",
+        // Every figure this promises is one the panel draws, and that is the whole test of it:
+        // the ranking, what a row opens onto, and the person at the other end of it. A sentence
+        // promising a figure the panel has not got is the one way this line can be wrong.
+        sentence: "Licznik obrażeń do Margonem. Pokazuje, kto ile zadał, " +
+            "kto ile oberwał i czym.",
         needsLine: "Zanim zainstalujesz:",
         needs: [
             {
@@ -118,7 +150,9 @@ function composeSiteInstall(version: string): PreviewInstall {
 function composeSiteWindows(): string {
     return `${composeWindowDragging()}
 
-${composeWindowsCornered("window.innerWidth")}
+${composeWindowsCornered(composeCorneredFrom(), "getStripBelow()")}
+
+${composeStripAtTop()}
 
 var setWindowsPlaced = function () {
   var taken = Element.prototype.setPointerCapture;
@@ -126,6 +160,8 @@ var setWindowsPlaced = function () {
   delete Element.prototype.setPointerCapture;
   delete Element.prototype.releasePointerCapture;
   try {
+    // The page moves first: the windows are cornered against a layout that has settled.
+    setPageBelowStrip();
     setPanelInCorner();
     setStandingBeside();
   } catch (reason) {
@@ -141,49 +177,190 @@ setWindowsPlaced();
 window.addEventListener("resize", setWindowsPlaced);`;
 }
 
+/**
+ * The edge the two windows inset from: the right of the window while the page is one column, and
+ * a line just past the seam once it is two.
+ *
+ * Cornered against the window's own right edge, the pair sat hard against it and left 274px of
+ * empty half beside the text — measured at 1512. Centred in the half instead, a 4K screen put
+ * 723px of nothing on each side of it. Against the seam, what grows with the screen is the field
+ * either side of the page rather than the gap between the two things the page is about.
+ */
+function composeCorneredFrom(): string {
+    assert(SEAM_GUTTER > 0, "the pair stands off the seam rather than on it");
+    // Against the seam and not in the middle of the half: the half runs the whole way to the edge
+    // of the screen, so its middle walks off with the screen and the pair goes with it. Clamped to
+    // the window, because at the narrowest split the half holds the pair and nothing else.
+    return `(window.innerWidth < ${SPLIT_FROM_PIXELS} ? window.innerWidth` +
+        ` : Math.min(window.innerWidth,` +
+        ` window.innerWidth / 2 + ${TAKEN_ACROSS + SEAM_GUTTER}))`;
+}
+
+/**
+ * What the bar along the top comes to, and the page pushed down under it.
+ *
+ * The bar carries the picker and the replay, so it is the one control on the page and it belongs
+ * where a control belongs: over the thing it changes, not in a corner away from it. Measured
+ * 2026-09-19 on the page as it stood before: the strip sat bottom-left against a panel top-right,
+ * **1 640px** apart at 1920, and the run grew with every pixel of screen.
+ *
+ * ⚠️ **Its height is measured and never assumed.** The bar wraps — at a narrow window, and again
+ * inside its own half once the page splits — so a number written here would be right at one width
+ * and wrong at the next, and the windows under it would start behind it. Read once per placing,
+ * which is on load and on every resize.
+ *
+ * An earlier try docked the strip under the panel's own bottom edge instead. That is a bug and
+ * the reason this reads the top: the panel grows when a row opens, 402px to 602px at 1920×900,
+ * and draws at layer 9999 against the strip's 9000 — so the panel covered the control. Nothing
+ * here may depend on a height the panel changes under a hand.
+ */
+function composeStripAtTop(): string {
+    assert(PANEL_INSET > 0, "the page starts below the bar by what the sheet leaves");
+    return `var getStripBelow = function () {
+  var strip = document.querySelector("${PREVIEW_STRIP_SELECTOR}");
+  if (strip === null) return ${PANEL_INSET};
+  return Math.round(strip.getBoundingClientRect().height) + ${PANEL_INSET};
+};
+
+var setPageBelowStrip = function () {
+  var split = document.querySelector("${PREVIEW_SPLIT_SELECTOR}");
+  if (split === null) return;
+  // Split, the bar stands in the right half only and the left one starts at the top of the page.
+  // One column, it spans the whole width and everything has to begin under it.
+  var said = document.querySelector("${PREVIEW_SAID_SELECTOR}");
+  var narrow = window.innerWidth < ${SPLIT_FROM_PIXELS};
+  split.style.paddingTop = narrow ? getStripBelow() + "px" : "";
+  // Split, the bar covers the right half only, and the left one starts on the same line the
+  // windows do rather than at the top of a page nothing is holding down.
+  if (said !== null) said.style.paddingTop = narrow ? "" : getStripBelow() + "px";
+};`;
+}
+
+/**
+ * The fight played through once, on arriving, and then left alone.
+ *
+ * The published page opens on the finished fight and holds it (**ADR 0028**), so the first thing
+ * anybody sees is the whole ranking rather than an empty panel. Only then does it start over and
+ * run, once, to the end — where it stops and the ranking stands again. **It does not repeat**: a
+ * page that replays for as long as somebody leaves the tab open is motion beside a band that has
+ * to be read, and the visitor has already seen the thing it is showing them.
+ *
+ * ⚠️ **Entry 0 is not reachable without a fresh document**, which is why the run starts at the
+ * first call and never at nothing: reaching the empty panel costs a reload, and a replay built on
+ * one would blink the whole page. `setFedTo(1)` is the same path the ◀ button already takes.
+ *
+ * A visitor who arrived with an entry in the address is left alone: the address said which state
+ * they came for, and this would take it away from them.
+ *
+ * What stops it early, and what the bar says while it goes, is `composeOpeningWatched`'s. This is
+ * the site's own and never the served page's: whoever is reading a change in `src/ui/` gets a
+ * panel that stands still.
+ */
+function composeOpeningReplay(): string {
+    assert(OPENING_HOLD_MILLISECONDS > 0, "the finished fight is held long enough to be read");
+    return `var openingTimer = null;
+var openingIsDone = false;
+// Whether the press that stops the replay was the one on the play button: that press means pause
+// and nothing else, so the button's own handler must not go on to start a replay after it.
+var openingTookThePress = false;
+
+var setOpeningSaid = function (said, playLabel) {
+  var mark = document.getElementById("preview-opening");
+  if (mark !== null) mark.textContent = said;
+  var play = document.getElementById("preview-play");
+  if (play !== null) play.textContent = playLabel;
+};
+
+var setOpeningStopped = function () {
+  if (!openingIsDone) openingTookThePress = true;
+  openingIsDone = true;
+  if (openingTimer !== null) {
+    window.clearTimeout(openingTimer);
+    window.clearInterval(openingTimer);
+    openingTimer = null;
+  }
+  setOpeningSaid("", PREVIEW.words.play);
+};
+
+var setOpeningRun = function () {
+  if (openingIsDone) return;
+  setOpeningSaid(PREVIEW.words.playing, PREVIEW.words.pause);
+  setFedTo(1);
+  openingTimer = window.setInterval(function handleOpeningStep() {
+    if (openingIsDone) return;
+    if (setNextFed()) return;
+    window.clearInterval(openingTimer);
+    openingTimer = null;
+    // The end of the one run there is: the ranking stands, and nothing moves again.
+    setOpeningStopped();
+  }, ${OPENING_STEP_MILLISECONDS});
+};
+
+var setOpeningHeld = function () {
+  if (openingIsDone) return;
+  setOpeningSaid(PREVIEW.words.playing, PREVIEW.words.pause);
+  openingTimer = window.setTimeout(setOpeningRun, ${OPENING_HOLD_MILLISECONDS});
+};
+
+if (PREVIEW_STATE.entry === null) {
+  setOpeningWatched();
+  setOpeningHeld();
+}`;
+}
+
+/**
+ * What stops the loop, and what the bar says while it runs.
+ *
+ * **Only the bar stops it** — the one control on the page, where a recording is chosen and a
+ * replay is driven. A press inside the panel, on the page behind it, or a scroll all leave it
+ * running: the maintainer's decision of 2026-09-19. The cost falls where it is visible, so the
+ * bar carries the word: a page whose figures move with no word for it reads as a page doing
+ * something unasked, and a visitor who wants to read a row presses pause first.
+ *
+ * The press on the play button is a **pause and nothing else**. `pointerdown` stops the replay
+ * before the button's own `click` handler runs, so without this the same press would stop the
+ * loop and start a fresh replay in the same breath — the button would refuse to pause.
+ */
+function composeOpeningWatched(): string {
+    return `// Guarded at the handover: a throw out of a listener unwinds into a dispatch loop that
+// drops it, and the page would go on replaying with nothing able to stop it (**E12**).
+var handleVisitorMoved = function () {
+  try {
+    setOpeningStopped();
+  } catch (reason) {
+    console.warn("MargoMeter/Preview", reason);
+  }
+};
+
+// Capture on the bar, so this runs before the button's own handler and can keep it from firing.
+var handlePlayPressed = function (event) {
+  if (!openingTookThePress) return;
+  openingTookThePress = false;
+  var play = document.getElementById("preview-play");
+  if (play === null) return;
+  if (event.target !== play && !play.contains(event.target)) return;
+  event.stopPropagation();
+};
+
+var setOpeningWatched = function () {
+  var bar = document.querySelector("${PREVIEW_STRIP_SELECTOR}");
+  if (bar === null) return;
+  var taking = { capture: true, passive: true };
+  bar.addEventListener("pointerdown", handleVisitorMoved, taking);
+  bar.addEventListener("keydown", handleVisitorMoved, taking);
+  bar.addEventListener("change", handleVisitorMoved, taking);
+  bar.addEventListener("click", handlePlayPressed, true);
+};`;
+}
+
 /** What a browser is handed, before anything writes it down. */
 export interface PreviewSiteFile {
     name: string;
     text: string;
 }
 
-function composeFightPageName(name: string): string {
-    assert(name.length > 0, "a page is filed under the fight it draws");
-    assert(!name.endsWith(".html"), "and gains the suffix here rather than carrying one");
-    return `${name}.html`;
-}
-
-/**
- * Relative, which is the whole of what a published page cannot get wrong twice: a host serves a
- * project under a path of its own, so an address beginning at the domain root asks for a file
- * belonging to no project — and the same page then opens from disk and from a server as well.
- */
-function composeFightAddress(name: string): string {
-    const address = `./${encodeURIComponent(composeFightPageName(name))}`;
-    assert(address.startsWith("./"), "nothing here is addressed from a domain root");
-    return address;
-}
-
-function composeFightLinks(fights: readonly RecordedFight[]): PreviewFightLink[] {
-    assert(fights.length > 0, "there is something to offer");
-    // No process here, so there is nowhere to fetch a fight from and a pick stays a navigation.
-    // The calls a page has are its own, inlined in it.
-    const links = fights.map((fight) => ({
-        name: fight.name,
-        address: composeFightAddress(fight.name),
-        callsAddress: null,
-    }));
-    assert(links.every((link) => link.callsAddress === null), "and nothing to ask for one from");
-    return links;
-}
-
-function composePageOfFight(
-    fight: RecordedFight,
-    links: readonly PreviewFightLink[],
-    install: PreviewInstall,
-): string {
+function composePageOfFight(fight: RecordedFight, install: PreviewInstall): string {
     assert(fight.calls.length > 0, "a page is written for a fight there is something to play");
-    assert(links.length > 0, "and every other fight is offered beside it");
     assert(install.name.length > 0, "and the band over it offers the file it is a preview of");
     return composePreviewPage({
         fightName: fight.name,
@@ -192,13 +369,18 @@ function composePageOfFight(
         // `od początku` reaches it, which is why that button exists.
         entryIndex: fight.calls.length,
         calls: fight.calls,
-        fights: links,
+        // None: a published page offers no choice of recording, so its bar carries no picker
+        // and nothing on it leads to another fight.
+        fights: [],
         scriptDirectory: "./",
         words: PREVIEW_SITE_WORDS,
         introduction: PREVIEW_SITE_INTRODUCTION,
+        doesAddressCarryState: false,
+        doesStartFromEmpty: false,
         install,
         // No process behind these pages, so nothing to listen to — only the windows to place.
-        appendedScript: composeSiteWindows(),
+        appendedScript:
+            `${composeSiteWindows()}\n\n${composeOpeningWatched()}\n\n${composeOpeningReplay()}`,
     });
 }
 
@@ -210,31 +392,15 @@ function composePageOfFight(
 export function composePreviewSitePages(version: string): PreviewSiteFile[] {
     assert(version.length > 0, "every page states which build drew it");
     const fights = getRecordedFights();
-    const links = composeFightLinks(fights);
-    const install = composeSiteInstall(version);
     const landing = getPreviewRecordedFight(fights);
+    const install = composeSiteInstall(version);
     const pages: PreviewSiteFile[] = [
-        { name: "index.html", text: composePageOfFight(landing, links, install) },
+        { name: LANDING_PAGE, text: composePageOfFight(landing, install) },
     ];
-    for (const fight of fights) {
-        pages.push({
-            name: composeFightPageName(fight.name),
-            text: composePageOfFight(fight, links, install),
-        });
-    }
-    assertStrictEquals(
-        pages.length,
-        fights.length + 1,
-        "a page each, and the one a visitor lands on",
-    );
-    assertStrictEquals(
-        new Set(pages.map((page) => page.name)).size,
-        pages.length,
-        "each filed once",
-    );
+    assertStrictEquals(pages.length, 1, "the site is one page over one recording");
     assert(
         pages.every((page) => page.text.includes(PREVIEW_INSTALL_OPENING)),
-        "and every one a visitor can land on offers the file it is a preview of",
+        "and it offers the file it is a preview of",
     );
     return pages;
 }

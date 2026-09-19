@@ -154,11 +154,19 @@ export function getRecordedFights(): RecordedFight[] {
 /**
  * The one every preview opens on, named rather than derived: the server, the published site and
  * the screenshots then show the same fight, and a recording admitted tomorrow changes none of
- * them. Chosen over the corpus on 2026-08-30 for what the panel can draw off it — 33 announced
- * skills, 18 elements, every one of the eleven with healing, five with a prevented figure — where
- * `2026-08-27-luvia-grupa-vs-amaimon-2-53XkBRxF-0.9.0` carries more calls and less to look at.
+ * them.
+ *
+ * Chosen 2026-09-19 for the **published page replaying it**, which is a use the earlier pick did
+ * not have to serve. Measured over both on that date: this carries **99 calls** against the other's
+ * 15, so a replay climbs instead of jumping in sixths, and it was recorded on 0.15.0 rather than
+ * 0.9.0. What it gives up is stated and small — 46 announced skills against 48, 12 elements
+ * against 14, eight of the eleven with healing against all eleven, three with a prevented figure
+ * against five.
+ *
+ * The one it replaces, `2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0`, was picked on
+ * 2026-08-30 for that density alone, back when the page opened on a fight and left it standing.
  */
-export const PREVIEW_FIGHT_NAME = "2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0";
+export const PREVIEW_FIGHT_NAME = "2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0";
 
 /** Loudly (**E7**): a preview opening on some other fight is worse than one that does not open. */
 export function getPreviewRecordedFight(fights: readonly RecordedFight[]): RecordedFight {

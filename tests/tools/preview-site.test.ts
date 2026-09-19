@@ -6,13 +6,7 @@
  * there. Each of those is silent when it is wrong — a page that loads cleanly and shows nothing.
  */
 
-import {
-    assert,
-    assertArrayIncludes,
-    assertEquals,
-    assertExists,
-    assertStringIncludes,
-} from "@std/assert";
+import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/assert";
 import { composeUserscriptBanner, USERSCRIPT_DOWNLOAD_ADDRESS } from "@/tools/build-userscript.ts";
 import { MAXIMUM_COLUMN_WIDTH, PREVIEW_INSTALL_OPENING } from "@/tools/preview-page.ts";
 import { composePreviewSitePages } from "@/tools/preview-site.ts";
@@ -95,52 +89,58 @@ Deno.test("the reader of widths finds a capped rule and an uncapped one alike", 
     assertEquals(widths.get(".other"), "46em", "and the uncapped one is not read as capped");
 });
 
-Deno.test("there is a page for every recording, and one a visitor lands on", () => {
+Deno.test("the site is one page, over the one recording every preview opens on", () => {
     const pages = composePreviewSitePages(VERSION);
-    const fights = getRecordedFights();
-    const names = pages.map((page) => page.name);
-    assertEquals(names.length, fights.length + 1, "a page each, plus the landing");
-    assertArrayIncludes(names, ["index.html"], "which is the name a host serves a directory by");
-    for (const fight of fights) {
-        assertArrayIncludes(names, [`${fight.name}.html`], `${fight.name} has a page of its own`);
-    }
+    assertEquals(pages.map((page) => page.name), ["index.html"], "one page, and it is the landing");
+    // A published page offers no choice of recording — there is nowhere else to go and nothing
+    // saying there is. The picker stays on the served page, which is read while `src/` changes.
+    const [page] = pages;
+    assertExists(page, "there is a page to read");
+    assert(!page.text.includes(`id="preview-fight"`), "and no picker to choose another fight with");
 });
 
 Deno.test("the page a visitor lands on is the fight every preview opens on, finished", () => {
-    const pages = composePreviewSitePages(VERSION);
-    const landing = pages.find((page) => page.name === "index.html");
-    assertExists(landing, "there is a landing page");
+    const [page] = composePreviewSitePages(VERSION);
+    assertExists(page, "there is a page to read");
     const opened = getPreviewRecordedFight(getRecordedFights());
+    assertStringIncludes(page.text, `"fightName":"${opened.name}"`, "the named fight is the one");
     assertStringIncludes(
-        landing.text,
-        opened.name,
-        "and it draws the recording the tools all name",
+        page.text,
+        `"entryIndex":${opened.calls.length}`,
+        "and it is opened at its end, so the whole ranking stands before anything moves",
     );
-    assertEquals(
-        landing.text,
-        pages.find((page) => page.name === `${opened.name}.html`)?.text,
-        "which is the same page under its own name, so a visitor lands where a link points",
+});
+
+Deno.test("a published page keeps no moment in its address", () => {
+    const [page] = composePreviewSitePages(VERSION);
+    assertExists(page, "there is a page to read");
+    // One page over one recording: a link to it is a link to the page and never to a state
+    // inside it, so nothing here reads a hash or writes one back.
+    assertStringIncludes(
+        page.text,
+        "var PREVIEW_STATE = { entry: null",
+        "the state is stated bare",
     );
-    assert(
-        landing.text.includes(`"entryIndex":${opened.calls.length}`),
-        "opened at the end of it, which is the thing the add-on is for",
-    );
+    assert(!page.text.includes("replaceState"), "and nothing writes the address as it goes");
+    assert(!page.text.includes("getPreviewStateFromHash"), "and nothing reads one on the way in");
 });
 
 Deno.test("nothing on a published page asks a domain root, or a process, for anything", () => {
     const pages = composePreviewSitePages(VERSION);
-    assert(pages.length > 1, "there are pages to read");
+    assert(pages.length > 0, "there is a page to read");
     const rooted: string[] = [];
     const streaming: string[] = [];
     const fetching: string[] = [];
     for (const page of pages) {
         if (page.text.includes(`src="/`)) rooted.push(page.name);
         if (page.text.includes("EventSource")) streaming.push(page.name);
-        if (!page.text.includes(`"callsAddress":null`)) fetching.push(page.name);
+        if (!page.text.includes(`"fights":[]`)) fetching.push(page.name);
     }
     assertEquals(rooted, [], "an absolute address asks for a file belonging to no project");
     assertEquals(streaming, [], "a page nobody rebuilds reconnects to nothing, twice a second");
-    assertEquals(fetching, [], "and a pick here is the navigation it always was");
+    // No links at all, so there is nothing to fetch a recording's calls from and no address
+    // for a pick to navigate to: the published site is one page over one recording.
+    assertEquals(fetching, [], "and no page here offers another recording to go to");
 });
 
 /** The letters that are in no English sentence, which is what makes this decidable. */
@@ -192,7 +192,7 @@ Deno.test("the reader of a language flags a Polish sentence and not an English o
 
 Deno.test("every published page opens with the band, and it says the same on each", () => {
     const pages = composePreviewSitePages(VERSION);
-    assert(pages.length > 1, "there are pages to read");
+    assert(pages.length > 0, "there is a page to read");
     const bandless: string[] = [];
     const bands = new Set<string>();
     for (const page of pages) {
@@ -277,7 +277,7 @@ Deno.test("the reader over what a page loads flags a stylesheet and not a link",
 
 Deno.test("a published page fetches nothing of its own accord, band and all", () => {
     const pages = composePreviewSitePages(VERSION);
-    assert(pages.length > 1, "there are pages to read");
+    assert(pages.length > 0, "there is a page to read");
     const loading: string[] = [];
     for (const page of pages) {
         for (const mark of getLoadedAddressesInText(page.text)) {
@@ -289,7 +289,7 @@ Deno.test("a published page fetches nothing of its own accord, band and all", ()
 
 Deno.test("a published page puts both windows in the corner the band needs", () => {
     const pages = composePreviewSitePages(VERSION);
-    assert(pages.length > 1, "there are pages to read");
+    assert(pages.length > 0, "there is a page to read");
     const unplaced: string[] = [];
     for (const page of pages) {
         if (!page.text.includes("setWindowsPlaced()")) unplaced.push(page.name);

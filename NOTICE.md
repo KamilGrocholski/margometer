@@ -35,15 +35,18 @@ This is a change from MargoMeter v1, which shipped no third-party code. The reas
 
 ## The published preview
 
-`.github/workflows/pages.yml` publishes a page per recording, and each one carries that recording's
-own engine calls inlined — which is what makes the replay synchronous. Those calls hold the
-protocol's functional names and the game's own names for abilities and items, on the same basis as
-`captures/` itself: player nicknames are substituted by tooling before a recording is admitted, and
-ability descriptions are stripped from it. Nothing generated for that site is committed; it is
+`.github/workflows/pages.yml` publishes **one page, over one recording**, and it carries that
+recording's own engine calls inlined — which is what makes the replay synchronous. Those calls hold
+the protocol's functional names and the game's own names for abilities and items, on the same basis
+as `captures/` itself: player nicknames are substituted by tooling before a recording is admitted,
+and ability descriptions are stripped from it. Nothing generated for that site is committed; it is
 written under `dist/`, which git does not carry.
 
 The page counts everything in the visitor's own browser, connects to nothing, and takes the
-browser's store away before the add-on loads — so a visit leaves nothing behind in it.
+browser's store away before the add-on loads — so a visit leaves nothing behind in it. **It keeps
+nothing in its address either**: a link to it is a link to the page, never to a moment inside it,
+and it offers no way to any other recording. The picker and the state in the address belong to
+`deno task preview`, which is read while `src/` is being changed.
 
 ## Everything else
 
