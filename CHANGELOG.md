@@ -5,7 +5,10 @@
   - Newest at the top. `[Niewydane]` collects what has not gone out yet.
   - One flat list per version. Every entry opens with its kind — **Nowość**, **Zmiana** or
     **Poprawka** — and the kinds run in that order inside a version.
-  - One to three sentences. Whoever wants the detail has the history.
+  - **One sentence, and it is the whole entry.** A player reads a section to decide whether to
+    update, and stops at the first line that is not about that. Whoever wants the detail has the
+    history. The rule is younger than the file: `0.17.0` and every section below it were written
+    under the old one.
   - From the player's side, in what they can see in the game and in the panel. Never a word of
     ours and never a key of the game's (AGENTS.md **L3**). The test: would somebody who plays
     Margonem and has never seen the code understand it?
@@ -36,60 +39,30 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
-- **Nowość** — MargoMeter instaluje się teraz jednym kliknięciem ze strony z podglądem. Najpierw
-  stoją dwie rzeczy, bez których nic nie zadziała: menedżer skryptów, a w Chrome i w Edge
-  przełącznik, który łatwo przeoczyć, bo bez niego nic się nie uruchamia i nic o tym nie mówi.
-  Dopiero pod nimi przycisk i numer wersji, a pod przyciskiem jedno zdanie o tym, co będzie dalej.
-
-- **Nowość** — Pomocnik mówi teraz, który z dwóch okrzyków kogoś trzyma: jego nazwa stoi obok osoby,
-  która go rzuciła. Te dwa okrzyki nie robią tego samego — jeden wzmacnia drużynę rzucającego, drugi
-  osłabia przeciwników — więc sama liczba trzymanych osób nie wystarczała, żeby wiedzieć, co się
-  dzieje.
-
-- **Nowość** — To, co okrzyk robi poza trzymaniem, stoi teraz w „Co stoi" i liczy własne tury. Przy
-  jednym z okrzyków trwa to dwie tury dłużej niż samo trzymanie, a panel nie mówił o tym dotąd nic.
-
+- **Nowość** — MargoMeter instaluje się teraz jednym kliknięciem ze strony z podglądem, która
+  najpierw prowadzi przez to, bez czego nic nie ruszy: menedżer skryptów i przełącznik w Chrome i
+  Edge.
+- **Nowość** — W Pomocniku przy osobie, która rzuciła okrzyk, stoi teraz jego nazwa, bo te dwa
+  okrzyki nie robią tego samego.
+- **Nowość** — To, co okrzyk robi poza trzymaniem, stoi teraz w „Co stoi" i liczy własne tury.
 - **Zmiana** — Wszystkie głębokie rany liczą się teraz na karcie ciosu w jednym wierszu, a pod nim
-  stoi, ile z nich coś osłabiło. Do tej pory osłabione rany stały w osobnym wierszu i postać, której
-  każdą ranę coś osłabiło, nie miała na karcie żadnej liczby ran.
-
+  stoi, ile z nich coś osłabiło.
 - **Poprawka** — Na stronie z podglądem zdanie pod przyciskiem nie chowa się już za panelem przy
-  węższym oknie. Mówi ono jako jedyne, że walka niżej jest nagraniem, a nie żywą grą, i że wszystko
-  liczy się w tej przeglądarce — przy oknie szerokim na 800 punktów jego ostatnia trzecia część
-  leżała pod panelem.
-
-- **Poprawka** — W Pomocniku każdy wiersz z postacią ma teraz okienko z opisem: cały nick, okrzyk
-  albo umiejętność, pod którą ta postać stoi, i tury. Do tej pory, kiedy nick albo nazwa okrzyku nie
-  mieściły się w wierszu, były ucinane i nie dało się ich nigdzie doczytać.
-
-- **Poprawka** — Okienko z opisem pokazuje teraz całą nazwę, łamiąc ją na kolejne wiersze, kiedy
-  jest za długa. Przy zapisanych walkach nazwa miejsca bywała ucięta dwa razy: raz w wierszu, na
-  który nie starczało miejsca, i drugi raz w okienku, które miało ją pokazać w całości.
-
-- **Poprawka** — Sześć rzeczy, które robią postacie z najwyższych poziomów, jest już rozpoznawanych:
-  tarcza podnosząca pancerz i leczenie ze sprzętu, powiększenie puli zdrowia — swojej drużynie albo
-  przeciwnikom — zmiana leczenia ze sprzętu w obie te strony oraz zniszczenie odporności na
-  truciznę. Panel przestaje przy nich ostrzegać, że nie wiedział, co znaczyła część tego, co
-  powiedziała gra, a ostatnia z nich dostaje na karcie ciosu własny wiersz.
-
-- **Poprawka** — Rana osłabiona mrozem lub magią, a także obie osłabione rany zadane bronią
-  pomocniczą, są już rozpoznawane. Panel przestaje ostrzegać, że nie wiedział, co znaczyła część
-  tego, co powiedziała gra, a wszystkie liczą się tak samo jak rana osłabiona trucizną.
-
-- **Poprawka** — Obniżenie odporności na ogień, zimno i błyskawice jest już rozpoznawane. Panel
-  przestaje ostrzegać, że nie wiedział, co znaczyła część tego, co powiedziała gra, a na karcie
-  ciosu staje osobny wiersz dla każdego z trzech żywiołów — obok wiersza, który był tam do tej pory
-  dla odporności bez żywiołu.
-
-- **Poprawka** — Ogłuszenie w ognistej i błyskawicznej odmianie jest już rozpoznawane. W walkach z
-  potworami, które je zadają, panel przestaje ostrzegać, że nie wiedział, co znaczyła część tego, co
-  powiedziała gra, a przy ciosie staje „ogłuszenie" — tak samo jak przy pozostałych odmianach tego
-  samego zdarzenia.
-
-- **Poprawka** — Niszczenie many przeciwnika jest już rozpoznawane. W walkach z kimś, kto je niesie,
-  panel przestaje ostrzegać, że nie wiedział, co znaczyła część tego, co powiedziała gra. Sama mana
-  nie wchodzi przy tym do żadnej liczby na karcie — panel jej nie prowadzi, tak samo jak nie
-  prowadzi energii.
+  węższym oknie.
+- **Poprawka** — Każdy wiersz z postacią w Pomocniku ma teraz okienko z całym nickiem, nazwą okrzyku
+  albo umiejętności i turami.
+- **Poprawka** — Okienko z opisem łamie teraz długą nazwę na kolejne wiersze, zamiast uciąć ją drugi
+  raz.
+- **Poprawka** — Sześć rzeczy, które robią postacie z najwyższych poziomów, jest już rozpoznawanych,
+  a zniszczenie odporności na truciznę ma własny wiersz na karcie ciosu.
+- **Poprawka** — Rana osłabiona mrozem lub magią i obie osłabione rany zadane bronią pomocniczą są
+  już rozpoznawane i liczą się jak rana osłabiona trucizną.
+- **Poprawka** — Obniżenie odporności na ogień, zimno i błyskawice jest już rozpoznawane, a każdy z
+  trzech żywiołów ma na karcie ciosu własny wiersz.
+- **Poprawka** — Ogłuszenie w ognistej i błyskawicznej odmianie jest już rozpoznawane i staje przy
+  ciosie tak samo jak pozostałe odmiany.
+- **Poprawka** — Niszczenie many przeciwnika jest już rozpoznawane, ale sama mana nie wchodzi do
+  żadnej liczby na karcie.
 
 ## [0.17.0] — 2026-09-15
 

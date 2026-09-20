@@ -162,3 +162,140 @@ Deno.test("every section this file excuses is still there, and still out of orde
     }
     assert(SECTIONS_PAST_THEIR_TAG.length > 0, "the list is read rather than assumed empty");
 });
+
+/** An entry, with the heading of the section it stands in. */
+interface ChangelogEntry {
+    section: string;
+    entry: string;
+}
+
+/**
+ * Every entry in the file, unwrapped. `deno fmt` breaks an entry at 100 columns, so a reader that
+ * takes a line takes the first third of a long one and calls it the whole entry.
+ */
+function getEntries(text: string): ChangelogEntry[] {
+    const entries: ChangelogEntry[] = [];
+    let section = "";
+    let open = false;
+    for (const line of text.split("\n")) {
+        if (line.startsWith(VERSION_HEADING)) {
+            section = line;
+            open = false;
+            continue;
+        }
+        if (line.startsWith("- ")) {
+            entries.push({ section, entry: line.slice(2) });
+            open = true;
+            continue;
+        }
+        if (!open) continue;
+        if (!line.startsWith("  ")) {
+            open = false;
+            continue;
+        }
+        const last = entries.at(-1);
+        if (last === undefined) continue;
+        last.entry = `${last.entry} ${line.trim()}`;
+    }
+    return entries;
+}
+
+/** What a sentence may close on, and what may stand after the one that closes an entry. */
+const SENTENCE_ENDS = [".", "!", "?"];
+const ENTRY_CLOSERS = ['"', ")", " "];
+
+/**
+ * Whether a sentence closing here closes the entry — everything after it is punctuation.
+ */
+function isEndAtTheClose(entry: string, index: number): boolean {
+    for (const character of entry.slice(index + 1)) {
+        if (!ENTRY_CLOSERS.includes(character)) return false;
+    }
+    return true;
+}
+
+/**
+ * Where a sentence closes inside an entry, walked rather than matched — **C7**.
+ *
+ * ⚠️ **A full stop is not a sentence end on its own.** `0.17.0` carries two of them and a quoted
+ * sentence of the game's — `„Walka się skończyła." i tyle` — carries a third. A close is a stop
+ * that ends the text, or one followed by a space and then a capital.
+ */
+function getSentenceEnds(entry: string): number[] {
+    const ends: number[] = [];
+    for (let index = 0; index < entry.length; index += 1) {
+        if (!SENTENCE_ENDS.includes(entry.charAt(index))) continue;
+        if (index === entry.length - 1) {
+            ends.push(index);
+            continue;
+        }
+        if (entry.charAt(index + 1) !== " ") continue;
+        const next = entry.slice(index + 2).trimStart();
+        const opener = next.startsWith("„") ? next.slice(1) : next;
+        const first = opener.charAt(0);
+        if (first === "") continue;
+        if (first === first.toLowerCase()) continue;
+        ends.push(index);
+    }
+    return ends;
+}
+
+/**
+ * The last section written before the rule. The file is newest-first, which its own header
+ * states, so everything above this heading is bound and this one and everything below it is not
+ * — a section past its tag is not touched.
+ *
+ * **Named from the old side on purpose.** The heading under the boundary never moves again,
+ * while the first version written under the rule is a number this line would have to be edited
+ * for at the release after it, and at every release after that.
+ */
+const SECTIONS_BEFORE_THE_RULE = "## [0.17.0]";
+
+/** Where an entry carries a second sentence, reading down to `floor` or to the end of the file. */
+function getSentenceFaults(text: string, floor: string | null): string[] {
+    const faults: string[] = [];
+    for (const { section, entry } of getEntries(text)) {
+        if (floor !== null) {
+            if (section.startsWith(floor)) break;
+        }
+        const early = getSentenceEnds(entry).filter((end) => !isEndAtTheClose(entry, end));
+        if (early.length === 0) continue;
+        faults.push(`${section}: ${entry.slice(0, 40)}`);
+    }
+    return faults;
+}
+
+/**
+ * One sentence per entry, which the file's header states and nothing held: a player reads a
+ * section to decide whether to update, and the sentence after the first is written for us.
+ *
+ * Proved both ways, on entries that keep the rule and entries that break it — a version number
+ * and a quotation of the game's are the two stops that are not sentence ends.
+ */
+Deno.test("an entry from the rule down is one sentence", () => {
+    const kept = "## [1.0.0]\n\n- **Nowość** — Panel liczy tury, a karta je pokazuje.\n";
+    assertEquals(getSentenceFaults(kept, null), [], "one sentence states no fault");
+    const numbered = "## [1.0.0]\n\n- **Zmiana** — Panel mówi 0.17.0 zamiast 0.16.0.\n";
+    assertEquals(getSentenceFaults(numbered, null), [], "a version number is not a sentence end");
+    const quoted = '## [1.0.0]\n\n- **Zmiana** — Panel mówi „Walka się skończyła." i tyle.\n';
+    assertEquals(getSentenceFaults(quoted, null), [], "and neither is a quotation of the game's");
+
+    const broken = "## [1.0.0]\n\n- **Nowość** — Panel liczy tury. Karta je pokazuje.\n";
+    assertEquals(getSentenceFaults(broken, null).length, 1, "a second sentence states a fault");
+    const wrapped = "## [1.0.0]\n\n- **Nowość** — Panel liczy tury.\n  Karta je pokazuje.\n";
+    assertEquals(getSentenceFaults(wrapped, null).length, 1, "and states it across a wrap too");
+
+    const faults = getSentenceFaults(CHANGELOG, SECTIONS_BEFORE_THE_RULE);
+    assertEquals(faults, [], "a sentence a player reads past the line they came for");
+});
+
+/**
+ * The floor from the other end: a boundary below which every entry already keeps the rule is a
+ * boundary nothing needs, and a floor nobody prunes is how an exception becomes the rule.
+ */
+Deno.test("the sections this rule arrived too late for are still there", () => {
+    assertStringIncludes(CHANGELOG, SECTIONS_BEFORE_THE_RULE, "the floor is a heading in the file");
+    const whole = getSentenceFaults(CHANGELOG, null);
+    const below = whole.some((one) => one.startsWith(SECTIONS_BEFORE_THE_RULE));
+    assert(below, `${SECTIONS_BEFORE_THE_RULE} keeps the rule already and needs no floor`);
+});
