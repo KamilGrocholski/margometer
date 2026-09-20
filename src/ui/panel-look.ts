@@ -401,10 +401,6 @@ function composeColourOver(top: string, bottom: string, alpha: number): string {
     return composeRgbText(composeChannels(mixed));
 }
 
-function composeHeadingColour(): string {
-    return composeColourOver(TEXT.quiet, SURFACE.panel, HEADING_TINT);
-}
-
 const VARIABLE_PREFIX = "--MargoMeter-";
 const ROWS_BY_DEFAULT = 11;
 const FONT_STACK = "system-ui, sans-serif";
@@ -435,7 +431,7 @@ function composeVariables(): string {
         composeVariable("ours", SIGNAL.ours),
         composeVariable("theirs", SIGNAL.theirs),
         composeVariable("nobody", SIGNAL.unknown),
-        composeVariable("heading", composeHeadingColour()),
+        composeVariable("heading", composeColourOver(TEXT.quiet, SURFACE.panel, HEADING_TINT)),
         composeVariable("mask", MASK_INK),
         composeVariable("bar-tint", `${BAR_TINT}`),
         composeVariable("half", SPACE.half),

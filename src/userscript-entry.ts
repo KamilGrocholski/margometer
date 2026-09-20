@@ -647,15 +647,6 @@ function getStandingFight(
 }
 
 /**
- * Whether the bar draws its save, asked without decoding anything: a fight that will not read is
- * still a fight worth handing over, and that is exactly the one nothing else here can answer for.
- */
-function getIsFightToSave(live: LiveFight, shelf: ShelfKeeper): boolean {
-    if (live.capture.calls.length > 0) return true;
-    return shelf.fights.length > 0;
-}
-
-/**
  * Composing a screen out of a fight, guarded. Everything under here reaches `core/`, which throws
  * (**E7**), and the nearest catch was the engine wrap's — so a reading that would not compose
  * stopped the panel updating for the rest of the fight rather than costing it one region, and one
@@ -675,7 +666,10 @@ function drawFight(
     defects: KeptDefects,
 ): void {
     const said = defects.getSaid();
-    const hasFightToSave = getIsFightToSave(liveFight, shelf);
+    // Whether the bar draws its save, asked without decoding anything: a fight that will not
+    // read is still a fight worth handing over, and that is exactly the one nothing else here
+    // can answer for.
+    const hasFightToSave = liveFight.capture.calls.length > 0 || shelf.fights.length > 0;
     drawStanding(underway, screen, panel, defects);
     try {
         if (
@@ -774,6 +768,9 @@ function drawFightUnread(
  * Whose turn the ranking marks. A fight already over numbers nobody's, and one read off the shelf
  * is a moment that has passed: the mark says what is happening now, or it says nothing at all.
  * **ADR 0066.**
+ *
+ * ⚠️ **It stands because the function below sits at S4's page**, not because a reader gains a
+ * name: measured 2026-09-20, inlined into the literal it draws, that function runs to 73 lines.
  */
 function getTurnHolderId(fight: FightReading): number | null {
     if (fight.isOver) return null;

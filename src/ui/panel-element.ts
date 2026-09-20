@@ -79,7 +79,6 @@ import {
     composeFigureText,
     composeShelfSizeText,
     composeSideCountsText,
-    composeStandingCountText,
     composeStandingTurnsText,
     composeTurnOrdinalText,
     composeUndrawnText,
@@ -954,12 +953,6 @@ interface StandingPerson {
     isUnder: boolean;
 }
 
-/** The okrzyk this row draws, and null on a row standing under the one that already names it. */
-function getStandingPersonCastName(person: StandingPerson): string | null {
-    if (person.isUnder) return null;
-    return person.skillName;
-}
-
 /**
  * What a person's row had to cut, handed back whole: the name, the okrzyk the row is about under
  * it, and the turns wherever the row states them. **It is not the ranking's person card** — the
@@ -1000,7 +993,8 @@ function composeStandingPersonElement(
     person: StandingPerson,
 ): PanelElement {
     const nested = person.isUnder ? ` ${CLASS.standingUnder}` : "";
-    const castName = getStandingPersonCastName(person);
+    // The okrzyk this row draws, and none on a row standing under the one that already names it.
+    const castName = person.isUnder ? null : person.skillName;
     const holding = castName === null ? "" : ` ${CLASS.standingHolding}`;
     const classes = `${CLASS.row} ${CLASS.rowLeaf}${nested}${holding}`;
     const row = composeElement(document, "div", classes);
@@ -1061,7 +1055,7 @@ function composeStandingCountElement(
 ): StandingCount {
     const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
     if (row.reader === null || row.opposing === null) {
-        value.textContent = composeStandingCountText(row);
+        value.textContent = composeIntegerText(row.casters.length);
         return { value, parts: [value] };
     }
     const reader = composeElement(document, "span", CLASS.standingOurs);
@@ -2571,41 +2565,40 @@ function composeStandingWindow(
     return { element, bar, body };
 }
 
-/** Null for good on a panel never made movable, which is every panel a test draws. */
-function setPanelDragOrNothing(
+/**
+ * Null for good on a window never made movable, which is every panel a test draws.
+ *
+ * Both windows' listeners stand on the same root, so each set answers to its own grip by name.
+ * Without the name on the mark both start on either bar: the panel moves by the wrong one and
+ * writes its stored place doing it.
+ */
+function setDragOrNothing(
     root: PanelRoot,
     host: PanelElement,
     getBar: () => PanelElement,
     placement: PanelPlacement | null,
     handleGesture: (failure: unknown) => void,
+    windowName: PanelWindowName = PANEL_WINDOW,
 ): PanelDragHandle | null {
     if (placement === null) return null;
-    return setPanelDrag(root, host, getBar, placement, handleGesture);
+    return setPanelDrag(root, host, getBar, placement, handleGesture, windowName);
 }
 
 /**
- * The window's own four listeners, on the same root and answering to its own grip. Without a name
- * on the mark both sets start on either bar: the panel moves by the wrong one and writes its
- * stored place doing it.
+ * ⚠️ **The three below stand because `composePanelHost` sits at S4's page**, not because a reader
+ * gains a name: measured 2026-09-20, inlining all three put that function at 79 lines. Each is
+ * one statement, and each is called once.
  */
-function setStandingDrag(
-    root: PanelRoot,
-    element: PanelElement,
-    getBar: () => PanelElement,
-    placement: PanelPlacement | null,
-    handleGesture: (failure: unknown) => void,
-): PanelDragHandle | null {
-    if (placement === null) return null;
-    return setPanelDrag(root, element, getBar, placement, handleGesture, STANDING_WINDOW);
+function setPanelRootChildren(root: PanelRoot, children: readonly PanelElement[]): void {
+    for (const child of children) root.append(child);
 }
 
-function setStandingBarDrawn(
-    document: PanelDocument,
-    standing: PanelElement,
-    isCollapsed: boolean,
-    redraw: PanelRedraw,
-): PanelElement {
-    return redraw(standing, "standing", () => composeStandingBar(document, isCollapsed));
+/**
+ * One card over two windows, so one reading over two registers. The panel's is asked first: it is
+ * the one a fight refills every few seconds, and no key is stated by both.
+ */
+function composeTipLookup(panel: TipRegister, standing: TipRegister): TipLookup {
+    return { get: (key: string) => panel.get(key) ?? standing.get(key) };
 }
 
 /**
@@ -2623,19 +2616,6 @@ function setStandingBodyDrawn(
     if (reading === null) return redraw(standing, "standing", () => composeSlotElement(document));
     if (isCollapsed) return redraw(standing, "standing", () => composeSlotElement(document));
     return redraw(standing, "standing", () => composeStandingBody(document, reading, register));
-}
-
-/** The bar, the frame, the card and the window beside it — in the order they are drawn over. */
-function setPanelRootChildren(root: PanelRoot, children: readonly PanelElement[]): void {
-    for (const child of children) root.append(child);
-}
-
-/**
- * One card over two windows, so one reading over two registers. The panel's is asked first: it is
- * the one a fight refills every few seconds, and no key is stated by both.
- */
-function composeTipLookup(panel: TipRegister, standing: TipRegister): TipLookup {
-    return { get: (key: string) => panel.get(key) ?? standing.get(key) };
 }
 
 /** The card, placed against wherever its own window is **now** rather than where it was wired. */
@@ -2696,13 +2676,14 @@ export function composePanelHost(
     const showTip = (key: string | null, clientY: number) => tip.show(key, clientY);
     setPanelRootListeners(root, handlePress, showTip, handleGesture, standing.element);
     // After the listeners that read a press, and on the same root: a drag is four more of them.
-    drag = setPanelDragOrNothing(root, host, () => regions.title, placement, handleGesture);
-    standingDrag = setStandingDrag(
+    drag = setDragOrNothing(root, host, () => regions.title, placement, handleGesture);
+    standingDrag = setDragOrNothing(
         root,
         standing.element,
         () => standingBar,
         standingPlacement,
         handleGesture,
+        STANDING_WINDOW,
     );
     return composePanelDrawing({
         host,
@@ -2776,7 +2757,11 @@ function composePanelDrawing(held: PanelDrawing): PanelHandle {
                 ? `${CLASS.standing} ${CLASS.standingFolded}`
                 : CLASS.standing;
             held.setStandingBar(
-                setStandingBarDrawn(document, held.getStandingBar(), isCollapsed, redraw),
+                redraw(
+                    held.getStandingBar(),
+                    "standing",
+                    () => composeStandingBar(document, isCollapsed),
+                ),
             );
             // ⚠️ The two windows keep two registers because they are drawn at two moments: this
             // one goes up first and the panel's own draw resets the panel's register under it,

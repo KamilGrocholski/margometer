@@ -326,15 +326,6 @@ export function setTipHidden(tip: PanelElement, isHidden: boolean): void {
 }
 
 /**
- * Whether the window standing is drawn. A card that would not compose is hidden where it stands
- * (`src/ui/panel-element.ts`) without the handle below being told, so the key it was open under
- * still names it and a pointer moving inside that row would only move a window nobody can see.
- */
-function getIsTipHidden(tip: PanelElement): boolean {
-    return tip.className.includes(CLASS.tipHidden);
-}
-
-/**
  * Where the tip sits, and how tall it stands, as the properties the stylesheet clamps and
  * multiplies. Whole pixels down the screen, because `clientY` is fractional on a scaled display
  * and half a pixel is nothing anybody can see — while a declaration reading `292.33333333333px`
@@ -485,7 +476,11 @@ export function composeTipHandle(
             }
             const top = Math.max(0, Math.round(clientY));
             if (key === openKey) {
-                if (!getIsTipHidden(standing)) {
+                // A card that would not compose is hidden where it stands
+                // (`src/ui/panel-element.ts`) without this handle being told, so the key it was
+                // open under still names it: without the class read here, a pointer moving inside
+                // that row would only move a window nobody can see.
+                if (!standing.className.includes(CLASS.tipHidden)) {
                     // A pointer reports far more moves than the window has places to stand in,
                     // and a move inside one pixel would rewrite the same declaration.
                     if (top === openTop) return;

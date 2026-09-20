@@ -821,11 +821,6 @@ export function composeStandingTurnsText(elapsed: number, stated: number): strin
     return `${composeIntegerText(elapsed)} z ${composeGenitiveNoun(stated, COUNTED_NOUNS.turns)}`;
 }
 
-/** A plain count, for a fight the client named no side of the reader's own on. */
-export function composeStandingCountText(row: { casters: readonly unknown[] }): string {
-    return composeIntegerText(row.casters.length);
-}
-
 export function getWordsForPin(isPinned: boolean): string {
     if (isPinned) return "Odepnij — będzie mogła zniknąć";
     return "Przypnij, żeby nie zniknęła";

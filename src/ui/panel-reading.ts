@@ -271,11 +271,6 @@ export function getPinnedCase(metric: PanelMetric, end: PanelUnnamedEnd): Pinned
     return found[0] ?? null;
 }
 
-/** What one screen can pin, in the order it draws them. One screen pins two; the rest pin one. */
-function getPinnedCasesForMetric(metric: PanelMetric): PinnedCase[] {
-    return PINNED_CASES.filter((kase) => PINNED_SHAPES[kase].metric === metric);
-}
-
 /**
  * The part of a screen's figure that reached no row at all. It takes no place in the ranking and
  * wears the hatch every such row wears (`DESIGN.md`), and it has no card of its own to open: what
@@ -829,7 +824,9 @@ function composePinnedFigures(
 ): Array<Omit<PinnedRow, "fill" | "shareText">> {
     const part = getPartListed(choice, readerSide);
     const found: Array<Omit<PinnedRow, "fill" | "shareText">> = [];
-    for (const kase of getPinnedCasesForMetric(metric)) {
+    // What this screen pins, in the order it draws them. One screen pins two; the rest pin one.
+    const pinned = PINNED_CASES.filter((kase) => PINNED_SHAPES[kase].metric === metric);
+    for (const kase of pinned) {
         const parts = composeHalfNamedParts(statistics, roster, kase, rows, part, readerSide);
         const figure = getPinnedFigure(statistics, kase, parts, part);
         // A figure of nothing is not pinned, and its cut is a cut of nothing: the fold below

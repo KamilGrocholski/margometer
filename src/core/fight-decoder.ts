@@ -34,8 +34,8 @@ import {
     type ProtocolMessage,
     ProtocolMessageFormatError,
 } from "@/src/core/protocol-message.ts";
-import { getIntegerFromText } from "@/libs/number-text.ts";
-import { getHealthPercentFromText, getShareFromText } from "@/src/core/protocol-number.ts";
+import { getDecimalFromText, getIntegerFromText } from "@/libs/number-text.ts";
+import { getHealthPercentFromText } from "@/src/core/protocol-number.ts";
 
 /**
  * The client's default branch reads characters 1 to 3 of a key: `+` is raw, the rest applied.
@@ -650,7 +650,9 @@ function addAttackFigure(reading: AttackReading, key: string, amount: number): v
 /** True where the key was the share, read or refused. A share with a second member is not read. */
 function addUnaccountedHealth(reading: AttackReading, key: string, value: string): boolean {
     if (key !== UNACCOUNTED_HEALTH_KEY) return false;
-    const declaredShare = getShareFromText(value);
+    // A share the protocol writes with or without a fraction — `30` and `22.5` are both in
+    // `captures/`. Null for anything else, so a value nobody wrote never becomes a figure.
+    const declaredShare = getDecimalFromText(value);
     assert(declaredShare === null || declaredShare >= 0, "a share read is never below nothing");
     if (declaredShare === null) reading.unreadKeys.push(key);
     else reading.unaccounted.push({ source: key, declaredShare });

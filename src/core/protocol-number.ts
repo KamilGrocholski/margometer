@@ -1,8 +1,8 @@
 /**
  * The numbers the protocol states, in the shapes it states them in.
  *
- * The arithmetic is `libs/number-text.ts`'s; what is here is the shape a percentage and a share
- * are written in, which is a measurement over `captures/` and not a property of numbers.
+ * The arithmetic is `libs/number-text.ts`'s; what is here is the shape a percentage is written
+ * in, which is a measurement over `captures/` and not a property of numbers.
  */
 
 import { assert } from "@std/assert/assert";
@@ -30,14 +30,6 @@ export function getHealthPercentFromText(text: string): number | null {
     assert(value !== null, "text of the stated width is text a decimal is read from");
     assert(value >= 0, "a percentage read from digits is never below nothing");
     return value;
-}
-
-/**
- * A share the protocol writes with or without a fraction — `30` and `22.5` are both in
- * `captures/`. Null for anything else, so a value nobody wrote never becomes a figure.
- */
-export function getShareFromText(text: string): number | null {
-    return getDecimalFromText(text);
 }
 
 export function composeHealthPercentText(value: number): string {

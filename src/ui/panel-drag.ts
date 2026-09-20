@@ -326,17 +326,6 @@ function composePanelDragGrab(
 }
 
 /**
- * A release the root never saw. Without capture — the forgiving part of a drag, `setPointerHeld` —
- * a hand letting go outside the panel reports its `pointerup` elsewhere, and the grab left
- * standing follows the next pointer to cross the panel. No buttons stated is a document reporting
- * none, not a hand that let go.
- */
-function getWasLetGo(event: PanelEvent): boolean {
-    if (event.buttons === undefined) return false;
-    return event.buttons === 0;
-}
-
-/**
  * The drag, as four listeners at the root and one style attribute on the host. `getBar` answers
  * with the bar **as it stands now**: a bar is replaced on every payload, so a captured pointer
  * would be asked of a node that has left the tree.
@@ -390,7 +379,12 @@ export function setPanelDrag(
     setGuarded("pointermove", (event) => {
         const held = grab;
         if (held === null) return;
-        if (getWasLetGo(event)) {
+        // A release the root never saw. Without capture — the forgiving part of a drag,
+        // `setPointerHeld` — a hand letting go outside the panel reports its `pointerup`
+        // elsewhere, and the grab left standing follows the next pointer to cross the panel.
+        // No buttons stated is a document reporting none, not a hand that let go, and it is
+        // not `0` either.
+        if (event.buttons === 0) {
             handleDragEnd();
             return;
         }

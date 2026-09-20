@@ -43,10 +43,6 @@ export interface KeptDefects {
     getSaid(): readonly string[];
 }
 
-function composeDefectName(kind: DefectKind, region: PanelRegion | null): string {
-    return region === null ? kind : `${kind}/${region}`;
-}
-
 /**
  * This runs inside the `catch` that was already handling a failure, so a throw out of somebody
  * else's console would cost the reader the region the defect is about. **The mark is the defect**,
@@ -64,7 +60,7 @@ export function composeDefectKeeper(report: (failure: unknown) => void): KeptDef
     const held = new Map<string, KeptDefect>();
     return {
         add(kind: DefectKind, region: PanelRegion | null, failure: unknown): void {
-            const name = composeDefectName(kind, region);
+            const name = region === null ? kind : `${kind}/${region}`;
             const kept = held.get(name);
             if (kept !== undefined) {
                 kept.count += 1;
