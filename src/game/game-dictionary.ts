@@ -27,7 +27,6 @@ function hasHole(entry: string): boolean {
     assert(entry.length <= MAXIMUM_ENTRY, "text walked for a hole stays inside its stated bound");
     const open = entry.indexOf(HOLE_MARK);
     if (open === -1) return false;
-    assert(open >= 0, "a mark found sits somewhere in the text");
     return entry.indexOf(HOLE_MARK, open + 1) !== -1;
 }
 

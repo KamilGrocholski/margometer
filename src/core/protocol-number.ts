@@ -20,7 +20,6 @@ function isHealthPercentText(text: string): boolean {
     if (fraction.length !== HEALTH_PERCENT_PLACES) return false;
     if (!isDigitRun(text.slice(0, point))) return false;
     assert(point < text.length, "a point sits inside the text it was found in");
-    assert(fraction.length === HEALTH_PERCENT_PLACES, "the fraction is the stated width");
     return isDigitRun(fraction);
 }
 

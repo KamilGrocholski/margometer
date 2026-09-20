@@ -122,6 +122,9 @@ export interface AuraStanding {
 /**
  * What the keys on one cast say it reaches. ⚠️ **Keys that disagree are a skill reaching both
  * sides, not a reading that failed** — `Wyzywający okrzyk` does both in one announcement.
+ *
+ * Exported so `tests/core/aura-standing.test.ts` asks one key list at a time, which no caller in
+ * `src/` hands it.
  */
 export function getReachFromEffects(effects: readonly { effect: string }[]): AuraReach | null {
     let found: AuraReach | null = null;

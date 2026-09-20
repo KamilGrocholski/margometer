@@ -1549,23 +1549,6 @@ function readPayloadIntoLive(
     return isOpening;
 }
 
-/**
- * Every way the attachment can fail, said once each, under the one branded line. These four are
- * conditions rather than defects: three of them mean no panel goes up at all, so there is nothing
- * standing for a defect to be drawn on. Every guard the panel itself holds ends at the keeper
- * `startMargoMeter` makes, which writes the console line the first time a kind arrives and counts
- * the rest — the once **E11** asks for. **ADR 0051.**
- */
-function composeGameReports(environment: UserscriptEnvironment) {
-    return {
-        handleFirstFailure: (failure: unknown) => environment.report(FAILURE_LINE, failure),
-        handleAnotherReader: () =>
-            environment.report(FAILURE_LINE, "another reader holds the game"),
-        handleRefusal: () => environment.report(FAILURE_LINE, "the game states no method to read"),
-        handleSearchAbandoned: () => environment.report(FAILURE_LINE, "no game on this page"),
-    };
-}
-
 export function startMargoMeter(environment: UserscriptEnvironment): GameAttachment {
     const underway = composeFightUnderway();
     const defects = composeDefectKeeper((failure) => environment.report(FAILURE_LINE, failure));
@@ -1653,6 +1636,15 @@ function composeGameReader(
             if (isOpening) setLiveFightOpened(screen);
             showAndMount();
         },
-        ...composeGameReports(environment),
+        // The four below are conditions rather than defects: three of them mean no panel goes up
+        // at all, so there is nothing standing for a defect to be drawn on. Every guard the panel
+        // itself holds ends at the keeper `startMargoMeter` makes, which writes the console line
+        // the first time a kind arrives and counts the rest — the once **E11** asks for.
+        // **ADR 0051.**
+        handleFirstFailure: (failure: unknown) => environment.report(FAILURE_LINE, failure),
+        handleAnotherReader: () =>
+            environment.report(FAILURE_LINE, "another reader holds the game"),
+        handleRefusal: () => environment.report(FAILURE_LINE, "the game states no method to read"),
+        handleSearchAbandoned: () => environment.report(FAILURE_LINE, "no game on this page"),
     };
 }

@@ -40,7 +40,6 @@ function readDataFromEngineField(engine: unknown, field: string): Record<string,
     if (!isRecord(held)) return null;
     const data = held[ENGINE_DATA_FIELD];
     if (!isRecord(data)) return null;
-    assert(isRecord(data), "the bag the client keeps its state in is keyed");
     return data;
 }
 
@@ -57,7 +56,11 @@ function readCoordinateFromValue(value: unknown): number | null {
     return stated;
 }
 
-/** Null where the page said nothing, so *no game here* is not *a game that would not say*. */
+/**
+ * Null where the page said nothing, so *no game here* is not *a game that would not say*. Exported
+ * so `tests/game/engine-place.test.ts` asks one engine shape at a time: `readPlaceFromPage` below
+ * takes a page, and every shape would need one wrapped around it.
+ */
 export function readPlaceFromEngine(engine: unknown): FightPlace | null {
     try {
         const map = readDataFromEngineField(engine, ENGINE_MAP_FIELD);

@@ -47,6 +47,11 @@ const WARRIOR_COLLECTIONS = ["warriorsList", "warriors"];
 const NAME_KEY = "name";
 const IDENTITY_KEYS = ["id", "originalId"];
 
+/**
+ * Exported for the two readers outside this file that hold a warrior and no payload:
+ * `tests/recorded-fight.ts`, which every recording-driven guard stands on, and
+ * `tests/game/engine-warrior.test.ts`.
+ */
 export function readCombatantFromWarrior(value: unknown): Combatant | null {
     if (!isRecord(value)) return null;
     const id = getNumberFromUnknown(value[WARRIOR_FIELDS.identity]);

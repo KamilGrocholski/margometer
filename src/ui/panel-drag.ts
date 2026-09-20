@@ -284,11 +284,6 @@ function getPointerFromEvent(event: PanelEvent): PanelPosition | null {
     return { left, top };
 }
 
-/**
- * What a press on the bar starts, or null where it starts nothing: a press somewhere else, a
- * pointer the event does not state, or a page that has not said how wide it is — a drag from a
- * guessed origin jumps under the hand.
- */
 /** Where a window nobody has moved opens, which is not the same place for both of them. */
 function composeOpeningPosition(
     windowName: PanelWindowName,
@@ -298,6 +293,11 @@ function composeOpeningPosition(
     return composeDefaultPosition(viewport);
 }
 
+/**
+ * What a press on the bar starts, or null where it starts nothing: a press somewhere else, a
+ * pointer the event does not state, or a page that has not said how wide it is — a drag from a
+ * guessed origin jumps under the hand.
+ */
 function composePanelDragGrab(
     event: PanelEvent,
     position: PanelPosition | null,

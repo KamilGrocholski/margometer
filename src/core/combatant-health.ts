@@ -16,6 +16,12 @@ const DECIMAL_BASE = 10;
 /** Two places stand for a band half a place wide, and the health behind it is that share. */
 const HALF_PLACE = 0.5;
 
+/**
+ * How far a health read from a two-place percentage can be off. **No production caller**: it is
+ * exported for the two guards that measure against it over `captures/` — `combatant-health` on
+ * every reading, `health-witness` on every pair — and the band is `HEALTH_PERCENT_PLACES`'s
+ * rather than each guard's to spell.
+ */
 export function getHealthToleranceFromMaximum(healthMaximum: number): number {
     assert(Number.isFinite(healthMaximum), "a maximum to measure against is a number");
     assert(healthMaximum >= 0, "a maximum is never below nothing");
@@ -24,7 +30,10 @@ export function getHealthToleranceFromMaximum(healthMaximum: number): number {
     return Math.ceil(band + HALF_PLACE);
 }
 
-/** Null where nothing stated a maximum. Zero is a reading, and never stands in for one. */
+/**
+ * Null where nothing stated a maximum. Zero is a reading, and never stands in for one. Exported so
+ * `tests/core/health-witness.test.ts` reads `captures/` by the arithmetic the decoder uses.
+ */
 export function getHealthFromPercent(percent: number, healthMaximum: number | null): number | null {
     assert(Number.isFinite(percent), "a percentage to read from is a number");
     assert(percent >= 0, "a percentage is never below nothing");
@@ -40,7 +49,8 @@ export type FightEntryHealth = ReadonlyMap<number, number>;
 
 /**
  * Where an event says a combatant stands. Read here rather than at each caller, so the health
- * the protocol states is gathered in one place whatever event carried it.
+ * the protocol states is gathered in one place whatever event carried it: one caller in `src/`,
+ * and three guards reading `captures/` by the same reading.
  */
 export function getStatedHealthFromEvent(event: BattleEvent): [number, number][] {
     const stated: [number, number][] = [];
@@ -75,6 +85,9 @@ export function getStatedHealthFromEvent(event: BattleEvent): [number, number][]
  *
  * A combatant nothing states, or one with no maximum, is left out rather than guessed at: a share
  * capped against an entry health we assumed is a figure that is too high.
+ *
+ * Exported so `tests/core/combatant-health.test.ts` drives the unwinding on events it composes,
+ * which no entry above it takes.
  */
 export function composeFightEntryHealth(
     events: readonly BattleEvent[],

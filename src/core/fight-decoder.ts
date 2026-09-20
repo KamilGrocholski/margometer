@@ -492,7 +492,6 @@ function readSkillName(key: string, value: string, parsed: ProtocolMessage): str
     if (key === SKILL_NAME_KEY) return value;
     if (key !== CUSTOM_SKILL_NAME_KEY) return null;
     if (!doesNameOneCombatant(parsed)) return null;
-    assert(key === CUSTOM_SKILL_NAME_KEY, "only the custom key reaches the rule above");
     return value;
 }
 
@@ -590,7 +589,6 @@ function addValuelessKey(reading: AttackReading, key: string): void {
         reading.declared.push({ effect: key, amount: null, text: null });
         return;
     }
-    assert(getProcEnd(key) === null, "a proc never reaches the unread branch");
     reading.unreadKeys.push(key);
 }
 
@@ -1084,14 +1082,6 @@ function getStrikerFromEvents(events: readonly BattleEvent[]): number | null {
 }
 
 /**
- * How far an announcement still reaches, one message on.
- *
- * ⚠️ **The chain breaks on anything that is not the announcer's own blow.** A message that
- * decoded no blow ends it, and so does another combatant's; carrying a standing across either
- * would charge a skill with what it did not do. Where the table grants nothing, the budget is one
- * and this is bit for bit the rule that stood before it (**ADR 0078**).
- */
-/**
  * How many messages an announcement reaches. The table's count where the announcement names an id
  * it can be looked up by; where it names none the table has no way to speak, so the reach is the
  * announcer's own run of blows and the bound is what ends it. Every id any announcement carried
@@ -1109,6 +1099,14 @@ function getBlowsForAnnouncement(
     return 1 + granted;
 }
 
+/**
+ * How far an announcement still reaches, one message on.
+ *
+ * ⚠️ **The chain breaks on anything that is not the announcer's own blow.** A message that
+ * decoded no blow ends it, and so does another combatant's; carrying a standing across either
+ * would charge a skill with what it did not do. Where the table grants nothing, the budget is one
+ * and this is bit for bit the rule that stood before it (**ADR 0078**).
+ */
 function composeStandingAfterMessage(
     standing: AnnouncementStanding | null,
     decoded: MessageDecoding,

@@ -195,7 +195,6 @@ function composeStandingProvocations(
     return [...byCast.values()];
 }
 
-/** Whose side a cast is on, or null where the client named no side of the reader's own. */
 /**
  * The hue a charge is drawn in. Only one that is still running wears a profession: the two ends
  * are drawn quiet, so the row reads as something that has stopped happening without the colour
@@ -237,6 +236,7 @@ function composeStandingChargedSkills(
     return composed;
 }
 
+/** Whose side a cast is on, or null where the client named no side of the reader's own. */
 function getIsOnReaderSide(
     standing: AuraStanding,
     roster: CombatantRoster,

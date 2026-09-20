@@ -208,8 +208,6 @@ function resetFight(underway: FightUnderway): void {
     underway.turnStatement = null;
     underway.isOnAuto = false;
     underway.chargedSkills = [];
-    assert(underway.events.length === 0, "a fight opens holding nothing");
-    assert(underway.combatants.length === 0, "and knowing nobody until its payload states them");
 }
 
 /**

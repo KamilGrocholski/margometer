@@ -715,14 +715,6 @@ function getShownStrip(strip: ScreenStrip, shown: ShownScreen): ScreenStrip {
     return { ...strip, isCurrent: false };
 }
 
-function composeFoldControl(document: PanelDocument, isCollapsed: boolean): PanelElement {
-    const control = composeElement(document, "span", CLASS.control);
-    control.textContent = isCollapsed ? UNFOLD_MARK : FOLD_MARK;
-    control.setAttribute(FOLD_ATTRIBUTE, "");
-    control.setAttribute(TITLE_ATTRIBUTE, isCollapsed ? PANEL_WORDS.expand : PANEL_WORDS.collapse);
-    return control;
-}
-
 function composeBarControl(
     document: PanelDocument,
     stated: { className: string; mark: string; attribute: string; words: string },
@@ -771,7 +763,12 @@ function composeTitleElement(
             words: PANEL_WORDS.saveFight,
         }));
     }
-    bar.append(composeFoldControl(document, isCollapsed));
+    bar.append(composeBarControl(document, {
+        className: CLASS.control,
+        mark: isCollapsed ? UNFOLD_MARK : FOLD_MARK,
+        attribute: FOLD_ATTRIBUTE,
+        words: isCollapsed ? PANEL_WORDS.expand : PANEL_WORDS.collapse,
+    }));
     return bar;
 }
 
@@ -781,14 +778,12 @@ function composeStandingBar(document: PanelDocument, isCollapsed: boolean): Pane
     bar.textContent = `${GRIP_MARK}${STANDING_WORDS.title}`;
     bar.setAttribute(TITLE_ATTRIBUTE, STANDING_WORDS.drag);
     setGripMark(bar, STANDING_WINDOW);
-    const control = composeElement(document, "span", CLASS.control);
-    control.textContent = isCollapsed ? UNFOLD_MARK : FOLD_MARK;
-    control.setAttribute(STANDING_FOLD_ATTRIBUTE, "");
-    control.setAttribute(
-        TITLE_ATTRIBUTE,
-        isCollapsed ? STANDING_WORDS.expand : STANDING_WORDS.collapse,
-    );
-    bar.append(control);
+    bar.append(composeBarControl(document, {
+        className: CLASS.control,
+        mark: isCollapsed ? UNFOLD_MARK : FOLD_MARK,
+        attribute: STANDING_FOLD_ATTRIBUTE,
+        words: isCollapsed ? STANDING_WORDS.expand : STANDING_WORDS.collapse,
+    }));
     return bar;
 }
 
@@ -1415,6 +1410,10 @@ function composeStorageStripElement(document: PanelDocument, shown: ShownScreen)
     return strips;
 }
 
+/**
+ * Drawn on the one screen the reading fills it for; on the others it is handed an empty cut,
+ * and `src/ui/panel-reading.ts` says which screen that is and why.
+ */
 function composeOpponentSection(
     document: PanelDocument,
     list: PanelElement,
@@ -1469,10 +1468,6 @@ function composeOpponentSection(
     list.append(composeRowElement(document, reading, null, tip));
 }
 
-/**
- * Drawn on the one screen the reading fills it for; on the others it is handed an empty cut,
- * and `src/ui/panel-reading.ts` says which screen that is and why.
- */
 /**
  * What a part is called where it stands, and a key is worded from the screen's own table: the game
  * states `heal` as a health gain and as a health loss both, and one label over the two would be two
@@ -2469,12 +2464,10 @@ function composePanelRegions(document: PanelDocument): PanelRegions {
 }
 
 /**
- * The host is built once and stays. Only the regions inside it are replaced, so the listener at
- * the root outlives every redraw and a press during one is not swallowed.
- */
-/**
- * The host, and the root everything else goes into. The sheet is put in once and never replaced:
- * a region redrawn under it keeps its look, and a browser re-parses nothing on a redraw.
+ * The host, and the root everything else goes into. Both are built once and stay: only the
+ * regions inside are replaced, so the listener at the root outlives every redraw and a press
+ * during one is not swallowed, and the sheet is put in once — a region redrawn under it keeps
+ * its look, and a browser re-parses nothing on a redraw.
  */
 function composePanelShadow(document: PanelDocument): { host: PanelElement; root: PanelRoot } {
     const host = document.createElement("div");
@@ -2510,44 +2503,6 @@ function composePanelFrame(document: PanelDocument, regions: PanelRegions): Pane
 interface TipWindows {
     getPanel(): PanelPosition | null;
     getStanding(): PanelPosition | null;
-}
-
-/**
- * Where the card may stand, and how much of the window it has to stand in — both asked of the
- * windows as they are now rather than as they were when the tip was wired, because a drag moves
- * one and a window resize moves the other. A panel never made movable is handed neither, which is
- * every panel a test draws and no page a reader is on.
- *
- * **Which window a card opens beside is decided off its key**, the one thing the handle holds that
- * says where the row it names is drawn. Placed against the panel, a card from the second window
- * opened straight over that window's own lower rows: both are put a gap to the panel's left, and
- * the card is the wider of the two (**ADR 0090**). Each window answers for its own card and reads
- * nothing of the other's place.
- */
-function composeTipPlace(
-    placement: PanelPlacement | null,
-    windows: TipWindows,
-): { getAcross: (key: string) => TipAcross | null; getRoom: () => number | null } {
-    const composePlace = (
-        position: PanelPosition | null,
-        windowName: PanelWindowName,
-    ): TipWindowPlace | null => {
-        if (position === null) return null;
-        return { position, windowName };
-    };
-    const composeAcross = (key: string): TipAcross | null => {
-        const viewport = placement?.getViewport() ?? null;
-        if (key.startsWith(STANDING_TIP_PREFIX)) {
-            const standing = composePlace(windows.getStanding(), STANDING_WINDOW);
-            return composeTipAcross(standing, viewport, MAXIMUM_TIP_WIDTH);
-        }
-        const panel = composePlace(windows.getPanel(), PANEL_WINDOW);
-        return composeTipAcross(panel, viewport, MAXIMUM_TIP_WIDTH);
-    };
-    return {
-        getAcross: composeAcross,
-        getRoom: () => getTipRoom(placement?.getViewport()?.height ?? null),
-    };
 }
 
 /**
@@ -2618,7 +2573,18 @@ function setStandingBodyDrawn(
     return redraw(standing, "standing", () => composeStandingBody(document, reading, register));
 }
 
-/** The card, placed against wherever its own window is **now** rather than where it was wired. */
+/**
+ * The card, placed against wherever its own window is **now** rather than where it was wired —
+ * both the place and the room are asked of the windows as they are, because a drag moves one and
+ * a window resize moves the other. A panel never made movable is handed neither, which is every
+ * panel a test draws and no page a reader is on.
+ *
+ * **Which window a card opens beside is decided off its key**, the one thing the handle holds that
+ * says where the row it names is drawn. Placed against the panel, a card from the second window
+ * opened straight over that window's own lower rows: both are put a gap to the panel's left, and
+ * the card is the wider of the two (**ADR 0090**). Each window answers for its own card and reads
+ * nothing of the other's place.
+ */
 function composeTipBeside(
     document: PanelDocument,
     register: TipLookup,
@@ -2626,13 +2592,28 @@ function composeTipBeside(
     handleFailure: HandlePanelFailure,
     windows: TipWindows,
 ): TipHandle {
-    const place = composeTipPlace(placement, windows);
+    const composePlace = (
+        position: PanelPosition | null,
+        windowName: PanelWindowName,
+    ): TipWindowPlace | null => {
+        if (position === null) return null;
+        return { position, windowName };
+    };
+    const composeAcross = (key: string): TipAcross | null => {
+        const viewport = placement?.getViewport() ?? null;
+        if (key.startsWith(STANDING_TIP_PREFIX)) {
+            const standing = composePlace(windows.getStanding(), STANDING_WINDOW);
+            return composeTipAcross(standing, viewport, MAXIMUM_TIP_WIDTH);
+        }
+        const panel = composePlace(windows.getPanel(), PANEL_WINDOW);
+        return composeTipAcross(panel, viewport, MAXIMUM_TIP_WIDTH);
+    };
     return composeTipHandle(
         document,
         register,
         (standing, compose) => composeTipInPlace(standing, compose, handleFailure),
-        place.getAcross,
-        place.getRoom,
+        composeAcross,
+        () => getTipRoom(placement?.getViewport()?.height ?? null),
     );
 }
 
@@ -2673,8 +2654,7 @@ export function composePanelHost(
     let standingBar = standing.bar;
     let standingBody = standing.body;
     setPanelRootChildren(root, [regions.title, frame, tip.element, standing.element]);
-    const showTip = (key: string | null, clientY: number) => tip.show(key, clientY);
-    setPanelRootListeners(root, handlePress, showTip, handleGesture, standing.element);
+    setPanelRootListeners(root, handlePress, tip.show, handleGesture, standing.element);
     // After the listeners that read a press, and on the same root: a drag is four more of them.
     drag = setDragOrNothing(root, host, () => regions.title, placement, handleGesture);
     standingDrag = setDragOrNothing(

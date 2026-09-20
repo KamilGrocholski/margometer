@@ -321,7 +321,11 @@ function getContrastFromChannels(one: ColourChannels, other: ColourChannels): nu
     return ratio;
 }
 
-/** One where a colour could not be read, so an unreadable pairing never passes for a good one. */
+/**
+ * One where a colour could not be read, so an unreadable pairing never passes for a good one.
+ * **No production caller**: this and the two bar readings below are what hold `DESIGN.md`'s
+ * contrast floor, measured by `tests/ui/panel-look.test.ts` over the tokens and the palette.
+ */
 export function getContrastRatio(one: string, other: string): number {
     const first = getChannelsFromColour(one);
     const second = getChannelsFromColour(other);
@@ -356,7 +360,15 @@ function composeBarChannels(hue: string): ColourChannels | null {
     );
 }
 
-/** A bar drawn in its own track states its length and says nothing about whose it is. */
+/**
+ * A bar drawn in its own track states its length and says nothing about whose it is.
+ *
+ * **Nothing draws a bar through this pair.** The shipped bar takes its hue from
+ * `getColourForProfession` and its tint from the stylesheet, which spells
+ * `opacity:var(--MargoMeter-bar-tint)` over the same `BAR_TINT`. What the two compute is the ink
+ * a bar *would* take, which is the pair `DESIGN.md` names as the proof that the tint keeps every
+ * hue readable — see its text tokens, which own that decision.
+ */
 export function composeBarColour(hue: string): string {
     return composeRgbText(composeBarChannels(hue));
 }
