@@ -18,16 +18,26 @@
 
 ## In Progress
 - [ ] Data: !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and 10vs10 player vs. player fights (I really need this for further development, now I only know 1-93lvl)
+- [ ] Refactor: Reduce the number of indirections and wrappers in the code - Why? I had to jump too many times to see all of the invoked functions.
 
 ## Up Next
-- [ ] Readme: I need a better way to inform a user about how to install margometer and what is needed - step by step
-- [ ] Fix: the fight keeper's tip SHOULD show full name, break a line, if necessary
-- [ ] Feat: `Pomocnik` SHOULD show current provocation skills, because they also provide buffs/debuffs
+- [ ] Refactor: Reduce the number of comments
+- [ ] Fix: A click on a row in `Pomocnik` selects its text
+- [ ] Feat: A special skill in `Pomocnik` SHOULD have a tip - every row SHOULD(do it also in this task)
 - [ ] Plan: Should dmg applied and taken take into account only health or also absorbtion?
 - [ ] Check: Do a manual audit
 - [ ] Plan: Add a fight visualization - a simple chart with bars or something
 
 ## Done
+- [x] Changelog: Add a rule "max one line per thing"
+- [x] Design: Create a better preview site - description, installation, preview
+- [x] Product: create an easier way to find and install MargoMeter - doing it by github is too complicated and discouraging for an average person
+- [x] Fix: `Pomocnik` does not show any tip in the provocation section, when there is not enough space for its text
+- [x] Feat: `Pomocnik` SHOULD show current provocation skills, because they also provide buffs/debuffs
+- [x] Fix: the fight keeper's tip SHOULD show full name, break a line, if necessary
+- [x] Readme: I need a better way to inform a user about how to install margometer and what is needed - step by step
+- [x] Decide: How to count `+wound`, `+of_wound`, `+woundoison`
+- [x] Fix: CONTEXT.md calls a proc "Carries no figure" - five of them carry one since ADR 0085/0094
 - [x] Try to increase font size - outcome: it's a bad idea
 - [x] Change color palette
 - [x] Remove uncertain informations: the largest blow, raw damage, etc.
