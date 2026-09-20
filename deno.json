@@ -21,58 +21,48 @@
         // `["dom", "dom.iterable", "es2021"]` refuses it. `project/browser-lib.json` is that
         // second reading — `docs/browser-support.md` says what it holds and what it does not.
         "check": "deno fmt --check && deno lint && deno check && deno check tests/e2e && deno check --config project/browser-lib.json src/userscript-boot.ts && deno test -A && deno task build",
-        // The same tree in a real browser: the built file, driven in the Chrome this machine has.
-        // Kept out of the gate on purpose — ADR 0047 — and run by CI and before a release.
+        // The same tree in a real browser. Kept out of the gate on purpose — ADR 0047 — and
+        // run by CI and before a release.
         "e2e": "npx playwright test",
-        // The file a reader installs. A release passes its version; a build without one takes
-        // what `deno.json` declares and marks it `-dev` — ADR 0035.
+        // A release passes its version; a build without one takes what `deno.json` declares
+        // and marks it `-dev` — ADR 0035.
         "build": "deno run -A tools/build-userscript.ts",
-        // The panel in a browser, changing while you edit it: the add-on over a recording,
-        // rebuilt and reloaded on a change under `src/`. `--from <path>` shows a fight opened at
-        // a path beside the recordings, which is how a fabricated one is looked at.
+        // The panel in a browser, rebuilt on a change under `src/`. `--from <path>` opens a
+        // fight beside the recordings, which is how a fabricated one is looked at.
         "preview": "deno run -A tools/preview-server.ts",
-        // The same server, opened on every fight under `fabricated/` as well — the shapes no
-        // recording carries, which is what a row drawn on none of them can be looked at on. The
-        // directory is git's to ignore, so this refuses loudly where nobody has made one.
+        // The same server, plus every fight under `fabricated/` — the shapes no recording
+        // carries. That directory is git's to ignore, so this refuses loudly where there is none.
         "preview:fabricated": "deno run -A tools/preview-server.ts --fabricated",
-        // The same panel, written down for somebody who has installed nothing: one page per
-        // recording under `dist/preview`, which `.github/workflows/pages.yml` publishes. That
-        // workflow passes `--release`, which is what the published panel states — ADR 0037.
+        // One page per recording under `dist/preview`, published by
+        // `.github/workflows/pages.yml`, which passes `--release` — ADR 0037.
         "preview:site": "deno run -A tools/preview-site.ts",
-        // The panel with a region that will not draw, live: the states a reader meets when
-        // something breaks, on a bundle built from a copy of the tree. Nothing it does reaches
-        // what a reader installs — ADR 0083.
+        // The states a reader meets when a region will not draw, on a bundle built from a copy
+        // of the tree. Nothing it does reaches what a reader installs — ADR 0083.
         "preview:giveway": "deno run -A tools/panel-giving-way.ts",
-        // The same states, photographed instead of served: one picture per region.
+        // The same states, photographed: one picture per region.
         "panel:giveway": "deno run -A tools/panel-giving-way.ts --shots",
-        // The panel photographed, one picture per state a README shows. It refuses a tree whose
-        // `src/` is not in a commit, which is `DESIGN.md`'s rule and not this file's. A release
-        // takes the set again with `--release`, and the panel then states the number it ships as.
+        // One picture per state a README shows. It refuses a tree whose `src/` is not in a
+        // commit, which is `DESIGN.md`'s rule. A release takes the set again with `--release`.
         "panel:shots": "deno run -A tools/panel-screenshots.ts",
-        // Which rows of the panel open onto another level, measured rather than remembered.
         // `docs/drill-levels.md` carries the verdicts; `--cases` states the counts behind them.
         "panel:drill": "deno run -A tools/drill-report.ts",
         "panel:cards": "deno run -A tools/card-height.ts",
-        // What the decoder could not read, over the corpus or over a recording you name — the
-        // question that decides whether an intake is worth starting.
+        // What the decoder could not read — the question that decides whether an intake is
+        // worth starting.
         "fight:decoding": "deno run -A tools/decoding-status.ts",
-        // The same material the other way round: what the figures come to, per combatant, as the
-        // panel would draw them.
+        // What the figures come to, per combatant, as the panel would draw them.
         "fight:figures": "deno run -A tools/fight-figures.ts",
-        // How many turns a fight's combatants took, against the game's own numbering of them.
         // `docs/turns-taken.md` carries the verdicts; `--cases` states the counts behind them.
         "fight:turns": "deno run -A tools/turn-count.ts",
-        // The same count one step earlier: how a message becomes a turn, and which message a
-        // disagreement stands on. `docs/reading-a-turn.md` carries the disputed openers and, with
-        // `--keys`, what opened every turn and what each protocol key adds.
+        // Which message a disagreement stands on. `docs/reading-a-turn.md` carries the disputed
+        // openers and, with `--keys`, what each protocol key adds.
         "fight:openers": "deno run -A tools/turn-reading.ts",
-        // A fight nobody fought, written where git does not look. No recording holds ten on both
-        // sides — `docs/captured-fights.md` carries the shape census, and two of them do carry a
-        // player on the opposing side — so this is the only ten-a-side the panel can be looked at
-        // on. Never material, and `tools/fabricated-fight.ts` says why.
+        // A fight nobody fought, written where git does not look. No recording holds ten on
+        // both sides (`docs/captured-fights.md`), so this is the only ten-a-side the panel can be
+        // looked at on. Never material, and `tools/fabricated-fight.ts` says why.
         "fight:fabricate": "deno run -A tools/fabricated-fight.ts",
-        // What one skill put on a whole side, whom it stood on and how many stood at once —
-        // against the turns the published table states. `docs/auras-standing.md` carries it.
+        // `docs/auras-standing.md` carries what one skill put on a whole side, against the
+        // turns the published table states.
         "fight:auras": "deno run -A tools/aura-standing.ts",
         // How a recording the add-on wrote becomes material: two redactions, then a file.
         "capture:intake": "deno run -A tools/capture-intake.ts",
@@ -84,21 +74,20 @@
         "game:readings": "deno run -A tools/game-readings.ts",
         // Every key the client branches on, lifted out of that bundle and frozen beside it.
         "game:keys": "deno run -A tools/protocol-key-table.ts",
-        // What every key in captures/ states about itself — how often, where it sits, and what it
-        // carries. The `_Shape:_` lines in `docs/protocol-keys.md` are this written down, and the
-        // last column says which of them the recordings no longer agree with.
+        // The `_Shape:_` lines in `docs/protocol-keys.md` are this written down, and the last
+        // column says which of them the recordings no longer agree with.
         "game:shape": "deno run -A tools/protocol-key-shape.ts",
-        // Every skill the game publishes, and the turns each effect is stated to run for — the
-        // only source that states a duration at all. What `Co stoi` draws its second half from.
+        // Every skill the game publishes, and the turns each effect runs for — the only source
+        // stating a duration at all. What `Co stoi` draws its second half from.
         "game:skills": "deno run -A tools/skill-table.ts",
         // The published help, cached and searched, and the counts a register claim is held to.
         "game:help": "deno run -A tools/help-article.ts",
-        // What a release says about itself: the version this tree declares, and the section
-        // `CHANGELOG.md` carries for it. `release.yml` runs both, and so can a hand before a tag.
+        // The version this tree declares, and the section `CHANGELOG.md` carries for it.
+        // `release.yml` runs it, and so can a hand before a tag.
         "release:notes": "deno run -A tools/changelog.ts"
     },
     "fmt": {
-        // 4 spaces, hard limit of 100 columns, nothing hidden by a scrollbar.
+        // 100 columns, so nothing is hidden by a scrollbar.
         "indentWidth": 4,
         "lineWidth": 100,
         "semiColons": true,

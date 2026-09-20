@@ -125,10 +125,10 @@ test("a heading stays over the rows it names while they go past", async ({ panel
 });
 
 /**
- * The turn rather than the position, and the difference is the whole test. Chrome animates a wheel
- * turn on its compositor, so a payload landing inside one used to throw the turn away and write the
- * position from before it back over the region. Under 50ms wide, and the preview plays a payload
- * every 220ms. **ADR 0052.**
+ * The turn rather than the position, and the difference is the whole test. Chrome animates a
+ * wheel turn on its compositor, so a payload landing inside one throws the turn away and writes
+ * the position from before it back over the region. Under 50ms wide, and the preview plays a
+ * payload every 220ms. **ADR 0052.**
  */
 test("a payload landing inside a wheel turn does not take the turn away", async ({ panel }) => {
     await setOverflowingLevelOpened(panel);

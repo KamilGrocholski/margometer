@@ -27,10 +27,10 @@ Deno.test("a comment is dropped, and what stands before it is kept", () => {
 });
 
 /**
- * ⚠️ **The slashes of a protocol are not the slashes of a comment.** The reader used to cut the
- * line at the first `//` before it knew whether a quote was open, so `"https://…"` left an
- * unclosed quote and everything after it — calls, assertions, constructs — was blanked for every
- * guard standing on this. Measured 2026-09-10: 22 lines in the tree carry a `://` in a literal.
+ * ⚠️ **The slashes of a protocol are not the slashes of a comment.** A reader cutting the line
+ * at the first `//` before it knows whether a quote is open leaves `"https://…"` with an unclosed
+ * quote, and everything after it — calls, assertions, constructs — is blanked for every guard
+ * standing on this. Measured 2026-09-10: 22 lines in the tree carry a `://` in a literal.
  */
 
 /**

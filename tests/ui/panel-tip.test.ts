@@ -60,7 +60,7 @@ Deno.test("a row is looked up by the name it stated, and by no other", () => {
     register.add("row:7", compose);
     assertEquals(register.get("row:7"), compose, "and one that was drawn says what it drew");
     assertEquals(register.get("row:8"), null, "which reaches no neighbour");
-    // Two rows answering to one name used to stop the draw. The first stands and the second is
+    // Two rows answering to one name must not stop the draw: the first stands and the second is
     // refused, so what a clash costs is a card on hover and never the panel — **E14**, ADR 0051.
     const other = () => HILDUR;
     register.add("row:7", other);

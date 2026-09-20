@@ -2,7 +2,7 @@
  * A blow the published table granted, and how far its announcement reaches.
  *
  * The protocol never puts a skill on a blow: a skill that strikes twice announces once and sends
- * two blow messages, and the second used to be charged to nobody. What decides how far an
+ * two blow messages, and nothing in the message charges the second. What decides how far an
  * announcement reaches is the table rather than the shape of the payload, and this is where that
  * is re-earned over `captures/`. **ADR 0078.**
  */

@@ -817,7 +817,6 @@ Deno.test("a reader whose own side nobody stated is shown everybody, whatever wa
     }
 });
 
-/** And where there is a seat, a side chosen is a shorter list and says so. */
 Deno.test("a list narrowed to one side stands at the height of one", () => {
     const { roster, statistics } = composeRecordedReading(HILDUR);
     const [readerSide] = [...new Set([...roster.byId.values()].map((one) => one.side))];
@@ -1356,7 +1355,6 @@ Deno.test("a giver the protocol left out is charged to the side the health reach
     assertEquals(read("healthRestored", "opposing").pinned, [], "nor received any");
 });
 
-/** The screen that did not exist while healing was a noun with no direction. */
 Deno.test("healing given is a screen of its own, and the two halves come to one figure", () => {
     const { roster, statistics } = composeRecordedReading(HILDUR);
     const given = composePanelReading(
@@ -1637,7 +1635,6 @@ Deno.test("a figure the rows already hold is a cut of them, not another part of 
     assertEquals(dealtTogether + pinnedShare, 100, "and there it is one of the parts of the whole");
 });
 
-/** The last rung: what passed between two of them, and what the protocol says about it. */
 Deno.test("a pair states what passed between the two, and nothing that did not", () => {
     const { roster, statistics } = composeRecordedReading(HILDUR);
     const reading = composePanelReading(
@@ -1852,8 +1849,8 @@ Deno.test("a part opened states the figure of the row that opened it, self-casts
  * What no announcement covered is named by the key the game stated it under, so a healing section
  * has nothing left to close against.
  *
- * The row that used to stand there said the game had not told us. The game had: over `captures/`
- * on 2026-08-30 the whole of it is `heal`, `legbon_lastheal` and `legbon_holytouch_heal`, and the
+ * A row there saying the game had not told us is wrong: the game had. Over `captures/` on
+ * 2026-08-30 the whole of it is `heal`, `legbon_lastheal` and `legbon_holytouch_heal`, and the
  * help calls the first of those an effect that fires in a turn the combatant stands below the
  * health they started with (article `view,372`, read 2026-08-26) — a regeneration, not a silence.
  */
@@ -2594,8 +2591,8 @@ Deno.test("a section coming to more than its figure is drawn at nought, and answ
     const plain = over.bySkill.plain;
     assertExists(plain, "the row closing it is drawn, because blows stood behind it");
     assertStrictEquals(plain.figure, 0, "at nought, which is the least a bar can be");
-    // ⚠️ The share used to be composed from the bare remainder while the figure was clamped, so
-    // a row drawing `0` printed `Nie wiadomo` beside it — one row saying two things at once.
+    // ⚠️ A share composed from the bare remainder while the figure is clamped makes a row drawing
+    // `0` print `Nie wiadomo` beside it — one row saying two things at once.
     assertNotStrictEquals(plain.shareText, PANEL_WORDS.unknown, "beside a share, not a refusal");
 });
 

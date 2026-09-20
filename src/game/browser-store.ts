@@ -36,7 +36,6 @@ export function composeBrowserStore(storage: PageStorage): BrowserStore {
             try {
                 return storage.getItem(key);
             } catch {
-                // A store that will not be read has nothing in it, which is an answer.
                 return null;
             }
         },
@@ -47,7 +46,6 @@ export function composeBrowserStore(storage: PageStorage): BrowserStore {
                 storage.setItem(key, value);
                 return true;
             } catch {
-                // No quota is ever assumed: a refusal comes back as one.
                 return false;
             }
         },
@@ -56,7 +54,6 @@ export function composeBrowserStore(storage: PageStorage): BrowserStore {
             try {
                 storage.removeItem(key);
             } catch {
-                // A store that will not be written is a store nothing can be taken out of.
                 return;
             }
         },

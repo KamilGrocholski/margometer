@@ -231,8 +231,6 @@ async function composeScriptResponse(state: PreviewState): Promise<Response> {
             headers: { "content-type": "text/javascript; charset=utf-8" },
         });
     } catch (failure) {
-        // Narrowly (**E4**): a bundle that refuses is the expected failure and the browser is
-        // told. Anything else is a bug in this tool and must not be dressed up as one.
         if (!(failure instanceof UserscriptBuildError)) throw failure;
         // 500 and the log, rather than a page whose panel merely never appears.
         return new Response(failure.message, { status: 500 });
@@ -296,8 +294,6 @@ function setRebuilt(state: PreviewState): void {
             setListenersTold(state.listeners, "rebuilt", "ok");
         },
         (failure: unknown) => {
-            // Narrowly (**E4**): the bundler refusing is the failure this exists for, and it is
-            // shown in the browser. Anything else is a bug here and is left to be loud (**E7**).
             if (!(failure instanceof UserscriptBuildError)) throw failure;
             setListenersTold(state.listeners, "failed", failure.message);
         },

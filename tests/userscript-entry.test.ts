@@ -181,9 +181,9 @@ function removeMember(page: Record<string, unknown>, path: string): void {
 }
 
 /**
- * The one path in the gate that enters where the browser enters. It used to take a cast — a
- * `Window` claimed rather than checked — and a page missing one of the members the add-on calls
- * threw a raw failure into the game's console with nothing to catch it. **ADR 0051.**
+ * The one path in the gate that enters where the browser enters. A cast here — a `Window` claimed
+ * rather than checked — puts a raw failure in the game's console, with nothing to catch it, on any
+ * page missing one of the members the add-on calls. **ADR 0051.**
  */
 
 /**
@@ -209,8 +209,8 @@ Deno.test("a page stating what the add-on calls is taken up, and one that does n
     attached.detach();
     assertStrictEquals(battle.updateData, engineOwn, "until it is put back");
 
-    // Every one of these is something the add-on calls, and a page without it used to throw where
-    // nothing was standing to catch it: the start is the one path with no boundary above it. The
+    // Every one of these is something the add-on calls, and a page without it throws where
+    // nothing stands to catch it: the start is the one path with no boundary above it. The
     // nested ones are here because taking a whole member away is answered by whichever check
     // reaches it first, and would leave the others covered by nothing.
     for (const missing of MEMBERS_THE_ADD_ON_CALLS) {
@@ -269,8 +269,8 @@ Deno.test("a page whose clock answers a day outside the calendar is still read",
 
 /**
  * The panel refused a place on the page. Putting it there is a call into the game's own document
- * and the first one happens on the stack that started the add-on, so a refusal used to take the
- * add-on with it. It is tried again on the next payload, and said once the panel does stand.
+ * and the first one happens on the stack that started the add-on, where an unguarded refusal
+ * takes the add-on with it. It is tried again on the next payload, and said once the panel stands.
  */
 Deno.test("a document that will not take the panel is tried again, and said once it does", () => {
     const battle: Record<string, unknown> = { updateData: () => 1 };
@@ -325,8 +325,8 @@ Deno.test("a page that throws when it is looked at leaves the add-on standing, a
 /**
  * **E5's boundary at the add-on standing up.** Standing up reads two things the browser kept — a
  * shelf and a place — and both go through readers in `game/` and `libs/` that assert about what
- * they were handed. A store somebody edited, or one a later version wrote, used to be a raw throw
- * on the outermost frame there is: the userscript dying with a line in the game's own console.
+ * they were handed. Unguarded, a store somebody edited or one a later version wrote is a raw
+ * throw on the outermost frame there is: the userscript dying with a line in the game's console.
  */
 Deno.test("a store nothing can be read out of costs what was in it, and not the add-on", () => {
     const battle: Record<string, unknown> = { updateData: () => 1 };
@@ -494,7 +494,7 @@ Deno.test("a fight the panel cannot read leaves it saying so, not saying nothing
 
 /**
  * A window and a clock that answer with nothing an arithmetic can use. Both are read off the page,
- * both used to be asserted, and both are what a browser tearing a page down hands back — the panel
+ * neither is asserted, and both are what a browser tearing a page down hands back — the panel
  * draws either way, and the reading says it could not be taken. **E14**, ADR 0051.
  */
 Deno.test("a page answering with no size and no clock still draws its fight", () => {

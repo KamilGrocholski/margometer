@@ -144,7 +144,6 @@ export function getCachedClientSource(channel: GameChannel): CachedClientSource 
     try {
         text = Deno.readTextFileSync(manifest);
     } catch {
-        // A cache nobody has filled is a cache nobody has filled: the caller decides what to do.
         return null;
     }
     const reading = getJsonReading(text);

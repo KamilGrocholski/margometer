@@ -199,7 +199,6 @@ export function getCachedHelpArticle(article: string): CachedHelpArticle | null 
     try {
         text = Deno.readTextFileSync(manifest);
     } catch {
-        // Nothing fetched yet is not a failure: the caller says what to do about it.
         return null;
     }
     const reading = getJsonReading(text);

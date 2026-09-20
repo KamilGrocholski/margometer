@@ -66,8 +66,8 @@ Deno.test("a panel nobody has moved opens in the middle of the window", () => {
 });
 
 /**
- * A window that answers with something that is not a number. `getValueWithin` refuses one, so the
- * panel used to stop being drawn over a reading nothing here can do anything with; the corner is
+ * A window that answers with something that is not a number. `getValueWithin` refuses one, and
+ * the panel goes on being drawn over a reading nothing here can do anything with; the corner is
  * a place and the panel is still there to be grabbed — **E14**, ADR 0051.
  */
 Deno.test("a window stating no size to clamp against leaves the panel where it is", () => {

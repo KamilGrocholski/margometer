@@ -214,7 +214,7 @@ export function composeCaptureText(
         [CAPTURE_FIELDS.world]: surroundings.world,
         [CAPTURE_FIELDS.gameBuild]: surroundings.gameBuild,
         [CAPTURE_FIELDS.userAgent]: surroundings.userAgent,
-        // Above the calls, which run to hundreds of kilobytes. Null says no fight was read.
+        // Above the calls, which run to hundreds of kilobytes.
         [CAPTURE_FIELDS.report]: subject === null ? null : composeReportFight(subject),
         [CAPTURE_FIELDS.droppedCalls]: capture.droppedCalls,
         [CAPTURE_FIELDS.isTruncated]: capture.isTruncated,

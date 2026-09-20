@@ -547,8 +547,6 @@ function composeRowElement(
     mark: RowMark | null,
     tip: RowTip,
 ): PanelElement {
-    // The mark it wears is the whole answer: the cursor, the note the card carries and what a
-    // press resolves to are one question asked once.
     const doesOpen = mark !== null;
     const kind = doesOpen ? CLASS.rowDrillable : CLASS.rowLeaf;
     // No place in the ranking is the whole of what the sheet needs, and the rank cell already
@@ -988,7 +986,6 @@ function composeStandingPersonElement(
     person: StandingPerson,
 ): PanelElement {
     const nested = person.isUnder ? ` ${CLASS.standingUnder}` : "";
-    // The okrzyk this row draws, and none on a row standing under the one that already names it.
     const castName = person.isUnder ? null : person.skillName;
     const holding = castName === null ? "" : ` ${CLASS.standingHolding}`;
     const classes = `${CLASS.row} ${CLASS.rowLeaf}${nested}${holding}`;
@@ -1677,13 +1674,10 @@ function getRowsForDrill(drill: DrillReading, floor: number): number {
     const opponents = drill.byOpponent;
     let needed = 0;
     if (opponents.rows.length > 0 || opponents.unnamed !== null) {
-        // A section costs its rows, the part named for nobody, and the heading standing over them.
         needed += opponents.rows.length + (opponents.unnamed === null ? 0 : 1) + 1;
     }
     if (getElementCutRows(drill.byElement) > 0) needed += getElementCutRows(drill.byElement) + 1;
     if (drill.bySkill.rows.length > 0 || drill.bySkill.plain !== null) {
-        // Three rows can close this one: what the bound would not draw, what no announcement
-        // covered, and the heading over the lot.
         needed += drill.bySkill.rows.length + (drill.bySkill.rest === null ? 0 : 1) +
             (drill.bySkill.plain === null ? 0 : 1) + 1;
     }
@@ -1737,7 +1731,6 @@ function composeSidesPart(
     if (share <= 0) return null;
     const part = composeElement(document, "span", className);
     const width = composeDecimalText(Math.min(share, 1) * AS_PERCENT, FILL_PLACES);
-    // The length is data and the colour is not: the segment paints itself in its own ink.
     part.setAttribute(STYLE_ATTRIBUTE, `width:${width}%`);
     return part;
 }
@@ -1777,7 +1770,6 @@ function composeOutsideElement(
         share: PANEL_WORDS.share,
         notes: [PANEL_WORDS.outsideNote],
     };
-    // It opens nothing: what it is made of is the one thing nobody can state about it.
     block.append(composeRowElement(document, reading, null, tip));
     return block;
 }
@@ -2643,7 +2635,6 @@ export function composePanelHost(
     const standingRegister = composeTipRegister();
     const drawing = composeListDrawing(document, regions, handleFailure);
     let drag: PanelDragHandle | null = null;
-    // Both windows are wired after the card, which is asked for neither until a row is hovered.
     let standingDrag: PanelDragHandle | null = null;
     const cards = composeTipLookup(register, standingRegister);
     const tip = composeTipBeside(document, cards, placement, handleFailure, {
@@ -2813,7 +2804,6 @@ function composeListDrawing(
     // Which list is standing in the region, so a position read off it is kept under the place it
     // belongs to rather than under the place taking its turn.
     let shownName = WAITING_LIST_NAME;
-    // The region the reader is scrolling stayed, so the browser holds their place and their turn.
     let isRegionKept = false;
     const draw = (name: string, compose: () => PanelElement): void => {
         const next = composeRegion(document, "list", compose, handleFailure);

@@ -2,11 +2,9 @@
  * A recording put back through the layers that read it live, so a tool and the panel cannot
  * disagree about a fight.
  *
- * The chain is `src/userscript-entry.ts`'s own: the session accumulates the payloads in the order
- * the game delivered them, the roster comes off what those payloads stated, and the figures are
- * composed from the events and the casts sized against them. Decoding the messages directly would
- * be a different reading — the decoder resolves a name through the roster, so a fight read without
- * one reports keys unread that the panel reads.
+ * The chain is `src/userscript-entry.ts`'s own. Decoding the messages directly would be a
+ * different reading: the decoder resolves a name through the roster, so a fight read without one
+ * reports keys unread that the panel reads.
  */
 
 import { assert, assertStrictEquals } from "@std/assert";

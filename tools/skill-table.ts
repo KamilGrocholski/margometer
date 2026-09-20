@@ -190,7 +190,6 @@ function requireCachedSkillTable(value: unknown): CachedSkillTable {
 /** Null where nothing is cached, which is a state and not a failure — **E7**. */
 export function getCachedSkillTable(): CachedSkillTable | null {
     let text: string;
-    // A cache that is not there is the answer, and nothing else here reads a file.
     try {
         text = Deno.readTextFileSync(composeCachePath(MANIFEST_NAME));
     } catch {

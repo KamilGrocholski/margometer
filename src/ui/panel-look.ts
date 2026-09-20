@@ -478,8 +478,8 @@ function composeFrameRules(): string {
         `padding:var(${VARIABLE_PREFIX}small) var(${VARIABLE_PREFIX}wide);` +
         `font:${FONT_SIZE}/${LINE_HEIGHT_TITLE} ${FONT_STACK};letter-spacing:0.06em;` +
         `color:var(${VARIABLE_PREFIX}quiet);` +
-        // One line, whatever the version number is: every guard stayed green when 0.10.0 broke
-        // this row, because none of them lays anything out.
+        // One line whatever the version says: no guard here lays anything out, so a wrap is
+        // invisible to the gate.
         `white-space:nowrap;background:var(${VARIABLE_PREFIX}raised);` +
         `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
         `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
@@ -863,7 +863,6 @@ function composeStandingRules(): string {
         `border:1px solid var(${VARIABLE_PREFIX}border);border-bottom:none;` +
         `border-radius:var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius) 0 0;` +
         `cursor:move;-webkit-user-select:none;user-select:none;touch-action:none;}` +
-        // The one control on this bar, and it stands where the panel's outermost one does.
         `.${CLASS.standingBar} .${CLASS.control}{margin-left:auto;}` +
         `.${CLASS.standingBody}{min-height:0;overflow-y:auto;overflow-x:hidden;` +
         `overscroll-behavior:contain;scrollbar-width:none;` +
@@ -874,7 +873,6 @@ function composeStandingRules(): string {
         `border:1px solid var(${VARIABLE_PREFIX}border);` +
         `border-radius:0 0 var(${VARIABLE_PREFIX}radius) var(${VARIABLE_PREFIX}radius);}` +
         `.${CLASS.standing}.${CLASS.standingFolded} .${CLASS.standingBody}{display:none;}` +
-        // What stands under the row above it, inset so the pair reads as one thing.
         `.${CLASS.standingUnder}{margin-left:var(${VARIABLE_PREFIX}wide);}` +
         // ⚠️ **Three cells on one row, and the order they give way in is stated here rather than
         // left to the panel's own rule.** That rule gives a row's name `flex:1`, which is basis

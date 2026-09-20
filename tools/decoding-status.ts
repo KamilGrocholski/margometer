@@ -88,8 +88,8 @@ export function composeDecodingStatus(replays: readonly FightReplay[]): Decoding
             if (event.kind !== "unknown-message") continue;
             status.messagesWithUnread += 1;
             // Off the cause the decoder stated, not off an empty key list: a message stating no
-            // parameter has an empty one too, and counting it as a refusal sent a reader chasing
-            // a grammar that never failed. Both are zero over `captures/`, so it never showed.
+            // parameter has an empty one too, and counting it as a refusal names a grammar that
+            // never failed. Both are zero over `captures/`, read 2026-09-20.
             if (event.unreadCause === "grammar-refused") status.messagesRefused += 1;
             if (event.unreadCause === "no-parameter") status.messagesWithoutParameter += 1;
             for (const key of event.unreadKeys) addToTally(unreadKeys, key, 1);
@@ -159,7 +159,6 @@ export function composeStatusReport(replayed: ReplayedMaterial): string[] {
         // And beside that: a message the grammar took apart which carried nothing to read. It
         // names no key either, so a reader chasing one would be sent to the wrong place twice.
         composeCountLine("no parameter", status.messagesWithoutParameter),
-        // And beside both: this is what never reached the decoder at all.
         composeCountLine("messages lost", status.messagesLost),
         "",
         "recordings stating no snapshot, which an intake refuses (ADR 0053)",

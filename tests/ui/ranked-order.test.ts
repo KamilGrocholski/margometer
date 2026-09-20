@@ -31,7 +31,7 @@ Deno.test("two rows nothing tells apart are drawn in the order they arrived", ()
 });
 
 /**
- * A figure that is not a number used to stop the ranking. It now sorts last, which is a place: a
+ * A figure that is not a number must not stop the ranking. It sorts last, which is a place: a
  * comparator answering `NaN` orders by nothing at all, so the same fight would draw its rows in a
  * different order every time it was drawn. **E14**.
  */

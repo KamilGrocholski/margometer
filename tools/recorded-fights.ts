@@ -5,10 +5,8 @@
  * file that writes them spells — **N13**. The directory is walked rather than listed, so a
  * recording admitted yesterday is one the preview draws today (`captures/AGENTS.md`).
  *
- * A recording is also opened **at a path**, which need not be under `captures/`: what decides
- * whether an intake is worth starting is what the file carries, and asking that after the
- * redaction step is the wrong way round. A file opened that way is not material and nothing here
- * pretends otherwise — `tools/capture-intake.ts` still decides what enters the repository.
+ * ⚠️ A file opened **at a path** need not be under `captures/`, and is not material:
+ * `tools/capture-intake.ts` decides what enters the repository.
  */
 
 import { assert } from "@std/assert";
@@ -162,9 +160,6 @@ export function getRecordedFights(): RecordedFight[] {
  * 0.9.0. What it gives up is stated and small — 46 announced skills against 48, 12 elements
  * against 14, eight of the eleven with healing against all eleven, three with a prevented figure
  * against five.
- *
- * The one it replaces, `2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0`, was picked on
- * 2026-08-30 for that density alone, back when the page opened on a fight and left it standing.
  */
 export const PREVIEW_FIGHT_NAME = "2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0";
 

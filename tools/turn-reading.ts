@@ -5,9 +5,8 @@
  *     deno task fight:openers --keys                 what opened every turn, and what a key adds
  *     deno task fight:openers captures/<file>.json   one recording, message by message
  *
- * `tools/turn-count.ts` grades the count against the game's numbering and says how far apart they
- * are; this says **which message** the difference is standing on. The rule itself is imported from
- * `src/core/fight-statistics.ts`, so the panel and this cannot read a message differently.
+ * `tools/turn-count.ts` grades the count against the game's numbering; this says **which
+ * message** the difference stands on. The rule is `src/core/fight-statistics.ts`'s.
  * `docs/reading-a-turn.md` carries the register and what it does not claim.
  */
 

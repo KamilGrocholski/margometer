@@ -111,8 +111,8 @@ const CROSSINGS_WITH_A_REASON = [
  * holds is that the list is neither short nor long.
  *
  * ⚠️ **Compared whole rather than by containment.** `getCrossings` answers a sorted set, so the
- * two lists are equal or they are not: a row written twice used to satisfy both halves of a
- * containment check while excusing one crossing, and it sat here undetected until an audit read it.
+ * two lists are equal or they are not. A row written twice satisfies both halves of a containment
+ * check while excusing one crossing, and nothing about that reads as wrong.
  */
 Deno.test("every method the walk steps over is one somebody has looked at", () => {
     const crossings = getCrossings(composeCallGraph());

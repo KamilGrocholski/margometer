@@ -48,7 +48,7 @@ Deno.test("a fight nobody has seen is not a fight holding nothing", () => {
     const underway = composeFightUnderway();
     addPayloadToFight(underway, null, BLOWS_GRANTED);
     assertEquals(getReadingFromFight(underway), null, "and what is not a payload starts none");
-    // A list is an object to `typeof`, and one reaching here used to open a fight nobody fought.
+    // A list is an object to `typeof`, so one reaching here would open a fight nobody fought.
     addPayloadToFight(underway, ["0;0;txt=a"], BLOWS_GRANTED);
     assertEquals(getReadingFromFight(underway), null, "a list is not a payload either");
 });
@@ -413,8 +413,8 @@ Deno.test("a cast stated twice is one cast, and a fight of twenty survives the r
     assertExists(opened, "the fight stands on its opening payload");
     assertEquals(opened.roster.byId.size, MAXIMUM_COMBATANTS, "and holds everybody in it");
 
-    // The second sighting is what used to end the fight: forty names reached a bound counting
-    // twenty, and every payload after this one failed the same way (**E5**).
+    // The second sighting is what ends the fight where the bound is wrong: forty names reach a
+    // bound counting twenty, and every payload after this one fails the same way (**E5**).
     addPayloadToFight(underway, { w: cast, m: ["0;0;txt=b"] }, BLOWS_GRANTED);
     const after = getReadingFromFight(underway);
     assertExists(after, "a payload restating the cast leaves the fight standing");

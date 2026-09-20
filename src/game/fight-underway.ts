@@ -1,9 +1,7 @@
 /**
  * One fight, accumulated payload by payload.
  *
- * This file spells the client's envelope names and nothing else does: `init`, which opens a
- * fight, `endBattle`, which ends one, `m`, the messages a payload carries, `myteam`, the side
- * the reader is on, and `turns_warriors`, whose least entry is the turn in hand.
+ * This file spells the client's envelope names and nothing else does (**N13**).
  *
  * A payload carrying `init` starts a fight over; a payload arriving before one has been seen is
  * read all the same, because the reader may have joined a fight in progress.

@@ -510,8 +510,8 @@ Deno.test(`${BOTH_OKRZYKI}: two casters at one monster leave one provocation sta
 
 /**
  * The table is keyed by skill id, so two rows sharing one would silently collapse and the later
- * one would win — a duration read off a row nobody meant. The assertion that says so used to read
- * `<=`, which a map filled from a list satisfies whatever it dropped.
+ * one would win — a duration read off a row nobody meant. The assertion that says so reads `===`
+ * and never `<=`, which a map filled from a list satisfies whatever it dropped.
  */
 Deno.test("a table naming one skill twice is refused rather than folded", () => {
     assertThrows(

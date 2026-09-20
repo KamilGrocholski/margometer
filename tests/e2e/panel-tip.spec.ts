@@ -192,11 +192,11 @@ test("a card is counted at or above what it draws, and stays on screen", async (
 });
 
 /**
- * ⚠️ **A window too short for the card used to take the bottom off it in silence.** The box
- * carries `overflow:hidden` and takes no pointer, so there was no scrollbar and no way to reach
- * what had gone: measured on Chrome 152, 2026-09-06, before this, a 533 px card in a 480 px
- * window showed 464 of it. What will not fit is now given up at a run's own edge and the card
- * states it, so nothing goes missing without a mark.
+ * ⚠️ **A window too short for the card must not take the bottom off it in silence.** The box
+ * carries `overflow:hidden` and takes no pointer, so an unmarked cut leaves no scrollbar and no
+ * way to reach what has gone — a 533 px card in a 480 px window showing 464 of it, measured
+ * unmarked on Chrome 152, 2026-09-06. What will not fit is given up at a run's own edge and the
+ * card states it, so nothing goes missing without a mark.
  */
 test("a window too short for the card is told about, not cut around", async ({ panel }) => {
     await panel.page.setViewportSize({ width: 1280, height: SHORT_WINDOW });

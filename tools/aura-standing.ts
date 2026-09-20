@@ -38,15 +38,14 @@ const DATED: StatedSkills = {
 /** One skill, over whatever material was replayed. */
 export interface AuraRow {
     skillId: number;
-    /** The game's own spelling, as the announcement carried it. */
+    /** The game's own spelling. */
     skillName: string;
-    /** How many combatants were ever seen carrying it, over the material. */
+    /** Combatants ever seen carrying it. */
     casters: number;
-    /** How many recordings it stands in at all. */
     recordings: number;
-    /** The most standing at one moment, which is the rows the window would draw under it. */
+    /** The rows the window would draw under it. */
     standingAtOnce: number;
-    /** What the published table states, and what a row leaves on. */
+    /** What the published table states. */
     turnsStated: number;
     /** Which side it reaches, or null where nothing settles it. */
     reach: AuraReach | null;
@@ -79,7 +78,6 @@ export interface ProvocationRow {
     casters: number;
     /** Recordings it is the holder in at the end of at least one payload. */
     recordings: number;
-    /** The most characters held by it at one moment. */
     heldAtOnce: number;
     turnsStated: number;
     /** The fewest characters the published table says it covers, at any skill level. */

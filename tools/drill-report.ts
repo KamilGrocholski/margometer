@@ -5,9 +5,8 @@
  *     deno task panel:drill [recording.json …]      one recording, level by level
  *     deno task panel:drill --screen healthGiven    one screen of it
  *
- * It composes the levels the panel composes, so a verdict here is the panel's own answer and not
- * a second reading of the rule. `docs/drill-levels.md` carries the verdicts; the counts stay here,
- * because they change with the next recording (**V5**).
+ * The levels are the panel's own (`tools/fight-replay.ts`). `docs/drill-levels.md` carries the
+ * verdicts; the counts stay here (**V5**).
  */
 
 import { assert, assertArrayIncludes, assertExists, assertStrictEquals } from "@std/assert";

@@ -365,7 +365,6 @@ export async function readInstalledBrowser(candidates: readonly string[]): Promi
             const asked = await new Deno.Command(candidate, { args: ["--version"] }).output();
             if (asked.success) return candidate;
         } catch {
-            // Not on the path under that name, which is the question this was asking.
             continue;
         }
     }

@@ -280,7 +280,7 @@ Deno.test("a profession the table does not word travels as the game wrote it", (
 });
 
 /**
- * A hue nothing here wrote. The panel used to stop drawing over one; a bar the colour of its own
+ * A hue nothing here wrote, which must not stop the panel drawing; a bar the colour of its own
  * track states its length and says nothing about whose it is, which is a degradation rather than
  * a claim — **E14**, ADR 0051. What it must never do is write `undefined` into a rule, because a
  * browser drops that and the element keeps whatever it inherits, with nothing saying so.

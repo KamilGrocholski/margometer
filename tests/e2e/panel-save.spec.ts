@@ -79,7 +79,7 @@ test.describe("before any fight has happened", () => {
 test.describe("a fight the panel read back off its own shelf", () => {
     test("is what the file carries, and it says what it could not read", async ({ panel }) => {
         // The fight ends, the reader comes back to a page no fight has started on, and the panel
-        // stands on what it kept — which is when a press used to hand over nothing (ADR 0053).
+        // stands on what it kept — which is where a press hands over nothing (ADR 0053).
         await panel.reloadWithNoFightFed();
         await expect(panel.at(".list .row").first(), "drawing the fight it kept").toBeVisible();
 

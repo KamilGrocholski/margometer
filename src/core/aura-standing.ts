@@ -58,7 +58,6 @@ const REACH_BY_KEY: Record<string, AuraReach> = {
     "removedot-allies": "casters-side",
     "removeslow-allies": "casters-side",
     "removestun-allies": "casters-side",
-    // The cover is the caster's own side; the character it names is what they are pointed at.
     [PROVOCATION_KEY]: "casters-side",
 };
 

@@ -12,9 +12,8 @@ import { CLASS, getTipHeight } from "@/src/ui/panel-look.ts";
 import { CARD_WORDS, type Caveat, CAVEAT_MARK } from "@/src/ui/panel-words.ts";
 
 /**
- * One line of a card. A shape rather than a sentence, because the panel draws the three of them
- * differently — a figure lines up in a column, a note runs to the width of the window — and a
- * renderer handed one string and a newline would hold that decision where nothing can check it.
+ * One line of a card. A shape rather than a sentence: the panel draws the three differently, and
+ * a renderer handed one string and a newline would hold that decision where nothing can check it.
  */
 export type TipLine =
     | {
@@ -23,10 +22,9 @@ export type TipLine =
         stated: string;
         isStrong: boolean;
         /**
-         * Which sentence at the foot of the card the glyph beside this figure points at, and null
-         * where the figure claims nothing beyond itself. **Required rather than optional**: a
-         * figure joining the card has to answer whether its label names more than it counts, and
-         * an optional field would let the next one in without being asked.
+         * Which sentence at the foot of the card the glyph beside this figure points at, and
+         * null where the figure claims nothing beyond itself. **Required rather than optional**,
+         * so a figure joining the card is asked whether its label names more than it counts.
          */
         caveat: Caveat | null;
     }
@@ -56,9 +54,8 @@ export interface TipReading {
 }
 
 /**
- * What a row leaves behind for the pointer, and it is a **way to compose the card** rather than
- * the card: a fight redraws every few seconds and twenty rows are drawn each time, so composing
- * every card would be paying for nineteen nobody opens.
+ * A **way to compose the card** rather than the card: a fight redraws every few seconds and
+ * twenty rows are drawn each time, so composing every one would pay for nineteen nobody opens.
  */
 export type TipCompose = () => TipReading;
 
@@ -73,7 +70,7 @@ export interface TipLookup {
 /**
  * Filled by every draw and read by the pointer. The key is stated by the row rather than counted
  * off the draw order: a fight reorders its ranking between payloads, and a counted key would let
- * an open tip go on describing the row that used to stand there.
+ * an open tip go on describing whichever row now stands in that place.
  */
 export interface TipRegister extends TipLookup {
     add(key: string, compose: TipCompose): void;
@@ -168,9 +165,8 @@ export function composeTipRegister(): TipRegister {
 }
 
 /**
- * What a run of text costs the height, on the floor its face is counted at. A floor of nought or
- * less would answer infinity, and a text of nothing still stands on the line it is drawn on, so
- * the answer is never under one.
+ * What a run of text costs the height, on the floor its face is counted at. A floor of nought
+ * answers infinity, and a text of nothing stands on a line all the same.
  */
 function getTipLinesForCharacters(characters: number, charactersPerLine: number): number {
     const wrapped = Math.ceil(characters / charactersPerLine);
@@ -205,8 +201,7 @@ export function getTipSize(reading: TipReading | null): TipSize {
             lines += getTipLineCost(line);
         }
     }
-    // The height the card is drawn at, so a card taller than the bound is placed at the bound
-    // rather than off the bottom of the screen. What is drawn is still every line it holds.
+    // The bound is on where the card is placed, never on what it holds: every line is drawn.
     if (lines > MAXIMUM_TIP_LINES) lines = MAXIMUM_TIP_LINES;
     return { lines, groups: reading.groups.length };
 }
@@ -250,7 +245,6 @@ function composeTipNoteElement(
     return element;
 }
 
-/** Empty for a sentence about nothing in particular, which is most of them. */
 function composeTipNoteToneClass(tone: TipNoteTone): string {
     if (tone === "suspect") return ` ${CLASS.tipSuspect}`;
     if (tone === "caveat") return ` ${CLASS.tipCaveatNote}`;

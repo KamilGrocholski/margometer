@@ -199,20 +199,17 @@ function composeCorneredFrom(): string {
 /**
  * What the bar along the top comes to, and the page pushed down under it.
  *
- * The bar carries the picker and the replay, so it is the one control on the page and it belongs
- * where a control belongs: over the thing it changes, not in a corner away from it. Measured
+ * The bar carries the picker and the replay, so it stands over what it changes. Measured
  * 2026-09-19 on the page as it stood before: the strip sat bottom-left against a panel top-right,
  * **1 640px** apart at 1920, and the run grew with every pixel of screen.
  *
  * ⚠️ **Its height is measured and never assumed.** The bar wraps — at a narrow window, and again
- * inside its own half once the page splits — so a number written here would be right at one width
- * and wrong at the next, and the windows under it would start behind it. Read once per placing,
- * which is on load and on every resize.
+ * inside its own half once the page splits — so a number written here is right at one width and
+ * wrong at the next. Read once per placing, on load and on every resize.
  *
- * An earlier try docked the strip under the panel's own bottom edge instead. That is a bug and
- * the reason this reads the top: the panel grows when a row opens, 402px to 602px at 1920×900,
- * and draws at layer 9999 against the strip's 9000 — so the panel covered the control. Nothing
- * here may depend on a height the panel changes under a hand.
+ * ⚠️ **Never docked off the panel's own bottom edge.** The panel grows when a row opens, 402px to
+ * 602px at 1920×900, and draws at layer 9999 against the strip's 9000, so a bar under it is a bar
+ * the panel covers.
  */
 function composeStripAtTop(): string {
     assert(PANEL_INSET > 0, "the page starts below the bar by what the sheet leaves");
@@ -225,13 +222,9 @@ function composeStripAtTop(): string {
 var setPageBelowStrip = function () {
   var split = document.querySelector("${PREVIEW_SPLIT_SELECTOR}");
   if (split === null) return;
-  // Split, the bar stands in the right half only and the left one starts at the top of the page.
-  // One column, it spans the whole width and everything has to begin under it.
   var said = document.querySelector("${PREVIEW_SAID_SELECTOR}");
   var narrow = window.innerWidth < ${SPLIT_FROM_PIXELS};
   split.style.paddingTop = narrow ? getStripBelow() + "px" : "";
-  // Split, the bar covers the right half only, and the left one starts on the same line the
-  // windows do rather than at the top of a page nothing is holding down.
   if (said !== null) said.style.paddingTop = narrow ? "" : getStripBelow() + "px";
 };`;
 }
@@ -239,11 +232,9 @@ var setPageBelowStrip = function () {
 /**
  * The fight played through once, on arriving, and then left alone.
  *
- * The published page opens on the finished fight and holds it (**ADR 0028**), so the first thing
- * anybody sees is the whole ranking rather than an empty panel. Only then does it start over and
- * run, once, to the end — where it stops and the ranking stands again. **It does not repeat**: a
- * page that replays for as long as somebody leaves the tab open is motion beside a band that has
- * to be read, and the visitor has already seen the thing it is showing them.
+ * The published page opens on the finished fight and holds it (**ADR 0028**), then runs once to
+ * the end, where the ranking stands again. **It does not repeat**: a page replaying for as long
+ * as a tab is open is motion beside a band that has to be read.
  *
  * ⚠️ **Entry 0 is not reachable without a fresh document**, which is why the run starts at the
  * first call and never at nothing: reaching the empty panel costs a reload, and a replay built on
@@ -291,7 +282,6 @@ var setOpeningRun = function () {
     if (setNextFed()) return;
     window.clearInterval(openingTimer);
     openingTimer = null;
-    // The end of the one run there is: the ranking stands, and nothing moves again.
     setOpeningStopped();
   }, ${OPENING_STEP_MILLISECONDS});
 };

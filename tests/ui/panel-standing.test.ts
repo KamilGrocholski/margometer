@@ -140,9 +140,9 @@ Deno.test("one row per skill, and the sides counted apart where the client named
 });
 
 Deno.test("a caster wears their own profession, and the side is said on the edge", () => {
-    // ⚠️ The row used to be painted `ours`/`theirs` and the caster's profession was lost with it.
-    // A player is a player wherever they stand, so the hue stays theirs and the side takes the
-    // edge opposite the cap. **ADR 0065.**
+    // ⚠️ A row painted `ours`/`theirs` loses the caster's profession with it. A player is a
+    // player wherever they stand, so the hue stays theirs and the side takes the edge opposite
+    // the cap. **ADR 0065.**
     const reading = composeStandingReading(
         [composeStanding(11), composeStanding(21)],
         [],

@@ -824,7 +824,6 @@ function composePinnedFigures(
 ): Array<Omit<PinnedRow, "fill" | "shareText">> {
     const part = getPartListed(choice, readerSide);
     const found: Array<Omit<PinnedRow, "fill" | "shareText">> = [];
-    // What this screen pins, in the order it draws them. One screen pins two; the rest pin one.
     const pinned = PINNED_CASES.filter((kase) => PINNED_SHAPES[kase].metric === metric);
     for (const kase of pinned) {
         const parts = composeHalfNamedParts(statistics, roster, kase, rows, part, readerSide);
@@ -1229,9 +1228,9 @@ export function composePanelReading(
     const placed = apart.reduce((sum, one) => sum + one.figure, total);
     // ⚠️ **The second count, and the whole reason there are two.** Everything above is composed
     // from the rows; this is composed from the statistics and never looks at them, so the
-    // difference is what the screen holds and no row does. It came out of a construction before —
-    // the shares were divided by a whole derived from the very figures being shared — so a hundred
-    // was what the column said whatever had gone missing on the way to it.
+    // difference is what the screen holds and no row does. Not the rows' own total: a whole
+    // derived from the figures being shared makes the column read a hundred whatever went missing
+    // on the way to it.
     const counted = getCountedTotal(statistics, sides, metric, part);
     const outside = Math.max(counted - placed, 0);
     const whole = placed + outside;
@@ -1987,11 +1986,8 @@ function composeSkillCut(
             fill: getFill(one.figure, largest),
             shareText: shares[at] ?? "",
         })),
-        // ⚠️ **Last, because it is the only row of the section left holding no place.** **ADR
-        // 0055** put it between the named rows and the closing one while both stood outside the
-        // order; the closing row has taken a place since (**ADR 0079**) and this has not, so
-        // "between the two" no longer names a position. What that decision settled is unmoved:
-        // what a bound would not draw is never folded into the row below it.
+        // ⚠️ **Last, because it is the only row of the section left holding no place.** What a
+        // bound would not draw is never folded into the row below it (**ADR 0055**).
         rest: hasRest ? composeRestRow(folded.rest, largest, shares[stated.length] ?? "") : null,
         plain: hasPlain
             ? composeClosingRow({
@@ -2248,9 +2244,7 @@ function getPairKinds(
 
 /**
  * What passed between the two, on the screen being read — and null where nothing did, which is a
- * pair that does not exist rather than one standing at nothing. It is the whole of the question a
- * person row inside an opened row is asked: where there is a figure between the two, the level
- * exists and the row opens onto it.
+ * pair that does not exist rather than one standing at nothing.
  *
  * On healing it is read off the flat cut the opponent row above it was drawn from, so an opened
  * pair states the figure that was pressed rather than a sum of the rows under it. A cut of the

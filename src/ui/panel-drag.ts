@@ -308,7 +308,7 @@ function composePanelDragGrab(
     // started a drag from wherever the pointer was.
     const grip = event.target?.getAttribute(GRIP_ATTRIBUTE) ?? null;
     if (grip === null) return null;
-    // A bar belonging to the other window under this root. Both listener sets see every press.
+    // Both listener sets see every press, so the other window's bar reaches here too.
     if (grip !== windowName) return null;
     const pointer = getPointerFromEvent(event);
     if (pointer === null) return null;

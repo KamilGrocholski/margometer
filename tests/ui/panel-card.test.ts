@@ -724,7 +724,7 @@ Deno.test("a rate is taken of blows, and a rate of no blows is no rate at all", 
         "and one of them is said",
     );
     assertEquals(critical(40, 40), [`${CARD_WORDS.blowsCritical} 40 (100%)`], "as is all of them");
-    // More criticals than blows cannot be, and the card used to stop rather than draw. A share
+    // More criticals than blows cannot be, and the card draws rather than stopping. A share
     // above the hundred is a number that is wrong looking like one that is right — **E14**.
     assertEquals(
         critical(41, 40),
@@ -734,8 +734,8 @@ Deno.test("a rate is taken of blows, and a rate of no blows is no rate at all", 
 });
 
 /**
- * A card with nobody behind it. The name used to be asserted, so a row the roster could not place
- * cost the card rather than standing with a word for it — **E14**.
+ * A card with nobody behind it. The name is not asserted: a row the roster cannot place stands
+ * with a word for it rather than costing the card — **E14**.
  */
 Deno.test("a card nobody is named on says so, rather than standing on a blank", () => {
     const card = composeCardReading({
@@ -802,8 +802,8 @@ function readStrikingProcs(procs: readonly { key: string; figure: number }[]): s
 
 /**
  * A wound something weakened is a wound, and it is counted in the wound's own row (**ADR 0095**).
- * The row it used to have of its own answered a question nobody asked while the one a reader does
- * ask — how many wounds did they leave — was on no line at all.
+ * A row of its own answers a question nobody asks, and leaves the one a reader does ask — how
+ * many wounds did they leave — on no line at all.
  */
 Deno.test("every deep wound is counted in one row, and the weakened ones stand under it", () => {
     assertEquals(

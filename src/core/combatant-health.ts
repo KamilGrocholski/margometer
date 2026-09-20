@@ -193,8 +193,8 @@ export function composeTeamHeals(
     const entered = composeFightEntryHealth(events, roster);
     const reduced = getReducedSides(events, roster);
     const held = new Map<number, number>();
-    // Keyed by the event it was sized from, so a walker over the same fight can put the health
-    // back exactly where the cast landed rather than guessing at the order.
+    // So a walker over the same fight puts the health back where the cast landed rather than
+    // guessing at the order.
     const heals = new Map<BattleEvent, TeamHeal>();
     for (const event of events) {
         const heal = composeTeamHeal(event, roster, entered, held);

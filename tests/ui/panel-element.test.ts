@@ -2343,8 +2343,8 @@ Deno.test("a skill that opens asks for itself by name, wherever the press lands 
         ["Dotyk anioła"],
         "and it is the one thing on the screen that opens",
     );
-    // The name first, which is where a reader aims and where the press used to be swallowed, and
-    // the count beside the value: a press that lands nowhere leaves the one before it standing.
+    // The name first, which is where a reader aims and where a press is most easily swallowed,
+    // and the count beside the value: a press that lands nowhere leaves the one before it standing.
     for (const [at, part] of [opening[0], marked[0]].entries()) {
         assertExists(part, "the row and the name a reader aims at both carry the mark");
         pressElement(host, "pointerdown", part);

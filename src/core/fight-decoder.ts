@@ -109,8 +109,6 @@ export const BLOW_END_BY_PROC_KEY: Record<string, ProcEnd> = {
     "-tenacity": "unsettled",
     "-evade": "target",
     "-contra": "target",
-    // Blok strzały: the target nullifies a ranged blow's main-hand damage for a turn, so it is
-    // read on the end that blocked, as `-evade` and `-contra` are.
     "-arrowblock": "target",
 };
 

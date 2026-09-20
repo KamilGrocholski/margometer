@@ -7,8 +7,8 @@
  *
  * ⚠️ **The roster comes off the payloads and never off the snapshots.** A fight the game had
  * already run itself arrives in a single call and snapshots nobody, so a reading over the
- * snapshots has no roster for it and used to skip it — which left the one material most likely
- * to carry a leak as the one material nothing read.
+ * snapshots has no roster for it and would skip it — which leaves the one material most likely
+ * to carry a leak as the one material nothing reads.
  */
 
 import { assert, assertEquals } from "@std/assert";

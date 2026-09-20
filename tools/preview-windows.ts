@@ -67,7 +67,6 @@ var setWindowDragged = function (name, acrossBy, downBy) {
   };
   setPointer("pointerdown", box.left, box.top);
   setPointer("pointermove", box.left + acrossBy, box.top + downBy);
-  // Where a drag ends is where the window is written down as standing, so it is let go of.
   setPointer("pointerup", box.left + acrossBy, box.top + downBy);
 };`;
 }

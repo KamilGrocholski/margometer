@@ -584,8 +584,7 @@ function composePayloadPrint(payloads: readonly unknown[]): string {
  * the one that misses.
  *
  * ⚠️ **The redacted form, never the source.** Redaction rewrites `payload.w[].name` and
- * `payload.skills`, and everything in `captures/` has been through it, so a comparison before it
- * finds nothing on a file whose nicknames are still real.
+ * `payload.skills`, so a comparison before it finds nothing on a file whose nicknames are real.
  *
  * No two admitted recordings share a payload sequence: every recording in `captures/` prints
  * differently from every other, measured 2026-09-01.

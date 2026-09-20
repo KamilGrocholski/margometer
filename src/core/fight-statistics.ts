@@ -182,12 +182,11 @@ export interface CombatantFigures {
      * The largest single figure at each end, which no sum can be read back out of: two blows of
      * 5,000 and one of 9,000 total the same. The largest in `captures/` is 19,209, 2026-08-30.
      *
-     * ⚠️ **It is not scoped to blows, and no panel draws it.** `addNamedDamageEvent` raises it with
-     * damage that was never a swing, so it stands above the largest actual blow on 15 of the 296
-     * rows over `captures/` (**ADR 0087**) — which is why the card no longer states it under a
-     * heading naming blows (**ADR 0088**). What reads it is the handed-over fight file
-     * (`src/game/fight-report.ts`) and `deno task fight:figures`, where a reader has the other
-     * figures beside it and this sentence within reach.
+     * ⚠️ **It is not scoped to blows, and no panel draws it.** `addNamedDamageEvent` raises it
+     * with damage that was never a swing, so it stands above the largest actual blow on 15 of the
+     * 296 rows over `captures/` (**ADR 0087**); no card states it under a heading naming blows
+     * (**ADR 0088**). What reads it is the handed-over fight file (`src/game/fight-report.ts`)
+     * and `deno task fight:figures`.
      */
     damageDealtBlowLargest: number;
     damageTakenBlowLargest: number;
@@ -809,12 +808,12 @@ function getStrikerFigures(
 /**
  * Already reduced where it is stated, so it has no raw half to keep apart from.
  *
- * It weighs into the hardest blow at both ends and into no count of blows at either. A figure
- * stated against a name is a landing, and for a party fighting a boss with an area attack it is
- * the **only** landing anybody records: of the 249 rows that took damage over `captures/` on
- * 2026-08-30, 149 are named by nothing else, and a card reading off blows alone would leave the
- * whole party's hardest hit blank. What it is not is a swing — `blowsStruck` counts what the
- * protocol calls a blow, and this is damage riding one aimed at somebody else.
+ * It weighs into the hardest blow at both ends and into no count of blows at either. For a party
+ * fighting a boss with an area attack it is the **only** landing anybody records: of the 249 rows
+ * that took damage over `captures/` on 2026-08-30, 149 are named by nothing else, so a card
+ * reading off blows alone leaves the whole party's hardest hit blank. It is not a swing —
+ * `blowsStruck` counts what the protocol calls a blow, and this is damage riding one aimed at
+ * somebody else.
  *
  * ⚠️ **Where nothing announced the blow it rode, it reaches the closing row's cut as well.** The
  * row's figure is a remainder, so it takes this figure whatever happens; the level under it is a

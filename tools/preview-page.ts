@@ -318,25 +318,18 @@ function composeEscapedJson(value: unknown): string {
 /**
  * The page in two halves: what is said on the left, the thing being said about on the right.
  *
- * Only from `SPLIT_FROM` up. Below it the page is one column with both windows cornered over it,
- * which is what it has always been, and the rules here simply do not apply — a half narrower than
- * the 482px those windows take would put them in the text's half instead of their own.
+ * Only from `SPLIT_FROM` up: a half narrower than the 482px the windows take would put them in
+ * the text's half. Below it the page is one column with both windows cornered over it.
  *
- * Both halves start at the same line, under the bar: the panel is a window that sits at the top
- * of a screen and the text beside it has no reason to sit lower. Centred down its half instead,
- * the text stood 750px below the panel on a 4K screen — two compositions on one page.
+ * Both halves start on the same line, under the bar. Centred down its half instead, the text
+ * stood 750px below the panel on a 4K screen.
  *
- * The heading takes the page scale here and the panel's 21px nowhere near it — a half of the
- * window is the one place on this page where something may be the size of a title.
+ * The right half keeps `GAME_PAGE_COLOUR`, the ground the panel is judged against; the left is
+ * the only surface on the page that is not it, with one border out of the panel's own tokens.
  *
- * The left half is the only surface on the page that is not the game's colour: the right half is
- * where the panel stands and stays the ground the panel is judged against (`GAME_PAGE_COLOUR`).
- * One border between them, out of the panel's own tokens, is what makes the seam a seam.
- *
- * **The bar goes over the half it drives and not over both.** It carries the picker and the
- * replay, which change the panel and nothing on the left, so a bar spanning the whole page would
- * sit over an install band it has no say in — and the left half would start below a control that
- * is not its own. Split, it takes the right half's width and the seam runs on up through it.
+ * **The bar goes over the half it drives.** It carries the picker and the replay, which change
+ * the panel and nothing on the left, so spanning the page would sit it over an install band it
+ * has no say in.
  */
 function composeSplitStyle(): string {
     return `.preview-split { display: block; }

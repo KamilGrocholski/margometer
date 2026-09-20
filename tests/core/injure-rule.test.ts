@@ -34,8 +34,8 @@ Deno.test("every tick lands on a victim already wounded, stating what that wound
         for (const message of getRecordedMessages(path)) {
             const parsed = parseProtocolMessage(message);
             const announced = parsed.parameters.filter((one) => one.key === WOUND_ANNOUNCEMENT_KEY);
-            // The walk below takes the first and would drop a second without a word, which is
-            // what the counts pinned here used to protect by accident.
+            // The walk below takes the first and would drop a second without a word, which the
+            // counts pinned here protect only by accident.
             assert(announced.length <= 1, `${path}: two wounds announced in one message`);
             const applied = announced[0];
             if (applied !== undefined) {

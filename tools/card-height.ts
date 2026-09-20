@@ -5,9 +5,8 @@
  *     deno task panel:cards [recording.json …]   one recording
  *     deno task panel:cards --tallest            the tallest cards, with whom and where
  *
- * It composes the card the panel composes, so a height here is the panel's own answer rather than
- * a second reading of the rule. `src/ui/panel-tip.ts` owns what a line costs. The counts stay
- * here, because they change with the next recording (**V5**).
+ * The card is the panel's own (`tools/fight-replay.ts`), and `src/ui/panel-tip.ts` owns what a
+ * line costs. The counts stay here (**V5**).
  */
 
 import { assert, assertExists, assertStrictEquals } from "@std/assert";

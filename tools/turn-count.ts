@@ -7,9 +7,8 @@
  *     deno task fight:turns captures/<file>.json   one recording, boundary by boundary
  *
  * The count itself is the aggregate's (`src/core/fight-statistics.ts`); what is here is the
- * reference it is graded against and nothing else. `docs/turns-taken.md` carries the verdicts and
- * what they do not claim. The figures come off the replay, so this and the panel cannot disagree
- * about a fight (`tools/fight-replay.ts`).
+ * reference it is graded against. The figures are the replay's (`tools/fight-replay.ts`).
+ * `docs/turns-taken.md` carries the verdicts and what they do not claim.
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";

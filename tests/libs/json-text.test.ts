@@ -1,8 +1,8 @@
 /**
- * Both directions of JSON, over the answers `null` used to stand for.
+ * Both directions of JSON, over the answers `null` stands apart from.
  *
  * `null` is a value JSON carries and `undefined` has no JSON text at all, so each pair below
- * states the case that works beside the case that does not, which is what one answer hid.
+ * states the case that works beside the case that does not, which one answer for both would hide.
  */
 
 import { assert, assertEquals, assertInstanceOf } from "@std/assert";

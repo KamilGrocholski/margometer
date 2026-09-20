@@ -362,16 +362,12 @@ export type Caveat = (typeof CAVEATS)[number];
  *
  * `reduction` is owed wherever a figure stated before reduction or a figure a defence stopped
  * stands, and **one** thing is owed: that the subtraction a reader will try does not work
- * (`src/core/battle-event.ts`). What the figure is a sum of used to be owed here too, in two more
- * lines of it; the block heading over the figure says that.
+ * (`src/core/battle-event.ts`).
  *
- * ⚠️ **It names no pair, and that is what an earlier wording got wrong.** Told *not to subtract
- * one from the other* it pointed at whichever two numbers stood nearest — which, once the figure
- * before reduction moved into the run, is `Zatrzymane` directly under it, a different pair from
- * the one the sentence was written for. `z tych liczb` voids every subtraction a reader can try
- * instead of forbidding one and silently allowing the rest. The fact comes first and the
- * consequence second: a sentence whose whole content is an instruction teaches nothing about the
- * game.
+ * ⚠️ **It names no pair.** Told *not to subtract one from the other*, a reader points at
+ * whichever two numbers stand nearest — and `Zatrzymane` stands directly under the figure before
+ * reduction, a different pair from the one such a sentence is written for. `z tych liczb` voids
+ * every subtraction a reader can try instead of forbidding one and allowing the rest in silence.
  *
  * `turns` says the one thing `CONTEXT.md` states about a turn count: the game numbers the turns it
  * granted and this counts what was spent, so their sum is not what anybody was given. Written to
@@ -401,10 +397,9 @@ export function getNoteForCaveat(caveat: Caveat): string {
  * (**ADR 0077**). Drawn as sub-lines under `Zatrzymane`, so each names the defence rather than
  * describing what it did: the line above already said that.
  *
- * A word here is therefore a claim about the game and not a matter of taste, and
- * `tests/ui/panel-words.test.ts` holds each to the frozen counts the way it holds the elements.
- * The physical absorption is bare where the magical one carries its kind, which is the article's
- * own asymmetry rather than ours — `docs/protocol-keys.md` carries the measurement.
+ * A word here is a claim about the game, held to the frozen counts by
+ * `tests/ui/panel-words.test.ts`. The physical absorption is bare where the magical one carries
+ * its kind, which is the article's own asymmetry — `docs/protocol-keys.md` measures it.
  *
  * **Keyed by the client's own token, with no sign**, the way an element is: a figure carries the
  * token and the sign says which half of the blow it was, not which defence. The procs below are

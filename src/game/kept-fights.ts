@@ -4,9 +4,6 @@
  * **The payloads, never a figure.** What is stored is what the game delivered, thinned by the rule
  * a recording is thinned by, so every number a row states is derived by the code that is running
  * and a decoder that learns a key reaches back over the whole shelf. **ADR 0026.**
- *
- * The store is handed in and never reached for, a shelf that will not fit asks for less rather
- * than assuming a quota, and everything read back is validated.
  */
 
 import { assert } from "@std/assert/assert";

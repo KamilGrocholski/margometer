@@ -500,7 +500,7 @@ Deno.test("a share is spelled in whole points, and a figure too small to round s
     assertEquals(composeShareText(1), "100%", "and the whole of a fight is the whole of it");
     // The floor and the measurement stand apart: one says too small to print, the other says none.
     assertEquals(composeShareText(0.0004), "<1%", "a share too small to print is not zero");
-    // A share outside the whole used to stop the panel. It is held to the ends instead, and one
+    // A share outside the whole must not stop the panel: it is held to the ends instead, and one
     // that is not a number at all says so — **E14**, ADR 0051.
     assertEquals(composeShareText(1.5), "100%", "more than the whole is drawn as the whole");
     assertEquals(composeShareText(-1), "0%", "and below nothing is drawn as nothing");
@@ -512,7 +512,7 @@ Deno.test("a share is spelled in whole points, and a figure too small to round s
 });
 
 /**
- * The figure every reader sees, and what it does with one that is not a figure. It used to stop
+ * The figure every reader sees, and what it does with one that is not a figure. It must not stop
  * the panel; the word for *not known* is what the panel already has, and zero is not it —
  * `CONTEXT.md` keeps those apart. **E14**, ADR 0051.
  */

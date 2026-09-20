@@ -172,9 +172,9 @@ export function attachToGame(
     // ⚠️ **The first look runs on the stack that started the add-on**, where the only thing above
     // it is the game's own page, while every look after it lands in the browser's timer. It is
     // also the look that finds the game on a page that already had one — the common case — so it
-    // is the look that mounts the panel, and a throw here once left a reader with a raw failure
-    // in the game's console and no add-on at all. **One guard, spelled once**: the first look was
-    // unguarded for a release because the guard was written twice and the first copy was missing.
+    // is the look that mounts the panel, and a throw here reaches the game's console with no
+    // add-on behind it. **One guard, spelled once**: two copies of it is how the first look goes
+    // out unguarded.
     const look = (): void => {
         try {
             lookForEngine(page, report, schedule, search);
