@@ -11,6 +11,7 @@
 import { assert } from "@std/assert/assert";
 import {
     type EngineBattle,
+    type EngineBattleReader,
     isEngineBattleWrapped,
     wrapEngineBattle,
 } from "@/src/game/engine-battle-wrap.ts";
@@ -31,16 +32,17 @@ export interface Scheduler {
     cancel(handle: number): void;
 }
 
-export interface AttachmentReport {
+/**
+ * **It is an `EngineBattleReader` and is handed to the wrap as one.** The three members it
+ * inherits are what a wrap tells its reader; the four below are what only the search knows —
+ * whether one was found, and every way finding one can end.
+ */
+export interface AttachmentReport extends EngineBattleReader {
     /**
      * The wrap is on and the game is being read, before any payload has arrived. A reader has to
      * be able to tell an add-on waiting for a fight from one that died on the way to the page.
      */
     handleAttached(): void;
-    handleBeforeCall(battle: EngineBattle): void;
-    handlePayload(payload: unknown, battle: EngineBattle): void;
-    /** The first failure of ours, once. The wrap counts the rest. */
-    handleFailure(failure: unknown): void;
     /** A MargoMeter was already reading, so this copy stands down and never counts. */
     handleAnotherReader(): void;
     /** The game is here and will not be wrapped: the method it was found by is gone. */
@@ -56,13 +58,10 @@ export interface GameAttachment {
 /** Both spellings, in the order tried. A call into their program may throw, and that is theirs. */
 export function readEnginesFromPage(page: unknown): unknown[] {
     if (!isRecord(page)) return [];
-    assert(isRecord(page), "a page that is asked is a page");
     const found: unknown[] = [page[ENGINE_FIELD]];
-    assert(found.length === 1, "the field is asked for before the call is");
     const stated = page[ENGINE_CALL_FIELD];
     if (typeof stated === "function") found.push(stated.call(page));
-    assert(found.length >= 1, "the page is asked for a game in every spelling there is");
-    assert(found.length <= ENGINE_SPELLINGS, "and there are two of them");
+    assert(found.length <= ENGINE_SPELLINGS, "a game is asked for in every spelling and no more");
     return found;
 }
 
@@ -118,11 +117,7 @@ function lookForEngine(
         return;
     }
     assert(!isEngineBattleWrapped(battle), "a game somebody else holds never reaches the wrap");
-    search.wrap = wrapEngineBattle(battle, {
-        handleBeforeCall: (holding) => report.handleBeforeCall(holding),
-        handlePayload: (payload, holding) => report.handlePayload(payload, holding),
-        handleFirstFailure: (failure) => report.handleFailure(failure),
-    });
+    search.wrap = wrapEngineBattle(battle, report);
     if (search.wrap !== null) {
         stopLookingForEngine(search, schedule);
         report.handleAttached();
@@ -153,7 +148,7 @@ function handleLookFailure(
     assert(search.looks > 0, "a failure belongs to a look that happened");
     if (!search.hasFailed) {
         search.hasFailed = true;
-        report.handleFailure(failure);
+        report.handleFirstFailure(failure);
     }
     assert(search.hasFailed, "a failure that was marked stays marked");
     if (search.looks < MAXIMUM_LOOKS) return;
@@ -174,26 +169,21 @@ export function attachToGame(
         hasRefused: false,
         hasFailed: false,
     };
-    // ⚠️ **The first look is guarded like every other, and it was not.** Every look after this
-    // one lands in the browser's timer and is caught there; this one runs on the stack that
-    // started the add-on, where the only thing above it is the game's own page. It is also the
-    // look that finds the game on a page that already had one — the common case — so it is the
-    // look that mounts the panel, and a throw here left a reader with a raw failure in the
-    // console and no add-on at all.
-    try {
-        lookForEngine(page, report, schedule, search);
-    } catch (failure) {
-        handleLookFailure(failure, report, schedule, search);
-    }
-    if (!search.isDone) {
-        search.handle = schedule.every(() => {
-            try {
-                lookForEngine(page, report, schedule, search);
-            } catch (failure) {
-                handleLookFailure(failure, report, schedule, search);
-            }
-        }, LOOK_EVERY_MILLISECONDS);
-    }
+    // ⚠️ **The first look runs on the stack that started the add-on**, where the only thing above
+    // it is the game's own page, while every look after it lands in the browser's timer. It is
+    // also the look that finds the game on a page that already had one — the common case — so it
+    // is the look that mounts the panel, and a throw here once left a reader with a raw failure
+    // in the game's console and no add-on at all. **One guard, spelled once**: the first look was
+    // unguarded for a release because the guard was written twice and the first copy was missing.
+    const look = (): void => {
+        try {
+            lookForEngine(page, report, schedule, search);
+        } catch (failure) {
+            handleLookFailure(failure, report, schedule, search);
+        }
+    };
+    look();
+    if (!search.isDone) search.handle = schedule.every(look, LOOK_EVERY_MILLISECONDS);
     assert(search.looks > 0, "the first look happens before any clock is asked for");
     assert(search.looks <= MAXIMUM_LOOKS, "and stays inside the bound like every other");
     return {

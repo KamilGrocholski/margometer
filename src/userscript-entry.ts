@@ -1558,7 +1558,7 @@ function readPayloadIntoLive(
  */
 function composeGameReports(environment: UserscriptEnvironment) {
     return {
-        handleFailure: (failure: unknown) => environment.report(FAILURE_LINE, failure),
+        handleFirstFailure: (failure: unknown) => environment.report(FAILURE_LINE, failure),
         handleAnotherReader: () =>
             environment.report(FAILURE_LINE, "another reader holds the game"),
         handleRefusal: () => environment.report(FAILURE_LINE, "the game states no method to read"),
