@@ -752,6 +752,7 @@ function actEvadedBlow(turn: FabricatedTurn): string[] {
         composeValueless("-arrowblock"),
         composeValueless("-tenacity"),
         composeValueless("+superspell-dispel"),
+        composeValueless("+superspell-prevented"),
         composeValueless("+fastarrow"),
     ])];
 }

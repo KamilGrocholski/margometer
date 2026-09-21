@@ -130,10 +130,10 @@ one combatant held it twice. `at once` is the most that ever stood together.
 | `+spell-taken_dmg-all`        | 177 |        0 |         0 |       2 |
 | `active_decblock_per-enemies` |   3 |        0 |         0 |       2 |
 | `alllowdmg`                   |   3 |        0 |         0 |       2 |
-| `allslow_per`                 | 544 |       64 |         0 |       3 |
+| `allslow_per`                 | 558 |       94 |         0 |       3 |
 | `aura-ac_per`                 | 115 |        0 |         0 |       2 |
 | `aura-resall`                 | 115 |        0 |         0 |       2 |
-| `aura-sa_per`                 | 305 |       44 |         0 |       4 |
+| `aura-sa_per`                 | 370 |       98 |         0 |       4 |
 | `shout`                       |  15 |        0 |         0 |       2 |
 
 The last three arrived with **ADR 0097**: an okrzyk stands on a side now, so the keys it announces
@@ -168,10 +168,10 @@ two.
 
 |  id | skill              | on | fights | at once | stated | reaches  |
 | --: | ------------------ | -: | -----: | ------: | -----: | -------- |
-|  25 | Prowokujący okrzyk |  3 |      5 |       1 |      2 | caster's |
-|  76 | Aura ochrony       | 11 |     15 |       2 |      8 | caster's |
-|  89 | Podwójny dech      | 17 |     18 |       4 |      8 | caster's |
-| 123 | Szadź              | 19 |     22 |       3 |      8 | other    |
+|  25 | Prowokujący okrzyk |  4 |      6 |       1 |      2 | caster's |
+|  76 | Aura ochrony       | 13 |     16 |       2 |      8 | caster's |
+|  89 | Podwójny dech      | 19 |     19 |       4 |      8 | caster's |
+| 123 | Szadź              | 22 |     23 |       3 |      8 | other    |
 | 188 | Wyzywający okrzyk  | 10 |     17 |       2 |      5 | both     |
 | 219 | Jadowity podmuch   |  1 |      1 |       1 |      8 | other    |
 | 264 | Piętno bestii      | 14 |     17 |       2 |      8 | other    |
@@ -216,7 +216,7 @@ announcement of it was ever seen to list.
 
 |  id | skill              | casters | fights | at once | stated | covers | names |
 | --: | ------------------ | ------: | -----: | ------: | -----: | -----: | ----: |
-|  25 | Prowokujący okrzyk |       3 |      5 |       1 |      3 |      6 |     1 |
+|  25 | Prowokujący okrzyk |       4 |      6 |       1 |      3 |      6 |     1 |
 | 188 | Wyzywający okrzyk  |      10 |     17 |       2 |      3 |      6 |     2 |
 
 ⚠️ **`covers` is reported and drawn nowhere.** It was the input to the expansion **ADR 0064**

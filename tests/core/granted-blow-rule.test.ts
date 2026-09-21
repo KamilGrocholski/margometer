@@ -101,7 +101,7 @@ function composeRunsFromRecordings(): RecordedRun[] {
 }
 
 /**
- * The whole of what the corpus grants, measured 2026-09-19: 216 announcements are followed by two
+ * The whole of what the corpus grants, measured 2026-09-21: 239 announcements are followed by two
  * of their own blows and none by three, and the three skills behind them are the two the table
  * grants an attack to and one it has never heard of.
  */
@@ -114,7 +114,7 @@ Deno.test("a run of the announcer's own blows is two at most, and only for three
     }
     assertEquals(
         [...longer.entries()].sort(),
-        [["Podwójne trafienie", 154], ["Podwójny strzał", 59], ["Struna płomienna", 3]],
+        [["Podwójne trafienie", 177], ["Podwójny strzał", 59], ["Struna płomienna", 3]],
         "the skills that strike twice, and how often the corpus caught each",
     );
 });
@@ -142,7 +142,7 @@ Deno.test(
             bounded += 1;
             assert(granted >= run.blows.length - 1, `${run.skillName}: more blows than it grants`);
         }
-        assertStrictEquals(bounded, 213, "what the table bounds");
+        assertStrictEquals(bounded, 236, "what the table bounds");
         assertStrictEquals(reached, 3, "and what the bound reaches, because the table cannot");
     },
 );
@@ -164,17 +164,17 @@ Deno.test("a granted blow carries damage and nothing a second reading would plac
             }
         }
     }
-    assertStrictEquals(read, 216, "every second blow the corpus holds was read");
+    assertStrictEquals(read, 239, "every second blow the corpus holds was read");
 });
 
 /**
  * The figures this moved, both ways. ⚠️ **The empty table does not restore the rule that stood
  * before this decision, and must not be read as doing so:** a reach the table could not bound is
  * not the table's to take away, so the three blows it reaches stay reached. What the empty column
- * isolates is exactly the table's own contribution — 213 blows and 138,290 points — and the three
+ * isolates is exactly the table's own contribution — 236 blows and 149,838 points — and the three
  * it does not move are the other half of the rule showing through.
  */
-Deno.test("the table reaches 213 blows, and the bound reaches three the table cannot", () => {
+Deno.test("the table reaches 236 blows, and the bound reaches three the table cannot", () => {
     const counted = new Map<string, { plain: number; plainApplied: number }>();
     for (const table of [BLOWS_GRANTED, new Map<number, number>()]) {
         let plain = 0;
@@ -195,12 +195,12 @@ Deno.test("the table reaches 213 blows, and the bound reaches three the table ca
     }
     assertEquals(
         counted.get("table"),
-        { plain: 1672, plainApplied: 2163634 },
+        { plain: 1769, plainApplied: 2254795 },
         "what stands behind no announcement once both halves of the rule have run",
     );
     assertEquals(
         counted.get("none"),
-        { plain: 1885, plainApplied: 2301924 },
+        { plain: 2005, plainApplied: 2404633 },
         "and what the bound alone leaves, which is the table's own contribution measured",
     );
 });
@@ -246,7 +246,7 @@ Deno.test("the table the bundle carries is the three skills that grant a blow", 
  * 1,583, and the three were one boss skill the published table of a player's skills cannot carry.
  *
  * The empty table is what proves the walk still counts. With it the reach the table grants is
- * gone, 213 blows fall back into the row, and every one of them stands mid-strike — so a reader
+ * gone, 236 blows fall back into the row, and every one of them stands mid-strike — so a reader
  * that had stopped finding its subject could not pass this.
  */
 Deno.test("every blow the closing row holds opened a turn of its own", () => {
@@ -272,12 +272,12 @@ Deno.test("every blow the closing row holds opened a turn of its own", () => {
     }
     assertEquals(
         counted.get("table"),
-        { plain: 1672, midStrike: 0 },
+        { plain: 1769, midStrike: 0 },
         "the row is exactly the blows the game numbered a turn for",
     );
     assertEquals(
         counted.get("none"),
-        { plain: 1885, midStrike: 213 },
+        { plain: 2005, midStrike: 236 },
         "and without the table's reach the walk still finds what it is looking for",
     );
 });

@@ -63,6 +63,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   ciosie tak samo jak pozostałe odmiany.
 - **Poprawka** — Niszczenie many przeciwnika jest już rozpoznawane, ale sama mana nie wchodzi do
   żadnej liczby na karcie.
+- **Poprawka** — Udaremnienie ładowania ciosu specjalnego jest już rozpoznawane, choć panel nie
+  zapisuje go żadnej ze stron.
 
 ## [0.17.0] — 2026-09-15
 

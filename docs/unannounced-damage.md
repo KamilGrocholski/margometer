@@ -84,10 +84,10 @@ that went out under a key without a blow carrying it** — a tick of poison, a w
 else, drawn as the closing row with `×0` beside them. The keys now stand under their own names, as
 they always did on the healing screens, and what is left is blows.
 
-Measured over `captures/` on 2026-09-19, the row holds **2,163,634** on each damage screen — the
+Measured over `captures/` on 2026-09-21, the row holds **2,254,795** on each damage screen — the
 same figure from both ends, because it is the same blows read from the striking side and from the
-side struck. It is drawn in 174 sections of `Zadane` and 102 of `Otrzymane`, and the keys beside it
-come to 113 rows.
+side struck. It is drawn in 183 sections of `Zadane` and 105 of `Otrzymane`, and the keys beside it
+come to 121 rows.
 
 ## What never does
 
@@ -96,7 +96,7 @@ come to 113 rows.
   0051**). The two healing entries in the panel's own table are never read.
 - **Damage a blow reports against a name** (`+oth_dmg`, `docs/protocol-keys.md`) carries the
   announcement of the blow it rode, so it reaches a skill's row like any other figure. ⚠️ **That is
-  a measurement and not a construction**: the corpus states 1,193 figures against a name and 0 of
+  a measurement and not a construction**: the corpus states 1,282 figures against a name and 0 of
   them stand under no announcement. Where one did, it would reach this row — the figure is a
   remainder, so it takes whatever no row named — and it reaches the cut under the row with it, so
   the level and the row over it cannot answer one press two ways (**ADR 0081**). The count beside
@@ -143,7 +143,7 @@ here, and no recording carries one — 0 runs of three after an announcement, 20
 owns what `+swing` is and states what the material cannot settle about it: whether the opponents the
 effect reaches arrive as messages of their own. What this corpus adds is that the question cannot be
 put to it at all — the published table gives the effect to **1** of the skills it serves, and not
-one of the **51** skill ids the recordings announce is that skill. So the reading that would tell a
+one of the **52** skill ids the recordings announce is that skill. So the reading that would tell a
 swing's second target from a plain attack is one a recording has to bring, and none here carries it.
 
 ⚠️ **What the tick of a wound was struck with.** A tick is charged to whoever left the wound (**ADR

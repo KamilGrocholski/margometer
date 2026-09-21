@@ -129,8 +129,8 @@ Deno.test("the panel asks the client for a key it has no word for, and for no ot
     assertEquals(unasked, [], "a proc the material carries is worded by us or asked of the client");
     assertEquals(
         asked.length,
-        6,
-        "the four legendary bonuses, and the pair view,372 does not name",
+        7,
+        "the four legendary bonuses, and the three view,372 does not name",
     );
 });
 
@@ -209,6 +209,11 @@ Deno.test("every proc the decoder places is placed at an end the register settle
         BLOW_END_BY_PROC_KEY["+superspell-dispel"],
         "unsettled",
         "and neither has whose this is",
+    );
+    assertEquals(
+        BLOW_END_BY_PROC_KEY["+superspell-prevented"],
+        "unsettled",
+        "nor whose charge the blow kept from being made ready",
     );
     assertEquals(BLOW_END_BY_PROC_KEY["+crit"], "actor", "a crit is the doing of whoever swung");
     assertEquals(BLOW_END_BY_PROC_KEY["-evade"], "target", "and an evade of whoever was swung at");

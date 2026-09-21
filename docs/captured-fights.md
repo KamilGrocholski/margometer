@@ -36,7 +36,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `2 vs 1`  | `1`        |
 | `5 vs 1`  | `1`        |
 | `9 vs 1`  | `1`        |
-| `10 vs 1` | `24`       |
+| `10 vs 1` | `25`       |
 
 ## The fights
 
@@ -76,6 +76,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json`           | `10 vs 1` | `ours won`   | `10 players · b 1, h 2, m 3, t 3, w 1 · levels 28–60`      | `1 NPC · b 1 · level 36`                          | `43092`              |
 | `captures/2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0.json`               | `1 vs 5`  | `theirs won` | `1 player · t 1 · level 83`                                | `5 players · h 1, m 2, p 1, w 1 · levels 300–303` | `120998`             |
 | `captures/2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0.json`                 | `1 vs 1`  | `theirs won` | `1 player · t 1 · level 64`                                | `1 player · m 1 · level 64`                       | `9492`               |
+| `captures/2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0.json`                 | `10 vs 1` | `ours won`   | `10 players · b 1, m 3, p 2, t 3, w 1 · levels 73–101`     | `1 NPC · p 1 · level 83`                          | `209110`             |
 
 ## The recordings
 
@@ -115,6 +116,7 @@ How many of ours against how many of theirs, and how many recordings of each.
 | `captures/2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0.json`           | `luvia`        | `Cl9U89Zr`      | `0.16.0`      | `1`   | `276`    |
 | `captures/2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0.json`               | `luvia`        | `Bb28FQty`      | `0.17.0`      | `3`   | `19`     |
 | `captures/2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0.json`                 | `luvia`        | `Bb28FQty`      | `0.17.0`      | `12`  | `55`     |
+| `captures/2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0.json`                 | `luvia`        | `Bb28FQty`      | `0.17.0`      | `126` | `836`    |
 
 ## What the material does not hold
 
@@ -354,3 +356,14 @@ evidence.
   each, and it is still recorded rather than resolved (**V6**).
 
   It is the second duel between two players, and the first on `luvia`.
+
+- `captures/2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0.json` — **the only recording carrying
+  `+superspell-prevented`**, a key the client has always branched on and no recording had ever
+  carried, so it had no entry to be written down in. It is `+superspell-dispel`'s sibling: that key
+  breaks a charge already standing, this one states that none began (`docs/protocol-keys.md`). The
+  one occurrence rides `-legbon_glare` on a blow of the boss's, and the boss is the only combatant
+  this recording ever states a charge for — as over `captures/` every charge the game states stands
+  on a monster, 2026-09-21.
+
+  It also grades more boundaries than any other recording — 122, every one agreeing with the game's
+  own numbering (`docs/turns-taken.md`).

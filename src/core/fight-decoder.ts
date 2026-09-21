@@ -70,8 +70,9 @@ const DESTROYED_KEYS = [
  * own entry in `docs/protocol-keys.md`, which is where the evidence is.
  *
  * `unsettled` is a refusal, not a default: article view,372 names neither `tenacity` nor `dispel`,
- * so whose they are is unknown and a row charged with one would be a guess. They stay decoded and
- * are counted on nobody until material settles them (`ARCHITECTURE.md`, known gaps).
+ * and the sentence the client composes for a charge prevented names nobody either, so whose the
+ * three are is unknown and a row charged with one would be a guess. They stay decoded and are
+ * counted on nobody until material settles them (`ARCHITECTURE.md`, known gaps).
  */
 export type ProcEnd = "actor" | "target" | "unsettled";
 
@@ -107,6 +108,7 @@ export const BLOW_END_BY_PROC_KEY: Record<string, ProcEnd> = {
     "-legbon_cleanse": "target",
     "-legbon_glare": "target",
     "+superspell-dispel": "unsettled",
+    "+superspell-prevented": "unsettled",
     "-tenacity": "unsettled",
     "-evade": "target",
     "-contra": "target",

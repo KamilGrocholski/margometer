@@ -144,6 +144,7 @@ and that is written as a dash rather than as a zero (**E10**).
 | 2026-09-14-luvia-grupa-vs-mamlambo-auto-Cl9U89Zr-0.16.0           | `in a lump`     | —     | —      | —       | —     | —     | —    |
 | 2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0               | `in a lump`     | —     | —      | —       | —     | —     | —    |
 | 2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0                 | `always`        | 8     | 8      | 13      | 12    | 1     | 1    |
+| 2026-09-21-luvia-grupa-vs-amaimon-Bb28FQty-0.17.0                 | `always`        | 122   | 122    | 238     | 226   | 12    | 12   |
 
 ## What the register says
 
@@ -152,8 +153,8 @@ time it can be asked.** No boundary of one turn is placed `elsewhere`, on any re
 sharp test and it is unbeaten; what it is not is most of the evidence, because a boundary of one
 turn is the minority case.
 
-**Where the game numbers several, the count agrees on all but three boundaries in the corpus.** 1119
-of the 1122 graded agree, 2026-09-19. The three that do not are a short list rather than a tendency:
+**Where the game numbers several, the count agrees on all but three boundaries in the corpus.** 1241
+of the 1244 graded agree, 2026-09-21. The three that do not are a short list rather than a tendency:
 each is short by a single turn, and `deno task fight:turns captures/<file>.json` names each by its
 two ordinals. A recording carrying one is `sometimes`, which is what the verdict is for.
 
@@ -195,15 +196,15 @@ lines, per combatant, and the card draws the count under the turns that combatan
 another language: the line opens with the combatant's own name and the separator the game puts after
 it, and it does not end in the full stop the game's other lines about a combatant end in. Measured
 over `captures/` on 2026-09-03 with no other condition: **319 matches, all 319 a turn nobody spent,
-nothing missed, nothing else caught.** The corpus states 366 of them now, 2026-09-19; what the
+nothing missed, nothing else caught.** The corpus states 391 of them now, 2026-09-21; what the
 recordings admitted since have not had is the second half of that reading, which is a person going
 through every match. The three lines about striking a target already dead end in a full stop; loot
 lines put a colon after the name. **ADR 0049** carries the rest, including why the stun keys cannot
 do this job — 118 applications against the 319 announcements that reading was taken over, both
 figures of 2026-09-03 and neither re-earned since.
 
-**The two columns are close and are not held to be equal.** Over the corpus the ordinal says 214
-turns went missing where the game announces 199: exact on 18 of the 22 recordings that can be asked,
+**The two columns are close and are not held to be equal.** Over the corpus the ordinal says 226
+turns went missing where the game announces 211: exact on 19 of the 23 recordings that can be asked,
 one turn apart on three more, and one that is not. Before **ADR 0057** they were exact on nine, and
 on nine others the game announced **more** lost turns than the ordinal had room for — which is the
 over-count seen from the other side. The gate holds both as numbers rather than forcing them

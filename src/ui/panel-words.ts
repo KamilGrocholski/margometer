@@ -489,14 +489,14 @@ export type TranslateLabel = (id: string) => string | null;
 export const MAXIMUM_LABEL_CHARACTERS = 22;
 
 /**
- * The six keys this repository has no word for, and what the client calls each in its own
+ * The seven keys this repository has no word for, and what the client calls each in its own
  * dictionary. **The panel asks only here** — every other key it draws it has a word of its own
  * for, chosen short enough for the column above, and an answer out of somebody else's program is
- * not. **ADR 0024.** Four are legendary bonuses whose published name has not been read; two are
- * the pair article `view,372` does not carry at all (**ADR 0011**).
+ * not. **ADR 0024.** Four are legendary bonuses whose published name has not been read; three are
+ * what article `view,372` does not carry at all (**ADR 0011**).
  *
  * Every id is spelled by the client, checked against `.cache/game-client/production/main.js` at
- * build `53XkBRxF` on 2026-08-30. Five are `msg_` and the key; `+superspell-dispel` is the one
+ * build `Bb28FQty` on 2026-09-21. Six are `msg_` and the key; `+superspell-dispel` is the one
  * that is not, and it is why this is a table rather than a rule.
  */
 export const CLIENT_ID_BY_UNWORDED_KEY: Record<string, string> = {
@@ -506,6 +506,7 @@ export const CLIENT_ID_BY_UNWORDED_KEY: Record<string, string> = {
     "-legbon_glare": "msg_-legbon_glare",
     "-tenacity": "msg_-tenacity",
     "+superspell-dispel": "msg_+dispel",
+    "+superspell-prevented": "msg_+superspell-prevented",
 };
 
 /** Ours, then the player's own client, then the key as the game wrote it. **ADR 0024.** */
