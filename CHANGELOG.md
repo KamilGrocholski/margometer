@@ -47,8 +47,13 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Nowość** — To, co okrzyk robi poza trzymaniem, stoi teraz w „Co stoi" i liczy własne tury.
 - **Zmiana** — Wszystkie głębokie rany liczą się teraz na karcie ciosu w jednym wierszu, a pod nim
   stoi, ile z nich coś osłabiło.
-- **Poprawka** — Na stronie z podglądem zdanie pod przyciskiem nie chowa się już za panelem przy
-  węższym oknie.
+- **Zmiana** — Strona z podglądem pokazuje teraz jedną walkę, która odtwarza się sama zaraz po
+  wejściu, zamiast listy nagrań do wybrania.
+- **Poprawka** — Zapisana walka, której nie da się odtworzyć, nie zabiera już całego panelu —
+  zostaje bez liczb tylko ona sama.
+- **Poprawka** — Bardzo długa walka nie zatrzymuje już panelu w trakcie zapisywania, tylko nie
+  mieści się na półce.
+- **Poprawka** — Nietypowa liczba albo nazwa w wiadomości z gry nie gasi już panelu do końca walki.
 - **Poprawka** — Każdy wiersz w Pomocniku ma teraz okienko: cały nick albo pełną nazwę ciosu
   specjalnego, kto go szykuje, i tury.
 - **Poprawka** — Okienko z opisem łamie teraz długą nazwę na kolejne wiersze, zamiast uciąć ją drugi
@@ -61,10 +66,10 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   trzech żywiołów ma na karcie ciosu własny wiersz.
 - **Poprawka** — Ogłuszenie w ognistej i błyskawicznej odmianie jest już rozpoznawane i staje przy
   ciosie tak samo jak pozostałe odmiany.
-- **Poprawka** — Niszczenie many przeciwnika jest już rozpoznawane, ale sama mana nie wchodzi do
-  żadnej liczby na karcie.
-- **Poprawka** — Udaremnienie ładowania ciosu specjalnego jest już rozpoznawane, choć panel nie
-  zapisuje go żadnej ze stron.
+- **Poprawka** — Niszczenie many przeciwnika jest już rozpoznawane, więc panel nie ostrzega już o
+  nieodczytanej wiadomości, choć sama mana nie wchodzi do żadnej liczby na karcie.
+- **Poprawka** — Udaremnienie ładowania ciosu specjalnego jest już rozpoznawane, więc panel nie
+  ostrzega już o nieodczytanej wiadomości, choć nie zapisuje go żadnej ze stron.
 
 ## [0.17.0] — 2026-09-15
 
