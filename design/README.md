@@ -12,6 +12,10 @@ is a question worth measuring, and not before (**C9**).
 - [`dymek/`](dymek/) — what the add-on writes into the game's own tooltip, now that **ADR 0105**
   writes one line there. It owns the shape of that append and what may honestly stand in it, which
   no document owned: `SECURITY.md` says what may be written, and nothing said what it should say.
+- [`dziesiec/`](dziesiec/) — what that append says **beside one fighter** when both sides are
+  full. It owns whether a figure an announcement carried may be drawn against the combatant it is
+  drawn next to, which is a different question from whether the figure is known: the wire carries
+  it and `ARCHITECTURE.md`'s known gap 17 says nothing draws it.
 
 ## What a round is
 

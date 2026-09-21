@@ -1,0 +1,130 @@
+{
+  "attachments": {},
+  "boards": {
+    "Main.dc.html": {
+      "h": 1060,
+      "title": "Rekomendacja",
+      "w": 1400,
+      "x": 0,
+      "y": 0
+    },
+    "Role.dc.html": {
+      "h": 1180,
+      "title": "Role",
+      "w": 1220,
+      "x": 3200,
+      "y": 0
+    },
+    "Zrodla.dc.html": {
+      "h": 1000,
+      "title": "Źródła",
+      "w": 1440,
+      "x": 3200,
+      "y": 1400
+    },
+    "Teraz.dc.html": {
+      "h": 900,
+      "title": "Teraz",
+      "w": 1360,
+      "x": 1600,
+      "y": 0
+    },
+    "Procent.dc.html": {
+      "h": 1060,
+      "title": "Ile procent",
+      "w": 1400,
+      "x": 0,
+      "y": 1400
+    },
+    "Prowokacja.dc.html": {
+      "h": 1020,
+      "title": "Prowokacja",
+      "w": 1400,
+      "x": 1600,
+      "y": 1400
+    },
+    "Dziesiec.dc.html": {
+      "h": 1100,
+      "title": "Dziesięciu na dziesięciu",
+      "w": 1400,
+      "x": 0,
+      "y": 2860
+    },
+    "Tresc.dc.html": {
+      "h": 1120,
+      "title": "Treść",
+      "w": 1440,
+      "x": 1600,
+      "y": 2860
+    },
+    "Odmowy.dc.html": {
+      "h": 1060,
+      "title": "Odmowy",
+      "w": 1140,
+      "x": 3200,
+      "y": 2860
+    }
+  },
+  "createdOnFiles": {
+    "at": "2026-09-21T00:00:00Z",
+    "v": 1
+  },
+  "designSystems": [],
+  "launch": {
+    "view": "canvas"
+  },
+  "notes": {
+    "pytanie": {
+      "kind": "title1",
+      "maxW": 2800,
+      "w": 240,
+      "x": 0,
+      "y": -300,
+      "text": "Co dymek gry mówi przy jednej postaci, kiedy po obu stronach stoi dziesięciu?"
+    },
+    "pomiar": {
+      "kind": "title1",
+      "maxW": 2800,
+      "w": 240,
+      "x": 0,
+      "y": 1100,
+      "text": "Pomiar: czy figurę z ogłoszenia wolno postawić przy tej postaci, obok której wisi"
+    },
+    "arkusze": {
+      "kind": "title1",
+      "maxW": 3880,
+      "w": 240,
+      "x": 0,
+      "y": 2560,
+      "text": "Arkusze robocze: plansza dwudziestki, treść wiersz po wierszu, odmowy"
+    },
+    "material": {
+      "color": "gray",
+      "w": 400,
+      "x": 4800,
+      "y": 0,
+      "text": "Materiał: design/dziesiec/measured.json — captures/, 35 recordings, 2026-09-21. Dwa bonusy legendarne cytowane z design/dymek/measured.json, nie liczone drugi raz. Korpus nie ma walki dziesięciu na dziesięciu: dwudziestka jest rysunkiem."
+    },
+    "wynik": {
+      "color": "gray",
+      "w": 400,
+      "x": 4800,
+      "y": 1400,
+      "text": "Rozstrzygnięcie rundy: procent wchodzi przy dwóch stanach z dziewięciu — tych, którym maska daje bit — i jako suma dwóch NAJWYŻSZYCH źródeł, nie dwóch ostatnich: przy trzech źródłach te zbiory rozjeżdżają się w 34,2% chwil. Mianownika przy stanie napisać się nie da — licznik z maski przebiega ponad tabelę w 22,6% przypadków, bo odświeżenie nie robi zbocza."
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Teraz.dc.html",
+    "Role.dc.html",
+    "Procent.dc.html",
+    "Prowokacja.dc.html",
+    "Zrodla.dc.html",
+    "Dziesiec.dc.html",
+    "Tresc.dc.html",
+    "Odmowy.dc.html"
+  ],
+  "pages": [],
+  "title": "Dziesięciu",
+  "v": 3
+}

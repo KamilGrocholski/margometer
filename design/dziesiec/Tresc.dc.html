@@ -1,0 +1,161 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Treść — dziesięć pozycji, trzy werdykty</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0b0d10; }
+</style>
+</helmet>
+<div style="width: 1440px; height: 1120px; box-sizing: border-box; background: #0b0d10; color: #c8cdd6; font-size: 13px; line-height: 1.5; display: flex; flex-direction: column;">
+
+  <div style="padding: 22px 24px 14px; display: flex; flex-direction: column; gap: 6px;">
+    <div style="font-size: 26px; font-weight: 600; color: #e6eaf1;">Treść — dziesięć pozycji, trzy werdykty</div>
+    <div style="font-size: 14px; color: #a8b2c0;">Co pada w dymku przy jednej postaci, a co zostaje tam, gdzie jest. Kolumna „ile razy" liczy przepisania postaci w payloadzie: 5 993 na 1 376 payloadów.</div>
+    <div style="font-size: 12px; color: #737f8f;">Wszystkie figury z <span style="color: #9aa6b6;">design/dziesiec/measured.json</span> — 2026-09-21, captures/, 35 recordings. Szkielet dymka z budowy <span style="color: #9aa6b6;">Bb28FQty</span>. Korpus nie ma walki dziesięciu na dziesięciu — dwudziestka jest rysunkiem, nie pomiarem.</div>
+  </div>
+
+  <div style="padding: 0 24px;">
+    <div style="display: grid; grid-template-columns: 186px 210px 150px 128px 150px 1fr; gap: 1px; background: #232b33; border: 1px solid #232b33; border-radius: 6px; overflow: hidden;">
+      <div style="padding: 7px 10px; background: #1a1f26; font-size: 10px; letter-spacing: .06em; color: #8f9bb0;">POZYCJA</div>
+      <div style="padding: 7px 10px; background: #1a1f26; font-size: 10px; letter-spacing: .06em; color: #8f9bb0;">SKĄD</div>
+      <div style="padding: 7px 10px; background: #1a1f26; font-size: 10px; letter-spacing: .06em; color: #8f9bb0;">JEDNOSTKA · ZEGAR</div>
+      <div style="padding: 7px 10px; background: #1a1f26; font-size: 10px; letter-spacing: .06em; color: #8f9bb0;">ILE RAZY</div>
+      <div style="padding: 7px 10px; background: #1a1f26; font-size: 10px; letter-spacing: .06em; color: #8f9bb0;">WERDYKT</div>
+      <div style="padding: 7px 10px; background: #1a1f26; font-size: 10px; letter-spacing: .06em; color: #8f9bb0;">DLACZEGO</div>
+      <sc-for list="{{items}}" as="one">
+        <div style="padding: 9px 10px; background: #14171c; color: #e6eaf1; font-size: 12.5px;">{{one.name}}</div>
+        <div style="padding: 9px 10px; background: #14171c; color: #9aa6b6; font-size: 11.5px;">{{one.source}}</div>
+        <div style="padding: 9px 10px; background: #14171c; color: #a8b2c0; font-size: 11.5px;">{{one.clock}}</div>
+        <div style="padding: 9px 10px; background: #14171c; color: #e6eaf1; font-size: 12px; font-variant-numeric: tabular-nums;">{{one.seen}}</div>
+        <div style="padding: 9px 10px; background: #14171c; color: {{one.colour}}; font-size: 12px;">{{one.verdict}}</div>
+        <div style="padding: 9px 10px; background: #14171c; color: #a8b2c0; font-size: 12px; line-height: 1.45;">{{{one.why}}}</div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="padding: 16px 24px 0; display: flex; gap: 16px;">
+    <div style="flex: 1 1 0; padding: 12px 14px; border: 1px solid #3b5f7a; border-radius: 8px; background: #101820;">
+      <div style="font-size: 11px; letter-spacing: .06em; color: #8fc4e8; margin-bottom: 6px;">ILE WIERSZY Z TEGO WYCHODZI</div>
+      <div style="font-size: 12.5px; color: #d3e6f5; line-height: 1.6;">Mediana <strong style="color: #eaf4ff;">2</strong>, dziewiętnaście na dwadzieścia <strong style="color: #eaf4ff;">4</strong>, najwyższy blok w korpusie <strong style="color: #eaf4ff;">7</strong> — i zdarzył się 14 razy na 5 993. Milczy przy 214 przepisaniach (4%), wobec 24% przy węższej regule rundy „dymek". <strong style="color: #eaf4ff;">Dopisek przestaje być rzadki.</strong></div>
+    </div>
+    <div style="flex: 1 1 0; padding: 12px 14px; border: 1px solid #5c4530; border-radius: 8px; background: #1a1410;">
+      <div style="font-size: 11px; letter-spacing: .06em; color: #e8b48b; margin-bottom: 6px;">DWA ODCZYTY TEJ SAMEJ RZECZY SIĘ RÓŻNIĄ — I TO JEST ZNALEZISKO</div>
+      <div style="font-size: 12.5px; color: #e8c3a2; line-height: 1.6;">Dotyk anioła: <strong style="color: #f6dcc4;">193</strong> wierszy tutaj, <strong style="color: #f6dcc4;">175</strong> w rundzie „dymek". Ta runda liczy zapalenie <strong style="color: #f6dcc4;">na przepisaniu payloadu</strong>, tamta na zdarzeniu — bo dymek powstaje raz na payload. Różnica jest w granularności, nie w kluczu, i jest tu zapisana zamiast wygładzona (<strong style="color: #f6dcc4;">V6</strong>).</div>
+    </div>
+  </div>
+
+  <div style="flex: 1 1 0; margin: 16px 24px 20px; padding: 13px 15px; border: 1px solid #2c323c; border-radius: 8px; background: #14171c;">
+    <div style="font-size: 11px; letter-spacing: .06em; color: #8f9bb0; margin-bottom: 7px;">CZEGO W TEJ TABELI NIE MA, CHOĆ GRACZ BY GO SZUKAŁ</div>
+    <div style="font-size: 12.5px; color: #a8b2c0; line-height: 1.65;"><strong style="color: #e6eaf1;">Ładowanego ciosu.</strong> Gra rysuje go w <em>tym samym</em> dymku — <span style="color: #9aa6b6;">.sc-content</span> niesie nazwę, procent i tury z tego samego <span style="color: #9aa6b6;">super_cast</span>. Nasz wiersz stałby pod identycznym wierszem ich, 422 razy na 5 993 przepisań (runda „dymek"). <strong style="color: #e6eaf1;">Dopisek ma mówić to, czego gra nie mówi</strong> — i to jest jedyne kryterium, które tę tabelę porządkuje.</div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1120}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+  "items": [
+    {
+      "name": "Tury wykonane",
+      "source": "fight-statistics.ts · turnsTaken",
+      "clock": "liczba, bez mianownika",
+      "seen": "5 710 (95%)",
+      "verdict": "wchodzi",
+      "colour": "#00d083",
+      "why": "Gra nie pokazuje tego nigdzie. ⚠️ Dziś <strong style=\"color: #e6eaf1;\">nie dociera do pisarza dymka</strong>: engine-tooltip.ts dostaje maski statusów, a statystyki idą osobnym kanałem do panelu. To jest koszt tego wiersza."
+    },
+    {
+      "name": "Prowokacja — wyzwany",
+      "source": "shout · ADR 0103",
+      "clock": "tury wyzwanego",
+      "seen": "547",
+      "verdict": "wchodzi",
+      "colour": "#00d083",
+      "why": "Jedyna pozycja z kompletem: od kogo, na kogo, ile tur. Licznik jest <strong style=\"color: #e6eaf1;\">własny dla każdego trzymanego</strong>, więc ma sens tylko przy nim."
+    },
+    {
+      "name": "Prowokacja — wyzywający",
+      "source": "shout · slot celu",
+      "clock": "—",
+      "seen": "302",
+      "verdict": "wchodzi jako liczba",
+      "colour": "#6bb5ff",
+      "why": "Lista imion przy krzyczącym to przy dziesięciorgu <strong style=\"color: #e6eaf1;\">208 znaków</strong> w jednej linii, wobec 93 najdłuższej, jaką dodatek kiedykolwiek wpisał. Liczba, nie lista."
+    },
+    {
+      "name": "Przyspieszenie",
+      "source": "aura-sa_per + bit speed_up",
+      "clock": "część posiadanej wartości",
+      "seen": "98% chwil z figurą",
+      "verdict": "wchodzi z procentem",
+      "colour": "#00d083",
+      "why": "Bit świadczy nosiciela, a wartość niesie ogłoszenie. W 52% chwil stoją dwa źródła — wtedy figurą jest ich suma."
+    },
+    {
+      "name": "Spowolnienie",
+      "source": "allslow_per + bit swow_down",
+      "clock": "część posiadanej wartości",
+      "seen": "33% chwil z figurą",
+      "verdict": "wchodzi, procent warunkowo",
+      "colour": "#6bb5ff",
+      "why": "W 67% chwil bit świeci bez żadnego ogłoszenia nad nosicielem. Wiersz stoi wtedy <strong style=\"color: #e6eaf1;\">bez procentu</strong>, jak dziś."
+    },
+    {
+      "name": "Dotyk anioła",
+      "source": "+legbon_holytouch",
+      "clock": "tury noszącego, 2 z 3",
+      "seen": "193",
+      "verdict": "wchodzi",
+      "colour": "#00d083",
+      "why": "Jedyny efekt poza ciosem specjalnym, któremu wolno napisać mianownik — runda „dymek\" zaświadczyła koniec: 70 zapaleń, żadna seria ponad trzy."
+    },
+    {
+      "name": "Ostatni ratunek",
+      "source": "legbon_lastheal",
+      "clock": "dwa stany",
+      "seen": "30",
+      "verdict": "wchodzi, jedno słowo",
+      "colour": "#00d083",
+      "why": "„Zużyty\" albo cisza. Trzeciego stanu — „ma jeszcze\" — protokół nie niesie, bo o posiadaniu bonusu milczy aż do odpalenia."
+    },
+    {
+      "name": "Aura ochrony",
+      "source": "aura-ac_per + aura-resall",
+      "clock": "udział i punkty procentowe naraz",
+      "seen": "—",
+      "verdict": "bez procentu przy postaci",
+      "colour": "#ed9c00",
+      "why": "Maska nie ma dla niej bitu, więc <strong style=\"color: #e6eaf1;\">nic nie świadczy, że stoi akurat na tej postaci</strong>. Stoi dalej w Pomocniku, pod rzucającym."
+    },
+    {
+      "name": "Okrzyki — poza trzymaniem",
+      "source": "alllowdmg, active_decblock_per-enemies, aura-adddmg2_per-meele",
+      "clock": "udział i punkty procentowe",
+      "seen": "—",
+      "verdict": "bez procentu przy postaci",
+      "colour": "#ed9c00",
+      "why": "Jak wyżej: bez bitu nie ma świadka. Dwa okrzyki niosą <strong style=\"color: #e6eaf1;\">różne klucze</strong>, i to jest jedyne, co je w ogóle rozróżnia."
+    },
+    {
+      "name": "Stany z maski",
+      "source": "w[].buffs · dziewięć bitów",
+      "clock": "własne tury nosiciela",
+      "seen": "6 172",
+      "verdict": "stoi już dziś",
+      "colour": "#6bb5ff",
+      "why": "To jest cała dzisiejsza linia. Runda jej nie rusza poza dopisaniem procentu tam, gdzie wolno."
+    }
+  ]
+};
+  }
+}
+</script>
+</body>
+</html>

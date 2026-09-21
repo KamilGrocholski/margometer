@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Teraz — co już stoi w tym dymku</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0b0d10; }
+</style>
+</helmet>
+<div style="width: 1360px; height: 900px; box-sizing: border-box; background: #0b0d10; color: #c8cdd6; font-size: 13px; line-height: 1.5; display: flex; flex-direction: column;">
+
+  <div style="padding: 22px 24px 14px; display: flex; flex-direction: column; gap: 6px;">
+    <div style="font-size: 26px; font-weight: 600; color: #e6eaf1;">Teraz — co już stoi w tym dymku</div>
+    <div style="font-size: 14px; color: #a8b2c0;">Jedna linia nasza, reszta gry. Runda zaczyna od tego, co tam jest, bo dopisek ma mówić to, czego gra nie mówi — i tylko to.</div>
+    <div style="font-size: 12px; color: #737f8f;">Wszystkie figury z <span style="color: #9aa6b6;">design/dziesiec/measured.json</span> — 2026-09-21, captures/, 35 recordings. Szkielet dymka z budowy <span style="color: #9aa6b6;">Bb28FQty</span>. Korpus nie ma walki dziesięciu na dziesięciu — dwudziestka jest rysunkiem, nie pomiarem.</div>
+  </div>
+
+  <div style="padding: 0 24px 16px; display: flex; gap: 18px;">
+    <div style="width: 320px; display: flex; flex-direction: column; gap: 10px;">
+      <div style="font-size: 11px; letter-spacing: .06em; color: #8f9bb0;">DYMEK GRY, DZIŚ</div>
+      <div style="padding: 9px; border: 1px dashed #3a424d; border-radius: 6px; background: #0f1216;">
+        <div style="border: 1px solid #4a515c; border-radius: 4px; background: #23262b; padding: 6px 8px; font-size: 11px; line-height: 15px; color: #d7dbe0;">
+          <div style="font-size: 9px; color: #7d858f; letter-spacing: .06em;">RYSUJE GRA — STYL NIEMIERZONY</div>
+          <div style="font-weight: 600; color: #f0f2f4;">Hildur</div>
+          <div style="color: #a9b0b8;">Wojownik, poziom 120</div>
+          <div>45 231 / 60 000 (75%)</div>
+          <div style="color: #a9b0b8;">Cios specjalny: Nawałnica lodu 60% (2 tury)</div>
+          <div style="margin-top: 4px; color: #7fe0ab;">MargoMeter · Zatrucie 3 tury, Spowolnienie 2 tury</div>
+        </div>
+      </div>
+      <div style="padding: 11px 13px; border: 1px solid #2c323c; border-radius: 8px; background: #14171c;">
+        <div style="font-size: 12.5px; color: #a8b2c0; line-height: 1.6;">Jedna linia, pisana przez <span style="color: #9aa6b6;">concatTip</span> — klienta własną metodą, do rejestru stringów, który gra i tak nadpisuje przy następnym payloadzie. <strong style="color: #e6eaf1;">Żaden węzeł nie powstaje</strong>, i to jest cały powód, dla którego ADR 0105 w ogóle przeszedł.</div>
+      </div>
+    </div>
+
+    <div style="flex: 1 1 0; display: flex; flex-direction: column; gap: 12px;">
+      <div style="display: flex; gap: 12px;">
+        <div style="flex: 1 1 0; padding: 12px 14px; border: 1px solid #2c323c; border-radius: 8px; background: #14171c;">
+          <div style="font-size: 11px; letter-spacing: .06em; color: #8f9bb0; margin-bottom: 6px;">CO TA LINIA NIESIE</div>
+          <div style="font-size: 12.5px; color: #a8b2c0; line-height: 1.65;">Stany z maski i ich <strong style="color: #e6eaf1;">własne tury nosiciela</strong> — 6 172 wierszy na 5 993 przepisań. Mianownika nie ma i nie będzie: <strong style="color: #e6eaf1;">gra nie publikuje długości żadnego z dziewięciu stanów</strong>, więc ułamek byłby wymyślony (ADR 0104). Najdłuższa linia, jaka kiedykolwiek poszła: <strong style="color: #e6eaf1;">93 znaków</strong>.</div>
+        </div>
+        <div style="flex: 1 1 0; padding: 12px 14px; border: 1px solid #2c323c; border-radius: 8px; background: #14171c;">
+          <div style="font-size: 11px; letter-spacing: .06em; color: #8f9bb0; margin-bottom: 6px;">CZEGO NIE NIESIE</div>
+          <div style="font-size: 12.5px; color: #a8b2c0; line-height: 1.65;">Niczego, co nie jest stanem z maski. Przy 1 505 przepisaniach na 5 993 maska nie miała nic do powiedzenia i <strong style="color: #e6eaf1;">linia w ogóle nie powstawała</strong> — postać wyglądała wtedy tak, jakby dodatku nie było.</div>
+        </div>
+      </div>
+
+      <div style="padding: 12px 14px; border: 1px solid #3b5f7a; border-radius: 8px; background: #101820;">
+        <div style="font-size: 11px; letter-spacing: .06em; color: #8fc4e8; margin-bottom: 7px;">CO GRA MÓWI SAMA — I CZEGO RUNDA NIE POWTÓRZY</div>
+        <div style="font-size: 12.5px; color: #d3e6f5; line-height: 1.7;">Imię, profesja, poziom, życie w punktach i procentach, oraz <strong style="color: #eaf4ff;">cios specjalny z nazwą, procentem i turami</strong> — ten ostatni z tego samego <span style="color: #9aa6b6;">super_cast</span>, z którego wziąłby go panel. Ikony stanów rysuje też sama: <strong style="color: #eaf4ff;">czego nie rysuje, to ile każdy z nich stoi</strong>, i dokładnie po to ADR 0105 tę linię dopisał.</div>
+      </div>
+
+      <div style="padding: 12px 14px; border: 1px solid #2c323c; border-radius: 8px; background: #14171c; flex: 1 1 0;">
+        <div style="font-size: 11px; letter-spacing: .06em; color: #8f9bb0; margin-bottom: 7px;">CO STOI W POMOCNIKU, OBOK PANELU — CYTAT, NIE PROPOZYCJA</div>
+        <div style="font-size: 12.5px; color: #a8b2c0; line-height: 1.7;"><strong style="color: #e6eaf1;">Teraz</strong> — czyja tura. <strong style="color: #e6eaf1;">Co stoi</strong> — wiersz na umiejętność sięgającą strony, pod nim rzucający i <span style="color: #9aa6b6;">Minęło · 3 z 8 tur</span>. <strong style="color: #e6eaf1;">Prowokacja</strong> — kto krzyknął, którym okrzykiem, i wiersz na każdego trzymanego z <em>jego</em> licznikiem. <strong style="color: #e6eaf1;">Co kto nosi</strong> — to samo, co dzisiejsza linia w dymku, tylko dla wszystkich naraz.</div>
+        <div style="font-size: 12.5px; color: #a8b2c0; line-height: 1.7; margin-top: 8px;">Żadna z tych sekcji <strong style="color: #e6eaf1;">nie rysuje ani jednej figury</strong> — mówi, co stoi i jak długo, i nigdy ile to daje. <span style="color: #737f8f;">To jest luka 17 w ARCHITECTURE.md, i to o nią pyta ta runda.</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin: 0 24px 20px; padding: 13px 15px; border: 1px solid #2c5c45; border-radius: 8px; background: #101a15;">
+    <div style="font-size: 11px; letter-spacing: .06em; color: #7fc6a1; margin-bottom: 7px;">GDZIE DOKŁADNIE PRZEBIEGA GRANICA, KTÓREJ TA RUNDA DOTYKA</div>
+    <div style="font-size: 12.5px; color: #cfe6da; line-height: 1.7;">Dzisiejszy dopisek to <strong style="color: #eafaf1;">jeden string</strong>. Wszystko, o co runda została zapytana, to <strong style="color: #eafaf1;">wiersze z kolumnami</strong> — etykieta po lewej, wartość po prawej, elipsa na długim imieniu. Kolumna to znacznik, a <span style="color: #9aa6b6;">SECURITY.md</span> mówi dziś „<em>No node is made, moved, removed or styled</em>". <strong style="color: #eafaf1;">To zdanie jest jedyną rzeczą, która dzieli tę rundę od kodu</strong> — i rusza je ADR, nie commit.</div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {};
+  }
+}
+</script>
+</body>
+</html>
