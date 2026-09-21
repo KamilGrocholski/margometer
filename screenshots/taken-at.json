@@ -1,32 +1,32 @@
 {
-    "commit": "cee352ec06255eaf6725dbe0a340d4e57e81fd4c",
-    "version": "0.17.0",
-    "fight": "2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0",
-    "takenAt": "2026-09-15T20:19:55.346Z",
+    "commit": "6d0f0b69d51b313bd3c873261fb42f981a39ea61",
+    "version": "0.18.0",
+    "fight": "2026-09-11-luvia-grupa-vs-amaimon-Cl9U89Zr-0.15.0",
+    "takenAt": "2026-09-21T09:03:42.414Z",
     "shots": [
         {
             "name": "panel-ranking.png",
-            "entry": 11
+            "entry": 78
         },
         {
             "name": "panel-opened.png",
-            "entry": 11
+            "entry": 78
         },
         {
             "name": "panel-deep.png",
-            "entry": 11
+            "entry": 78
         },
         {
             "name": "panel-half-named.png",
-            "entry": 11
+            "entry": 78
         },
         {
             "name": "panel-card.png",
-            "entry": 11
+            "entry": 78
         },
         {
             "name": "panel-shelf.png",
-            "entry": 15
+            "entry": 99
         }
     ]
 }

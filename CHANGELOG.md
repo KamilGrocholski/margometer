@@ -37,7 +37,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
-## [Niewydane]
+## [0.18.0] — 2026-09-21
 
 - **Nowość** — MargoMeter instaluje się teraz jednym kliknięciem ze strony z podglądem, która
   najpierw prowadzi przez to, bez czego nic nie ruszy: menedżer skryptów i przełącznik w Chrome i
