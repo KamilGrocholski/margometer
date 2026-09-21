@@ -1967,7 +1967,7 @@ A reduction of the target's chance to block, granted by the announced skill.
 
 _Shape:_ 315 occurrences; on a skill announcement; a whole number
 
-_Help:_ names `active_decblock_per`
+_Help:_ names `active_decblock_per`, `tur ukończonych przez Postać rzucającą`
 
 _Evidence:_ article view,372 (read 2026-08-09) names it among the effects that lower block chance.
 On `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 26 occurrences with values
@@ -1981,7 +1981,7 @@ protocol uses elsewhere for the same distinction.
 
 _Shape:_ 118 occurrences; on a skill announcement; a whole number
 
-_Help:_ names `active_decblock_per-enemies`
+_Help:_ names `active_decblock_per-enemies`, `od tur przeciwników`
 
 _Evidence:_ article view,372 (read 2026-08-09), which lists it beside `decblock_per` and
 `active_decblock_per`. On `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 11
@@ -2037,7 +2037,7 @@ An aura raising armour, granted to the announcer's team.
 
 _Shape:_ 46 occurrences; on a skill announcement; a whole number
 
-_Help:_ names `aura-ac_per`
+_Help:_ names `aura-ac_per`, `wykonanych przez nich tur`
 
 _Evidence:_ article view,372 (read 2026-08-09), which lists it among the effects that raise armour.
 On `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 4 occurrences, every value
@@ -2050,7 +2050,7 @@ An aura raising the team's resistances to fire, cold and lightning, in percentag
 
 _Shape:_ 46 occurrences; on a skill announcement; a whole number
 
-_Help:_ names `aura-resall`
+_Help:_ names `aura-resall`, `wykonanych przez nich tur`
 
 _Evidence:_ article view,372 (read 2026-08-09) at the engine name `aura-resall`. On
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 4 occurrences, every value
@@ -2063,7 +2063,7 @@ An aura raising the team's attack speed.
 
 _Shape:_ 99 occurrences; on a skill announcement; a whole number
 
-_Help:_ names `aura-sa_per`
+_Help:_ names `aura-sa_per`, `wykonanych przez nich tur`
 
 _Evidence:_ article view,372 (read 2026-08-09), which lists it among the attack-speed effects. On
 `captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, 4 occurrences, every value
@@ -2322,7 +2322,7 @@ already raised.
 
 _Shape:_ 48 occurrences; on a skill announcement; a whole number
 
-_Help:_ names `adddmg2`
+_Help:_ names `adddmg2`, `wykonanych przez nich tur`
 
 _Evidence:_ article view,372 at the engine name `aura-adddmg2_per-meele` (read 2026-08-09) — the
 help prints this key in full, unusually — stated as raising the damage of every team member who
@@ -2338,7 +2338,7 @@ already multiplied, so nothing here totals it — the argument the auras above a
 
 _Shape:_ 1 occurrences; on a skill announcement; a whole number
 
-_Help:_ names `critval-allies`, `critval`
+_Help:_ names `critval-allies`, `critval`, `wykonanych przez nich tur`
 
 _Evidence:_ article view,372 at the engine name `critval-allies` (read 2026-08-26) files it as a
 passive raising the physical critical strength — and the auxiliary one, where an offhand weapon is
@@ -2358,7 +2358,7 @@ nothing, for the same one.
 
 _Shape:_ 1 occurrences; on a skill announcement; a whole number
 
-_Help:_ names `critmval-allies`, `critmval`
+_Help:_ names `critmval-allies`, `critmval`, `wykonanych przez nich tur`
 
 _Evidence:_ article view,372 at the engine name `critmval-allies` (read 2026-08-26) files it as a
 passive raising the magical critical strength for every member of the party, its variable being the

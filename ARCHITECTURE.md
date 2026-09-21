@@ -110,6 +110,7 @@ tools/             Never ships. Each arrives with the question it answers.
   card-height.ts       How tall the card a row opens stands, in lines, over the recordings.
   turn-count.ts        What a fight's turns come to, graded against the game's own numbering.
   aura-standing.ts     What one skill put on a whole side, and how many stood at once.
+  aura-lifetime.ts     How long a status really stood, read off the mask every payload restates.
   turn-reading.ts      How a message becomes a turn, and which message a dispute stands on.
   preview-page.ts      The harness page, whole, as one string. It speaks neither language.
   preview-state.ts     What the harness carries between two pages, in the address and nowhere else.
@@ -123,6 +124,7 @@ tools/             Never ships. Each arrives with the question it answers.
   game-client-source.ts  The client fetched and dated, and the cache nothing published leaves.
   skill-table.ts       The published skill table fetched, dated and frozen: the one duration.
   protocol-key-table.ts  Every key that client branches on, lifted out of its own switch.
+  buff-bit-table.ts    The statuses a combatant's mask is read by, in the order they are registered.
   protocol-key-shape.ts  What every key states about itself, over the recordings.
   help-article.ts      The published help cached, searched raw, and counted into a reading.
   help-claim-register.ts  What `docs/protocol-keys.md` claims of the help, read out of it.
@@ -140,6 +142,7 @@ frozen/            Dated readings of the game, written by tooling.
   aura-turns.ts    GENERATED. The skills reaching a side, which is what the bundle carries.
   blows-granted.ts GENERATED. The skills granting an attack, and the blows an announced id reaches.
   help-phrases.ts  GENERATED. How often each cited phrase occurs in the help.
+  buff-bits.ts     GENERATED. The statuses a mask carries, where the position is the bit.
 docs/
   protocol-keys.md   What has been looked into, key by key: verdict, evidence, state.
   releasing.md       The steps a release runs, and which of them a machine holds.
@@ -198,6 +201,7 @@ tests/
     fabricated-fight.test.ts  A fight nobody fought, against the register of every key read.
     turn-count.test.ts        The register against every recording graded, both ways round.
     aura-standing.test.ts     `docs/auras-standing.md` against the corpus, both ways round.
+    aura-lifetime.test.ts     Whose turns a length runs on: the mask, and the help under each key.
     unannounced-damage.test.ts  `docs/unannounced-damage.md` against every recording.
     skill-table.test.ts       The published table's shape, and a page that is no longer it.
     turn-reading.test.ts      The disputed openers, and this reading against the panel's.

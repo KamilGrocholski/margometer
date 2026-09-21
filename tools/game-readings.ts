@@ -11,6 +11,7 @@
 import { assert, assertStrictEquals } from "@std/assert";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
+import { FROZEN_BUFF_BITS } from "@/frozen/buff-bits.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import {
     type CachedClientSource,
@@ -20,6 +21,7 @@ import {
     writeClientSourceCache,
 } from "@/tools/game-client-source.ts";
 import { GameUnreachableError } from "@/tools/margometer-tool-error.ts";
+import { writeFrozenBuffBits } from "@/tools/buff-bit-table.ts";
 import { writeFrozenKeyTable } from "@/tools/protocol-key-table.ts";
 import {
     type CachedSkillTable,
@@ -50,10 +52,15 @@ export const EXIT_STALE = 1;
 export const EXIT_UNASKED = 2;
 const NAME_COLUMN = 14;
 /** Every reading this routine reports on, so a row quietly dropped fails rather than hides. */
-export const READINGS_REPORTED = 6;
+export const READINGS_REPORTED = 7;
 const SAYS_COLUMN = 66;
 
 export interface FrozenKeyReading {
+    build: string;
+    count: number;
+}
+
+export interface FrozenBuffReading {
     build: string;
     count: number;
 }
@@ -71,6 +78,7 @@ export interface FrozenSkillReading {
 /** What the frozen modules held when this process started, in the order a refresh writes them. */
 export interface LoadedReadings {
     keys: FrozenKeyReading;
+    buffs: FrozenBuffReading;
     help: FrozenHelpReading;
     skills: FrozenSkillReading;
 }
@@ -150,6 +158,31 @@ export function composeFrozenKeyState(
         name: "frozen keys",
         verdict: frozen.build === cached.build ? "current" : "stale",
         says: `cached ${cached.build}  frozen ${frozen.build}  ${count} keys`,
+    };
+}
+
+/**
+ * The frozen bit table against the same bundle the keys are held to. A mask is read by position,
+ * so a bit inserted ahead of another renames every status after it without changing a count.
+ */
+export function composeFrozenBuffState(
+    frozen: FrozenBuffReading,
+    cached: CachedClientSource | null,
+): ReadingState {
+    const count = composeIntegerText(frozen.count);
+    assert(frozen.build.length > 0, "a frozen bit table is dated by a build");
+    assert(frozen.count > 0, "and counts something");
+    if (cached === null) {
+        return {
+            name: "frozen buffs",
+            verdict: "stale",
+            says: `frozen ${frozen.build}, ${NOTHING_CACHED}`,
+        };
+    }
+    return {
+        name: "frozen buffs",
+        verdict: frozen.build === cached.build ? "current" : "stale",
+        says: `cached ${cached.build}  frozen ${frozen.build}  ${count} bits`,
     };
 }
 
@@ -244,6 +277,7 @@ function composeFrozenSkillState(
  */
 export function getLoadedReadings(): LoadedReadings {
     const keys = { build: FROZEN_PROTOCOL_KEYS.gameBuild, count: FROZEN_PROTOCOL_KEYS.keys.length };
+    const buffs = { build: FROZEN_BUFF_BITS.gameBuild, count: FROZEN_BUFF_BITS.bits.length };
     const help = {
         fetchedAt: FROZEN_HELP_PHRASES.fetchedAt,
         count: Object.keys(FROZEN_HELP_PHRASES.counts).length,
@@ -254,7 +288,7 @@ export function getLoadedReadings(): LoadedReadings {
     };
     assert(keys.build.length > 0, "a module that was loaded is dated by a build");
     assert(help.fetchedAt.length > 0, "and the other by the dump it was counted over");
-    return { keys, help, skills };
+    return { keys, buffs, help, skills };
 }
 
 /**
@@ -281,6 +315,7 @@ async function readReadingStates(
     const states = [
         await readClientState(client),
         composeFrozenKeyState(frozen.keys, client),
+        composeFrozenBuffState(frozen.buffs, client),
         composeHelpDumpState(dump, now),
         composeFrozenHelpState(frozen.help, dump),
         composeSkillDumpState(table, now),
@@ -313,6 +348,8 @@ async function writeRefreshedReadings(): Promise<LoadedReadings> {
     console.log(`client        build ${client.build} → ${client.bundlePath}`);
     const keys = writeFrozenKeyTable();
     console.log(`frozen keys   ${composeIntegerText(keys.count)} keys from build ${keys.build}`);
+    const buffs = writeFrozenBuffBits();
+    console.log(`frozen buffs  ${composeIntegerText(buffs.count)} bits from build ${buffs.build}`);
     const dump = await writeHelpArticleCache(MECHANICS_ARTICLE);
     console.log(
         `help dump     ${composeIntegerText(dump.textLength)} characters → ${dump.textPath}`,
@@ -335,6 +372,7 @@ async function writeRefreshedReadings(): Promise<LoadedReadings> {
     assert(help.counts.length > 0, "and froze counts over the dump it had just fetched");
     return {
         keys: { build: keys.build, count: keys.count },
+        buffs: { build: buffs.build, count: buffs.count },
         help: { fetchedAt: help.fetchedAt, count: help.counts.length },
         skills: { fetchedAt: skills.fetchedAt, count: skills.skills },
     };

@@ -168,7 +168,7 @@ edited to agree with the new rule.
 - [0058](0058-the-skill-table-is-a-frozen-reading.md) — The skill table is a frozen reading, and the
   descriptions stay out. **Accepted**
 - [0059](0059-what-stands-says-what-has-passed-and-never-what-is-left.md) — What stands says what
-  has passed, and never what is left. **Accepted**
+  has passed, and never what is left. **Superseded by 0101 in part**
 - [0060](0060-a-grip-says-which-window-it-drags.md) — A grip says which window it drags.
   **Accepted**
 - [0061](0061-a-cast-stands-on-a-side-and-names-only-whom-the-game-names.md) — A cast stands on a
@@ -252,3 +252,5 @@ edited to agree with the new rule.
   and Greasy Fork is a second way in. **Accepted**
 - [0100](0100-every-row-in-the-window-beside-the-panel-carries-a-card.md) — Every row in the window
   beside the panel carries a card. **Accepted**
+- [0101](0101-a-length-is-counted-on-whoever-is-carrying-it.md) — A length is counted on whoever is
+  carrying it, not on whoever cast it. **Accepted**

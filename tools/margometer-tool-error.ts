@@ -14,6 +14,7 @@ export type MargoMeterToolErrorCode =
     | "GameUnreachable"
     | "ProtocolKeyTable"
     | "ProtocolKeyShape"
+    | "BuffBitTable"
     | "SkillTable"
     | "HelpArticle"
     | "DeclaredVersion"
@@ -21,6 +22,7 @@ export type MargoMeterToolErrorCode =
     | "DrillReport"
     | "TurnCount"
     | "TurnReading"
+    | "AuraLifetime"
     | "CardHeight";
 
 export abstract class MargoMeterToolError extends Error {
@@ -110,6 +112,13 @@ export class ProtocolKeyShapeError extends MargoMeterToolError {
     }
 }
 
+/** The bit table refused: a bundle that no longer registers the statuses a mask is read by. */
+export class BuffBitTableError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super("BuffBitTable", reason, options);
+    }
+}
+
 /**
  * The skill table refused: a page that is no longer the shape this reader takes columns at. Read
  * off by one it would freeze a description where the effects were, so it stops instead.
@@ -171,6 +180,13 @@ export class TurnReadingError extends MargoMeterToolError {
 export class FabricatedFightError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super("FabricatedFight", reason, options);
+    }
+}
+
+/** The lifetime walk refused: a recording whose masks or turns it cannot read straight. */
+export class AuraLifetimeError extends MargoMeterToolError {
+    constructor(reason: string) {
+        super("AuraLifetime", reason);
     }
 }
 

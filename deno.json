@@ -64,6 +64,7 @@
         // `docs/auras-standing.md` carries what one skill put on a whole side, against the
         // turns the published table states.
         "fight:auras": "deno run -A tools/aura-standing.ts",
+        "fight:life": "deno run -A tools/aura-lifetime.ts",
         // How a recording the add-on wrote becomes material: two redactions, then a file.
         "capture:intake": "deno run -A tools/capture-intake.ts",
         // The client fetched and dated, so a claim about it can name the build it was read on.
@@ -79,6 +80,7 @@
         "game:shape": "deno run -A tools/protocol-key-shape.ts",
         // Every skill the game publishes, and the turns each effect runs for — the only source
         // stating a duration at all. What `Co stoi` draws its second half from.
+        "game:buffs": "deno run -A tools/buff-bit-table.ts",
         "game:skills": "deno run -A tools/skill-table.ts",
         // The published help, cached and searched, and the counts a register claim is held to.
         "game:help": "deno run -A tools/help-article.ts",

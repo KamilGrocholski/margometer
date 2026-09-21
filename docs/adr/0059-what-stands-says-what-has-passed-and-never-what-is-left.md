@@ -1,6 +1,6 @@
 # 0059. What stands says what has passed, and never what is left
 
-- **Status:** Accepted
+- **Status:** Superseded by 0101 in part
 - **Date:** 2026-09-08
 
 ## Context
@@ -33,9 +33,11 @@ is the reader's, because the join is witnessed by nothing.
 was cast — a median of eight rows by the end of a fight (**ADR 0058**) — and its heading would be a
 claim the panel cannot stand behind.
 
-**The length is counted in the bearer's own turns, taken and lost both**, because a turn granted and
+**The length is counted in the caster's own turns, taken and lost both**, because a turn granted and
 spent on nothing still passed for whoever is carrying it. A second cast by the same caster of the
-same skill **refreshes** rather than adding a row.
+same skill **refreshes** rather than adding a row. ⚠️ **Whose turns those are is what 0101
+supersedes** — this sentence said the bearer's and the code has always taken the clock off the
+caster, which on a side-wide cast is right for exactly one of the people the row covers.
 
 **A skill stating several team-wide effects is dated by the longest of them**, so a skill is not
 called over while part of it is still running. `Wyzywający okrzyk` runs one for three turns and two

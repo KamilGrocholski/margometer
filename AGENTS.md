@@ -565,6 +565,7 @@ the same thing a second way.
 | `tests/tools/fabricated-fight.test.ts`        | the fabricated fight against the key register                                    |
 | `tests/tools/turn-count.test.ts`              | `docs/turns-taken.md` against every recording                                    |
 | `tests/tools/aura-standing.test.ts`           | `docs/auras-standing.md` against every recording                                 |
+| `tests/tools/aura-lifetime.test.ts`           | whose turns a length runs on: the mask, and the help clause under each key       |
 | `tests/tools/unannounced-damage.test.ts`      | `docs/unannounced-damage.md` against every recording                             |
 | `tests/tools/turn-reading.test.ts`            | `docs/reading-a-turn.md`, and it on the panel                                    |
 | `tests/tools/browser-support.test.ts`         | `docs/browser-support.md` against the stylesheet                                 |

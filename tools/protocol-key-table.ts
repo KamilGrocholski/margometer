@@ -10,7 +10,7 @@
  */
 
 import { assert, assertNotStrictEquals, assertStrictEquals } from "@std/assert";
-import { getEndOfRun, isDigitAt } from "@/libs/text-walk.ts";
+import { getEndOfRun, getQuotedLiteral, isDigitAt, JAVASCRIPT_QUOTES } from "@/libs/text-walk.ts";
 import { composeJsonWriting } from "@/libs/json-text.ts";
 import { composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { getCachedBundle, getCachedClientSource } from "@/tools/game-client-source.ts";
@@ -33,16 +33,7 @@ const BLOCK_OPEN = "{";
 const BLOCK_CLOSE = "}";
 const ESCAPE = "\\";
 
-/**
- * Any of the three quotings JavaScript has, because which one a build uses is the bundler's taste
- * and not the client's meaning. The class admits a mismatched pair, which no valid source holds,
- * and every use sits inside a longer shape that decides what it is reading.
- */
-const QUOTES = "\"'`";
-
-/** Past the longest literal any bundle here states, so the walk stays a stated bound. */
-const MAXIMUM_LITERAL_CHARACTERS = 65536;
-/** Past the label count of any switch the client has written, for the same reason. */
+/** Past the label count of any switch the client has written, so the walk stays a stated bound. */
 const MAXIMUM_CASE_LABELS = 4096;
 /** Past the number of places `[0]){` or a shape's opening text occurs in three megabytes. */
 const MAXIMUM_LOOKS = 65536;
@@ -121,25 +112,6 @@ function isNameCharacterAt(source: string, index: number): boolean {
     return NAME_CHARACTERS.includes(character);
 }
 
-/** The text inside a quoted literal at `open`, and where it ends. */
-function getQuotedLiteral(source: string, open: number): { text: string; end: number } | null {
-    const opening = source.charAt(open);
-    if (opening === "") return null;
-    if (!QUOTES.includes(opening)) return null;
-
-    let index = open + 1;
-    for (let look = 0; look < MAXIMUM_LITERAL_CHARACTERS; look += 1) {
-        const character = source.charAt(index);
-        if (character === "") return null;
-        if (QUOTES.includes(character)) {
-            assert(index > open, "a literal closes after it opened");
-            return { text: source.slice(open + 1, index), end: index + 1 };
-        }
-        index += 1;
-    }
-    return null;
-}
-
 /** The block starting at the first `{` after `from`, brace-matched, strings skipped. */
 function getBlockBody(source: string, from: number): string {
     const start = source.indexOf(BLOCK_OPEN, from);
@@ -154,7 +126,7 @@ function getBlockBody(source: string, from: number): string {
             else if (character === quote) quote = "";
             continue;
         }
-        if (QUOTES.includes(character)) quote = character;
+        if (JAVASCRIPT_QUOTES.includes(character)) quote = character;
         else if (character === BLOCK_OPEN) depth += 1;
         else if (character === BLOCK_CLOSE) {
             depth -= 1;

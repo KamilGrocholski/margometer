@@ -45,9 +45,13 @@ changing attack speed and never says whose. Measured instead: after a `Szadź`, 
 ## What is drawn, and what is not
 
 The window draws **what has passed of what the table states** — `3 z 8 tur` — and never a countdown.
-Both halves are honest on their own: the first is counted in the caster's own turns, the second is
-the game's own published figure. The subtraction is the reader's, and it is theirs because the
-protocol never says the effect ended.
+The first half is counted in the **caster's** own turns, the second is the game's own published
+figure. The subtraction is the reader's, and it is theirs because the protocol never says the effect
+ended.
+
+⚠️ **The two halves are counted on two different clocks, and the section below is why.** The
+published figure is the bearer's, the counted one is the caster's, and a fraction joining them is a
+claim neither source makes. The window is unchanged until that is decided — **ADR 0101**.
 
 **A shout is drawn under whoever threw it**, with the characters it holds as rows under that, and
 its turns stated once — they are the cast's, not each held character's. Which of the two okrzyki it
@@ -64,6 +68,76 @@ joined to the table by nothing. And `poison_lowdmg_per-enemies` is the one team-
 
 **No totals in prose.** How many casts the corpus holds changes with the next recording, so it is
 measured rather than written down (**V5**).
+
+## Whose turns a length is counted in
+
+⚠️ **The panel counts on the caster and both sources say the bearer.** `src/core/aura-standing.ts`
+takes the clock off `casterId`, so one cast leaves every row at one moment. The help dates a length
+to whoever is carrying it, and the mask goes out per bearer. **ADR 0101** carries what follows.
+
+**The published help states whose turns for ten of its keys, and six of them are ours.** Each row is
+a clause counted in `frozen/help-phrases.ts` and cited by that key's entry in
+`docs/protocol-keys.md`, so the reading is re-earned rather than remembered (article `view,372`,
+read 2026-09-15).
+
+| clause                                   | keys it stands under                                                                                       | whose turns   |
+| ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------- |
+| `wykonanych przez nich tur`              | `aura-ac_per`, `aura-resall`, `aura-sa_per`, `aura-adddmg2_per-meele`, `critval-allies`, `critmval-allies` | each bearer's |
+| `od tur przeciwników`                    | `active_decblock_per-enemies`                                                                              | each bearer's |
+| `tur ukończonych przez Postać rzucającą` | `active_decblock_per`                                                                                      | the caster's  |
+
+⚠️ **The help does not state one rule, it states one per key.** The last row is the control: the
+single-target spelling of the same effect is dated to the caster, and the side-wide one is not. So a
+reading that gave every key the caster's clock was never the help's, and the six above are every
+team-wide key the help dates at all. It dates none of the others, `shout` included.
+
+**What the mask does, measured over `captures/`.** The status mask **ADR 0061** set aside —
+`w[].buffs`, one integer per combatant in every payload, its bits named in `frozen/buff-bits.ts` —
+is the only channel that says what somebody is carrying right now. `tools/aura-lifetime.ts` asks it
+one question: where one moment lights a status on several combatants, do they all lose it together.
+
+```bash
+deno task fight:life                  # the register below
+deno task fight:life --cases          # every lighting that reached more than one bearer
+```
+
+`lit` counts the lightings seen at all, `shared` the ones reaching more than one bearer, `together`
+those whose bearers went out at one step and `apart` those who did not. `agreeing` counts the shared
+lightings every bearer carried for the same count of **their own** turns, and `apart+agree` the ones
+that did both. `own` is the length most runs came to, over `runs` of them.
+
+| status                | lit | shared | together | apart | agreeing | apart+agree | own | runs |
+| --------------------- | --: | -----: | -------: | ----: | -------: | ----------: | --: | ---: |
+| `deep_wound`          |   6 |      0 |        0 |     0 |        0 |           0 |   9 |    2 |
+| `wound`               |  40 |      0 |        0 |     0 |        0 |           0 |   3 |   15 |
+| `critical_deep_wound` |   0 |      0 |        0 |     0 |        0 |           0 |   0 |    0 |
+| `poisoned`            |  21 |      1 |        0 |     1 |        1 |           1 |   5 |    5 |
+| `fire`                |  17 |      0 |        0 |     0 |        0 |           0 |   2 |    9 |
+| `swow_down`           |  46 |      9 |        1 |     8 |        3 |           2 |   3 |   23 |
+| `speed_up`            |  80 |     18 |        3 |    15 |        7 |           6 |   8 |   28 |
+| `frostbite`           |   0 |      0 |        0 |     0 |        0 |           0 |   0 |    0 |
+| `shock`               |  10 |      0 |        0 |     0 |        0 |           0 |   3 |    4 |
+
+⚠️ **`apart+agree` is the column that settles it.** One moment lights several bearers, each carries
+it for the same count of their own turns, and they go out at different moments. A clock on the
+caster produces one going-out, so every row in that column is a row no such clock accounts for.
+
+**`speed_up` lands on the published figure, on the bearer's clock.** `Podwójny dech` announces
+`aura-sa_per` and the table dates it eight turns; eight is also the length most runs of that status
+came to. The two agree, and they agree in the bearer's turns and not the caster's.
+
+⚠️ **A refresh nobody saw reads as one long run.** A second cast landing while the bit is lit makes
+no 0→1 edge, so the run that closes is the pair — which is why `own` is the length most runs came to
+rather than a mean, and why the column above it carries lengths the table dates nothing for.
+
+⚠️ **`swow_down` does not land on a published figure, and the register already said so.**
+`allslow_per` is the one key this document does not settle, and the mask does not name which cast
+lit a bit (**ADR 0061**), so a slow from a skill the corpus never dates lands in the same column.
+
+⚠️ **No bit stands for a provocation.** The frozen table names nine statuses and a shout is none of
+them, so what holds a shouted character for three turns is witnessed by nothing here. The claim that
+a shout runs on the shouted character's turns is neither carried nor refused by this material, and
+the help dates `shout` nowhere. It stays open, which is a different thing from being answered.
 
 ## How much it comes to
 
