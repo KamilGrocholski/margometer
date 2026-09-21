@@ -16,7 +16,6 @@ import {
     CAVEATS,
     CHOICE_REFUSED_ANSWER,
     composeCardSubtitleText,
-    composeCarriedTooltipLine,
     composeChargedRowsText,
     composeCountedNoun,
     composeDefectText,
@@ -33,6 +32,7 @@ import {
     composeShelfSizeText,
     composeSideCountsText,
     composeStandingTurnsText,
+    composeTooltipRows,
     composeTurnOrdinalText,
     composeUndrawnText,
     composeUnknownKeyRowSuspicion,
@@ -309,30 +309,126 @@ Deno.test("each way a fight can end has its own word, and no two share one", () 
     assertEquals(new Set(words).size, words.length, "and no ending borrows another's word");
 });
 
+/** A fighter with nothing standing on them, so a test says only what it is about. */
+const NOTHING_CARRIED = {
+    turnsTaken: 0,
+    provokedBy: null,
+    provokes: 0,
+    statuses: [],
+    holytouchTurnsElapsed: null,
+    hasSpentLastheal: false,
+};
+
 /**
- * The one line the add-on puts outside its own root, so it is read here twice over: L3 holds it
- * like every other sentence, and this holds the two things only it has to answer for.
+ * The rows the add-on puts outside its own root, so they are read here twice over: L3 holds them
+ * like every other sentence, and this holds the things only they have to answer for.
  */
-Deno.test("the line handed to the game says whose it is, and carries no markup", () => {
-    const said = composeCarriedTooltipLine([{ bit: 6, turnsElapsed: 3 }], null);
-    assertExists(said, "a status carried composes a line");
-    assertStringIncludes(said, "MargoMeter", "which says whose it is, outside the panel");
-    assertEquals(said.includes("<"), false, "and never opens markup in somebody else's string");
-    assertEquals(said.includes("&"), false, "nor an entity in one");
+Deno.test("the block handed to the game says whose it is, and carries no markup", () => {
+    const said = composeTooltipRows({
+        ...NOTHING_CARRIED,
+        statuses: [{ bit: 6, turnsElapsed: 3, percent: null, length: null }],
+    }, null);
+    const first = said[0];
+    assertExists(first, "a status carried composes a row");
+    assertEquals(first, "MargoMeter", "the name stands alone, over the rows and not inside one");
+    for (const row of said) {
+        assertEquals(row.includes("<"), false, "and no row opens markup in somebody else's string");
+        assertEquals(row.includes("&"), false, "nor an entity in one");
+    }
+});
+
+/**
+ * ⚠️ **Only the first row carries the name.** The client's own `<br>` puts the rows under one
+ * another inside one tooltip, so repeating it would say it once per row to the same reader.
+ */
+Deno.test("the add-on names itself once, however many rows it has", () => {
+    const said = composeTooltipRows({
+        ...NOTHING_CARRIED,
+        turnsTaken: 14,
+        statuses: [{ bit: 6, turnsElapsed: 3, percent: null, length: null }],
+    }, null);
+    assertEquals(said.length, 3, "the name, a status and a count of turns");
+    assertEquals(said.filter((row) => row.includes("MargoMeter")).length, 1, "named once");
+});
+
+/**
+ * ⚠️ **A figure stands only where `core/carried-figure.ts` said one may.** Null is the common
+ * answer and the row is then what it always was — the status, and how long it has stood.
+ */
+Deno.test("a status with no figure to its name says how long it has stood and no more", () => {
+    const bare = composeTooltipRows({
+        ...NOTHING_CARRIED,
+        statuses: [{ bit: 6, turnsElapsed: 3, percent: null, length: null }],
+    }, null);
+    assertEquals(bare[1]?.includes("%"), false, "no figure where none may be said");
+    const figured = composeTooltipRows({
+        ...NOTHING_CARRIED,
+        statuses: [{ bit: 6, turnsElapsed: 3, percent: 39, length: null }],
+    }, null);
+    assertStringIncludes(figured[1] ?? "", "39%", "and the figure where one may");
+});
+
+/**
+ * ⚠️ **The two counts a status can carry are different readings.** The mask's own says how long
+ * the bit has been lit for the bearer, which starts when a payload first restates them carrying
+ * it; the cast's says how far through the effect is on them. Where both are to hand the row
+ * draws the second, and this is what a reader saw go wrong: `0 tur` on a buff just cast.
+ */
+Deno.test("a status a cast dates says how far through it is, not how long we have seen it", () => {
+    const dated = composeTooltipRows({
+        ...NOTHING_CARRIED,
+        statuses: [{
+            bit: 6,
+            turnsElapsed: 0,
+            percent: 20,
+            length: { turnsElapsed: 0, turnsStated: 8 },
+        }],
+    }, null);
+    assertStringIncludes(dated[1] ?? "", "0 z 8 tur", "nought of eight, and never a bare nought");
+});
+
+/**
+ * **W5: zero is a boundary, and here it is the one that was wrong.** A bit lit on a turn the
+ * bearer has not finished has stood for none of them, and `0 tur` in somebody else's tooltip
+ * reads as none left. Where no cast dates it there is nothing true to put there, so the row says
+ * the status and stops.
+ */
+Deno.test("a status nothing dates, just lit, says no length at all", () => {
+    const said = composeTooltipRows({
+        ...NOTHING_CARRIED,
+        statuses: [{ bit: 6, turnsElapsed: 0, percent: null, length: null }],
+    }, null);
+    assertEquals(said.length, 2, "the name, and the status still said under it");
+    assertEquals(said[1]?.includes("0"), false, "and no count of nought is said beside it");
+});
+
+/** The okrzyk from either end: what holds somebody, and how many somebody holds. */
+Deno.test("a provocation is said at the end it is read from", () => {
+    const held = composeTooltipRows({
+        ...NOTHING_CARRIED,
+        provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
+    }, null);
+    assertStringIncludes(held[1] ?? "", "Gracz 2", "the held fighter is told who holds them");
+    assertStringIncludes(held[1] ?? "", "1 z 3 tur", "and how far through their own turns it is");
+    const shouting = composeTooltipRows({ ...NOTHING_CARRIED, provokes: 10 }, null);
+    assertStringIncludes(shouting[1] ?? "", "10 postaci", "the shouter is told how many, not whom");
 });
 
 Deno.test("a label the client answers with markup is refused rather than escaped", () => {
     const speak = (id: string) => id === "speed_up" ? "<b>szybko</b>" : null;
     assertEquals(
-        composeCarriedTooltipLine([{ bit: 6, turnsElapsed: 3 }], speak),
-        null,
+        composeTooltipRows({
+            ...NOTHING_CARRIED,
+            statuses: [{ bit: 6, turnsElapsed: 3, percent: null, length: null }],
+        }, speak),
+        [],
         "the answer is the client's, and one this repository cannot use is left alone",
     );
 });
 
-/** **W5: zero is a boundary.** Nothing carried composes no line, which is not an empty one. */
-Deno.test("a fighter carrying nothing composes no line at all", () => {
-    assertEquals(composeCarriedTooltipLine([], null), null, "and the game's tooltip is untouched");
+/** **W5: zero is a boundary.** Nothing carried composes no row, which is not an empty one. */
+Deno.test("a fighter carrying nothing composes no row at all", () => {
+    assertEquals(composeTooltipRows(NOTHING_CARRIED, null), [], "the game's tooltip is untouched");
 });
 
 Deno.test("no sentence carries our vocabulary", () => {

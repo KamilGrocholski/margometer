@@ -62,6 +62,8 @@ function composeStanding(
         turnsStated: 8,
         reach: "other-side",
         chosenTargetId: null,
+        amountByKey: new Map(),
+        turnsAtCastByCombatantId: new Map(),
         ...over,
     };
 }

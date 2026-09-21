@@ -217,11 +217,15 @@ function composeBattleWithWarriors(landed: TooltipLanding[]): Record<string, unk
 
 /**
  * ⚠️ **The failure this test was written for, and it shipped once.** The client rebuilds a
- * fighter's tooltip only while updating them, and a payload carries only what moved — so a line
- * put on a fighter the payload did not restate lands on the line already there. Over `captures/`
- * that is 8631 payloads of 14309, so the second copy is the common case, not the edge.
+ * fighter's tooltip only while updating them, and a payload carries only what moved — so a row
+ * put on a fighter the payload did not restate lands under the rows already there. Over
+ * `captures/` that is 8631 payloads of 14309, so the second copy is the common case, not the edge.
+ *
+ * **A fighter takes one block, and its rows go over together.** Several rows per fighter is the
+ * shape now, so what is held is that nobody is come back to: an id that stops and starts again
+ * inside one payload is a fighter whose tooltip was written to twice.
  */
-Deno.test("a line is put only on the fighters this payload restated", () => {
+Deno.test("rows are put only on the fighters this payload restated, and once each", () => {
     const landed: TooltipLanding[] = [];
     const battle = composeBattleWithWarriors(landed);
     const { environment } = composeEnvironment({ Engine: { battle } });
@@ -233,13 +237,22 @@ Deno.test("a line is put only on the fighters this payload restated", () => {
         const before = landed.length;
         update(payload);
         const stated = readStatedIdsFromPayload(payload);
+        const opened = new Set<number>();
+        let last: number | null = null;
         for (const one of landed.slice(before)) {
             assert(stated.has(one.combatantId), `${one.combatantId} was not in this payload`);
+            if (one.combatantId !== last) {
+                assert(!opened.has(one.combatantId), `${one.combatantId} was written to twice`);
+                opened.add(one.combatantId);
+                last = one.combatantId;
+            }
             written += 1;
         }
-        // Nobody twice in one payload: a fighter is stated once, so a line lands once.
-        const reached = landed.slice(before).map((one) => one.combatantId);
-        assertStrictEquals(new Set(reached).size, reached.length, "and nobody was written twice");
+        assertStrictEquals(
+            opened.size > 0,
+            landed.length > before,
+            "a payload wrote or it did not",
+        );
     }
     assert(written > 0, "the recording carries fighters carrying something");
 });

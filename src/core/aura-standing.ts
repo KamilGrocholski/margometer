@@ -117,6 +117,17 @@ export interface AuraStanding {
      * end and not the bearer, and reading it would credit the wrong combatant (**ADR 0010**).
      */
     chosenTargetId: number | null;
+    /**
+     * What the announcement stated each key at, carried and never totalled here. It is a figure
+     * about the **cast**; whether it may be said of a combatant is `core/carried-figure.ts`'s.
+     */
+    amountByKey: ReadonlyMap<string, number>;
+    /**
+     * Everybody's own turn count as the cast stood. It is what lets a length be counted on the
+     * **bearer's** turns, which is the clock the published help dates four of these keys to
+     * (`docs/auras-standing.md`) and the one `turnsElapsed` above is not.
+     */
+    turnsAtCastByCombatantId: ReadonlyMap<number, number>;
 }
 
 /**
@@ -226,6 +237,24 @@ interface AuraCast {
     chosenTargetId: number | null;
     /** The shout half, or null where the cast is not a shout. */
     shout: CastShout | null;
+    amountByKey: ReadonlyMap<string, number>;
+    /** Everybody's own turn count as the cast stood, so a bearer can be dated on their own. */
+    turnsAtCastByCombatantId: ReadonlyMap<number, number>;
+}
+
+/**
+ * What the announcement stated each of its keys at. Read here and totalled nowhere: what one
+ * figure comes to on one combatant is `core/carried-figure.ts`'s, which is the only reader that
+ * knows whom the mask says it is standing on.
+ */
+function composeAmountByKey(declared: readonly DeclaredEffect[]): Map<string, number> {
+    const found = new Map<string, number>();
+    for (const one of declared) {
+        if (one.amount === null) continue;
+        found.set(one.effect, one.amount);
+    }
+    assert(found.size <= declared.length, "no key states more figures than it was declared with");
+    return found;
 }
 
 /**
@@ -265,12 +294,13 @@ function readProvokedNames(declared: readonly DeclaredEffect[]): string[] {
 function getAuraCastFromEvent(
     event: BattleEvent,
     stated: StatedSkills,
-    turnsTaken: number,
+    turnsByCombatantId: ReadonlyMap<number, number>,
 ): AuraCast | null {
     if (event.kind !== "skill-used") return null;
     if (event.actorId === null) return null;
     if (event.skillId === null) return null;
     if (!event.declared.some((one) => isTeamWideKey(one.effect))) return null;
+    const turnsTaken = turnsByCombatantId.get(event.actorId) ?? 0;
     const isPointed = event.declared.some((one) => one.effect === PROVOCATION_KEY);
     const shouted = isPointed ? stated.shoutsBySkillId.get(event.skillId) : undefined;
     const turnsStated = stated.turnsBySkillId.get(event.skillId) ?? null;
@@ -289,6 +319,10 @@ function getAuraCastFromEvent(
         reach: getReachFromEffects(event.declared),
         chosenTargetId: isPointed ? event.targetId : null,
         shout,
+        amountByKey: composeAmountByKey(event.declared),
+        // Copied rather than held: the walk goes on counting, and a cast dated by a map that
+        // keeps moving would be dated by wherever the fight ended (**S9**).
+        turnsAtCastByCombatantId: new Map(turnsByCombatantId),
     };
 }
 
@@ -370,10 +404,7 @@ function composeAuraWalk(
             addAuraTurnTaken(walk.turnsByCombatantId, event.combatantId);
         }
         standing = composeTurnStanding(event, standing);
-        const taken = event.kind === "skill-used" && event.actorId !== null
-            ? walk.turnsByCombatantId.get(event.actorId) ?? 0
-            : 0;
-        const cast = getAuraCastFromEvent(event, stated, taken);
+        const cast = getAuraCastFromEvent(event, stated, walk.turnsByCombatantId);
         if (cast === null) continue;
         assert(walk.bySkill.size <= MAXIMUM_STANDINGS, "a fight stays inside its stated bound");
         assert(walk.byProvoked.size <= MAXIMUM_STANDINGS, "and so does what it holds people by");
@@ -458,6 +489,8 @@ function composeStandingsFromCasts(
             turnsStated: cast.turnsStated,
             reach: cast.reach,
             chosenTargetId: cast.chosenTargetId,
+            amountByKey: cast.amountByKey,
+            turnsAtCastByCombatantId: cast.turnsAtCastByCombatantId,
         });
     }
     assert(found.length <= castByKey.size, "no more stands than was cast");

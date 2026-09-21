@@ -17,8 +17,15 @@ import {
     composeAuraTurnsBySkillId,
     composeFightStandings,
     composeShoutsBySkillId,
+    type FightStandings,
     type StatedSkills,
 } from "@/src/core/aura-standing.ts";
+import {
+    type CarriedFigure,
+    composeCarriedFigures,
+    composeWitnessedKeyByBit,
+} from "@/src/core/carried-figure.ts";
+import { FROZEN_BUFF_BITS } from "@/frozen/buff-bits.ts";
 import { FROZEN_AURA_TURNS } from "@/frozen/aura-turns.ts";
 import { FROZEN_BLOWS_GRANTED } from "@/frozen/blows-granted.ts";
 import { composeBlowsGrantedBySkillId } from "@/src/core/fight-decoder.ts";
@@ -74,7 +81,7 @@ import {
 } from "@/src/game/kept-fights.ts";
 import type { ReportSubject } from "@/src/game/fight-report.ts";
 import { readDictionaryFromPage, type TranslateLabel } from "@/src/game/game-dictionary.ts";
-import { writeLinesToTooltips } from "@/src/game/engine-tooltip.ts";
+import { writeRowsToTooltips } from "@/src/game/engine-tooltip.ts";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { composeDefectKeeper, type KeptDefects } from "@/src/ui/panel-defect.ts";
 import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
@@ -117,11 +124,13 @@ import {
 } from "@/src/ui/panel-drag.ts";
 import {
     CHOICE_REFUSED_ANSWER,
-    composeCarriedTooltipLine,
     composePlaceWords,
+    composeTooltipRows,
     EVERY_SLOT_PINNED_ANSWER,
+    PANEL_WORDS,
     STORE_MADE_ROOM_ANSWER,
     STORE_REFUSED_ANSWER,
+    type TooltipReading,
 } from "@/src/ui/panel-words.ts";
 
 const FAILURE_LINE = "MargoMeter/Panel";
@@ -143,6 +152,11 @@ const STATED_SKILLS: StatedSkills = {
     turnsBySkillId: composeAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills),
     shoutsBySkillId: composeShoutsBySkillId(FROZEN_AURA_TURNS.shouts),
 };
+/**
+ * Which status a key states a figure for, at the position the client registered it. The third
+ * frozen reading handed to `core`, and for the same reason as the two above it.
+ */
+const WITNESSED_KEY_BY_BIT = composeWitnessedKeyByBit(FROZEN_BUFF_BITS.bits);
 /** The same reading, for the other question the table answers (**ADR 0078**). */
 const BLOWS_GRANTED_BY_SKILL_ID = composeBlowsGrantedBySkillId(FROZEN_BLOWS_GRANTED.skills);
 
@@ -1574,12 +1588,50 @@ function setLiveFightOpened(screen: ScreenState): void {
 }
 
 /**
- * The add-on's one line onto every fighter the game is already drawing a tooltip for. **After the
+ * What one fighter's tooltip would say, gathered from the four readers that know part of it: the
+ * mask says what stands on them, the announcements say how much, the clock says how long, and
+ * the two legendary bonuses say what is running and what is spent.
+ */
+function composeTooltipReadingFor(
+    combatantId: number,
+    fight: FightReading,
+    held: FightStandings,
+    figures: ReadonlyMap<string, CarriedFigure>,
+): TooltipReading {
+    const legendary = fight.legendaryStandings.find((one) => one.combatantId === combatantId);
+    const provoked = held.provocations.find((one) => one.provokedId === combatantId);
+    const caster = provoked === undefined ? undefined : fight.roster.byId.get(provoked.casterId);
+    return {
+        turnsTaken: fight.turnsByCombatantId.get(combatantId) ?? 0,
+        provokedBy: provoked === undefined ? null : {
+            name: caster?.name ?? PANEL_WORDS.withoutActor,
+            turnsElapsed: provoked.turnsElapsed,
+            turnsStated: provoked.turnsStated,
+        },
+        provokes: held.provocations.filter((one) => one.casterId === combatantId).length,
+        statuses: fight.carriedStatuses.filter((one) => one.combatantId === combatantId).map(
+            (one) => {
+                const figure = figures.get(`${one.combatantId}/${one.bit}`);
+                return {
+                    bit: one.bit,
+                    turnsElapsed: one.turnsElapsed,
+                    percent: figure?.percent ?? null,
+                    length: figure?.length ?? null,
+                };
+            },
+        ),
+        holytouchTurnsElapsed: legendary?.holytouchTurnsElapsed ?? null,
+        hasSpentLastheal: legendary?.hasSpentLastheal ?? false,
+    };
+}
+
+/**
+ * The add-on's own rows onto every fighter the game is already drawing a tooltip for. **After the
  * engine's own call**, which is where the wrap puts us: the game rebuilds each tooltip on this
- * same payload, so a line written before it would be the one the game had just thrown away.
+ * same payload, so a row written before it would be one the game had just thrown away.
  *
  * Guarded here as well as inside the writer, because this is the panel's own layer reaching into
- * somebody else's program and a throw of theirs must cost a line and never the fight (**E5**).
+ * somebody else's program and a throw of theirs must cost a row and never the fight (**E5**).
  */
 function writeCarriedToTooltips(
     live: LiveFight,
@@ -1592,27 +1644,34 @@ function writeCarriedToTooltips(
         const fight = getReadingFromFight(underway);
         if (fight === null) return;
         // ⚠️ **Only whom this payload restated.** The client rebuilds a fighter's tooltip while
-        // updating them and at no other time, so a line put on anybody else lands on the line
+        // updating them and at no other time, so a row put on anybody else lands under the rows
         // already there — measured over `captures/` on 2026-09-21, a combatant already seen is
         // absent from 8631 payloads of 14309, so the second copy is the common case and not the
         // edge. Their count cannot have moved either: it is counted in their own turns, and a
         // turn of theirs is a payload that states them.
         const stated = readStatedIdsFromPayload(payload);
-        const byCombatantId = new Map<number, { bit: number; turnsElapsed: number }[]>();
-        for (const one of fight.carriedStatuses) {
-            if (!stated.has(one.combatantId)) continue;
-            const held = byCombatantId.get(one.combatantId) ?? [];
-            held.push({ bit: one.bit, turnsElapsed: one.turnsElapsed });
-            byCombatantId.set(one.combatantId, held);
+        const held = composeFightStandings(fight.events, STATED_SKILLS, fight.roster);
+        const figures = new Map<string, CarriedFigure>();
+        for (
+            const one of composeCarriedFigures({
+                statuses: fight.carriedStatuses,
+                standings: held.standings,
+                roster: fight.roster,
+                turnsByCombatantId: fight.turnsByCombatantId,
+                witnessed: WITNESSED_KEY_BY_BIT,
+            })
+        ) {
+            figures.set(`${one.combatantId}/${one.bit}`, one);
         }
-        const lines = new Map<number, string>();
-        for (const [combatantId, statuses] of byCombatantId) {
-            const line = composeCarriedTooltipLine(statuses, live.translate);
-            if (line === null) continue;
-            lines.set(combatantId, line);
+        const rows = new Map<number, readonly string[]>();
+        for (const combatantId of stated) {
+            const reading = composeTooltipReadingFor(combatantId, fight, held, figures);
+            const said = composeTooltipRows(reading, live.translate);
+            if (said.length === 0) continue;
+            rows.set(combatantId, said);
         }
-        if (lines.size === 0) return;
-        writeLinesToTooltips(environment.page, lines);
+        if (rows.size === 0) return;
+        writeRowsToTooltips(environment.page, rows);
     } catch (failure) {
         defects.add("region", null, failure);
     }

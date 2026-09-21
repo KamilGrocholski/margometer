@@ -23,6 +23,13 @@ import {
     composeCarriedStatuses,
     composeCarriedStatusWalk,
 } from "@/src/core/carried-status.ts";
+import {
+    addPayloadToLegendaryStandings,
+    composeLegendaryStandings,
+    composeLegendaryWalk,
+    type LegendaryStanding,
+    type LegendaryWalk,
+} from "@/src/core/legendary-standing.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import {
     getNumberFromUnknown,
@@ -135,12 +142,23 @@ export interface FightReading {
     chargedSkills: readonly ChargedSkillStanding[];
     /** What each combatant is carrying, and for how many of their own turns — **ADR 0104**. */
     carriedStatuses: readonly CarriedStatus[];
+    /** The two legendary bonuses a fighter's own tooltip can be honest about. */
+    legendaryStandings: readonly LegendaryStanding[];
+    /**
+     * Turns taken per combatant, off the clock the statuses above are counted on. The same
+     * arithmetic as `CombatantFigures.turnsTaken` and kept level with it by
+     * `tests/core/turn-clocks.test.ts`, which is what lets a reading that holds no statistics
+     * still say how many turns somebody took.
+     */
+    turnsByCombatantId: ReadonlyMap<number, number>;
 }
 
 export interface FightUnderway {
     combatants: Combatant[];
     /** Kept rather than recomposed: a status is a run between payloads, so it needs a memory. */
     carried: CarriedStatusWalk;
+    /** Kept for the same reason: a bonus is a run, and one of the two fires exactly once. */
+    legendary: LegendaryWalk;
     events: BattleEvent[];
     messagesByPayload: string[][];
     messagesLost: number;
@@ -171,6 +189,7 @@ export function composeFightUnderway(): FightUnderway {
         isOnAuto: false,
         chargedSkills: [],
         carried: composeCarriedStatusWalk(),
+        legendary: composeLegendaryWalk(),
     };
     return underway;
 }
@@ -220,6 +239,7 @@ function resetFight(underway: FightUnderway): void {
     underway.isOnAuto = false;
     underway.chargedSkills = [];
     underway.carried = composeCarriedStatusWalk();
+    underway.legendary = composeLegendaryWalk();
     assert(underway.payloads === 0, "a fight reset stands on no payload");
 }
 
@@ -355,6 +375,12 @@ export function addPayloadToFight(
         read.decoded,
         readStatusMasksFromPayload(payload),
     );
+    // After the statuses, because the clock they advanced is the one a bonus is dated on.
+    addPayloadToLegendaryStandings(
+        underway.legendary,
+        read.decoded,
+        underway.carried.turnsByCombatantId,
+    );
     if (FIGHT_ENDS_KEY in payload) underway.isOver = true;
     assert(underway.messagesLost >= 0, "what a payload stated and nobody read is never negative");
     assert(underway.messagesRead >= read.messages.length, "and what it did read is counted once");
@@ -406,5 +432,10 @@ export function getReadingFromFight(underway: FightUnderway): FightReading | nul
         isOnAuto: underway.isOnAuto,
         chargedSkills: underway.chargedSkills,
         carriedStatuses: composeCarriedStatuses(underway.carried),
+        legendaryStandings: composeLegendaryStandings(
+            underway.legendary,
+            underway.carried.turnsByCombatantId,
+        ),
+        turnsByCombatantId: underway.carried.turnsByCombatantId,
     };
 }

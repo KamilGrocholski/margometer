@@ -19,7 +19,7 @@ import {
     NO_TURN_STANDING,
     type TurnStanding,
 } from "@/src/core/fight-statistics.ts";
-import { composeCarriedTooltipLine, getWordsForStatusBit } from "@/src/ui/panel-words.ts";
+import { composeCarriedTurnsText, getWordsForStatusBit } from "@/src/ui/panel-words.ts";
 import { readStatedIdsFromPayload } from "@/src/game/engine-warrior.ts";
 import { FROZEN_BUFF_BITS } from "@/frozen/buff-bits.ts";
 import { PLACE, SHAPE, SPACE, SURFACE, TEXT } from "@/src/ui/panel-look.ts";
@@ -84,6 +84,21 @@ function setClockPastEvent(clock: TurnClock, event: BattleEvent): void {
 }
 
 /** One combatant's open run of the effect, kept while the corpus says it is still standing. */
+/**
+ * The one line the add-on wrote into a tooltip **on the date this round was taken**, composed
+ * here because the shipped composer now writes a row at a time. Same words, same separators, so
+ * the figure below stays comparable with what was measured then.
+ */
+function composeLineAsMeasured(statuses: readonly { bit: number; turnsElapsed: number }[]): string {
+    assert(statuses.length >= 0, "a line is composed of what somebody carries");
+    const said = statuses.map((one) =>
+        `${getWordsForStatusBit(one.bit, null)} ${composeCarriedTurnsText(one.turnsElapsed)}`
+    );
+    assert(said.length === statuses.length, "and says one thing about each of them");
+    if (said.length === 0) return "";
+    return `MargoMeter \u00b7 ${said.join(", ")}`;
+}
+
 interface HolytouchRun {
     turnsAtLighting: number;
     heals: number;
@@ -389,8 +404,8 @@ function composeBlockMeasured(fights: readonly RecordedFight[]): BlockMeasured {
                 carried.push(statuses.length);
                 rows.push(inBlock);
                 if (inBlock === 0) saysNothing += 1;
-                const line = composeCarriedTooltipLine(statuses, null);
-                if (line !== null) lineTodayLongest = Math.max(lineTodayLongest, line.length);
+                const line = composeLineAsMeasured(statuses);
+                lineTodayLongest = Math.max(lineTodayLongest, line.length);
             }
         }
     }

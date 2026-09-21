@@ -7,7 +7,7 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { writeLinesToTooltips } from "@/src/game/engine-tooltip.ts";
+import { writeRowsToTooltips } from "@/src/game/engine-tooltip.ts";
 
 interface Landed {
     name: string;
@@ -38,13 +38,13 @@ function composePage(warriors: unknown[]) {
     return { Engine: { battle: { warriorsList } } };
 }
 
-Deno.test("a line lands on the fighter it was composed for, and on nobody else", () => {
+Deno.test("a block lands on the fighter it was composed for, and on nobody else", () => {
     const landed: Landed[] = [];
     const page = composePage([
         composeWarrior(11, "Gracz 1", landed),
         composeWarrior(21, "Renegat 1", landed),
     ]);
-    const writing = writeLinesToTooltips(page, new Map([[11, "MargoMeter · Zatrucie 3 tury"]]));
+    const writing = writeRowsToTooltips(page, new Map([[11, ["MargoMeter · Zatrucie 3 tury"]]]));
     assertEquals(writing, { written: 1, asked: 1 }, "one line asked for, one landed");
     assertEquals(
         landed,
@@ -61,7 +61,7 @@ Deno.test("a client with no way to add to a tooltip takes no line, and says so",
     const landed: Landed[] = [];
     const page = composePage([composeWarrior(11, "Gracz 1", landed, { hasAppend: false })]);
     assertEquals(
-        writeLinesToTooltips(page, new Map([[11, "cokolwiek"]])),
+        writeRowsToTooltips(page, new Map([[11, ["cokolwiek"]]])),
         { written: 0, asked: 1 },
         "asked for one and landed none",
     );
@@ -81,7 +81,7 @@ Deno.test("a fighter with no way to take a line costs their own line and nobody 
         composeWarrior(21, "Renegat 1", landed),
         composeWarrior(31, "Renegat 2", landed),
     ]);
-    const writing = writeLinesToTooltips(page, new Map([[11, "a"], [21, "b"], [31, "c"]]));
+    const writing = writeRowsToTooltips(page, new Map([[11, ["a"]], [21, ["b"]], [31, ["c"]]]));
     assertStrictEquals(writing.written, 2, "the two that could take one did");
     assertEquals(
         landed.map((one) => one.name),
@@ -96,7 +96,7 @@ Deno.test("a fighter the page has not drawn is stepped over, not thrown on", () 
         composeWarrior(11, "Gracz 1", landed, { hasElement: false }),
         composeWarrior(21, "Renegat 1", landed),
     ]);
-    const writing = writeLinesToTooltips(page, new Map([[11, "a"], [21, "b"]]));
+    const writing = writeRowsToTooltips(page, new Map([[11, ["a"]], [21, ["b"]]]));
     assertStrictEquals(writing.written, 1, "the one that is drawn takes its line");
     assertEquals(landed.map((one) => one.name), ["Renegat 1"], "and the other costs nothing");
 });
@@ -105,21 +105,50 @@ Deno.test("a call of theirs that throws costs the lines and never the fight", ()
     const landed: Landed[] = [];
     const page = composePage([composeWarrior(11, "Gracz 1", landed, { doesThrowOnFind: true })]);
     assertEquals(
-        writeLinesToTooltips(page, new Map([[11, "cokolwiek"]])),
+        writeRowsToTooltips(page, new Map([[11, ["cokolwiek"]]])),
         { written: 0, asked: 1 },
         "the count is the mark, and the throw did not leave this file",
     );
 });
 
 Deno.test("a page with no fight on it takes nothing, which is not a failure", () => {
-    assertEquals(writeLinesToTooltips({}, new Map([[11, "a"]])), { written: 0, asked: 1 });
-    assertEquals(writeLinesToTooltips(null, new Map([[11, "a"]])), { written: 0, asked: 1 });
+    assertEquals(writeRowsToTooltips({}, new Map([[11, ["a"]]])), { written: 0, asked: 1 });
+    assertEquals(writeRowsToTooltips(null, new Map([[11, ["a"]]])), { written: 0, asked: 1 });
+});
+
+/**
+ * ⚠️ **One call per row, and the client's own `<br>` is the break between them.** This is what
+ * buys the block its shape without this add-on writing a tag — so a writer that joined the rows
+ * itself would be writing markup, which is exactly what `SECURITY.md` says it does not do.
+ */
+Deno.test("every row goes over on a call of its own", () => {
+    const landed: Landed[] = [];
+    const page = composePage([composeWarrior(11, "Gracz 1", landed)]);
+    const rows = ["MargoMeter · Wyzwany przez Gracz 2 · 1 z 3 tur", "Spowolnienie 3 tury"];
+    const writing = writeRowsToTooltips(page, new Map([[11, rows]]));
+    assertEquals(writing, { written: 1, asked: 1 }, "one fighter asked for, one written");
+    assertEquals(landed.map((one) => one.content), rows, "each row on its own call, in order");
+});
+
+/**
+ * ⚠️ **A fighter with nothing to say is not written to at all.** Appending an empty block would
+ * still cost a `<br>` of theirs, so the tooltip would grow a blank line for no reason.
+ */
+Deno.test("a block of no rows is never handed over", () => {
+    const landed: Landed[] = [];
+    const page = composePage([composeWarrior(11, "Gracz 1", landed)]);
+    assertEquals(
+        writeRowsToTooltips(page, new Map([[11, []]])),
+        { written: 0, asked: 1 },
+        "asked about one fighter and wrote to none",
+    );
+    assertEquals(landed, [], "and their tooltip was left as the game composed it");
 });
 
 /** **W5: zero is a boundary.** Nothing asked for is nothing written, and it is not an absence. */
-Deno.test("no line asked for is no line written, and the counts say both", () => {
+Deno.test("no block asked for is no block written, and the counts say both", () => {
     const landed: Landed[] = [];
     const page = composePage([composeWarrior(11, "Gracz 1", landed)]);
-    assertEquals(writeLinesToTooltips(page, new Map()), { written: 0, asked: 0 }, "asked nothing");
+    assertEquals(writeRowsToTooltips(page, new Map()), { written: 0, asked: 0 }, "asked nothing");
     assert(landed.length === 0, "and wrote nothing");
 });

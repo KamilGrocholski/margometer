@@ -61,6 +61,7 @@ const PREVIEW_WORDS: PreviewWords = {
     pause: "pause",
     entry: "entry",
     playing: "playing",
+    tooltips: "tooltips",
 };
 
 /**

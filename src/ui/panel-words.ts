@@ -20,6 +20,7 @@ import type { PanelNoun, PanelSideChoice, PanelStorageChoice } from "@/src/ui/pa
 import type { PanelSidePart } from "@/src/ui/panel-reading.ts";
 import type { StandingTurnState } from "@/src/ui/panel-standing.ts";
 import type { ChargedSkillState } from "@/src/core/charged-skill.ts";
+import { HOLYTOUCH_TURNS_STATED } from "@/src/core/legendary-standing.ts";
 
 export interface CountedNoun {
     one: string;
@@ -793,29 +794,155 @@ export function composeCarriedTurnsText(elapsed: number): string {
 }
 
 /**
- * What the add-on adds to the game's own tooltip for one fighter, or null where it has nothing to
- * add. **One line, and it says whose it is**: a reader meets it outside the panel, where
- * `SECURITY.md`'s guest rule asks for the add-on's own name.
- *
- * ⚠️ **It becomes part of an HTML string somebody else composed**, so a label carrying markup is
- * refused rather than escaped — the answer is the client's and refusing is what this repository
- * does with one it cannot use (**ADR 0024**, and `src/game/game-dictionary.ts` does the same).
+ * One status on one fighter. `length` is how far through the cast standing over them is, counted
+ * on **their** turns; `turnsElapsed` is the mask's own count, which is what stands where no cast
+ * dates it. The two are different readings and the row draws the better one it has.
  */
-export function composeCarriedTooltipLine(
-    statuses: readonly { bit: number; turnsElapsed: number }[],
-    translate: TranslateLabel | null,
-): string | null {
-    const said: string[] = [];
-    for (const status of statuses) {
-        if (said.length >= MAXIMUM_TOOLTIP_STATUSES) break;
-        const word = getWordsForStatusBit(status.bit, translate);
-        if (word.includes(MARKUP_OPENER)) continue;
-        if (word.includes(MARKUP_ENTITY)) continue;
-        said.push(`${word} ${composeCarriedTurnsText(status.turnsElapsed)}`);
-    }
-    if (said.length === 0) return null;
-    return `${ADD_ON_NAME} ${STANDING_WORDS.castSeparator} ${said.join(LINE_SEPARATOR)}`;
+export interface TooltipStatus {
+    bit: number;
+    turnsElapsed: number;
+    percent: number | null;
+    length: { turnsElapsed: number; turnsStated: number } | null;
 }
+
+/** One fighter, as the game's own tooltip could honestly restate them. */
+export interface TooltipReading {
+    turnsTaken: number;
+    /** Whoever is holding them with an okrzyk, and how far through the shout's turns they are. */
+    provokedBy: { name: string; turnsElapsed: number; turnsStated: number } | null;
+    /** How many characters their own okrzyk is holding. Never their names — **ADR 0103**. */
+    provokes: number;
+    /** What the mask says stands on them, with what the announcements over them come to. */
+    statuses: readonly TooltipStatus[];
+    /** Their own turns since the bonus lit, or null where it is not standing on them. */
+    holytouchTurnsElapsed: number | null;
+    hasSpentLastheal: boolean;
+}
+
+/**
+ * What the add-on adds to the game's own tooltip for one fighter: **one row per thing it has to
+ * say**, and an empty list where it has nothing.
+ *
+ * The rows go to the client one at a time, because `concatTip` puts a `<br>` of its own between
+ * whatever is there and what it is handed (production build `Bb28FQty`, read 2026-09-21) — so a
+ * block of rows costs this add-on no markup at all, and `SECURITY.md`'s _no node is made, moved,
+ * removed or styled_ stands untouched.
+ *
+ * **The first row is the add-on's name and nothing else.** A reader meets these outside the
+ * panel, where `SECURITY.md`'s guest rule asks whose they are — and a name folded into the first
+ * row indents that row past the others, so the block stops reading as a list of one thing each.
+ *
+ * ⚠️ **Each row becomes part of an HTML string somebody else composed**, so a row carrying markup
+ * is refused rather than escaped — the words in it are the client's own and refusing is what this
+ * repository does with an answer it cannot use (**ADR 0024**).
+ *
+ * The order is what a reader acts on first: the okrzyk changes whom somebody will strike next, a
+ * status changes how they strike, a legendary bonus is already spent or nearly over, and the
+ * turns are the only row about the whole fight rather than about now.
+ */
+export function composeTooltipRows(
+    reading: TooltipReading,
+    translate: TranslateLabel | null,
+): string[] {
+    const said: string[] = [];
+    addProvocationRows(said, reading);
+    addStatusRows(said, reading.statuses, translate);
+    addLegendaryRows(said, reading);
+    if (reading.turnsTaken > 0) {
+        said.push(`${TOOLTIP_WORDS.turnsTaken} ${composeFigureText(reading.turnsTaken)}`);
+    }
+    const kept = said.filter((row) => !getRowCarriesMarkup(row));
+    if (kept.length === 0) return [];
+    // The name takes a row of the bound like any other, so a block handed over is never longer
+    // than the maximum however many rows were composed.
+    return [ADD_ON_NAME, ...kept].slice(0, MAXIMUM_TOOLTIP_ROWS);
+}
+
+function addProvocationRows(said: string[], reading: TooltipReading): void {
+    const held = reading.provokedBy;
+    if (held !== null) {
+        const passed = composeStandingTurnsText(held.turnsElapsed, held.turnsStated);
+        said.push(
+            `${TOOLTIP_WORDS.provokedBy} ${held.name} ` +
+                `${STANDING_WORDS.castSeparator} ${passed}`,
+        );
+    }
+    if (reading.provokes <= 0) return;
+    const counted = composeCountedNoun(reading.provokes, COUNTED_NOUNS.combatants);
+    said.push(`${TOOLTIP_WORDS.provokes} ${counted}`);
+}
+
+/**
+ * ⚠️ **A figure stands beside a status only where one may be said of this bearer** — which is
+ * `core/carried-figure.ts`'s answer and null far more often than not. Where it is null the row
+ * is what it always was: the status, and how long it has stood.
+ */
+function addStatusRows(
+    said: string[],
+    statuses: readonly TooltipStatus[],
+    translate: TranslateLabel | null,
+): void {
+    for (const status of statuses) {
+        if (said.length >= MAXIMUM_TOOLTIP_ROWS) break;
+        const word = getWordsForStatusBit(status.bit, translate);
+        const percent = status.percent === null ? "" : ` ${composeIntegerText(status.percent)}%`;
+        const stood = getStatusStoodText(status);
+        if (stood === null) {
+            said.push(`${word}${percent}`);
+            continue;
+        }
+        said.push(`${word}${percent} ${STANDING_WORDS.castSeparator} ${stood}`);
+    }
+}
+
+/**
+ * How long it has stood, or null where nothing true can be said of it yet.
+ *
+ * ⚠️ **The mask's own count is the fallback and not the answer.** A bit lights when a payload
+ * first restates the bearer carrying it, which is turns after the cast where they were not
+ * restated at the time, and it keeps burning through a re-cast — so it answers *how long we have
+ * seen this*, and the fraction answers *how far through it is on them* (`core/carried-figure.ts`).
+ */
+function getStatusStoodText(status: TooltipStatus): string | null {
+    const length = status.length;
+    if (length !== null) return composeStandingTurnsText(length.turnsElapsed, length.turnsStated);
+    // ⚠️ **Nothing rather than nought.** `0 tur` off the mask says the bit lit on a turn the
+    // bearer has not finished, and a reader outside the panel takes it for none left. Where no
+    // cast dates the status there is nothing true to put in its place, so the row says the
+    // status and stops.
+    if (status.turnsElapsed === 0) return null;
+    return composeCarriedTurnsText(status.turnsElapsed);
+}
+
+function addLegendaryRows(said: string[], reading: TooltipReading): void {
+    const elapsed = reading.holytouchTurnsElapsed;
+    if (elapsed !== null) {
+        const passed = composeStandingTurnsText(elapsed, HOLYTOUCH_TURNS_STATED);
+        said.push(`${TOOLTIP_WORDS.holytouch} ${passed}`);
+    }
+    if (!reading.hasSpentLastheal) return;
+    said.push(`${TOOLTIP_WORDS.lastheal} ${TOOLTIP_WORDS.spent}`);
+}
+
+function getRowCarriesMarkup(row: string): boolean {
+    if (row.includes(MARKUP_OPENER)) return true;
+    return row.includes(MARKUP_ENTITY);
+}
+
+/**
+ * The words the tooltip says and the panel does not. **Two of them are the game's own** — the
+ * bonuses are named as `HEALTH_SOURCE_WORD_BY_KEY` names them, so the two surfaces cannot drift
+ * into two spellings of one thing (**N13**).
+ */
+const TOOLTIP_WORDS = {
+    provokedBy: "Wyzwany przez",
+    provokes: "Wyzywa",
+    holytouch: "Dotyk anioła",
+    lastheal: "Ostatni ratunek",
+    /** The bonus fires once a fight, so this is a state and never a count. */
+    spent: "zużyty",
+    turnsTaken: "Tury wykonane",
+} as const;
 
 /**
  * The client files the statuses a mask carries under its own category, so an id asked without one
@@ -824,12 +951,16 @@ export function composeCarriedTooltipLine(
 const STATUS_CATEGORY = "buff";
 /** What a reader meets outside the panel says whose it is — `SECURITY.md`'s guest rule. */
 const ADD_ON_NAME = "MargoMeter";
-const LINE_SEPARATOR = ", ";
-/** The two characters that would make our line part of somebody else's markup. */
+/** The two characters that would make a row of ours part of somebody else's markup. */
 const MARKUP_OPENER = "<";
 const MARKUP_ENTITY = "&";
-/** Past the statuses one mask carries, so a line handed to the game is a stated length. */
-const MAXIMUM_TOOLTIP_STATUSES = 12;
+/**
+ * Past every row one fighter has ever put up, so a block handed to the game is a stated length.
+ * The tallest over `captures/` is seven and it stood 14 times in 5 993 restatements
+ * (`design/dziesiec/measured.json`); this clamps rather than asserts, because a fighter carrying
+ * one more than the corpus ever showed is not a reason to stop drawing (**A11**, **ADR 0051**).
+ */
+const MAXIMUM_TOOLTIP_ROWS = 12;
 
 /**
  * The client's word for a status, or the key as the game wrote it — the second and third rungs of

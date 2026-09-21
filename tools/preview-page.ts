@@ -120,6 +120,12 @@ export interface PreviewWords {
      * not. A page whose figures move with no word for it reads as a page doing something unasked.
      */
     playing: string;
+    /**
+     * The heading over the column of what the add-on writes into the game's own tooltips. Drawn
+     * on a served page only: a published one has a band and two halves already, and this is a
+     * thing a person editing `src/` looks at.
+     */
+    tooltips: string;
 }
 
 /** A recording the picker offers, and where choosing it goes. */
@@ -230,7 +236,7 @@ export function composePreviewPage(options: PreviewPageOptions): string {
     // The two halves are the published page's, and only its: a served page carries no band, so
     // there is nothing to put on the left and the panel keeps the whole window it is judged in.
     const said = options.install === null
-        ? `${band}
+        ? `${composePreviewTooltips(options.words)}${band}
 ${introduction}`
         : `<main class="preview-split"><div class="preview-said">${band}
 ${introduction}</div><div class="preview-stage"></div></main>`;
@@ -241,6 +247,7 @@ ${introduction}</div><div class="preview-stage"></div></main>`;
 <title>${options.words.title} — ${options.fightName}</title>
 <style>
 ${composePreviewStyle()}
+${options.install === null ? composePreviewTooltipsStyle() : ""}
 </style>
 </head>
 <body>
@@ -372,6 +379,29 @@ function composeSplitStyle(): string {
  * a surface it shared no value with. `DESIGN.md` is about the panel and says nothing about this
  * page, which is how that happened; `design/strona/` carries the reading.
  */
+/**
+ * The column of what landed in the game's own tooltips, kept apart from the sheet above because
+ * a served page draws it and a published one never does.
+ */
+function composePreviewTooltipsStyle(): string {
+    const sheet = `/* Left, because the panel and the window beside it open at the right and a
+   reader drags them about that side. */
+.preview-tips { position: fixed; left: 0; top: 44px; bottom: 0; width: 272px; z-index: 8900;
+  padding: 10px 12px; overflow-y: auto; box-sizing: border-box;
+  border-right: 1px solid ${SURFACE.border}; background: ${SURFACE.panel}; }
+.preview-tips h2 { margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: ${TEXT.quiet}; }
+.preview-tip { margin: 0 0 8px; padding: 6px 8px; border: 1px solid ${SURFACE.border};
+  border-radius: ${SHAPE.radiusSmall}; background: ${SURFACE.raised};
+  display: flex; flex-direction: column; font-size: 11px; line-height: 15px; }
+.preview-tip b { color: ${TEXT.plain}; }
+.preview-tip span { color: ${SIGNAL.ours}; }
+`;
+    assertStringIncludes(sheet, "8900", "the column stands under the strip and under the panel");
+    assertStringIncludes(sheet, SURFACE.border, "and takes the panel's own tokens, like the rest");
+    return sheet;
+}
+
 function composePreviewStyle(): string {
     const sheet = `html, body { margin: 0; height: 100%; background: ${GAME_PAGE_COLOUR};
   color: ${TEXT.plain};
@@ -441,6 +471,21 @@ ${composeSplitStyle()}`;
     assertStringIncludes(sheet, MAXIMUM_COLUMN_WIDTH, "a column ends where the windows begin");
     assertStringIncludes(sheet, ".preview-get", "and the offer is a button, not a word in a line");
     return sheet;
+}
+
+/**
+ * The column that shows what the add-on wrote into the game's own tooltips, one block per
+ * fighter this payload restated.
+ *
+ * ⚠️ **It is the real path, not a rendering of its own.** The fighters on this page carry a
+ * `$` of the client's shape, so `src/game/engine-tooltip.ts` finds them, calls `concatTip` once
+ * per row, and what stands here is whatever landed — a renamed method or a dropped row shows up
+ * as an empty block rather than as a column that looks right.
+ */
+function composePreviewTooltips(words: PreviewWords): string {
+    assert(words.tooltips.length > 0, "the column says what it is showing");
+    return `<aside class="preview-tips" id="preview-tips">` +
+        `<h2>${words.tooltips}</h2><div id="preview-tips-list"></div></aside>\n`;
 }
 
 function composePreviewStrip(words: PreviewWords, doesOfferFights: boolean): string {
@@ -529,7 +574,29 @@ function composePreviewStore(): string {
  */
 function composePreviewGame(words: PreviewWords): string {
     assert(words.placeName.length > 0, "the place a bar draws is named by the tool, not a fight");
-    const stood = `window.Engine = {
+    const stood = `window.PREVIEW_TIPS = {};
+var composePreviewTipTarget = function (id) {
+  return {
+    find: function () {
+      return {
+        concatTip: function (row) {
+          var held = window.PREVIEW_TIPS[id] || [];
+          held.push(row);
+          window.PREVIEW_TIPS[id] = held;
+        }
+      };
+    }
+  };
+};
+// Accumulated, not replaced, because the client's own record is one object it mutates — a
+// payload restates only what moved, so a fighter replaced by it loses the name they were
+// introduced under — and a warrior with no name is one \`readLiveWarriors\` steps over.
+var composePreviewWarrior = function (id, stated) {
+  var held = window.Engine.battle.w[id] || { $: composePreviewTipTarget(id) };
+  for (var field in stated) held[field] = stated[field];
+  return held;
+};
+window.Engine = {
   battle: {
     w: {},
     warriorsList: {},
@@ -537,8 +604,12 @@ function composePreviewGame(words: PreviewWords): string {
       var roster = payload && payload.w;
       if (roster) {
         for (var id in roster) {
-          window.Engine.battle.w[id] = roster[id];
-          window.Engine.battle.warriorsList[id] = roster[id];
+          // The client rebuilds a fighter's tooltip while updating them, so what was written
+          // last time is gone before anything of ours is written this time.
+          window.PREVIEW_TIPS[id] = [];
+          var held = composePreviewWarrior(id, roster[id]);
+          window.Engine.battle.w[id] = held;
+          window.Engine.battle.warriorsList[id] = held;
         }
       }
       return "preview-engine";
@@ -548,6 +619,7 @@ function composePreviewGame(words: PreviewWords): string {
   hero: { d: { x: 1, y: 1 } }
 };`;
     assertStringIncludes(stood, "updateData", "carrying the call the add-on puts its wrap on");
+    assertStringIncludes(stood, "concatTip", "and the one method the add-on writes through");
     assertStringIncludes(
         stood,
         "map",
@@ -563,8 +635,45 @@ function composePreviewGame(words: PreviewWords): string {
  * first. So a step back costs a replay and not a reload, and the panel keeps the screen the
  * reader chose.
  */
+/**
+ * The half of the driver that draws what landed in the tooltips. Its own function because the
+ * driver is at the line count **S4** allows one, and this is the part a published page never runs.
+ */
+function composePreviewTipsDriver(): string {
+    const driver = `
+var tipsList = document.getElementById("preview-tips-list");
+
+// What landed in the tooltips this payload, fighter by fighter. Nothing is composed here: the
+// rows are whatever src/game/engine-tooltip.ts handed the fighters through their own concatTip.
+var renderTips = function () {
+  if (tipsList === null) return;
+  var said = document.createDocumentFragment();
+  var roster = window.Engine.battle.w;
+  for (var id in roster) {
+    var rows = window.PREVIEW_TIPS[id] || [];
+    if (rows.length === 0) continue;
+    var block = document.createElement("div");
+    block.className = "preview-tip";
+    var who = document.createElement("b");
+    who.textContent = roster[id].name || id;
+    block.append(who);
+    for (var at = 0; at < rows.length; at += 1) {
+      var row = document.createElement("span");
+      row.textContent = rows[at];
+      block.append(row);
+    }
+    said.append(block);
+  }
+  tipsList.replaceChildren(said);
+};
+`;
+    assertStringIncludes(driver, "preview-tips-list", "it draws into the column the page carries");
+    assertStringIncludes(driver, "PREVIEW_TIPS", "and reads what the add-on's own writer landed");
+    return driver;
+}
+
 function composePreviewDriver(): string {
-    const driver =
+    const driver = composePreviewTipsDriver() +
         `var PREVIEW = JSON.parse(document.getElementById("preview-settings").textContent);
 var fedCount = 0;
 var playTimer = null;
@@ -583,6 +692,7 @@ var renderCount = function () {
   countLabel.textContent = PREVIEW.words.entry + " " + fedCount + " / " + PREVIEW.entryCount;
 };
 
+
 var renderPicker = function () {
   if (picker === null) return;
   for (var at = 0; at < PREVIEW.fights.length; at += 1) {
@@ -599,6 +709,7 @@ var setNextFed = function () {
   window.Engine.battle.updateData(PREVIEW.calls[fedCount]);
   fedCount += 1;
   renderCount();
+  renderTips();
   return true;
 };
 
@@ -691,6 +802,7 @@ var setPlayStopped = function () {
 var setFightShown = function (fight, calls) {
   window.Engine.battle.w = {};
   window.Engine.battle.warriorsList = {};
+  window.PREVIEW_TIPS = {};
   shownFight = fight;
   PREVIEW.fightName = fight.name;
   PREVIEW.calls = calls;

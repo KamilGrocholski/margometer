@@ -68,8 +68,10 @@ src/
     fight-decoder.ts     What a key means, and what a key with no meaning leaves unread.
     game-build.ts        The build id the client states in its bundle's own filename.
     aura-standing.ts     What one skill put on more than one combatant, and how far through.
+    carried-figure.ts    What a status comes to on its bearer, where anything may be said at all.
     carried-status.ts    What each combatant is carrying, and for how many of their own turns.
     charged-skill.ts     The special blow being made ready, and the two ends of it a key names.
+    legendary-standing.ts  The two legendary bonuses a fighter's own tooltip can be honest about.
     fight-statistics.ts  The figures a panel draws, with what nobody can be charged apart.
     margometer-error.ts  The abstract brand every failure that ships to the browser wears.
     protocol-message.ts  One message's grammar: both ends, then its parameters.
@@ -177,6 +179,7 @@ tests/
     combatant-roster.test.ts  Two of a name, one of nobody, and every recording.
     fight-decoder.test.ts     The blows, and what is left unread beside them.
     aura-standing.test.ts     What stands at the end of a fight, and when it stops standing.
+    carried-figure.test.ts    What a status comes to on its bearer, and what it may not say.
     carried-status.test.ts    What a mask says somebody carries, and across what silences.
     charged-skill.test.ts     A charge, the end it came to, and the turn its mark outlives.
     game-build.test.ts        Both names the client serves, and what is not one of them.
@@ -292,6 +295,7 @@ tests/
     panel-level.spec.ts    A level open while payloads land, and the region it grows in.
     panel-fold.spec.ts     The panel folded away and brought back, and what is remembered.
     panel-standing.spec.ts Two windows under one root: two grips, two folds, two corners.
+    panel-tooltip.spec.ts  The rows the add-on writes into the game's own tooltip.
     panel-shelf.spec.ts    The fights kept, the one being read, a pin, and the three stores.
     panel-save.spec.ts     The file the browser really takes, and what is inside it.
     panel-reload.spec.ts   What a reader finds waiting, and what they do not.

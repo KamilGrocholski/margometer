@@ -79,6 +79,7 @@ const PREVIEW_SITE_WORDS: PreviewWords = {
     pause: "pauza",
     entry: "wpis",
     playing: "odtwarzanie",
+    tooltips: "Dymki",
 };
 
 /**

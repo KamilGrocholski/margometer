@@ -92,9 +92,26 @@ function composeProbe(): string {
  * a page standing it up afterwards draws nothing for as long as the poll takes
  * (`src/game/engine-attachment.ts`). Both roster names are needed — with only `w` every snapshot
  * read under `warriorsList` comes out empty (`src/game/engine-warrior.ts`).
+ *
+ * Each fighter carries a `$` of the client's own shape, so what `src/game/engine-tooltip.ts`
+ * writes lands somewhere a test can read it back.
  */
 function composeGame(place: string): string {
-    return `window.Engine = {
+    return `window.MARGOMETER_TIPS = {};
+var composeTipTarget = function (id) {
+  return {
+    find: function () {
+      return {
+        concatTip: function (row) {
+          var held = window.MARGOMETER_TIPS[id] || [];
+          held.push(row);
+          window.MARGOMETER_TIPS[id] = held;
+        }
+      };
+    }
+  };
+};
+window.Engine = {
   battle: {
     w: {},
     warriorsList: {},
@@ -102,8 +119,17 @@ function composeGame(place: string): string {
       var roster = payload && payload.w;
       if (roster) {
         for (var id in roster) {
-          window.Engine.battle.w[id] = roster[id];
-          window.Engine.battle.warriorsList[id] = roster[id];
+          // The client rebuilds a fighter's tooltip while updating them, so anything written
+          // last payload is gone before this one writes.
+          // Accumulated, not replaced, because the client's own record is one object it
+          // mutates — a payload restates only what moved, so a fighter replaced by it loses the
+          // name they were introduced under — and a warrior with no name is one
+          // \`readLiveWarriors\` steps over.
+          window.MARGOMETER_TIPS[id] = [];
+          var held = window.Engine.battle.w[id] || { $: composeTipTarget(id) };
+          for (var field in roster[id]) held[field] = roster[id][field];
+          window.Engine.battle.w[id] = held;
+          window.Engine.battle.warriorsList[id] = held;
         }
       }
       return ${JSON.stringify(ENGINE_ANSWER)};

@@ -42,6 +42,7 @@ const WORDS: PreviewWords = {
     pause: "pause",
     entry: "entry",
     playing: "playing",
+    tooltips: "tooltips",
 };
 
 const FIGHTS: PreviewFightLink[] = [
