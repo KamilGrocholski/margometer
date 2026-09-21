@@ -1,0 +1,172 @@
+{
+    "takenAt": "2026-09-21",
+    "material": "captures/, 35 recordings",
+    "tokens": {
+        "surface": {
+            "panel": "#0f161d",
+            "raised": "#171e25",
+            "track": "#1b232a",
+            "border": "#232b33"
+        },
+        "text": {
+            "plain": "#e3e7ea",
+            "quiet": "#979fa8",
+            "inkDark": "#0d1319",
+            "inkLight": "#ffffff"
+        },
+        "panelWidth": "260px",
+        "rowHeight": "18px",
+        "spaceSmall": "4px",
+        "spaceWide": "8px",
+        "radius": "8px",
+        "radiusSmall": "3px"
+    },
+    "bits": {
+        "gameBuild": "Bb28FQty",
+        "said": [
+            "deep_wound",
+            "wound",
+            "critical_deep_wound",
+            "poisoned",
+            "fire",
+            "swow_down",
+            "speed_up",
+            "frostbite",
+            "shock"
+        ],
+        "charactersLongest": 19
+    },
+    "holytouch": {
+        "declarations": 70,
+        "heals": 171,
+        "healsZero": 112,
+        "healed": 46408,
+        "healsWithNoDeclaration": 0,
+        "healsPerRunClosed": [
+            [
+                1,
+                5
+            ],
+            [
+                2,
+                4
+            ],
+            [
+                3,
+                26
+            ]
+        ],
+        "healsPerRunOpenAtEnd": [
+            [
+                0,
+                4
+            ],
+            [
+                1,
+                5
+            ],
+            [
+                2,
+                3
+            ],
+            [
+                3,
+                23
+            ]
+        ],
+        "turnsSpannedByRun": [
+            [
+                0,
+                14
+            ],
+            [
+                1,
+                7
+            ],
+            [
+                2,
+                49
+            ]
+        ],
+        "healsInOneRunMaximum": 3,
+        "turnsPublished": 3
+    },
+    "lastheal": {
+        "events": 14,
+        "fights": 8,
+        "combatants": 14,
+        "healedLeast": 3703,
+        "healedMost": 13272,
+        "percentAfterLeast": 36,
+        "percentAfterMost": 63,
+        "twiceInOneFight": 0
+    },
+    "block": {
+        "payloads": 1376,
+        "restatedCombatants": 5993,
+        "carriedRows": [
+            [
+                0,
+                1505
+            ],
+            [
+                1,
+                3345
+            ],
+            [
+                2,
+                713
+            ],
+            [
+                3,
+                347
+            ],
+            [
+                4,
+                55
+            ],
+            [
+                5,
+                28
+            ]
+        ],
+        "chargeRows": 422,
+        "holytouchRows": 175,
+        "lasthealRows": 30,
+        "rowsInBlock": [
+            [
+                0,
+                1449
+            ],
+            [
+                1,
+                3223
+            ],
+            [
+                2,
+                654
+            ],
+            [
+                3,
+                460
+            ],
+            [
+                4,
+                159
+            ],
+            [
+                5,
+                36
+            ],
+            [
+                6,
+                12
+            ]
+        ],
+        "rowsHalf": 1,
+        "rowsNineteenOfTwenty": 3,
+        "rowsMaximum": 6,
+        "saysNothing": 1449,
+        "lineTodayLongest": 93
+    }
+}

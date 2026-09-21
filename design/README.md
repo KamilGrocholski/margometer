@@ -9,6 +9,9 @@ is a question worth measuring, and not before (**C9**).
 - [`strona/`](strona/) — what the published page is as one designed thing. It owns the page's own
   visual language, which `DESIGN.md` never gave it: that document is about the panel, and the page
   went on to invent a palette of its own rather than take the one the panel already states.
+- [`dymek/`](dymek/) — what the add-on writes into the game's own tooltip, now that **ADR 0105**
+  writes one line there. It owns the shape of that append and what may honestly stand in it, which
+  no document owned: `SECURITY.md` says what may be written, and nothing said what it should say.
 
 ## What a round is
 

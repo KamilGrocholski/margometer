@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Treść — cztery wiersze i co każdy z nich wie</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0b0d10; }
+</style>
+</helmet>
+<div style="width: 1280px; height: 1020px; box-sizing: border-box; background: #0b0d10; color: #c8cdd6; font-size: 13px; line-height: 1.5; display: flex; flex-direction: column;">
+
+  <div style="padding: 22px 24px 14px; display: flex; flex-direction: column; gap: 6px;">
+    <div style="font-size: 26px; font-weight: 600; color: #e6eaf1;">Treść — cztery wiersze i co każdy z nich wie</div>
+    <div style="font-size: 14px; color: #a8b2c0;">Każdy wiersz stoi na innym źródle i każde źródło pozwala powiedzieć co innego. Tu widać, który wiersz wolno napisać ułamkiem, który tylko liczbą, a który wyłącznie zdarzeniem.</div>
+    <div style="font-size: 12px; color: #737f8f;">„Jak często" liczone na 5 993 przepisań postaci przez payload — bo tylko na przepisaną postać cokolwiek jest pisane. <span style="color: #9aa6b6;">measured.json</span>, 2026-09-21.</div>
+  </div>
+
+  <div style="padding: 0 24px;">
+    <div style="display: grid; grid-template-columns: 148px 168px 1fr 150px; gap: 1px; background: #232b33; border: 1px solid #232b33; border-radius: 6px; overflow: hidden;">
+      <div style="padding: 7px 10px; background: #1a1f26; font-size: 11px; letter-spacing: .06em; color: #8f9bb0;">WIERSZ</div>
+      <div style="padding: 7px 10px; background: #1a1f26; font-size: 11px; letter-spacing: .06em; color: #8f9bb0;">Z CZEGO</div>
+      <div style="padding: 7px 10px; background: #1a1f26; font-size: 11px; letter-spacing: .06em; color: #8f9bb0;">CO WOLNO POWIEDZIEĆ</div>
+      <div style="padding: 7px 10px; background: #1a1f26; font-size: 11px; letter-spacing: .06em; color: #8f9bb0;">JAK CZĘSTO</div>
+      <sc-for list="{{rows}}" as="one">
+        <div style="padding: 10px; background: #14171c;">
+          <div style="color: #e6eaf1; font-size: 12.5px; font-weight: 600;">{{one.name}}</div>
+          <div style="color: #737f8f; font-size: 11px; margin-top: 2px;">{{one.kind}}</div>
+        </div>
+        <div style="padding: 10px; background: #14171c; color: #9aa6b6; font-size: 11.5px; line-height: 1.5;">{{{one.from}}}</div>
+        <div style="padding: 10px; background: #14171c; color: #a8b2c0; font-size: 12.5px; line-height: 1.55;">{{{one.says}}}</div>
+        <div style="padding: 10px; background: #14171c;">
+          <div style="color: #e6eaf1; font-size: 15px; font-variant-numeric: tabular-nums;">{{one.share}}</div>
+          <div style="color: #737f8f; font-size: 11px; margin-top: 2px;">{{one.count}}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="padding: 16px 24px 0; display: flex; gap: 16px;">
+    <div style="flex: 1 1 0; padding: 13px 15px; border: 1px solid #2c5c45; border-radius: 8px; background: #101a15;">
+      <div style="font-size: 11px; letter-spacing: .06em; color: #7fc6a1; margin-bottom: 7px;">JEDYNE DWA UŁAMKI, JAKIE WOLNO NAPISAĆ</div>
+      <div style="font-size: 12.5px; color: #cfe6da; line-height: 1.65;">Ułamek wymaga <strong style="color: #eafaf1;">mianownika, który ktoś podał</strong>. Ma go <span style="color: #dfe6ef;">ładowany cios</span> — gra przysyła <span style="color: #9aa6b6;">turn</span> i <span style="color: #9aa6b6;">total_turns</span> w kopercie payloadu — oraz <span style="color: #dfe6ef;">dotyk anioła</span>, któremu tę trójkę podaje pomoc, a korpus jej nigdy nie przebija. <strong style="color: #eafaf1;">Niesione stany mianownika nie mają</strong> i nigdy nie dostaną: gra nie podaje długości żadnego z 9 bitów maski, więc tam stoi samo „3 tury" (ADR 0104).</div>
+    </div>
+    <div style="flex: 1 1 0; padding: 13px 15px; border: 1px solid #5c4530; border-radius: 8px; background: #1a1410;">
+      <div style="font-size: 11px; letter-spacing: .06em; color: #e8b48b; margin-bottom: 7px;">WIERSZ, KTÓRY POWTARZA KLIENTA</div>
+      <div style="font-size: 12.5px; color: #e8c3a2; line-height: 1.65;">Dymek gry <strong style="color: #f6dcc4;">już rysuje ładowany cios</strong> — <span style="color: #f6dcc4;">.sc-content</span> niesie nazwę, procent i tury, z tego samego <span style="color: #f6dcc4;">super_cast</span>. Nasz wiersz stanąłby 422 razy pod identycznym wierszem gry. To jest <strong style="color: #f6dcc4;">jedyny wiersz tej rundy, który niczego nie dodaje</strong>, i rekomendacja go nie bierze — mimo że maintainer go wskazał. Wraca, jeśli okaże się, że gra rysuje go tylko swoim.</div>
+    </div>
+  </div>
+
+  <div style="padding: 16px 24px 0;">
+    <div style="padding: 13px 15px; border: 1px solid #2c323c; border-radius: 8px; background: #14171c;">
+      <div style="font-size: 11px; letter-spacing: .06em; color: #8f9bb0; margin-bottom: 7px;">SŁOWA STANÓW — CZYJE SĄ</div>
+      <div style="font-size: 12.5px; color: #a8b2c0; line-height: 1.6;">Panel pyta o nie klienta, pod jego własną kategorią <span style="color: #9aa6b6;">buff</span>, i spada na klucz tak, jak gra go zapisała, gdy słownika nie ma. Bez słownika najdłuższa etykieta ma <strong style="color: #e6eaf1;">19 znaków</strong> (<span style="color: #9aa6b6;">critical_deep_wound</span>) — i tyle właśnie zobaczy każdy, kto ogląda ten dopisek na stronie podglądu, bo tam <span style="color: #9aa6b6;">_t</span> nie stoi. Kolumna etykiety musi się ucinać elipsą, nie rozpychać bloku.</div>
+    </div>
+  </div>
+
+  <div style="flex: 1 1 0; padding: 16px 24px 20px;">
+    <div style="height: 100%; padding: 13px 15px; border: 1px solid #3b5f7a; border-radius: 8px; background: #101820;">
+      <div style="font-size: 11px; letter-spacing: .06em; color: #8fc4e8; margin-bottom: 7px;">CO MAINTAINER ZOSTAWIŁ POZA TĄ RUNDĄ</div>
+      <div style="font-size: 12.5px; color: #d3e6f5; line-height: 1.65;"><strong style="color: #eaf4ff;">Dorobek walki tej postaci</strong> — zadane, otrzymane, udział, tury wykonane. Panel liczy to wszystko na jej wierszu i przeniesienie tego pod kursor byłoby największą nową treścią w dymku: w przeciwieństwie do czterech wierszy wyżej, gra nie pokazuje tego <em>nigdzie</em>. Zostało świadomie pominięte przy wyborze treści dla tej rundy. <span style="color: #9fbdd4;">Zapisane tutaj, żeby przy następnym otwarciu tematu nie trzeba było zgadywać, czy o tym zapomniano, czy odmówiono.</span></div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":1020}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const rows = [
+      {
+        name: 'Nosi', kind: 'stan, teraz',
+        from: 'maska <span style="color: #c8cdd6;">buffs</span>, jeden integer na postać w każdym payloadzie',
+        says: 'Nazwę stanu i <strong style="color: #e6eaf1;">ile jego własnych tur już stoi</strong>. Nigdy „z ilu" — gra nie podaje długości. Koniec jest tu <strong style="color: #e6eaf1;">zaświadczony</strong>: bit gaśnie i widać to.',
+        share: '74,9%', count: '4 488 z 5 993'
+      },
+      {
+        name: 'Dotyk anioła', kind: 'stan, teraz',
+        from: 'deklaracja <span style="color: #c8cdd6;">+legbon_holytouch</span> zapala, <span style="color: #c8cdd6;">legbon_holytouch_heal</span> wyzwala',
+        says: '<strong style="color: #e6eaf1;">„2 z 3 tur"</strong> — ułamek, bo korpus nigdy nie przekroczył trzech, a pomoc podaje trzy. <span style="color: #e79a9a;">Nie sumę uleczeń</span>: dwa wyzwolenia na trzy leczą zero.',
+        share: '2,9%', count: '175 z 5 993'
+      },
+      {
+        name: 'Ostatni ratunek', kind: 'zdarzenie, było',
+        from: '<span style="color: #c8cdd6;">legbon_lastheal</span> na wiadomości o obrażeniach, jako <span style="color: #c8cdd6;">amount,name(percent%)</span>',
+        says: '<strong style="color: #e6eaf1;">„zużyty, +8 810"</strong> i ewentualnie na ile procent wrócił. <span style="color: #e79a9a;">Brak wiersza nie znaczy „ma jeszcze"</span> — posiadania bonusu protokół nie zdradza.',
+        share: '0,5%', count: '30 z 5 993'
+      },
+      {
+        name: 'Ładuje', kind: 'stan, teraz',
+        from: '<span style="color: #c8cdd6;">super_cast</span> z koperty payloadu: <span style="color: #c8cdd6;">turn</span> i <span style="color: #c8cdd6;">total_turns</span>',
+        says: '<strong style="color: #e6eaf1;">„Furia 2 z 4 tur"</strong> — oba końce od gry, więc najpewniejszy ułamek w całym dymku. <span style="color: #ed9c00;">Ale gra rysuje ten sam wiersz wyżej, sama.</span>',
+        share: '7,0%', count: '422 z 5 993'
+      }
+    ];
+    return { rows };
+  }
+}
+</script>
+</body>
+</html>

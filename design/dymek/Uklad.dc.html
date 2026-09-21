@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pl">
+<head>
+<meta charset="utf-8">
+<title>Układ — cztery sposoby dopisania się</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<style>
+body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0b0d10; }
+</style>
+</helmet>
+<div style="width: 1360px; height: 1180px; box-sizing: border-box; background: #0b0d10; color: #c8cdd6; font-size: 13px; line-height: 1.5; display: flex; flex-direction: column;">
+
+  <div style="padding: 22px 24px 14px; display: flex; flex-direction: column; gap: 6px;">
+    <div style="font-size: 26px; font-weight: 600; color: #e6eaf1;">Układ — cztery sposoby dopisania się</div>
+    <div style="font-size: 14px; color: #a8b2c0;">Ta sama treść w czterech kształtach, rysowana w skali gry: 11&nbsp;px nad 15&nbsp;px wiersza. Pudełko gry stoi neutralną szarością, bo jego styl jest <strong style="color: #dfe6ef;">niemierzony</strong> — <span style="color: #9aa6b6;">tipsParser.min.css</span> nie leży w tym drzewie.</div>
+    <div style="font-size: 12px; color: #737f8f;">Wysokości policzone z <span style="color: #9aa6b6;">measured.json</span>: mediana bloku 1 wiersz, 19 na 20 mieści się w 3, najwyższy zmierzony 6 (113&nbsp;px z nagłówkiem i marginesem).</div>
+  </div>
+
+  <div style="padding: 0 24px; display: flex; gap: 14px; align-items: flex-start;">
+    <sc-for list="{{ways}}" as="one">
+      <div style="flex: 1 1 0; display: flex; flex-direction: column; gap: 10px;">
+        <div style="display: flex; align-items: baseline; gap: 7px;">
+          <span style="font-size: 15px; font-weight: 600; color: {{one.ink}};">{{one.name}}</span>
+          <span style="font-size: 11px; color: #737f8f;">{{one.tag}}</span>
+        </div>
+        <div style="padding: 9px; border: 1px dashed #3a424d; border-radius: 6px; background: #0f1216; min-height: 232px;">
+          <div style="border: 1px solid #4a515c; border-radius: 4px; background: #23262b; padding: 6px 8px; font-size: 11px; line-height: 15px; color: #d7dbe0;">
+            <div style="font-weight: 600; color: #f0f2f4;">Hildur</div>
+            <div style="color: #a9b0b8;">Wojownik, poziom 120</div>
+            <div>45&nbsp;231 / 60&nbsp;000 (75%)</div>
+            <div>Furia: 60% (2 tury)</div>
+          </div>
+          <div style="margin: 5px 0; font-size: 10px; color: #6f7883; text-align: center;">&lt;br&gt;</div>
+          <div>{{{one.drawn}}}</div>
+        </div>
+        <div style="padding: 10px 12px; border: 1px solid {{one.edge}}; border-radius: 8px; background: {{one.back}}; min-height: 118px;">
+          <div style="font-size: 10.5px; letter-spacing: .06em; color: {{one.ink}}; margin-bottom: 5px;">CO KOSZTUJE</div>
+          <div style="font-size: 12px; color: #a8b2c0; line-height: 1.55;">{{{one.cost}}}</div>
+        </div>
+        <div style="padding: 10px 12px; border: 1px solid #2c323c; border-radius: 8px; background: #14171c; min-height: 96px;">
+          <div style="font-size: 10.5px; letter-spacing: .06em; color: #8f9bb0; margin-bottom: 5px;">CO DAJE</div>
+          <div style="font-size: 12px; color: #a8b2c0; line-height: 1.55;">{{{one.gain}}}</div>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="margin: 18px 24px 0; padding: 14px 16px; border: 1px solid #3b5f7a; border-radius: 8px; background: #101820;">
+    <div style="font-size: 11px; letter-spacing: .06em; color: #8fc4e8; margin-bottom: 7px;">PODZIAŁ, KTÓRY ROZSTRZYGA</div>
+    <div style="font-size: 13px; color: #d3e6f5; line-height: 1.65;">Między <strong style="color: #eaf4ff;">A</strong> a resztą leży jedna granica: A dokłada <strong style="color: #eaf4ff;">tekst</strong>, B, C i D dokładają <strong style="color: #eaf4ff;">znacznik</strong>. Gra trzyma dymki jako stringi i wkłada je przez <span style="color: #9aa6b6;">.html()</span>, więc znacznik zadziała — ale to gra zbuduje z niego węzły. Dziś <span style="color: #9aa6b6;">SECURITY.md</span> mówi „<em>No node is made, moved, removed or styled</em>", a ADR 0105 odrzucił pisanie węzłów do <span style="color: #9aa6b6;">.warrior-buffs-wrapper</span> słowami „<em>it makes elements of ours on somebody else's page</em>". <strong style="color: #eaf4ff;">To zdanie trzeba przepisać albo zostać przy A</strong> — i to jest prawdziwy koszt tej rundy, nie liczba wierszy.</div>
+  </div>
+
+  <div style="margin: 14px 24px 18px; display: flex; gap: 14px;">
+    <div style="flex: 1 1 0; padding: 12px 14px; border: 1px solid #2c323c; border-radius: 8px; background: #14171c;">
+      <div style="font-size: 11px; letter-spacing: .06em; color: #8f9bb0; margin-bottom: 6px;">SZEROKOŚĆ PRZESUWA DYMEK</div>
+      <div style="font-size: 12.5px; color: #a8b2c0; line-height: 1.6;">Gra stawia dymek na <span style="color: #9aa6b6;">clientX + 30</span> i przerzuca go na lewo od kursora, gdy nie mieści się w oknie. Blok szerszy od pudełka gry <strong style="color: #e6eaf1;">zmienia tę decyzję</strong> — dymek zacznie przeskakiwać tam, gdzie wcześniej nie przeskakiwał. Kolumna wartości musi więc mieć <strong style="color: #e6eaf1;">stałą, wąską szerokość</strong>, a etykieta ucinać się elipsą, tak jak w panelu.</div>
+    </div>
+    <div style="flex: 1 1 0; padding: 12px 14px; border: 1px solid #2c323c; border-radius: 8px; background: #14171c;">
+      <div style="font-size: 11px; letter-spacing: .06em; color: #8f9bb0; margin-bottom: 6px;">WYSOKOŚĆ NIE JEST PROBLEMEM</div>
+      <div style="font-size: 12.5px; color: #a8b2c0; line-height: 1.6;">1 449 przepisań nie mówi nic, 3 223 mówi jednym wierszem. Blok na 6 wierszy zdarzył się <strong style="color: #e6eaf1;">12 razy na 5 993</strong>. Bloku nie trzeba przycinać — trzeba go tylko <strong style="color: #e6eaf1;">ograniczyć</strong>, bo <span style="color: #9aa6b6;">S11</span> każe podać maksimum każdej kolekcji rosnącej z wejściem.</div>
+    </div>
+  </div>
+
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1360,"height":1180}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const line = 'font-size: 11px; line-height: 15px; color: #d7dbe0;';
+    const label = 'color: #9aa6b6;';
+    const box = 'border: 1px solid #2f7a5a; border-radius: 3px; background: #101a15; padding: 4px 6px;';
+    const row = (name, value) => `<div style="display: flex; gap: 6px;"><span style="${label} flex: 1 1 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${name}</span><span style="color: #e3e7ea; font-variant-numeric: tabular-nums;">${value}</span></div>`;
+    const ways = [
+      {
+        name: 'A · jedna linia',
+        tag: 'jest dziś',
+        ink: '#9299a0', edge: '#2c323c', back: '#14171c',
+        drawn: `<div style="${line} padding: 0 8px;">MargoMeter · Zatrucie 3 tury, Spowolnienie 1 tura, Dotyk anioła 2 z 3 tur, Ostatni ratunek zużyty</div>`,
+        cost: 'Nic. Zero nowych decyzji, zero znacznika, ADR 0105 bez zmian. Za to przy czterech faktach linia zawija się na cztery wiersze i <strong style="color: #e6eaf1;">żadna wartość nie stoi w kolumnie</strong> — czytanie jej to czytanie zdania, nie tabeli.',
+        gain: 'Dziedziczy styl gry i nigdy się z nim nie rozjedzie. Jedyny układ, który <strong style="color: #e6eaf1;">nie wymaga ADR-u</strong>.'
+      },
+      {
+        name: 'B · blok wierszy',
+        tag: 'wybrany na start',
+        ink: '#7fe0ab', edge: '#2c5c45', back: '#101a15',
+        drawn: `<div style="${line} ${box}"><div style="color: #979fa8; font-size: 10px; letter-spacing: .08em; margin-bottom: 2px;">MARGOMETER</div>${row('Zatrucie', '3 tury')}${row('Spowolnienie', '1 tura')}${row('Dotyk anioła', '2 z 3 tur')}${row('Ostatni ratunek', 'zużyty')}</div>`,
+        cost: 'Znacznik w cudzym rejestrze, więc <strong style="color: #e6eaf1;">nowy ADR i zmiana zdania w SECURITY.md</strong>. Własna ramka i własne kolory, które mogą stanąć obok stylu gry jak coś obcego.',
+        gain: 'Wartości w kolumnie, etykiety ucięte elipsą, wiersz na fakt. <strong style="color: #e6eaf1;">Czyta się to jak panel</strong>, a nie jak zdanie — i skaluje się do siódmego faktu bez przeprojektowania.'
+      },
+      {
+        name: 'C · dwie sekcje',
+        tag: 'podział panelu',
+        ink: '#8fc4e8', edge: '#3b5f7a', back: '#101820',
+        drawn: `<div style="${line} ${box} border-color: #3b5f7a; background: #101820;"><div style="color: #979fa8; font-size: 10px; letter-spacing: .08em;">MARGOMETER · TERAZ</div>${row('Zatrucie', '3 tury')}${row('Dotyk anioła', '2 z 3 tur')}<div style="color: #979fa8; font-size: 10px; letter-spacing: .08em; margin-top: 3px; padding-top: 3px; border-top: 1px solid #2c323c;">W TEJ WALCE</div>${row('Ostatni ratunek', 'zużyty')}</div>`,
+        cost: 'Wszystko z B, plus dwa nagłówki, które przy jednym wierszu treści zajmują więcej miejsca niż sama treść. Przy medianie 1 wiersza <strong style="color: #e6eaf1;">nagłówek jest większością bloku</strong>.',
+        gain: 'Rozdziela dwa różne pytania — co stoi teraz, a co się już zdarzyło. Panel dzieli tak samo (ADR 0104: „Co stoi" kontra „Co kto nosi").'
+      },
+      {
+        name: 'D · pasek ikon',
+        tag: 'odrzucony',
+        ink: '#e79a9a', edge: '#5c3030', back: '#1a1012',
+        drawn: `<div style="${line} padding: 0 8px;"><div style="color: #979fa8; font-size: 10px; letter-spacing: .08em;">MARGOMETER</div><div style="font-variant-numeric: tabular-nums;">☠ 3 &nbsp; ❄ 1 &nbsp; ✦ 2/3 &nbsp; ⚡ 2/4</div></div>`,
+        cost: 'Glif to nazwa, a <strong style="color: #e6eaf1;">to repozytorium nie ma własnej nazwy dla żadnego z 9 stanów</strong> — ADR 0104 odmawia wymyślania jej tam, gdzie gra ma swoją. Do tego ikony stanów gra rysuje przy postaci sama.',
+        gain: 'Najmniej miejsca. Jedyna zaleta, i przy medianie 1 wiersza <strong style="color: #e6eaf1;">nie ma czego oszczędzać</strong>.'
+      }
+    ];
+    return { ways };
+  }
+}
+</script>
+</body>
+</html>
