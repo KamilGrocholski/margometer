@@ -11,6 +11,7 @@ import type { ChargedSkillStanding, ChargedSkillState } from "@/src/core/charged
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
 import type { TurnStatement } from "@/src/game/fight-underway.ts";
 import { getColourForProfession, SIGNAL } from "@/src/ui/panel-look.ts";
+import type { CarriedStatus } from "@/src/core/carried-status.ts";
 import { getPartOfSide, type PanelSidePart } from "@/src/ui/panel-reading.ts";
 import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
 
@@ -23,6 +24,10 @@ export const MAXIMUM_CASTERS = 12;
  * corpus has never held more than one, because every recording in it is ten against one.
  */
 export const MAXIMUM_PROVOKED = 12;
+/** Past the combatants one board holds, and a clamp rather than a bound — **A11**, **ADR 0051**. */
+export const MAXIMUM_CARRIERS = 24;
+/** Past the statuses the client registers, which `frozen/buff-bits.ts` counts at nine. */
+export const MAXIMUM_CARRIED_STATUSES = 12;
 /**
  * Past every charge the corpus has ever held at once, which is one — and past the bound
  * `core/charged-skill.ts` already clamps to, so this one only ever repeats that answer.
@@ -123,6 +128,26 @@ export interface StandingHolder {
     sidePart: PanelSidePart;
 }
 
+/** One status one combatant is carrying, as a row of the window states it. */
+export interface StandingCarriedStatus {
+    bit: number;
+    turnsElapsed: number;
+}
+
+/**
+ * One combatant and what the game says they are holding. **It names no caster and no total**: a
+ * mask says what somebody carries and never whose cast put it there, so this section answers
+ * `on whom` and the section above it answers `what was cast` — **ADR 0104**, and **ADR 0061** is
+ * why neither answers the other.
+ */
+export interface StandingCarrier {
+    combatantId: number;
+    name: string;
+    colour: string;
+    sidePart: PanelSidePart;
+    statuses: StandingCarriedStatus[];
+}
+
 export interface StandingReading {
     turnState: StandingTurnState;
     turnOrdinal: number | null;
@@ -133,6 +158,8 @@ export interface StandingReading {
     provoked: StandingProvocation[];
     /** What is being made ready, and what became of it. Empty draws no section at all. */
     chargedSkills: StandingChargedSkill[];
+    /** What each combatant is carrying, read off the game's own mask. Empty draws no section. */
+    carriers: StandingCarrier[];
     /** Which row is open, or null. One at a time, as a drill level is. */
     openSkillId: number | null;
 }
@@ -315,10 +342,41 @@ function getStandingTurnState(turn: StandingTurn, hasHolder: boolean): StandingT
     return "unread";
 }
 
+/**
+ * What each combatant is carrying, gathered onto them. Sorted by side and then by name so the
+ * section reads like the ranking does, and clamped at both levels: a mask the game grew would
+ * otherwise lengthen the window without anything saying so (**S11**).
+ */
+function composeStandingCarriers(
+    carried: readonly CarriedStatus[],
+    roster: CombatantRoster,
+    readerSide: number | null,
+): StandingCarrier[] {
+    const byCombatantId = new Map<number, StandingCarrier>();
+    for (const one of carried) {
+        const combatant = roster.byId.get(one.combatantId);
+        if (combatant === undefined) continue;
+        const carrier = byCombatantId.get(one.combatantId) ?? {
+            combatantId: one.combatantId,
+            name: combatant.name,
+            colour: getColourForProfession(combatant.profession),
+            sidePart: getPartOfSide(combatant.side, readerSide),
+            statuses: [],
+        };
+        if (carrier.statuses.length < MAXIMUM_CARRIED_STATUSES) {
+            carrier.statuses.push({ bit: one.bit, turnsElapsed: one.turnsElapsed });
+        }
+        byCombatantId.set(one.combatantId, carrier);
+        if (byCombatantId.size >= MAXIMUM_CARRIERS) break;
+    }
+    return [...byCombatantId.values()];
+}
+
 export function composeStandingReading(
     standings: readonly AuraStanding[],
     provocations: readonly ProvocationStanding[],
     chargedSkills: readonly ChargedSkillStanding[],
+    carried: readonly CarriedStatus[],
     roster: CombatantRoster,
     readerSide: number | null,
     turn: StandingTurn,
@@ -343,6 +401,7 @@ export function composeStandingReading(
         rows,
         provoked,
         chargedSkills: composeStandingChargedSkills(chargedSkills, roster, readerSide),
+        carriers: composeStandingCarriers(carried, roster, readerSide),
         openSkillId: isOpen ? openSkillId : null,
     };
 }

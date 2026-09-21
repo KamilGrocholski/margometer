@@ -18,6 +18,7 @@ import {
 
 const WARRIORS_KEY = "w";
 const HEALTH_KEY = "hp";
+const STATUSES_KEY = "buffs";
 const HEALTH_MAXIMUM_KEY = "max";
 /**
  * What a payload's own warrior is read by, wherever it is read — **N13**. `npc` is here and
@@ -34,6 +35,7 @@ export const WARRIOR_FIELDS = {
     level: "lvl",
     health: HEALTH_KEY,
     healthMaximum: HEALTH_MAXIMUM_KEY,
+    statuses: STATUSES_KEY,
 } as const;
 
 /**
@@ -107,6 +109,32 @@ export function readCombatantsFromPayload(payload: unknown): Combatant[] {
     assert(new Set(found.map((one) => one.id)).size === found.length, "a combatant is read once");
     assert(found.every((one) => one.name.length > 0), "every combatant read is named");
     assert(found.every((one) => Number.isFinite(one.side)), "every combatant read has a side");
+    return found;
+}
+
+/**
+ * What each combatant is carrying, as the one integer the payload restates for them every time.
+ * Read by position: `frozen/buff-bits.ts` names the statuses in the order the client registers
+ * them, and the client's own window walks the same nine bits to draw its icons.
+ *
+ * A combatant whose entry states no mask is absent rather than clear — the two are not the same
+ * answer, and **E10** is why the map says nothing instead of saying zero.
+ */
+export function readStatusMasksFromPayload(payload: unknown): Map<number, number> {
+    const found = new Map<number, number>();
+    if (!isRecord(payload)) return found;
+    for (const value of readWarriorsFromValue(payload[WARRIORS_KEY])) {
+        if (!isRecord(value)) continue;
+        const id = readIdentityFromWarrior(value);
+        if (id === null) continue;
+        const mask = getNumberFromUnknown(value[STATUSES_KEY]);
+        if (mask === null) continue;
+        if (mask < 0) continue;
+        if (!Number.isSafeInteger(mask)) continue;
+        found.set(id, mask);
+    }
+    assert(found.size <= MAXIMUM_COMBATANTS, "a payload stays inside the fight's stated bound");
+    assert([...found.values()].every((one) => one >= 0), "and every mask read is a count of bits");
     return found;
 }
 

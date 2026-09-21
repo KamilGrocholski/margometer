@@ -25,6 +25,12 @@ here, because the corpus has grown since and nothing recomputes them. The regist
 the **side** a cast reaches — the published help states it key by key — because that is what tells a
 shout from a whole-team cast. The window draws none of it (**ADR 0062**).
 
+**The window answers `on whom` from the game's own statement instead.** `w[].buffs` says what each
+combatant is carrying right now, so `Co kto nosi` draws a row per person and per status, counted in
+**their own** turns and stating no total — the mask publishes none. It names no caster, so it
+settles nothing about who a cast reached; that is still refused, now on three readings rather than
+one (**ADR 0104**).
+
 ⚠️ **Listing the side's members would be wrong about one cast in seven**, which is what that reading
 found after a `Podwójny dech`: the caster's whole side carries the matching status bit on most casts
 and not all. **ADR 0049** rejected an attribution measured at 84.6% in the words that bind here.

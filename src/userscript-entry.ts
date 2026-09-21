@@ -773,6 +773,7 @@ function composeStandingOrNothing(
         held.standings,
         held.provocations,
         fight.chargedSkills,
+        fight.carriedStatuses,
         fight.roster,
         fight.readerSide,
         { statement: fight.turnStatement, isOver: fight.isOver, isOnAuto: fight.isOnAuto },

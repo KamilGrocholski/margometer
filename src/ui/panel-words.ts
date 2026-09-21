@@ -6,6 +6,7 @@
  * letter, a token. Wording a mechanic nobody named would be a claim about the game. **ADR 0011.**
  */
 
+import { FROZEN_BUFF_BITS } from "@/frozen/buff-bits.ts";
 import { getValueWithin } from "@/libs/number-range.ts";
 import { composeIntegerText } from "@/libs/number-text.ts";
 import type {
@@ -357,6 +358,7 @@ export const CAVEATS = [
     "turns",
     "unannounced",
     "standingLength",
+    "carriedLength",
 ] as const;
 
 export type Caveat = (typeof CAVEATS)[number];
@@ -379,6 +381,10 @@ export type Caveat = (typeof CAVEATS)[number];
  * 60 characters so that, mark and all, it wraps to two lines of the card rather than three
  * (`src/ui/panel-tip.ts`).
  *
+ * `carriedLength` is owed by a figure the game states no total for: a mask says what somebody
+ * carries and never how long it runs, so the count is what has passed and the card says there is
+ * nothing to measure it against. **ADR 0104.**
+ *
  * `standingLength` is owed by the one figure on a card that is counted on somebody other than the
  * person the figure is about. The game runs a side-wide effect on the turns of each character
  * carrying it, and this counts the caster's (**ADR 0101**), so the pair is true of the caster and
@@ -396,6 +402,7 @@ const CAVEAT_NOTES: Record<Caveat, string> = {
     turns: "Gra nie podaje, ile tur ktoś dostał, tylko co w nich zrobił.",
     unannounced: "Gra nie mówi, czym te ciosy zadano — wiadomo tylko, że padły.",
     standingLength: "To tury rzucającego — u każdego innego efekt schodzi osobno.",
+    carriedLength: "Gra nie podaje, ile to ma trwać — widać tylko, ile już stoi.",
 };
 
 export function getNoteForCaveat(caveat: Caveat): string {
@@ -489,8 +496,12 @@ export const PROC_SUB_WORD_BY_KEY: Record<string, string> = {
 /**
  * A name out of the running client, or null where it has none to give. Declared here rather than
  * imported: `ARCHITECTURE.md` names no direction from `ui/` to `game/`.
+ *
+ * The category is the client's own filing, and it is optional because most of what the panel asks
+ * for sits in the default one. `src/game/game-dictionary.ts` is where the shape is answered, and
+ * the compiler holds the two to each other at every call site the entry composes.
  */
-export type TranslateLabel = (id: string) => string | null;
+export type TranslateLabel = (id: string, category?: string) => string | null;
 
 /**
  * What a label may run to before the sheet cuts it. Not a look: `getTipSize` counts a stat line as
@@ -762,7 +773,46 @@ export const STANDING_WORDS = {
     turnsPassed: "Minęło",
     /** The game's own name for it, taken from the client's own label — **N13**, **L2**. */
     chargedSkill: "Cios specjalny",
+    /**
+     * What the game itself says a combatant is holding, which is the one answer `on whom` has —
+     * **ADR 0104**. Never the word the section above uses: that one is about what was cast.
+     */
+    carried: "Co kto nosi",
 } as const;
+
+/**
+ * `3 tury` — what has passed and **never of what**, because the game states no length for a
+ * status. The section above it draws an elapsed of a stated total; this one has no total to
+ * draw, and a fraction with a denominator nobody published would be the invention **ADR 0104**
+ * exists to refuse.
+ */
+export function composeCarriedTurnsText(elapsed: number): string {
+    if (!Number.isSafeInteger(elapsed)) return PANEL_WORDS.unknown;
+    if (elapsed < 0) return PANEL_WORDS.unknown;
+    return composeCountedNoun(elapsed, COUNTED_NOUNS.turns);
+}
+
+/**
+ * The client files the statuses a mask carries under its own category, so an id asked without one
+ * reaches the default dictionary and answers nothing. Read on development build `1781609507010`.
+ */
+const STATUS_CATEGORY = "buff";
+
+/**
+ * The client's word for a status, or the key as the game wrote it — the second and third rungs of
+ * **ADR 0024**, and there is no first here: this repository has no word of its own for any of the
+ * nine, and inventing one would put a made-up label where the game already has a real one.
+ */
+export function getWordsForStatusBit(bit: number, translate: TranslateLabel | null): string {
+    const key = FROZEN_BUFF_BITS.bits[bit];
+    if (key === undefined) return PANEL_WORDS.unknown;
+    if (translate === null) return key;
+    const said = translate(key, STATUS_CATEGORY);
+    if (said === null) return key;
+    if (said.length === 0) return key;
+    if (said.length > MAXIMUM_LABEL_CHARACTERS) return key;
+    return said;
+}
 
 /**
  * What the heading says about a charge, and nothing where it is still running: there the row is

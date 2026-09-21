@@ -75,6 +75,7 @@ import {
     CARD_WORDS,
     type Caveat,
     CAVEAT_MARK,
+    composeCarriedTurnsText,
     composeChargedSkillSubtitle,
     composeChargedSkillTurnsText,
     composeFigureText,
@@ -96,6 +97,7 @@ import {
     getWordsForPinnedStanding,
     getWordsForShelfOutcome,
     getWordsForShelfTime,
+    getWordsForStatusBit,
     getWordsForStorage,
     getWordsForTurnState,
     getWordsForUnannounced,
@@ -281,6 +283,9 @@ const STANDING_CAST_TIP_PREFIX = `${STANDING_TIP_PREFIX}cast:`;
 const STANDING_CHARGE_TIP_PREFIX = `${STANDING_TIP_PREFIX}charge:`;
 const STANDING_HOLDING_TIP_PREFIX = `${STANDING_TIP_PREFIX}holding:`;
 const STANDING_HELD_TIP_PREFIX = `${STANDING_TIP_PREFIX}held:`;
+/** A carrier's own row, and one per status under it — the section's keys, **ADR 0098**. */
+const CARRIED_TIP_PREFIX = `${STANDING_TIP_PREFIX}carrying:`;
+const CARRIED_STATUS_TIP_PREFIX = `${STANDING_TIP_PREFIX}carried:`;
 const TITLE_ATTRIBUTE = "title";
 /** What a row's bar is written on, since a length and a hue are data rather than tokens. */
 const STYLE_ATTRIBUTE = "style";
@@ -939,7 +944,7 @@ function composeChargedSkillElements(
 
 /**
  * One row per person, at both levels: whoever is holding, and under them whom. The turns stand on
- * the holder's row alone, because they are the cast's and not the held character's. **ADR 0067.**
+ * the rows under it, because a shout runs on the turns of whoever it holds. **ADR 0103.**
  */
 function composeProvokedElements(
     document: PanelDocument,
@@ -1198,10 +1203,65 @@ function composeStandingTipReading(skillName: string): TipReading {
     };
 }
 
+/**
+ * One row per combatant and, under them, what the game says they are carrying. **No caster and no
+ * total**: a mask states neither, so this section answers `on whom` and the one above answers
+ * `what was cast`, and neither is allowed to finish the other's sentence. **ADR 0104.**
+ */
+function composeCarriedElements(
+    document: PanelDocument,
+    reading: StandingReading,
+    register: TipRegister,
+    translate: TranslateLabel | null,
+): PanelElement[] {
+    if (reading.carriers.length === 0) return [];
+    let counted = 0;
+    for (const one of reading.carriers) counted += one.statuses.length;
+    const drawn: PanelElement[] = [
+        composeSectionElement(document, STANDING_WORDS.carried, counted),
+    ];
+    for (const carrier of reading.carriers) {
+        const who = composeIntegerText(carrier.combatantId);
+        drawn.push(composeStandingPersonElement(
+            document,
+            register,
+            `${CARRIED_TIP_PREFIX}${who}`,
+            {
+                name: carrier.name,
+                skillName: null,
+                colour: carrier.colour,
+                sidePart: carrier.sidePart,
+                turns: null,
+                turnsCaveat: null,
+                isUnder: false,
+            },
+        ));
+        for (const status of carrier.statuses) {
+            const said = getWordsForStatusBit(status.bit, translate);
+            drawn.push(composeStandingPersonElement(
+                document,
+                register,
+                `${CARRIED_STATUS_TIP_PREFIX}${who}/${composeIntegerText(status.bit)}`,
+                {
+                    name: said,
+                    skillName: null,
+                    colour: carrier.colour,
+                    sidePart: carrier.sidePart,
+                    turns: composeCarriedTurnsText(status.turnsElapsed),
+                    turnsCaveat: "carriedLength",
+                    isUnder: true,
+                },
+            ));
+        }
+    }
+    return drawn;
+}
+
 function composeStandingBody(
     document: PanelDocument,
     reading: StandingReading,
     register: TipRegister,
+    translate: TranslateLabel | null,
 ): PanelElement {
     const body = composeElement(document, "div", CLASS.standingBody);
     for (const element of composeStandingNow(document, reading, register)) body.append(element);
@@ -1210,7 +1270,7 @@ function composeStandingBody(
     }
     body.append(composeSectionElement(document, STANDING_WORDS.standing, reading.rows.length));
     if (reading.rows.length === 0) {
-        if (reading.provoked.length === 0) {
+        if (reading.provoked.length === 0 && reading.carriers.length === 0) {
             const empty = composeElement(document, "div", CLASS.empty);
             empty.textContent = STANDING_WORDS.nothingStands;
             body.append(empty);
@@ -1219,12 +1279,18 @@ function composeStandingBody(
         for (const element of composeProvokedElements(document, reading, register)) {
             body.append(element);
         }
+        for (const element of composeCarriedElements(document, reading, register, translate)) {
+            body.append(element);
+        }
         return body;
     }
     for (const element of composeStandingRowElements(document, reading, register)) {
         body.append(element);
     }
     for (const element of composeProvokedElements(document, reading, register)) {
+        body.append(element);
+    }
+    for (const element of composeCarriedElements(document, reading, register, translate)) {
         body.append(element);
     }
     return body;
@@ -2637,10 +2703,15 @@ function setStandingBodyDrawn(
     isCollapsed: boolean,
     redraw: PanelRedraw,
     register: TipRegister,
+    translate: TranslateLabel | null,
 ): PanelElement {
     if (reading === null) return redraw(standing, "standing", () => composeSlotElement(document));
     if (isCollapsed) return redraw(standing, "standing", () => composeSlotElement(document));
-    return redraw(standing, "standing", () => composeStandingBody(document, reading, register));
+    return redraw(
+        standing,
+        "standing",
+        () => composeStandingBody(document, reading, register, translate),
+    );
 }
 
 /**
@@ -2824,6 +2895,7 @@ function composePanelDrawing(held: PanelDrawing): PanelHandle {
                     isCollapsed,
                     redraw,
                     held.standingRegister,
+                    held.translate,
                 ),
             );
             held.standingDrag?.handleDrawn();

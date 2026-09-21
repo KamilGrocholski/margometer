@@ -347,6 +347,7 @@ const HOLDS_NO_WORD: Record<string, string> = {
     UNANNOUNCED_CAVEATS: "which of those a closing row owes, which is a key and not a word",
     composeDefectText: "the branch a region takes, and a branch is not a word",
     composeCardSubtitleText: "the default for a card nobody is a side of",
+    STATUS_CATEGORY: "the client's own filing for a status id, which is a category and not a word",
 };
 
 const QUOTES = "\"'`";

@@ -258,3 +258,5 @@ edited to agree with the new rule.
   counted on, and a provocation says that nothing states one. **Superseded by 0103 in part**
 - [0103](0103-a-shout-runs-on-the-turns-of-whoever-it-holds.md) — A shout runs on the turns of
   whoever it holds, and the figure sits on their row. **Accepted**
+- [0104](0104-what-somebody-carries-is-read-off-the-mask-and-names-no-cast.md) — What somebody
+  carries is read off the mask, and names no cast. **Accepted**

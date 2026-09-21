@@ -68,6 +68,7 @@ src/
     fight-decoder.ts     What a key means, and what a key with no meaning leaves unread.
     game-build.ts        The build id the client states in its bundle's own filename.
     aura-standing.ts     What one skill put on more than one combatant, and how far through.
+    carried-status.ts    What each combatant is carrying, and for how many of their own turns.
     charged-skill.ts     The special blow being made ready, and the two ends of it a key names.
     fight-statistics.ts  The figures a panel draws, with what nobody can be charged apart.
     margometer-error.ts  The abstract brand every failure that ships to the browser wears.
@@ -174,6 +175,7 @@ tests/
     combatant-roster.test.ts  Two of a name, one of nobody, and every recording.
     fight-decoder.test.ts     The blows, and what is left unread beside them.
     aura-standing.test.ts     What stands at the end of a fight, and when it stops standing.
+    carried-status.test.ts    What a mask says somebody carries, and across what silences.
     charged-skill.test.ts     A charge, the end it came to, and the turn its mark outlives.
     game-build.test.ts        Both names the client serves, and what is not one of them.
     health-witness.test.ts    What was read, against what the protocol says of itself.

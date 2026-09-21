@@ -39,6 +39,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — W Pomocniku doszła sekcja „Co kto nosi": przy każdej postaci stoi to, co gra o niej
+  mówi, i ile jej własnych tur to już na niej stoi.
 - **Zmiana** — Licznik tur wyzwania stoi teraz przy każdej wyzwanej postaci osobno, a nie raz przy
   tym, kto krzyknął.
 - **Poprawka** — Wyzwanie liczy się teraz turami tego, kogo wyzwano, a nie rzucającego, więc schodzi

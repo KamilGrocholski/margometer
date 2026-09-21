@@ -20,7 +20,12 @@ const FULL_STOP = ".";
 /** An entry is a label with at most a hole in it; this is far past any the game states. */
 const MAXIMUM_ENTRY = 4096;
 
-export type TranslateLabel = (id: string) => string | null;
+/**
+ * The client's own lookup is `_t(name, parameters, category)` and its default category is
+ * `default`, so an id filed anywhere else answers nothing without one. Read on development build
+ * `1781609507010`: the statuses a mask carries are filed under `buff`.
+ */
+export type TranslateLabel = (id: string, category?: string) => string | null;
 
 /** Two marks with nothing between them is a hole, and any second mark is by definition that. */
 function hasHole(entry: string): boolean {
@@ -50,15 +55,21 @@ export function readDictionaryFromPage(page: unknown): TranslateLabel | null {
     if (!isRecord(page)) return null;
     const translate = page[TRANSLATE_FIELD];
     if (typeof translate !== "function") return null;
-    return (id: string): string | null => {
+    return (id: string, category?: string): string | null => {
         assert(id.length > 0, "an id asked of the client is one the panel named");
+        assert(category === undefined || category.length > 0, "and a category it can be filed in");
         let entry: unknown;
         // The game's own page state, read outbound (AGENTS.md E5). The mark is the answer: the
         // panel has no word of its own for these keys, so where the client cannot be asked, the
         // row stands under the key as the game wrote it — the third rung of **ADR 0024**, and
         // what a reader sees instead of a word somebody made up.
         try {
-            entry = (translate as (name: string) => unknown)(id);
+            const ask = translate as (
+                name: string,
+                parameters: unknown,
+                category?: string,
+            ) => unknown;
+            entry = ask(id, null, category);
         } catch {
             return null;
         }

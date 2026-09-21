@@ -103,6 +103,11 @@ function draw(reading: ReturnType<typeof composeStandingReading> | null): {
     return { host: panel.element as FakeElement, pressed };
 }
 
+/** Drawn and handed back, because these two only ever want the host. */
+function host_(reading: ReturnType<typeof composeStandingReading>): FakeElement {
+    return draw(reading).host;
+}
+
 function getWindow(host: FakeElement): FakeElement {
     // Folded, the frame wears a second class — which is how it says so.
     const found = getElementsWithin(host)
@@ -114,6 +119,7 @@ function getWindow(host: FakeElement): FakeElement {
 Deno.test("one row per skill, and the sides counted apart where the client named one", () => {
     const reading = composeStandingReading(
         [composeStanding(11), composeStanding(12), composeStanding(21)],
+        [],
         [],
         [],
         ROSTER,
@@ -152,6 +158,7 @@ Deno.test("a caster wears their own profession, and the side is said on the edge
         [composeStanding(11), composeStanding(21)],
         [],
         [],
+        [],
         ROSTER,
         OURS,
         composeTurn(null),
@@ -182,6 +189,7 @@ Deno.test("a caster wears their own profession, and the side is said on the edge
             [composeStanding(11), composeStanding(21)],
             [],
             [],
+            [],
             ROSTER,
             null,
             composeTurn(null),
@@ -206,6 +214,7 @@ Deno.test("a fight nothing named a side on counts nobody apart", () => {
     // guessing, so the row says how many and never whose.
     const reading = composeStandingReading(
         [composeStanding(11), composeStanding(21)],
+        [],
         [],
         [],
         ROSTER,
@@ -237,6 +246,7 @@ Deno.test("whoever holds the turn is drawn as a person, hue, side and all", () =
         [],
         [],
         [],
+        [],
         ROSTER,
         OURS,
         composeTurn({ ordinal: 48, combatantId: 21 }),
@@ -259,7 +269,7 @@ Deno.test("whoever holds the turn is drawn as a person, hue, side and all", () =
     );
     // **W5: zero is a boundary.** The same turn, on a fight with no seat to read from: the hue
     // stands, because it is theirs, and the rule does not, because nothing can place them.
-    const seatless = composeStandingReading([], [], [], ROSTER, null, {
+    const seatless = composeStandingReading([], [], [], [], ROSTER, null, {
         statement: { ordinal: 48, combatantId: 21 },
         isOver: false,
         isOnAuto: false,
@@ -276,12 +286,22 @@ Deno.test("whoever holds the turn is drawn as a person, hue, side and all", () =
  */
 Deno.test("a turn the game has stopped numbering is not drawn, and the window says why", () => {
     const stated = { ordinal: 267, combatantId: 21 };
-    const underway = composeStandingReading([], [], [], ROSTER, OURS, composeTurn(stated), null);
+    const underway = composeStandingReading(
+        [],
+        [],
+        [],
+        [],
+        ROSTER,
+        OURS,
+        composeTurn(stated),
+        null,
+    );
     assertStrictEquals(underway.turnState, "held", "a fight being fought is one being numbered");
     assertStrictEquals(underway.turnOrdinal, 267, "so the ordinal is drawn");
     assertEquals(underway.holder?.name, "Renegat 1", "and whoever the game numbered it for");
 
     const after = composeStandingReading(
+        [],
         [],
         [],
         [],
@@ -300,6 +320,7 @@ Deno.test("a turn the game has stopped numbering is not drawn, and the window sa
     );
 
     const running = composeStandingReading(
+        [],
         [],
         [],
         [],
@@ -322,6 +343,7 @@ Deno.test("a turn the game has stopped numbering is not drawn, and the window sa
         [],
         [],
         [],
+        [],
         ROSTER,
         OURS,
         composeTurn(stated, { isOver: true, isOnAuto: true }),
@@ -332,7 +354,7 @@ Deno.test("a turn the game has stopped numbering is not drawn, and the window sa
 
 /** **W5**: the same two states on a fight the game never numbered at all. */
 Deno.test("a fight nobody numbered says what it is, and never that it went unread", () => {
-    const unread = composeStandingReading([], [], [], ROSTER, OURS, composeTurn(null), null);
+    const unread = composeStandingReading([], [], [], [], ROSTER, OURS, composeTurn(null), null);
     assertStrictEquals(
         unread.turnState,
         "unread",
@@ -340,6 +362,7 @@ Deno.test("a fight nobody numbered says what it is, and never that it went unrea
     );
 
     const auto = composeStandingReading(
+        [],
         [],
         [],
         [],
@@ -358,7 +381,16 @@ Deno.test("a fight nobody numbered says what it is, and never that it went unrea
 
 Deno.test("a press opens the casters under a row, and a second press shuts them", () => {
     const standings = [composeStanding(11), composeStanding(12)];
-    const shut = composeStandingReading(standings, [], [], ROSTER, OURS, composeTurn(null), null);
+    const shut = composeStandingReading(
+        standings,
+        [],
+        [],
+        [],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        null,
+    );
     const { host, pressed } = draw(shut);
     assertEquals(getTextsByClass(getWindow(host), "row-name").length, 1, "the skill, and nobody");
     const row = getElementsWithin(getWindow(host))
@@ -367,7 +399,16 @@ Deno.test("a press opens the casters under a row, and a second press shuts them"
     pressElement(host, "pointerdown", row);
     assertEquals(pressed, [{ kind: "standing", stated: "264" }], "which names the skill opened");
 
-    const open = composeStandingReading(standings, [], [], ROSTER, OURS, composeTurn(null), 264);
+    const open = composeStandingReading(
+        standings,
+        [],
+        [],
+        [],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        264,
+    );
     const drawn = draw(open);
     assertEquals(
         getTextsByClass(getWindow(drawn.host), "row-name"),
@@ -389,6 +430,7 @@ Deno.test("a press opens the casters under a row, and a second press shuts them"
 Deno.test("a right press in the window moves nothing, and one on the panel steps back", () => {
     const reading = composeStandingReading(
         [composeStanding(11)],
+        [],
         [],
         [],
         ROSTER,
@@ -413,6 +455,7 @@ Deno.test("a row nobody opened stays shut, and an id nothing stands under opens 
         [composeStanding(11)],
         [],
         [],
+        [],
         ROSTER,
         OURS,
         composeTurn(null),
@@ -427,7 +470,7 @@ Deno.test("a row nobody opened stays shut, and an id nothing stands under opens 
 });
 
 Deno.test("a fight with nothing standing says so, and one with no turn says that too", () => {
-    const reading = composeStandingReading([], [], [], ROSTER, OURS, composeTurn(null), null);
+    const reading = composeStandingReading([], [], [], [], ROSTER, OURS, composeTurn(null), null);
     const { host } = draw(reading);
     const said = getTextsByClass(getWindow(host), "empty");
     assertEquals(
@@ -444,6 +487,7 @@ Deno.test("a folded window is its bar, and a fight it knows nothing about draws 
     panel.showStanding(
         composeStandingReading(
             [composeStanding(11)],
+            [],
             [],
             [],
             ROSTER,
@@ -471,7 +515,7 @@ Deno.test("the window's fold is its own, and never the panel's", () => {
     const panel = composePanelHost(document, (press) => pressed.push(press), () => {});
     const host = panel.element as FakeElement;
     panel.showStanding(
-        composeStandingReading([], [], [], ROSTER, OURS, composeTurn(null), null),
+        composeStandingReading([], [], [], [], ROSTER, OURS, composeTurn(null), null),
         false,
     );
     const control = getElementsWithin(getWindow(host))
@@ -491,6 +535,7 @@ Deno.test("a shout is drawn under whoever is holding it, and the turns are the c
     const reading = composeStandingReading(
         [],
         [composeProvocation(21, 11)],
+        [],
         [],
         ROSTER,
         OURS,
@@ -547,6 +592,7 @@ Deno.test("the row holding somebody names the okrzyk, and the held row does not"
         [],
         [composeProvocation(21, 11)],
         [],
+        [],
         ROSTER,
         OURS,
         composeTurn(null),
@@ -584,6 +630,7 @@ Deno.test("one caster shouting both okrzyki is two groups, each under its own na
         [],
         [composeProvocation(21, 11), composeProvocation(12, 11, other)],
         [],
+        [],
         ROSTER,
         OURS,
         composeTurn(null),
@@ -617,6 +664,7 @@ Deno.test("an okrzyk stands among the whole-team casts, on its own half's turns"
         [debuff],
         [composeProvocation(21, 11)],
         [],
+        [],
         ROSTER,
         OURS,
         composeTurn(null),
@@ -633,6 +681,7 @@ Deno.test("an okrzyk stands among the whole-team casts, on its own half's turns"
     const open = composeStandingReading(
         [debuff],
         [composeProvocation(21, 11)],
+        [],
         [],
         ROSTER,
         OURS,
@@ -653,6 +702,7 @@ Deno.test("one cast holding two characters states a length for each of them", ()
     const reading = composeStandingReading(
         [],
         [composeProvocation(11, 21), composeProvocation(12, 21)],
+        [],
         [],
         ROSTER,
         OURS,
@@ -687,6 +737,7 @@ Deno.test("two casters holding apart stand apart, in the order the fight named t
         [],
         [composeProvocation(21, 12), composeProvocation(11, 21)],
         [],
+        [],
         ROSTER,
         OURS,
         composeTurn(null),
@@ -709,6 +760,7 @@ Deno.test("a holder the roster cannot place is still drawn, and says so", () => 
     const reading = composeStandingReading(
         [],
         [composeProvocation(21, -1)],
+        [],
         [],
         ROSTER,
         OURS,
@@ -737,6 +789,7 @@ Deno.test("a fight holding only a provocation is not a fight where nothing stand
     const reading = composeStandingReading(
         [],
         [composeProvocation(21, 11)],
+        [],
         [],
         ROSTER,
         OURS,
@@ -774,11 +827,12 @@ Deno.test("the provoked stop at their stated maximum, and one under it is drawn 
     // on the people the section draws however few casts they arrive under (**ADR 0067**).
     const countHeld = (reading: ReturnType<typeof composeStandingReading>) =>
         reading.provoked.reduce((sum, one) => sum + one.provoked.length, 0);
-    const over = composeStandingReading([], many, [], ROSTER, OURS, composeTurn(null), null);
+    const over = composeStandingReading([], many, [], [], ROSTER, OURS, composeTurn(null), null);
     assertStrictEquals(countHeld(over), MAXIMUM_PROVOKED, "past it, the rest are dropped");
     const under = composeStandingReading(
         [],
         many.slice(0, MAXIMUM_PROVOKED - 1),
+        [],
         [],
         ROSTER,
         OURS,
@@ -791,6 +845,7 @@ Deno.test("the provoked stop at their stated maximum, and one under it is drawn 
 Deno.test("a whole-team skill says nothing about whom, because there is nothing to say", () => {
     const reading = composeStandingReading(
         [composeStanding(11)],
+        [],
         [],
         [],
         ROSTER,
@@ -826,6 +881,7 @@ Deno.test("a charge wears the hue of whoever is making it, and one dot per turn"
         [],
         [],
         [composeCharge()],
+        [],
         ROSTER,
         OURS,
         composeTurn(null),
@@ -857,6 +913,7 @@ Deno.test("a charge that is over wears no hue, and the heading says which end it
             [],
             [],
             [composeCharge({ state, endedAtOrdinal: 12 })],
+            [],
             ROSTER,
             OURS,
             composeTurn(null),
@@ -875,7 +932,7 @@ Deno.test("a charge that is over wears no hue, and the heading says which end it
 });
 
 Deno.test("a fight charging nothing draws no band at all", () => {
-    const reading = composeStandingReading([], [], [], ROSTER, OURS, composeTurn(null), null);
+    const reading = composeStandingReading([], [], [], [], ROSTER, OURS, composeTurn(null), null);
     assertEquals(reading.chargedSkills, [], "nothing is being made ready");
     const { host } = draw(reading);
     assertEquals(
@@ -890,6 +947,7 @@ Deno.test("a charge names the figures the game states, and never a percentage", 
         [],
         [],
         [composeCharge({ turnsElapsed: 1, turnsStated: 2 })],
+        [],
         ROSTER,
         OURS,
         composeTurn(null),
@@ -914,6 +972,7 @@ Deno.test("a press anywhere on a row that opens opens it, every span included", 
     const standings = [composeStanding(11), composeStanding(21)];
     const reading = composeStandingReading(
         standings,
+        [],
         [],
         [],
         ROSTER,
@@ -973,6 +1032,7 @@ Deno.test("every person's row in the window carries a card, and no two share one
         [composeStanding(11), composeStanding(21)],
         [composeProvocation(21, 11), composeProvocation(12, 11)],
         [],
+        [],
         ROSTER,
         OURS,
         composeTurn({ ordinal: 48, combatantId: 12 }),
@@ -1002,6 +1062,7 @@ Deno.test("the card of a row holding somebody hands back the name and the okrzyk
     const reading = composeStandingReading(
         [],
         [composeProvocation(21, 11)],
+        [],
         [],
         CUT_ROSTER,
         OURS,
@@ -1035,6 +1096,7 @@ Deno.test("a held character's card states the turns they have taken since the sh
         [],
         [composeProvocation(21, 11)],
         [],
+        [],
         CUT_ROSTER,
         OURS,
         composeTurn(null),
@@ -1064,6 +1126,7 @@ Deno.test("a caster's card names the skill their row opened under", () => {
         [composeStanding(11)],
         [],
         [],
+        [],
         ROSTER,
         OURS,
         composeTurn(null),
@@ -1085,6 +1148,7 @@ Deno.test("a caster's card names the skill their row opened under", () => {
 
 Deno.test("the row under `Teraz` carries a card of the name alone", () => {
     const reading = composeStandingReading(
+        [],
         [],
         [],
         [],
@@ -1137,6 +1201,7 @@ Deno.test("every row the window draws carries a card, the charge band included",
         [composeStanding(11), composeStanding(21)],
         [composeProvocation(21, 11), composeProvocation(12, 11)],
         [composeCharge(), composeCharge({ combatantId: 11, skillName: "Szarża" })],
+        [],
         ROSTER,
         OURS,
         composeTurn({ ordinal: 48, combatantId: 12 }),
@@ -1206,6 +1271,7 @@ Deno.test("a cast's card says the length it states was counted on the caster", (
         [composeStanding(11)],
         [],
         [],
+        [],
         ROSTER,
         OURS,
         composeTurn(null),
@@ -1239,6 +1305,7 @@ Deno.test("the holder's card states no length, because the length is not the cas
         [],
         [composeProvocation(21, 11)],
         [],
+        [],
         ROSTER,
         OURS,
         composeTurn(null),
@@ -1263,6 +1330,7 @@ Deno.test("a character shouted at before they have moved is held, at none of the
         [],
         [composeProvocation(21, 11, { turnsElapsed: 0 })],
         [],
+        [],
         ROSTER,
         OURS,
         composeTurn(null),
@@ -1280,11 +1348,74 @@ Deno.test("a character shouted at before they have moved is held, at none of the
     );
 });
 
+/** One status one combatant carries, as the walk in `core/carried-status.ts` composes one. */
+function composeCarried(combatantId: number, bit: number, turnsElapsed = 3) {
+    return { combatantId, bit, turnsElapsed };
+}
+
+/**
+ * **ADR 0104.** The one answer `on whom` has: the game states it per combatant, so the section
+ * groups by person and says what each is holding. It names no caster and no stated total, which
+ * is what keeps it from finishing the sentence the section above it is allowed to say.
+ */
+Deno.test("what the game says somebody carries stands under their own name", () => {
+    const reading = composeStandingReading(
+        [],
+        [],
+        [],
+        [composeCarried(11, 3), composeCarried(11, 6), composeCarried(21, 5)],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        null,
+    );
+    assertStrictEquals(reading.carriers.length, 2, "two combatants are carrying something");
+    assertEquals(
+        getTextsByClass(getWindow(host_(reading)), "row-name").slice(-5),
+        ["Gracz 1", "poisoned", "speed_up", "Renegat 1", "swow_down"],
+        "each under their own name, with what they carry as rows under them",
+    );
+});
+
+/**
+ * **W5: zero is a boundary.** A status lit on the payload a combatant has yet to move in has
+ * stood for none of their turns, and the row says `0 tur` rather than standing empty — the count
+ * is what has passed and zero is a reading of it.
+ */
+Deno.test("a status nobody has taken a turn under states none, and never a total", () => {
+    const reading = composeStandingReading(
+        [],
+        [],
+        [],
+        [composeCarried(11, 6, 0)],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        null,
+    );
+    const host = host_(reading);
+    assertEquals(
+        getTextsByClass(getWindow(host), "row-value figure"),
+        ["0 tur"],
+        "what has passed, and no `z` because the game publishes no length for a status",
+    );
+    const rows = getPersonRows(host);
+    const status = rows[rows.length - 1];
+    assertExists(status, "the status stands as a row under whoever carries it");
+    pointAtElement(host, "pointermove", status, 200);
+    assertEquals(
+        readTip(host).notes,
+        [composeNote("carriedLength")],
+        "and its card says there is nothing to measure the count against",
+    );
+});
+
 Deno.test("the card of a charge names the blow whole, whoever is making it, and the turns", () => {
     const reading = composeStandingReading(
         [],
         [],
         [composeCutCharge()],
+        [],
         ROSTER,
         OURS,
         composeTurn(null),
@@ -1315,6 +1446,7 @@ Deno.test("a charge that is over says on its own card which end it came to", () 
             [],
             [],
             [composeCutCharge(state)],
+            [],
             ROSTER,
             OURS,
             composeTurn(null),
@@ -1342,6 +1474,7 @@ Deno.test("a pointer on any part of a charge's row keeps its card open, every do
         [],
         [],
         [composeCharge()],
+        [],
         ROSTER,
         OURS,
         composeTurn(null),

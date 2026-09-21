@@ -16,6 +16,13 @@ import {
     MAXIMUM_COMBATANTS,
 } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages, MAXIMUM_MESSAGES } from "@/src/core/fight-decoder.ts";
+import {
+    addPayloadToCarriedStatuses,
+    type CarriedStatus,
+    type CarriedStatusWalk,
+    composeCarriedStatuses,
+    composeCarriedStatusWalk,
+} from "@/src/core/carried-status.ts";
 import { getIntegerFromText } from "@/libs/number-text.ts";
 import {
     getNumberFromUnknown,
@@ -25,6 +32,7 @@ import {
 import {
     readChargedSkillStatements,
     readCombatantsFromPayload,
+    readStatusMasksFromPayload,
 } from "@/src/game/engine-warrior.ts";
 import {
     type ChargedSkillStanding,
@@ -125,10 +133,14 @@ export interface FightReading {
     isOnAuto: boolean;
     /** What a combatant is making ready, and the two ends of it the protocol names. */
     chargedSkills: readonly ChargedSkillStanding[];
+    /** What each combatant is carrying, and for how many of their own turns — **ADR 0104**. */
+    carriedStatuses: readonly CarriedStatus[];
 }
 
 export interface FightUnderway {
     combatants: Combatant[];
+    /** Kept rather than recomposed: a status is a run between payloads, so it needs a memory. */
+    carried: CarriedStatusWalk;
     events: BattleEvent[];
     messagesByPayload: string[][];
     messagesLost: number;
@@ -158,6 +170,7 @@ export function composeFightUnderway(): FightUnderway {
         turnStatement: null,
         isOnAuto: false,
         chargedSkills: [],
+        carried: composeCarriedStatusWalk(),
     };
     return underway;
 }
@@ -206,6 +219,7 @@ function resetFight(underway: FightUnderway): void {
     underway.turnStatement = null;
     underway.isOnAuto = false;
     underway.chargedSkills = [];
+    underway.carried = composeCarriedStatusWalk();
     assert(underway.payloads === 0, "a fight reset stands on no payload");
 }
 
@@ -334,6 +348,13 @@ export function addPayloadToFight(
         underway.messagesLost += read.stated - read.messages.length;
     }
     for (const event of read.decoded) underway.events.push(event);
+    // After the events of this payload and never before them: a status lighting on the turn a
+    // combatant has just taken belongs to that turn and not to the one before it (**ADR 0104**).
+    addPayloadToCarriedStatuses(
+        underway.carried,
+        read.decoded,
+        readStatusMasksFromPayload(payload),
+    );
     if (FIGHT_ENDS_KEY in payload) underway.isOver = true;
     assert(underway.messagesLost >= 0, "what a payload stated and nobody read is never negative");
     assert(underway.messagesRead >= read.messages.length, "and what it did read is counted once");
@@ -384,5 +405,6 @@ export function getReadingFromFight(underway: FightUnderway): FightReading | nul
         turnStatement: underway.turnStatement,
         isOnAuto: underway.isOnAuto,
         chargedSkills: underway.chargedSkills,
+        carriedStatuses: composeCarriedStatuses(underway.carried),
     };
 }

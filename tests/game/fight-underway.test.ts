@@ -463,3 +463,37 @@ Deno.test("a fight that opens past the bound leaves the one standing, whole", ()
     assertEquals(opened.payloads, 1, "on its own");
     assertFalse(opened.hasJoinedInProgress, "and from its first payload");
 });
+
+/**
+ * The join between the payload's own mask and the walk that times it — the one thing neither the
+ * core test nor the window test can see, because each is handed what the other would have passed.
+ * Found by a mutation that cut the mask at the handover and lit nothing (**W4**).
+ */
+Deno.test("what the payloads said somebody carries reaches the reading", () => {
+    let carrying = 0;
+    let recordings = 0;
+    for (const path of readRecordingPaths()) {
+        const fight = replay(path);
+        assertExists(fight, `${path}: the replay produced a fight`);
+        recordings += 1;
+        if (fight.carriedStatuses.length > 0) carrying += 1;
+        for (const one of fight.carriedStatuses) {
+            assert(one.turnsElapsed >= 0, `${path}: a status stands for turns that passed`);
+            assert(one.bit >= 0, `${path}: and at a position in the mask`);
+        }
+    }
+    assert(recordings > 0, "the corpus was there to read");
+    assert(carrying > 0, "and somebody in it is carrying something the game stated");
+});
+
+/**
+ * **W5: zero is a boundary.** A fight nobody has sent a payload for carries nothing, which is a
+ * reading of the mask and not the reading failing to happen.
+ */
+Deno.test("a fight with no payload behind it says nobody is carrying anything", () => {
+    const underway = composeFightUnderway();
+    addPayloadToFight(underway, { init: 1, m: ["0;0;txt=a"] }, BLOWS_GRANTED);
+    const reading = getReadingFromFight(underway);
+    assertExists(reading, "the fight opened");
+    assertEquals(reading.carriedStatuses, [], "and states no status for anybody");
+});
