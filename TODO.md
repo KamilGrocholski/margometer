@@ -18,17 +18,18 @@
 
 ## In Progress
 - [ ] Data: !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and 10vs10 player vs. player fights (I really need this for further development, now I only know 1-93lvl)
-- [ ] Refactor: Reduce the number and length of comments
 
 ## Up Next
-- [ ] Readme: Too much text
 - [ ] Fix: A click on a row in `Pomocnik` selects its text
-- [ ] Feat: A special skill in `Pomocnik` SHOULD have a tip - every row SHOULD(do it also in this task)
 - [ ] Plan: Should dmg applied and taken take into account only health or also absorbtion?
 - [ ] Check: Do a manual audit
 - [ ] Plan: Add a fight visualization - a simple chart with bars or something
 
 ## Done
+- [x] Feat: A special skill in `Pomocnik` SHOULD have a tip - every row SHOULD(do it also in this task)
+- [x] PresentationPage: Too much text
+- [x] Readme: Too much text
+- [x] Refactor: Reduce the number and length of comments
 - [x] Refactor: Reduce the number of indirections and wrappers in the code - Why? I had to jump too many times to see all of the invoked functions.
 - [x] Changelog: Add a rule "max one line per thing"
 - [x] Design: Create a better preview site - description, installation, preview
