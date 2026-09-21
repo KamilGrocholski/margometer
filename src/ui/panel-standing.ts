@@ -42,17 +42,24 @@ export interface StandingCaster {
     turnsStated: number;
 }
 
-/** One character a shout is holding. A person, so drawn as one — hue and side, like any row. */
+/**
+ * One character a shout is holding. A person, so drawn as one — hue and side, like any row — and
+ * **with a length of their own**, because a shout runs on the turns of whoever it holds and two
+ * characters held by one cast are not the same number of turns in. **ADR 0103.**
+ */
 export interface StandingProvoked {
     provokedId: number;
     name: string;
     colour: string;
     sidePart: PanelSidePart;
+    turnsElapsed: number;
+    turnsStated: number;
 }
 
 /**
- * Whoever is holding somebody, and whom. The turns are the **cast's** and stand here once: over
- * `captures/` 2026-09-09, 11 casts held two characters and all 11 stated one figure. **ADR 0067.**
+ * Whoever is holding somebody, and whom. **It states no length of its own**: one cast holding two
+ * characters is two counts, on two clocks, so the figure sits on the row of whoever is carrying it
+ * — **ADR 0103**, superseding **ADR 0067** on the half that put it here.
  *
  * The okrzyk is named here because the two of them are not one state: the table dates their
  * side-wide halves apart, so which one holds somebody is something a reader acts on. **ADR 0097.**
@@ -64,8 +71,6 @@ export interface StandingProvocation {
     skillName: string;
     casterColour: string;
     casterSidePart: PanelSidePart;
-    turnsElapsed: number;
-    turnsStated: number;
     provoked: StandingProvoked[];
 }
 
@@ -160,6 +165,8 @@ function composeStandingProvoked(
         name: provoked?.name ?? PANEL_WORDS.withoutTarget,
         colour: getColourForProfession(provoked?.profession ?? null),
         sidePart: getPartOfSide(provoked?.side ?? null, readerSide),
+        turnsElapsed: standing.turnsElapsed,
+        turnsStated: standing.turnsStated,
     };
 }
 
@@ -193,8 +200,6 @@ function composeStandingProvocations(
             skillName: standing.skillName,
             casterColour: getColourForProfession(caster?.profession ?? null),
             casterSidePart: getPartOfSide(caster?.side ?? null, readerSide),
-            turnsElapsed: standing.turnsElapsed,
-            turnsStated: standing.turnsStated,
             provoked: [],
         };
         held.provoked.push(composeStandingProvoked(standing, roster, readerSide));

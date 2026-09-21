@@ -21,6 +21,7 @@ import {
     getReachFromEffects,
     getStatedTurnsFromEffects,
     isTeamWideKey,
+    PROVOCATION_KEY,
     type StatedSkills,
 } from "@/src/core/aura-standing.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
@@ -430,22 +431,25 @@ Deno.test("an okrzyk stands beside the whole-team casts as well as holding someb
 });
 
 /**
- * The whole of what **ADR 0097** is for: `Wyzywający okrzyk` shouts for three turns and debuffs
- * for five, so there are two turns where the panel drew nothing and the debuff was standing.
- * **W5**: the turn the shout runs out on is a boundary, and the turn before it stands beside it.
+ * The whole of what **ADR 0097** is for, and now on two clocks as well as two lengths: the shout
+ * runs on the turns of whoever it holds (**ADR 0103**) while the debuff runs on the caster's, so
+ * one announcement is two counts that do not move together. **W5**: the turn each runs out on is
+ * a boundary, and the turn before it stands beside it.
  */
-Deno.test("an okrzyk's two halves run out apart, and the longer one outlives the shout", () => {
+Deno.test("an okrzyk's two halves run out apart, and on two different clocks", () => {
     const dated = composeStated([{ id: 188, turns: 5 }], SHOUTS);
     const cast = composeCast(1, 188, "shout alllowdmg", 9, "Ktoś 9");
-    for (const elapsed of [0, 1, 2]) {
-        const held = composeFightStandings([cast, ...composeTurns(1, elapsed)], dated, ROSTER);
-        assertStrictEquals(held.provocations.length, 1, `at ${elapsed} turns the shout holds`);
-        assertStrictEquals(held.standings.length, 1, `and at ${elapsed} the debuff stands`);
+    for (const elapsed of [0, 1, 2, 3]) {
+        const held = composeFightStandings([cast, ...composeTurns(9, elapsed)], dated, ROSTER);
+        assertStrictEquals(held.provocations.length, 1, `at ${elapsed} of their own turns, held`);
     }
-    for (const elapsed of [3, 4]) {
+    const freed = composeFightStandings([cast, ...composeTurns(9, 4)], dated, ROSTER);
+    assertEquals(freed.provocations, [], "and a fourth turn of theirs is where the game let go");
+
+    // Whatever the held character does, the debuff goes on running on the caster's own turns.
+    for (const elapsed of [0, 1, 2, 3, 4]) {
         const held = composeFightStandings([cast, ...composeTurns(1, elapsed)], dated, ROSTER);
-        assertEquals(held.provocations, [], `at ${elapsed} turns the game has let them go`);
-        assertStrictEquals(held.standings[0]?.turnsElapsed, elapsed, `and the debuff stands on`);
+        assertStrictEquals(held.standings[0]?.turnsElapsed, elapsed, `the debuff at ${elapsed}`);
     }
     const over = composeFightStandings([cast, ...composeTurns(1, 5)], dated, ROSTER);
     assertEquals(over.standings, [], "and at five the debuff has run out too");
@@ -463,14 +467,35 @@ Deno.test("a target slot nobody shouted at holds nobody", () => {
     assertEquals(aimed, [], "and no whole-team cast becomes a provocation by having a target");
 });
 
-Deno.test(`${AGAINST_TWO}: one shout holds both players it named`, () => {
-    const path = `captures/${AGAINST_TWO}.json`;
+/**
+ * Every event of a recording, and where its last shout stands among them. A provocation now runs
+ * on the held character's own turns (**ADR 0103**), so a claim about **whom** a shout named is
+ * read where it was announced — by the end of a long fight the game has let them go.
+ */
+function composeEventsAndShout(path: string): {
+    roster: ReturnType<typeof composeCombatantRoster>;
+    events: BattleEvent[];
+    lastShout: number;
+} {
     const roster = composeCombatantRoster(getRecordedCombatants(path));
     const events: BattleEvent[] = [];
     for (const messages of getRecordedPayloads(path)) {
         events.push(...decodeFightMessages(messages, roster, BLOWS_GRANTED));
     }
-    const held = composeFightStandings(events, DATED, roster).provocations;
+    let lastShout = -1;
+    for (const [at, event] of events.entries()) {
+        if (event.kind !== "skill-used") continue;
+        if (event.declared.some((one) => one.effect === PROVOCATION_KEY)) lastShout = at;
+    }
+    assert(lastShout >= 0, `${path} carries a shout to read`);
+    return { roster, events, lastShout };
+}
+
+Deno.test(`${AGAINST_TWO}: one shout holds both players it named`, () => {
+    const path = `captures/${AGAINST_TWO}.json`;
+    const { roster, events, lastShout } = composeEventsAndShout(path);
+    const announced = events.slice(0, lastShout + 1);
+    const held = composeFightStandings(announced, DATED, roster).provocations;
     assertStrictEquals(held.length, 2, "the value named two characters, so two are held");
     assertEquals(
         held.map((one) => roster.byId.get(one.provokedId)?.name).sort(),
@@ -481,16 +506,17 @@ Deno.test(`${AGAINST_TWO}: one shout holds both players it named`, () => {
         held.every((one) => one.turnsStated === 3),
         "each dated by the shout's own row rather than the skill's longest",
     );
+    // **ADR 0103**: two characters held by one shout run out on two clocks, so by the end of this
+    // fight they are not both still held — which the caster's clock could never have shown.
+    const ended = composeFightStandings(events, DATED, roster).provocations;
+    assert(ended.length < held.length, "and by the end the game has let go of at least one");
 });
 
 Deno.test(`${BOTH_OKRZYKI}: two casters at one monster leave one provocation standing`, () => {
     const path = `captures/${BOTH_OKRZYKI}.json`;
-    const roster = composeCombatantRoster(getRecordedCombatants(path));
-    const events: BattleEvent[] = [];
-    for (const messages of getRecordedPayloads(path)) {
-        events.push(...decodeFightMessages(messages, roster, BLOWS_GRANTED));
-    }
-    const held = composeFightStandings(events, DATED, roster).provocations;
+    const { roster, events, lastShout } = composeEventsAndShout(path);
+    const announced = events.slice(0, lastShout + 1);
+    const held = composeFightStandings(announced, DATED, roster).provocations;
     assertStrictEquals(held.length, 1, "a Wojownik and a Paladyn shouting at one monster is one");
     assertStrictEquals(
         roster.byId.get(held[0]?.provokedId ?? 0)?.name,
@@ -500,7 +526,7 @@ Deno.test(`${BOTH_OKRZYKI}: two casters at one monster leave one provocation sta
     // ADR 0097: the okrzyk holding the monster stands among the whole-team casts as well, on the
     // side-wide half's own turns — 2 by the frozen table, where its shout is dated 3 — so the two
     // halves of one announcement run out apart, which is the whole of what that decision states.
-    const standing = composeFightStandings(events, DATED, roster).standings;
+    const standing = composeFightStandings(announced, DATED, roster).standings;
     assertEquals(
         standing.filter((one) => one.skillId === 25).map((one) => one.turnsStated),
         [2],

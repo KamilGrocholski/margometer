@@ -184,7 +184,7 @@ edited to agree with the new rule.
 - [0066](0066-the-ranking-says-whose-turn-it-is.md) — The ranking says whose turn it is.
   **Accepted**
 - [0067](0067-a-shout-is-drawn-under-whoever-is-holding-it.md) — A shout is drawn under whoever is
-  holding it. **Superseded by 0097 in part**
+  holding it. **Superseded by 0097 in part, and by 0103 in part**
 - [0068](0068-a-card-stands-over-the-window-beside-the-panel.md) — A card stands over the window
   beside the panel. **Accepted**
 - [0069](0069-a-card-says-only-what-names-its-own-person.md) — A card says only the gaps that name
@@ -255,4 +255,6 @@ edited to agree with the new rule.
 - [0101](0101-a-length-is-counted-on-whoever-is-carrying-it.md) — A length is counted on whoever is
   carrying it, not on whoever cast it. **Accepted**
 - [0102](0102-a-length-says-which-clock-it-was-counted-on.md) — A length says which clock it was
-  counted on, and a provocation says that nothing states one. **Accepted**
+  counted on, and a provocation says that nothing states one. **Superseded by 0103 in part**
+- [0103](0103-a-shout-runs-on-the-turns-of-whoever-it-holds.md) — A shout runs on the turns of
+  whoever it holds, and the figure sits on their row. **Accepted**

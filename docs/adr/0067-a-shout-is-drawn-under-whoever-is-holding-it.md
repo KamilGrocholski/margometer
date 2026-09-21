@@ -1,6 +1,6 @@
 # 0067. A shout is drawn under whoever is holding it
 
-- **Status:** Superseded by 0097 in part
+- **Status:** Superseded by 0097 in part, and by 0103 in part
 - **Date:** 2026-09-09
 
 ## Context

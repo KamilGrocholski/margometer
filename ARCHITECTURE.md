@@ -111,6 +111,7 @@ tools/             Never ships. Each arrives with the question it answers.
   turn-count.ts        What a fight's turns come to, graded against the game's own numbering.
   aura-standing.ts     What one skill put on a whole side, and how many stood at once.
   aura-lifetime.ts     How long a status really stood, read off the mask every payload restates.
+  shout-holding.ts     Whom a provoked character strikes, turn by turn, once a shout named them.
   turn-reading.ts      How a message becomes a turn, and which message a dispute stands on.
   preview-page.ts      The harness page, whole, as one string. It speaks neither language.
   preview-state.ts     What the harness carries between two pages, in the address and nowhere else.
@@ -202,6 +203,7 @@ tests/
     turn-count.test.ts        The register against every recording graded, both ways round.
     aura-standing.test.ts     `docs/auras-standing.md` against the corpus, both ways round.
     aura-lifetime.test.ts     Whose turns a length runs on: the mask, and the help under each key.
+    shout-holding.test.ts     The shout register against the corpus, both ways round.
     unannounced-damage.test.ts  `docs/unannounced-damage.md` against every recording.
     skill-table.test.ts       The published table's shape, and a page that is no longer it.
     turn-reading.test.ts      The disputed openers, and this reading against the panel's.

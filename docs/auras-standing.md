@@ -292,8 +292,49 @@ announcement of it was ever seen to list.
 
 |  id | skill              | casters | fights | at once | stated | covers | names |
 | --: | ------------------ | ------: | -----: | ------: | -----: | -----: | ----: |
-|  25 | Prowokujący okrzyk |       4 |      6 |       1 |      3 |      6 |     1 |
-| 188 | Wyzywający okrzyk  |      10 |     17 |       2 |      3 |      6 |     2 |
+|  25 | Prowokujący okrzyk |       3 |      5 |       1 |      3 |      6 |     1 |
+| 188 | Wyzywający okrzyk  |       8 |     14 |       2 |      3 |      6 |     2 |
+
+## How long a shout holds somebody
+
+**Something does witness a shout's end, and it is what the held character does.** The protocol never
+mentions the cast again, so **ADR 0059** filed the length as unwitnessed; what it did not look at is
+whom the provoked then strike. `tools/shout-holding.ts` walks every recording for it, and `ADR 0103`
+is what the panel does with the answer.
+
+```bash
+deno task fight:shout                 # the register below
+deno task fight:shout captures/<one>  # the same over one recording
+```
+
+`turn` is how many of the **held character's own** turns had opened when the blow was struck; an
+episode stops at the next shout of any kind, because a later one replaces whatever held them (**ADR
+0062**). `share` is what went at whoever shouted.
+
+| turn | at the shouter | elsewhere | share |
+| ---: | -------------: | --------: | ----: |
+|    1 |             75 |         0 |  100% |
+|    2 |             61 |         0 |  100% |
+|    3 |             49 |         2 |   96% |
+|    4 |             29 |         4 |   88% |
+|    5 |             20 |         6 |   77% |
+|    6 |              7 |         5 |   58% |
+|    7 |              4 |         2 |   67% |
+|    8 |              4 |         5 |   44% |
+
+⚠️ **The baseline is what those three rows have to beat, and it is high.** The same characters,
+before the shout named them, already sent 79% of their blows at whoever would shout — most
+recordings are a group against one, so there is not much else to hit. The first three turns stand at
+185 of 187 against that, and the fourth onwards falls **through** it.
+
+**The edge sits exactly where the published table puts it.** The table gives a shout three turns,
+and three of the held character's own turns is where the share stops being total. On the caster's
+turns the same blows show no edge at all — which is the same finding as the auras', on a different
+witness.
+
+⚠️ **The tail is thin and is not the claim.** Six turns in, an episode has usually ended or been
+replaced, so what those rows report is a handful of blows. What the register stands on is the first
+four rows and the baseline under them.
 
 ⚠️ **`covers` is reported and drawn nowhere.** It was the input to the expansion **ADR 0064**
 removed; it stays here because it is a true reading of the published table and

@@ -968,8 +968,10 @@ function composeProvokedElements(
                 skillName: provocation.skillName,
                 colour: provocation.casterColour,
                 sidePart: provocation.casterSidePart,
-                turns: composeStandingTurnsText(provocation.turnsElapsed, provocation.turnsStated),
-                turnsCaveat: "provocationLength",
+                // No length here: one cast holding two characters is two counts on two clocks,
+                // so the figure sits on the row of whoever is carrying it (**ADR 0103**).
+                turns: null,
+                turnsCaveat: null,
                 isUnder: false,
             },
         ));
@@ -981,12 +983,12 @@ function composeProvokedElements(
             const key = `${STANDING_HELD_TIP_PREFIX}${cast}/${composeIntegerText(held.provokedId)}`;
             drawn.push(composeStandingPersonElement(document, register, key, {
                 name: held.name,
-                // Named on the card and never on the row: the row above draws it already, and the
-                // turns under it are the cast's rather than this character's (**ADR 0067**).
+                // Named on the card and never on the row: the row above draws it already, and
+                // what this row does state is a length of this character's own (**ADR 0103**).
                 skillName: provocation.skillName,
                 colour: held.colour,
                 sidePart: held.sidePart,
-                turns: null,
+                turns: composeStandingTurnsText(held.turnsElapsed, held.turnsStated),
                 turnsCaveat: null,
                 isUnder: true,
             }));

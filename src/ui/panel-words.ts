@@ -357,7 +357,6 @@ export const CAVEATS = [
     "turns",
     "unannounced",
     "standingLength",
-    "provocationLength",
 ] as const;
 
 export type Caveat = (typeof CAVEATS)[number];
@@ -385,10 +384,6 @@ export type Caveat = (typeof CAVEATS)[number];
  * carrying it, and this counts the caster's (**ADR 0101**), so the pair is true of the caster and
  * of nobody else the cast reached. Written to the same 60 characters `turns` is.
  *
- * ⚠️ **`provocationLength` says less, because less is known.** Nothing states whose turns a shout
- * runs on and nothing states that it ended, so the sentence claims no clock at all — where the
- * aura's names the one it counted, this one names none, and the difference is the evidence.
- *
  * ⚠️ **`unannounced` cannot say the interesting half, and that is the rule working, not failing.**
  * Whether a blow standing under no announcement is the game's own default action or one whose
  * announcement this reading did not reach is a question about **us**, and a player is owed the
@@ -401,7 +396,6 @@ const CAVEAT_NOTES: Record<Caveat, string> = {
     turns: "Gra nie podaje, ile tur ktoś dostał, tylko co w nich zrobił.",
     unannounced: "Gra nie mówi, czym te ciosy zadano — wiadomo tylko, że padły.",
     standingLength: "To tury rzucającego — u każdego innego efekt schodzi osobno.",
-    provocationLength: "Gra nie podaje, kiedy prowokacja schodzi z konkretnej postaci.",
 };
 
 export function getNoteForCaveat(caveat: Caveat): string {

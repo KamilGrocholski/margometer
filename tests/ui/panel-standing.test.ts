@@ -647,7 +647,7 @@ Deno.test("an okrzyk stands among the whole-team casts, on its own half's turns"
     );
 });
 
-Deno.test("one cast holding two characters is one row, and states its turns once", () => {
+Deno.test("one cast holding two characters states a length for each of them", () => {
     // The case the fold exists for. `captures/` holds it once, in the fight written from side 2:
     // one shout naming two players, measured 2026-09-09.
     const reading = composeStandingReading(
@@ -667,10 +667,12 @@ Deno.test("one cast holding two characters is one row, and states its turns once
         ["Renegat 1", "Gracz 1", "Gracz 2"],
         "the holder once, and both they hold under them",
     );
+    // **ADR 0103**: the figure left the holder's row for the rows of whoever is carrying it,
+    // because a shout runs on the turns of the held and two of them are not the same turns in.
     assertEquals(
         getTextsByClass(getWindow(host), "row-value figure"),
-        ["2 z 3 tur"],
-        "one figure and not two: over `captures/` every such cast stated one",
+        ["2 z 3 tur", "2 z 3 tur"],
+        "one figure per character held, and none on the row of whoever holds them",
     );
     // **ADR 0062**: the heading counts characters held, which the fold does not change.
     assertEquals(
@@ -1020,18 +1022,15 @@ Deno.test("the card of a row holding somebody hands back the name and the okrzyk
         ["Wyzywający okrzyk"],
         "and names the okrzyk under it, which is the cell that gives way first",
     );
-    assertEquals(
-        card.stated.map((one) => [one.label, one.value]),
-        [[STANDING_WORDS.turnsPassed, "2 z 3 tur"]],
-        "with the turns the row states, under a label of their own",
-    );
+    // **ADR 0103**: the length is the held character's, so it is on their row and not on this one.
+    assertStrictEquals(card.groups, 0, "and states no turns, which are not this cast's to state");
 });
 
 /**
  * **W5: zero is a boundary.** The card above states one figure and this one states none, which is
  * the difference between a card with a run and a card that is a name and a line under it.
  */
-Deno.test("a held character's card states no turns, because the turns are the cast's", () => {
+Deno.test("a held character's card states the turns they have taken since the shout", () => {
     const reading = composeStandingReading(
         [],
         [composeProvocation(21, 11)],
@@ -1052,7 +1051,12 @@ Deno.test("a held character's card states no turns, because the turns are the ca
         ["Wyzywający okrzyk"],
         "and names what is holding them, which their row leaves to the row above",
     );
-    assertStrictEquals(card.groups, 0, "and states no turns, which are the cast's (**ADR 0067**)");
+    assertEquals(
+        card.stated.map((one) => [one.label, one.value]),
+        [[STANDING_WORDS.turnsPassed, "2 z 3 tur"]],
+        "and states a length of their own, counted on their turns (**ADR 0103**)",
+    );
+    assertEquals(card.notes, [], "with no sentence under it, because the clock is now theirs");
 });
 
 Deno.test("a caster's card names the skill their row opened under", () => {
@@ -1226,10 +1230,11 @@ Deno.test("a cast's card says the length it states was counted on the caster", (
 });
 
 /**
- * The same defect, and a different sentence, because less is known: no status bit stands for a
- * provocation and the published help dates `shout` nowhere, so this card claims no clock at all.
+ * **ADR 0103.** One cast holding two characters is two counts on two clocks, so the figure left
+ * the holder's row for the rows of whoever is carrying it. This card states the cast and no
+ * length, which is what makes the length on the row below it unambiguous.
  */
-Deno.test("a provocation's card claims no clock, because nothing states one", () => {
+Deno.test("the holder's card states no length, because the length is not the cast's", () => {
     const reading = composeStandingReading(
         [],
         [composeProvocation(21, 11)],
@@ -1244,26 +1249,19 @@ Deno.test("a provocation's card claims no clock, because nothing states one", ()
     assertExists(holding, "the row of whoever is holding stands first");
     pointAtElement(host, "pointermove", holding, 200);
     const card = readTip(host);
-    assertEquals(
-        card.notes,
-        [composeNote("provocationLength")],
-        "the sentence says what is not stated, and names no turns of anybody's",
-    );
-    assertNotStrictEquals(
-        card.notes[0],
-        composeNote("standingLength"),
-        "and never the aura's, which claims a clock this one has no evidence of",
-    );
+    assertStrictEquals(card.groups, 0, "the holder's card states no turns of anybody's");
+    assertEquals(card.notes, [], "and owes no sentence, because it draws no figure");
 });
 
 /**
- * **W5: zero is a boundary.** A card stating no figure owes no sentence, and a caveat drawn there
- * would be a claim about a number the card does not carry.
+ * **W5: zero is a boundary**, and this model puts one where there was none. A shout lands on the
+ * caster's turn, so between it and the held character's next turn nothing of theirs has passed —
+ * the figure is `0` and the row stands, which is a different state from the row being gone.
  */
-Deno.test("a card stating no turns carries neither sentence", () => {
+Deno.test("a character shouted at before they have moved is held, at none of their turns", () => {
     const reading = composeStandingReading(
         [],
-        [composeProvocation(21, 11)],
+        [composeProvocation(21, 11, { turnsElapsed: 0 })],
         [],
         ROSTER,
         OURS,
@@ -1271,10 +1269,15 @@ Deno.test("a card stating no turns carries neither sentence", () => {
         null,
     );
     const { host } = draw(reading);
+    assertStrictEquals(reading.provoked.length, 1, "the shout holds them from the moment it lands");
     const held = getPersonRows(host)[1];
-    assertExists(held, "the character held stands under whoever is holding them");
+    assertExists(held, "and they stand as a row under whoever is holding them");
     pointAtElement(host, "pointermove", held, 200);
-    assertEquals(readTip(host).notes, [], "their card states no turns, so it owes no caveat");
+    assertEquals(
+        readTip(host).stated.map((one) => [one.label, one.value]),
+        [[STANDING_WORDS.turnsPassed, "0 z 3 tur"]],
+        "with nothing passed of the three the table gives it",
+    );
 });
 
 Deno.test("the card of a charge names the blow whole, whoever is making it, and the turns", () => {

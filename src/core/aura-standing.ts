@@ -304,6 +304,16 @@ function addAuraTurnTaken(
 }
 
 /** What one walk of a fight leaves: the casts still held, and the turns each combatant took. */
+/**
+ * A shout as it stands on one character: the cast, and **that character's own clock at it**. The
+ * length runs on their turns and not the caster's, so the moment it landed has to be read on the
+ * clock it will be measured against. **ADR 0103.**
+ */
+interface HeldByShout {
+    cast: AuraCast;
+    turnsAtShout: number;
+}
+
 interface AuraWalk {
     /** A cast reaching a side, keyed by who cast what — a second cast of theirs refreshes it. */
     bySkill: Map<string, AuraCast>;
@@ -311,7 +321,7 @@ interface AuraWalk {
      * A shout, keyed by **each character it holds**. A later shout on the same character replaces
      * whatever held them, from any caster and either skill — the whole of the overwrite rule.
      */
-    byProvoked: Map<number, AuraCast>;
+    byProvoked: Map<number, HeldByShout>;
     turnsByCombatantId: Map<number, number>;
 }
 
@@ -372,21 +382,30 @@ function composeAuraWalk(
         }
         if (cast.shout === null) continue;
         for (const provokedId of composeProvokedByCast(cast, roster)) {
-            walk.byProvoked.set(provokedId, cast);
+            const turnsAtShout = walk.turnsByCombatantId.get(provokedId) ?? 0;
+            walk.byProvoked.set(provokedId, { cast, turnsAtShout });
         }
     }
     return walk;
 }
 
-/** Whom a shout is holding, one row per character, and only the shout that holds them now. */
+/**
+ * Whom a shout is holding, one row per character, and only the shout that holds them now.
+ *
+ * **Counted on the held character's own turns**, which is where the evidence is: over `captures/`
+ * the provoked strike whoever shouted on their first three turns and fall to what they did before
+ * the shout on the fourth, while the caster's clock shows no such edge (`docs/auras-standing.md`).
+ * So a shout covers the next three turns **they** take, and the row goes when a fourth opens.
+ */
 function composeProvocationsFromWalk(walk: AuraWalk): ProvocationStanding[] {
     const found: ProvocationStanding[] = [];
-    for (const [provokedId, cast] of walk.byProvoked) {
+    for (const [provokedId, held] of walk.byProvoked) {
+        const cast = held.cast;
         assert(cast.shout !== null, "a cast holding somebody shouted");
-        const taken = walk.turnsByCombatantId.get(cast.casterId) ?? cast.turnsAtCast;
-        const turnsElapsed = taken - cast.turnsAtCast;
-        assert(turnsElapsed >= 0, "a caster never takes fewer turns than they had at the shout");
-        if (turnsElapsed >= cast.shout.turns) continue;
+        const taken = walk.turnsByCombatantId.get(provokedId) ?? held.turnsAtShout;
+        const turnsElapsed = taken - held.turnsAtShout;
+        assert(turnsElapsed >= 0, "a character never takes fewer turns than they had at the shout");
+        if (turnsElapsed > cast.shout.turns) continue;
         found.push({
             provokedId,
             skillId: cast.skillId,

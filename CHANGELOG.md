@@ -39,9 +39,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Zmiana** — Licznik tur wyzwania stoi teraz przy każdej wyzwanej postaci osobno, a nie raz przy
+  tym, kto krzyknął.
+- **Poprawka** — Wyzwanie liczy się teraz turami tego, kogo wyzwano, a nie rzucającego, więc schodzi
+  z niego wtedy, kiedy naprawdę schodzi.
 - **Poprawka** — Przy liczniku tur rzuconego efektu Pomocnik mówi teraz, że to tury rzucającego, a
   każdemu innemu efekt schodzi osobno.
-- **Poprawka** — Przy prowokacji Pomocnik mówi teraz, że gra nie podaje, kiedy ona z kogoś schodzi.
 
 ## [0.18.0] — 2026-09-21
 

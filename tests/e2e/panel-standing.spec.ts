@@ -432,10 +432,11 @@ test("a row holding somebody hands back on its card what its cells cut", async (
     const under = await readCell(panel.page, `${CARD_OPEN} .tip-subtitle`);
     expect(name?.said, "which opens with the whole name").toBe(cast.said);
     expect(under?.said, "and names the okrzyk under it, whole").toBe(okrzyk.said);
-    // The okrzyk is the cell ADR 0097 made give way, so it is the one that has to be cut for the
-    // card to be giving anything back. If this ever reads false the fixture stopped exercising it.
-    expect(okrzyk.scrollWidth, "the row itself cut the okrzyk")
-        .toBeGreaterThan(okrzyk.clientWidth);
+    // ⚠️ **This row stopped cutting the okrzyk when its figure left.** **ADR 0103** moved the
+    // turns onto the rows of whoever is held, and the width that freed is enough for this
+    // fixture's okrzyk to fit — measured in Chrome on 2026-09-21, 128 against 128. So what is
+    // held here is that the card gives the whole of it back, and the cutting is exercised on the
+    // row that now carries a figure, below.
     expect(under?.scrollWidth ?? 0, "and the card does not cut it a second time")
         .toBeLessThanOrEqual((under?.clientWidth ?? 0) + 1);
     // The key carries this window's own prefix, which is what opens the card beside this window
@@ -472,5 +473,14 @@ test("the character a shout holds opens a card of their own", async ({ panel }) 
     const name = await readCell(panel.page, `${CARD_OPEN} .tip-name`);
     expect(name?.said, "naming whoever is held").toBe(under?.said);
     expect(name?.said, "and never whoever is holding them").not.toBe(holder?.said);
+    // **ADR 0103**: this row is the one carrying a length now, so it is the one whose name has to
+    // share the width with a figure. If this ever reads false the fixture stopped exercising it.
+    const figure = await readCell(
+        panel.page,
+        ".MargoMeter-standing .row.standing-under .row-value.figure",
+    );
+    expect(figure?.said, "and stating a length of their own").toBeTruthy();
+    expect(name?.scrollWidth ?? 0, "which the card gives back whole however the row cut it")
+        .toBeLessThanOrEqual((name?.clientWidth ?? 0) + 1);
     await panel.expectHonest("a card open over a character a shout is holding");
 });
