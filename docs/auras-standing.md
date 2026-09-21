@@ -134,7 +134,7 @@ one combatant held it twice. `at once` is the most that ever stood together.
 | `aura-ac_per`                 | 115 |        0 |         0 |       2 |
 | `aura-resall`                 | 115 |        0 |         0 |       2 |
 | `aura-sa_per`                 | 305 |       44 |         0 |       4 |
-| `shout`                       |  16 |        0 |         0 |       2 |
+| `shout`                       |  15 |        0 |         0 |       2 |
 
 The last three arrived with **ADR 0097**: an okrzyk stands on a side now, so the keys it announces
 are counted here like any other. `shout` is in the table because it rides a cast that stands, and
@@ -164,11 +164,11 @@ their two halves apart and each half is a thing that stands: `Wyzywający okrzyk
 turns and debuffs the other side for five. Its `stated` here is the side-wide half's and never the
 shout's, which is the register below's. **ADR 0097**, and the two rows are what holds the claim —
 were the okrzyki one shape, skill 25 would read `other` and five here rather than `caster's` and
-three.
+two.
 
 |  id | skill              | on | fights | at once | stated | reaches  |
 | --: | ------------------ | -: | -----: | ------: | -----: | -------- |
-|  25 | Prowokujący okrzyk |  4 |      6 |       1 |      3 | caster's |
+|  25 | Prowokujący okrzyk |  3 |      5 |       1 |      2 | caster's |
 |  76 | Aura ochrony       | 11 |     15 |       2 |      8 | caster's |
 |  89 | Podwójny dech      | 17 |     18 |       4 |      8 | caster's |
 | 123 | Szadź              | 19 |     22 |       3 |      8 | other    |

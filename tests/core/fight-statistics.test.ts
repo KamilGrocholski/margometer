@@ -1093,3 +1093,37 @@ Deno.test("every recording states no healing the game aimed at nobody", () => {
         assertEquals(statistics.restoredToNobody, 0, `${path}: healing the game aimed at nobody`);
     }
 });
+
+/**
+ * A wound announcing nothing to take off, which no recording states: a probe, because the figure
+ * is the game's and it once reached an assertion that lost the fight the whole payload.
+ */
+Deno.test("a wound announced at nothing leaves no wound standing, and stops nothing", () => {
+    const roster = composeCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 2, name: "Gracz 2", side: 2, profession: "w", level: 40, healthMaximum: 1000 },
+    ]);
+    const events = decodeFightMessages(
+        ["1=90.00;2=80.00;+dmg=100;+injure=0;-dmg=100", "2=75.00;0;injure=50"],
+        roster,
+        BLOWS_GRANTED,
+    );
+    const statistics = composeFightStatistics(events, new Map());
+    assertEquals(statistics.byCombatantId.get(1)?.damageDealtApplied, 100, "the blow lands");
+    assertEquals(
+        statistics.byCombatantId.get(2)?.damageTakenFromNobody,
+        50,
+        "and the tick is nobody's",
+    );
+});
+
+Deno.test("a cast nobody could place is charged to the caster the message names", () => {
+    const roster = composeCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 2, name: "Gracz 2", side: 1, profession: "m", level: 40, healthMaximum: null },
+    ]);
+    const events = decodeFightMessages(["1=50.00;0;healall_per=30"], roster, BLOWS_GRANTED);
+    const unsized = composeFightStatistics(events, new Map());
+    assertEquals(unsized.castsUnplaced, 1, "the fight counts the cast it could not place");
+    assertEquals(unsized.byCombatantId.get(1)?.castsUnplaced, 1, "on the row the actor slot named");
+});

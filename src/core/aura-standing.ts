@@ -11,6 +11,7 @@ import type { BattleEvent } from "@/src/core/battle-event.ts";
 import type { DeclaredEffect } from "@/src/core/battle-event.ts";
 import { type CombatantRoster, getCombatantIdByName } from "@/src/core/combatant-roster.ts";
 import { NAME_SEPARATOR } from "@/src/core/fight-decoder.ts";
+import { getOwnFromRecord } from "@/libs/unknown-reading.ts";
 import {
     composeTurnStanding,
     getTurnOpener,
@@ -128,7 +129,7 @@ export interface AuraStanding {
 export function getReachFromEffects(effects: readonly { effect: string }[]): AuraReach | null {
     let found: AuraReach | null = null;
     for (const one of effects) {
-        const reach = REACH_BY_KEY[one.effect];
+        const reach = getOwnFromRecord(REACH_BY_KEY, one.effect);
         if (reach === undefined) continue;
         if (found === null) found = reach;
         else if (found !== reach) found = "both-sides";
@@ -152,8 +153,14 @@ export function isTeamWideKey(key: string): boolean {
  * is still standing.
  */
 export function getStatedTurnsFromEffects(effects: readonly SkillEffectTurns[]): number | null {
+    assert(effects.every((one) => one.key.length > 0), "an effect the table dates is named");
     let longest = 0;
     for (const effect of effects) {
+        // The shout half is dated by its own row (`composeShoutsBySkillId`) and takes no part in
+        // dating the side-wide half: skill 25 shouts for 3 turns and stands on its side for 2
+        // (`frozen/skill-durations.ts`, read 2026-09-21), and the longest over both stood the
+        // aura a turn past the table.
+        if (effect.key === PROVOCATION_KEY) continue;
         if (!isTeamWideKey(effect.key)) continue;
         for (const turns of effect.turns) {
             if (turns > longest) longest = turns;

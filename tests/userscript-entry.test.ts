@@ -6,6 +6,7 @@
  * out is what a reader would be looking at.
  */
 
+import { MAXIMUM_MESSAGES } from "@/src/core/fight-decoder.ts";
 import {
     assert,
     assertEquals,
@@ -1689,4 +1690,99 @@ Deno.test("a fight the reader walked into says so on the panel", () => {
     assertExists(drawn, "the panel drew the region a suspicion is said in");
     const said = getElementsWithin(drawn).map((one) => one.textContent ?? "").join(" ");
     assertStringIncludes(said, "w trakcie", "and says the reading began after the fight did");
+});
+
+/**
+ * A fight on the shelf that will not replay — kept by a version whose bounds were wider — costs
+ * its own row and the live fight nothing. Without the guard the replay threw out of every draw
+ * for as long as the entry stayed on the shelf, and the live fight was drawn as unreadable.
+ */
+Deno.test("a kept fight that will not replay costs its row, and not the live fight", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown, reported, getShelf } = composeEnvironment({ Engine: { battle } });
+    const over = new Array(MAXIMUM_MESSAGES + 1).fill("0;0;txt=c");
+    getShelf("local").set(
+        "MargoMeter-fights",
+        JSON.stringify({
+            version: 3,
+            fights: [{ openedAt: 1, payloads: [{ init: 1, m: over }], isPinned: false }],
+        }),
+    );
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+
+    const panel = shown[0] as FakeElement;
+    const list = getElementsWithin(panel).find((one) => one.className === "list");
+    assertExists(list, "the panel drew its list");
+    assertStrictEquals(
+        getElementsWithin(list).filter((one) => one.className.split(" ")[0] === "row").length,
+        11,
+        "with the live fight drawn in full",
+    );
+    assertEquals(getTextsByClass(panel, "defect").length, 1, "one defect, for the shelf");
+    assertEquals(reported.length, 1, "said once on the console, however many draws walked it");
+});
+
+/**
+ * A call whose payload is not a record takes nothing into the fight, so nothing of it stands last
+ * in the fight's list of messages: read from there all the same, the call before it lent this one
+ * its messages, and the recording held a call under somebody else's words.
+ */
+Deno.test("a call that is no payload is recorded under no messages but its own", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown, saved } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    const [opening] = getRecordedEngineUpdates(HILDUR);
+    assertExists(opening, "the recording opens on a payload");
+    update(opening);
+    update("not a payload");
+    const host = shown[0] as FakeElement;
+    const control = findSaveControl(host);
+    assertExists(control, "the bar offers the fight");
+    pressElement(host, "pointerdown", control);
+    const reading = getJsonReading(saved[0]?.text ?? "");
+    assert(reading.isOk, "what it handed over reads back as JSON");
+    assert(isRecord(reading.value), "and as a recording");
+    const calls = reading.value.calls;
+    assert(Array.isArray(calls), "carrying the calls");
+    assertEquals(calls.length, 2, "both of them, the second for the shape nobody had seen");
+    const second = calls[1];
+    assert(isRecord(second), "each a record");
+    assertEquals(second.messages, [], "and the second carries no messages, having stated none");
+});
+
+Deno.test("a store that will not take the fights leaves them where they were", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const held = composeEnvironment({ Engine: { battle } });
+    const refusing: UserscriptEnvironment = {
+        ...held.environment,
+        composeShelfStore: (choice) =>
+            choice === "session"
+                ? { read: () => null, write: () => false, remove: () => {} }
+                : composeHeldStore(held.getShelf(choice)),
+    };
+    startMargoMeter(refusing);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+    const host = held.shown[0] as FakeElement;
+    const strip = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assertExists(strip, "the bar carries the way onto the shelf");
+    pressElement(host, "pointerdown", strip);
+    const chosen = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-storage") === "session"
+    );
+    assertExists(chosen, "the strip offers the store that refuses");
+    pressElement(host, "pointerdown", chosen);
+    assertEquals(
+        held.getShelf("local").has("MargoMeter-fights"),
+        true,
+        "the fights stay where the next page will look for them",
+    );
+    assertEquals(held.held.get("MargoMeter-storage"), undefined, "and so does the answer");
+    assertEquals(getTextsByClass(host, "strip selected"), ["na stałe"], "which the strip says");
 });

@@ -72,3 +72,9 @@ Deno.test("a dictionary that throws leaves the panel drawing its own word", () =
     assertExists(read, "the page lends a reader");
     assertEquals(read(CRITICAL_ID), null, "and the failure comes back as no label");
 });
+
+Deno.test("an answer past the bound is no label, and never an assertion inside a card", () => {
+    const read = readDictionaryFromPage({ _t: () => "x".repeat(4097) });
+    assertExists(read, "the page lends a reader");
+    assertEquals(read(CRITICAL_ID), null, "and the answer is refused as no label");
+});

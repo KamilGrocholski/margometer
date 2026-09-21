@@ -10,6 +10,19 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
     return !Array.isArray(value);
 }
 
+/**
+ * A table indexed by a key nobody here wrote answers what the language put on every object —
+ * `constructor`, `toString`, `valueOf` — for a key its author never held. Only what the author
+ * wrote is an answer.
+ */
+export function getOwnFromRecord<Value>(
+    record: Readonly<Record<string, Value>>,
+    key: string,
+): Value | undefined {
+    if (!Object.prototype.hasOwnProperty.call(record, key)) return undefined;
+    return record[key];
+}
+
 export function getNumberFromUnknown(value: unknown): number | null {
     if (typeof value !== "number") return null;
     if (!Number.isFinite(value)) return null;

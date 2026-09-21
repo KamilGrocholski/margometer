@@ -89,7 +89,16 @@ export function readPlaceFromEngine(engine: unknown): FightPlace | null {
  * a page carrying both spellings carries one game behind them, so two answers cannot disagree.
  */
 export function readPlaceFromPage(page: unknown): FightPlace | null {
-    const engines = readEnginesFromPage(page);
+    let engines: unknown[] = [];
+    // The page's own `getEngine` is a call into another program, which throws where a page is
+    // being torn down, so it stands inside this file's own guard (**E5**): a throw out of here
+    // reached the entry after the fight had taken the payload, and left the moment it opened at
+    // on the fight before.
+    try {
+        engines = readEnginesFromPage(page);
+    } catch {
+        return null;
+    }
     assert(engines.length <= ENGINE_SPELLINGS, "a page holds a game in two spellings and no more");
     for (const engine of engines) {
         const place = readPlaceFromEngine(engine);

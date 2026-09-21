@@ -133,3 +133,14 @@ Deno.test("a game whose method is gone is refused, and said once", () => {
     assertEquals(told.refusals, 1, "said once, not once a look");
     assert(!attachment.isAttached(), "and nothing was wrapped");
 });
+
+Deno.test("a game whose method never comes is left alone once the looking ends", () => {
+    const { report, told } = composeReport();
+    const { schedule, tick } = composeScheduler();
+    const attachment = attachToGame({ Engine: { battle: {} } }, schedule, report);
+    tick(300);
+    assertEquals(told.refusals, 1, "the refusal was said once");
+    assertEquals(told.failures, [], "and no look past the bound was reported as a failure");
+    assertEquals(told.abandoned, 0, "nor as a page with no game on it, which this page has");
+    assert(!attachment.isAttached(), "and nothing was wrapped");
+});

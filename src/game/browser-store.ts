@@ -9,8 +9,14 @@
 
 import { assert } from "@std/assert/assert";
 
-/** Far past anything this add-on writes, which is a shelf of twenty fights — **S11**. */
-const MAXIMUM_VALUE_LENGTH = 4194304;
+/**
+ * What one write may run to, and past it the store **refuses** rather than asserting (**S11**,
+ * the browser-storage row of **E5**): a shelf that will not fit is answered by asking for less.
+ * Measured 2026-09-21 over `captures/`: the widest kept fight is 219,128 characters as the shelf
+ * writes it, so twenty of them are past this — an assertion here stopped the reading exactly
+ * there, and the rotation never got to drop the oldest.
+ */
+export const MAXIMUM_VALUE_LENGTH = 4194304;
 
 export interface BrowserStore {
     read(key: string): string | null;
@@ -41,7 +47,7 @@ export function composeBrowserStore(storage: PageStorage): BrowserStore {
         },
         write: (key, value) => {
             assert(key.length > 0, "what is written is written by name");
-            assert(value.length <= MAXIMUM_VALUE_LENGTH, "and no longer than what is written here");
+            if (value.length > MAXIMUM_VALUE_LENGTH) return false;
             try {
                 storage.setItem(key, value);
                 return true;
@@ -76,7 +82,7 @@ export function composeMemoryStore(): BrowserStore {
         },
         write: (key, value) => {
             assert(key.length > 0, "what is written is written by name");
-            assert(value.length <= MAXIMUM_VALUE_LENGTH, "and no longer than what is written here");
+            if (value.length > MAXIMUM_VALUE_LENGTH) return false;
             held.set(key, value);
             return true;
         },

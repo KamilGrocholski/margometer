@@ -17,8 +17,8 @@ const WHITESPACE = " \t\r\n\f\v";
 const RAW_TEXT_ELEMENTS = ["script", "style"];
 /** Past the tag count of any page these hosts serve, so each walk carries a stated bound. */
 const MAXIMUM_TAGS = 1048576;
-/** Past the length of any run of whitespace in one, for the same reason. */
-const MAXIMUM_RUNS = 1048576;
+/** Past the length of any page these hosts serve — one look per character — for the same reason. */
+const MAXIMUM_CHARACTERS = 1048576;
 
 /**
  * The named entities these pages use, in the order they are substituted. ⚠️ **The order is the
@@ -104,6 +104,7 @@ function composeWithoutRawTextElements(html: string): string {
         }
         open = html.indexOf(TAG_OPEN, from);
     }
+    assert(open === -1, "every element was walked, which is what the bound is for");
     assert(from <= html.length, "the walk stays inside what it walked");
     return kept + html.slice(from);
 }
@@ -125,6 +126,7 @@ function composeWithoutTags(html: string): string {
         }
         open = html.indexOf(TAG_OPEN, from);
     }
+    assert(open === -1, "every tag was walked, which is what the bound is for");
     assert(from <= html.length, "the walk stays inside what it walked");
     return kept + html.slice(from);
 }
@@ -141,7 +143,7 @@ function composeCollapsedWhitespace(text: string): string {
     let collapsed = "";
     let from = 0;
     let index = 0;
-    for (let look = 0; look < MAXIMUM_RUNS; look += 1) {
+    for (let look = 0; look < MAXIMUM_CHARACTERS; look += 1) {
         if (index >= text.length) break;
         if (!isWhitespaceAt(text, index)) {
             index += 1;
@@ -152,6 +154,7 @@ function composeCollapsedWhitespace(text: string): string {
         from = end;
         index = end;
     }
+    assert(index >= text.length, "every character was walked, which is what the bound is for");
     assert(from <= text.length, "the walk stays inside what it walked");
     return `${collapsed}${text.slice(from)}`.trim();
 }

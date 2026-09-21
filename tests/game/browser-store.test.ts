@@ -6,7 +6,12 @@
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
-import { composeBrowserStore, type PageStorage } from "@/src/game/browser-store.ts";
+import {
+    composeBrowserStore,
+    composeMemoryStore,
+    MAXIMUM_VALUE_LENGTH,
+    type PageStorage,
+} from "@/src/game/browser-store.ts";
 
 /**
  * A browser that refuses. It throws what one set to forbid storage actually throws — a
@@ -41,4 +46,27 @@ Deno.test("a browser that refuses is answered, not thrown out of", () => {
     assertEquals(store.read("MargoMeter-fights"), null, "a reading that threw has nothing in it");
     assertEquals(store.write("MargoMeter-fights", "{}"), false, "and a refused write says false");
     assertStrictEquals(store.read("MargoMeter-folded"), null, "a second key fares no differently");
+});
+
+/**
+ * The bound is a refusal, so the shelf's own answer to one — offer less — runs. An assertion at
+ * this bound threw out of the payload that ended a fight of twenty long ones, where a store that
+ * says `false` costs the oldest unpinned fight and nothing else.
+ */
+Deno.test("a value past the bound is refused, and one at the bound is taken", () => {
+    const held = new Map<string, string>();
+    const store = composeBrowserStore({
+        getItem: (key) => held.get(key) ?? null,
+        setItem: (key, value) => {
+            held.set(key, value);
+        },
+        removeItem: (key) => void held.delete(key),
+    });
+    const atBound = "x".repeat(MAXIMUM_VALUE_LENGTH);
+    assertEquals(store.write("MargoMeter-fights", atBound), true, "the bound itself is written");
+    assertEquals(store.write("MargoMeter-fights", `${atBound}x`), false, "one past it is refused");
+    assertEquals(store.read("MargoMeter-fights"), atBound, "and the refusal wrote nothing");
+    const memory = composeMemoryStore();
+    assertEquals(memory.write("MargoMeter-fights", `${atBound}x`), false, "in memory as well");
+    assertStrictEquals(memory.read("MargoMeter-fights"), null, "where nothing was kept of it");
 });

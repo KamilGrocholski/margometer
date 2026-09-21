@@ -63,7 +63,9 @@ export function readDictionaryFromPage(page: unknown): TranslateLabel | null {
             return null;
         }
         if (typeof entry !== "string") return null;
-        assert(entry.length <= MAXIMUM_ENTRY, "an answer the game gave stays inside it too");
+        // An answer past the bound is no label, and the answer is the game's: refused, never
+        // asserted against, from inside a card the panel is composing (**E9**).
+        if (entry.length > MAXIMUM_ENTRY) return null;
         return getLabelFromEntry(entry);
     };
 }

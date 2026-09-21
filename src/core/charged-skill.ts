@@ -50,16 +50,28 @@ export interface ChargedSkillStanding {
     endedAtOrdinal: number | null;
 }
 
-/** Every skill one payload announced by name, which is what says a charge was spent. */
-function readAnnouncedNames(events: readonly BattleEvent[]): Set<string> {
-    const names = new Set<string>();
+/**
+ * Every skill one payload announced by name, by whoever announced it — which is what says a
+ * charge was spent. By the announcer and not by the name alone: two combatants making the same
+ * blow ready would otherwise both read as struck off one of them landing it.
+ */
+function readAnnouncedNamesByActor(events: readonly BattleEvent[]): Map<number, Set<string>> {
+    const namesByActor = new Map<number, Set<string>>();
+    const add = (actorId: number | null, skillName: string): void => {
+        assert(skillName.length > 0, "an announcement that was made is named");
+        if (actorId === null) return;
+        const names = namesByActor.get(actorId) ?? new Set<string>();
+        names.add(skillName);
+        namesByActor.set(actorId, names);
+    };
     for (const event of events) {
-        if (event.kind === "skill-used") names.add(event.skillName);
-        if (event.kind === "attack" && event.announced !== null) {
-            names.add(event.announced.skillName);
+        if (event.kind === "skill-used") add(event.actorId, event.skillName);
+        if (event.kind === "attack") {
+            if (event.announced !== null) add(event.announced.actorId, event.announced.skillName);
         }
     }
-    return names;
+    assert(namesByActor.size <= events.length, "no more announcers than events announcing");
+    return namesByActor;
 }
 
 /** Whom a blow of this payload broke a charge on, which the message states as its target. */
@@ -81,10 +93,11 @@ function readBrokenIds(events: readonly BattleEvent[]): Set<number> {
  */
 function getEndedState(
     standing: ChargedSkillStanding,
-    announced: ReadonlySet<string>,
+    announced: ReadonlyMap<number, ReadonlySet<string>>,
     broken: ReadonlySet<number>,
 ): ChargedSkillState | null {
-    if (announced.has(standing.skillName)) return "struck";
+    assert(standing.skillName.length > 0, "a charge that stood names the blow being made ready");
+    if (announced.get(standing.combatantId)?.has(standing.skillName) === true) return "struck";
     if (broken.has(standing.combatantId)) return "broken";
     return null;
 }
@@ -134,7 +147,7 @@ export function composeChargedSkills(
     ordinal: number | null,
 ): ChargedSkillStanding[] {
     assert(standings.length <= MAXIMUM_CHARGED_SKILLS, "what stood stays inside the bound");
-    const announced = readAnnouncedNames(events);
+    const announced = readAnnouncedNamesByActor(events);
     const broken = readBrokenIds(events);
     const statedById = new Map(statements.map((one) => [one.combatantId, one]));
     const next: ChargedSkillStanding[] = [];

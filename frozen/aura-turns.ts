@@ -10,7 +10,7 @@ export const FROZEN_AURA_TURNS = {
     /** When the page these were read from was fetched, not when a person read it. */
     fetchedAt: "2026-09-15T13:20:17.965Z",
     skills: [
-        { id: 25, turns: 3 },
+        { id: 25, turns: 2 },
         { id: 76, turns: 8 },
         { id: 89, turns: 8 },
         { id: 123, turns: 8 },

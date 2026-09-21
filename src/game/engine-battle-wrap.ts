@@ -66,7 +66,15 @@ export function wrapEngineBattle(
     const countFailure = (failure: unknown): void => {
         if (failures >= MAXIMUM_FAILURES) return;
         failures += 1;
-        if (failures === 1) reader.handleFirstFailure(failure);
+        if (failures !== 1) return;
+        // The report reaches somebody else's console from inside a catch already handling a
+        // failure: a throw out of it would be the one exception of ours the page sees. The
+        // count is the mark that stays.
+        try {
+            reader.handleFirstFailure(failure);
+        } catch {
+            return;
+        }
     };
     const wrapper: WrappedUpdate = function (this: unknown, ...args: unknown[]): unknown {
         // Its own guard, deliberately not shared with the reading below: one `try` around both

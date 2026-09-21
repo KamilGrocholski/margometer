@@ -130,3 +130,23 @@ Deno.test("a detach puts back what was there, and only where ours is outermost",
     held.detach();
     assertEquals(second.updateData, somebodyElse, "is left where it is, layer and all");
 });
+
+Deno.test("a console that throws at the report is not the exception the page sees", () => {
+    const battle = composeBattle(1);
+    const wrap = wrapEngineBattle(
+        battle,
+        composeReader({
+            handlePayload: () => {
+                throw new RangeError("a failure of ours");
+            },
+            handleFirstFailure: () => {
+                throw new TypeError("and the console's own");
+            },
+        }),
+    );
+    assertExists(wrap, "the wrap went on");
+    const update = battle.updateData;
+    assert(typeof update === "function", "and left a function behind it");
+    assertEquals(update({}), 1, "the engine's value comes back through both failures");
+    assertEquals(wrap.getFailureCount(), 1, "and the count is the mark that stays");
+});

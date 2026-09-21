@@ -73,12 +73,13 @@ Deno.test("nothing the add-on reaches while standing up can stop it", () => {
  * `setInterval`, `clearInterval`, `console.error`, `Date.now`, `createElement`. And **ours,
  * answering for itself**: both stores turn a refusal into an answer (**E5**), `composeShelfStore`
  * reaches a `composeStoreForChoice` that catches the property read as well as the call, `report`
- * is the console inside the keeper's own `try`, `defects.add` asserts nothing (**A11**) — which is
- * what lets six `catch` bodies reach it without throwing out of the boundary they stand at — and
- * `handleFirstFailure` is the reader's own, counted by the wrap rather than let into the game.
+ * is the console inside the keeper's own `try`, and `defects.add` asserts nothing (**A11**) — which
+ * is what lets six `catch` bodies reach it without throwing out of the boundary they stand at, and
+ * the closure the shelf's memo hands a fight that will not replay to.
  */
 const CROSSINGS_WITH_A_REASON = [
     "Date ← src/userscript-entry.ts#readClockFromPage",
+    "add ← src/userscript-entry.ts#composeShelfKeeper",
     "add ← src/userscript-entry.ts#drawFight!catch0",
     "add ← src/userscript-entry.ts#drawStanding!catch0",
     "add ← src/userscript-entry.ts#drawStanding!catch1",
@@ -94,7 +95,6 @@ const CROSSINGS_WITH_A_REASON = [
     "composeShelfStore ← src/userscript-entry.ts#composeShelfKeeper",
     "createElement ← src/ui/panel-element.ts#composeElement",
     "error ← src/userscript-entry.ts#startFromUserscriptWindow",
-    "handleFirstFailure ← src/game/engine-battle-wrap.ts#wrapEngineBattle.countFailure",
     "isArray ← libs/unknown-reading.ts#isRecord",
     "isFinite ← libs/unknown-reading.ts#getNumberFromUnknown",
     "isFinite ← src/userscript-entry.ts#readClockFromPage",

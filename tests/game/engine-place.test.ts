@@ -6,7 +6,7 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
-import { readPlaceFromEngine } from "@/src/game/engine-place.ts";
+import { readPlaceFromEngine, readPlaceFromPage } from "@/src/game/engine-place.ts";
 
 function composeEngine(mapName: unknown, x: unknown, y: unknown): Record<string, unknown> {
     return { map: { d: { name: mapName } }, hero: { d: { x, y } } };
@@ -62,4 +62,14 @@ Deno.test("the client's own method for this is never called", () => {
     assertEquals(readPlaceFromEngine(engine)?.mapName, "Tempest", "the place is read");
     assertEquals(called, 0, "by reading properties, never by calling into somebody else's program");
     assert(typeof engine.hero.getCords === "function", "though the method was there to be called");
+});
+
+/** The page's own `getEngine` is called on the way in, and a page tearing down throws from it. */
+Deno.test("a page whose own call throws is a reading of nothing, not a failure of ours", () => {
+    const page = {
+        getEngine: (): unknown => {
+            throw new TypeError("the context is gone");
+        },
+    };
+    assertEquals(readPlaceFromPage(page), null, "the throw stays inside this file");
 });

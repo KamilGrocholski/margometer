@@ -80,8 +80,8 @@ export function getStatedHealthFromEvent(event: BattleEvent): [number, number][]
  * The health a fight was entered with, unwound from the **first** statement about each combatant.
  *
  * A message that moves somebody's health names them, so the first percentage stated about a
- * combatant is at or before anything that could have changed it. The exception is the one gap 12
- * records: a payload that moves health with no message at all.
+ * combatant is at or before anything that could have changed it. The exception is the known gap
+ * `ARCHITECTURE.md` records for it: a payload that moves health with no message at all.
  *
  * A combatant nothing states, or one with no maximum, is left out rather than guessed at: a share
  * capped against an entry health we assumed is a figure that is too high.

@@ -433,3 +433,33 @@ Deno.test("a name stated by two people resolves to nobody, however often each is
     // The replacement must not resolve an ambiguity by overwriting: two people keep one name.
     assertEquals(after.roster.idByName.get("Odyniec"), null, "a name two people answer to");
 });
+
+/**
+ * The reset is one of the writes, so it waits with them: a fight that opened past the bound left
+ * `hasFight` standing over no payload, which its own reader asserts against on every draw.
+ */
+Deno.test("a fight that opens past the bound leaves the one standing, whole", () => {
+    const underway = composeFightUnderway();
+    addPayloadToFight(underway, { init: 1, m: ["0;0;txt=a"] }, BLOWS_GRANTED);
+    const stood = getReadingFromFight(underway);
+    assertExists(stood, "a fight stands before the oversized one tries to open");
+
+    const over = new Array(MAXIMUM_MESSAGES + 1).fill("0;0;txt=c");
+    assertThrows(
+        () => addPayloadToFight(underway, { init: 1, m: over }, BLOWS_GRANTED),
+        AssertionError,
+        "a payload stays inside its stated bound",
+    );
+
+    const after = getReadingFromFight(underway);
+    assertExists(after, "the fight that stood can still be read");
+    assertEquals(after.payloads, stood.payloads, "with its own payload count");
+    assertEquals(after.events, stood.events, "and its own events");
+    assertFalse(after.hasJoinedInProgress, "and it was not made a fight joined late");
+
+    addPayloadToFight(underway, { init: 1, m: ["0;0;txt=b"] }, BLOWS_GRANTED);
+    const opened = getReadingFromFight(underway);
+    assertExists(opened, "the next fight to open opens");
+    assertEquals(opened.payloads, 1, "on its own");
+    assertFalse(opened.hasJoinedInProgress, "and from its first payload");
+});

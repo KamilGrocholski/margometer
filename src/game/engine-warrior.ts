@@ -63,7 +63,12 @@ export function readCombatantFromWarrior(value: unknown): Combatant | null {
     const health = isRecord(value[HEALTH_KEY]) ? value[HEALTH_KEY] : null;
     assert(Number.isFinite(id), "an id that was read is a number");
     assert(name.length > 0, "a name that was read says something");
-    const healthMaximum = health === null ? null : getNumberFromUnknown(health[HEALTH_MAXIMUM_KEY]);
+    let healthMaximum = health === null ? null : getNumberFromUnknown(health[HEALTH_MAXIMUM_KEY]);
+    // A pool of nothing, or below it, is one no share can be read against: the same null a pool
+    // nobody stated is, and never an assertion, because the figure is the game's (**E9**).
+    if (healthMaximum !== null) {
+        if (healthMaximum <= 0) healthMaximum = null;
+    }
     assert(healthMaximum === null || healthMaximum > 0, "a pool that was read holds something");
     return {
         id,
@@ -199,7 +204,7 @@ const CHARGE_FIELDS = {
  * is the whole of what the panel draws, so half of it is nothing worth drawing. A record stating
  * no charge is a **statement** and not a refusal — that is how the game says one has ended.
  */
-function readChargeFromWarrior(value: Record<string, unknown>) {
+function readChargeFromWarrior(value: Record<string, unknown>): ChargedSkillStatement["charge"] {
     const stated = value[CHARGE_KEY];
     if (!isRecord(stated)) return null;
     const skillName = getStatedTextFromUnknown(stated[CHARGE_FIELDS.name]);

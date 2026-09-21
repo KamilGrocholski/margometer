@@ -6,6 +6,7 @@
  */
 
 import { assert } from "@std/assert/assert";
+import { getEndOfRun } from "@/libs/text-walk.ts";
 
 /**
  * What both shapes the client has served have in common. Until 2026-08-25 a bundle was
@@ -19,23 +20,13 @@ const OPTIONAL_SEPARATOR = ".";
 /** A page states a handful of scripts; this is far past any of them. */
 const MAXIMUM_LOOKS = 256;
 
-function isAlphanumeric(character: string): boolean {
+function isAlphanumericAt(text: string, index: number): boolean {
+    const character = text.charAt(index);
     assert(character.length <= 1, "one character is looked at");
+    assert(index >= 0, "and it is looked for inside the text");
     if (character >= "0" && character <= "9") return true;
     if (character >= "a" && character <= "z") return true;
     return character >= "A" && character <= "Z";
-}
-
-function getEndOfAlphanumerics(text: string, from: number): number {
-    assert(from >= 0, "a run starts somewhere inside the text");
-    let at = from;
-    while (at < text.length) {
-        if (!isAlphanumeric(text.charAt(at))) break;
-        at += 1;
-    }
-    assert(at >= from, "a run never ends before it starts");
-    assert(at <= text.length, "and never past the end of what it walked");
-    return at;
 }
 
 /** Where the name starts, and where the id inside it does, so both readers walk once. */
@@ -57,7 +48,7 @@ function getScriptNameSpan(text: string): ScriptNameSpan | null {
         from = head + 1;
         let buildStart = head + SCRIPT_NAME_HEAD.length;
         if (text.charAt(buildStart) === OPTIONAL_SEPARATOR) buildStart += 1;
-        const buildEnd = getEndOfAlphanumerics(text, buildStart);
+        const buildEnd = getEndOfRun(text, buildStart, isAlphanumericAt);
         if (buildEnd - buildStart < LEAST_BUILD_CHARACTERS) continue;
         if (!text.startsWith(SCRIPT_NAME_TAIL, buildEnd)) continue;
         assert(buildEnd > buildStart, "an id that was found says something");

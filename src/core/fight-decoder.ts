@@ -35,6 +35,7 @@ import {
     ProtocolMessageFormatError,
 } from "@/src/core/protocol-message.ts";
 import { getDecimalFromText, getIntegerFromText } from "@/libs/number-text.ts";
+import { getOwnFromRecord } from "@/libs/unknown-reading.ts";
 import { getHealthPercentFromText } from "@/src/core/protocol-number.ts";
 
 /**
@@ -365,7 +366,7 @@ const MAXIMUM_BLOWS_GRANTED = 4;
 /** The longest message in `captures/` carries 40 parameters, 2026-08-28. */
 const MAXIMUM_PARAMETERS = 512;
 /** A skill's name is a phrase; the longest in `captures/` is far short of this, 2026-09-01. */
-const MAXIMUM_NAME = 4096;
+export const MAXIMUM_NAME = 4096;
 
 interface HealthChangeReading {
     source: string;
@@ -418,7 +419,7 @@ interface AttackReading {
 /** Null for a key that is not a proc at all, which is what makes this the membership test too. */
 export function getProcEnd(key: string): ProcEnd | null {
     assert(key.length > 0, "a key asked about is a key the message wrote");
-    const end = BLOW_END_BY_PROC_KEY[key];
+    const end = getOwnFromRecord(BLOW_END_BY_PROC_KEY, key);
     if (end === undefined) return null;
     assert(end.length > 0, "and a proc the table holds is placed at an end, or refused one");
     return end;
@@ -457,7 +458,7 @@ function getTokenFromKey(key: string): string {
  * a number, which leaves the key unread rather than read as nothing.
  */
 function readHealthChange(key: string, value: string): HealthChangeReading | null {
-    const stated = HEALTH_CHANGE_BY_KEY[key];
+    const stated = getOwnFromRecord(HEALTH_CHANGE_BY_KEY, key);
     if (stated === undefined) return null;
     const members = value.split(MEMBER_SEPARATOR);
     const first = members[0];
@@ -485,10 +486,18 @@ function doesNameOneCombatant(parsed: ProtocolMessage): boolean {
     return parsed.actor.combatantId === parsed.target.combatantId;
 }
 
+/**
+ * Null for a key that is not a name, and for a name saying nothing or running past the bound:
+ * both go unread, as a value that is no number does, rather than into an assertion the game's
+ * own text can reach (**E9**).
+ */
 function readSkillName(key: string, value: string, parsed: ProtocolMessage): string | null {
-    assert(value.length <= MAXIMUM_NAME, "a name read off a message stays inside its bound");
+    if (key !== SKILL_NAME_KEY) {
+        if (key !== CUSTOM_SKILL_NAME_KEY) return null;
+    }
+    if (value.length === 0) return null;
+    if (value.length > MAXIMUM_NAME) return null;
     if (key === SKILL_NAME_KEY) return value;
-    if (key !== CUSTOM_SKILL_NAME_KEY) return null;
     if (!doesNameOneCombatant(parsed)) return null;
     return value;
 }
@@ -533,6 +542,7 @@ function readNamedDamage(key: string, value: string): NamedDamageReading | null 
     if (statedTarget === undefined) return null;
     const amount = getIntegerFromText(amountText);
     if (amount === null) return null;
+    if (amount < 0) return null;
     const named = readNamedTarget(statedTarget);
     if (named === null) return null;
     assert(Number.isSafeInteger(amount), "a figure stated against a name is a whole number");
@@ -551,7 +561,7 @@ function composeFledOutcome(): FightOutcomeEvent {
 /** `loser=?` is not a side of that name, so it is left unread rather than read as a draw. */
 function readFightOutcome(key: string, value: string): FightOutcomeEvent | null {
     if (key === FLED_KEY) return composeFledOutcome();
-    const result = OUTCOME_BY_KEY[key];
+    const result = getOwnFromRecord(OUTCOME_BY_KEY, key);
     if (result === undefined) return null;
     if (value.length === 0) return null;
     if (value === NO_WINNER) {
@@ -559,9 +569,12 @@ function readFightOutcome(key: string, value: string): FightOutcomeEvent | null 
         return { kind: "fight-outcome", result: "drawn", combatantNames: [] };
     }
     const combatantNames = value.split(NAME_SEPARATOR);
+    // A member called nothing, or opening on the separator, is a list this reader cannot place
+    // a name from: the key goes unread, on the fight's last message, rather than into an
+    // assertion the game's own text can reach (**E9**).
+    if (combatantNames.some((one) => one.length === 0)) return null;
+    if (combatantNames.some((one) => one.startsWith(" "))) return null;
     assert(combatantNames.length > 0, "a side that is named has at least one member");
-    assert(combatantNames.every((one) => one.length > 0), "a member of a side is named");
-    assert(combatantNames.every((one) => !one.startsWith(" ")), "a name carries no separator");
     return { kind: "fight-outcome", result, combatantNames };
 }
 
@@ -599,11 +612,11 @@ function addSkillKey(
 ): boolean {
     const named = readSkillName(key, value, parsed);
     if (named !== null) {
+        assert(named.length > 0, "a name that was read says something");
         reading.skillName = named;
         reading.skillKeys += 1;
         return true;
     }
-    assert(key !== SKILL_NAME_KEY, "a name is read once, above");
     if (key !== SKILL_ID_KEY) return false;
     reading.skillId = getIntegerFromText(value);
     reading.skillKeys += 1;
@@ -653,6 +666,25 @@ function addUnaccountedHealth(reading: AttackReading, key: string, value: string
     if (declaredShare === null) reading.unreadKeys.push(key);
     else reading.unaccounted.push({ source: key, declaredShare });
     return true;
+}
+
+/**
+ * A figure of the blow, or the key unread: a value that is no number, and one below nothing — no
+ * key of these families has stated one over `captures/` (0 of every value, 2026-09-21), and a
+ * total taking it would go down.
+ */
+function addAttackFigureOrUnread(reading: AttackReading, key: string, value: string): void {
+    assert(key.length > 0, "a key is never empty");
+    const amount = getIntegerFromText(value);
+    if (amount === null) {
+        reading.unreadKeys.push(key);
+        return;
+    }
+    if (amount < 0) {
+        reading.unreadKeys.push(key);
+        return;
+    }
+    addAttackFigure(reading, key, amount);
 }
 
 /** What the reading accounted for, which is held against what the message handed it. */
@@ -718,12 +750,7 @@ function composeAttackReading(parsed: ProtocolMessage): AttackReading {
             reading.healthChanges.push(moved);
             continue;
         }
-        const amount = getIntegerFromText(parameter.value);
-        if (amount === null) {
-            reading.unreadKeys.push(parameter.key);
-            continue;
-        }
-        addAttackFigure(reading, parameter.key, amount);
+        addAttackFigureOrUnread(reading, parameter.key, parameter.value);
     }
     closeAnnouncementReading(reading);
     const read = countParametersRead(reading);

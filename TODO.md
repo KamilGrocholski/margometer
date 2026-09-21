@@ -21,6 +21,7 @@
 - [ ] Refactor: Reduce the number and length of comments
 
 ## Up Next
+- [ ] Readme: Too much text
 - [ ] Fix: A click on a row in `Pomocnik` selects its text
 - [ ] Feat: A special skill in `Pomocnik` SHOULD have a tip - every row SHOULD(do it also in this task)
 - [ ] Plan: Should dmg applied and taken take into account only health or also absorbtion?

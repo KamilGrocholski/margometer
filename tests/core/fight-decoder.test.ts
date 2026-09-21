@@ -15,7 +15,7 @@ import {
 } from "@std/assert";
 import { AssertionError } from "@std/assert/assertion-error";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
-import { decodeFightMessages, MAXIMUM_MESSAGES } from "@/src/core/fight-decoder.ts";
+import { decodeFightMessages, MAXIMUM_MESSAGES, MAXIMUM_NAME } from "@/src/core/fight-decoder.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import {
     BLOWS_GRANTED,
@@ -921,4 +921,76 @@ Deno.test("a blow past what the table granted takes no skill, and opens no turn"
     assertEquals(attacks.length, 3, "three blows are read");
     assertEquals(attacks[2]?.announced, null, "the third is past what the table granted");
     assertStrictEquals(openers.at(-1), null, "and it opens no turn, so the two readings disagree");
+});
+
+/** The one event of a message, which is left unread, and the keys it names as unread. */
+function getOnlyUnread(events: readonly BattleEvent[]): readonly string[] {
+    assertEquals(events.length, 1, "the message decoded to one event");
+    const event = events[0];
+    assertExists(event, "a list of one has a first member");
+    assertStrictEquals(event.kind, "unknown-message", "and that event is a message unread");
+    return event.unreadKeys;
+}
+
+/**
+ * Probes, every one: no recording states any of these shapes (measured 2026-09-21, 0 of every
+ * value over `captures/`), and each once reached an assertion instead of the unread row — which
+ * on the fight's last message left it never over, and on any other lost the payload whole.
+ */
+Deno.test("a value the game's own text can spell goes unread, and never into an assertion", () => {
+    assertEquals(
+        getOnlyUnread(decodeFightMessages(["0;0;winner=Gracz 1, , Gracz 2"], null, BLOWS_GRANTED)),
+        ["winner"],
+        "a side listing a member called nothing",
+    );
+    assertEquals(
+        getOnlyUnread(decodeFightMessages(["1=50.00;0;tspell="], null, BLOWS_GRANTED)),
+        ["tspell"],
+        "an announcement naming nothing",
+    );
+    const wide = `1=50.00;0;tspell=${"x".repeat(MAXIMUM_NAME + 1)}`;
+    assertEquals(
+        getOnlyUnread(decodeFightMessages([wide], null, BLOWS_GRANTED)),
+        ["tspell"],
+        "and one naming more than the bound holds",
+    );
+    assertEquals(
+        getOnlyUnread(
+            decodeFightMessages(
+                ["1=50.00;2=50.00;+oth_dmg=-5,,Gracz 3(40.00%)"],
+                null,
+                BLOWS_GRANTED,
+            ),
+        ),
+        ["+oth_dmg"],
+        "damage stated against a name below nothing",
+    );
+    assertEquals(
+        getOnlyUnread(
+            decodeFightMessages(["1=50.00;2=50.00;+dmg=-5;-dmg=-5"], null, BLOWS_GRANTED),
+        ),
+        ["+dmg", "-dmg"],
+        "and a blow's own figures below nothing, which leave no blow behind them",
+    );
+});
+
+/**
+ * A key spelled like a member every object carries. Indexed straight, the tables answered with
+ * the language's own `constructor` for a key they never held, and the decoder invented an event.
+ */
+Deno.test("a key spelled like what every object carries is unread, not an inherited answer", () => {
+    assertEquals(
+        getOnlyUnread(decodeFightMessages(["1=50.00;2=50.00;constructor=5"], null, BLOWS_GRANTED)),
+        ["constructor"],
+        "a valued one reaches no table",
+    );
+    const events = decodeFightMessages(
+        ["1=50.00;2=50.00;+dmg=5;-dmg=5;toString"],
+        null,
+        BLOWS_GRANTED,
+    );
+    assertEquals(events.map((one) => one.kind), ["attack", "unknown-message"], "a bare one either");
+    const [blow, unread] = events;
+    assertEquals(blow?.kind === "attack" ? blow.procs : null, [], "and it is no proc of the blow");
+    assertEquals(unread?.kind === "unknown-message" ? unread.unreadKeys : null, ["toString"]);
 });

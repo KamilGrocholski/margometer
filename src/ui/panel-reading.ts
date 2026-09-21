@@ -1127,11 +1127,8 @@ function composeHeadcount(
         return one - other;
     });
     const sizes = sides.map(([, count]) => count);
-    let counted = unplaced;
-    for (const size of sizes) counted += size;
-    // The invariant that matters here, and it is about sides rather than about rows: a ranking is
-    // filtered by the side strip and the headcount never is, so a fight of ten against one draws
-    // one row beside two sizes and there is no relation between the two lengths to hold.
+    // No relation to the rows is held here: a ranking is filtered by the side strip and the
+    // headcount never is, so a fight of ten against one draws one row beside two sizes.
     return { sizes, unplaced };
 }
 
@@ -1536,6 +1533,8 @@ export interface PairReading {
     total: number;
     parts: PairPartRow[];
     byElement: ElementCut;
+    /** The answer `SkillCut` states, for the section the parts are: clamped, and carried out. */
+    hasFiguresDisagreed: boolean;
 }
 
 /**
@@ -2214,13 +2213,15 @@ export function composePairReading(
     if (total === null) return null;
     const kinds = getPairKinds(figures, metric, otherId);
     const held = roster.byId.get(otherId);
+    const parts = composePairParts(statistics, metric, combatantId, otherId, total);
     return {
         combatantId,
         otherId,
         otherName: held?.name ?? null,
         otherProfession: held?.profession ?? null,
         total,
-        parts: composePairParts(statistics, metric, combatantId, otherId, total),
+        parts: parts.rows,
+        hasFiguresDisagreed: parts.hasFiguresDisagreed,
         // Nothing on the last rung opens: the protocol states no further cut of a pair.
         byElement: kinds === null
             ? { rows: [], rest: null, unnamed: null }
@@ -2369,7 +2370,7 @@ function composePairParts(
     combatantId: number,
     otherId: number,
     total: number,
-): PairPartRow[] {
+): { rows: PairPartRow[]; hasFiguresDisagreed: boolean } {
     const stated = composePairPartFigures(statistics, metric, combatantId, otherId);
     stated.sort((one, other) =>
         getRankedOrder(
@@ -2381,8 +2382,12 @@ function composePairParts(
     );
     const held = getTotalFromParts(stated);
     const plain = total - held;
+    // Clamped as the section a skill row closes is (`composeSkillCut`), and the clamp carried
+    // out: a remainder below nothing is the parts coming to more than the figure over them, which
+    // is a drawn figure being wrong rather than short, and a bar cannot be drawn below nothing.
+    const drawn = Math.max(plain, 0);
     const figures = stated.map((one) => one.figure);
-    if (plain > 0) figures.push(plain);
+    if (plain !== 0) figures.push(drawn);
     const shares = composeShareTexts(figures, total);
     const largest = getLargestFigure(figures);
     const rows: PairPartRow[] = stated.map((one, at) => ({
@@ -2391,18 +2396,18 @@ function composePairParts(
         fill: getFill(one.figure, largest),
         shareText: shares[at] ?? "",
     }));
-    if (plain === 0) return rows;
+    if (plain === 0) return { rows, hasFiguresDisagreed: false };
     // Where its figure puts it, and not after the lot — the warning above is about a key larger
     // than every skill sitting at the bottom of a column, and the closing row is the one that
     // most often is (**ADR 0079**). Its share is read by the index it was composed under, so the
     // figure it carries is unmoved by where it is drawn.
-    rows.splice(getPlaceForPlain(stated, plain) - 1, 0, {
+    rows.splice(getPlaceForPlain(stated, drawn) - 1, 0, {
         part: { kind: "plain" },
-        figure: plain,
-        fill: getFill(plain, largest),
+        figure: drawn,
+        fill: getFill(drawn, largest),
         shareText: shares[stated.length] ?? "",
     });
-    return rows;
+    return { rows, hasFiguresDisagreed: plain < 0 };
 }
 
 export function composeDrillReading(

@@ -19,6 +19,7 @@ import { composeTeamHeals } from "@/src/core/combatant-health.ts";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import {
+    type CombatantFigures,
     composeCombatantFigures,
     composeFightStatistics,
     getUnreadMessages,
@@ -2684,4 +2685,35 @@ Deno.test("no recording leaves anything outside the ranking, on any screen or se
     }
     assert(read > 0, "there were readings to ask");
     assertEquals(drawn, [], "a screen holding a figure no row of it does");
+});
+
+/**
+ * A pair whose parts come to more than the figure over them, built by hand because every writer
+ * in `src/core/fight-statistics.ts` keeps the two together: the case is the next writer's.
+ */
+Deno.test("a pair whose parts outrun its figure closes at nought, and says so", () => {
+    const statistics = composeFightStatistics([], new Map());
+    const figures = composeCombatantFigures();
+    figures.skills.set("Cios", {
+        name: "Cios",
+        uses: 1,
+        dealt: 100,
+        blows: 1,
+        dealtByOpponent: new Map([["2", 100]]),
+        restored: 0,
+        restoredByOpponent: new Map(),
+    });
+    figures.damageDealtByOpponentAndKind.set("2", new Map([["dmg", 60]]));
+    (statistics.byCombatantId as Map<number, CombatantFigures>).set(1, figures);
+    const roster = composeCombatantRoster([
+        { id: 1, name: "Gracz 1", side: 1, profession: "w", level: 40, healthMaximum: 1000 },
+        { id: 2, name: "Gracz 2", side: 2, profession: "w", level: 40, healthMaximum: 1000 },
+    ]);
+    const pair = composePairReading(statistics, roster, "damageDealtApplied", 1, 2);
+    assertExists(pair, "the pair opens");
+    assertEquals(pair.total, 60, "at the figure the kinds between them state");
+    const closing = pair.parts.find((one) => one.part.kind === "plain");
+    assertEquals(closing?.figure, 0, "the closing row is drawn at nought rather than below it");
+    assertEquals(closing?.fill, 0, "with no bar below nothing");
+    assert(pair.hasFiguresDisagreed, "and the reading says the figures disagree");
 });

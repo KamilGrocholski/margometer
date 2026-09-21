@@ -29,19 +29,17 @@ export interface ReportSubject {
 }
 
 /**
- * ⚠️ **Keyed off `CombatantFigures` rather than listed out**, which is what makes the compiler
- * hold this complete: a figure added to the aggregate stops the build here until somebody decides
- * how it is written down. A report is what a reader hands over when a number looks wrong, so a
- * figure added there and missed here would be absent in exactly the situation it exists for.
+ * ⚠️ **Keyed off `CombatantFigures` and `SkillFigures` rather than listed out**, which is what
+ * makes the compiler hold this complete: a figure added to the aggregate stops the build here
+ * until somebody decides how it is written down. A report is what a reader hands over when a
+ * number looks wrong, so a figure added there and missed here would be absent in exactly the
+ * situation it exists for — which is how `blows` went unwritten while the panel drew rows for it.
  */
-interface ReportSkill {
-    name: string;
-    uses: number;
-    dealt: number;
-    dealtByOpponent: Record<string, number>;
-    restored: number;
-    restoredByOpponent: Record<string, number>;
-}
+type ReportSkill = {
+    [Key in keyof SkillFigures]: SkillFigures[Key] extends number ? number
+        : SkillFigures[Key] extends string ? string
+        : Record<string, number>;
+};
 
 type ReportRow = {
     [Key in keyof CombatantFigures]: CombatantFigures[Key] extends number ? number
@@ -177,6 +175,7 @@ function composeReportSkills(
             name: skill.name,
             uses: skill.uses,
             dealt: skill.dealt,
+            blows: skill.blows,
             dealtByOpponent: composeReportCut(skill.dealtByOpponent),
             restored: skill.restored,
             restoredByOpponent: composeReportCut(skill.restoredByOpponent),

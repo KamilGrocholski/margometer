@@ -74,3 +74,10 @@ Deno.test("what a payload states about a combatant is what the snapshot states",
     assert(compared > 100, "the recordings state their people twice over, and often");
     assertEquals(withoutSnapshot, 14, "and all of them in the recordings that snapshot nobody");
 });
+
+Deno.test("a pool of nothing is a pool nobody stated, never an assertion", () => {
+    const whole = { id: 1, name: "Gracz 1", team: 2, prof: "w", lvl: 40, hp: { max: 745 } };
+    assertEquals(readCombatantFromWarrior({ ...whole, hp: { max: 0 } })?.healthMaximum, null);
+    assertEquals(readCombatantFromWarrior({ ...whole, hp: { max: -5 } })?.healthMaximum, null);
+    assertEquals(readCombatantFromWarrior({ ...whole, hp: { max: 1 } })?.healthMaximum, 1);
+});

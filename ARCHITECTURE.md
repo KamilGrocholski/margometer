@@ -160,6 +160,7 @@ tests/
     engine-battle-wrap.test.ts  The promise the add-on makes to the page.
     engine-place.test.ts      A page that says all of it, some of it, or nothing.
     fight-capture.test.ts     The envelope, against the newest recording admitted.
+    fight-report.test.ts      The figures written into the file, keyed off what the aggregate keeps.
     kept-fights.test.ts       A shelf that answers, refuses, runs out of room, or reads back.
     engine-warrior.test.ts    A payload's warriors, against the snapshots beside them.
     game-dictionary.test.ts   The shape of an entry, and a client that answers, misses or throws.

@@ -209,3 +209,27 @@ Deno.test("every recording states charges the panel can hold", () => {
     assert(struck > 0, "blows that landed");
     assert(broken > 0, "and blows that were taken away");
 });
+
+/** The other charger's blow landing says nothing about this one: the verdict is the announcer's. */
+Deno.test("a blow of the same name landed by somebody else ends no charge of one's own", () => {
+    const both = composeChargedSkills(
+        [],
+        [...charging(1), {
+            combatantId: PLAYER,
+            charge: { skillName: BLOW, turnsElapsed: 1, turnsStated: 3 },
+        }],
+        [],
+        1,
+    );
+    assertEquals(both.length, 2, "two combatants make the same blow ready");
+    const announcedByPlayer: BattleEvent[] = announce(BLOW).map((one) =>
+        one.kind === "skill-used" ? { ...one, actorId: PLAYER } : one
+    );
+    const next = composeChargedSkills(
+        both,
+        [...stateless(), { combatantId: PLAYER, charge: null }],
+        announcedByPlayer,
+        2,
+    );
+    assertEquals(next.map((one) => [one.combatantId, one.state]), [[PLAYER, "struck"]]);
+});

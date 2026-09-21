@@ -8,6 +8,7 @@
 import { assertEquals } from "@std/assert";
 import {
     getNumberFromUnknown,
+    getOwnFromRecord,
     getStatedTextFromUnknown,
     getTextFromUnknown,
     isRecord,
@@ -42,4 +43,12 @@ Deno.test("whether text states anything is a second question, asked separately",
     assertEquals(getStatedTextFromUnknown(""), null, "text saying nothing states nothing");
     assertEquals(getStatedTextFromUnknown(" "), " ", "though a space is something said");
     assertEquals(getStatedTextFromUnknown(745), null, "and a number states no text");
+});
+
+Deno.test("a table answers only what its author wrote, whatever a key is spelled like", () => {
+    const table: Record<string, number> = { heal: 1 };
+    assertEquals(getOwnFromRecord(table, "heal"), 1, "a key the author wrote answers");
+    assertEquals(getOwnFromRecord(table, "poison"), undefined, "one nobody wrote does not");
+    assertEquals(getOwnFromRecord(table, "constructor"), undefined, "nor the language's own");
+    assertEquals(getOwnFromRecord(table, "toString"), undefined, "in any of its spellings");
 });

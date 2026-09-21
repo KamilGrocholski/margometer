@@ -58,8 +58,11 @@ not.
 
 **Skill 188 states two turn figures for one announcement, in two sections.** `Wyzywający okrzyk`
 will read `1 z 5 tur` where it stands and `1 z 3 tur` where it holds. That is the finding rather
-than a duplicate: the taunt really does end two turns before the debuff. Skill 25 states 3 in both
-places, which is what one row shape costs.
+than a duplicate: the taunt really does end two turns before the debuff. Skill 25 reads `1 z 2 tur`
+where it stands and `1 z 3 tur` where it holds: the table dates its side-wide half at 2 and its
+shout at 3 (`frozen/skill-durations.ts`, read 2026-09-21). It read 3 in both places until then,
+because the side-wide half was dated by the longest of every key reaching a side, the shout among
+them — the mirror of what ADR 0063 forbade, and the same fold this decision undoes.
 
 **Three cells now share one row, and the order they give way in is stated in the stylesheet.** The
 panel's own rule gives a row's name `flex:1`, which is basis `0` — the name takes what is left

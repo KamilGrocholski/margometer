@@ -497,13 +497,13 @@ Deno.test(`${BOTH_OKRZYKI}: two casters at one monster leave one provocation sta
         "Amaimon Soploręki",
         "and the monster is who is held",
     );
-    // ADR 0097: the okrzyk holding the monster stands among the whole-team casts as well. Its two
-    // halves are both dated 3 by the frozen table, so on this recording they run out together —
-    // which is why the pairing is what is asserted and not a second turn figure.
+    // ADR 0097: the okrzyk holding the monster stands among the whole-team casts as well, on the
+    // side-wide half's own turns — 2 by the frozen table, where its shout is dated 3 — so the two
+    // halves of one announcement run out apart, which is the whole of what that decision states.
     const standing = composeFightStandings(events, DATED, roster).standings;
     assertEquals(
         standing.filter((one) => one.skillId === 25).map((one) => one.turnsStated),
-        [3],
+        [2],
         "the okrzyk that is holding somebody also stands on its caster's side, once",
     );
 });
@@ -532,5 +532,26 @@ Deno.test("a table naming one skill twice is refused rather than folded", () => 
         composeAuraTurnsBySkillId([{ id: 7, turns: 2 }, { id: 8, turns: 5 }]).size,
         2,
         "and two rows naming two skills are two",
+    );
+});
+
+/**
+ * The two halves of an okrzyk are dated apart (**ADR 0097**), so the shout's own row never dates
+ * the side-wide half: skill 25 shouts for 3 turns and stands on its side for 2, and the longest
+ * over both stood the aura a turn past the table.
+ */
+Deno.test("a shout dates no side-wide half, and a shout alone dates none at all", () => {
+    assertEquals(
+        getStatedTurnsFromEffects([
+            { key: "shout", turns: [3, 3, 3] },
+            { key: "aura-adddmg2_per-meele_physical", turns: [2] },
+        ]),
+        2,
+        "the side-wide half stands on its own turns",
+    );
+    assertEquals(
+        getStatedTurnsFromEffects([{ key: "shout", turns: [3, 3, 3] }]),
+        null,
+        "and a skill that only shouts reaches no side-wide row",
     );
 });

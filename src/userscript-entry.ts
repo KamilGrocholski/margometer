@@ -130,10 +130,6 @@ const FOLD_KEY = "MargoMeter-folded";
 const FOLDED = "1";
 const PLACE_KEY = "MargoMeter-place";
 /**
- * The window beside the panel keeps its own two answers. Two windows, two folds and two corners:
- * folding the panel over a fight a reader is watching would take the other one with it.
- */
-/**
  * The published table, put into the shape `core/` reads once and not per payload: `core` imports
  * no frozen reading, so whoever holds one hands it over (`ARCHITECTURE.md`).
  */
@@ -144,6 +140,10 @@ const STATED_SKILLS: StatedSkills = {
 /** The same reading, for the other question the table answers (**ADR 0078**). */
 const BLOWS_GRANTED_BY_SKILL_ID = composeBlowsGrantedBySkillId(FROZEN_BLOWS_GRANTED.skills);
 
+/**
+ * The window beside the panel keeps its own two answers. Two windows, two folds and two corners:
+ * folding the panel over a fight a reader is watching would take the other one with it.
+ */
 const STANDING_FOLD_KEY = "MargoMeter-pomocnik-folded";
 const STANDING_PLACE_KEY = "MargoMeter-pomocnik-place";
 /**
@@ -217,14 +217,15 @@ interface KeptFigures {
  * so a shelf drawn without this is four seconds of decoding per fight. In memory and never in the
  * store: a figure that survives a reload is a figure an older version computed. **ADR 0026.**
  */
-function composeKeptFigureMemo(): KeptFigures {
-    const held = new Map<number, FightFigures>();
+function composeKeptFigureMemo(handleFailure: (failure: unknown) => void): KeptFigures {
+    const held = new Map<number, FightFigures | null>();
     return {
         read(fight: KeptFight): FightFigures | null {
             const before = held.get(fight.openedAt);
             if (before !== undefined) return before;
-            const figures = composeKeptFigures(fight);
-            if (figures === null) return null;
+            const figures = composeKeptFiguresOrNothing(fight, handleFailure);
+            // A refusal is held as well: the shelf is walked on every draw, and a fight that will
+            // not replay would otherwise be replayed, and marked, once per payload.
             if (held.size < MAXIMUM_KEPT) held.set(fight.openedAt, figures);
             return figures;
         },
@@ -252,8 +253,10 @@ interface ShelfKeeper {
     hasStoreMadeRoom: boolean;
     isEverySlotPinned: boolean;
     hasChoiceRefused: boolean;
-    /** Derived through the live chain and memoised, never read out of the store. */
-    /** Null for a fight the payloads no longer read, which is a fight to stand on no longer. */
+    /**
+     * Derived through the live chain and memoised, never read out of the store. Null for a fight
+     * the payloads no longer read, which is a fight to stand on no longer.
+     */
     readFigures(fight: KeptFight): FightFigures | null;
     keep(fight: KeptFight): void;
     setPinned(openedAt: number): void;
@@ -306,20 +309,30 @@ function readPlaceOrNothing(
     }
 }
 
+/**
+ * What went down is what is drawn: a store that asked for less leaves the panel showing the shelf
+ * a reload will find, not the one it was handed.
+ */
+function setShelfWritten(
+    keeper: ShelfKeeper,
+    figures: KeptFigures,
+    writing: ShelfWriting,
+    offered: number,
+): void {
+    keeper.hasStoreRefused = !writing.isOk;
+    keeper.hasStoreMadeRoom = writing.isOk && writing.fights.length < offered;
+    if (writing.isOk) keeper.fights = writing.fights;
+    figures.keepOnly(keeper.fights);
+}
+
 function composeShelfKeeper(environment: UserscriptEnvironment, defects: KeptDefects): ShelfKeeper {
     const settings = environment.store;
     const answered = settings === null ? "" : settings.read(STORAGE_KEY) ?? "";
     const choice = getStorageFromName(answered) ?? STORAGE_DEFAULT;
     let store = environment.composeShelfStore(choice);
-    const figures = composeKeptFigureMemo();
-    const setWritten = (writing: ShelfWriting, offered: number): void => {
-        keeper.hasStoreRefused = !writing.isOk;
-        // What went down is what is drawn: a store that asked for less leaves the panel showing
-        // the shelf a reload will find, not the one it was handed.
-        keeper.hasStoreMadeRoom = writing.isOk && writing.fights.length < offered;
-        if (writing.isOk) keeper.fights = writing.fights;
-        figures.keepOnly(keeper.fights);
-    };
+    const figures = composeKeptFigureMemo((failure) => defects.add("kept", null, failure));
+    const setWritten = (writing: ShelfWriting, offered: number): void =>
+        setShelfWritten(keeper, figures, writing, offered);
     const keeper: ShelfKeeper = {
         fights: readShelfOrNothing(store, defects),
         choice,
@@ -353,20 +366,25 @@ function composeShelfKeeper(environment: UserscriptEnvironment, defects: KeptDef
         },
         setChoice(next: PanelStorageChoice): void {
             if (next === keeper.choice) return;
-            // The answer is written down before anything is done about it: acting on a refused
-            // one leaves the reader's fights, pinned ones included, in a place the next page
-            // will never look in, under a panel drawing the choice as taken.
+            // The fights go first, the answer second, and the place they came from is emptied
+            // last: a store that refuses them, or a browser that will not keep the answer, leaves
+            // the reader's fights — pinned ones included — where the next page will still look.
+            const moved = environment.composeShelfStore(next);
+            const offered = keeper.fights.length;
+            const writing = writeKeptFights(moved, SHELF_KEY, keeper.fights);
+            if (!writing.isOk) {
+                setWritten(writing, offered);
+                return;
+            }
             const isWritten = settings !== null && settings.write(STORAGE_KEY, next);
             keeper.hasChoiceRefused = !isWritten;
             if (!isWritten) return;
-            // What was kept moves, and the place it came from is emptied: a reader who asks for
-            // the store that keeps nothing is saying they want nothing left behind, and the
-            // fights themselves travel because they are the reader's.
+            // A reader who asks for the store that keeps nothing is saying they want nothing left
+            // behind, and the fights themselves travel because they are the reader's.
             store.remove(SHELF_KEY);
             keeper.choice = next;
-            store = environment.composeShelfStore(next);
-            const offered = keeper.fights.length;
-            setWritten(writeKeptFights(store, SHELF_KEY, keeper.fights), offered);
+            store = moved;
+            setWritten(writing, offered);
         },
     };
     keeper.fights = keeper.fights.slice(0, MAXIMUM_KEPT);
@@ -587,6 +605,24 @@ function handlePressScreen(screen: ScreenState, said: string): boolean {
 }
 
 /**
+ * The same, guarded: everything under it reaches `core/`, which throws (**E7**), over payloads a
+ * browser kept for another version of this add-on. A throw out of here reaches every draw, because
+ * the shelf is walked on each of them — so one entry that will not replay is the whole panel gone
+ * rather than one row, which is the browser-storage row of **E5** read the wrong way round.
+ */
+function composeKeptFiguresOrNothing(
+    kept: KeptFight,
+    handleFailure: (failure: unknown) => void,
+): FightFigures | null {
+    try {
+        return composeKeptFigures(kept);
+    } catch (failure) {
+        handleFailure(failure);
+        return null;
+    }
+}
+
+/**
  * A fight off the shelf, through the chain the live one goes through: the payloads were kept, so
  * the figures are this version's rather than the version that watched the fight. **ADR 0026.**
  */
@@ -665,12 +701,13 @@ function drawFight(
     readClock: (atMilliseconds: number) => FightMoment | null,
     defects: KeptDefects,
 ): void {
+    drawStanding(underway, screen, panel, defects);
+    // After the window beside the panel, so a defect it just recorded is drawn on this pass.
     const said = defects.getSaid();
     // Whether the bar draws its save, asked without decoding anything: a fight that will not
     // read is still a fight worth handing over, and that is exactly the one nothing else here
     // can answer for.
     const hasFightToSave = liveFight.capture.calls.length > 0 || shelf.fights.length > 0;
-    drawStanding(underway, screen, panel, defects);
     try {
         if (
             drawFightOnPanel(
@@ -810,7 +847,7 @@ function drawFightOnPanel(
         figures,
         screen,
     );
-    addFiguresDisagreed(keeper, reading, drill);
+    addFiguresDisagreed(keeper, reading, drill, pair);
     // The row the panel is actually drawing, which is the kept one wherever there is no live
     // fight for the shelf to mark instead. The live fight has no row of its own to name, so the
     // place a reader stands in is named by the moment that fight opened.
@@ -871,6 +908,7 @@ function addFiguresDisagreed(
     keeper: KeptDefects,
     reading: PanelReading,
     drill: DrillReading | null,
+    pair: PairReading | null,
 ): void {
     if (reading.hasFiguresDisagreed) {
         keeper.add("figures", null, "two counts of one figure came out different");
@@ -878,9 +916,15 @@ function addFiguresDisagreed(
     // The same claim one level down, where the rows of a section came to more than the figure
     // they are a cut of: the row closing it is a remainder below nothing, drawn at nought because
     // that is the least a bar can be, and this is the mark that the nought was not the reading.
-    if (drill === null) return;
-    if (!drill.hasFiguresDisagreed) return;
-    keeper.add("figures", null, "a cut came to more than the figure it is a cut of");
+    if (drill !== null) {
+        if (drill.hasFiguresDisagreed) {
+            keeper.add("figures", null, "a cut came to more than the figure it is a cut of");
+        }
+    }
+    // And on the last rung, where a pair's parts are the section.
+    if (pair === null) return;
+    if (!pair.hasFiguresDisagreed) return;
+    keeper.add("figures", null, "a pair came to more than the figure it is a cut of");
 }
 
 interface OpenedReadings {
@@ -1528,9 +1572,12 @@ function readPayloadIntoLive(
     stated: { payload: unknown; battle: EngineBattle },
 ): boolean {
     addPayloadToFight(underway, stated.payload, BLOWS_GRANTED_BY_SKILL_ID);
+    // The fight takes a record and nothing else, so only a record left its messages last in the
+    // list: read after anything else, that entry belongs to the call before this one.
+    const messages = isRecord(stated.payload) ? underway.messagesByPayload.at(-1) ?? [] : [];
     live.capture = composeNextCapture(live.capture, {
         payload: stated.payload,
-        messages: underway.messagesByPayload.at(-1) ?? [],
+        messages,
         combatantsBefore: live.combatantsBefore,
         combatantsAfter: composeSnapshotFromBattle(stated.battle),
     });

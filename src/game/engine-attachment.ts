@@ -124,7 +124,10 @@ function lookForEngine(
         return;
     }
     // The game is here and the method it is found by is gone. Said once: the looking goes on,
-    // and a caller told every time would hear it once a look for a minute.
+    // and a caller told every time would hear it once a look for a minute. It ends where a
+    // search finding nothing ends, and says nothing then — the game was there, so the look past
+    // the bound is not a search abandoned, and not the assertion above.
+    if (search.looks >= MAXIMUM_LOOKS) stopLookingForEngine(search, schedule);
     if (search.hasRefused) return;
     search.hasRefused = true;
     assert(search.wrap === null, "a refusal is what a page with no method to wrap answers");

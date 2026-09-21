@@ -985,7 +985,9 @@ function addWoundAnnouncement(build: StatisticsBuild, event: BattleEvent): void 
     for (const declared of event.declared) {
         if (declared.effect !== WOUND_ANNOUNCEMENT_KEY) continue;
         if (declared.amount === null) continue;
-        assert(declared.amount > 0, "a wound announces what it will take off");
+        // A wound announcing nothing to take off is one no tick can be matched to, and the figure
+        // is the game's: skipped rather than asserted against (**E9**).
+        if (declared.amount <= 0) continue;
         build.woundByVictimId.set(event.targetId, {
             attackerId: event.actorId,
             amount: declared.amount,
@@ -1175,16 +1177,18 @@ function addUnplacedCast(build: StatisticsBuild, casterId: number | null): void 
  */
 function addTeamHeal(
     build: StatisticsBuild,
+    casterId: number | null,
     announced: AnnouncedSkill | null,
     heal: TeamHeal | undefined,
 ): void {
     build.castsStated += 1;
+    assert(casterId === null || Number.isSafeInteger(casterId), "a caster named is an id read");
     if (heal === undefined) {
         build.castsUnplaced += 1;
-        // The announcement is the only place a caster is stated for a cast nobody could size: the
-        // sizing is what would otherwise have named one. Where nothing announced it, the
-        // suspicion is the fight's and stands on no row.
-        addUnplacedCast(build, announced?.actorId ?? null);
+        // The caster the event names, which is the actor slot; the announcement stands in only
+        // where the message named no actor, so a cast nothing announced still reaches the row
+        // the protocol named for it.
+        addUnplacedCast(build, casterId ?? announced?.actorId ?? null);
         return;
     }
     if (!heal.isWhole) {
@@ -1354,7 +1358,7 @@ export function composeFightStatistics(
     for (const event of events) {
         if (event.kind === "unknown-message") addUnreadMessage(build, event);
         if (event.kind === "unaccounted-health") {
-            addTeamHeal(build, event.announced, heals.get(event));
+            addTeamHeal(build, event.combatantId, event.announced, heals.get(event));
         }
         addAttackEvent(build, event);
         addNamedDamageEvent(build, event);
