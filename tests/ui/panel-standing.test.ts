@@ -23,7 +23,12 @@ import {
     type StandingTurn,
 } from "@/src/ui/panel-standing.ts";
 import { getColourForProfession, SIGNAL } from "@/src/ui/panel-look.ts";
-import { getWordsForTurnState, PANEL_WORDS, STANDING_WORDS } from "@/src/ui/panel-words.ts";
+import {
+    getNoteForCaveat,
+    getWordsForTurnState,
+    PANEL_WORDS,
+    STANDING_WORDS,
+} from "@/src/ui/panel-words.ts";
 import {
     composeFakeDocument,
     type FakeElement,
@@ -1176,6 +1181,100 @@ Deno.test("a row drawn without a card is what that walk reports", () => {
         ["row leaf:Lodowe Pandemonium"],
         "the row with no mark is named, and the row beside it is not",
     );
+});
+
+/**
+ * The sentence a figure owes, as the note's own text. The mark opening it is a node of its own
+ * (**ADR 0092**) and is held where it is drawn, so an expectation spelling it here would be
+ * checking this suite's own reader rather than the card.
+ */
+function composeNote(caveat: Parameters<typeof getNoteForCaveat>[0]): string {
+    return getNoteForCaveat(caveat);
+}
+
+/**
+ * **ADR 0101.** The pair on this card is true of the person it is about and of nobody else the
+ * cast reached, so the card says which clock it counted. Without the sentence the figure reads as
+ * the effect's own progress, which is the reading two sources refuse.
+ */
+Deno.test("a cast's card says the length it states was counted on the caster", () => {
+    const reading = composeStandingReading(
+        [composeStanding(11)],
+        [],
+        [],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        264,
+    );
+    const { host } = draw(reading);
+    const row = getElementsWithin(getWindow(host))
+        .find((one) => one.getAttribute("data-tip") === "standing:cast:264/11");
+    assertExists(row, "an opened skill stands its casters under it, each with a card");
+    pointAtElement(host, "pointermove", row, 200);
+    const card = readTip(host);
+    assertEquals(
+        card.stated.map((one) => [one.label, one.value]),
+        [[STANDING_WORDS.turnsPassed, "3 z 8 tur"]],
+        "the figure is unchanged: what has passed of what the table states",
+    );
+    assertEquals(
+        card.notes,
+        [composeNote("standingLength")],
+        "and the sentence under it names the clock the figure was counted on",
+    );
+});
+
+/**
+ * The same defect, and a different sentence, because less is known: no status bit stands for a
+ * provocation and the published help dates `shout` nowhere, so this card claims no clock at all.
+ */
+Deno.test("a provocation's card claims no clock, because nothing states one", () => {
+    const reading = composeStandingReading(
+        [],
+        [composeProvocation(21, 11)],
+        [],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        null,
+    );
+    const { host } = draw(reading);
+    const holding = getPersonRows(host)[0];
+    assertExists(holding, "the row of whoever is holding stands first");
+    pointAtElement(host, "pointermove", holding, 200);
+    const card = readTip(host);
+    assertEquals(
+        card.notes,
+        [composeNote("provocationLength")],
+        "the sentence says what is not stated, and names no turns of anybody's",
+    );
+    assertNotStrictEquals(
+        card.notes[0],
+        composeNote("standingLength"),
+        "and never the aura's, which claims a clock this one has no evidence of",
+    );
+});
+
+/**
+ * **W5: zero is a boundary.** A card stating no figure owes no sentence, and a caveat drawn there
+ * would be a claim about a number the card does not carry.
+ */
+Deno.test("a card stating no turns carries neither sentence", () => {
+    const reading = composeStandingReading(
+        [],
+        [composeProvocation(21, 11)],
+        [],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        null,
+    );
+    const { host } = draw(reading);
+    const held = getPersonRows(host)[1];
+    assertExists(held, "the character held stands under whoever is holding them");
+    pointAtElement(host, "pointermove", held, 200);
+    assertEquals(readTip(host).notes, [], "their card states no turns, so it owes no caveat");
 });
 
 Deno.test("the card of a charge names the blow whole, whoever is making it, and the turns", () => {

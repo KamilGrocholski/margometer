@@ -819,6 +819,7 @@ function composeStandingNow(
         colour: holder.colour,
         sidePart: holder.sidePart,
         turns: null,
+        turnsCaveat: null,
         isUnder: false,
     });
     return [section, row];
@@ -968,6 +969,7 @@ function composeProvokedElements(
                 colour: provocation.casterColour,
                 sidePart: provocation.casterSidePart,
                 turns: composeStandingTurnsText(provocation.turnsElapsed, provocation.turnsStated),
+                turnsCaveat: "provocationLength",
                 isUnder: false,
             },
         ));
@@ -985,6 +987,7 @@ function composeProvokedElements(
                 colour: held.colour,
                 sidePart: held.sidePart,
                 turns: null,
+                turnsCaveat: null,
                 isUnder: true,
             }));
         }
@@ -1005,6 +1008,11 @@ interface StandingPerson {
     sidePart: PanelSidePart;
     /** Null where the figure belongs to the row above rather than to this one. */
     turns: string | null;
+    /**
+     * What the figure above claims beyond itself, which is never nothing where one is drawn: a
+     * length is counted on one person and the effect it dates stands on several (**ADR 0101**).
+     */
+    turnsCaveat: Caveat | null;
     isUnder: boolean;
 }
 
@@ -1023,9 +1031,12 @@ function composeStandingPersonTipReading(person: StandingPerson): TipReading {
         label: STANDING_WORDS.turnsPassed,
         stated: person.turns,
         isStrong: false,
-        caveat: null,
+        caveat: person.turnsCaveat,
     };
-    return { name: person.name, subtitle: person.skillName, groups: [{ lines: [stated] }] };
+    // Read off the figure rather than asked a second time, which is what keeps one glyph and one
+    // sentence answering to each other wherever either is drawn (**ADR 0089**).
+    const lines: TipLine[] = [stated, ...composeCaveatNoteLines([{ lines: [stated] }])];
+    return { name: person.name, subtitle: person.skillName, groups: [{ lines }] };
 }
 
 /**
@@ -1161,6 +1172,7 @@ function composeStandingRowElements(
                     colour: caster.colour,
                     sidePart: caster.sidePart,
                     turns: composeStandingTurnsText(caster.turnsElapsed, caster.turnsStated),
+                    turnsCaveat: "standingLength",
                     isUnder: true,
                 },
             ));

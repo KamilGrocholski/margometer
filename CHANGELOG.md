@@ -37,6 +37,12 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — Przy liczniku tur rzuconego efektu Pomocnik mówi teraz, że to tury rzucającego, a
+  każdemu innemu efekt schodzi osobno.
+- **Poprawka** — Przy prowokacji Pomocnik mówi teraz, że gra nie podaje, kiedy ona z kogoś schodzi.
+
 ## [0.18.0] — 2026-09-21
 
 - **Nowość** — MargoMeter instaluje się teraz jednym kliknięciem ze strony z podglądem, która

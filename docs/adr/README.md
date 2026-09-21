@@ -254,3 +254,5 @@ edited to agree with the new rule.
   beside the panel carries a card. **Accepted**
 - [0101](0101-a-length-is-counted-on-whoever-is-carrying-it.md) — A length is counted on whoever is
   carrying it, not on whoever cast it. **Accepted**
+- [0102](0102-a-length-says-which-clock-it-was-counted-on.md) — A length says which clock it was
+  counted on, and a provocation says that nothing states one. **Accepted**

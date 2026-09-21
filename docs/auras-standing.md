@@ -50,8 +50,10 @@ figure. The subtraction is the reader's, and it is theirs because the protocol n
 ended.
 
 ⚠️ **The two halves are counted on two different clocks, and the section below is why.** The
-published figure is the bearer's, the counted one is the caster's, and a fraction joining them is a
-claim neither source makes. The window is unchanged until that is decided — **ADR 0101**.
+published figure is the bearer's, the counted one is the caster's (**ADR 0101**). So the card under
+the figure says which clock it counted, and the one under a provocation says that nothing states one
+at all — **ADR 0102**. What the window draws is otherwise unchanged, and a row still leaves when the
+caster's stated turns have passed.
 
 **A shout is drawn under whoever threw it**, with the characters it holds as rows under that, and
 its turns stated once — they are the cast's, not each held character's. Which of the two okrzyki it
