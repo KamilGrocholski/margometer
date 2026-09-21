@@ -39,46 +39,14 @@ alt="Karta postaci otwarta obok panelu">
 </tr>
 </table>
 
-Walka dziesięciu na jednego, na ekranie obrażeń otrzymanych.
-
-- Obrażenia i przywracanie życia, zadane i otrzymane, dla każdej postaci, w każdej walce.
-- Wiersz się rozwija, i to trzy poziomy w głąb: kto komu, potem czym — umiejętnością, typem obrażeń
-  albo wierszem „Zwykły cios", pod którym stoi to, czego gra żadną umiejętnością nie nazwała; na
-  ekranach obrażeń bywa on pierwszy. Rozwija się kliknięciem, a wraca kliknięciem prawym przyciskiem
-  w dowolnym miejscu panelu albo w ścieżkę nad listą.
-- Najedź na wiersz postaci — na liście albo w rozwiniętym wierszu — żeby zobaczyć jej kartę: tę
-  liczbę, o którą pytasz ekranem, i każdą z pozostałych trzech, która nie jest zerem, tury wykonane
-  i te utracone, krytyki, co zatrzymała obrona i co zniszczył atak. To samo na każdym ekranie.
-  Liczba, która znaczy węziej, niż mówi jej nazwa, ma obok siebie znak, a pod kartą zdanie
-  wyjaśniające, czego gra nie podaje.
-- Skończone walki trafiają na półkę i można do nich wrócić. Każda mówi, którego dnia i o której się
-  odbyła, a obok — gdzie. Na nazwę miejsca zostaje przez to mniej miejsca i dłuższa bywa ucięta;
-  pełną widać w okienku wiersza.
-- Obok panelu stoi drugie okno: mówi, czyja jest tura i co w tej chwili stoi na walce — umiejętności
-  rzucone na całą stronę i okrzyki — z tym, ile tur minęło z tych, które podaje gra. Nigdy z tym,
-  ile zostało: tego gra nie mówi. Kiedy ktoś szykuje cios specjalny, stoi tam osobno — z tym, ile
-  tur ładowania minęło, i czym się skończyło.
-- Tylko sumy, bez przeliczników. To, czego log nikomu nie przypisuje, dostaje własny wiersz i własną
-  liczbę — nigdy nie doklejamy tego do czyjegoś wyniku. Ten wiersz mówi, czego gra nie podała, i też
-  się rozwija: widać w nim, kogo to dosięgło i czym poszło.
-- Tylko odczyt: żadnej sieci, żadnej automatyzacji, żadnego wpływu na przebieg walki.
-
 ## Instalacja
 
-Potrzebne są dwie rzeczy: przeglądarka na komputerze i menedżer skryptów użytkownika — rozszerzenie,
-które uruchamia dodatki takie jak ten. MargoMeter działa w każdej aktualnej przeglądarce: Chrome,
-Edge, Firefox i Safari.
-
-1. **Zainstaluj menedżer skryptów.** [Tampermonkey][tampermonkey] jest na każdą z tych przeglądarek,
-   [Violentmonkey][violentmonkey] na Chrome, Edge i Firefoksa. Wystarczy jeden.
-2. **W Chrome i w Edge włącz obsługę skryptów użytkownika.** Na stronie rozszerzenia, w
-   `chrome://extensions`. Bez tego nic się nie uruchomi i nic o tym nie powie. Firefox i Safari nie
-   wymagają tego kroku.
-3. **Zainstaluj MargoMeter.** Kliknij [plik dodatku][install] — menedżer rozpozna go i zaproponuje
-   instalację. To samo można zrobić przyciskiem na [stronie z podglądem][preview]. Wszystkie
-   wydania, razem z poprzednimi, leżą na [stronie wydań][latest]; obok pliku dodatku leży tam
-   `margometer.meta.js` — plik służbowy, nie do klikania: niesie sam nagłówek, bez ani jednej linii
-   kodu.
+1. **Zainstaluj menedżer skryptów** w przeglądarce na komputerze: [Tampermonkey][tampermonkey]
+   (Chrome, Edge, Firefox, Safari) albo [Violentmonkey][violentmonkey] (bez Safari).
+2. **W Chrome i Edge włącz obsługę skryptów użytkownika** na stronie rozszerzenia, w
+   `chrome://extensions`. Bez tego nic się nie uruchomi i nic o tym nie powie.
+3. **Kliknij [plik dodatku][install]** — menedżer zaproponuje instalację. Poprzednie wydania leżą na
+   [stronie wydań][latest].
 4. **Wejdź do gry i zacznij walkę.** Panel pojawi się nad grą. Jeśli go nie ma, wróć do kroku 2.
 
 Zainstalowana kopia sama sprawdza, czy jest nowsza wersja.
@@ -90,8 +58,7 @@ Zainstalowana kopia sama sprawdza, czy jest nowsza wersja.
 
 ## Zobacz na żywo
 
-**[kamilgrocholski.github.io/margometer][preview]** odtwarza nagraną walkę w Twojej przeglądarce,
-rysowaną przez plik z najnowszego wydania — i na górze stoi przycisk instalacji. Nic tam nie łączy
-się z grą.
+**[kamilgrocholski.github.io/margometer][preview]** odtwarza nagraną walkę w przeglądarce, bez gry,
+i ma na górze przycisk instalacji.
 
 [preview]: https://kamilgrocholski.github.io/margometer/

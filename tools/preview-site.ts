@@ -90,8 +90,8 @@ const PREVIEW_SITE_WORDS: PreviewWords = {
  * picture. What the add-on is, and where to get it, the band above this says.
  */
 const PREVIEW_SITE_INTRODUCTION = [
-    "Obok nagrana walka, liczona w tej przeglądarce. Kliknij wiersz albo najedź na postać.",
-    "Nic nie jest wysyłane i nic tu nie zostaje.",
+    "Obok nagrana walka, liczona w tej przeglądarce — kliknij wiersz albo najedź na postać.",
+    "Nic stąd nie wychodzi i nic nie zostaje.",
     `<a href="${HOMEPAGE}">kod źródłowy</a>`,
 ].join(" ");
 
@@ -112,21 +112,18 @@ function composeSiteInstall(version: string): PreviewInstall {
         // Every figure this promises is one the panel draws, and that is the whole test of it:
         // the ranking, what a row opens onto, and the person at the other end of it. A sentence
         // promising a figure the panel has not got is the one way this line can be wrong.
-        sentence: "Licznik obrażeń do Margonem. Pokazuje, kto ile zadał, " +
-            "kto ile oberwał i czym.",
+        sentence: "Licznik obrażeń do Margonem: kto ile zadał, kto ile oberwał i czym.",
         needsLine: "Zanim zainstalujesz:",
         needs: [
             {
                 text:
                     'Menedżer skryptów: <a href="https://www.tampermonkey.net/">Tampermonkey</a> ' +
-                    'albo <a href="https://violentmonkey.github.io/">Violentmonkey</a>. ' +
-                    "Bez niego plik się tylko pobierze.",
+                    'albo <a href="https://violentmonkey.github.io/">Violentmonkey</a>.',
                 isSilent: false,
             },
             {
-                text: "<strong>W Chrome i Edge włącz obsługę skryptów użytkownika</strong> — " +
-                    "w chrome://extensions. Bez tego nic się nie uruchomi i nic o tym nie " +
-                    "powie. Firefox i Safari — nie trzeba.",
+                text: "<strong>W Chrome i Edge włącz obsługę skryptów użytkownika</strong> " +
+                    "w chrome://extensions. Bez tego nic się nie uruchomi i nic o tym nie powie.",
                 isSilent: true,
             },
         ],
@@ -134,7 +131,7 @@ function composeSiteInstall(version: string): PreviewInstall {
         versionLine: `wersja ${version}`,
         // `obok` and not `niżej`: the page takes both windows to the corner it is drawn in
         // (**ADR 0099**), so the panel stands to the right of this sentence and never under it.
-        afterLine: "Potem wejdź do gry i zacznij walkę — panel pojawi się sam, taki jak ten obok.",
+        afterLine: "Potem zacznij walkę — panel pojawi się sam, jak ten obok.",
     };
 }
 
