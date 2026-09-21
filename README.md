@@ -2,7 +2,7 @@
 
 # MargoMeter
 
-Miernik obrażeń do [Margonem](https://www.margonem.pl/) — statystyki walki na żywo, w panelu nad
+Licznik obrażeń do [Margonem](https://www.margonem.pl/) — statystyki walki na żywo, w panelu nad
 grą. SKADA albo Details!, dla Margonem.
 
 <table>
@@ -44,7 +44,8 @@ alt="Karta postaci otwarta obok panelu">
 1. **Zainstaluj menedżer skryptów** w przeglądarce na komputerze: [Tampermonkey][tampermonkey]
    (Chrome, Edge, Firefox, Safari) albo [Violentmonkey][violentmonkey] (bez Safari).
 2. **W Chrome i Edge włącz obsługę skryptów użytkownika** na stronie rozszerzenia, w
-   `chrome://extensions`. Bez tego nic się nie uruchomi i nic o tym nie powie.
+   `chrome://extensions`. Bez tego nic się nie uruchomi i nic o tym nie powie. W Safari zamiast tego
+   włącz menedżera w ustawieniach rozszerzeń przeglądarki.
 3. **Kliknij [plik dodatku][install]** — menedżer zaproponuje instalację. Poprzednie wydania leżą na
    [stronie wydań][latest].
 4. **Wejdź do gry i zacznij walkę.** Panel pojawi się nad grą. Jeśli go nie ma, wróć do kroku 2.
@@ -59,6 +60,6 @@ Zainstalowana kopia sama sprawdza, czy jest nowsza wersja.
 ## Zobacz na żywo
 
 **[kamilgrocholski.github.io/margometer][preview]** odtwarza nagraną walkę w przeglądarce, bez gry,
-i ma na górze przycisk instalacji.
+i otwiera się instalacją: co trzeba mieć, przycisk i wersja za nim.
 
 [preview]: https://kamilgrocholski.github.io/margometer/

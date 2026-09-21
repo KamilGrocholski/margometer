@@ -44,7 +44,8 @@ alt="The combatant's card open beside the panel">
 1. **Install a userscript manager** in a desktop browser: [Tampermonkey][tampermonkey] (Chrome,
    Edge, Firefox, Safari) or [Violentmonkey][violentmonkey] (not Safari).
 2. **In Chrome and Edge, turn on user scripts** on the extension's own page, in
-   `chrome://extensions`. Without it nothing runs and nothing says so.
+   `chrome://extensions`. Without it nothing runs and nothing says so. In Safari, enable the manager
+   in the browser's extension settings instead.
 3. **Click [the add-on file][install]** — the manager offers to install it. Earlier releases are on
    [the releases page][latest].
 4. **Open the game and start a fight.** The panel appears over it. If it does not, go back to
@@ -60,6 +61,7 @@ An installed copy checks for a newer version on its own.
 ## See it live
 
 **[kamilgrocholski.github.io/margometer][preview]** replays a recorded fight in your browser, with
-no game behind it, and carries the install button at the top.
+no game behind it, and opens with the install: what you need first, the button, and the version
+behind it.
 
 [preview]: https://kamilgrocholski.github.io/margometer/
