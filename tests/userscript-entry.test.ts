@@ -26,6 +26,7 @@ import {
     composeFightUnderway,
     getReadingFromFight,
 } from "@/src/game/fight-underway.ts";
+import { readStatedIdsFromPayload } from "@/src/game/engine-warrior.ts";
 import type { BrowserStore } from "@/src/game/browser-store.ts";
 import { readKeptFights } from "@/src/game/kept-fights.ts";
 import { getJsonReading } from "@/libs/json-text.ts";
@@ -186,6 +187,62 @@ function removeMember(page: Record<string, unknown>, path: string): void {
  * rather than checked — puts a raw failure in the game's console, with nothing to catch it, on any
  * page missing one of the members the add-on calls. **ADR 0051.**
  */
+
+/** One line landing on one fighter's tooltip, as the client's own `concatTip` would take it. */
+interface TooltipLanding {
+    combatantId: number;
+    content: string;
+}
+
+/**
+ * A battle that holds its fighters the way the client does, each with a jQuery object of its own
+ * — the whole of what `src/game/engine-tooltip.ts` reaches for. Nothing else here fakes the game's
+ * page, and this fakes only what one call needs.
+ */
+function composeBattleWithWarriors(landed: TooltipLanding[]): Record<string, unknown> {
+    const warriorsList: Record<string, unknown> = {};
+    for (const combatantId of [440952, 467968, 469657, -10000249]) {
+        warriorsList[`${combatantId}`] = {
+            id: combatantId,
+            name: `Ktoś ${combatantId}`,
+            $: {
+                find: () => ({
+                    concatTip: (content: string) => landed.push({ combatantId, content }),
+                }),
+            },
+        };
+    }
+    return { updateData: () => 1, warriorsList };
+}
+
+/**
+ * ⚠️ **The failure this test was written for, and it shipped once.** The client rebuilds a
+ * fighter's tooltip only while updating them, and a payload carries only what moved — so a line
+ * put on a fighter the payload did not restate lands on the line already there. Over `captures/`
+ * that is 8631 payloads of 14309, so the second copy is the common case, not the edge.
+ */
+Deno.test("a line is put only on the fighters this payload restated", () => {
+    const landed: TooltipLanding[] = [];
+    const battle = composeBattleWithWarriors(landed);
+    const { environment } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    let written = 0;
+    for (const payload of getRecordedEngineUpdates(HILDUR)) {
+        const before = landed.length;
+        update(payload);
+        const stated = readStatedIdsFromPayload(payload);
+        for (const one of landed.slice(before)) {
+            assert(stated.has(one.combatantId), `${one.combatantId} was not in this payload`);
+            written += 1;
+        }
+        // Nobody twice in one payload: a fighter is stated once, so a line lands once.
+        const reached = landed.slice(before).map((one) => one.combatantId);
+        assertStrictEquals(new Set(reached).size, reached.length, "and nobody was written twice");
+    }
+    assert(written > 0, "the recording carries fighters carrying something");
+});
 
 /**
  * The add-on stood up on a page of its own, with a recording replayed through the wrap it put on

@@ -113,6 +113,27 @@ export function readCombatantsFromPayload(payload: unknown): Combatant[] {
 }
 
 /**
+ * Whom this payload restated. A payload carries only what moved — measured over `captures/` on
+ * 2026-09-21, a combatant already seen is absent from 8631 of 14309 payloads — and the client
+ * rebuilds a fighter's tooltip **only** while updating them. So this is the set whose tooltip has
+ * just been rewritten, and the only set anything may be written onto without arriving twice.
+ */
+export function readStatedIdsFromPayload(payload: unknown): Set<number> {
+    const found = new Set<number>();
+    if (!isRecord(payload)) return found;
+    for (const value of readWarriorsFromValue(payload[WARRIORS_KEY])) {
+        if (!isRecord(value)) continue;
+        const id = readIdentityFromWarrior(value);
+        if (id === null) continue;
+        assert(Number.isFinite(id), "an id that was read is a number");
+        found.add(id);
+    }
+    assert(found.size <= MAXIMUM_COMBATANTS, "a payload states no more than a fight holds");
+    assert([...found].every((one) => Number.isSafeInteger(one)), "and every one of them whole");
+    return found;
+}
+
+/**
  * What each combatant is carrying, as the one integer the payload restates for them every time.
  * Read by position: `frozen/buff-bits.ts` names the statuses in the order the client registers
  * them, and the client's own window walks the same nine bits to draw its icons.

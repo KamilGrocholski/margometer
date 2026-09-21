@@ -58,7 +58,11 @@ import {
     composeNextCapture,
     type FightCapture,
 } from "@/src/game/fight-capture.ts";
-import { type CapturedCombatant, composeSnapshotFromBattle } from "@/src/game/engine-warrior.ts";
+import {
+    type CapturedCombatant,
+    composeSnapshotFromBattle,
+    readStatedIdsFromPayload,
+} from "@/src/game/engine-warrior.ts";
 import {
     composeKeptRotation,
     getIsEverySlotPinned,
@@ -1581,13 +1585,22 @@ function writeCarriedToTooltips(
     live: LiveFight,
     underway: FightUnderway,
     environment: UserscriptEnvironment,
+    payload: unknown,
     defects: KeptDefects,
 ): void {
     try {
         const fight = getReadingFromFight(underway);
         if (fight === null) return;
+        // ⚠️ **Only whom this payload restated.** The client rebuilds a fighter's tooltip while
+        // updating them and at no other time, so a line put on anybody else lands on the line
+        // already there — measured over `captures/` on 2026-09-21, a combatant already seen is
+        // absent from 8631 payloads of 14309, so the second copy is the common case and not the
+        // edge. Their count cannot have moved either: it is counted in their own turns, and a
+        // turn of theirs is a payload that states them.
+        const stated = readStatedIdsFromPayload(payload);
         const byCombatantId = new Map<number, { bit: number; turnsElapsed: number }[]>();
         for (const one of fight.carriedStatuses) {
+            if (!stated.has(one.combatantId)) continue;
             const held = byCombatantId.get(one.combatantId) ?? [];
             held.push({ bit: one.bit, turnsElapsed: one.turnsElapsed });
             byCombatantId.set(one.combatantId, held);
@@ -1634,7 +1647,7 @@ function readPayloadIntoLive(
         live.translate = readDictionaryFromPage(environment.page);
         live.openedAt = environment.now();
     }
-    writeCarriedToTooltips(live, underway, environment, defects);
+    writeCarriedToTooltips(live, underway, environment, stated.payload, defects);
     // Once, on the call that ends it: a fight put on the shelf twice is two fights.
     if (fight !== null && fight.isOver && !live.wasOver) {
         live.wasOver = true;
