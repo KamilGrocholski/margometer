@@ -82,16 +82,15 @@ const PREVIEW_SITE_WORDS: PreviewWords = {
 };
 
 /**
- * Three things. That this is a recording rather than a live game — a visitor who does not know it
+ * Two things. That this is a recording rather than a live game — a visitor who does not know it
  * reads the panel as a live connection to somebody's account, which is the one misunderstanding
- * this page could cause. That everything is counted in the reader's own browser. And **that the
- * panel answers a pointer**, which nothing else on the page says: the strongest thing here is a
- * row opening onto what a figure was dealt with, and a visitor who never presses one sees a
- * picture. What the add-on is, and where to get it, the band above this says.
+ * this page could cause. And **that the panel answers a pointer**, which nothing else on the page
+ * says: the strongest thing here is a row opening onto what a figure was dealt with, and a
+ * visitor who never presses one sees a picture. What the add-on is, and where to get it, the band
+ * above this says; that nothing leaves the page is one clause, since the page makes no request.
  */
 const PREVIEW_SITE_INTRODUCTION = [
-    "Obok nagrana walka, liczona w tej przeglądarce — kliknij wiersz albo najedź na postać.",
-    "Nic stąd nie wychodzi i nic nie zostaje.",
+    "Obok nagrana walka — kliknij wiersz albo najedź na postać. Nic stąd nie wychodzi.",
     `<a href="${HOMEPAGE}">kod źródłowy</a>`,
 ].join(" ");
 
