@@ -75,6 +75,7 @@ import {
     CARD_WORDS,
     type Caveat,
     CAVEAT_MARK,
+    composeChargedSkillSubtitle,
     composeChargedSkillTurnsText,
     composeFigureText,
     composeShelfSizeText,
@@ -271,6 +272,13 @@ const STANDING_NOW_TIP_KEY = `${STANDING_TIP_PREFIX}now`;
  * clear of `standing:<skillId>`, which is a bare figure and is a counted row's own.
  */
 const STANDING_CAST_TIP_PREFIX = `${STANDING_TIP_PREFIX}cast:`;
+/**
+ * And the charge band's, keyed by whoever is making the blow ready: `core/charged-skill.ts` holds
+ * one charge per combatant, so one row is one key. A second row under the same key would be
+ * refused without a word and would wear its neighbour's card, which is why
+ * `tests/ui/panel-standing.test.ts` counts the keys rather than trusting that. **ADR 0100.**
+ */
+const STANDING_CHARGE_TIP_PREFIX = `${STANDING_TIP_PREFIX}charge:`;
 const STANDING_HOLDING_TIP_PREFIX = `${STANDING_TIP_PREFIX}holding:`;
 const STANDING_HELD_TIP_PREFIX = `${STANDING_TIP_PREFIX}held:`;
 const TITLE_ATTRIBUTE = "title";
@@ -817,21 +825,89 @@ function composeStandingNow(
 }
 
 /**
+ * The dots a charge draws, and **every one of them as a node a pointer may land on**. A card is
+ * read off the node under the hand and never walked up from (`composeStandingPersonElement`), so
+ * each dot goes back to the caller to be marked with the row's own key: unmarked, the widest
+ * thing on the row is a run of holes the card closes in. `StandingCount` below is the same shape
+ * for the same reason.
+ */
+interface ChargedSkillPips {
+    element: PanelElement;
+    parts: PanelElement[];
+}
+
+/**
  * One dot per turn of the charge, lit up to what has passed. The game's own bar is cut the same
  * way and nothing else in this panel is round, so the shape says this and only this.
  */
 function composeChargedSkillPips(
     document: PanelDocument,
     charged: StandingChargedSkill,
-): PanelElement {
-    const pips = composeElement(document, "div", CLASS.standingPips);
-    pips.setAttribute(STYLE_ATTRIBUTE, `color:${charged.colour}`);
+): ChargedSkillPips {
+    const element = composeElement(document, "div", CLASS.standingPips);
+    element.setAttribute(STYLE_ATTRIBUTE, `color:${charged.colour}`);
     const stated = Math.min(Math.max(charged.turnsStated, 0), MAXIMUM_CHARGED_PIPS);
+    const parts: PanelElement[] = [element];
     for (let turn = 0; turn < stated; turn += 1) {
         const lit = turn < charged.turnsElapsed ? ` ${CLASS.standingPipLit}` : "";
-        pips.append(composeElement(document, "div", `${CLASS.standingPip}${lit}`));
+        const pip = composeElement(document, "div", `${CLASS.standingPip}${lit}`);
+        element.append(pip);
+        parts.push(pip);
     }
-    return pips;
+    return { element, parts };
+}
+
+/**
+ * What a charge's row had to cut, handed back whole: the blow's name, whoever is making it ready
+ * — which the row says in a hue and nowhere in words — and what became of it at either end. The
+ * turns are the client's own pair, under the word a cast's card already states its own under.
+ * **ADR 0100.**
+ */
+function composeChargedSkillTipReading(charged: StandingChargedSkill): TipReading {
+    const stated: TipLine = {
+        kind: "stat",
+        label: STANDING_WORDS.turnsPassed,
+        stated: composeChargedSkillTurnsText(charged.turnsElapsed, charged.turnsStated),
+        isStrong: false,
+        caveat: null,
+    };
+    return {
+        name: charged.skillName,
+        subtitle: composeChargedSkillSubtitle(charged.name, charged.state),
+        groups: [{ lines: [stated] }],
+    };
+}
+
+/**
+ * One charge, as a row. It opens nothing, so it wears the leaf's cursor and carries the card that
+ * hands back what its name cell cut — every row in this window does since **ADR 0100**.
+ */
+function composeChargedSkillRow(
+    document: PanelDocument,
+    register: TipRegister,
+    charged: StandingChargedSkill,
+): PanelElement {
+    const row = composeElement(document, "div", `${CLASS.row} ${CLASS.rowLeaf}`);
+    const cap = composeElement(document, "div", CLASS.barCap);
+    cap.setAttribute(STYLE_ATTRIBUTE, `background:${charged.colour}`);
+    const name = composeElement(document, "span", CLASS.rowName);
+    name.textContent = charged.skillName;
+    const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
+    value.textContent = composeChargedSkillTurnsText(charged.turnsElapsed, charged.turnsStated);
+    const pips = composeChargedSkillPips(document, charged);
+    row.append(cap);
+    row.append(name);
+    row.append(pips.element);
+    row.append(value);
+    const parts = [cap, name, ...pips.parts, value];
+    for (const rule of composeSideRuleElements(document, charged.sidePart)) {
+        row.append(rule);
+        parts.push(rule);
+    }
+    const key = `${STANDING_CHARGE_TIP_PREFIX}${composeIntegerText(charged.combatantId)}`;
+    register.add(key, () => composeChargedSkillTipReading(charged));
+    setRowMarks([row, ...parts], TIP_ATTRIBUTE, key);
+    return row;
 }
 
 /**
@@ -842,6 +918,7 @@ function composeChargedSkillPips(
 function composeChargedSkillElements(
     document: PanelDocument,
     reading: StandingReading,
+    register: TipRegister,
 ): PanelElement[] {
     if (reading.chargedSkills.length === 0) return [];
     const first = reading.chargedSkills[0];
@@ -854,22 +931,7 @@ function composeChargedSkillElements(
     section.append(state);
     const drawn: PanelElement[] = [section];
     for (const charged of reading.chargedSkills) {
-        const row = composeElement(document, "div", CLASS.row);
-        const cap = composeElement(document, "div", CLASS.barCap);
-        cap.setAttribute(STYLE_ATTRIBUTE, `background:${charged.colour}`);
-        const name = composeElement(document, "span", CLASS.rowName);
-        name.textContent = charged.skillName;
-        const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
-        value.textContent = composeChargedSkillTurnsText(
-            charged.turnsElapsed,
-            charged.turnsStated,
-        );
-        row.append(cap);
-        row.append(name);
-        row.append(composeChargedSkillPips(document, charged));
-        row.append(value);
-        for (const rule of composeSideRuleElements(document, charged.sidePart)) row.append(rule);
-        drawn.push(row);
+        drawn.push(composeChargedSkillRow(document, register, charged));
     }
     return drawn;
 }
@@ -1129,7 +1191,9 @@ function composeStandingBody(
 ): PanelElement {
     const body = composeElement(document, "div", CLASS.standingBody);
     for (const element of composeStandingNow(document, reading, register)) body.append(element);
-    for (const element of composeChargedSkillElements(document, reading)) body.append(element);
+    for (const element of composeChargedSkillElements(document, reading, register)) {
+        body.append(element);
+    }
     body.append(composeSectionElement(document, STANDING_WORDS.standing, reading.rows.length));
     if (reading.rows.length === 0) {
         if (reading.provoked.length === 0) {

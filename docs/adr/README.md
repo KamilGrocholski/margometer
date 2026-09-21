@@ -250,3 +250,5 @@ edited to agree with the new rule.
   panel is answered by what their row cut. **Accepted**
 - [0099](0099-the-preview-opens-with-the-install.md) — The published preview opens with the install,
   and Greasy Fork is a second way in. **Accepted**
+- [0100](0100-every-row-in-the-window-beside-the-panel-carries-a-card.md) — Every row in the window
+  beside the panel carries a card. **Accepted**

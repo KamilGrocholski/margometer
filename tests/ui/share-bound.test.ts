@@ -14,6 +14,7 @@ import { MAXIMUM_CUT_PARTS, MAXIMUM_SKILLS } from "@/src/ui/panel-reading.ts";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import {
     MAXIMUM_CASTERS,
+    MAXIMUM_CHARGED_ROWS,
     MAXIMUM_PROVOKED,
     MAXIMUM_STANDING_ROWS,
 } from "@/src/ui/panel-standing.ts";
@@ -56,13 +57,14 @@ Deno.test("the card register holds every row the widest screen can draw", () => 
 });
 
 /**
- * And the widest that window: the row the turn is numbered for, every skill row it clamps to, the
- * casters under the one row that is open, and the provocation section — a held character and the
- * cast holding them, because the clamp is over the pairs and the widest is one cast each
- * (**ADR 0098**).
+ * And the widest that window: the row the turn is numbered for, the charge band, every skill row
+ * it clamps to, the casters under the one row that is open, and the provocation section — a held
+ * character and the cast holding them, because the clamp is over the pairs and the widest is one
+ * cast each (**ADR 0098**). The band is counted because every row that window draws carries a
+ * card and not the ones naming a person alone (**ADR 0100**).
  */
-const WIDEST_STANDING_WINDOW = 1 + MAXIMUM_STANDING_ROWS + MAXIMUM_CASTERS +
-    MAXIMUM_PROVOKED * 2;
+const WIDEST_STANDING_WINDOW = 1 + MAXIMUM_CHARGED_ROWS + MAXIMUM_STANDING_ROWS +
+    MAXIMUM_CASTERS + MAXIMUM_PROVOKED * 2;
 
 /**
  * The window beside the panel fills a register of its own, because it is drawn before the panel

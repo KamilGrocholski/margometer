@@ -26,8 +26,11 @@ export const MAXIMUM_PROVOKED = 12;
 /**
  * Past every charge the corpus has ever held at once, which is one — and past the bound
  * `core/charged-skill.ts` already clamps to, so this one only ever repeats that answer.
+ *
+ * Exported because every row this window draws carries a card, so the band joins the arithmetic
+ * `tests/ui/share-bound.test.ts` holds the register to (**ADR 0100**).
  */
-const MAXIMUM_CHARGED_ROWS = 4;
+export const MAXIMUM_CHARGED_ROWS = 4;
 
 export interface StandingCaster {
     casterId: number;
@@ -73,6 +76,11 @@ export interface StandingProvocation {
  */
 export interface StandingChargedSkill {
     combatantId: number;
+    /**
+     * Whoever is making it ready. The row says it in a hue alone, so the card is where it is said
+     * in words — which is the whole of what the row left out (**ADR 0100**).
+     */
+    name: string;
     skillName: string;
     turnsElapsed: number;
     turnsStated: number;
@@ -213,6 +221,7 @@ function composeStandingChargedSkill(
     const combatant = roster.byId.get(standing.combatantId);
     return {
         combatantId: standing.combatantId,
+        name: combatant?.name ?? PANEL_WORDS.withoutActor,
         skillName: standing.skillName,
         turnsElapsed: standing.turnsElapsed,
         turnsStated: standing.turnsStated,

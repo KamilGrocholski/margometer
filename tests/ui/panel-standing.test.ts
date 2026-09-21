@@ -14,7 +14,7 @@ import {
 } from "@std/assert";
 import { composeCombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import type { AuraStanding, ProvocationStanding } from "@/src/core/aura-standing.ts";
-import type { ChargedSkillStanding } from "@/src/core/charged-skill.ts";
+import type { ChargedSkillStanding, ChargedSkillState } from "@/src/core/charged-skill.ts";
 import type { TurnStatement } from "@/src/game/fight-underway.ts";
 import { composePanelHost, type PanelPress } from "@/src/ui/panel-element.ts";
 import {
@@ -1092,4 +1092,172 @@ Deno.test("the row under `Teraz` carries a card of the name alone", () => {
     assertEquals(card.name, [CUT_NAME], "the whole nickname, which the row had to cut");
     assertEquals(card.subtitle, [], "nothing under it, because no cast is what this row is about");
     assertStrictEquals(card.groups, 0, "and no figure, because the row states none");
+});
+
+/**
+ * Every row this window draws, whether it names a person or a blow. Read off the class the sheet
+ * styles a row with, so a row builder nobody remembered to look at is in the walk the day it is
+ * written — which is the whole of what **ADR 0100** asks of this file.
+ */
+function getRowsWithoutCard(host: FakeElement): string[] {
+    const without: string[] = [];
+    for (const one of getElementsWithin(getWindow(host))) {
+        if (one.className.split(" ")[0] !== "row") continue;
+        if (one.attributes.get("data-tip") !== undefined) continue;
+        without.push(`${one.className}:${one.textContent}`);
+    }
+    return without;
+}
+
+/**
+ * A blow long enough that the name cell has to cut it, so the card's claim means something: the
+ * row states a prefix and the card states the lot. `CUT_NAME` does the same for a person's row.
+ */
+const CUT_BLOW = "Lodowe Pandemonium Obrońcy Pustkowi";
+
+function composeCutCharge(state: ChargedSkillState = "charging"): ChargedSkillStanding {
+    return composeCharge({
+        skillName: CUT_BLOW,
+        state,
+        endedAtOrdinal: state === "charging" ? null : 12,
+    });
+}
+
+Deno.test("every row the window draws carries a card, the charge band included", () => {
+    const reading = composeStandingReading(
+        [composeStanding(11), composeStanding(21)],
+        [composeProvocation(21, 11), composeProvocation(12, 11)],
+        [composeCharge(), composeCharge({ combatantId: 11, skillName: "Szarża" })],
+        ROSTER,
+        OURS,
+        composeTurn({ ordinal: 48, combatantId: 12 }),
+        264,
+    );
+    const { host } = draw(reading);
+    assertStrictEquals(reading.chargedSkills.length, 2, "two blows are being made ready");
+    assertEquals(
+        getRowsWithoutCard(host),
+        [],
+        "and no row in the window answers a pointer with nothing",
+    );
+
+    const keys = getElementsWithin(getWindow(host))
+        .filter((one) => one.className.split(" ")[0] === "row")
+        .map((one) => one.getAttribute("data-tip"));
+    assertStrictEquals(
+        new Set(keys).size,
+        keys.length,
+        "and no row wears its neighbour's, which the register would refuse in silence",
+    );
+});
+
+/**
+ * The sample the walk must flag. A reader proved only on a window where everything is marked
+ * cannot tell one that finds every row from one that has stopped finding any — and a walk that
+ * found nothing would read exactly like the claim above passing.
+ */
+Deno.test("a row drawn without a card is what that walk reports", () => {
+    const document = composeFakeDocument();
+    const window = document.createElement("div") as FakeElement;
+    window.className = "MargoMeter-standing";
+    const marked = document.createElement("div") as FakeElement;
+    marked.className = "row leaf";
+    marked.setAttribute("data-tip", "standing:charge:21");
+    const bare = document.createElement("div") as FakeElement;
+    bare.className = "row leaf";
+    bare.textContent = "Lodowe Pandemonium";
+    window.append(marked);
+    window.append(bare);
+    const host = document.createElement("div") as FakeElement;
+    host.shadow = [window];
+
+    assertEquals(
+        getRowsWithoutCard(host),
+        ["row leaf:Lodowe Pandemonium"],
+        "the row with no mark is named, and the row beside it is not",
+    );
+});
+
+Deno.test("the card of a charge names the blow whole, whoever is making it, and the turns", () => {
+    const reading = composeStandingReading(
+        [],
+        [],
+        [composeCutCharge()],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        null,
+    );
+    const { host } = draw(reading);
+    const row = getElementsWithin(getWindow(host))
+        .find((one) => one.getAttribute("data-tip") === "standing:charge:21");
+    assertExists(row, "the charge stands as a row of its own, keyed by whoever is making it");
+    pointAtElement(host, "pointermove", row, 200);
+    const card = readTip(host);
+    assertEquals(card.name, [CUT_BLOW], "the card opens with the blow the row had to cut");
+    assertEquals(
+        card.subtitle,
+        ["Renegat 1"],
+        "and names whoever is making it ready, which the row says in a hue alone",
+    );
+    assertEquals(
+        card.stated.map((one) => [one.label, one.value]),
+        [[STANDING_WORDS.turnsPassed, "2 z 4"]],
+        "under the word a cast's card states its own turns under",
+    );
+});
+
+Deno.test("a charge that is over says on its own card which end it came to", () => {
+    for (const [state, said] of [["struck", "wykonane"], ["broken", "przerwane"]] as const) {
+        const reading = composeStandingReading(
+            [],
+            [],
+            [composeCutCharge(state)],
+            ROSTER,
+            OURS,
+            composeTurn(null),
+            null,
+        );
+        const { host } = draw(reading);
+        const row = getElementsWithin(getWindow(host))
+            .find((one) => one.getAttribute("data-tip") === "standing:charge:21");
+        assertExists(row, `a ${state} charge is still a row for the turn it stands`);
+        pointAtElement(host, "pointermove", row, 200);
+        assertEquals(
+            readTip(host).subtitle,
+            [`Renegat 1 ${STANDING_WORDS.castSeparator} ${said}`],
+            `the line under the name carries ${said}, which the band's heading states once`,
+        );
+    }
+});
+
+/**
+ * Every dot is a node in its own right, and a card is read off the node under the hand and never
+ * walked up from. Unmarked, the run of them is the widest hole on the row.
+ */
+Deno.test("a pointer on any part of a charge's row keeps its card open, every dot included", () => {
+    const reading = composeStandingReading(
+        [],
+        [],
+        [composeCharge()],
+        ROSTER,
+        OURS,
+        composeTurn(null),
+        null,
+    );
+    const { host } = draw(reading);
+    const row = getElementsWithin(getWindow(host))
+        .find((one) => one.getAttribute("data-tip") === "standing:charge:21");
+    assertExists(row, "the charge is drawn as a row");
+    const inside = getElementsWithin(row).slice(1);
+    assert(inside.length > 4, "the row is drawn out of parts, the dots among them");
+    const dots = inside.filter((one) => one.className.split(" ")[0] === "standing-pip");
+    assertStrictEquals(dots.length, 4, "one dot per turn the whole charge runs");
+
+    const deaf: string[] = [];
+    for (const part of inside) {
+        if (part.getAttribute("data-tip") === "standing:charge:21") continue;
+        deaf.push(`${part.className}:${part.textContent}`);
+    }
+    assertEquals(deaf, [], "and every one of them names the same card as the row");
 });

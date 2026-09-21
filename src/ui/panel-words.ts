@@ -740,10 +740,12 @@ export const STANDING_WORDS = {
     /** Between whoever is holding somebody and the okrzyk they hold them with — **ADR 0097**. */
     castSeparator: "·",
     /**
-     * What a person's card states its turns under. Never `PANEL_WORDS.turns`: that one names the
-     * turns a combatant took and carries the caveat that the game publishes none of them, while
-     * these are the cast's own duration, which the published skill table does state. And never
-     * the noun, because the figure beside it already ends in one — `Minęło · 2 z 3 tur`.
+     * What a card in this window states its turns under — a cast's, and a charge's since
+     * **ADR 0100**. Never `PANEL_WORDS.turns`: that one names the turns a combatant took and
+     * carries the caveat that the game publishes none of them, while both of these are durations
+     * the game itself states — the published skill table for a cast, the payload's own envelope
+     * for a charge. And never the noun, because the figure beside it already ends in one —
+     * `Minęło · 2 z 3 tur`.
      */
     turnsPassed: "Minęło",
     /** The game's own name for it, taken from the client's own label — **N13**, **L2**. */
@@ -767,6 +769,18 @@ const CHARGED_SKILL_WORDS: Record<ChargedSkillState, string> = {
 export function getWordsForChargedSkill(state: ChargedSkillState): string {
     const words = CHARGED_SKILL_WORDS[state];
     return words;
+}
+
+/**
+ * The line under a charge's name on its card: whoever is making the blow ready, and at either end
+ * what became of it. The band's own heading states one state word off the first charge it drew,
+ * so a card saying nothing about its own row's would leave a second charge described by the
+ * first's. **ADR 0100.**
+ */
+export function composeChargedSkillSubtitle(name: string, state: ChargedSkillState): string {
+    const said = getWordsForChargedSkill(state);
+    if (said.length === 0) return name;
+    return `${name} ${STANDING_WORDS.castSeparator} ${said}`;
 }
 
 /**

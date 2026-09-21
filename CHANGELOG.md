@@ -49,8 +49,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   stoi, ile z nich coś osłabiło.
 - **Poprawka** — Na stronie z podglądem zdanie pod przyciskiem nie chowa się już za panelem przy
   węższym oknie.
-- **Poprawka** — Każdy wiersz z postacią w Pomocniku ma teraz okienko z całym nickiem, nazwą okrzyku
-  albo umiejętności i turami.
+- **Poprawka** — Każdy wiersz w Pomocniku ma teraz okienko: cały nick albo pełną nazwę ciosu
+  specjalnego, kto go szykuje, i tury.
 - **Poprawka** — Okienko z opisem łamie teraz długą nazwę na kolejne wiersze, zamiast uciąć ją drugi
   raz.
 - **Poprawka** — Sześć rzeczy, które robią postacie z najwyższych poziomów, jest już rozpoznawanych,

@@ -515,12 +515,18 @@ them. Nowhere else is it a card, because nowhere else is there a fight's worth o
 one from: a skill, a kind, a fight on the shelf and every person standing in the window beside the
 panel each get the name their own cell had to cut, whole and over as many lines as it takes.
 
-**A person in the window beside the panel is answered by what their row cut, and not by a card.**
-That window's reading carries no figure of the fight, so there is no card to compose there — what
-stands instead is the name whole, the okrzyk or the skill the row is about under it, and the turns
-the row states. It reaches every person's row in that window and not the provocation section alone:
-one builder draws them all, and a rule that reached three of the four would be held by whoever
-remembered it. **ADR 0098.**
+**A row in the window beside the panel is answered by what it cut, and not by a card.** That
+window's reading carries no figure of the fight, so there is no card to compose there — what stands
+instead is the name whole, the okrzyk or the skill the row is about under it, and the turns the row
+states. It reaches **every row that window draws** and not its person rows alone: a rule about the
+kind of thing a row names is held by whoever remembers it, while a rule about its rows is held by a
+walk over them. **ADR 0098**, widened by **ADR 0100**.
+
+**A blow being made ready is a row like any other, so it answers the same way.** Its name folds
+whole, and under it stands whoever is making it ready — which is the one place that person is named
+in words, the row having only their hue — with what became of the blow beside them at either end.
+Then the turns the client's own envelope states, under the word a cast's card uses. The band's
+heading says what became of the first charge; each card says what became of its own. **ADR 0100.**
 
 **A row the protocol left an end of says which end, and where its figure stands.** It is not a card
 and names nobody — that is what the row is — but the two lines every leaf gets are not an answer to
