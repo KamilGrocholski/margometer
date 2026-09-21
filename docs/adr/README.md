@@ -247,7 +247,7 @@ edited to agree with the new rule.
   halves on one announcement: the side-wide one stands, the shout holds, and the row names which
   okrzyk it is. **Accepted**
 - [0098](0098-a-person-beside-the-panel-is-answered-by-what-their-row-cut.md) — A person beside the
-  panel is answered by what their row cut. **Accepted**
+  panel is answered by what their row cut. **Superseded by 0100 in part**
 - [0099](0099-the-preview-opens-with-the-install.md) — The published preview opens with the install,
   and Greasy Fork is a second way in. **Accepted**
 - [0100](0100-every-row-in-the-window-beside-the-panel-carries-a-card.md) — Every row in the window

@@ -1,6 +1,6 @@
 # 0098. A person beside the panel is answered by what their row cut
 
-- **Status:** Accepted
+- **Status:** Superseded by 0100 in part
 - **Date:** 2026-09-18
 
 ## Context
