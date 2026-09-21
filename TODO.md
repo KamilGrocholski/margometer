@@ -20,12 +20,26 @@
 - [ ] Data: !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and 10vs10 player vs. player fights (I really need this for further development, now I only know 1-93lvl)
 
 ## Up Next
+- [ ] Feat: A user SHOULD be able to see his character in the ranking, and `Pomocnik` in an easier way - maybe marker or font color
 - [ ] Fix: A click on a row in `Pomocnik` selects its text
 - [ ] Plan: Should dmg applied and taken take into account only health or also absorbtion?
 - [ ] Check: Do a manual audit
 - [ ] Plan: Add a fight visualization - a simple chart with bars or something
 
 ## Done
+
+## Later
+- [ ] Add views for: abilities ranking - uses, dmg, heal, etc; legbon ranking - procs;
+- [ ] Consider adding raw dmg, absorbed, interrupts, and other views - use select as a ui select component, instead of buttons ("Obrazenia" -> "Zadane", etc.)
+- [ ] Start writing specs, and code against tests before v1.0.0 - tests first, at this point I SHOULD exactly know what I want
+- [ ] Add a thread about my add-ons and sites (MargoMeter, MargoStat) on Margonem's forum (I need 1 rep)
+- [ ] Get a recording carrying `frost` - the fourth of the `poison`/`fire`/`light` branch, unread and loud for want of material
+- [ ] Get a recording unwinding a pool past 40 000 from percentages with no snapshot - the entry-health floor's share term survives mutation for want of one
+
+---
+## History
+
+### Done v0.18.0, v0.17.0
 - [x] Feat: A special skill in `Pomocnik` SHOULD have a tip - every row SHOULD(do it also in this task)
 - [x] PresentationPage: Too much text
 - [x] Readme: Too much text
@@ -56,17 +70,6 @@
 - [x] Make the statistics read-only for the panel - no cut can be written into from the UI
 - [x] Add `deno task preview:fabricated` - look at the panel on fights the recordings do not carry
 - [x] Add `deno task panel:giveway` - look at a region that refuses to draw, without editing `src/` by hand
-
-## Later
-- [ ] Add views for: abilities ranking - uses, dmg, heal, etc; legbon ranking - procs;
-- [ ] Consider adding raw dmg, absorbed, interrupts, and other views - use select as a ui select component, instead of buttons ("Obrazenia" -> "Zadane", etc.)
-- [ ] Start writing specs, and code against tests before v1.0.0 - tests first, at this point I SHOULD exactly know what I want
-- [ ] Add a thread about my add-ons and sites (MargoMeter, MargoStat) on Margonem's forum (I need 1 rep)
-- [ ] Get a recording carrying `frost` - the fourth of the `poison`/`fire`/`light` branch, unread and loud for want of material
-- [ ] Get a recording unwinding a pool past 40 000 from percentages with no snapshot - the entry-health floor's share term survives mutation for want of one
-
----
-## History
 
 ### Done v0.16.0, v0.15.x, v0.14.x
 - [x] Pick a fight, and its turn for better showcase screenshots
