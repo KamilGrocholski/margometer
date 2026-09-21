@@ -65,7 +65,11 @@ export function readEnginesFromPage(page: unknown): unknown[] {
     return found;
 }
 
-function readBattleFromPage(page: unknown): EngineBattle | null {
+/**
+ * The running fight off whichever spelling of the game the page holds. Exported because the board
+ * reader needs the same object and `battle` is spelled here — **N13**.
+ */
+export function readBattleFromPage(page: unknown): EngineBattle | null {
     const engines = readEnginesFromPage(page);
     assert(engines.length <= ENGINE_SPELLINGS, "a page holds a game in two spellings and no more");
     for (const engine of engines) {

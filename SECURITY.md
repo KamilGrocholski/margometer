@@ -21,7 +21,8 @@ exists.
 
 ## The reading boundary
 
-The add-on **reads**. This is the whole security model, and everything else is a consequence.
+The add-on **reads**, and writes one line of text where the game already draws one. That is the
+whole security model, and everything else is a consequence.
 
 - **Nothing leaves the browser.** No `fetch`, no `XMLHttpRequest`, no `WebSocket`, no `sendBeacon`,
   no image or stylesheet request of ours, no redirect. A change adding an outbound call is not a
@@ -44,6 +45,13 @@ The add-on **reads**. This is the whole security model, and everything else is a
   ours degrades to a missing panel section.
 - **Where another MargoMeter already holds the engine, we stand down** rather than wrap a second
   time.
+- **One thing is written out, and it is a line of text.** The add-on appends one sentence of its own
+  to the tooltip the game already shows for a fighter, through the client's own `concatTip` — which
+  holds its tooltips as strings in a registry of its own. **No node is made, moved, removed or
+  styled**, nothing of ours stands on the page, and the game overwrites that registry on its next
+  payload, so a detach leaves nothing behind. It is the only thing this add-on puts outside itself,
+  `src/game/engine-tooltip.ts` is the only file that does it, and **ADR 0105** carries what it cost
+  to decide.
 
 ## Being a guest on the page
 

@@ -793,10 +793,43 @@ export function composeCarriedTurnsText(elapsed: number): string {
 }
 
 /**
+ * What the add-on adds to the game's own tooltip for one fighter, or null where it has nothing to
+ * add. **One line, and it says whose it is**: a reader meets it outside the panel, where
+ * `SECURITY.md`'s guest rule asks for the add-on's own name.
+ *
+ * ⚠️ **It becomes part of an HTML string somebody else composed**, so a label carrying markup is
+ * refused rather than escaped — the answer is the client's and refusing is what this repository
+ * does with one it cannot use (**ADR 0024**, and `src/game/game-dictionary.ts` does the same).
+ */
+export function composeCarriedTooltipLine(
+    statuses: readonly { bit: number; turnsElapsed: number }[],
+    translate: TranslateLabel | null,
+): string | null {
+    const said: string[] = [];
+    for (const status of statuses) {
+        if (said.length >= MAXIMUM_TOOLTIP_STATUSES) break;
+        const word = getWordsForStatusBit(status.bit, translate);
+        if (word.includes(MARKUP_OPENER)) continue;
+        if (word.includes(MARKUP_ENTITY)) continue;
+        said.push(`${word} ${composeCarriedTurnsText(status.turnsElapsed)}`);
+    }
+    if (said.length === 0) return null;
+    return `${ADD_ON_NAME} ${STANDING_WORDS.castSeparator} ${said.join(LINE_SEPARATOR)}`;
+}
+
+/**
  * The client files the statuses a mask carries under its own category, so an id asked without one
  * reaches the default dictionary and answers nothing. Read on development build `1781609507010`.
  */
 const STATUS_CATEGORY = "buff";
+/** What a reader meets outside the panel says whose it is — `SECURITY.md`'s guest rule. */
+const ADD_ON_NAME = "MargoMeter";
+const LINE_SEPARATOR = ", ";
+/** The two characters that would make our line part of somebody else's markup. */
+const MARKUP_OPENER = "<";
+const MARKUP_ENTITY = "&";
+/** Past the statuses one mask carries, so a line handed to the game is a stated length. */
+const MAXIMUM_TOOLTIP_STATUSES = 12;
 
 /**
  * The client's word for a status, or the key as the game wrote it — the second and third rungs of

@@ -69,7 +69,8 @@ import {
     writeKeptFights,
 } from "@/src/game/kept-fights.ts";
 import type { ReportSubject } from "@/src/game/fight-report.ts";
-import { readDictionaryFromPage } from "@/src/game/game-dictionary.ts";
+import { readDictionaryFromPage, type TranslateLabel } from "@/src/game/game-dictionary.ts";
+import { writeLinesToTooltips } from "@/src/game/engine-tooltip.ts";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { composeDefectKeeper, type KeptDefects } from "@/src/ui/panel-defect.ts";
 import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
@@ -112,6 +113,7 @@ import {
 } from "@/src/ui/panel-drag.ts";
 import {
     CHOICE_REFUSED_ANSWER,
+    composeCarriedTooltipLine,
     composePlaceWords,
     EVERY_SLOT_PINNED_ANSWER,
     STORE_MADE_ROOM_ANSWER,
@@ -1490,6 +1492,11 @@ interface LiveFight {
     place: FightPlace | null;
     openedAt: number;
     wasOver: boolean;
+    /**
+     * The client's own dictionary, read once for the same reason the place is: it is built with
+     * the page and a page without one never grows one (**ADR 0024**).
+     */
+    translate: TranslateLabel | null;
 }
 
 function composeLiveFight(): LiveFight {
@@ -1497,6 +1504,7 @@ function composeLiveFight(): LiveFight {
         capture: composeEmptyCapture(),
         combatantsBefore: [],
         place: null,
+        translate: null,
         openedAt: 0,
         wasOver: false,
     };
@@ -1562,6 +1570,42 @@ function setLiveFightOpened(screen: ScreenState): void {
 }
 
 /**
+ * The add-on's one line onto every fighter the game is already drawing a tooltip for. **After the
+ * engine's own call**, which is where the wrap puts us: the game rebuilds each tooltip on this
+ * same payload, so a line written before it would be the one the game had just thrown away.
+ *
+ * Guarded here as well as inside the writer, because this is the panel's own layer reaching into
+ * somebody else's program and a throw of theirs must cost a line and never the fight (**E5**).
+ */
+function writeCarriedToTooltips(
+    live: LiveFight,
+    underway: FightUnderway,
+    environment: UserscriptEnvironment,
+    defects: KeptDefects,
+): void {
+    try {
+        const fight = getReadingFromFight(underway);
+        if (fight === null) return;
+        const byCombatantId = new Map<number, { bit: number; turnsElapsed: number }[]>();
+        for (const one of fight.carriedStatuses) {
+            const held = byCombatantId.get(one.combatantId) ?? [];
+            held.push({ bit: one.bit, turnsElapsed: one.turnsElapsed });
+            byCombatantId.set(one.combatantId, held);
+        }
+        const lines = new Map<number, string>();
+        for (const [combatantId, statuses] of byCombatantId) {
+            const line = composeCarriedTooltipLine(statuses, live.translate);
+            if (line === null) continue;
+            lines.set(combatantId, line);
+        }
+        if (lines.size === 0) return;
+        writeLinesToTooltips(environment.page, lines);
+    } catch (failure) {
+        defects.add("region", null, failure);
+    }
+}
+
+/**
  * One payload, into the fight it belongs to and into the recording beside it. True where the
  * payload is the one that opened a fight.
  */
@@ -1571,6 +1615,7 @@ function readPayloadIntoLive(
     shelf: ShelfKeeper,
     environment: UserscriptEnvironment,
     stated: { payload: unknown; battle: EngineBattle },
+    defects: KeptDefects,
 ): boolean {
     addPayloadToFight(underway, stated.payload, BLOWS_GRANTED_BY_SKILL_ID);
     // The fight takes a record and nothing else, so only a record left its messages last in the
@@ -1586,8 +1631,10 @@ function readPayloadIntoLive(
     const isOpening = fight !== null && fight.payloads === 1;
     if (isOpening) {
         live.place = readPlaceFromPage(environment.page);
+        live.translate = readDictionaryFromPage(environment.page);
         live.openedAt = environment.now();
     }
+    writeCarriedToTooltips(live, underway, environment, defects);
     // Once, on the call that ends it: a fight put on the shelf twice is two fights.
     if (fight !== null && fight.isOver && !live.wasOver) {
         live.wasOver = true;
@@ -1658,7 +1705,7 @@ export function startMargoMeter(environment: UserscriptEnvironment): GameAttachm
     return attachToGame(
         environment.page,
         environment.schedule,
-        composeGameReader(environment, underway, shelf, live, screen, showAndMount),
+        composeGameReader(environment, underway, shelf, live, screen, showAndMount, defects),
     );
 }
 
@@ -1670,6 +1717,7 @@ function composeGameReader(
     live: LiveFight,
     screen: ScreenState,
     showAndMount: () => void,
+    defects: KeptDefects,
 ): AttachmentReport {
     return {
         handleAttached: showAndMount,
@@ -1680,7 +1728,7 @@ function composeGameReader(
             const isOpening = readPayloadIntoLive(live, underway, shelf, environment, {
                 payload,
                 battle,
-            });
+            }, defects);
             if (isOpening) setLiveFightOpened(screen);
             showAndMount();
         },

@@ -80,6 +80,7 @@ src/
     engine-attachment.ts   Getting the wrap onto the game, and off again.
     engine-battle-wrap.ts  The one function here that changes the running game.
     engine-place.ts      Where a fight happened, asked of the client's own state.
+    engine-tooltip.ts    The one line this add-on puts outside itself, into the game's own tip.
     fight-capture.ts     The fight as it happened, in the shape a recording is admitted in.
     game-dictionary.ts   What the player's own client calls a key this repository has no word for.
     kept-fights.ts       The fights a reader can go back to: the payloads kept, figures never.
@@ -164,6 +165,7 @@ tests/
     engine-attachment.test.ts   A page with a game, without one, or with a reader on it.
     engine-battle-wrap.test.ts  The promise the add-on makes to the page.
     engine-place.test.ts      A page that says all of it, some of it, or nothing.
+    engine-tooltip.test.ts    Where a line lands, and every shape that takes none.
     fight-capture.test.ts     The envelope, against the newest recording admitted.
     fight-report.test.ts      The figures written into the file, keyed off what the aggregate keeps.
     kept-fights.test.ts       A shelf that answers, refuses, runs out of room, or reads back.

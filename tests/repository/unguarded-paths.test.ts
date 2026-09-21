@@ -74,8 +74,10 @@ Deno.test("nothing the add-on reaches while standing up can stop it", () => {
  * answering for itself**: both stores turn a refusal into an answer (**E5**), `composeShelfStore`
  * reaches a `composeStoreForChoice` that catches the property read as well as the call, `report`
  * is the console inside the keeper's own `try`, and `defects.add` asserts nothing (**A11**) — which
- * is what lets six `catch` bodies reach it without throwing out of the boundary they stand at, and
- * the closure the shelf's memo hands a fight that will not replay to.
+ * is what lets seven `catch` bodies reach it without throwing out of the boundary they stand at,
+ * and the closure the shelf's memo hands a fight that will not replay to. The seventh is the one
+ * line this add-on writes outside itself (**ADR 0105**): it stands in somebody else's program, so
+ * a throw of theirs must cost the line and never the payload.
  */
 const CROSSINGS_WITH_A_REASON = [
     "Date ← src/userscript-entry.ts#readClockFromPage",
@@ -84,6 +86,7 @@ const CROSSINGS_WITH_A_REASON = [
     "add ← src/userscript-entry.ts#drawStanding!catch0",
     "add ← src/userscript-entry.ts#drawStanding!catch1",
     "add ← src/userscript-entry.ts#readPlaceOrNothing!catch0",
+    "add ← src/userscript-entry.ts#writeCarriedToTooltips!catch0",
     "read ← src/userscript-entry.ts#isFoldedInStore",
     "add ← src/userscript-entry.ts#readShelfOrNothing",
     "add ← src/userscript-entry.ts#readShelfOrNothing!catch0",

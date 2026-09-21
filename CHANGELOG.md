@@ -39,6 +39,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
+- **Nowość** — Najeżdżając na postać w walce zobaczysz w dymku gry, ile tur stoi na niej każdy stan
+  — tego gra sama nie podaje.
 - **Nowość** — W Pomocniku doszła sekcja „Co kto nosi": przy każdej postaci stoi to, co gra o niej
   mówi, i ile jej własnych tur to już na niej stoi.
 - **Zmiana** — Licznik tur wyzwania stoi teraz przy każdej wyzwanej postaci osobno, a nie raz przy

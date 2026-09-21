@@ -7,7 +7,7 @@
  * and no key of the game's, and that a count is spelled the way Polish spells one.
  */
 
-import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/assert";
 import { isCommentLine } from "@/tests/source-line.ts";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
@@ -16,6 +16,7 @@ import {
     CAVEATS,
     CHOICE_REFUSED_ANSWER,
     composeCardSubtitleText,
+    composeCarriedTooltipLine,
     composeChargedRowsText,
     composeCountedNoun,
     composeDefectText,
@@ -306,6 +307,32 @@ Deno.test("each way a fight can end has its own word, and no two share one", () 
     }
     const words = Object.values(said);
     assertEquals(new Set(words).size, words.length, "and no ending borrows another's word");
+});
+
+/**
+ * The one line the add-on puts outside its own root, so it is read here twice over: L3 holds it
+ * like every other sentence, and this holds the two things only it has to answer for.
+ */
+Deno.test("the line handed to the game says whose it is, and carries no markup", () => {
+    const said = composeCarriedTooltipLine([{ bit: 6, turnsElapsed: 3 }], null);
+    assertExists(said, "a status carried composes a line");
+    assertStringIncludes(said, "MargoMeter", "which says whose it is, outside the panel");
+    assertEquals(said.includes("<"), false, "and never opens markup in somebody else's string");
+    assertEquals(said.includes("&"), false, "nor an entity in one");
+});
+
+Deno.test("a label the client answers with markup is refused rather than escaped", () => {
+    const speak = (id: string) => id === "speed_up" ? "<b>szybko</b>" : null;
+    assertEquals(
+        composeCarriedTooltipLine([{ bit: 6, turnsElapsed: 3 }], speak),
+        null,
+        "the answer is the client's, and one this repository cannot use is left alone",
+    );
+});
+
+/** **W5: zero is a boundary.** Nothing carried composes no line, which is not an empty one. */
+Deno.test("a fighter carrying nothing composes no line at all", () => {
+    assertEquals(composeCarriedTooltipLine([], null), null, "and the game's tooltip is untouched");
 });
 
 Deno.test("no sentence carries our vocabulary", () => {

@@ -204,15 +204,25 @@ function readNamedWarriors(collection: unknown): Record<string, unknown>[] {
     return named;
 }
 
-/** An empty list where neither collection answers: a snapshot saying nothing, not a guess. */
-export function composeSnapshotFromBattle(battle: Record<string, unknown>): CapturedCombatant[] {
+/**
+ * Every warrior the running fight holds, out of whichever collection answers first. Exported so
+ * the collection is spelled here and nowhere else (**N13**): a second reader naming it would go
+ * on reading an empty fight the day the client renames one, and say nothing about it.
+ */
+export function readLiveWarriors(battle: unknown): Record<string, unknown>[] {
+    if (!isRecord(battle)) return [];
     for (const field of WARRIOR_COLLECTIONS) {
         const named = readNamedWarriors(battle[field]);
         if (named.length === 0) continue;
         assert(named.length > 0, "a collection that answered answered with somebody");
-        return named.map((warrior) => composeCapturedCombatant(warrior));
+        return named;
     }
     return [];
+}
+
+/** An empty list where neither collection answers: a snapshot saying nothing, not a guess. */
+export function composeSnapshotFromBattle(battle: Record<string, unknown>): CapturedCombatant[] {
+    return readLiveWarriors(battle).map((warrior) => composeCapturedCombatant(warrior));
 }
 
 /**
