@@ -29,6 +29,16 @@ export const PREVIEW_GAME_SCRIPT_NAME = `main.min${PREVIEW_GAME_BUILD}.js`;
  * composed — a guard reading for that could not go red if the band vanished.
  */
 export const PREVIEW_INSTALL_OPENING = `<header class="preview-install">`;
+/**
+ * The harness's own furniture, which a picture of the panel is not.
+ *
+ * ⚠️ **A third piece was added and photographed.** `tools/panel-screenshots.ts` took two of them
+ * out of frame by name, and the `Dymki` column arrived with the tooltip round into a list nothing
+ * read — so the set taken on 2026-09-22 carried a development aid down the left of every picture,
+ * standing where the window beside the panel had been. Spelled here so the shot script and its
+ * guard read one list, and a fourth piece cannot arrive without both of them seeing it.
+ */
+export const PREVIEW_FURNITURE = ["preview-intro", "preview-strip", "preview-tips"] as const;
 /** Past which nobody reads as far as the button — **S11**. */
 /**
  * What must be true before the button, and no more than a person reads standing up. The band

@@ -20,6 +20,7 @@ import {
     PANEL_INSET,
 } from "@/tools/preview-windows.ts";
 import { composeUserscriptFiles } from "@/tools/build-userscript.ts";
+import { PREVIEW_FURNITURE } from "@/tools/preview-page.ts";
 import { PanelShotError } from "@/tools/margometer-tool-error.ts";
 import { setPreviewServer } from "@/tools/preview-server.ts";
 import { getPreviewRecordedFight, getRecordedFights } from "@/tools/recorded-fights.ts";
@@ -216,10 +217,12 @@ var setHovered = function (selector, at) {
 
 ${composeShotScriptCorner()}
 
-var strip = document.querySelector(".preview-strip");
-if (strip !== null) strip.style.display = "none";
-var intro = document.querySelector(".preview-intro");
-if (intro !== null) intro.style.display = "none";
+var setPreviewHidden = function (name) {
+  var piece = document.querySelector("." + name);
+  if (piece !== null) piece.style.display = "none";
+};
+
+${PREVIEW_FURNITURE.map((one) => `setPreviewHidden("${one}");`).join("\n")}
 
 setPanelInCorner();
 // After the move and never before it: a panel that moves writes its whole style attribute, so a

@@ -24,6 +24,7 @@ import { PLACE, SPACE, TIP } from "@/src/ui/panel-look.ts";
 import { composeRecordingPath, CONFIGURATION_FILE } from "@/project/repository-layout.ts";
 import { getDeclaredVersion, isVersionOfTree } from "@/tools/declared-version.ts";
 import { PanelShotError } from "@/tools/margometer-tool-error.ts";
+import { PREVIEW_FURNITURE } from "@/tools/preview-page.ts";
 import type { FightReading } from "@/src/game/fight-underway.ts";
 import { composeFightReplaySteps } from "@/tools/fight-replay.ts";
 import {
@@ -157,10 +158,28 @@ Deno.test("a state is reached by a press and never by a click", () => {
     );
     assert(!script.includes(".click("), "a click fires nothing at all, and reports success");
     assertStringIncludes(script, "maxHeight", "the height cap is lifted for the photograph");
-    assertStringIncludes(
-        script,
-        "preview-strip",
-        "and the harness takes its own chrome out of frame",
+});
+
+/**
+ * ⚠️ **This asked for one name, and a third piece of furniture walked past it.** The script hid
+ * `preview-strip` and `preview-intro` by name; the `Dymki` column arrived with the tooltip round,
+ * hid nowhere, and stood down the left of all six pictures — where the window beside the panel had
+ * been. A guard naming one member of a list cannot see the list grow, so this reads the list.
+ */
+Deno.test("every piece of the harness's own furniture is taken out of frame", () => {
+    const script = composeShotScript(`setPressed("[data-row]", 0);`);
+    const unhidden = PREVIEW_FURNITURE.filter((one) => !script.includes(one));
+    assertEquals(unhidden, [], "a picture of the panel carries no part of the page around it");
+});
+
+/** The sample it must flag: a name nothing hides is what the walk above is looking for. */
+Deno.test("a piece the script does not hide is what that walk reports", () => {
+    const script = composeShotScript(`setPressed("[data-row]", 0);`);
+    const named = ["preview-strip", "preview-nowhere"];
+    assertEquals(
+        named.filter((one) => !script.includes(one)),
+        ["preview-nowhere"],
+        "the one the script never names, and only that one",
     );
 });
 
