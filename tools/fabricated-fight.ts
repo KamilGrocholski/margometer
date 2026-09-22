@@ -4,6 +4,7 @@
  *     deno task fight:fabricate --out fabricated/10v10-long.json
  *     deno task fight:fabricate --per-side 1 --level 5 --rounds 8 --out fabricated/duel-low.json
  *     deno task fight:fabricate --ending fled --out fabricated/fled.json
+ *     deno task fight:fabricate --closing-shouts --out fabricated/10v10-provoked.json
  *
  * ⚠️ **Not material, and never becomes it.** Every figure below was invented by the script in
  * this file, so nothing read off one of these says anything about the game. They go to
@@ -47,6 +48,7 @@ export interface FabricationShape {
     level: number;
     scale: number;
     ending: FabricationEnding;
+    doesCloseOnShouts: boolean;
 }
 
 /**
@@ -157,6 +159,13 @@ const PER_SIDE_FLAG = "per-side";
 const ROUNDS_FLAG = "rounds";
 const LEVEL_FLAG = "level";
 const ENDING_FLAG = "ending";
+const CLOSING_SHOUTS_FLAG = "closing-shouts";
+/**
+ * One turn a side, which is what it takes for both shouts to be standing at the last call.
+ * Exported because the guard counts the same two turns, and two spellings of it would drift.
+ */
+export const CLOSING_SHOUTS = 2;
+const CLOSING_SHOUTS_SUFFIX = "shouts";
 const DEFAULT_ENDING: FabricationEnding = "settled";
 const FLED_ENDING: FabricationEnding = "fled";
 /** The key an escape arrives on; `docs/protocol-keys.md` says what it means and how we know. */
@@ -166,6 +175,8 @@ const PATH_SEPARATOR = "/";
 
 const SIDE_OURS = 1;
 const SIDE_THEIRS = 2;
+/** Both of them, where a walk has to reach each in turn. Read, never written (**S9**). */
+const SIDES: readonly number[] = [SIDE_OURS, SIDE_THEIRS];
 /** A side of ten, which with the far side is the whole a roster holds. */
 const DEFAULT_PER_SIDE = MAXIMUM_COMBATANTS / 2;
 const DEFAULT_ROUNDS = 26;
@@ -270,6 +281,7 @@ export function composeFabricationShape(
     rounds = DEFAULT_ROUNDS,
     level = DEFAULT_LEVEL,
     ending: FabricationEnding = DEFAULT_ENDING,
+    doesCloseOnShouts = false,
 ): FabricationShape {
     if (!Number.isSafeInteger(perSide) || perSide < 1 || perSide > MAXIMUM_COMBATANTS / 2) {
         throw new FabricatedFightError(
@@ -283,7 +295,7 @@ export function composeFabricationShape(
     if (!Number.isSafeInteger(rounds) || rounds < 1) {
         throw new FabricatedFightError(`${rounds} rounds is not a round the script can run`);
     }
-    const calls = perSide * 2 * rounds + 2;
+    const calls = perSide * 2 * rounds + 2 + (doesCloseOnShouts ? CLOSING_SHOUTS : 0);
     if (calls > MAXIMUM_CALLS) {
         throw new FabricatedFightError(
             `${perSide} a side over ${rounds} rounds comes to ${calls} calls, past the` +
@@ -292,15 +304,17 @@ export function composeFabricationShape(
     }
     const scale = composeHealthCeiling(level) / composeHealthCeiling(DEFAULT_LEVEL);
     assert(scale > 0, "a fight is composed at a scale above nothing");
-    return { perSide, rounds, level, scale, ending };
+    return { perSide, rounds, level, scale, ending, doesCloseOnShouts };
 }
 
 /** The shape as a reader writes it, which is what the envelope carries and a file is named for. */
 export function composeShapeText(shape: FabricationShape): string {
     assert(shape.perSide > 0, "a shape that is written down fields somebody");
-    const said = `${shape.perSide}v${shape.perSide}-lvl${shape.level}-r${shape.rounds}`;
-    if (shape.ending === DEFAULT_ENDING) return said;
-    return `${said}-${shape.ending}`;
+    assert(shape.rounds > 0, "and runs at least one round");
+    let said = `${shape.perSide}v${shape.perSide}-lvl${shape.level}-r${shape.rounds}`;
+    if (shape.ending !== DEFAULT_ENDING) said = `${said}-${shape.ending}`;
+    if (shape.doesCloseOnShouts) said = `${said}-${CLOSING_SHOUTS_SUFFIX}`;
+    return said;
 }
 
 export function composeFabricatedFight(
@@ -318,6 +332,7 @@ export function composeFabricatedFight(
     };
     addOpeningCall(state);
     const turns = addFightRounds(state);
+    if (shape.doesCloseOnShouts) addClosingShouts(state, turns);
     addClosingCall(state);
     assert(state.calls.length > 1, "a fabricated fight carries more than its opening");
     assert(state.calls.length <= MAXIMUM_CALLS, "and stays inside its stated bound");
@@ -1125,6 +1140,12 @@ function actLoot(turn: FabricatedTurn): string[] {
 }
 
 /**
+ * Named apart from the list below, because a fight closing on shouts reaches for this one act by
+ * itself and two spellings of it would drift (**N13**).
+ */
+const SHOUT_ACT: FabricatedAct = { name: "a shout", doesOpenTurn: true, compose: actShoutCast };
+
+/**
  * The script. One entry is one turn, and the fight walks this list round after round, so a key
  * stated here is stated many times over a fight rather than once where nobody would see it. A
  * fight shorter than this list reaches its head only — which is what `actsReached` reports.
@@ -1159,7 +1180,7 @@ const ACTS: FabricatedAct[] = [
     { name: "health coming back to nobody", doesOpenTurn: false, compose: actHealToNobody },
     { name: "healing a whole side", doesOpenTurn: true, compose: actSideHeal },
     { name: "an aura cast", doesOpenTurn: true, compose: actAuraCast },
-    { name: "a shout", doesOpenTurn: true, compose: actShoutCast },
+    SHOUT_ACT,
     { name: "a cast on the allies", doesOpenTurn: true, compose: actAlliesCast },
     { name: "a cast on the enemies", doesOpenTurn: true, compose: actEnemiesCast },
     { name: "a stance", doesOpenTurn: false, compose: actStance },
@@ -1497,6 +1518,44 @@ function addFightRounds(state: FabricationState): number {
     return ordinal;
 }
 
+/**
+ * Two turns more, one a side, each spent on the shout — so the last call of the fight is one where
+ * everybody still standing is held by somebody.
+ *
+ * ⚠️ **Where the rotation lands a shout is not a shape anybody chose.** Measured 2026-09-22 at ten
+ * a side, level 92: the walk reaches this act once every 41 turns, so how many are still held at
+ * the last call falls out of wherever the rounds happened to stop — 20 at 20 rounds, 10 at the
+ * default 26, and nothing says so. A fixture for `MAXIMUM_PROVOKED` (`src/ui/panel-standing.ts`)
+ * cannot rest on that.
+ *
+ * A side nobody is left on shouts at nobody, so a shape whose fight settles before its rounds run
+ * out is refused here rather than closing on one shout and looking like it closed on two.
+ */
+function addClosingShouts(state: FabricationState, turns: number): void {
+    assert(turns > 0, "a fight closing on shouts ran turns before them");
+    assert(state.calls.length > 1, "and carries the calls those turns wrote");
+    // Both sides are asked before either shouts: a side with nobody left neither shouts nor is
+    // shouted at, and the second of those is what a check on the shouter alone walks past.
+    const wiped = SIDES.filter((side) => getStandingOnSide(state, side).length === 0);
+    if (wiped.length > 0) {
+        throw new FabricatedFightError(
+            `nobody is left standing on side ${wiped.join(" and side ")} after` +
+                ` ${state.shape.rounds} rounds, so no shout closes the fight:` +
+                ` --${CLOSING_SHOUTS_FLAG} asks for a shape both sides come out of standing`,
+        );
+    }
+    let ordinal = turns;
+    for (const side of SIDES) {
+        const standing = getStandingOnSide(state, side);
+        const shouter = standing[standing.length - 1];
+        assertExists(shouter, "a side somebody is left on has a last of them");
+        const turn = composeTurn(state, shouter, ordinal);
+        assertExists(turn, "and somebody to shout at, both sides being standing");
+        addTurnCall(state, turn, SHOUT_ACT);
+        ordinal += 1;
+    }
+}
+
 /** How the fight ends: the two sides as text, and what the log says after them. */
 function addClosingCall(state: FabricationState): void {
     const last = state.warriors.find(isStanding);
@@ -1579,12 +1638,14 @@ function readEndingFlag(stated: string | undefined): FabricationEnding {
 if (import.meta.main) {
     const parsed = parseArgs(Deno.args, {
         string: [OUTPUT_FLAG, PER_SIDE_FLAG, ROUNDS_FLAG, LEVEL_FLAG, ENDING_FLAG],
+        boolean: [CLOSING_SHOUTS_FLAG],
     });
     const shape = composeFabricationShape(
         readShapeFlag(parsed[PER_SIDE_FLAG], DEFAULT_PER_SIDE, PER_SIDE_FLAG),
         readShapeFlag(parsed[ROUNDS_FLAG], DEFAULT_ROUNDS, ROUNDS_FLAG),
         readShapeFlag(parsed[LEVEL_FLAG], DEFAULT_LEVEL, LEVEL_FLAG),
         readEndingFlag(parsed[ENDING_FLAG]),
+        parsed[CLOSING_SHOUTS_FLAG],
     );
     const asked = parsed[OUTPUT_FLAG];
     // A shape nobody named a path for would land on the default one and take the fight already

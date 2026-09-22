@@ -10,12 +10,22 @@
 import { assert, assertEquals, assertExists, assertStrictEquals, assertThrows } from "@std/assert";
 import { composeFightReplay } from "@/tools/fight-replay.ts";
 import { getUnreadMessages } from "@/src/core/fight-statistics.ts";
+import { FROZEN_AURA_TURNS } from "@/frozen/aura-turns.ts";
 import {
+    composeAuraTurnsBySkillId,
+    composeFightStandings,
+    composeShoutsBySkillId,
+    PROVOCATION_KEY,
+} from "@/src/core/aura-standing.ts";
+import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
+import {
+    CLOSING_SHOUTS,
     composeFabricatedCaptureText,
     composeFabricatedFight,
     composeFabricationShape,
     composeShapeText,
     FABRICATED_WORLD,
+    type FabricatedFight,
     FABRICATION_FIELDS,
     isFabricatedPath,
 } from "@/tools/fabricated-fight.ts";
@@ -29,6 +39,8 @@ const VALUE_SEPARATOR = "=";
 const SIDE_SEGMENTS = 2;
 /** What the script holds, read off the fight that reaches all of it rather than stated here. */
 const ACTS_SCRIPTED = 41;
+/** The rounds a shape nobody argued with runs, read off that shape rather than spelled again. */
+const DEFAULT_ROUNDS = composeFabricationShape().rounds;
 
 /**
  * A key the register calls `decoded` that no message can state, each with why. The list is the
@@ -248,4 +260,122 @@ Deno.test("a fight says how far down the script it reached", () => {
     const duel = composeFabricatedFight(composeFabricationShape(1, 8, 5));
     assertStrictEquals(duel.actsReached, 16, "and one of sixteen turns reaches sixteen of them");
     assert(duel.actsReached < ACTS_SCRIPTED, "which is fewer than the script carries");
+});
+
+/** What both refusals say, whichever side the script's own figures left standing. */
+const REFUSED_CLOSING = "no shout closes the fight";
+
+/** The turns the published table dates, which is the only source stating a shout's length. */
+const DATED = {
+    turnsBySkillId: composeAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills),
+    shoutsBySkillId: composeShoutsBySkillId(FROZEN_AURA_TURNS.shouts),
+};
+
+/** Whom the fight left held at its last call, read the way the panel reads it. */
+function getProvokedAtClose(fight: FabricatedFight, name: string) {
+    const replay = composeFightReplay({
+        name,
+        calls: fight.calls.map((call) => call.payload),
+        hasSnapshot: false,
+    });
+    const reading = replay.reading;
+    return {
+        replay,
+        held: composeFightStandings(reading.events, DATED, reading.roster).provocations,
+    };
+}
+
+/**
+ * ⚠️ **Where the act rotation lands a shout is not a shape anybody chose.** Measured 2026-09-22 at
+ * ten a side, level 92: the script reaches its shout once every 41 turns, so how many were still
+ * held at the last call fell out of wherever the rounds stopped — 20 at 20 rounds, 10 at the
+ * default 26, with nothing saying which. `MAXIMUM_PROVOKED` is the whole roster
+ * (`src/ui/panel-standing.ts`) and the corpus cannot show it, so the fixture for it has to be
+ * guaranteed rather than found.
+ *
+ * ⚠️ **The count alone does not prove the flag did it**, which is what mutating the call away
+ * showed on 2026-09-22: at 20 rounds the rotation already ended on twenty, so the guard stayed
+ * green with the two turns gone. The shape below is the default 26, where it does not — and the
+ * last two turns are read for the shout itself, so this bites whatever the rotation later does.
+ */
+Deno.test("a fight closing on shouts leaves everybody on the board held", () => {
+    const shape = composeFabricationShape(10, DEFAULT_ROUNDS, 92, "settled", true);
+    const fight = composeFabricatedFight(shape);
+    const shouted = fight.calls.slice(-1 - CLOSING_SHOUTS, -1);
+    assertStrictEquals(shouted.length, CLOSING_SHOUTS, "two turns stand before the closing call");
+    assert(
+        shouted.every((call) => call.messages.some((one) => one.includes(`${PROVOCATION_KEY}=`))),
+        "and each of them is spent on a shout",
+    );
+    const { replay, held } = getProvokedAtClose(fight, "shouted");
+    assertStrictEquals(replay.roster.byId.size, MAXIMUM_COMBATANTS, "a ten-a-side fields twenty");
+    assertStrictEquals(held.length, MAXIMUM_COMBATANTS, "and closes with each of them held");
+    assertStrictEquals(
+        new Set(held.map((one) => one.provokedId)).size,
+        MAXIMUM_COMBATANTS,
+        "each of them once, nobody twice",
+    );
+    const casters = new Set(held.map((one) => one.casterId));
+    assertStrictEquals(casters.size, 2, "by two shouters");
+    const sides = new Set([...casters].map((id) => replay.roster.byId.get(id)?.side));
+    assertStrictEquals(sides.size, 2, "one on each side, which is what holds both of them at once");
+    assertStrictEquals(getUnreadMessages(replay.statistics), 0, "and the two turns read clean");
+    assertStrictEquals(replay.reading.messagesLost, 0, "with no message the payload said it had");
+});
+
+/**
+ * The boundary from the other side (**W5**): the smallest board there is. What the flag promises is
+ * everybody, not twenty — a guard pinned to twenty would pass a duel that held nobody.
+ */
+Deno.test("the smallest board closes on shouts holding both of its own", () => {
+    const duel = composeFabricatedFight(composeFabricationShape(1, 8, 5, "settled", true));
+    const { replay, held } = getProvokedAtClose(duel, "shouted duel");
+    assertStrictEquals(replay.roster.byId.size, 2, "one a side is two combatants");
+    assertStrictEquals(held.length, 2, "and both of them end the fight held");
+    assertStrictEquals(new Set(held.map((one) => one.casterId)).size, 2, "each by the other");
+});
+
+/**
+ * A side nobody is left on shouts at nobody and is shouted at by nobody. Refused rather than
+ * closed on one shout, which would write a file that looks like it closed on two.
+ *
+ * ⚠️ **Which side the script wipes is its own arithmetic and not a promise**, so the refusal is
+ * read by what it refuses rather than by the side it names — a figure moving elsewhere in the
+ * script would otherwise redden this over nothing.
+ */
+Deno.test("a shape whose fight wipes a side is refused the closing shouts", () => {
+    assertThrows(
+        () => composeFabricatedFight(composeFabricationShape(1, 40, 5, "settled", true)),
+        FabricatedFightError,
+        REFUSED_CLOSING,
+    );
+    assertThrows(
+        () => composeFabricatedFight(composeFabricationShape(5, 60, 92, "settled", true)),
+        FabricatedFightError,
+        REFUSED_CLOSING,
+    );
+    const duel = composeFabricatedFight(composeFabricationShape(1, 8, 5, "settled", true));
+    assert(duel.calls.length > 0, "and a fight both sides come out of is composed");
+});
+
+Deno.test("a fight closing on shouts says so in its shape, and the default says nothing", () => {
+    assertStrictEquals(
+        composeShapeText(composeFabricationShape(10, 26, 92, "settled", true)),
+        "10v10-lvl92-r26-shouts",
+    );
+    assertStrictEquals(
+        composeShapeText(composeFabricationShape(2, 6, 20, "fled", true)),
+        "2v2-lvl20-r6-fled-shouts",
+    );
+    assertStrictEquals(
+        composeShapeText(composeFabricationShape()),
+        "10v10-lvl92-r26",
+        "and a shape nobody asked it of carries no word of it",
+    );
+    assertStrictEquals(
+        composeFabricatedFight(composeFabricationShape(10, DEFAULT_ROUNDS, 92, "settled", true))
+            .calls.length - composeFabricatedFight().calls.length,
+        CLOSING_SHOUTS,
+        "the flag adds the two turns and nothing else, so an old file is byte-identical",
+    );
 });
