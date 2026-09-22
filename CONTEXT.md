@@ -106,10 +106,30 @@ blow's own announcement stands in that payload, and **broken**, where a key says
 Every other way it can go is silence, and silence is what the panel says about it. _Avoid_:
 Ultimate, super, cast, channel, windup
 
-**Proc**: An effect that fired alongside an attack. Carries no figure. _Avoid_: Trigger, on-hit
+**Proc**: An effect that fired alongside an attack. **Some of them state a figure and no total here
+reads one** — a family of wound announcements carries a value on the wire (**ADR 0094**), and what
+it did is reported by the keys beside it. _Avoid_: Trigger, on-hit
 
 **Dot**: Damage over time, ticking outside a direct attack. _Avoid_: Damage over time, tick damage,
 bleed
+
+**Aura**: What one skill put on more than one combatant. Announced **once** and never mentioned
+again, so how far through one is comes from the published table and never from the protocol
+(`docs/auras-standing.md`). A cast reaching a side says nothing about whom it reached. _Avoid_:
+Buff, area effect, team buff
+
+**Shout**: The cast that forces the characters it names to attack whoever made it — the one cast
+that says whom it reached, by name. The state it leaves somebody in is a **provocation**, and it is
+one per character: a later shout replaces whatever held them. _Avoid_: Taunt, challenge, aggro
+
+**Status**: What the game says a combatant is carrying **right now**, read off the **mask** — the
+one integer their entry restates, whose bits the client registers in an order of its own. It names
+no cause: nothing in it says which cast lit it, which is why a status and an aura are two readings
+and not one. _Avoid_: Buff, debuff, effect, condition
+
+**Legendary bonus**: An effect a combatant carries from an item rather than from a skill, announced
+under a key of its own. **No skill table dates one**, so a length for it comes from the published
+help or from nowhere. _Avoid_: Legendary, artifact effect, item proc
 
 **Declaration**: A figure the protocol states that **no total here counts** — an input, an outcome
 in a unit this meter does not keep, or an outcome outside the fight. Read, never totalled. The test:

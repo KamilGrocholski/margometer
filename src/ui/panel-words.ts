@@ -505,11 +505,31 @@ export const PROC_SUB_WORD_BY_KEY: Record<string, string> = {
 export type TranslateLabel = (id: string, category?: string) => string | null;
 
 /**
- * What a label may run to before the sheet cuts it. Not a look: `getTipSize` counts a stat line as
- * one, so a label the sheet had to fold would stand the card lower than it was measured for. Every
- * word here is inside it; a label out of the client is not ours to keep short.
+ * What a label **of ours** may run to before the column cuts it. `.tip-label` is `nowrap` with an
+ * ellipsis, so a long one costs the card no height — it costs the end of the word, and a cut
+ * label reads as a shorter label with nothing saying it was cut (**ADR 0088**). Our own words are
+ * ours to keep short, and `tests/ui/blow-vocabulary.test.ts` holds every one of them to this.
  */
 export const MAXIMUM_LABEL_CHARACTERS = 22;
+/**
+ * The same for a label out of the player's own client, which **is not ours to keep short**.
+ *
+ * Held apart from the bound above because the two answer different questions. Ours asks what we
+ * may write; this one asks what external data may be before it has clearly gone wrong — the
+ * client's dictionary runs to 41 characters for the keys this module asks about
+ * (`Zapobiegnięto ładowaniu ciosu specjalnego.`, build `1785244275300`, read 2026-09-22), and at
+ * 22 three of those seven were refused and drawn as the raw protocol key instead.
+ *
+ * ⚠️ **The figure is the label, not the entry.** `getLabelFromEntry` takes the leading sign and
+ * the trailing full stop off before anybody measures it, so `-Płomienne oczyszczenie` reaches
+ * this line at 22 and always fitted. Measuring the dictionary rather than the reader's answer
+ * counted a fourth refusal that was never happening.
+ *
+ * ⚠️ **A label past the column is still cut, and now it is the client's words being cut.** That
+ * is the trade this number makes: a Polish sentence with its end missing rather than a key the
+ * game wrote for itself.
+ */
+export const MAXIMUM_CLIENT_LABEL_CHARACTERS = 64;
 
 /**
  * The seven keys this repository has no word for, and what the client calls each in its own
@@ -550,9 +570,10 @@ function getClientWordsForKey(key: string, translate: TranslateLabel | null): st
     if (id === undefined) return null;
     const label = translate(id);
     if (label === null) return null;
-    // The column is ours and the answer is not: a longer label would be cut by the sheet and
-    // would stand the card at a height it was not measured for.
-    if (label.length > MAXIMUM_LABEL_CHARACTERS) return null;
+    // ⚠️ **The client's bound and not ours.** At 22 this refused three of the seven — their keys
+    // land 56 times over `captures/` — and drew `+superspell-prevented` at a reader who has a
+    // dictionary saying `Zapobiegnięto ładowaniu ciosu specjalnego.`
+    if (label.length > MAXIMUM_CLIENT_LABEL_CHARACTERS) return null;
     if (label.length === 0) return null;
     return label;
 }
@@ -579,7 +600,7 @@ export const DESTROYED_WORD_BY_KEY: Record<string, { name: string; unit: string 
     resdmg: { name: "odporność", unit: "p.p." },
     // The element rides after a colon rather than after "na", which the bound decides:
     // `odporność na błyskawice` is 23 characters against MAXIMUM_LABEL_CHARACTERS below,
-    // and a label the sheet folds stands the card at a height nobody measured.
+    // and a label past it is cut by the column with nothing saying it was cut.
     resdmgf: { name: "odporność: ogień", unit: "p.p." },
     resdmgc: { name: "odporność: zimno", unit: "p.p." },
     resdmgl: { name: "odporność: błyskawice", unit: "p.p." },
@@ -817,6 +838,12 @@ export interface TooltipReading {
     /** Their own turns since the bonus lit, or null where it is not standing on them. */
     holytouchTurnsElapsed: number | null;
     hasSpentLastheal: boolean;
+    /**
+     * Whether the panel walked into this fight. **The turns are the one row here counted from
+     * the fight's own start**, so they are the one row a late start understates — everything
+     * else says what stands now.
+     */
+    wasJoinedInProgress: boolean;
 }
 
 /**
@@ -848,14 +875,25 @@ export function composeTooltipRows(
     addProvocationRows(said, reading);
     addStatusRows(said, reading.statuses, translate);
     addLegendaryRows(said, reading);
-    if (reading.turnsTaken > 0) {
-        said.push(`${TOOLTIP_WORDS.turnsTaken} ${composeFigureText(reading.turnsTaken)}`);
-    }
+    addTurnsRow(said, reading);
     const kept = said.filter((row) => !getRowCarriesMarkup(row));
     if (kept.length === 0) return [];
     // The name takes a row of the bound like any other, so a block handed over is never longer
     // than the maximum however many rows were composed.
     return [ADD_ON_NAME, ...kept].slice(0, MAXIMUM_TOOLTIP_ROWS);
+}
+
+/**
+ * ⚠️ **A figure that may be short is drawn where it can be marked, and nowhere else.** The panel
+ * draws these on a fight it walked into and says over them that every number may be understated
+ * (`composeJoinedInProgressSuspicion`). This block has no room for that sentence and no mark of
+ * its own, so the row it cannot qualify is the row it does not draw — `CONTEXT.md`'s **Suspect**
+ * is marked beside the figure it concerns or it is not a suspect, it is a wrong number.
+ */
+function addTurnsRow(said: string[], reading: TooltipReading): void {
+    if (reading.wasJoinedInProgress) return;
+    if (reading.turnsTaken <= 0) return;
+    said.push(`${TOOLTIP_WORDS.turnsTaken} ${composeFigureText(reading.turnsTaken)}`);
 }
 
 function addProvocationRows(said: string[], reading: TooltipReading): void {
@@ -935,12 +973,18 @@ function getRowCarriesMarkup(row: string): boolean {
  * into two spellings of one thing (**N13**).
  */
 const TOOLTIP_WORDS = {
-    provokedBy: "Wyzwany przez",
-    provokes: "Wyzywa",
+    /**
+     * ⚠️ **Two skills put a fighter here, so the row names the state and never either of them.**
+     * `Wyzywający okrzyk` and `Prowokujący okrzyk` announce the one key — 118 casts against 48
+     * over `captures/`, 2026-09-22 — so a row reading `Wyzwany` named one of the two while the
+     * state had come from either.
+     */
+    provokedBy: "Sprowokowany przez",
+    provokes: "Prowokuje",
     holytouch: "Dotyk anioła",
     lastheal: "Ostatni ratunek",
     /** The bonus fires once a fight, so this is a state and never a count. */
-    spent: "zużyty",
+    spent: "wykorzystany",
     turnsTaken: "Tury wykonane",
 } as const;
 
@@ -955,12 +999,18 @@ const ADD_ON_NAME = "MargoMeter";
 const MARKUP_OPENER = "<";
 const MARKUP_ENTITY = "&";
 /**
- * Past every row one fighter has ever put up, so a block handed to the game is a stated length.
- * The tallest over `captures/` is seven and it stood 14 times in 5 993 restatements
- * (`design/dziesiec/measured.json`); this clamps rather than asserts, because a fighter carrying
- * one more than the corpus ever showed is not a reason to stop drawing (**A11**, **ADR 0051**).
+ * Every row one fighter can put up, **counted off the parts rather than off the corpus**: the
+ * add-on's own name, the okrzyk from either end, the two legendary bonuses, the turns taken, and
+ * one row per status the client registers.
+ *
+ * ⚠️ **A figure taken off the corpus was the wrong figure here.** The tallest block over
+ * `captures/` is seven (`design/dziesiec/measured.json`), and a fabricated ten-a-side already
+ * stands eleven — so a bound set at what had been seen was one row above what was happening. It
+ * clamps rather than asserts, because a fighter with one thing more to say is not a reason to
+ * stop drawing (**A11**, **ADR 0051**).
  */
-const MAXIMUM_TOOLTIP_ROWS = 12;
+const ROWS_BESIDE_THE_STATUSES = 6;
+export const MAXIMUM_TOOLTIP_ROWS = FROZEN_BUFF_BITS.bits.length + ROWS_BESIDE_THE_STATUSES;
 
 /**
  * The client's word for a status, or the key as the game wrote it — the second and third rungs of
@@ -974,7 +1024,7 @@ export function getWordsForStatusBit(bit: number, translate: TranslateLabel | nu
     const said = translate(key, STATUS_CATEGORY);
     if (said === null) return key;
     if (said.length === 0) return key;
-    if (said.length > MAXIMUM_LABEL_CHARACTERS) return key;
+    if (said.length > MAXIMUM_CLIENT_LABEL_CHARACTERS) return key;
     return said;
 }
 

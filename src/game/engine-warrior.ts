@@ -20,6 +20,10 @@ const WARRIORS_KEY = "w";
 const HEALTH_KEY = "hp";
 const STATUSES_KEY = "buffs";
 const HEALTH_MAXIMUM_KEY = "max";
+/** What a combatant has left, inside the health object beside the pool it is measured against. */
+const HEALTH_NOW_KEY = "cur";
+/** The mask a fallen combatant is read at, which clears whatever they were holding. */
+const NOTHING_CARRIED = 0;
 /**
  * What a payload's own warrior is read by, wherever it is read — **N13**. `npc` is here and
  * nowhere in a `Combatant`: this add-on never needs to know who is a person, and the one reader
@@ -134,12 +138,30 @@ export function readStatedIdsFromPayload(payload: unknown): Set<number> {
 }
 
 /**
+ * What the entry says a combatant has left, or null where it says nothing about it — and the two
+ * are not the same answer (**E10**). A payload restates only what moved, so an entry with no
+ * health in it is silence and never a nought.
+ */
+function readHealthNowFromWarrior(value: Record<string, unknown>): number | null {
+    const health = value[HEALTH_KEY];
+    if (!isRecord(health)) return null;
+    return getNumberFromUnknown(health[HEALTH_NOW_KEY]);
+}
+
+/**
  * What each combatant is carrying, as the one integer the payload restates for them every time.
  * Read by position: `frozen/buff-bits.ts` names the statuses in the order the client registers
  * them, and the client's own window walks the same nine bits to draw its icons.
  *
  * A combatant whose entry states no mask is absent rather than clear — the two are not the same
  * answer, and **E10** is why the map says nothing instead of saying zero.
+ *
+ * ⚠️ **A combatant who has fallen carries nothing, whatever their mask still says.** The payload
+ * goes on stating one — 44 entries of 113 at zero health carry a lit mask over `captures/`,
+ * 2026-09-22 — and the client takes the icons down at exactly that point: its own update ends
+ * `hasZeroHpp() && ($(".buff", this.$).remove(), … deleteWarrior(this))`, production build
+ * `Bb28FQty`. Read any other way the window keeps a status on the fallen for the rest of the
+ * fight, which it did in nearly every recording — 128 rows at the last payload.
  */
 export function readStatusMasksFromPayload(payload: unknown): Map<number, number> {
     const found = new Map<number, number>();
@@ -148,6 +170,11 @@ export function readStatusMasksFromPayload(payload: unknown): Map<number, number
         if (!isRecord(value)) continue;
         const id = readIdentityFromWarrior(value);
         if (id === null) continue;
+        const now = readHealthNowFromWarrior(value);
+        if (now !== null && now <= 0) {
+            found.set(id, NOTHING_CARRIED);
+            continue;
+        }
         const mask = getNumberFromUnknown(value[STATUSES_KEY]);
         if (mask === null) continue;
         if (mask < 0) continue;

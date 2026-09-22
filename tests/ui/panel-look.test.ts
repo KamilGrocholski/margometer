@@ -39,6 +39,21 @@ const AA_MARK_RATIO = 3;
 const PROFESSIONS = ["w", "m", "h", "t", "p", "b"];
 const LONGEST_DECLARATION = 200;
 
+/**
+ * ⚠️ **A row is pressed, so a press must not leave text selected behind it.** Both windows draw
+ * their rows under one class, and the panel already refuses selection where it is dragged — the
+ * bar and the strips. A row was the one press target that did not, which is what a reader met in
+ * the window beside the panel. The prefixed spelling stands beside the plain one because Safari
+ * has never shipped it unprefixed (`docs/browser-support.md`).
+ */
+Deno.test("a row refuses to have its text selected, in either window", () => {
+    const sheet = composeStyleSheet();
+    const rule = sheet.slice(sheet.indexOf(`.${CLASS.row}{`));
+    const own = rule.slice(0, rule.indexOf("}"));
+    assertStringIncludes(own, "user-select:none", "a press leaves no selection behind it");
+    assertStringIncludes(own, "-webkit-user-select:none", "and Safari is told in its own words");
+});
+
 Deno.test("a bar's own spelling is read back as readily as a token's", () => {
     assertEquals(getContrastRatio("rgb(0 0 0)", "#ffffff"), 21, "the widest, written either way");
     assertEquals(getContrastRatio("rgb(0 0)", "#ffffff"), 1, "two channels are not a colour");

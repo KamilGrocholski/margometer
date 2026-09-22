@@ -40,17 +40,23 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 ## [Niewydane]
 
 - **Nowość** — Najeżdżając na postać w walce zobaczysz w dymku gry, ile z ilu tur stoi na niej każdy
-  stan, ile tur wykonała, kto ją wyzwał i czy zużyła ostatni ratunek — tego gra sama nie podaje.
+  stan, ile tur wykonała, kto ją sprowokował i czy wykorzystała ostatni ratunek — tego gra sama nie
+  podaje.
 - **Nowość** — Przy spowolnieniu i przyspieszeniu dymek podaje też, o ile procent, a tam, gdzie tego
   nie widać, nie podaje nic.
 - **Nowość** — W Pomocniku doszła sekcja „Co kto nosi": przy każdej postaci stoi to, co gra o niej
   mówi, i ile jej własnych tur to już na niej stoi.
-- **Zmiana** — Licznik tur wyzwania stoi teraz przy każdej wyzwanej postaci osobno, a nie raz przy
-  tym, kto krzyknął.
-- **Poprawka** — Wyzwanie liczy się teraz turami tego, kogo wyzwano, a nie rzucającego, więc schodzi
-  z niego wtedy, kiedy naprawdę schodzi.
+- **Zmiana** — Licznik tur prowokacji stoi teraz przy każdej sprowokowanej postaci osobno, a nie raz
+  przy tym, kto krzyknął.
+- **Poprawka** — Prowokacja liczy się teraz turami tego, kogo sprowokowano, a nie rzucającego, więc
+  schodzi z niego wtedy, kiedy naprawdę schodzi.
+- **Poprawka** — Trzy efekty, które panel pokazywał surowym zapisem z protokołu, nazywają się w
+  kartach tak, jak nazywa je twój własny klient gry.
 - **Poprawka** — Przy liczniku tur rzuconego efektu Pomocnik mówi teraz, że to tury rzucającego, a
   każdemu innemu efekt schodzi osobno.
+- **Poprawka** — Kliknięcie w wiersz panelu albo Pomocnika nie zaznacza już jego tekstu.
+- **Poprawka** — W dużej walce Pomocnik pokazuje wszystkich wyzwanych i wszystkich rzucających, a
+  nie pierwszych dwunastu.
 
 ## [0.18.0] — 2026-09-21
 

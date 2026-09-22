@@ -66,6 +66,7 @@ import {
     getWordsForUnnamedEnd,
     HEALTH_LOSS_WORD_BY_KEY,
     HEALTH_SOURCE_WORD_BY_KEY,
+    MAXIMUM_TOOLTIP_ROWS,
     NEITHER_END_WORDS,
     PANEL_WORDS,
     type PanelRegion,
@@ -317,6 +318,7 @@ const NOTHING_CARRIED = {
     statuses: [],
     holytouchTurnsElapsed: null,
     hasSpentLastheal: false,
+    wasJoinedInProgress: false,
 };
 
 /**
@@ -1008,4 +1010,104 @@ Deno.test("the live row says when it is without a date", () => {
     const dated = { day: 13, month: 9, hour: 21, minute: 5 };
     assertEquals(getWordsForShelfTime(dated, true), "teraz", "the live wording outranks the date");
     assertEquals(getWordsForShelfTime(null, true), "teraz", "and stands without a moment at all");
+});
+
+/**
+ * ⚠️ **The turns are the one row counted from the fight's own start**, so a panel that walked in
+ * late has a figure short by an amount nothing states (`docs/turns-taken.md`). The panel says so
+ * over its own figures; this block has no room for that sentence, so the row goes rather than
+ * standing unqualified — a **Suspect** is marked beside the figure it concerns, or it is not a
+ * suspect but a wrong number (`CONTEXT.md`).
+ */
+Deno.test("a fight the panel walked into says nothing about turns taken", () => {
+    const whole = composeTooltipRows({ ...NOTHING_CARRIED, turnsTaken: 14 }, null);
+    assertEquals(whole.length, 2, "seen whole, the count stands under the name");
+    assertStringIncludes(whole[1] ?? "", "14", "and it is the count");
+    const late = composeTooltipRows({
+        ...NOTHING_CARRIED,
+        turnsTaken: 14,
+        wasJoinedInProgress: true,
+    }, null);
+    assertEquals(late, [], "walked into, there is nothing to say and no block at all");
+});
+
+/**
+ * ⚠️ **Only that one row goes.** Everything else in the block says what stands **now**, which a
+ * late start does not shorten — a status the mask states is as true for a reader who walked in as
+ * for one who did not.
+ */
+Deno.test("walking in late costs the turns and nothing else", () => {
+    const late = composeTooltipRows({
+        ...NOTHING_CARRIED,
+        turnsTaken: 9,
+        wasJoinedInProgress: true,
+        statuses: [{ bit: 6, turnsElapsed: 3, percent: 20, length: null }],
+    }, null);
+    assertEquals(late.length, 2, "the name and the status it still knows");
+    assertStringIncludes(late[1] ?? "", "20%", "the figure stands, because now is now");
+});
+
+/** Everything one fighter can be at once, so a test about order has every row to order. */
+const CARRYING_EVERYTHING = {
+    turnsTaken: 14,
+    provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
+    provokes: 10,
+    statuses: [
+        { bit: 3, turnsElapsed: 2, percent: null, length: null },
+        { bit: 6, turnsElapsed: 1, percent: 20, length: { turnsElapsed: 1, turnsStated: 8 } },
+    ],
+    holytouchTurnsElapsed: 1,
+    hasSpentLastheal: true,
+    wasJoinedInProgress: false,
+};
+
+/**
+ * ⚠️ **The order is the whole of what a reader gets for free**, because a tooltip is read from
+ * the top and a fighter is hovered for a second. What changes whom somebody strikes next comes
+ * first, what changes how they strike second, what is spent or nearly over third — and the turns
+ * last, as the only row about the whole fight rather than about now. Nothing else holds it: the
+ * rows are pushed by four calls in a row, and swapping two of them reddens no other test.
+ */
+Deno.test("the rows stand in the order a reader acts on them", () => {
+    const said = composeTooltipRows(CARRYING_EVERYTHING, null);
+    const at = (fragment: string) => said.findIndex((row) => row.includes(fragment));
+    assertEquals(said[0], "MargoMeter", "the name, over everything");
+    assert(
+        at("Sprowokowany przez") < at("Prowokuje"),
+        "held before holding, which is what they do next",
+    );
+    assert(
+        at("Prowokuje") < at("%"),
+        "the okrzyk before a status, which only changes how they hit",
+    );
+    assert(at("%") < at("Dotyk anioła"), "a status before a bonus already running out");
+    assert(at("Dotyk anioła") < at("Ostatni ratunek"), "running out before already spent");
+    assert(at("Ostatni ratunek") < at("Tury wykonane"), "and the whole fight last of all");
+});
+
+/**
+ * **W5: the bound is a boundary**, so the block at it is asserted beside the block past it. It
+ * clamps rather than asserts, because a fighter with one thing more to say is not a reason to
+ * stop drawing (**A11**) — and the name takes a row of the bound like any other, so what the
+ * game is handed is never longer than the maximum however many rows were composed.
+ */
+Deno.test("a block past its stated maximum is cut to it, and one at it is drawn whole", () => {
+    const many = (count: number) =>
+        Array.from({ length: count }, (_, at) => ({
+            bit: at,
+            turnsElapsed: 1,
+            percent: null,
+            length: null,
+        }));
+    const atTheBound = composeTooltipRows({
+        ...CARRYING_EVERYTHING,
+        statuses: many(MAXIMUM_TOOLTIP_ROWS - 6),
+    }, null);
+    assertEquals(atTheBound.length, MAXIMUM_TOOLTIP_ROWS, "every row it was allowed stands");
+    const past = composeTooltipRows({
+        ...CARRYING_EVERYTHING,
+        statuses: many(MAXIMUM_TOOLTIP_ROWS),
+    }, null);
+    assertEquals(past.length, MAXIMUM_TOOLTIP_ROWS, "and one row more is cut to the same length");
+    assertEquals(past[0], "MargoMeter", "the name is never what the cut takes");
 });

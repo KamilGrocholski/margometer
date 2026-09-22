@@ -1622,6 +1622,7 @@ function composeTooltipReadingFor(
         ),
         holytouchTurnsElapsed: legendary?.holytouchTurnsElapsed ?? null,
         hasSpentLastheal: legendary?.hasSpentLastheal ?? false,
+        wasJoinedInProgress: fight.hasJoinedInProgress,
     };
 }
 
@@ -1632,6 +1633,14 @@ function composeTooltipReadingFor(
  *
  * Guarded here as well as inside the writer, because this is the panel's own layer reaching into
  * somebody else's program and a throw of theirs must cost a row and never the fight (**E5**).
+ *
+ * **Cost, measured over `captures/` on 2026-09-22 (S3).** Reading one payload comes to 0.068 ms
+ * on average and 4.544 ms at worst; the standings and figures composed here add 0.048 ms and
+ * 1.841 ms — **71% of what reading costs**. Most of that is a second walk of the same events:
+ * `composeStandingOrNothing` composes the same standings again when the panel draws, so a
+ * payload walks them twice. Composing once and handing both readers the same answer would take
+ * it back, and is **deliberately not done**: it is a cache on the newest payload, and 48
+ * microseconds is not worth a thing that can go stale.
  */
 function writeCarriedToTooltips(
     live: LiveFight,

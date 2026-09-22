@@ -621,6 +621,13 @@ function composeUnderListRules(): string {
     return `.${CLASS.pinned}{${shape}}` + `.${CLASS.outside}{${shape}}`;
 }
 
+/**
+ * A press that leaves text selected behind it is an accident, which is why the bar and the
+ * strips refuse one too. Safari has never shipped `user-select` unprefixed
+ * (`docs/browser-support.md`), so both spellings stand.
+ */
+const NO_SELECTION = "-webkit-user-select:none;user-select:none;";
+
 function composeRowRules(): string {
     const capRight = `var(${VARIABLE_PREFIX}radius-small)`;
     const cap = `${capRight} 0 0 ${capRight}`;
@@ -629,7 +636,8 @@ function composeRowRules(): string {
         `padding:${ROW_INK_DROP} var(${VARIABLE_PREFIX}wide) 0;` +
         `margin-bottom:var(${VARIABLE_PREFIX}half);` +
         `border-radius:var(${VARIABLE_PREFIX}radius-small);` +
-        `background:var(${VARIABLE_PREFIX}track);overflow:hidden;}` +
+        `background:var(${VARIABLE_PREFIX}track);overflow:hidden;` +
+        `${NO_SELECTION}}` +
         `.${CLASS.row}.${CLASS.rowDrillable}{cursor:pointer;}` +
         `.${CLASS.row}.${CLASS.rowLeaf}{cursor:help;}` +
         `.${CLASS.bar}{position:absolute;left:0;top:0;bottom:0;` +

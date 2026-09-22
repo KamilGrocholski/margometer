@@ -261,6 +261,8 @@ edited to agree with the new rule.
 - [0104](0104-what-somebody-carries-is-read-off-the-mask-and-names-no-cast.md) — What somebody
   carries is read off the mask, and names no cast. **Accepted**
 - [0105](0105-one-line-is-written-where-the-game-already-draws-one.md) — One line is written where
-  the game already draws one. **Accepted**
+  the game already draws one. **Superseded by 0107 in part**
 - [0106](0106-a-shout-reaches-the-side-it-provokes.md) — A shout reaches the side it provokes.
+  **Accepted**
+- [0107](0107-a-tooltip-takes-a-block-and-not-a-line.md) — A tooltip takes a block, and not a line.
   **Accepted**

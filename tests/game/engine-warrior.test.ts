@@ -6,7 +6,11 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
-import { readCombatantFromWarrior, readCombatantsFromPayload } from "@/src/game/engine-warrior.ts";
+import {
+    readCombatantFromWarrior,
+    readCombatantsFromPayload,
+    readStatusMasksFromPayload,
+} from "@/src/game/engine-warrior.ts";
 import {
     getRecordedCombatants,
     getRecordedEngineUpdates,
@@ -80,4 +84,42 @@ Deno.test("a pool of nothing is a pool nobody stated, never an assertion", () =>
     assertEquals(readCombatantFromWarrior({ ...whole, hp: { max: 0 } })?.healthMaximum, null);
     assertEquals(readCombatantFromWarrior({ ...whole, hp: { max: -5 } })?.healthMaximum, null);
     assertEquals(readCombatantFromWarrior({ ...whole, hp: { max: 1 } })?.healthMaximum, 1);
+});
+
+/** A payload's own entry for one combatant, in the shape every recording carries. */
+function composePayloadWith(health: unknown, mask: number): unknown {
+    return { w: { "11": { id: 11, name: "Gracz 1", team: 1, hp: health, buffs: mask } } };
+}
+
+/**
+ * ⚠️ **A combatant who has fallen carries nothing, whatever their mask still says.** The payload
+ * goes on stating one — 44 entries of 113 at zero health carry a lit mask over `captures/`,
+ * 2026-09-22 — and the client takes the icons down at exactly that point, on the same update that
+ * deletes the warrior. Read any other way the window keeps a status on the fallen for the rest of
+ * the fight: 128 rows at the last payload, in nearly every recording.
+ */
+Deno.test("a combatant at nothing carries nothing, whatever their mask states", () => {
+    const fallen = readStatusMasksFromPayload(composePayloadWith({ cur: 0, max: 500 }, 64));
+    assertEquals([...fallen], [[11, 0]], "the mask reads as clear rather than as lit");
+});
+
+/**
+ * **W5: zero is a boundary.** One point left is somebody standing, and they keep what they hold.
+ */
+Deno.test("a combatant on their last point is standing, and keeps what they carry", () => {
+    const standing = readStatusMasksFromPayload(composePayloadWith({ cur: 1, max: 500 }, 64));
+    assertEquals([...standing], [[11, 64]], "a point is not nothing");
+});
+
+/**
+ * ⚠️ **Saying nothing about health is not saying they fell.** A payload restates only what moved,
+ * so an entry with no health in it states a mask and nothing else — and **E10** is why silence
+ * there is not read as a zero.
+ */
+Deno.test("an entry stating no health at all states its mask like any other", () => {
+    assertEquals(
+        [...readStatusMasksFromPayload(composePayloadWith(undefined, 32))],
+        [[11, 32]],
+        "the mask stands, because nothing said they fell",
+    );
 });

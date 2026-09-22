@@ -5,6 +5,8 @@
  * the two sides counted apart, what a press opens, and the two states a fight can leave it in.
  */
 
+import { FROZEN_AURA_TURNS } from "@/frozen/aura-turns.ts";
+import { FROZEN_BUFF_BITS } from "@/frozen/buff-bits.ts";
 import {
     assert,
     assertEquals,
@@ -19,7 +21,11 @@ import type { TurnStatement } from "@/src/game/fight-underway.ts";
 import { composePanelHost, type PanelPress } from "@/src/ui/panel-element.ts";
 import {
     composeStandingReading,
+    MAXIMUM_CARRIED_STATUSES,
+    MAXIMUM_CARRIERS,
+    MAXIMUM_CASTERS,
     MAXIMUM_PROVOKED,
+    MAXIMUM_STANDING_ROWS,
     type StandingTurn,
 } from "@/src/ui/panel-standing.ts";
 import { getColourForProfession, SIGNAL } from "@/src/ui/panel-look.ts";
@@ -809,13 +815,46 @@ Deno.test("a fight holding only a provocation is not a fight where nothing stand
  * ⚠️ **The clamp below is tested with a fixture built out of the bound, so it moves with it.**
  * Lowering `MAXIMUM_PROVOKED` from 12 to 2 drops ten of twelve provoked characters out of the
  * window and reddens nothing — measured 2026-09-11. What the clamp working cannot say is that the
- * bound is the right one, so the bound is tied to what a shout can hold: a whole opposing side,
- * and `src/core/combatant-roster.ts` states a side at half a fight. **S11**'s fourth shape.
+ * bound is the right one, so the bound is tied to what shouting can hold. **S11**'s fourth shape.
+ *
+ * ⚠️ **Both sides may be shouting, and that is what the older bound missed.** It covered one
+ * shout — a whole opposing side, which is half a fight — and a fabricated ten-a-side stands two,
+ * one per side, holding 20 characters at once; the window drew 12 of them. Nobody is held twice
+ * (**ADR 0062**), so the ceiling is one row per combatant and no more.
  */
-Deno.test("the provoked bound covers a whole side, which is what a shout can hold", () => {
+/**
+ * ⚠️ **These three are counted off what the game can put up, and the point is that nobody types
+ * them.** Each was once a figure off the corpus, and one of them — the provoked — was short: 12
+ * where a fabricated ten a side stands 20. A test over a derived bound cannot fail while it stays
+ * derived (**A12**), so what it holds is the derivation: a literal typed back in reddens it.
+ */
+Deno.test("the window's bounds are counted off the board, not off what has been seen", () => {
     assert(
-        MAXIMUM_PROVOKED * 2 >= MAXIMUM_COMBATANTS,
-        `a shout holds an opposing side, and ${MAXIMUM_PROVOKED} does not cover half of ` +
+        MAXIMUM_CASTERS >= MAXIMUM_COMBATANTS,
+        `one skill can be cast from both sides, and ${MAXIMUM_CASTERS} does not cover ` +
+            `${MAXIMUM_COMBATANTS}`,
+    );
+    assert(
+        MAXIMUM_CARRIERS >= MAXIMUM_COMBATANTS,
+        `the mask goes out per combatant, and ${MAXIMUM_CARRIERS} does not cover ` +
+            `${MAXIMUM_COMBATANTS}`,
+    );
+    assert(
+        MAXIMUM_STANDING_ROWS >= FROZEN_AURA_TURNS.skills.length,
+        `the table dates ${FROZEN_AURA_TURNS.skills.length} skills and the section keeps ` +
+            `${MAXIMUM_STANDING_ROWS}`,
+    );
+    assert(
+        MAXIMUM_CARRIED_STATUSES >= FROZEN_BUFF_BITS.bits.length,
+        `the client registers ${FROZEN_BUFF_BITS.bits.length} statuses and the window keeps ` +
+            `${MAXIMUM_CARRIED_STATUSES}`,
+    );
+});
+
+Deno.test("the provoked bound covers everybody, which is what two shouts can hold", () => {
+    assert(
+        MAXIMUM_PROVOKED >= MAXIMUM_COMBATANTS,
+        `two shouts hold a board between them, and ${MAXIMUM_PROVOKED} does not cover ` +
             `${MAXIMUM_COMBATANTS}`,
     );
 });

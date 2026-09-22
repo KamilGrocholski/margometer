@@ -82,7 +82,7 @@ src/
     engine-attachment.ts   Getting the wrap onto the game, and off again.
     engine-battle-wrap.ts  The one function here that changes the running game.
     engine-place.ts      Where a fight happened, asked of the client's own state.
-    engine-tooltip.ts    The one line this add-on puts outside itself, into the game's own tip.
+    engine-tooltip.ts    The rows this add-on puts outside itself, into the game's own tip.
     fight-capture.ts     The fight as it happened, in the shape a recording is admitted in.
     game-dictionary.ts   What the player's own client calls a key this repository has no word for.
     kept-fights.ts       The fights a reader can go back to: the payloads kept, figures never.
@@ -167,7 +167,7 @@ tests/
     engine-attachment.test.ts   A page with a game, without one, or with a reader on it.
     engine-battle-wrap.test.ts  The promise the add-on makes to the page.
     engine-place.test.ts      A page that says all of it, some of it, or nothing.
-    engine-tooltip.test.ts    Where a line lands, and every shape that takes none.
+    engine-tooltip.test.ts    Where a block lands, and every shape that takes none.
     fight-capture.test.ts     The envelope, against the newest recording admitted.
     fight-report.test.ts      The figures written into the file, keyed off what the aggregate keeps.
     kept-fights.test.ts       A shelf that answers, refuses, runs out of room, or reads back.
@@ -181,6 +181,7 @@ tests/
     aura-standing.test.ts     What stands at the end of a fight, and when it stops standing.
     carried-figure.test.ts    What a status comes to on its bearer, and what it may not say.
     carried-status.test.ts    What a mask says somebody carries, and across what silences.
+    legendary-standing.test.ts  The two bonuses a tooltip may be honest about, and their clock.
     charged-skill.test.ts     A charge, the end it came to, and the turn its mark outlives.
     game-build.test.ts        Both names the client serves, and what is not one of them.
     health-witness.test.ts    What was read, against what the protocol says of itself.
@@ -819,6 +820,15 @@ commit that opens or closes one.
     carries a shout of its own, and whether it settles anything that one did not is unread.
     `TODO.md` opens on this.
 
+    **What is missing is the material and not the panel's behaviour, and that half is now
+    measured.** A fabricated ten a side — 20 combatants, both sides shouting, 20 provoked standing
+    at once — was crawled through the built file in Chrome on 2026-09-22: every control on every
+    screen pressed, 12 screens walked, 1 442 rows opened, **no fault at any stop**. The crawl is not
+    committed: it stands on a file `fabricated/` holds and git does not, and fabricating one inside
+    the suite would put six minutes on every `deno task e2e`. So a real ten against ten is still
+    wanted for what it would **say about the game**, and no longer for whether the panel survives
+    one.
+
 17. **What a standing effect comes to is written down and drawn nowhere.** `docs/auras-standing.md`
     carries the units, the cap at two sources from different Players, the additive sets and the half
     the caster of `aura-sa_per` gets, all off the published help — and the window still says only
@@ -854,3 +864,50 @@ commit that opens or closes one.
     It closes when something stands the second reading up as a guard rather than a hand. That is a
     second decoder to maintain and to get wrong, which is why the measurement is here and the
     machinery is not.
+
+20. **The window beside the panel takes the screen, and the panel takes two thirds of it.**
+    `DESIGN.md` binds the `66vh` cap and says it is real in play; `:host` carries it and `.standing`
+    carries only the screen's own edge. The corpus cannot show that costing anything — every
+    recording in it is ten against one, and the window stays short. **Measured on a fabricated
+    ten-a-side, 2026-09-22**: 20 provoked rows stand at once and the window grows to 949px of a
+    1000px screen, which over a real board is the game covered over.
+
+    Capping it was tried and withdrawn in the same round. The body under it already scrolls, so the
+    rows are not lost — but a second scrolling region is what `tests/e2e/panel-scroll.spec.ts`
+    refuses in the words _the list is the one region that scrolls_, and the scrollbar that region
+    hides costs width **ADR 0031** measured. So the fix is not a fix: either the window scrolls and
+    that spec states two regions, or it keeps growing and `DESIGN.md`'s cap is the panel's alone. It
+    closes when one of those is chosen, and the choice is the maintainer's (`PRODUCT.md`,
+    Governance).
+
+21. **Which combatant is the reader's own is knowable, and nothing reads it.** The panel takes the
+    reader's **side** off `myteam` and stops there, so a person looking for themselves in a ranking
+    of twenty counts rows. The client settles it in one field: `getHeroId = () => Engine.hero.d.id`,
+    and a fighter is the hero where its id equals that — production build `Bb28FQty`, read
+    2026-09-22. `src/game/engine-place.ts` already reads that very object for `x` and `y`, so the
+    field is one step from a reader that exists.
+
+    It stayed unread because nobody looked: a design sheet of this repository's own stated flatly
+    that the add-on cannot know, which is a negative claim about the game made without opening the
+    client (**V1**). It closes when the ranking says which row is the reader's, and **how** it says
+    so — a mark, a hue, a pinned row — is the maintainer's (`TODO.md` opens on it, and `DESIGN.md`
+    owns the answer).
+
+22. **The panel sits over everything, and nothing measured what it is sitting over.** `PLACE.layer`
+    is `9999`; `DESIGN.md` said of it that it is _high enough to clear the game's own windows_,
+    which is a claim about the game with no reading behind it (**V1**) and the one the hand-kept
+    list asks to reverse. The shadow root is not the question — `all: initial` already cuts the
+    game's stylesheet off the panel, and what a custom property can still reach through is
+    `SECURITY.md`'s, answered by the `MargoMeter-` prefix. What is unanswered is the **stacking**: a
+    dialog of theirs opening under a panel of ours.
+
+    Read on production build `Bb28FQty`, 2026-09-22: **the client's own JavaScript sets no layer
+    above 123** — three values in the whole bundle, `123`, `20` and `10`. Its stylesheet is where
+    the rest would be, and that file is not in this tree; fetching one is **Ask first**, and it is
+    the same request `design/dymek/` already has open for `tipsParser.min.css`. One fetch answers
+    both. Until then any number here is a guess, and this one is a guess that wins every argument.
+
+    ⚠️ **Ask the help before calling something unknowable.** The roster's own twenty was called
+    unsourced here for a day on the strength of a search that stopped at its first hit; the help
+    states it in one sentence, and `deno task game:help search` finds it. A negative claim about the
+    game is a claim (**V1**), and the cheapest way to be wrong about one is a bad grep.

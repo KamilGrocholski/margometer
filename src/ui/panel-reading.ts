@@ -44,8 +44,12 @@ import {
     MAXIMUM_NAMED_ROWS,
 } from "@/src/ui/panel-words.ts";
 
-/** A fight holds twenty, and a list draws a row for each. */
-const MAXIMUM_ROWS = 20;
+/**
+ * A row for everybody a fight holds, counted off the roster rather than typed beside it: the
+ * twenty was already in this file under its own name, two lines below, and one of the two would
+ * have moved without the other.
+ */
+const MAXIMUM_ROWS = MAXIMUM_COMBATANTS;
 /** As many parts as the widest cut a card draws: the kinds, the defences, the procs. */
 export const MAXIMUM_CUT_PARTS = 64;
 /** What one combatant's own skills are kept inside: 81 names over `captures/`, 2026-08-29. */

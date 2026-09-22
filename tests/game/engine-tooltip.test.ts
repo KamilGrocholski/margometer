@@ -7,7 +7,8 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { writeRowsToTooltips } from "@/src/game/engine-tooltip.ts";
+import { MAXIMUM_ROWS_WRITTEN, writeRowsToTooltips } from "@/src/game/engine-tooltip.ts";
+import { MAXIMUM_TOOLTIP_ROWS } from "@/src/ui/panel-words.ts";
 
 interface Landed {
     name: string;
@@ -37,6 +38,20 @@ function composePage(warriors: unknown[]) {
     for (const [at, warrior] of warriors.entries()) warriorsList[`${at}`] = warrior;
     return { Engine: { battle: { warriorsList } } };
 }
+
+/**
+ * ⚠️ **One bound, two spellings, and only a guard keeps them level.** `game/` reaches into no
+ * `ui/` module, so the writer states the maximum a second time — and a block composed up to the
+ * composer's bound must be one the writer will still take, or the assertion at the crossing
+ * fires on a fighter with a lot to say.
+ */
+Deno.test("the writer takes every row the composer is allowed to compose", () => {
+    assert(
+        MAXIMUM_ROWS_WRITTEN >= MAXIMUM_TOOLTIP_ROWS,
+        `the writer stops at ${MAXIMUM_ROWS_WRITTEN} and the composer may hand it ` +
+            `${MAXIMUM_TOOLTIP_ROWS}`,
+    );
+});
 
 Deno.test("a block lands on the fighter it was composed for, and on nobody else", () => {
     const landed: Landed[] = [];
@@ -124,7 +139,7 @@ Deno.test("a page with no fight on it takes nothing, which is not a failure", ()
 Deno.test("every row goes over on a call of its own", () => {
     const landed: Landed[] = [];
     const page = composePage([composeWarrior(11, "Gracz 1", landed)]);
-    const rows = ["MargoMeter · Wyzwany przez Gracz 2 · 1 z 3 tur", "Spowolnienie 3 tury"];
+    const rows = ["MargoMeter · Sprowokowany przez Gracz 2 · 1 z 3 tur", "Spowolnienie 3 tury"];
     const writing = writeRowsToTooltips(page, new Map([[11, rows]]));
     assertEquals(writing, { written: 1, asked: 1 }, "one fighter asked for, one written");
     assertEquals(landed.map((one) => one.content), rows, "each row on its own call, in order");

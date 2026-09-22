@@ -7,8 +7,9 @@
  * subject and one that finds too much fail differently, and only the pair catches both.
  */
 
-import { assert, assertEquals } from "@std/assert";
+import { assert, assertEquals, assertExists } from "@std/assert";
 import { composeCombatantRoster } from "@/src/core/combatant-roster.ts";
+import { getLabelFromEntry } from "@/src/game/game-dictionary.ts";
 import { BLOW_END_BY_PROC_KEY, decodeFightMessages } from "@/src/core/fight-decoder.ts";
 import {
     CARD_WORDS,
@@ -19,6 +20,7 @@ import {
     getSubWordsForBlowKey,
     getWordsForBlowKey,
     getWordsForDestroyed,
+    MAXIMUM_CLIENT_LABEL_CHARACTERS,
     MAXIMUM_LABEL_CHARACTERS,
     PROC_SUB_WORD_BY_KEY,
     PROC_WORD_BY_KEY,
@@ -179,17 +181,54 @@ Deno.test("a key nothing here has placed is not put to the client either", () =>
 });
 
 /**
- * The column is ours and the answer is not. A label past it is not merely cut: `getTipSize` counts
- * a stat line as one, so the card would stand at a height it was not measured for.
+ * ⚠️ **The client's bound, and not ours.** What a label out of somebody else's dictionary may run
+ * to is a different question from what we may write, and holding the two to one number drew the
+ * raw key at a reader whose own client had the words. The bound below is still a bound: past it
+ * the answer is external data that has gone wrong, and the key is the honest fallback.
  */
-Deno.test("a label longer than the column is refused, and one that fits is taken", () => {
-    const fitting = "x".repeat(MAXIMUM_LABEL_CHARACTERS);
-    const overlong = "x".repeat(MAXIMUM_LABEL_CHARACTERS + 1);
+Deno.test("a client label longer than the bound is refused, and one that fits is taken", () => {
+    const fitting = "x".repeat(MAXIMUM_CLIENT_LABEL_CHARACTERS);
+    const overlong = "x".repeat(MAXIMUM_CLIENT_LABEL_CHARACTERS + 1);
     assertEquals(getWordsForBlowKey("-tenacity", () => fitting), fitting, "a label at the bound");
     assertEquals(
         getWordsForBlowKey("-tenacity", () => overlong),
         "-tenacity",
-        "and one past it falls back on the key rather than standing the card wrong",
+        "and one past it falls back on the key rather than taking anything a dictionary says",
+    );
+});
+
+/**
+ * ⚠️ **Through the reader, and not off the dictionary.** `getLabelFromEntry` takes the leading
+ * sign and the trailing full stop off an entry before anybody measures it, so a test handed the
+ * raw entry measures a string no bound ever sees — which is how `-Płomienne oczyszczenie` was
+ * counted as refused when at 22 characters it always fitted.
+ *
+ * The entries are the player's own, read off build `1785244275300` on 2026-09-22. A bound that
+ * went back under 41 would take the longest of them away without a test failing anywhere else.
+ */
+Deno.test("the entries the client actually carries reach a reader as words", () => {
+    const carried = [
+        "+Klątwa",
+        "+Cios bardzo krytyczny",
+        "-Płomienne oczyszczenie",
+        "-Oślepienie w następnej turze",
+        "-Wytrwałość",
+        "Przerwanie ciosu specjalnego.",
+        "Zapobiegnięto ładowaniu ciosu specjalnego.",
+    ];
+    const refused: string[] = [];
+    for (const entry of carried) {
+        const label = getLabelFromEntry(entry);
+        assertExists(label, `the client's entry ${entry} reads as a label at all`);
+        if (getWordsForBlowKey("-tenacity", () => label) === label) continue;
+        refused.push(entry);
+    }
+    assertEquals(refused, [], "every one of them reaches a reader as their own client spells it");
+    // The sample that must flag, so the reader is known to be looking.
+    assertEquals(
+        getWordsForBlowKey("-tenacity", () => "x".repeat(MAXIMUM_CLIENT_LABEL_CHARACTERS + 1)),
+        "-tenacity",
+        "and the bound is real",
     );
 });
 

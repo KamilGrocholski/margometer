@@ -150,19 +150,19 @@ scale.
 A 2-pixel base, because the panel is dense and a 4-pixel base doubles its height for no gain in
 legibility.
 
-| Token            | Value                                                           |
-| ---------------- | --------------------------------------------------------------- |
-| `spaceHalf`      | `2px`                                                           |
-| `spaceSmall`     | `4px` — the base step                                           |
-| `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region    |
-| `spaceWide`      | `8px`, which is also the inset the panel sits at                |
-| `rowHeight`      | `18px`                                                          |
-| `maxHeightShare` | `66vh`                                                          |
-| `tipWidth`       | `250px` — a maximum, and a card is as wide as what it says      |
-| `lineHeight`     | `15px` — whole pixels, and what a counted card is multiplied by |
-| `panelWidth`     | `260px` — narrow on purpose: the panel is a guest               |
-| `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against |
-| `panelLayer`     | high enough to clear the game's own windows                     |
+| Token            | Value                                                              |
+| ---------------- | ------------------------------------------------------------------ |
+| `spaceHalf`      | `2px`                                                              |
+| `spaceSmall`     | `4px` — the base step                                              |
+| `spaceRegion`    | `5px` down the panel, `7px` across it — what insets a region       |
+| `spaceWide`      | `8px`, which is also the inset the panel sits at                   |
+| `rowHeight`      | `18px`                                                             |
+| `maxHeightShare` | `66vh`                                                             |
+| `tipWidth`       | `250px` — a maximum, and a card is as wide as what it says         |
+| `lineHeight`     | `15px` — whole pixels, and what a counted card is multiplied by    |
+| `panelWidth`     | `260px` — narrow on purpose: the panel is a guest                  |
+| `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against    |
+| `panelLayer`     | 9999 — over everything, and measured against nothing the game does |
 
 **Every row is the same height**, accent included. A row whose background is taller than its
 neighbour reads as a different kind of row, and it is not one.

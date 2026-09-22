@@ -8,26 +8,45 @@
 
 import type { AuraStanding, ProvocationStanding } from "@/src/core/aura-standing.ts";
 import type { ChargedSkillStanding, ChargedSkillState } from "@/src/core/charged-skill.ts";
-import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
+import { type CombatantRoster, MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import type { TurnStatement } from "@/src/game/fight-underway.ts";
 import { getColourForProfession, SIGNAL } from "@/src/ui/panel-look.ts";
 import type { CarriedStatus } from "@/src/core/carried-status.ts";
 import { getPartOfSide, type PanelSidePart } from "@/src/ui/panel-reading.ts";
 import { PANEL_WORDS } from "@/src/ui/panel-words.ts";
+import { FROZEN_AURA_TURNS } from "@/frozen/aura-turns.ts";
+import { FROZEN_BUFF_BITS } from "@/frozen/buff-bits.ts";
 
-/** Past every skill the corpus casts at a side in one fight, and a clamp rather than a bound. */
-export const MAXIMUM_STANDING_ROWS = 24;
-/** Past the most casters one skill has ever stood on at once. */
-export const MAXIMUM_CASTERS = 12;
 /**
- * Past every character a shout could hold at once: the game's own party limit is smaller, and the
- * corpus has never held more than one, because every recording in it is ten against one.
+ * One row per skill the published table dates, which is every row this section can ever hold: a
+ * row is keyed by `skillId`, and **only a cast the table dates ever stands** — the walk keeps no
+ * other (`core/aura-standing.ts`). So the table is the ceiling, and a skill added to it moves
+ * this by itself. A clamp rather than a bound, like the rest here (**A11**, **ADR 0051**).
  */
-export const MAXIMUM_PROVOKED = 12;
-/** Past the combatants one board holds, and a clamp rather than a bound — **A11**, **ADR 0051**. */
-export const MAXIMUM_CARRIERS = 24;
-/** Past the statuses the client registers, which `frozen/buff-bits.ts` counts at nine. */
-export const MAXIMUM_CARRIED_STATUSES = 12;
+export const MAXIMUM_STANDING_ROWS = FROZEN_AURA_TURNS.skills.length;
+/**
+ * Everybody on the board, because **one skill can be cast from both sides at once**: the same
+ * professions field on either, and a row is keyed by the caster, so the most that can stand under
+ * one skill is one caster each. The corpus reaches four and a fabricated ten-a-side reaches four
+ * as well, so neither shows what this is for — it is counted off the roster and not off them.
+ */
+export const MAXIMUM_CASTERS = MAXIMUM_COMBATANTS;
+/**
+ * Every character on the board, because **both sides may be shouting and nobody is held twice**:
+ * a later shout replaces whatever held somebody (**ADR 0062**), so the most that can stand at
+ * once is one row each. The corpus cannot show it — every recording in it is ten against one and
+ * two is the most it ever held — and a fabricated ten-a-side stands 20 at once, which the bound
+ * this replaced clamped to 12.
+ */
+export const MAXIMUM_PROVOKED = MAXIMUM_COMBATANTS;
+/** Everybody on the board, since the mask goes out per combatant — **A11**, **ADR 0051**. */
+export const MAXIMUM_CARRIERS = MAXIMUM_COMBATANTS;
+/**
+ * One row per status the client registers, counted off the frozen table rather than guessed above
+ * it: a tenth status the client adds moves this by itself, where a number typed here would go on
+ * clamping to nine of it.
+ */
+export const MAXIMUM_CARRIED_STATUSES = FROZEN_BUFF_BITS.bits.length;
 /**
  * Past every charge the corpus has ever held at once, which is one — and past the bound
  * `core/charged-skill.ts` already clamps to, so this one only ever repeats that answer.

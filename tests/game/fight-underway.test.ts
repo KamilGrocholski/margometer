@@ -497,3 +497,28 @@ Deno.test("a fight with no payload behind it says nobody is carrying anything", 
     assertExists(reading, "the fight opened");
     assertEquals(reading.carriedStatuses, [], "and states no status for anybody");
 });
+
+/**
+ * ⚠️ **A bonus that fires once a fight fires once a fight, not once a session.** The walk that
+ * holds the two legendary bonuses is kept between payloads like the statuses beside it, so a
+ * fight that opens has to take it away — or somebody who spent their last rescue in one fight
+ * carries `wykorzystany` into every fight after it, and a run of the other one dates from a fight
+ * nobody is in any more.
+ */
+Deno.test("a fight that opens takes the legendary bonuses of the one before it away", () => {
+    const carried = readRecordingPaths().find((path) =>
+        (replay(path)?.legendaryStandings.length ?? 0) > 0
+    );
+    assertExists(carried, "a recording where one of the two bonuses stands at the end");
+    const underway = composeFightUnderway();
+    for (const update of getRecordedEngineUpdates(carried)) {
+        addPayloadToFight(underway, update, BLOWS_GRANTED);
+    }
+    const before = getReadingFromFight(underway);
+    assert((before?.legendaryStandings.length ?? 0) > 0, "the first fight ends holding one");
+    addPayloadToFight(underway, { init: 1, m: ["0;0;txt=a"] }, BLOWS_GRANTED);
+    const after = getReadingFromFight(underway);
+    assertExists(after, "and the fight that opened was read");
+    assertEquals(after.legendaryStandings, [], "the new fight holds none of them");
+    assertEquals(after.carriedStatuses, [], "nor any status, which is reset the same way");
+});

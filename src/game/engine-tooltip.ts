@@ -32,8 +32,12 @@ export interface TooltipWriting {
     asked: number;
 }
 
-/** Past the rows one block has come to, and stated where they cross out of this program. */
-const MAXIMUM_ROWS_WRITTEN = 12;
+/**
+ * Past the rows one block has come to, and stated where they cross out of this program. Spelled
+ * here rather than imported, because `game/` reaches into no `ui/` module — and held level with
+ * the composer's own bound by `tests/game/engine-tooltip.test.ts`, which can import both.
+ */
+export const MAXIMUM_ROWS_WRITTEN = 20;
 
 /** A jQuery object of the client's, narrowed to the two calls this file makes of it. */
 interface TooltipTarget {

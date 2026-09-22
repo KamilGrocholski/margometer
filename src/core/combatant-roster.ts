@@ -26,7 +26,10 @@ export interface CombatantRoster {
     idByName: ReadonlyMap<string, number | null>;
 }
 
-/** A side holds at most ten, so a fight holds twenty. The largest in `captures/` is 11. */
+/**
+ * **The published help states it outright**: _do 20 Graczy, po 10 Graczy w każdej z drużyn_
+ * (article `view,372`, read 2026-09-15). The corpus reaches eleven — `docs/captured-fights.md`.
+ */
 export const MAXIMUM_COMBATANTS = 20;
 /**
  * How many times one call may be handed somebody. **The bound above counts people and this counts
