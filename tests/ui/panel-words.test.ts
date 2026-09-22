@@ -15,6 +15,7 @@ import {
     assertStringIncludes,
 } from "@std/assert";
 import { isCommentLine } from "@/tests/source-line.ts";
+import type { ChargedSkillState } from "@/src/core/charged-skill.ts";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import {
@@ -23,6 +24,7 @@ import {
     CHOICE_REFUSED_ANSWER,
     composeCardSubtitleText,
     composeChargedRowsText,
+    composeChargedSkillSubtitle,
     composeCountedNoun,
     composeDefectText,
     composeDestroyedText,
@@ -33,11 +35,11 @@ import {
     composeNoParameterRowSuspicion,
     composeNoParameterSuspicion,
     composePlaceWords,
+    composeRemainingTurnsText,
     composeShareText,
     composeShareTexts,
     composeShelfSizeText,
     composeSideCountsText,
-    composeStandingTurnsText,
     composeTooltipRows,
     composeTurnOrdinalText,
     composeUndrawnText,
@@ -54,6 +56,7 @@ import {
     EVERY_SLOT_PINNED_ANSWER,
     getNoteForCaveat,
     getWordsForCardMetric,
+    getWordsForChargedSkill,
     getWordsForDamageKind,
     getWordsForDirection,
     getWordsForHealthSource,
@@ -141,8 +144,15 @@ const GAME_KEYS = getUnmistakableKeys();
 /** What a count in these sentences is stated out of. Any figure past the counts below will do. */
 const SAID_OUT_OF = 412;
 
-/** Every table of words the module exports, walked for its values rather than named one by one. */
-const TABLES = [
+/**
+ * Every table of words the module exports, walked for its values rather than named one by one.
+ *
+ * **Written as a record so each table carries its own name**, which is what the holder check at
+ * the foot of this file holds the source reader to. A list of values knows none, and the reader
+ * was then held by a count instead — a floor of forty against fifty-eight declarations, which a
+ * reader finding only the tables without an underscore would have walked straight past.
+ */
+const TABLES = {
     CARD_WORDS,
     DEFENCE_WORD_BY_KEY,
     ELEMENT_WORD_BY_KEY,
@@ -152,7 +162,7 @@ const TABLES = [
     PROC_WORD_BY_KEY,
     PROFESSION_WORD_BY_KEY,
     STANDING_WORDS,
-];
+};
 
 /**
  * Every member of a closed set, with the compiler counting them: a literal list of four states
@@ -175,6 +185,11 @@ const PANEL_OUTCOMES = getEveryKey<PanelOutcome>({
     lost: true,
     drawn: true,
     fled: true,
+});
+const CHARGED_STATES = getEveryKey<ChargedSkillState>({
+    charging: true,
+    struck: true,
+    broken: true,
 });
 
 function getSentences(): string[] {
@@ -211,7 +226,7 @@ function getSentences(): string[] {
     // Measured 2026-09-18 by putting `oth_dmg` into the first worded value of every table in
     // `src/ui/panel-words.ts` and running this file: all but one lit, and the one that did not
     // is `CLIENT_ID_BY_UNWORDED_KEY`, which `HOLDS_NO_WORD` excuses by name.
-    for (const table of TABLES) {
+    for (const table of Object.values(TABLES)) {
         for (const words of Object.values(table)) found.push(String(words));
     }
     for (const [statistic, held] of Object.entries(DESTROYED_WORD_BY_KEY)) {
@@ -280,6 +295,42 @@ function getSentencesFromChoices(): string[] {
     }
     found.push(composeSideCountsText([4, 4], 2), composeShelfSizeText([4, 4]));
     found.push(String(composeCardSubtitleText("w", 120, "reader")));
+    found.push(...getSentencesFromTooltip());
+    // ⚠️ **Both ends of a charge, because one of them hid behind the card.** `przerwane` reached
+    // no check at all and `wykonane` passed as a tail of `Tury wykonane`, which is the shape the
+    // holder check below no longer accepts (**ADR 0109**).
+    for (const state of CHARGED_STATES) {
+        found.push(getWordsForChargedSkill(state));
+        found.push(composeChargedSkillSubtitle("Cios", state));
+    }
+    return found;
+}
+
+/**
+ * ⚠️ **The rows the add-on writes into the game's own tooltip, which no table above reaches.**
+ * `TOOLTIP_WORDS` is not exported and a walk over the exported tables read none of it; measured
+ * 2026-09-22 by putting `oth_dmg` into each of its values and running this file, which lit
+ * nothing. A reader meets these words outside the panel, so **L3** has more to hold here, not
+ * less.
+ *
+ * **The client is stubbed rather than left null.** Asked nothing, a row falls back to the key as
+ * the game wrote it — **ADR 0024**'s third rung — and a key is exactly what the check below
+ * forbids, so a null here would flag the one thing this module is allowed to do.
+ */
+function getSentencesFromTooltip(): string[] {
+    const said = (id: string): string => (id.length > 0 ? "Efekt" : "");
+    const found: string[] = [];
+    for (const bit of [3, 4]) {
+        found.push(...composeTooltipRows({
+            ...NOTHING_CARRIED,
+            turnsTaken: 14,
+            provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
+            provokes: 2,
+            statuses: [{ bit, turnsElapsed: 38, percent: 39, length: null }],
+            holytouchTurnsElapsed: 1,
+            hasSpentLastheal: true,
+        }, said));
+    }
     return found;
 }
 
@@ -361,9 +412,9 @@ Deno.test("the add-on names itself once, however many rows it has", () => {
 
 /**
  * ⚠️ **A figure stands only where `core/carried-figure.ts` said one may.** Null is the common
- * answer and the row is then what it always was — the status, and how long it has stood.
+ * answer, and the row is then the status with whatever length may be said of it.
  */
-Deno.test("a status with no figure to its name says how long it has stood and no more", () => {
+Deno.test("a status with no figure to its name says no share beside it", () => {
     const bare = composeTooltipRows({
         ...NOTHING_CARRIED,
         statuses: [{ bit: 6, turnsElapsed: 3, percent: null, length: null }],
@@ -374,6 +425,100 @@ Deno.test("a status with no figure to its name says how long it has stood and no
         statuses: [{ bit: 6, turnsElapsed: 3, percent: 39, length: null }],
     }, null);
     assertStringIncludes(figured[1] ?? "", "39%", "and the figure where one may");
+});
+
+/**
+ * **The bits the published help dates, by the name the client registers them under** — `poisoned`
+ * at 3 and `wound` at 1 in `frozen/buff-bits.ts`.
+ *
+ * ⚠️ **Past the length the effect was certainly applied again**, and no wire says when
+ * (**ADR 0109**). The row goes on counting down at the floor rather than stopping: at least one
+ * turn is left while the bit is lit, and the mask's own count never reaches the row.
+ */
+Deno.test("a status that outran its length still says what is certainly left", () => {
+    for (const bit of [1, 3]) {
+        const said = composeTooltipRows({
+            ...NOTHING_CARRIED,
+            statuses: [{ bit, turnsElapsed: 38, percent: null, length: null }],
+        }, null);
+        assertStringIncludes(said[1] ?? "", "1 z 5 tur", "the floor, which never overstates");
+        assertEquals(said[1]?.includes("38"), false, "and the count off the mask does not");
+    }
+});
+
+/**
+ * **What a player asked for, and what the evidence allows.** Inside the published length the
+ * subtraction is the whole answer: five turns of their own, less the ones that have passed.
+ *
+ * ⚠️ **W5: the boundary is the interesting end**, and here it is where the count reaches the
+ * length. One turn short of it a turn is still left; at it, the effect has outlived one
+ * application and the row stops counting down.
+ */
+Deno.test("a status inside its published length counts down to what is left", () => {
+    const said = (elapsed: number): string =>
+        composeTooltipRows({
+            ...NOTHING_CARRIED,
+            statuses: [{ bit: 3, turnsElapsed: elapsed, percent: null, length: null }],
+        }, null)[1] ?? "";
+    assertStringIncludes(said(0), "5 z 5 tur", "just applied, the whole of it is still to come");
+    assertStringIncludes(said(4), "1 z 5 tur", "and one turn short of the length, one is left");
+    assertStringIncludes(
+        said(5),
+        "1 z 5 tur",
+        "at the length it holds the floor rather than nought",
+    );
+    assertStringIncludes(said(99), "1 z 5 tur", "and however long it has been renewed for");
+});
+
+/**
+ * The one reading every counted length carries since **ADR 0109**, and the two ends it refuses.
+ * A remainder **below** nought and one past the length are both a subtraction somebody got
+ * backwards — neither is a figure, so neither is drawn as one. Nought itself is a remainder: a
+ * shout holds somebody through the turn its length runs out on.
+ */
+Deno.test("a counted length says what is left, and refuses what is not a remainder", () => {
+    assertEquals(composeRemainingTurnsText(1, 5), "1 z 5 tur", "one turn left of five");
+    assertEquals(composeRemainingTurnsText(5, 5), "5 z 5 tur", "and the whole of it at the start");
+    assertEquals(composeRemainingTurnsText(0, 5), "0 z 5 tur", "and none left is a remainder");
+    assertEquals(composeRemainingTurnsText(-1, 5), PANEL_WORDS.unknown, "below none is not");
+    assertEquals(composeRemainingTurnsText(6, 5), PANEL_WORDS.unknown, "nor more than there was");
+    assertEquals(composeRemainingTurnsText(1, 3), "1 z 3 tur", "never `3 tury`");
+    assertEquals(composeRemainingTurnsText(3, 8), "3 z 8 tur", "and the form past four is unmoved");
+});
+
+/**
+ * ⚠️ **38 turns of a five-turn effect is what a reader saw**, and the mechanism is the help's:
+ * a later hit extends poison rather than stacking beside it, so a run of applications lit one bit
+ * without ever making a second 0→1 edge. The figure was true of our watching and of nothing in
+ * the fight, so no bit carries one now.
+ */
+Deno.test("a status nothing dates carries no count at all, however long we have seen it", () => {
+    for (const bit of [0, 2, 4, 8]) {
+        const said = composeTooltipRows({
+            ...NOTHING_CARRIED,
+            statuses: [{ bit, turnsElapsed: 38, percent: null, length: null }],
+        }, null);
+        assertEquals(said.length, 2, "the name, and the status under it");
+        assertEquals(said[1]?.includes("tur"), false, "and no length where none is published");
+    }
+});
+
+/**
+ * A cast over this bearer outranks the ceiling: it dates the standing effect rather than bounding
+ * it, so the row says how far through it is.
+ */
+Deno.test("an announcement still wins over the length the help states", () => {
+    const said = composeTooltipRows({
+        ...NOTHING_CARRIED,
+        statuses: [{
+            bit: 3,
+            turnsElapsed: 38,
+            percent: null,
+            length: { turnsElapsed: 2, turnsStated: 5 },
+        }],
+    }, null);
+    assertStringIncludes(said[1] ?? "", "3 z 5 tur", "what is left of it on them");
+    assertEquals(said[1]?.includes("najwy\u017cej"), false, "and never the ceiling beside it");
 });
 
 /**
@@ -392,7 +537,11 @@ Deno.test("a status a cast dates says how far through it is, not how long we hav
             length: { turnsElapsed: 0, turnsStated: 8 },
         }],
     }, null);
-    assertStringIncludes(dated[1] ?? "", "0 z 8 tur", "nought of eight, and never a bare nought");
+    assertStringIncludes(
+        dated[1] ?? "",
+        "8 z 8 tur",
+        "all eight still to run, and never a bare nought",
+    );
 });
 
 /**
@@ -404,10 +553,31 @@ Deno.test("a status a cast dates says how far through it is, not how long we hav
 Deno.test("a status nothing dates, just lit, says no length at all", () => {
     const said = composeTooltipRows({
         ...NOTHING_CARRIED,
-        statuses: [{ bit: 6, turnsElapsed: 0, percent: null, length: null }],
+        statuses: [{ bit: 6, turnsElapsed: 3, percent: null, length: null }],
     }, null);
     assertEquals(said.length, 2, "the name, and the status still said under it");
     assertEquals(said[1]?.includes("0"), false, "and no count of nought is said beside it");
+});
+
+/**
+ * ⚠️ **A block is read down its left edge**, so a row that names a thing and then says something
+ * about it is punctuated the same way in every row that does it. The legendary pair ran the name
+ * into the figure and the rows above them did not — found by drawing the whole block, which is
+ * the only place they stand together.
+ */
+Deno.test("every row that names a thing and qualifies it is punctuated alike", () => {
+    const said = composeTooltipRows({
+        ...NOTHING_CARRIED,
+        provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
+        statuses: [{ bit: 3, turnsElapsed: 1, percent: null, length: null }],
+        holytouchTurnsElapsed: 1,
+        hasSpentLastheal: true,
+    }, null);
+    const carrying = said.filter((row) => row.includes(" tur") || row.includes("wykorzystany"));
+    assertEquals(carrying.length, 4, "the okrzyk, the status and both legendary bonuses");
+    for (const row of carrying) {
+        assertStringIncludes(row, STANDING_WORDS.castSeparator, `${row} stands its parts apart`);
+    }
 });
 
 /** The okrzyk from either end: what holds somebody, and how many somebody holds. */
@@ -417,7 +587,11 @@ Deno.test("a provocation is said at the end it is read from", () => {
         provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
     }, null);
     assertStringIncludes(held[1] ?? "", "Gracz 2", "the held fighter is told who holds them");
-    assertStringIncludes(held[1] ?? "", "1 z 3 tur", "and how far through their own turns it is");
+    assertStringIncludes(
+        held[1] ?? "",
+        "2 z 3 tur",
+        "and how many of their own turns it still has",
+    );
     const shouting = composeTooltipRows({ ...NOTHING_CARRIED, provokes: 10 }, null);
     assertStringIncludes(shouting[1] ?? "", "10 postaci", "the shouter is told how many, not whom");
 });
@@ -508,6 +682,7 @@ function getLineTexts(line: string): string[] {
     const found: string[] = [];
     let quote = "";
     let held = "";
+    let opened = 0;
     let index = 0;
     while (index < line.length) {
         const character = line.charAt(index);
@@ -517,7 +692,7 @@ function getLineTexts(line: string): string[] {
         }
         if (quote !== "") {
             if (character === quote) {
-                found.push(held);
+                if (!isKeyAt(line, opened, index + 1)) found.push(held);
                 held = "";
                 quote = "";
             } else {
@@ -529,10 +704,34 @@ function getLineTexts(line: string): string[] {
         if (character === "/") {
             if (line.charAt(index + 1) === "/") break;
         }
-        if (QUOTES.includes(character)) quote = character;
+        if (QUOTES.includes(character)) {
+            quote = character;
+            opened = index;
+        }
         index += 1;
     }
     return found;
+}
+
+/**
+ * ⚠️ **A quoted key is not a word, and two tables are nothing but quoted keys.**
+ * `PROC_WORD_BY_KEY` is written `"+crit": "krytyk"`, so a walk over its lines finds the game's
+ * own keys beside the panel's words — and a check asking that every text be read would ask the
+ * panel to say `+of_woundpoison` to somebody.
+ *
+ * A key is told from a value by **both** ends of it: nothing but indentation before it, and a
+ * colon after it. The colon alone is not enough, and the sample beside this reader is why —
+ * `isHeld ? "tak" : "nie"` puts one after a branch that is a word somebody reads. `deno fmt`
+ * writes one entry to a line here, which is what makes the opening end readable at all.
+ */
+function isKeyAt(line: string, open: number, close: number): boolean {
+    if (line.slice(0, open).trim().length > 0) return false;
+    for (let look = close; look < line.length; look += 1) {
+        const character = line.charAt(look);
+        if (character === ":") return true;
+        if (character !== " ") return false;
+    }
+    return false;
 }
 
 /** A text somebody could read: two characters with a letter among them, and no hole in it. */
@@ -571,20 +770,40 @@ Deno.test("every word the module holds reaches the checks above, or says why it 
     const holders = getWordHolders(Deno.readTextFileSync("src/ui/panel-words.ts"));
     const said = getSentences().join("\n");
     const unread: string[] = [];
-    let holding = 0;
     for (const [name, texts] of holders) {
         if (texts.length === 0) continue;
-        holding += 1;
         if (name in HOLDS_NO_WORD) continue;
-        if (texts.some((text) => said.includes(text))) continue;
+        if (texts.every((text) => said.includes(text))) continue;
         unread.push(name);
     }
-    assert(holding > 40, `the module holds words, and this found ${holding} declarations of them`);
+    // ⚠️ **The reader is held by name and not by a count.** A floor said the module holds more
+    // than forty declarations of words, and it held fifty-eight — so a reader that had stopped
+    // finding a third of them was still above it. Every table this file walks is a declaration
+    // the reader must have found, and a reader that loses one is named for the one it lost.
+    const missing = Object.keys(TABLES).filter((name) => !holders.has(name));
+    assertEquals(missing, [], "a table this file walks is a declaration the source reader missed");
     assertEquals(unread, [], "a word neither check reads is a word neither check holds");
     // The other way round: a register that outlives what it excuses goes on excusing something.
     for (const name of Object.keys(HOLDS_NO_WORD)) {
         assert(holders.has(name), `${name} is excused above and the module no longer has it`);
     }
+});
+
+/**
+ * The reader that tells a key from a value, proved by a sample it must skip **and** a sample it
+ * must not — the second is the one that matters, because a reader skipping too much would drop
+ * a word out of the check above without dropping its holder, and the holder would go on passing.
+ */
+Deno.test("a quoted key is skipped and the value beside it is not", () => {
+    const line = `    "+of_woundpoison": "głęboka rana",`;
+    const held = getLineTexts(line);
+    assertEquals(held, ["głęboka rana"], "the value is read and the key it is filed under is not");
+    assertEquals(getLineTexts(`    spent: "wykorzystany",`), ["wykorzystany"], "an unquoted key");
+    assertEquals(getLineTexts(`const SEPARATOR = "·";`), ["·"], "a lone value is still read");
+    assertEquals(isReadableText("·"), false, "and the check beside this one is what drops it");
+    // ⚠️ **The colon has to be the next thing that is not a space.** A value standing before
+    // one — a ternary, an object closing on the same line — is a word somebody reads.
+    assertEquals(getLineTexts(`    at: isHeld ? "tak" : "nie",`), ["tak", "nie"], "both branches");
 });
 
 Deno.test("a count is spelled the three ways Polish spells one", () => {
@@ -811,9 +1030,6 @@ Deno.test("a count under a word governing the genitive takes the genitive", () =
         "2 z 5 uleczeń",
         "and past four the two forms agree, which is what hid this",
     );
-    // The same word one window over, whose own docblock always said `3 z 8 tur`.
-    assertEquals(composeStandingTurnsText(1, 3), "1 z 3 tur", "never `3 tury`");
-    assertEquals(composeStandingTurnsText(3, 8), "3 z 8 tur", "and the form past four is unmoved");
     // A denominator of one wants the genitive singular, which this vocabulary does not carry —
     // and says nothing the count has not, so the sentence states the count alone.
     assertStringIncludes(

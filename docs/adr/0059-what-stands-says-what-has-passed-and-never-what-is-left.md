@@ -1,6 +1,6 @@
 # 0059. What stands says what has passed, and never what is left
 
-- **Status:** Superseded by 0101 in part, and by 0108 in part
+- **Status:** Superseded by 0101 in part, by 0108 in part, and by 0109 in part
 - **Date:** 2026-09-08
 
 ## Context

@@ -168,7 +168,8 @@ edited to agree with the new rule.
 - [0058](0058-the-skill-table-is-a-frozen-reading.md) — The skill table is a frozen reading, and the
   descriptions stay out. **Accepted**
 - [0059](0059-what-stands-says-what-has-passed-and-never-what-is-left.md) — What stands says what
-  has passed, and never what is left. **Superseded by 0101 in part, and by 0108 in part**
+  has passed, and never what is left. **Superseded by 0101 in part, by 0108 in part, and by 0109 in
+  part**
 - [0060](0060-a-grip-says-which-window-it-drags.md) — A grip says which window it drags.
   **Accepted**
 - [0061](0061-a-cast-stands-on-a-side-and-names-only-whom-the-game-names.md) — A cast stands on a
@@ -260,7 +261,8 @@ edited to agree with the new rule.
 - [0103](0103-a-shout-runs-on-the-turns-of-whoever-it-holds.md) — A shout runs on the turns of
   whoever it holds, and the figure sits on their row. **Accepted**
 - [0104](0104-what-somebody-carries-is-read-off-the-mask-and-names-no-cast.md) — What somebody
-  carries is read off the mask, and names no cast. **Superseded by 0108 in part**
+  carries is read off the mask, and names no cast. **Superseded by 0108 in part, and by 0109 in
+  part**
 - [0105](0105-one-line-is-written-where-the-game-already-draws-one.md) — One line is written where
   the game already draws one. **Superseded by 0107 in part**
 - [0106](0106-a-shout-reaches-the-side-it-provokes.md) — A shout reaches the side it provokes.
@@ -269,3 +271,5 @@ edited to agree with the new rule.
   **Accepted**
 - [0108](0108-what-is-true-of-one-fighter-is-said-on-that-fighter.md) — What is true of one fighter
   is said on that fighter. **Accepted**
+- [0109](0109-a-status-says-the-length-the-help-gives-it.md) — A status says the length the help
+  gives it, and nothing where the help gives none. **Accepted**

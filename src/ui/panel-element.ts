@@ -74,9 +74,9 @@ import {
     composeChargedSkillSubtitle,
     composeChargedSkillTurnsText,
     composeFigureText,
+    composeRemainingTurnsText,
     composeShelfSizeText,
     composeSideCountsText,
-    composeStandingTurnsText,
     composeTurnOrdinalText,
     composeUndrawnText,
     composeUsesText,
@@ -977,7 +977,10 @@ function composeProvokedElements(
                 skillName: provocation.skillName,
                 colour: held.colour,
                 sidePart: held.sidePart,
-                turns: composeStandingTurnsText(held.turnsElapsed, held.turnsStated),
+                turns: composeRemainingTurnsText(
+                    held.turnsStated - held.turnsElapsed,
+                    held.turnsStated,
+                ),
                 turnsCaveat: null,
                 isUnder: true,
             }));
@@ -1019,7 +1022,7 @@ function composeStandingPersonTipReading(person: StandingPerson): TipReading {
     }
     const stated: TipLine = {
         kind: "stat",
-        label: STANDING_WORDS.turnsPassed,
+        label: STANDING_WORDS.turnsLeft,
         stated: person.turns,
         isStrong: false,
         caveat: person.turnsCaveat,

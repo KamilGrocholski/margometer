@@ -19,7 +19,11 @@ import {
     NO_TURN_STANDING,
     type TurnStanding,
 } from "@/src/core/fight-statistics.ts";
-import { composeCarriedTurnsText, getWordsForStatusBit } from "@/src/ui/panel-words.ts";
+import {
+    composeCountedNoun,
+    COUNTED_NOUNS,
+    getWordsForStatusBit,
+} from "@/src/ui/panel-words.ts";
 import { readStatedIdsFromPayload } from "@/src/game/engine-warrior.ts";
 import { FROZEN_BUFF_BITS } from "@/frozen/buff-bits.ts";
 import { PLACE, SHAPE, SPACE, SURFACE, TEXT } from "@/src/ui/panel-look.ts";
@@ -86,13 +90,16 @@ function setClockPastEvent(clock: TurnClock, event: BattleEvent): void {
 /** One combatant's open run of the effect, kept while the corpus says it is still standing. */
 /**
  * The one line the add-on wrote into a tooltip **on the date this round was taken**, composed
- * here because the shipped composer now writes a row at a time. Same words, same separators, so
- * the figure below stays comparable with what was measured then.
+ * here because the shipped composer now writes a row at a time, and since **ADR 0109** writes
+ * no count off the mask at all. Same words, same separators, so the figure below stays
+ * comparable with what was measured then.
  */
 function composeLineAsMeasured(statuses: readonly { bit: number; turnsElapsed: number }[]): string {
     assert(statuses.length >= 0, "a line is composed of what somebody carries");
     const said = statuses.map((one) =>
-        `${getWordsForStatusBit(one.bit, null)} ${composeCarriedTurnsText(one.turnsElapsed)}`
+        `${getWordsForStatusBit(one.bit, null)} ${
+            composeCountedNoun(one.turnsElapsed, COUNTED_NOUNS.turns)
+        }`
     );
     assert(said.length === statuses.length, "and says one thing about each of them");
     if (said.length === 0) return "";

@@ -20,6 +20,7 @@ import type { PanelNoun, PanelSideChoice, PanelStorageChoice } from "@/src/ui/pa
 import type { PanelSidePart } from "@/src/ui/panel-reading.ts";
 import type { StandingTurnState } from "@/src/ui/panel-standing.ts";
 import type { ChargedSkillState } from "@/src/core/charged-skill.ts";
+import { TURNS_STATED_BY_STATUS_NAME } from "@/src/core/carried-status.ts";
 import { HOLYTOUCH_TURNS_STATED } from "@/src/core/legendary-standing.ts";
 
 export interface CountedNoun {
@@ -777,26 +778,20 @@ export const STANDING_WORDS = {
      * `Minęło · 2 z 3 tur`.
      */
     turnsPassed: "Minęło",
+    /**
+     * What a length **this panel** counts says instead, since **ADR 0109**: the figure beside it
+     * is what is left, not what has gone. `turnsPassed` stays for the charge, whose pair is the
+     * client's own and is restated rather than counted.
+     */
+    turnsLeft: "Zostało",
     /** The game's own name for it, taken from the client's own label — **N13**, **L2**. */
     chargedSkill: "Cios specjalny",
 } as const;
 
 /**
- * `3 tury` — what has passed and **never of what**, because the game states no length for a
- * status. The section above it draws an elapsed of a stated total; this one has no total to
- * draw, and a fraction with a denominator nobody published would be the invention **ADR 0104**
- * exists to refuse.
- */
-export function composeCarriedTurnsText(elapsed: number): string {
-    if (!Number.isSafeInteger(elapsed)) return PANEL_WORDS.unknown;
-    if (elapsed < 0) return PANEL_WORDS.unknown;
-    return composeCountedNoun(elapsed, COUNTED_NOUNS.turns);
-}
-
-/**
  * One status on one fighter. `length` is how far through the cast standing over them is, counted
- * on **their** turns; `turnsElapsed` is the mask's own count, which is what stands where no cast
- * dates it. The two are different readings and the row draws the better one it has.
+ * on **their** turns, and null where no announcement dates it. `turnsElapsed` is the mask's own
+ * count, which is what the help's own length is counted down from (**ADR 0109**).
  */
 export interface TooltipStatus {
     bit: number;
@@ -878,7 +873,10 @@ function addTurnsRow(said: string[], reading: TooltipReading): void {
 function addProvocationRows(said: string[], reading: TooltipReading): void {
     const held = reading.provokedBy;
     if (held !== null) {
-        const passed = composeStandingTurnsText(held.turnsElapsed, held.turnsStated);
+        const passed = composeRemainingTurnsText(
+            held.turnsStated - held.turnsElapsed,
+            held.turnsStated,
+        );
         said.push(
             `${TOOLTIP_WORDS.provokedBy} ${held.name} ` +
                 `${STANDING_WORDS.castSeparator} ${passed}`,
@@ -892,7 +890,7 @@ function addProvocationRows(said: string[], reading: TooltipReading): void {
 /**
  * ⚠️ **A figure stands beside a status only where one may be said of this bearer** — which is
  * `core/carried-figure.ts`'s answer and null far more often than not. Where it is null the row
- * is what it always was: the status, and how long it has stood.
+ * is the status, with whatever length may be said of it and nothing where none may.
  */
 function addStatusRows(
     said: string[],
@@ -901,9 +899,10 @@ function addStatusRows(
 ): void {
     for (const status of statuses) {
         if (said.length >= MAXIMUM_TOOLTIP_ROWS) break;
+        const name = FROZEN_BUFF_BITS.bits[status.bit];
         const word = getWordsForStatusBit(status.bit, translate);
         const percent = status.percent === null ? "" : ` ${composeIntegerText(status.percent)}%`;
-        const stood = getStatusStoodText(status);
+        const stood = getStatusStoodText(status, name);
         if (stood === null) {
             said.push(`${word}${percent}`);
             continue;
@@ -913,32 +912,51 @@ function addStatusRows(
 }
 
 /**
- * How long it has stood, or null where nothing true can be said of it yet.
- *
- * ⚠️ **The mask's own count is the fallback and not the answer.** A bit lights when a payload
- * first restates the bearer carrying it, which is turns after the cast where they were not
- * restated at the time, and it keeps burning through a re-cast — so it answers *how long we have
- * seen this*, and the fraction answers *how far through it is on them* (`core/carried-figure.ts`).
+ * What is left of it, or null where nothing may be said — three answers in the order of what each
+ * rests on: an announcement over this bearer, the length the published help gives the status, and
+ * nothing. **ADR 0109**, which is also why the mask's own count is none of the three.
  */
-function getStatusStoodText(status: TooltipStatus): string | null {
+function getStatusStoodText(status: TooltipStatus, name: string | undefined): string | null {
     const length = status.length;
-    if (length !== null) return composeStandingTurnsText(length.turnsElapsed, length.turnsStated);
-    // ⚠️ **Nothing rather than nought.** `0 tur` off the mask says the bit lit on a turn the
-    // bearer has not finished, and a reader outside the panel takes it for none left. Where no
-    // cast dates the status there is nothing true to put in its place, so the row says the
-    // status and stops.
-    if (status.turnsElapsed === 0) return null;
-    return composeCarriedTurnsText(status.turnsElapsed);
+    if (length !== null) {
+        return composeRemainingTurnsText(
+            length.turnsStated - length.turnsElapsed,
+            length.turnsStated,
+        );
+    }
+    if (name === undefined) return null;
+    const stated = TURNS_STATED_BY_STATUS_NAME[name];
+    if (stated === undefined) return null;
+    // ⚠️ **A floor, and never an estimate.** A re-application extends the effect and makes no
+    // edge the mask can see, so the count can outrun the length — measured over `captures/` on
+    // 2026-09-22 it has, in 61.2% of the moments the poison bit was lit, and closed runs reach
+    // 26 of a bearer's turns against the five the help gives one application. What is certain
+    // while the bit is lit is that **at least one** turn is left, and that what is left is never
+    // more than the published length. Both ends are held here, and the figure only ever
+    // understates — the other direction is what would make it a number nobody can trust.
+    const left = stated - status.turnsElapsed;
+    if (left < 1) return composeRemainingTurnsText(1, stated);
+    return composeRemainingTurnsText(left, stated);
 }
 
+/**
+ * ⚠️ **A row naming a thing and then saying something about it carries the separator**, the way a
+ * status and a provocation do. Without it `Dotyk anioła 2 z 3 tur` runs the name into the figure
+ * and reads as one phrase, while the rows above it read as two — measured by eye over a drawn
+ * block, 2026-09-22, which is the only place the whole set stands together.
+ */
 function addLegendaryRows(said: string[], reading: TooltipReading): void {
     const elapsed = reading.holytouchTurnsElapsed;
+    const apart = STANDING_WORDS.castSeparator;
     if (elapsed !== null) {
-        const passed = composeStandingTurnsText(elapsed, HOLYTOUCH_TURNS_STATED);
-        said.push(`${TOOLTIP_WORDS.holytouch} ${passed}`);
+        const left = composeRemainingTurnsText(
+            HOLYTOUCH_TURNS_STATED - elapsed,
+            HOLYTOUCH_TURNS_STATED,
+        );
+        said.push(`${TOOLTIP_WORDS.holytouch} ${apart} ${left}`);
     }
     if (!reading.hasSpentLastheal) return;
-    said.push(`${TOOLTIP_WORDS.lastheal} ${TOOLTIP_WORDS.spent}`);
+    said.push(`${TOOLTIP_WORDS.lastheal} ${apart} ${TOOLTIP_WORDS.spent}`);
 }
 
 function getRowCarriesMarkup(row: string): boolean {
@@ -1075,14 +1093,19 @@ export function composeTurnOrdinalText(ordinal: number): string {
 }
 
 /**
- * `3 z 8 tur` — what has passed of what the game publishes, and never a countdown. The protocol
- * announces a cast and never mentions it again, so the subtraction is the reader's.
+ * `1 z 5 tur` — what is **left** of a length the game publishes, and the one reading every counted
+ * length here carries. **ADR 0109**, turning over the half of **ADR 0059** that drew the other.
+ *
+ * ⚠️ **Nought is a remainder and is drawn.** A shout stands while its turns are `<=` what the
+ * table gives it (`core/aura-standing.ts`), so a held character's last turn arrives as none left.
+ * The other end from **ADR 0104**'s `0 tur`, where nought was a bit just lit.
  */
-export function composeStandingTurnsText(elapsed: number, stated: number): string {
-    if (!Number.isSafeInteger(elapsed)) return PANEL_WORDS.unknown;
+export function composeRemainingTurnsText(remaining: number, stated: number): string {
+    if (!Number.isSafeInteger(remaining)) return PANEL_WORDS.unknown;
     if (!Number.isSafeInteger(stated)) return PANEL_WORDS.unknown;
-    if (elapsed < 0) return PANEL_WORDS.unknown;
-    return `${composeIntegerText(elapsed)} z ${composeGenitiveNoun(stated, COUNTED_NOUNS.turns)}`;
+    if (remaining < 0) return PANEL_WORDS.unknown;
+    if (remaining > stated) return PANEL_WORDS.unknown;
+    return `${composeIntegerText(remaining)} z ${composeGenitiveNoun(stated, COUNTED_NOUNS.turns)}`;
 }
 
 export function getWordsForPin(isPinned: boolean): string {
