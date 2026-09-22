@@ -39,6 +39,8 @@ export const PREVIEW_INSTALL_OPENING = `<header class="preview-install">`;
  * guard read one list, and a fourth piece cannot arrive without both of them seeing it.
  */
 export const PREVIEW_FURNITURE = ["preview-intro", "preview-strip", "preview-tips"] as const;
+/** How wide the column of what landed in the tooltips stands where it stands beside something. */
+export const PREVIEW_TIPS_WIDTH_PIXELS = 272;
 /** Past which nobody reads as far as the button — **S11**. */
 /**
  * What must be true before the button, and no more than a person reads standing up. The band
@@ -131,9 +133,8 @@ export interface PreviewWords {
      */
     playing: string;
     /**
-     * The heading over the column of what the add-on writes into the game's own tooltips. Drawn
-     * on a served page only: a published one has a band and two halves already, and this is a
-     * thing a person editing `src/` looks at.
+     * The heading over the column of what the add-on writes into the game's own tooltips. A
+     * published page has no fighter to point at, so without it a visitor never sees them.
      */
     tooltips: string;
 }
@@ -243,13 +244,15 @@ export function composePreviewPage(options: PreviewPageOptions): string {
         ? ""
         : `<p class="preview-intro">${options.introduction}</p>`;
     const band = options.install === null ? "" : composePreviewInstall(options.install);
+    const tips = composePreviewTooltips(options.words);
     // The two halves are the published page's, and only its: a served page carries no band, so
     // there is nothing to put on the left and the panel keeps the whole window it is judged in.
     const said = options.install === null
-        ? `${composePreviewTooltips(options.words)}${band}
+        ? `${tips}${band}
 ${introduction}`
         : `<main class="preview-split"><div class="preview-said">${band}
-${introduction}</div><div class="preview-stage"></div></main>`;
+${introduction}</div><div class="preview-stage"></div></main>
+${tips}`;
     return `<!doctype html>
 <html lang="${options.words.language}">
 <head>
@@ -257,7 +260,7 @@ ${introduction}</div><div class="preview-stage"></div></main>`;
 <title>${options.words.title} — ${options.fightName}</title>
 <style>
 ${composePreviewStyle()}
-${options.install === null ? composePreviewTooltipsStyle() : ""}
+${options.install === null ? composePreviewTooltipsStyle() : composePreviewTooltipsPlacedStyle()}
 </style>
 </head>
 <body>
@@ -391,14 +394,36 @@ function composeSplitStyle(): string {
  */
 /**
  * The column of what landed in the game's own tooltips, kept apart from the sheet above because
- * a served page draws it and a published one never does.
+ * the two pages stand it in two places.
  */
 function composePreviewTooltipsStyle(): string {
-    const sheet = `/* Left, because the panel and the window beside it open at the right and a
+    const sheet = `${composePreviewTipsCardStyle()}
+/* Left, because the panel and the window beside it open at the right and a
    reader drags them about that side. */
-.preview-tips { position: fixed; left: 0; top: 44px; bottom: 0; width: 272px; z-index: 8900;
+.preview-tips { left: 0; top: 44px; bottom: 0; width: ${PREVIEW_TIPS_WIDTH_PIXELS}px;
+  border-width: 0 1px 0 0; }
+`;
+    assertStringIncludes(sheet, "left: 0", "a served page keeps the column down its left edge");
+    return sheet;
+}
+
+/**
+ * The published page's column, which its own script stands beside the panel or under both
+ * windows (`tools/preview-site.ts`). Hidden until then, so it never shows in the corner it
+ * would otherwise open in.
+ */
+function composePreviewTooltipsPlacedStyle(): string {
+    const sheet = `${composePreviewTipsCardStyle()}
+.preview-tips { visibility: hidden; border-radius: ${SHAPE.radius}; }
+`;
+    assertStringIncludes(sheet, "visibility: hidden", "the column waits to be placed");
+    return sheet;
+}
+
+function composePreviewTipsCardStyle(): string {
+    const sheet = `.preview-tips { position: fixed; z-index: 8900;
   padding: 10px 12px; overflow-y: auto; box-sizing: border-box;
-  border-right: 1px solid ${SURFACE.border}; background: ${SURFACE.panel}; }
+  border: 1px solid ${SURFACE.border}; background: ${SURFACE.panel}; }
 .preview-tips h2 { margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .06em;
   text-transform: uppercase; color: ${TEXT.quiet}; }
 .preview-tip { margin: 0 0 8px; padding: 6px 8px; border: 1px solid ${SURFACE.border};
@@ -647,7 +672,7 @@ window.Engine = {
  */
 /**
  * The half of the driver that draws what landed in the tooltips. Its own function because the
- * driver is at the line count **S4** allows one, and this is the part a published page never runs.
+ * driver is at the line count **S4** allows one.
  */
 function composePreviewTipsDriver(): string {
     const driver = `

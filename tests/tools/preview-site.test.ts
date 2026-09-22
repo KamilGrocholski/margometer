@@ -301,6 +301,16 @@ Deno.test("a published page puts both windows in the corner the band needs", () 
     assertStringIncludes(landing.text, "setStandingBeside", "and the window beside it follows");
     assertStringIncludes(
         landing.text,
+        "setStandingBeside();\n    setTipsPlaced();",
+        "and the column of tooltips is placed straight after the windows it stands by",
+    );
+    assertStringIncludes(
+        landing.text,
+        "setTipsWatched();",
+        "and placed again when a window grows over it",
+    );
+    assertStringIncludes(
+        landing.text,
         "buttons: 1",
         "by a drag stating a held button, which is the one a window does not read as letting go",
     );

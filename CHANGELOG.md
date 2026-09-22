@@ -47,6 +47,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   podaje, kiedy nałożono efekt ostatni raz.
 - **Nowość** — Przy spowolnieniu i przyspieszeniu dymek podaje też, o ile procent, a tam, gdzie tego
   nie widać, nie podaje nic.
+- **Nowość** — Strona z podglądem pokazuje obok panelu, co dodatek dopisuje w dymku każdej postaci,
+  i zmienia to razem z odtwarzaną walką.
 - **Zmiana** — Licznik tur prowokacji stoi teraz przy każdej sprowokowanej postaci osobno, a nie raz
   przy tym, kto krzyknął.
 - **Zmiana** — Tury wykonane i tury utracone stoją teraz obok siebie w jednej linii, rozdzielone

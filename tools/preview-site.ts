@@ -22,6 +22,7 @@ import {
     PREVIEW_SAID_SELECTOR,
     PREVIEW_SPLIT_SELECTOR,
     PREVIEW_STRIP_SELECTOR,
+    PREVIEW_TIPS_WIDTH_PIXELS,
     type PreviewInstall,
     type PreviewWords,
     SPLIT_FROM_PIXELS,
@@ -46,6 +47,9 @@ const TAKEN_ACROSS = PANEL_INSET + getSheetPixels(PLACE.width) + PANEL_GAP +
 
 /** What the pair stands off the seam by, level with the padding the half beside it carries. */
 const SEAM_GUTTER = 32;
+
+/** Three rows of one fighter under the heading; less than that reads as a column cut off. */
+const LEAST_TIPS_TALL = 140;
 
 /**
  * How long the finished fight stands before the opening replay starts it over. Long enough to read
@@ -79,7 +83,7 @@ const PREVIEW_SITE_WORDS: PreviewWords = {
     pause: "pauza",
     entry: "wpis",
     playing: "odtwarzanie",
-    tooltips: "Dymki",
+    tooltips: "Dymki postaci",
 };
 
 /**
@@ -151,6 +155,8 @@ ${composeWindowsCornered(composeCorneredFrom(), "getStripBelow()")}
 
 ${composeStripAtTop()}
 
+${composeTipsPlaced()}
+
 var setWindowsPlaced = function () {
   var taken = Element.prototype.setPointerCapture;
   var given = Element.prototype.releasePointerCapture;
@@ -161,6 +167,7 @@ var setWindowsPlaced = function () {
     setPageBelowStrip();
     setPanelInCorner();
     setStandingBeside();
+    setTipsPlaced();
   } catch (reason) {
     console.warn("MargoMeter/Preview", reason);
   } finally {
@@ -171,7 +178,61 @@ var setWindowsPlaced = function () {
 
 setWindowsPlaced();
 // A window made narrower leaves the panel at an offset that was a corner in the old one.
-window.addEventListener("resize", setWindowsPlaced);`;
+window.addEventListener("resize", setWindowsPlaced);
+setTipsWatched();`;
+}
+
+/**
+ * The column of what landed in the tooltips, beside the panel where the half has room for it and
+ * under both windows where it has not. The room is read off the panel as it stands rather than
+ * off a width, because the pair is placed by expression and a width written here would be a
+ * second copy of it.
+ *
+ * ⚠️ **The panel grows when a row opens**, and at layer 9999 it covers a column under it, so a
+ * change in either window's size places the column again. A column left less than
+ * `LEAST_TIPS_TALL` of the screen is hidden instead: a heading over a sliver says nothing.
+ */
+function composeTipsPlaced(): string {
+    assert(PREVIEW_TIPS_WIDTH_PIXELS > 0, "the column beside the panel is some width across");
+    assert(LEAST_TIPS_TALL > 0, "and a column shorter than something is not worth drawing");
+    return `var setTipsPlaced = function () {
+  var tips = document.getElementById("preview-tips");
+  if (tips === null) return;
+  var panel = getPanelHost().getBoundingClientRect();
+  var beside = getStandingWindow().getBoundingClientRect();
+  var room = window.innerWidth - panel.right - ${SEAM_GUTTER};
+  var isBeside = room >= ${PREVIEW_TIPS_WIDTH_PIXELS};
+  var top = isBeside ? panel.top : Math.max(panel.bottom, beside.bottom) + ${SEAM_GUTTER / 2};
+  var left = isBeside ? panel.right + ${SEAM_GUTTER} : beside.left;
+  var width = isBeside ? ${PREVIEW_TIPS_WIDTH_PIXELS} : panel.right - beside.left;
+  var tall = window.innerHeight - ${PANEL_INSET} - top;
+  tips.style.left = Math.round(left) + "px";
+  tips.style.top = Math.round(top) + "px";
+  tips.style.width = Math.round(width) + "px";
+  tips.style.height = Math.round(tall) + "px";
+  tips.style.visibility = tall < ${LEAST_TIPS_TALL} ? "hidden" : "visible";
+};
+
+// Guarded at the handover, as a listener is (**E12**): a throw out of an observer's callback
+// unwinds into a loop that drops it.
+var handleWindowsResized = function () {
+  try {
+    setTipsPlaced();
+  } catch (reason) {
+    console.warn("MargoMeter/Preview", reason);
+  }
+};
+
+var setTipsWatched = function () {
+  if (typeof ResizeObserver !== "function") return;
+  try {
+    var watcher = new ResizeObserver(handleWindowsResized);
+    watcher.observe(getPanelHost());
+    watcher.observe(getStandingWindow());
+  } catch (reason) {
+    console.warn("MargoMeter/Preview", reason);
+  }
+};`;
 }
 
 /**

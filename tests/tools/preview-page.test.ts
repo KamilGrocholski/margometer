@@ -194,6 +194,23 @@ Deno.test("the band over the page is the caller's, and a served page carries non
     );
 });
 
+/** The rule that pins the column down a served page's left edge, and nowhere else. */
+const TIPS_PINNED_LEFT = "left: 0; top: 44px";
+
+Deno.test("both pages carry what landed in the tooltips, and a served one pins it left", () => {
+    const bare = composePreviewPage(composeOptions(CALLS));
+    assertStringIncludes(bare, `id="preview-tips-list"`, "a served page draws the column");
+    assertStringIncludes(bare, TIPS_PINNED_LEFT, "down its left edge, away from the windows");
+    const dressed = composePreviewPage({ ...composeOptions(CALLS), install: INSTALL });
+    assertStringIncludes(dressed, `id="preview-tips-list"`, "a published page draws it as well");
+    assert(!dressed.includes(TIPS_PINNED_LEFT), "and never over the band down its left");
+    assertStringIncludes(dressed, "visibility: hidden", "but hidden until its script places it");
+    assert(
+        dressed.indexOf(`id="preview-tips"`) > dressed.indexOf(`class="preview-stage"`),
+        "after the two halves, so it stands in neither of their flows",
+    );
+});
+
 Deno.test("what has to be true stands above the offer, and what follows it below", () => {
     const dressed = composePreviewPage({ ...composeOptions(CALLS), install: INSTALL });
     const needs = dressed.indexOf(`<ol class="preview-needs">`);
