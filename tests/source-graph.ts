@@ -52,6 +52,44 @@ export function getBlockOpenedAt(lines: readonly string[], from: number): number
     return null;
 }
 
+/**
+ * Whether a declaration takes anything. **A function with no argument has no precondition a caller
+ * could break**, so its assertions can only be postconditions over what it built itself — and six
+ * of those were found on the frame the add-on stands up on, each asserting a literal written two
+ * lines above it. Counting them made the density a figure padded by assertions that assert
+ * nothing. **ADR 0007** narrowed S5 by directory for the same reason; this narrows it by what a
+ * declaration is handed. **ADR 0051.**
+ *
+ * Read from the bracket to its match rather than by looking for `()`, because a parameter that is
+ * itself a function of no arguments — `step: () => void` — spells one in the middle of a list.
+ *
+ * ⚠️ **The answer is given where the list closes, and not where something was found in it.**
+ * Returning only on a non-empty list walked an empty `()` straight into the body and took the
+ * arguments of whatever it called first — so a function handed nothing counted as one handed
+ * something whenever its first statement was a call. Measured 2026-09-22: 679 functions against
+ * the 677 the rule names, and the figure S5 is held to was low by that much.
+ */
+export function getIsTakingSomething(lines: readonly string[], from: number): boolean {
+    const limit = Math.min(lines.length, from + MAXIMUM_DECLARATION_LINES);
+    let depth = 0;
+    let hasOpened = false;
+    let held = "";
+    for (let at = from; at < limit; at += 1) {
+        for (const character of getCodeOutsideStrings(lines[at] ?? "")) {
+            if (character === ")") depth -= 1;
+            if (depth > 0) held += character;
+            if (character === "(") {
+                depth += 1;
+                hasOpened = true;
+            }
+            if (depth === 0) {
+                if (hasOpened) return held.trim().length > 0;
+            }
+        }
+    }
+    return held.trim().length > 0;
+}
+
 export function getDeclaredName(line: string): string {
     const code = getCodeOutsideStrings(line).trimStart();
     for (const opener of ["export function ", "function ", "const ", "export const "]) {

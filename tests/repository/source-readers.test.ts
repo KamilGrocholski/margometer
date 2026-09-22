@@ -9,7 +9,13 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { composeCallGraph, getFunctionBodies } from "@/tests/source-graph.ts";
+import {
+    composeCallGraph,
+    getBlockOpenedAt,
+    getFunctionBodies,
+    getIsTakingSomething,
+    isDeclarationOpener,
+} from "@/tests/source-graph.ts";
 import { getSourcePaths } from "@/tests/source-paths.ts";
 
 /**
@@ -21,6 +27,7 @@ interface AstNode {
     type: string;
     range: [number, number];
     body?: { type: string } | null;
+    params?: readonly unknown[];
 }
 type AstVisitor = Record<string, (node: AstNode) => void>;
 interface LintPlugin {
@@ -46,6 +53,8 @@ const BUNDLED_ROOTS = ["libs/", "src/"];
  */
 const BODY_LINE_SHARE_FLOOR = 85;
 const GRAPH_SHARE_FLOOR = 95;
+/** Far under the declarations the bundle holds, so a reader that found nothing fails loudly. */
+const COMPARED_FLOOR = 400;
 
 /** Where a byte offset falls, as a line number counting from one. */
 function composeLineIndex(text: string): (offset: number) => number {
@@ -131,6 +140,57 @@ const NESTED_SAMPLE = [
     "}",
     "",
 ].join("\n");
+
+/** Where the parser puts each function it finds with a block, and whether it is handed anything. */
+function readParsedByLine(path: string, text: string): Map<number, boolean> {
+    const lineAt = composeLineIndex(text);
+    const found = new Map<number, boolean>();
+    const visit = (node: AstNode) => {
+        if (node.body?.type !== "BlockStatement") return;
+        found.set(lineAt(node.range[0]), (node.params ?? []).length > 0);
+    };
+    const visitors: AstVisitor = {};
+    for (const kind of FUNCTION_NODES) visitors[kind] = visit;
+    lint.runPlugin({ name: "handed", rules: { walk: { create: () => visitors } } }, path, text);
+    return found;
+}
+
+/**
+ * ⚠️ **The count S5 divides by, asked a second way — which it had never been.**
+ * `getIsTakingSomething` answered only where it had found something in the parameter list, so an
+ * empty `()` walked it into the body and it took the arguments of the first call there. Forty-three
+ * functions of 679 sat in a denominator the rule does not name, and the guard was green for every
+ * one of them because nothing counted the same thing twice.
+ *
+ * ⚠️ **Compared declaration by declaration, and not as a share.** A share does not hold this: the
+ * fault makes the reader find **more**, and more passes a floor. Measured 2026-09-22 by putting it
+ * back, the reader went from 664 of 712 to 681 — from 93% to 96%, up through any floor written
+ * under it. What holds it is the parser disagreeing about one line.
+ *
+ * Only the lines both readers call a function are compared, because the parser is also shown a
+ * method and an arrow assigned to a property, which `isDeclarationOpener` is not asking about.
+ */
+Deno.test("the count S5 divides by agrees with a parser, declaration by declaration", () => {
+    const disagreed: string[] = [];
+    let compared = 0;
+    for (const path of getSourcePaths()) {
+        if (!BUNDLED_ROOTS.some((root) => path.startsWith(root))) continue;
+        const text = Deno.readTextFileSync(path);
+        const parsed = readParsedByLine(path, text);
+        const lines = text.split("\n");
+        for (const [offset, line] of lines.entries()) {
+            if (!isDeclarationOpener(line)) continue;
+            if (getBlockOpenedAt(lines, offset) === null) continue;
+            const said = parsed.get(offset + 1);
+            if (said === undefined) continue;
+            compared += 1;
+            if (said === getIsTakingSomething(lines, offset)) continue;
+            disagreed.push(`${path}:${offset + 1} ${line.trim()}`);
+        }
+    }
+    assert(compared > COMPARED_FLOOR, `only ${compared} declarations were read both ways`);
+    assertEquals(disagreed, [], "the two readings say the same of every declaration they share");
+});
 
 Deno.test("the parser finds a nested body, and finds no function where there is none", () => {
     const found = readAstFunctions("sample.ts", NESTED_SAMPLE);
