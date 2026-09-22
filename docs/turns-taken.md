@@ -288,6 +288,21 @@ reading `a01bf11` refused, and it is not what `grooove.pl` does either.
   of the 35 recordings are quiet that way, 2026-09-22. That is the cost of reading a shape rather
   than a key (**ADR 0110**), and it is carried rather than closed — the stun keys above make the
   failure loud without making the quiet fight legible.
+
+  ⚠️ **The ordinal span is the obvious third road and it is shut on every recording that would ask
+  it.** It is language-free and `short` says outright how many turns went missing, so a quiet fight
+  answering nought there would be a quiet fight the card could draw a nought on. The register cannot
+  be asked it on a single one of them: every quiet recording is one the game numbered **in a lump**,
+  2026-09-22, so `granted`, `short` and `lost` all stand as dashes in the table above. Shortness
+  goes with that and does not decide it — the quiet ones run 7 to 18 turns, four of the five
+  shortest fights in the corpus, but the fifth takes 15, loses one and is numbered `always`
+  (`2026-09-19-luvia-tropiciel-vs-mag`). A short fight the game numbers throughout can be recorded,
+  so the road is shut by the material and not by the game. It answers _not known_ exactly where it
+  would be asked today, so nothing is built on it (**C9**).
+
+  This is held by reading and not by a guard on purpose: a recording arriving that is both quiet and
+  numbered would mean the road had opened, and a gate going red on that would be a gate reporting
+  good news as a failure.
 - **Whose turn it was, across a boundary of more than one.** The count is held against the game's
   numbering there and the row it went onto is not, because the only source for who held the ordinals
   in between is a forecast this document refuses to lean on. Most boundaries are that shape, so most
