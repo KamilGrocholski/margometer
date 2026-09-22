@@ -110,6 +110,14 @@ export interface RowDetail {
     turnsTaken: number;
     /** The turns they were granted and spent on nothing, which the game states (**ADR 0049**). */
     turnsLost: number;
+    /**
+     * Whether a lost turn was heard **anywhere in this fight**, which is what says the figure
+     * above is a measurement rather than a reading that found nothing. The announcement is read
+     * by the shape of a sentence, so a world wording it otherwise yields nought for everybody
+     * (`docs/turns-taken.md`), and a nought drawn there would be **E10**'s substitute for a read
+     * that never worked. A combatant of their own lost turn carries it true. **ADR 0110.**
+     */
+    wasTurnLostRead: boolean;
     damageDealtToNobody: number;
     damageTakenFromNobody: number;
     healthRestoredByNobody: number;
@@ -593,7 +601,11 @@ function composeCutParts(cut: FigureCut): CutPart[] {
  * statistics never saw is handed an empty set rather than a set of nulls: they did nothing, and
  * nothing is a reading.
  */
-function composeRowDetail(figures: CombatantFigures, level: number | null): RowDetail {
+function composeRowDetail(
+    figures: CombatantFigures,
+    level: number | null,
+    wasTurnLostRead: boolean,
+): RowDetail {
     return {
         level,
         damageDealtApplied: figures.damageDealtApplied,
@@ -608,6 +620,7 @@ function composeRowDetail(figures: CombatantFigures, level: number | null): RowD
         skillUses: getSkillUses(figures),
         turnsTaken: figures.turnsTaken,
         turnsLost: figures.turnsLost,
+        wasTurnLostRead,
         damageDealtToNobody: figures.damageDealtToNobody,
         damageTakenFromNobody: figures.damageTakenFromNobody,
         healthRestoredByNobody: figures.healthRestoredByNobody,
@@ -635,7 +648,25 @@ function composeRowDetailFor(
     return composeRowDetail(
         statistics.byCombatantId.get(combatantId) ?? composeCombatantFigures(),
         roster.byId.get(combatantId)?.level ?? null,
+        getWasTurnLostRead(statistics),
     );
+}
+
+/**
+ * Whether this reading heard a lost turn at all, which one combatant's nought cannot say.
+ *
+ * ⚠️ **The bound is the panel's own and it stops the walk short rather than asserting** (**S11**,
+ * **A11**, the rule `composeCutParts` above keeps). Stopping short can only answer *not heard*
+ * where one was, which draws the taken count alone — the side that claims less.
+ */
+function getWasTurnLostRead(statistics: FightStatistics): boolean {
+    let walked = 0;
+    for (const figures of statistics.byCombatantId.values()) {
+        if (figures.turnsLost > 0) return true;
+        walked += 1;
+        if (walked >= MAXIMUM_ROWS) break;
+    }
+    return false;
 }
 
 /** By figure, then by id — a tie broken by something that does not move between draws. */

@@ -273,7 +273,7 @@ const CARD_LABEL_KEYS = [
     "blowsWithoutSkill",
     "skillUses",
     "turns",
-    "turnsLost",
+    "turnsWithLost",
     "prevented",
     "blowsCritical",
     "blowsCriticalOffhand",

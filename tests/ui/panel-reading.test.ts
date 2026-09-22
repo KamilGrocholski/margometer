@@ -156,6 +156,46 @@ Deno.test("the kinds a row is cut into come to the figure, on every recording", 
     assertEquals(short, [], "a kind counted and not drawn is a panel that lies");
 });
 
+/**
+ * The seam the two layers on either side of it each pass alone: the card is handed the witness and
+ * draws what it is told, the statistics count lost turns and are never asked this question. What
+ * nothing else reads is the join — that the boolean on every row of a fight is the fight's own
+ * answer, and that the answer is not simply true everywhere.
+ *
+ * **A sample it must flag and one it must not** (the register's own rule): the corpus carries
+ * fights where nobody lost a turn and fights where somebody did, so a witness stuck at either
+ * value reddens this.
+ */
+Deno.test("the witness for a lost turn is the fight's, on every recording", () => {
+    const { replays } = composeReplayedMaterial(readRecordingPaths());
+    assert(replays.length > 0, "there is material to read");
+    const wrong: string[] = [];
+    let quiet = 0;
+    let heard = 0;
+    for (const replay of replays) {
+        const lost = [...replay.statistics.byCombatantId.values()]
+            .some((figures) => figures.turnsLost > 0);
+        if (lost) heard += 1;
+        if (!lost) quiet += 1;
+        const reading = composePanelReading(
+            replay.statistics,
+            replay.roster,
+            "damageDealtApplied",
+            "everyone",
+            replay.reading.readerSide,
+            NOTHING_SUSPECT,
+        );
+        for (const row of reading.rows) {
+            if (row.detail === null) continue;
+            if (row.detail.wasTurnLostRead === lost) continue;
+            wrong.push(`${replay.name} ${row.name}: ${row.detail.wasTurnLostRead} for ${lost}`);
+        }
+    }
+    assertEquals(wrong, [], "a row answering for itself rather than for the fight it is in");
+    assert(heard > 0, "some fight heard a lost turn, or the witness is never true here");
+    assert(quiet > 0, "and some fight heard none, or it is never false");
+});
+
 Deno.test("no recording makes the panel contradict itself, on any screen or side", () => {
     const { replays } = composeReplayedMaterial(readRecordingPaths());
     assert(replays.length > 0, "there is material to read");

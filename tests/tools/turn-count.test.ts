@@ -212,6 +212,65 @@ Deno.test("the boar recording reproduces the figures the deleted reading left be
     assertEquals(taken, [8, 3, 1], "the split the deleted reading reported");
 });
 
+/**
+ * ⚠️ **The alarm for the one failure ADR 0049 named and could not see.** A lost turn is read by
+ * the shape of a sentence, so a world wording the announcement otherwise reads nought for
+ * everybody — and nought is indistinguishable from a fight nobody was stunned in. The protocol's
+ * own stun keys say nothing in anybody's language, so a stun stated with nothing heard is this
+ * reading having stopped working.
+ *
+ * **It licenses no figure, and it is not asked to**: a turn goes missing for more reasons than
+ * this key, and `docs/turns-taken.md` carries both directions with the measurement and its date.
+ * A red here is a question about that recording — did the game reword the line — and never a
+ * licence to bend either figure, which is the trap the register refuses when it declines to make
+ * `short` and `lost` agree.
+ */
+Deno.test("no recording states a stun while reading no lost turn at all", () => {
+    // The key reader first, on a sample it must take and one it must refuse: without the second
+    // a reader answering true to everything would walk the corpus and find nothing to report.
+    assert(getIsStunKey("+stun"), "the plain key the help names");
+    assert(getIsStunKey("+stun2-d"), "and the element-shaped variant a monster carries");
+    assert(!getIsStunKey("+stunning"), "a key that only opens with those letters is not one");
+    assert(!getIsStunKey("-stun"), "and neither is an end this key never takes");
+    const silent: string[] = [];
+    let stunned = 0;
+    let heard = 0;
+    for (const fight of getRecordedFights()) {
+        const replay = composeFightReplay(fight);
+        let lost = 0;
+        let stuns = 0;
+        for (const figures of replay.statistics.byCombatantId.values()) {
+            lost += figures.turnsLost;
+            for (const [key, count] of figures.procsWhenStriking) {
+                if (!getIsStunKey(key)) continue;
+                stuns += count;
+            }
+        }
+        if (lost > 0) heard += 1;
+        if (stuns === 0) continue;
+        stunned += 1;
+        if (lost > 0) continue;
+        silent.push(`${replay.name}: ${stuns} stuns and no lost turn read`);
+    }
+    assertEquals(silent, [], "a stun the protocol states and an announcement nobody heard");
+    // Both ways, so a reader that had stopped finding either half cannot pass on the empty list:
+    // the corpus has to hold fights with a stun and fights with a lost turn.
+    assert(stunned > 0, "some recording states a stun, or the key reader found nothing");
+    assert(heard > 0, "and some recording reads a lost turn, or the shape reader found nothing");
+});
+
+/**
+ * The five variants the client spells are `+stun2` and four suffixed by element, beside the plain
+ * `+stun` (`docs/protocol-keys.md`). Walked rather than matched (**C7**), and opened at the plus
+ * so a key merely carrying the letters elsewhere is not one.
+ */
+function getIsStunKey(key: string): boolean {
+    if (!key.startsWith(STUN_OPENER)) return false;
+    return key.startsWith(`${STUN_OPENER}2`) || key === STUN_OPENER;
+}
+
+const STUN_OPENER = "+stun";
+
 Deno.test("a walk states a line for every payload, and the register states none of them", () => {
     const grades = composeTurnGrades([getRecordedFightAt(BOAR)]);
     const cases = composeCaseReport(grades);
@@ -328,11 +387,20 @@ Deno.test("the sentences summing the register carry the figures the tree produce
  * the same word twice: this register measures the gap between the turns a combatant took and the
  * turns the game granted them, and names the label that gap justifies.
  */
-Deno.test("the card's turn label is the one this register argues for", () => {
+Deno.test("the card's turn labels are the ones this register argues for", () => {
     const register = Deno.readTextFileSync(REGISTER_PATH);
     assertStringIncludes(
         register,
         `\`${CARD_WORDS.turns}\``,
         `${REGISTER_PATH}: the label the card draws is the one the register names`,
+    );
+    // ⚠️ **Both, and the backticks are what makes it two checks rather than one.** The longer
+    // label opens with the shorter one, so a register carrying only `Tury wykonane/utracone`
+    // would satisfy a search for the shorter label written bare — and the card draws each of
+    // them on a different fight (**ADR 0110**).
+    assertStringIncludes(
+        register,
+        `\`${CARD_WORDS.turnsWithLost}\``,
+        `${REGISTER_PATH}: the label a fight with a lost turn draws is named as well`,
     );
 });

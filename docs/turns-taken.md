@@ -190,7 +190,8 @@ game numbers one turn apart is a step where nothing goes missing.
 
 **The difference is a turn the game granted and nobody spent.** A stunned combatant is given their
 turn, does nothing with it, and the game announces it in a line naming them. `lost` counts those
-lines, per combatant, and the card draws the count under the turns that combatant took.
+lines, per combatant, and the card draws the count beside the turns that combatant took, on the same
+line and divided from them by a slash.
 
 **It is read by shape and never by words**, which is what makes it survive a world that speaks
 another language: the line opens with the combatant's own name and the separator the game puts after
@@ -202,6 +203,15 @@ through every match. The three lines about striking a target already dead end in
 lines put a colon after the name. **ADR 0049** carries the rest, including why the stun keys cannot
 do this job — 118 applications against the 319 announcements that reading was taken over, both
 figures of 2026-09-03 and neither re-earned since.
+
+**They cannot count them and they can watch them.** The keys say nothing in anybody's language, so
+what they still answer is the other direction: over `captures/` on 2026-09-22, **25** of the 35
+recordings state a stun and every one of them reads a lost turn as well, the closest being four lost
+against five stuns. A recording stating a stun and reading nothing would be this reading having
+stopped working — the one failure the shape fails **silently** at — so
+`tests/tools/turn-count.test.ts` refuses that pair and a red there is a question about the
+recording, never a licence to bend either figure. It licenses no figure either way: the corpus
+carries 140 stuns against 410 lost turns, and six recordings read lost turns with no stun at all.
 
 **The two columns are close and are not held to be equal.** Over the corpus the ordinal says 226
 turns went missing where the game announces 211: exact on 19 of the 23 recordings that can be asked,
@@ -218,9 +228,19 @@ same gap — the only break in the whole corpus, 2026-09-03. Twelve turns nobody
 difference exactly. The register grades that boundary by nothing and counts it apart, because a
 stretch the game did not narrate is silence rather than evidence.
 
-**So the figure on the card is turns _taken_, with the turns _lost_ beneath it**, and neither is the
-turns somebody was granted: `Tury wykonane` is the game's own wording for the first — the published
-help counts a combatant's turns with the same verb (article 372 §2.1, read 2026-09-02).
+**So the card states turns _taken_ and turns _lost_ side by side on one line**, divided by a slash
+and never added, and neither of them is the turns somebody was granted: `Tury wykonane/utracone` is
+the label, and `wykonane` is the game's own wording for the first — the published help counts a
+combatant's turns with the same verb (article 372 §2.1, read 2026-09-02). The nought is drawn where
+a combatant lost nothing, because the line stands either way and a half that vanished read as a
+figure the panel had dropped rather than as none.
+
+**And the second figure stands only where this reading was heard at all.** `lost` is read by the
+shape of a sentence, so a world wording the announcement otherwise yields nought for everybody —
+there the half is unread rather than none, and a nought drawn on it would be a figure nobody
+measured. The witness is the fight: where anybody in it lost a turn the reading works on this world,
+and every other nought on that fight is a measurement. Where nobody did, the card falls back to
+`Tury wykonane` and the one figure it has. **ADR 0110.**
 
 ## Who else counts this
 
@@ -262,8 +282,12 @@ reading `a01bf11` refused, and it is not what `grooove.pl` does either.
   scheduled, and the two readings do not come to the same figure over the corpus. How far apart they
   stand is read off the register rather than written here (**V5**).
 - **Whether a world worded differently is being read.** Where the announcement has another shape the
-  count is zero, and a zero draws no sub-line — so nothing on screen becomes false, and nothing says
-  the reading found nothing either. That is the cost of reading a shape rather than a key.
+  count is zero on everybody, and the card states no second figure at all rather than a nought — so
+  nothing on screen becomes false. What it still cannot say is **which** of the two a quiet fight
+  is: a fight where nobody was stunned and a world this reading cannot hear draw the same card. Four
+  of the 35 recordings are quiet that way, 2026-09-22. That is the cost of reading a shape rather
+  than a key (**ADR 0110**), and it is carried rather than closed — the stun keys above make the
+  failure loud without making the quiet fight legible.
 - **Whose turn it was, across a boundary of more than one.** The count is held against the game's
   numbering there and the row it went onto is not, because the only source for who held the ordinals
   in between is a forecast this document refuses to lean on. Most boundaries are that shape, so most

@@ -273,3 +273,5 @@ edited to agree with the new rule.
   is said on that fighter. **Accepted**
 - [0109](0109-a-status-says-the-length-the-help-gives-it.md) — A status says the length the help
   gives it, and nothing where the help gives none. **Accepted**
+- [0110](0110-turns-taken-and-turns-lost-stand-on-one-line.md) — Turns taken and turns lost stand on
+  one line, divided and never added. **Accepted**

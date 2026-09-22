@@ -20,6 +20,7 @@ import {
     composeDestroyedText,
     composeFigureText,
     composeShareText,
+    composeTurnsText,
     composeUsesText,
     getNoteForCaveat,
     getSubWordsForBlowKey,
@@ -125,20 +126,37 @@ function composeCardFigureLines(detail: RowDetail, metric: PanelMetric): TipLine
     return lines;
 }
 
-function composeCardCounterLines(detail: RowDetail): TipLine[] {
-    const lines: TipLine[] = [];
-    // First, because a turn is what the counts below happened inside of: the blows and the
-    // announcements are what one was spent on (`docs/turns-taken.md`).
-    if (detail.turnsTaken > 0) {
-        lines.push({
+/**
+ * The turns a combatant took, with the ones they lost beside them **wherever that reading was
+ * heard at all**. Where the fight carries no lost turn on anybody, the second half is unread
+ * rather than nought — the announcement is read by the shape of a sentence and a world wording it
+ * otherwise yields nothing for everybody (`docs/turns-taken.md`) — so the line states the one
+ * figure it has. **ADR 0110.**
+ */
+function composeCardTurnLine(detail: RowDetail): TipLine {
+    if (!detail.wasTurnLostRead) {
+        return {
             kind: "stat",
             label: CARD_WORDS.turns,
             stated: composeFigureText(detail.turnsTaken),
             isStrong: false,
             caveat: "turns",
-        });
-        lines.push(...composeCardSubLine(CARD_WORDS.turnsLost, detail.turnsLost));
+        };
     }
+    return {
+        kind: "stat",
+        label: CARD_WORDS.turnsWithLost,
+        stated: composeTurnsText(detail.turnsTaken, detail.turnsLost),
+        isStrong: false,
+        caveat: "turns",
+    };
+}
+
+function composeCardCounterLines(detail: RowDetail): TipLine[] {
+    const lines: TipLine[] = [];
+    // First, because a turn is what the counts below happened inside of: the blows and the
+    // announcements are what one was spent on (`docs/turns-taken.md`).
+    if (detail.turnsTaken > 0) lines.push(composeCardTurnLine(detail));
     if (detail.blowsStruck > 0) {
         lines.push({
             kind: "stat",

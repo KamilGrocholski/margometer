@@ -35,6 +35,7 @@ const HILDUR: RowDetail = {
     skillUses: 30,
     turnsTaken: 37,
     turnsLost: 4,
+    wasTurnLostRead: true,
     damageDealtToNobody: 2104,
     damageTakenFromNobody: 10672,
     healthRestoredByNobody: 1500,
@@ -74,6 +75,9 @@ const NOBODY: RowDetail = {
     skillUses: 0,
     turnsTaken: 0,
     turnsLost: 0,
+    // The fight heard a lost turn on somebody, so a nought here is a measurement. The other
+    // side of that is its own case below.
+    wasTurnLostRead: true,
     damageDealtToNobody: 0,
     damageTakenFromNobody: 0,
     healthRestoredByNobody: 0,
@@ -170,13 +174,13 @@ Deno.test("the whole fight is a block of its own, and the screen's figure is in 
     assertEquals(
         readGroup(counters),
         [
-            `${CARD_WORDS.turns} ${CAVEATED} 37`,
-            `  ${CARD_WORDS.turnsLost} 4`,
+            `${CARD_WORDS.turnsWithLost} ${CAVEATED} 37\u00a0/\u00a04`,
             `${CARD_WORDS.blows} 40`,
             `  ${CARD_WORDS.blowsWithoutSkill} 7`,
             `${CARD_WORDS.skillUses} 30`,
         ],
-        "the turns, the ones lost, the blows, the ones behind no skill, and the announcements",
+        "the turns with the ones lost beside them, the blows, the ones behind no skill, and the " +
+            "announcements",
     );
     assertExists(notes, "and what to be careful of");
     assertEquals(
@@ -886,6 +890,10 @@ Deno.test("a sub-line follows the row it narrows, whatever stands around that ro
  * The turn count stands on its own line and is divided into nothing (**ADR 0048**). Zero is a
  * boundary and so is one (**W5**): a combatant who took no turn has no line rather than a line
  * reading nothing, because a fight nobody acted in is not a fight of zero-turn combatants.
+ *
+ * ⚠️ **The turns lost ride that same line and their nought is drawn** (**ADR 0110**). The line is
+ * there either way, so the nought costs the card nothing and says what it is — a turn nobody took
+ * away — where a line that vanished said only that the panel had stopped mentioning it.
  */
 Deno.test("the card says how many turns a combatant took, and only where they took one", () => {
     const subject = {
@@ -897,24 +905,37 @@ Deno.test("the card says how many turns a combatant took, and only where they to
         isRowNarrower: false,
         translate: null,
     };
-    const stated = composeCardReading({ ...subject, detail: HILDUR }).groups
+    const readTurnLines = (detail: RowDetail): string[] =>
+        composeCardReading({ ...subject, detail }).groups
+            .flatMap((group) => group.lines)
+            .filter((line) => line.kind === "stat")
+            .filter((line) => {
+                if (line.label === CARD_WORDS.turns) return true;
+                return line.label === CARD_WORDS.turnsWithLost;
+            })
+            .map((line) => (line.kind === "stat" ? `${line.label} ${line.stated}` : ""));
+    assertEquals(
+        readTurnLines(HILDUR),
+        [`${CARD_WORDS.turnsWithLost} 37\u00a0/\u00a04`],
+        "the count, on one line of its own, with the ones lost beside it",
+    );
+    assertEquals(readTurnLines(NOBODY), [], "and nothing at all where no turn was taken");
+    assertEquals(
+        readTurnLines({ ...NOBODY, turnsTaken: 1 }),
+        [`${CARD_WORDS.turnsWithLost} 1\u00a0/\u00a00`],
+        "one turn is a line, and a combatant who lost none is told it was none",
+    );
+    // ⚠️ **The other side of that nought, and the reason it is not one figure short.** Where the
+    // fight heard no lost turn on anybody the reading may simply not work on this world, so the
+    // line states the turns taken alone rather than a nought nobody measured (**E10**).
+    assertEquals(
+        readTurnLines({ ...NOBODY, turnsTaken: 1, wasTurnLostRead: false }),
+        [`${CARD_WORDS.turns} 1`],
+        "a fight that heard no lost turn at all states the turns taken and no second figure",
+    );
+    // Neither half is drawn as a sub-line any more, which is what ADR 0110 took from 0049.
+    const under = composeCardReading({ ...subject, detail: HILDUR }).groups
         .flatMap((group) => group.lines)
-        .filter((line) => line.kind === "stat")
-        .filter((line) => line.label === CARD_WORDS.turns)
-        .map((line) => (line.kind === "stat" ? line.stated : ""));
-    assertEquals(stated, ["37"], "the count, on one line of its own");
-    const none = composeCardReading({ ...subject, detail: NOBODY }).groups
-        .flatMap((group) => group.lines)
-        .filter((line) => line.kind === "stat" && line.label === CARD_WORDS.turns);
-    assertEquals(none, [], "and nothing at all where no turn was taken");
-    const one = composeCardReading({ ...subject, detail: { ...NOBODY, turnsTaken: 1 } }).groups
-        .flatMap((group) => group.lines)
-        .filter((line) => line.kind === "stat" && line.label === CARD_WORDS.turns);
-    assertEquals(one.length, 1, "one turn is a line");
-    // And the turns nobody lost say nothing at all, rather than saying they were none: the
-    // sub-line stands under a combatant who took turns, so its zero has to be checked there.
-    const unlost = composeCardReading({ ...subject, detail: { ...NOBODY, turnsTaken: 1 } }).groups
-        .flatMap((group) => group.lines)
-        .filter((line) => line.kind === "sub" && line.label === CARD_WORDS.turnsLost);
-    assertEquals(unlost, [], "a combatant who lost no turn has no line saying so");
+        .filter((line) => line.kind === "sub" && line.stated === "4");
+    assertEquals(under, [], "and nothing about turns hangs beneath the line saying them");
 });

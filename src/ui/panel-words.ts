@@ -299,8 +299,14 @@ export const CARD_WORDS = {
     blows: "Ciosy",
     blowsWithoutSkill: "bez umiejętności",
     skillUses: "Użycia umiejętności",
+    /**
+     * **Two labels, because the card states one figure or two**: which one is whether a lost turn
+     * was heard anywhere in this fight, and where none was the second half is unread, not nought.
+     * At 22 characters the longer one is `MAXIMUM_LABEL_CHARACTERS` exactly, which is why its
+     * slash carries no space where the figures beside it do. **ADR 0110.**
+     */
     turns: "Tury wykonane",
-    turnsLost: "utracone",
+    turnsWithLost: "Tury wykonane/utracone",
     prevented: "Zatrzymane",
     blowsCritical: "Krytyki",
     /** A subset of the line above, which is what a sub-line under it means. */
@@ -1419,6 +1425,16 @@ export function composeSideCountsText(sizes: readonly number[], unplaced: number
     const counted = counts.map((count) => composeFigureText(count)).join(" vs ");
     if (unplaced <= 0) return counted;
     return `${counted} +${composeFigureText(unplaced)}`;
+}
+
+/**
+ * ⚠️ **Divided and never added**: the sum is not the turns anybody was granted (**ADR 0110**).
+ * Spaced on the space that never breaks, for the reason `composeFigureText` spaces thousands on —
+ * a figure folded across two lines reads as a number half its size (`DESIGN.md`).
+ */
+export function composeTurnsText(taken: number, lost: number): string {
+    const divider = `${THOUSAND_SEPARATOR}/${THOUSAND_SEPARATOR}`;
+    return `${composeFigureText(taken)}${divider}${composeFigureText(lost)}`;
 }
 
 /**

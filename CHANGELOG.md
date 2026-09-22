@@ -49,6 +49,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   nie widać, nie podaje nic.
 - **Zmiana** — Licznik tur prowokacji stoi teraz przy każdej sprowokowanej postaci osobno, a nie raz
   przy tym, kto krzyknął.
+- **Zmiana** — Tury wykonane i tury utracone stoją teraz obok siebie w jednej linii, rozdzielone
+  ukośnikiem, a zero utraconych jest wypisane zamiast znikać; w walce, w której nikt nie stracił
+  tury, zostaje sama liczba tur wykonanych.
 - **Zmiana** — Każdy licznik tur, który dodatek sam liczy — stan, prowokacja, dotyk anioła —
   pokazuje teraz, ile tur **zostało**, a nie ile minęło; pasek ładowanego ciosu zostaje bez zmian,
   bo to liczby samej gry.
