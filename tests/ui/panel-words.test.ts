@@ -7,7 +7,13 @@
  * and no key of the game's, and that a count is spelled the way Polish spells one.
  */
 
-import { assert, assertEquals, assertExists, assertStringIncludes } from "@std/assert";
+import {
+    assert,
+    assertEquals,
+    assertExists,
+    assertStrictEquals,
+    assertStringIncludes,
+} from "@std/assert";
 import { isCommentLine } from "@/tests/source-line.ts";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
@@ -926,6 +932,27 @@ Deno.test("every word a defence is drawn under is one the game prints", () => {
         getWordsTheArticleDoesNotPrint(DEFENCE_WORD_BY_KEY),
         [],
         "a defence is drawn under the article's word for it, and never an invented one",
+    );
+});
+
+/**
+ * ⚠️ **One pool, two tables, and they drifted for four releases.** `ADR 0077` moved the defence
+ * line to the article's own `absorpcja` and `absorpcja magiczna`, and left `DESTROYED_WORD_BY_KEY`
+ * saying `wchłanianie` — the same pool under two names in one panel, and nothing red. The article
+ * check above cannot reach this table: the frozen reading was never asked about `pancerz` or
+ * `odporność: ogień`, so a blanket count over it would flag the rows that are right. What is
+ * mechanical is that the two tables agree about the pool they share (**N13**).
+ */
+Deno.test("what destroys absorption is named as the defence line names it", () => {
+    assertStrictEquals(
+        DESTROYED_WORD_BY_KEY.abdest_per?.name,
+        DEFENCE_WORD_BY_KEY.absorb,
+        "the pool a blow empties wears the name the pool itself wears",
+    );
+    assertStrictEquals(
+        DESTROYED_WORD_BY_KEY.abmdest_per?.name,
+        DEFENCE_WORD_BY_KEY.absorbm,
+        "and the magical pool the same, so neither surface teaches a second word",
     );
 });
 

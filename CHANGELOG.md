@@ -52,6 +52,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   schodzi z niego wtedy, kiedy naprawdę schodzi.
 - **Poprawka** — Trzy efekty, które panel pokazywał surowym zapisem z protokołu, nazywają się w
   kartach tak, jak nazywa je twój własny klient gry.
+- **Poprawka** — Zniszczona absorpcja nazywa się na karcie „absorpcja" i „absorpcja magiczna", tak
+  jak wszędzie indziej w panelu i w grze — wcześniej stało tam „wchłanianie".
 - **Poprawka** — Przy liczniku tur rzuconego efektu Pomocnik mówi teraz, że to tury rzucającego, a
   każdemu innemu efekt schodzi osobno.
 - **Poprawka** — Kliknięcie w wiersz panelu albo Pomocnika nie zaznacza już jego tekstu.

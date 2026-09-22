@@ -607,8 +607,10 @@ export const DESTROYED_WORD_BY_KEY: Record<string, { name: string; unit: string 
     // `acdmg` opening this table is one letter away and is armour in points, not this
     // (`docs/protocol-keys.md`).
     actdmg: { name: "odporność: trucizna", unit: "p.p." },
-    abdest_per: { name: "wchłanianie", unit: "pkt" },
-    abmdest_per: { name: "wchłanianie magiczne", unit: "pkt" },
+    // The article's own words, as the defence line above already draws them — one pool, one
+    // spelling on both surfaces (**ADR 0077**, **N13**).
+    abdest_per: { name: "absorpcja", unit: "pkt" },
+    abmdest_per: { name: "absorpcja magiczna", unit: "pkt" },
 };
 
 export function getWordsForDestroyed(statistic: string): string {
