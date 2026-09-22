@@ -549,13 +549,6 @@ function handlePress(screen: ScreenState, press: PanelPress): boolean {
         screen.isStandingCollapsed = !screen.isStandingCollapsed;
         return true;
     }
-    if (press.kind === "standing") {
-        const opened = getIntegerFromText(press.stated);
-        // A toggle, unlike a ranking row: what a press opens stays in the window beside what
-        // closed it, so the row that shuts it is still there to be pressed again.
-        screen.openStandingId = screen.openStandingId === opened ? null : opened;
-        return true;
-    }
     return handlePressScreen(screen, press.screen);
 }
 
@@ -770,7 +763,7 @@ function drawStanding(
 ): void {
     let reading: StandingReading | null = null;
     try {
-        reading = composeStandingOrNothing(underway, screen);
+        reading = composeStandingOrNothing(underway);
     } catch (failure) {
         defects.add("reading", null, failure);
     }
@@ -782,22 +775,16 @@ function drawStanding(
 }
 
 /** Null where no payload has arrived: a fight nobody has seen has nothing standing on it. */
-function composeStandingOrNothing(
-    underway: FightUnderway,
-    screen: ScreenState,
-): StandingReading | null {
+function composeStandingOrNothing(underway: FightUnderway): StandingReading | null {
     const fight = getReadingFromFight(underway);
     if (fight === null) return null;
     const held = composeFightStandings(fight.events, STATED_SKILLS, fight.roster);
     return composeStandingReading(
-        held.standings,
         held.provocations,
         fight.chargedSkills,
-        fight.carriedStatuses,
         fight.roster,
         fight.readerSide,
         { statement: fight.turnStatement, isOver: fight.isOver, isOnAuto: fight.isOnAuto },
-        screen.openStandingId,
     );
 }
 

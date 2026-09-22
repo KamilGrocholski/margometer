@@ -97,7 +97,7 @@ src/
     panel-look.ts        The panel's tokens, the classes its rules select, and the stylesheet.
     panel-reading.ts     One screen's worth of a fight, and one row's worth of a screen.
     panel-screen.ts      Which screen the panel is on, and the strips that say so.
-    panel-standing.ts    What the window beside the panel says: the turn, and what stands.
+    panel-standing.ts    What the window says: the turn, the charge, and who holds whom.
     panel-scroll.ts      Where a reader left the one region that scrolls, kept by list.
     panel-tip.ts         The window a row opens on hover, and the register it is looked up in.
     panel-words.ts       Everything the reader reads, and the only Polish in `src/`.
@@ -601,29 +601,25 @@ commit that opens or closes one.
    on the card (**ADR 0024**). **A second window stands beside the panel**, inside the same shadow
    root and dragged, folded and remembered apart from it (**ADR 0060**): it says whose turn the game
    numbers — and, where it is numbering none because the fight ended or because the reader handed it
-   over on the auto key, which of the two it is (**ADR 0072**) — and what is standing on the fight,
-   one counted row per skill reaching a side, and a press opens the casters under it with what has
-   passed of what the published table gives them — never what is left (**ADR 0059**) — each wearing
-   their own profession's hue and the same side rule the ranking wears (**ADR 0065**). A cast
-   reaching a whole side says nothing about whom, because there is nothing to say; the two okrzyki
-   hold characters in a section of their own, drawn under whoever threw them and named there, with
-   the characters they hold as rows beneath and the turns stated once because they are the cast's
-   (**ADR 0062**, **ADR 0067**, **ADR 0097**). An okrzyk **also** stands among the rows above, on
-   the turns the table gives its side-wide half rather than its shout's — five against three on
-   `Wyzywający
-   okrzyk` — because one announcement carrying two dated halves is two things
-   standing (**ADR 0097**). It draws a third band above them where a combatant is making a **charged
-   skill** ready: one row, the game's own name for the blow, one dot per turn of the charge lit to
-   what has passed, and the pair of figures the client itself divides — never the percentage that
-   division comes to. The two ends the protocol names stand for one turn after the fact and then the
-   band is gone, which is one payload: the game's own turn number moves by one on the very next one,
-   24 times out of 24 over `captures/` 2026-09-11. Whom a shout holds is **read off its value**,
-   which names every provoked character separated by a comma and a space, and a name the roster
-   cannot place is dropped rather than guessed at (**ADR 0064**). That table is the third frozen
-   reading (**ADR 0058**), and `docs/auras-standing.md` is its register over `captures/`. Both
-   READMEs are written and show the set `deno task panel:shots` takes, so the release plumbing is
-   whole and has now run at a tag — what is left of it is held by a person, which is what the gap
-   below it is about.
+   over on the auto key, which of the two it is (**ADR 0072**) — and **who is holding whom**: the
+   two okrzyki hold characters in a section of their own, drawn under whoever threw them and named
+   there, with the characters they hold as rows beneath and a length on each of those rows, counted
+   on that character's own turns (**ADR 0062**, **ADR 0067**, **ADR 0097**, **ADR 0103**), each
+   wearing their own profession's hue and the same side rule the ranking wears (**ADR 0065**). It
+   says nothing per combatant otherwise: the section counting casts reaching a side and the one
+   restating the game's own mask were both drawn here until **ADR 0108** moved that answer to the
+   fighter's own tooltip, where a length and the person it is about are one reading. It draws a band
+   above them where a combatant is making a **charged skill** ready: one row, the game's own name
+   for the blow, one dot per turn of the charge lit to what has passed, and the pair of figures the
+   client itself divides — never the percentage that division comes to. The two ends the protocol
+   names stand for one turn after the fact and then the band is gone, which is one payload: the
+   game's own turn number moves by one on the very next one, 24 times out of 24 over `captures/`
+   2026-09-11. Whom a shout holds is **read off its value**, which names every provoked character
+   separated by a comma and a space, and a name the roster cannot place is dropped rather than
+   guessed at (**ADR 0064**). That table is the third frozen reading (**ADR 0058**), and
+   `docs/auras-standing.md` is its register over `captures/`. Both READMEs are written and show the
+   set `deno task panel:shots` takes, so the release plumbing is whole and has now run at a tag —
+   what is left of it is held by a person, which is what the gap below it is about.
 
 2. **Few rules are guarded.** `AGENTS.md`'s register names every guard that exists. **Every other
    rule in that file is held by reading alone.** The register is the list; enumerating the unheld
@@ -831,8 +827,9 @@ commit that opens or closes one.
 
 17. **What a standing effect comes to is written down and drawn nowhere.** `docs/auras-standing.md`
     carries the units, the cap at two sources from different Players, the additive sets and the half
-    the caster of `aura-sa_per` gets, all off the published help — and the window still says only
-    what stands and for how long. The register that says the corpus reaches the cap is guarded
+    the caster of `aura-sa_per` gets, all off the published help — and the panel draws a figure for
+    a status only where one may be said of that bearer (**ADR 0107**), which is two bits of the
+    mask. The register that says the corpus reaches the cap is guarded
     (`tests/tools/aura-standing.test.ts`); nothing guards the rules themselves, because no code
     reads them yet. It closes when the figures are drawn, and until then the document is the record
     rather than a description of the panel (**Target is not proof**).

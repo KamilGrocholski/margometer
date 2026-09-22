@@ -44,21 +44,19 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   podaje.
 - **Nowość** — Przy spowolnieniu i przyspieszeniu dymek podaje też, o ile procent, a tam, gdzie tego
   nie widać, nie podaje nic.
-- **Nowość** — W Pomocniku doszła sekcja „Co kto nosi": przy każdej postaci stoi to, co gra o niej
-  mówi, i ile jej własnych tur to już na niej stoi.
 - **Zmiana** — Licznik tur prowokacji stoi teraz przy każdej sprowokowanej postaci osobno, a nie raz
   przy tym, kto krzyknął.
+- **Zmiana** — Z Pomocnika znika lista efektów rzuconych na drużynę: licznik tur przy niej liczył
+  tury rzucającego, a efekt schodzi każdemu z osobna — to, co stoi na danej postaci, powie ci teraz
+  dymek gry po najechaniu na nią.
 - **Poprawka** — Prowokacja liczy się teraz turami tego, kogo sprowokowano, a nie rzucającego, więc
   schodzi z niego wtedy, kiedy naprawdę schodzi.
 - **Poprawka** — Trzy efekty, które panel pokazywał surowym zapisem z protokołu, nazywają się w
   kartach tak, jak nazywa je twój własny klient gry.
 - **Poprawka** — Zniszczona absorpcja nazywa się na karcie „absorpcja" i „absorpcja magiczna", tak
   jak wszędzie indziej w panelu i w grze — wcześniej stało tam „wchłanianie".
-- **Poprawka** — Przy liczniku tur rzuconego efektu Pomocnik mówi teraz, że to tury rzucającego, a
-  każdemu innemu efekt schodzi osobno.
 - **Poprawka** — Kliknięcie w wiersz panelu albo Pomocnika nie zaznacza już jego tekstu.
-- **Poprawka** — W dużej walce Pomocnik pokazuje wszystkich wyzwanych i wszystkich rzucających, a
-  nie pierwszych dwunastu.
+- **Poprawka** — W dużej walce Pomocnik pokazuje wszystkich wyzwanych, a nie pierwszych dwunastu.
 
 ## [0.18.0] — 2026-09-21
 

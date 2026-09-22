@@ -266,3 +266,5 @@ edited to agree with the new rule.
   **Accepted**
 - [0107](0107-a-tooltip-takes-a-block-and-not-a-line.md) — A tooltip takes a block, and not a line.
   **Accepted**
+- [0108](0108-what-is-true-of-one-fighter-is-said-on-that-fighter.md) — What is true of one fighter
+  is said on that fighter. **Accepted**

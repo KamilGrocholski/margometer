@@ -25,11 +25,12 @@ here, because the corpus has grown since and nothing recomputes them. The regist
 the **side** a cast reaches — the published help states it key by key — because that is what tells a
 shout from a whole-team cast. The window draws none of it (**ADR 0062**).
 
-**The window answers `on whom` from the game's own statement instead.** `w[].buffs` says what each
-combatant is carrying right now, so `Co kto nosi` draws a row per person and per status, counted in
-**their own** turns and stating no total — the mask publishes none. It names no caster, so it
-settles nothing about who a cast reached; that is still refused, now on three readings rather than
-one (**ADR 0104**).
+**The game's own statement answers `on whom`, and the tooltip is where it is drawn.** `w[].buffs`
+says what each combatant is carrying right now, so a fighter's own tooltip states a row per status
+they hold, counted in **their own** turns (**ADR 0107**). It names no caster, so it settles nothing
+about who a cast reached; that is still refused, now on three readings rather than one (**ADR
+0104**). The window beside the panel draws none of this: what is true of one fighter is said on that
+fighter (**ADR 0108**).
 
 ⚠️ **Listing the side's members would be wrong about one cast in seven**, which is what that reading
 found after a `Podwójny dech`: the caster's whole side carries the matching status bit on most casts
@@ -58,21 +59,21 @@ changing attack speed and never says whose. Measured instead: after a `Szadź`, 
 
 ## What is drawn, and what is not
 
-The window draws **what has passed of what the table states** — `3 z 8 tur` — and never a countdown.
-The first half is counted in the **caster's** own turns, the second is the game's own published
-figure. The subtraction is the reader's, and it is theirs because the protocol never says the effect
-ended.
+**A cast reaching a side is drawn nowhere.** The window beside the panel drew one row per skill and
+the casters under it, each with `3 z 8 tur`, until **ADR 0108** took the section away: the figure
+was counted in the **caster's** turns while the effect runs on each bearer's (**ADR 0101**), and a
+cast has no bearer to count on that this reading may name (**ADR 0061**). What the register below
+holds is unchanged — it is read from the recordings, not from the panel.
 
-⚠️ **The two halves are counted on two different clocks, and the section below is why.** The
-published figure is the bearer's, the counted one is the caster's (**ADR 0101**). So the card under
-the figure says which clock it counted, and the one under a provocation says that nothing states one
-at all — **ADR 0102**. What the window draws is otherwise unchanged, and a row still leaves when the
-caster's stated turns have passed.
+**What a fighter is carrying is drawn on that fighter**, in the game's own tooltip: a row per
+status, counted in their own turns, with the table's total beside it wherever one figure may be said
+of that bearer (**ADR 0107**). That is the one surface where a length and the person it is about are
+the same reading.
 
 **A shout is drawn under whoever threw it**, with the characters it holds as rows under that, and
-its turns stated once — they are the cast's, not each held character's. Which of the two okrzyki it
-was is drawn nowhere: both run three turns and cover six, so the name distinguished nothing a reader
-could act on. **ADR 0067.**
+**a length on each of those rows** — a shout runs on the turns of whoever it holds, so two
+characters held by one cast are not the same number of turns in (**ADR 0103**). The okrzyk is named
+beside the holder, because the table dates the two of them apart (**ADR 0097**).
 
 ⚠️ **A skill stating several team-wide effects is dated by the longest of them.**
 `Wyzywający okrzyk` runs one for three turns and two for five, so the register says five — the skill
@@ -115,12 +116,11 @@ carry nothing (`src/game/engine-warrior.ts`), so the longest run is shorter by t
 was being counted for. `design/dziesiec/measured.json` holds the older pair, as the dated reading of
 a round that was taken before the fix.
 
-⚠️ **The window beside the panel has not moved, and the two now disagree about the same fighter.**
-`Co stoi` counts a **cast**, which has no bearer to be counted on, so the caster's clock is the only
-one it has and **ADR 0102** makes it say so. `Co kto nosi` is the section that answers the same
-question as the tooltip — this fighter, this status — and it still draws the mask's bare count.
-Until one of them moves, a reader hovering a fighter and reading the window sees two numbers for one
-effect.
+**The two numbers a reader saw for one effect are now one.** The window beside the panel drew a
+cast's length on the caster's clock and, beside it, the mask's bare count on the bearer's — so
+hovering a fighter and reading the window answered the same question twice, differently. **ADR
+0108** ended it by taking both sections away: the bearer's clock is the only one still drawn, and
+the tooltip is where it is drawn.
 
 **The published help states whose turns for ten of its keys, and six of them are ours.** Each row is
 a clause counted in `frozen/help-phrases.ts` and cited by that key's entry in

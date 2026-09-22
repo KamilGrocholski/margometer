@@ -111,25 +111,6 @@ test("each window folds on its own, and both are remembered", async ({ panel }) 
     await expect(panel.at(".MargoMeter-body.folded"), "with the panel still open").toHaveCount(0);
 });
 
-test("a counted row opens onto its casters, and shuts again", async ({ panel }) => {
-    const rows = panel.at(".MargoMeter-standing .row[data-standing]");
-    await expect(rows, "the fight leaves something standing").not.toHaveCount(0);
-    const shut = await panel.at(".MargoMeter-standing .row").count();
-
-    await rows.first().click();
-
-    const opened = await panel.at(".MargoMeter-standing .row").count();
-    expect(opened, "the casters stand under the skill they cast").toBeGreaterThan(shut);
-    await expect(panel.at(".MargoMeter-standing .row.standing-under"), "each on a row of its own")
-        .not.toHaveCount(0);
-
-    await rows.first().click();
-
-    expect(await panel.at(".MargoMeter-standing .row").count(), "and a second press shuts it")
-        .toBe(shut);
-    await panel.expectHonest("a window whose row was opened and shut");
-});
-
 /**
  * Whom a shout holds is read off its value, so the section is exactly the characters the game
  * named and carries no line about a rest (**ADR 0064**). The fixture fight names one; the corpus
@@ -150,22 +131,17 @@ test("a shout is drawn under whoever holds it, and no rest is claimed", async ({
         expect(said, "no line stands for somebody the game never named").not.toContain("losowo");
     }
 
-    // A whole-team cast says nothing about whom, so opening one adds no held character — only its
-    // own casters, which are nested by the same rule and so counted apart from them.
+    // Nothing in this window opens, so a press anywhere in it leaves the section as it was — the
+    // one gesture it still answers is its own fold, which `a window folds on its own` holds.
     const held = await panel.at(".MargoMeter-standing .row-name").count();
-    const rows = panel.at(".MargoMeter-standing .row[data-standing]");
-    const many = await rows.count();
-    for (let at = 0; at < many; at += 1) {
-        await rows.nth(at).click();
-        await expect(under, "the casters stand under their skill").not.toHaveCount(0);
-        await rows.nth(at).click();
-        await expect(
-            panel.at(".MargoMeter-standing .row-name"),
-            "and shutting it leaves the provocation exactly as it was",
-        ).toHaveCount(held);
-    }
+    await panel.at(".MargoMeter-standing .row-name").first().click();
+    await expect(
+        panel.at(".MargoMeter-standing .row-name"),
+        "a press on a row draws the same rows back",
+    ).toHaveCount(held);
+    await panel.expectHonest("a window whose rows were pressed");
 
-    // The window grows by a line per caster; the body scrolls, and the frame stays on the page.
+    // The body scrolls and the frame stays on the page, however many the shout holds.
     const place = await panel.page.evaluate(() => {
         const root = document.querySelector("#MargoMeter-Panel")?.shadowRoot ?? null;
         const box = root?.querySelector(".MargoMeter-standing")?.getBoundingClientRect() ?? null;
@@ -237,19 +213,11 @@ test("the name is drawn whole, and the cast gives way to a floor", async ({ pane
  * that is why the exemption is by name rather than by silence.
  */
 test("no sentence is cut, and a row is the only thing that may be", async ({ panel }) => {
-    const rows = panel.at(".MargoMeter-standing .row[data-standing]");
-    const many = await rows.count();
-    expect(many, "the fight leaves something standing to open").toBeGreaterThan(0);
+    await expect(panel.at(".MargoMeter-standing .row"), "the window is drawing something")
+        .not.toHaveCount(0);
 
-    // ⚠️ **Every row, not the first.** Written against `first()` this passed with the sentence
-    // put back to an ellipsis: the row that came first carried the shortest line in the window and
-    // was never going to be cut. A reader is proved by the sample it must flag.
-    const cut: string[] = [];
-    for (let at = 0; at < many; at += 1) {
-        await rows.nth(at).click();
-        cut.push(...await readCutSentences(panel.page));
-        await rows.nth(at).click();
-    }
+    const cut = await readCutSentences(panel.page);
+
     expect(cut, "a sentence a reader would have to go looking for").toEqual([]);
 });
 
@@ -321,7 +289,7 @@ function getIsClearOf(one: PanelEdges, other: PanelEdges): boolean {
  * there is no room on the left, so what it holds is the flip.
  */
 test("a card from this window's row stands clear of this window", async ({ panel }) => {
-    const rows = panel.at(".MargoMeter-standing .row[data-standing]");
+    const rows = panel.at(".MargoMeter-standing .row[data-tip]");
     await expect(rows, "the window is drawing rows to hover").not.toHaveCount(0);
 
     await rows.first().hover();
@@ -369,12 +337,11 @@ test("the panel's own card follows the panel, not the window beside it", async (
 });
 
 /**
- * A row of this window opens onto the casters under it and wears the cursor that says so, and for
- * two releases said nothing: the rows carried no card mark at all, so the sentence written for
- * them reached nobody (**ADR 0086**). Held here because the card is opened by a real pointer.
+ * Every row of this window carries a card, which is what a name cut by its own column is reached
+ * by (**ADR 0100**). Held here because the card is opened by a real pointer.
  */
-test("a row of the window says on its card that it opens", async ({ panel }) => {
-    const rows = panel.at(".MargoMeter-standing .row[data-standing]");
+test("a row of the window hands its name back on a card", async ({ panel }) => {
+    const rows = panel.at(".MargoMeter-standing .row[data-tip]");
     await expect(rows, "the window is drawing rows to hover").not.toHaveCount(0);
     const named = await rows.first().locator(".row-name").innerText();
 
@@ -383,8 +350,6 @@ test("a row of the window says on its card that it opens", async ({ panel }) => 
     await expect(panel.at(".MargoMeter-tip:not(.tip-hidden)"), "hovering one opens a card")
         .toHaveCount(1);
     await expect(panel.at(".MargoMeter-tip .tip-name"), "which names that row").toHaveText(named);
-    expect(await panel.at(".MargoMeter-tip").innerText(), "and says the row opens")
-        .toContain("LPM — kto rzucił");
 });
 
 /** A cell as the browser draws it: what it holds, and whether the box is showing all of it. */

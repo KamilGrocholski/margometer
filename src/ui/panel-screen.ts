@@ -89,9 +89,8 @@ export interface ScreenState {
     /** A fight chosen is read from what was kept of it, never from figures somebody stored. */
     openFightId: number | null;
     isCollapsed: boolean;
-    /** The window beside the panel: its own fold, and which of its rows is open. */
+    /** The window beside the panel, which folds apart from it — **ADR 0060**. */
     isStandingCollapsed: boolean;
-    openStandingId: number | null;
 }
 
 export function composeScreenState(
@@ -109,7 +108,6 @@ export function composeScreenState(
         openFightId: null,
         isCollapsed,
         isStandingCollapsed,
-        openStandingId: null,
     };
     return state;
 }

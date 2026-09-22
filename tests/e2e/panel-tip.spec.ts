@@ -293,7 +293,7 @@ test("the way back says both gestures, and only where a level is open", async ({
  * sixteen characters.
  */
 test("a card is as wide as what it says, up to the bound", async ({ panel }) => {
-    const standingRow = panel.at(`${HOST_SELECTOR} .MargoMeter-standing .row[data-standing]`)
+    const standingRow = panel.at(`${HOST_SELECTOR} .MargoMeter-standing .row[data-tip]`)
         .first();
     await expect(standingRow, "the fight leaves something standing to point at").toHaveCount(1);
     await standingRow.hover();
@@ -362,7 +362,7 @@ test("a card keeps the edge facing its window, whatever width it draws at", asyn
     // The drag took the pointer off the row, so the card is asked for again before it is read.
     const gap = await readGapTo(
         panel,
-        ".MargoMeter-standing .row[data-standing]",
+        ".MargoMeter-standing .row[data-tip]",
         ".MargoMeter-standing",
     );
     const narrow = await readEdgesOf(panel.page, CARD_OPEN);

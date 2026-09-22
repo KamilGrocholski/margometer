@@ -358,8 +358,6 @@ export const CAVEATS = [
     "reduction",
     "turns",
     "unannounced",
-    "standingLength",
-    "carriedLength",
 ] as const;
 
 export type Caveat = (typeof CAVEATS)[number];
@@ -382,15 +380,6 @@ export type Caveat = (typeof CAVEATS)[number];
  * 60 characters so that, mark and all, it wraps to two lines of the card rather than three
  * (`src/ui/panel-tip.ts`).
  *
- * `carriedLength` is owed by a figure the game states no total for: a mask says what somebody
- * carries and never how long it runs, so the count is what has passed and the card says there is
- * nothing to measure it against. **ADR 0104.**
- *
- * `standingLength` is owed by the one figure on a card that is counted on somebody other than the
- * person the figure is about. The game runs a side-wide effect on the turns of each character
- * carrying it, and this counts the caster's (**ADR 0101**), so the pair is true of the caster and
- * of nobody else the cast reached. Written to the same 60 characters `turns` is.
- *
  * ⚠️ **`unannounced` cannot say the interesting half, and that is the rule working, not failing.**
  * Whether a blow standing under no announcement is the game's own default action or one whose
  * announcement this reading did not reach is a question about **us**, and a player is owed the
@@ -402,8 +391,6 @@ const CAVEAT_NOTES: Record<Caveat, string> = {
         "Pancerza ani odporności gra nie podaje, więc z tych liczb nie wyliczysz całej redukcji.",
     turns: "Gra nie podaje, ile tur ktoś dostał, tylko co w nich zrobił.",
     unannounced: "Gra nie mówi, czym te ciosy zadano — wiadomo tylko, że padły.",
-    standingLength: "To tury rzucającego — u każdego innego efekt schodzi osobno.",
-    carriedLength: "Gra nie podaje, ile to ma trwać — widać tylko, ile już stoi.",
 };
 
 export function getNoteForCaveat(caveat: Caveat): string {
@@ -769,19 +756,14 @@ export function composeCountedNoun(count: number, noun: CountedNoun): string {
     return `${count} ${noun.many}`;
 }
 
-/** The window beside the panel. `Co stoi` is what stands now, never what was cast. */
+/** The window beside the panel: the turn in hand, what is being made ready, and who holds whom. */
 export const STANDING_WORDS = {
     title: "Pomocnik",
     drag: "Przeciągnij, żeby przesunąć",
     collapse: "Zwiń Pomocnika",
     expand: "Rozwiń Pomocnika",
     now: "Teraz",
-    standing: "Co stoi",
     nothingStands: "Nic nie stoi.",
-    casters: "Rzucający",
-    openRow: "LPM — kto rzucił",
-    /** Never `/`: this panel teaches `z` for *of*, so a slash between figures reads as one. */
-    sideSeparator: "|",
     /** The two okrzyki share one state, so they share one heading — **ADR 0062**. */
     provocation: "Prowokacja",
     /** Between whoever is holding somebody and the okrzyk they hold them with — **ADR 0097**. */
@@ -797,11 +779,6 @@ export const STANDING_WORDS = {
     turnsPassed: "Minęło",
     /** The game's own name for it, taken from the client's own label — **N13**, **L2**. */
     chargedSkill: "Cios specjalny",
-    /**
-     * What the game itself says a combatant is holding, which is the one answer `on whom` has —
-     * **ADR 0104**. Never the word the section above uses: that one is about what was cast.
-     */
-    carried: "Co kto nosi",
 } as const;
 
 /**

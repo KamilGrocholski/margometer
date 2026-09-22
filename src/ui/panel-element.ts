@@ -4,11 +4,7 @@
  */
 
 import { BUILD_VERSION } from "@/src/build-version.ts";
-import {
-    type StandingChargedSkill,
-    type StandingReading,
-    type StandingRow,
-} from "@/src/ui/panel-standing.ts";
+import { type StandingChargedSkill, type StandingReading } from "@/src/ui/panel-standing.ts";
 import { composeDecimalText, composeIntegerText, getIntegerFromText } from "@/libs/number-text.ts";
 import { setGuardedListener } from "@/src/ui/panel-listener.ts";
 import type {
@@ -75,7 +71,6 @@ import {
     CARD_WORDS,
     type Caveat,
     CAVEAT_MARK,
-    composeCarriedTurnsText,
     composeChargedSkillSubtitle,
     composeChargedSkillTurnsText,
     composeFigureText,
@@ -97,7 +92,6 @@ import {
     getWordsForPinnedStanding,
     getWordsForShelfOutcome,
     getWordsForShelfTime,
-    getWordsForStatusBit,
     getWordsForStorage,
     getWordsForTurnState,
     getWordsForUnannounced,
@@ -249,13 +243,12 @@ const PIN_ATTRIBUTE = "data-pin";
 /** Which end a pinned row leaves out, which is the whole of what opening it asks for. */
 const UNNAMED_ATTRIBUTE = "data-unnamed";
 const STORAGE_ATTRIBUTE = "data-storage";
-/**
- * The window beside the panel, and its own two controls. Its fold is not the panel's: one mark
- * over both would put away the window a reader was watching along with the one they folded.
- */
 /** Four is every charge length the corpus states, and a clamp on a figure the game hands us. */
 const MAXIMUM_CHARGED_PIPS = 8;
-const STANDING_ATTRIBUTE = "data-standing";
+/**
+ * The window's own fold, which is not the panel's: one mark over both would put away the window a
+ * reader was watching along with the one they folded.
+ */
 const STANDING_FOLD_ATTRIBUTE = "data-standing-fold";
 const LIVE_FIGHT = "live";
 const TIP_ATTRIBUTE = "data-tip";
@@ -269,13 +262,7 @@ const STANDING_TIP_PREFIX = "standing:";
 /** The one person's row there is only ever one of, whoever is standing on it. */
 const STANDING_NOW_TIP_KEY = `${STANDING_TIP_PREFIX}now`;
 /**
- * The three kinds of person's row there may be several of, each keyed by what the window already
- * keys it by. The word in front of the ids says which section drew the row, and keeps all three
- * clear of `standing:<skillId>`, which is a bare figure and is a counted row's own.
- */
-const STANDING_CAST_TIP_PREFIX = `${STANDING_TIP_PREFIX}cast:`;
-/**
- * And the charge band's, keyed by whoever is making the blow ready: `core/charged-skill.ts` holds
+ * The charge band's, keyed by whoever is making the blow ready: `core/charged-skill.ts` holds
  * one charge per combatant, so one row is one key. A second row under the same key would be
  * refused without a word and would wear its neighbour's card, which is why
  * `tests/ui/panel-standing.test.ts` counts the keys rather than trusting that. **ADR 0100.**
@@ -283,9 +270,6 @@ const STANDING_CAST_TIP_PREFIX = `${STANDING_TIP_PREFIX}cast:`;
 const STANDING_CHARGE_TIP_PREFIX = `${STANDING_TIP_PREFIX}charge:`;
 const STANDING_HOLDING_TIP_PREFIX = `${STANDING_TIP_PREFIX}holding:`;
 const STANDING_HELD_TIP_PREFIX = `${STANDING_TIP_PREFIX}held:`;
-/** A carrier's own row, and one per status under it — the section's keys, **ADR 0098**. */
-const CARRIED_TIP_PREFIX = `${STANDING_TIP_PREFIX}carrying:`;
-const CARRIED_STATUS_TIP_PREFIX = `${STANDING_TIP_PREFIX}carried:`;
 const TITLE_ATTRIBUTE = "title";
 /** What a row's bar is written on, since a length and a hue are data rather than tokens. */
 const STYLE_ATTRIBUTE = "style";
@@ -1104,193 +1088,29 @@ function composeStandingPersonElement(
 }
 
 /**
- * The figure a standing row states, and **every span a press may land on inside it**. A press is
- * read off the node under the hand and never walked up from (`getPressFromTarget`), so the parts
- * go back to the caller to be marked with the row's own — spelled out here because the row that
- * carries the mark cannot see what this built. Unmarked, the three spans of `1 | 0` were the
- * widest deaf patch on a row whose cursor said it opened.
+ * What the window says about the **fight**: whose turn it is, what is being made ready, and who is
+ * holding whom. What is true of one fighter is said on that fighter, in the game's own tooltip
+ * (**ADR 0108**), so nothing here is drawn per combatant.
  */
-interface StandingCount {
-    value: PanelElement;
-    parts: PanelElement[];
-}
-
-/**
- * The two sides' counts, as the strip under the ranking states them: **two figures the colour
- * tells apart**, not one figure with a mark in it. The separator divides nothing and is drawn in
- * the quiet ink to say so — `DESIGN.md`'s Colour Never Alone Rule is met by the numbers it stands
- * between, and a fight the client named no side on gets one plain count instead.
- */
-function composeStandingCountElement(
-    document: PanelDocument,
-    row: StandingRow,
-): StandingCount {
-    const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
-    if (row.reader === null || row.opposing === null) {
-        value.textContent = composeIntegerText(row.casters.length);
-        return { value, parts: [value] };
-    }
-    const reader = composeElement(document, "span", CLASS.standingOurs);
-    reader.textContent = composeIntegerText(row.reader);
-    const between = composeElement(document, "span", CLASS.rowShare);
-    between.textContent = STANDING_WORDS.sideSeparator;
-    const opposing = composeElement(document, "span", CLASS.standingTheirs);
-    opposing.textContent = composeIntegerText(row.opposing);
-    value.append(reader);
-    value.append(between);
-    value.append(opposing);
-    return { value, parts: [value, reader, between, opposing] };
-}
-
-/** One counted row per skill, and the casters under whichever one is open. */
-function composeStandingRowElements(
-    document: PanelDocument,
-    reading: StandingReading,
-    register: TipRegister,
-): PanelElement[] {
-    const drawn: PanelElement[] = [];
-    for (const row of reading.rows) {
-        const element = composeElement(document, "div", `${CLASS.row} ${CLASS.rowDrillable}`);
-        const name = composeElement(document, "span", CLASS.rowName);
-        name.textContent = row.skillName;
-        const count = composeStandingCountElement(document, row);
-        element.append(name);
-        element.append(count.value);
-        const marked = [element, name, ...count.parts];
-        setRowMarks(marked, STANDING_ATTRIBUTE, composeIntegerText(row.skillId));
-        const key = `${STANDING_TIP_PREFIX}${composeIntegerText(row.skillId)}`;
-        register.add(key, () => composeStandingTipReading(row.skillName));
-        setRowMarks(marked, TIP_ATTRIBUTE, key);
-        drawn.push(element);
-        if (row.skillId !== reading.openSkillId) continue;
-        for (const caster of row.casters) {
-            const under = `${composeIntegerText(row.skillId)}/${
-                composeIntegerText(caster.casterId)
-            }`;
-            drawn.push(composeStandingPersonElement(
-                document,
-                register,
-                `${STANDING_CAST_TIP_PREFIX}${under}`,
-                {
-                    name: caster.name,
-                    // The skill stands on the row above, which is the row these open under, so
-                    // the row draws none of it and the card is where it is named.
-                    skillName: row.skillName,
-                    colour: caster.colour,
-                    sidePart: caster.sidePart,
-                    turns: composeStandingTurnsText(caster.turnsElapsed, caster.turnsStated),
-                    turnsCaveat: "standingLength",
-                    isUnder: true,
-                },
-            ));
-        }
-    }
-    return drawn;
-}
-
-/**
- * The window's rows open onto the casters under them and say so, which the ranking's rows have
- * said since **ADR 0034**. Nothing else stands on this card: who cast it is what the row opens
- * onto, so a card stating it too would be answering the gesture it is teaching.
- */
-function composeStandingTipReading(skillName: string): TipReading {
-    return {
-        name: skillName,
-        subtitle: null,
-        groups: [{
-            lines: [{ kind: "note", text: STANDING_WORDS.openRow, tone: "plain" }],
-        }],
-    };
-}
-
-/**
- * One row per combatant and, under them, what the game says they are carrying. **No caster and no
- * total**: a mask states neither, so this section answers `on whom` and the one above answers
- * `what was cast`, and neither is allowed to finish the other's sentence. **ADR 0104.**
- */
-function composeCarriedElements(
-    document: PanelDocument,
-    reading: StandingReading,
-    register: TipRegister,
-    translate: TranslateLabel | null,
-): PanelElement[] {
-    if (reading.carriers.length === 0) return [];
-    let counted = 0;
-    for (const one of reading.carriers) counted += one.statuses.length;
-    const drawn: PanelElement[] = [
-        composeSectionElement(document, STANDING_WORDS.carried, counted),
-    ];
-    for (const carrier of reading.carriers) {
-        const who = composeIntegerText(carrier.combatantId);
-        drawn.push(composeStandingPersonElement(
-            document,
-            register,
-            `${CARRIED_TIP_PREFIX}${who}`,
-            {
-                name: carrier.name,
-                skillName: null,
-                colour: carrier.colour,
-                sidePart: carrier.sidePart,
-                turns: null,
-                turnsCaveat: null,
-                isUnder: false,
-            },
-        ));
-        for (const status of carrier.statuses) {
-            const said = getWordsForStatusBit(status.bit, translate);
-            drawn.push(composeStandingPersonElement(
-                document,
-                register,
-                `${CARRIED_STATUS_TIP_PREFIX}${who}/${composeIntegerText(status.bit)}`,
-                {
-                    name: said,
-                    skillName: null,
-                    colour: carrier.colour,
-                    sidePart: carrier.sidePart,
-                    turns: composeCarriedTurnsText(status.turnsElapsed),
-                    turnsCaveat: "carriedLength",
-                    isUnder: true,
-                },
-            ));
-        }
-    }
-    return drawn;
-}
-
 function composeStandingBody(
     document: PanelDocument,
     reading: StandingReading,
     register: TipRegister,
-    translate: TranslateLabel | null,
 ): PanelElement {
     const body = composeElement(document, "div", CLASS.standingBody);
     for (const element of composeStandingNow(document, reading, register)) body.append(element);
     for (const element of composeChargedSkillElements(document, reading, register)) {
         body.append(element);
     }
-    body.append(composeSectionElement(document, STANDING_WORDS.standing, reading.rows.length));
-    if (reading.rows.length === 0) {
-        if (reading.provoked.length === 0 && reading.carriers.length === 0) {
+    if (reading.chargedSkills.length === 0) {
+        if (reading.provoked.length === 0) {
             const empty = composeElement(document, "div", CLASS.empty);
             empty.textContent = STANDING_WORDS.nothingStands;
             body.append(empty);
             return body;
         }
-        for (const element of composeProvokedElements(document, reading, register)) {
-            body.append(element);
-        }
-        for (const element of composeCarriedElements(document, reading, register, translate)) {
-            body.append(element);
-        }
-        return body;
-    }
-    for (const element of composeStandingRowElements(document, reading, register)) {
-        body.append(element);
     }
     for (const element of composeProvokedElements(document, reading, register)) {
-        body.append(element);
-    }
-    for (const element of composeCarriedElements(document, reading, register, translate)) {
         body.append(element);
     }
     return body;
@@ -2080,7 +1900,6 @@ export type PanelPress =
     | { kind: "fold" }
     | { kind: "save" }
     | { kind: "shelf" }
-    | { kind: "standing"; stated: string }
     | { kind: "standing-fold" };
 
 function composeShownList(
@@ -2461,8 +2280,6 @@ function getPressFromTarget(target: PanelTarget): PanelPress | null {
     if (pinned !== null) return { kind: "pin", stated: pinned };
     const storage = target.getAttribute(STORAGE_ATTRIBUTE);
     if (storage !== null) return { kind: "storage", name: storage };
-    const standing = target.getAttribute(STANDING_ATTRIBUTE);
-    if (standing !== null) return { kind: "standing", stated: standing };
     if (target.getAttribute(STANDING_FOLD_ATTRIBUTE) !== null) return { kind: "standing-fold" };
     if (target.getAttribute(SAVE_ATTRIBUTE) !== null) return { kind: "save" };
     if (target.getAttribute(SHELF_ATTRIBUTE) !== null) return { kind: "shelf" };
@@ -2703,15 +2520,10 @@ function setStandingBodyDrawn(
     isCollapsed: boolean,
     redraw: PanelRedraw,
     register: TipRegister,
-    translate: TranslateLabel | null,
 ): PanelElement {
     if (reading === null) return redraw(standing, "standing", () => composeSlotElement(document));
     if (isCollapsed) return redraw(standing, "standing", () => composeSlotElement(document));
-    return redraw(
-        standing,
-        "standing",
-        () => composeStandingBody(document, reading, register, translate),
-    );
+    return redraw(standing, "standing", () => composeStandingBody(document, reading, register));
 }
 
 /**
@@ -2895,7 +2707,6 @@ function composePanelDrawing(held: PanelDrawing): PanelHandle {
                     isCollapsed,
                     redraw,
                     held.standingRegister,
-                    held.translate,
                 ),
             );
             held.standingDrag?.handleDrawn();

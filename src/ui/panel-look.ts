@@ -133,7 +133,6 @@ export const CLASS = {
     standingFolded: "standing-folded",
     /** A row nested under the one above it, whoever stands in either. */
     standingUnder: "standing-under",
-    standingOurs: "standing-ours",
     /** The okrzyk a holder is holding somebody with, drawn on their row (**ADR 0097**). */
     standingCast: "standing-cast",
     /** The row that carries one, which is the only row where the name gives way last. */
@@ -141,7 +140,6 @@ export const CLASS = {
     standingPips: "standing-pips",
     standingPip: "standing-pip",
     standingPipLit: "standing-pip-lit",
-    standingTheirs: "standing-theirs",
 } as const;
 
 export const SPACE = {
@@ -907,14 +905,7 @@ function composeStandingRules(): string {
         `gap:var(${VARIABLE_PREFIX}half);padding-left:var(${VARIABLE_PREFIX}small);}` +
         `.${CLASS.standingPip}{width:${PIP_SIZE};height:${PIP_SIZE};border-radius:50%;` +
         `flex:none;background:var(${VARIABLE_PREFIX}border);}` +
-        `.${CLASS.standingPip}.${CLASS.standingPipLit}{background:currentColor;}` +
-        // The same two inks the strip under the ranking states its sides in, and for the same
-        // reason: two sides, and the panel takes no view on which one to be pleased about.
-        // Spaced both sides of the mark between them, so the pair reads as two figures rather
-        // than one. The mark's own left inset is the share's, which it borrows.
-        `.${CLASS.standingOurs}{color:var(${VARIABLE_PREFIX}ours);}` +
-        `.${CLASS.standingTheirs}{color:var(${VARIABLE_PREFIX}theirs);` +
-        `padding-left:var(${VARIABLE_PREFIX}small);}`;
+        `.${CLASS.standingPip}.${CLASS.standingPipLit}{background:currentColor;}`;
 }
 
 export function composeStyleSheet(): string {
