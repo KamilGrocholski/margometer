@@ -1,6 +1,6 @@
 # 0049. A turn nobody spent is read by shape, not by words
 
-- **Status:** Accepted
+- **Status:** Superseded by 0110 in part
 - **Date:** 2026-09-03
 
 ## Context

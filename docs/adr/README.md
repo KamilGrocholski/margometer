@@ -149,7 +149,7 @@ edited to agree with the new rule.
 - [0048](0048-a-turn-is-counted-and-nothing-divides-by-it.md) — A turn is counted, and nothing
   divides by it. **Accepted**
 - [0049](0049-a-turn-nobody-spent-is-read-by-shape.md) — A turn nobody spent is read by shape, not
-  by words. **Accepted**
+  by words. **Superseded by 0110 in part**
 - [0050](0050-the-list-keeps-the-place-a-reader-was-at.md) — The list keeps the place a reader was
   at. **Accepted**
 - [0051](0051-the-layer-a-reader-touches-never-fails.md) — The layer a reader touches never fails.
