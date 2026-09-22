@@ -6,6 +6,7 @@
  * out. **W5**: zero turns elapsed is a boundary and has one turn beside it.
  */
 
+import { isCommentLine } from "@/tests/source-line.ts";
 import {
     assert,
     assertEquals,
@@ -242,12 +243,26 @@ Deno.test("which side a cast reaches is the register's word, and never a guess",
 });
 
 Deno.test("a skill whose keys disagree reaches both sides, which is not a failed reading", () => {
-    // `Wyzywający okrzyk` points its own side at somebody and lowers the opposing team's damage in
-    // the same announcement. Calling that unknown would hide one of the two.
+    // `Prowokujący okrzyk` provokes the other side and raises its own side's melee damage in one
+    // announcement. Calling that unknown would hide one of the two.
     assertStrictEquals(
-        getReachFromEffects([{ effect: "shout" }, { effect: "alllowdmg" }]),
+        getReachFromEffects([{ effect: "shout" }, { effect: "aura-adddmg2_per-meele" }]),
         "both-sides",
         "both halves are stated, so both are said",
+    );
+});
+
+/**
+ * ⚠️ **This pair used to be the one above, on a reading that was backwards.** `shout` was held to
+ * reach the caster's side — the help has the affected attacking whoever cast it, and over
+ * `captures/` 168 of 168 named characters stand opposite the caster — so `Wyzywający okrzyk`,
+ * whose every key faces the other side, reaches only that side and never both.
+ */
+Deno.test("a skill whose keys all face the other side reaches that side alone", () => {
+    assertStrictEquals(
+        getReachFromEffects([{ effect: "shout" }, { effect: "alllowdmg" }]),
+        "other-side",
+        "a shout and a team-wide debuff both land there",
     );
 });
 
@@ -580,4 +595,46 @@ Deno.test("a shout dates no side-wide half, and a shout alone dates none at all"
         null,
         "and a skill that only shouts reaches no side-wide row",
     );
+});
+
+/** The names that state a side by themselves, so a reader needs nothing beside them. */
+const SIDE_IN_THE_NAME = ["-enemies", "-all", "-allies", "aura-"];
+/** Where the table lives, read as text because what is checked is the comment beside a value. */
+const REACH_SOURCE = "src/core/aura-standing.ts";
+const REACH_OPENER = "const REACH_BY_KEY: Record<string, AuraReach> = {";
+
+/**
+ * ⚠️ **A key with no side in its name carries a citation or a measurement** — **ADR 0106**, and
+ * the entry that record exists for was the one without either. Every other name says its side
+ * outright: `-enemies`, `-all`, `-allies`, or the `aura-` that marks a team's own.
+ *
+ * Read over the source rather than over the table, because what a value needs is the **reason
+ * beside it**, and a reason is a comment. A key added without one reddens this.
+ */
+Deno.test("a reach with no side in its name is entered with its reason", () => {
+    const source = Deno.readTextFileSync(REACH_SOURCE);
+    const opened = source.indexOf(REACH_OPENER);
+    assert(opened !== -1, "the table is where this guard expects it");
+    const lines = source.slice(opened + REACH_OPENER.length).split("\n");
+    const bare: string[] = [];
+    let commented = false;
+    let entries = 0;
+    for (const line of lines) {
+        if (line.startsWith("}")) break;
+        if (isCommentLine(line.trim())) {
+            commented = true;
+            continue;
+        }
+        const quoted = line.indexOf('"');
+        const named = quoted === -1
+            ? line.slice(line.indexOf("[") + 1, line.indexOf("]"))
+            : line.slice(quoted + 1, line.indexOf('"', quoted + 1));
+        if (named.length === 0) continue;
+        entries += 1;
+        const saysItsSide = SIDE_IN_THE_NAME.some((mark) => named.includes(mark));
+        if (!saysItsSide && !commented) bare.push(named);
+        commented = false;
+    }
+    assert(entries > 10, `the table was read: ${entries} entries`);
+    assertEquals(bare, [], "every key that does not name its side is entered with a reason");
 });

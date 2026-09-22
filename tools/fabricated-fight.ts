@@ -115,6 +115,8 @@ interface FabricatedTurn {
     ally: FabricatedWarrior;
     /** Everyone still standing on the actor's side, for the acts that reach a whole one. */
     side: FabricatedWarrior[];
+    /** Everyone still standing against them, for the one act that names whom it holds. */
+    opposing: FabricatedWarrior[];
     round: number;
     ordinal: number;
 }
@@ -238,6 +240,12 @@ const PLAIN_SKILLS = [
     { id: 412, name: "Salwa igieł" },
     { id: 413, name: "Modlitwa opatrunku" },
 ];
+/**
+ * The one skill the script shouts with, and it is the first of the auras above on purpose: only
+ * the ids `frozen/aura-turns.ts` lists under `shouts` are dated as shouts, so a shout announced
+ * under any other id reaches no row of the panel at all and the act would draw nothing.
+ */
+const SHOUT_SKILL_AT = 0;
 const BARD_SONG = "Pieśń o dwóch rzekach";
 const CHARGED_SKILL = "Nawałnica lodu";
 
@@ -981,12 +989,24 @@ function actAuraCast(turn: FabricatedTurn): string[] {
     ])];
 }
 
+/**
+ * ⚠️ **The value is the characters it holds, by name.** `docs/protocol-keys.md` has it as a list
+ * in the grammar `winner` uses, and a count there instead left the panel with nothing to resolve
+ * against the roster — so a fabricated fight drew no provocation at all, however many it shouted.
+ *
+ * Every opponent still standing is named, which stays inside what the published table covers: it
+ * gives the shout six characters at skill level 1 and ten at level 10, and a side here never
+ * fields more than ten (`composeFabricationShape`).
+ */
 function actShoutCast(turn: FabricatedTurn): string[] {
     assert(turn.side.length > 0, "a cast that reaches a side reaches somebody");
     assert(turn.side.every((one) => one.side === turn.actor.side), "and only their own");
-    return [composeMessage(composeSide(turn.actor), null, [
-        ...composeAnnouncement(getAuraSkill(turn)),
-        composeFigureParameter("shout", composeSmall(turn, 30)),
+    assert(turn.opposing.length > 0, "and a shout names the characters it holds");
+    const shouted = AURA_SKILLS[SHOUT_SKILL_AT];
+    assertExists(shouted, "the script shouts under a skill the published table dates as one");
+    return [composeMessage(composeSide(turn.actor), composeSide(turn.target), [
+        ...composeAnnouncement(shouted),
+        composeValued("shout", turn.opposing.map((one) => one.name).join(NAME_SEPARATOR)),
         composeFigureParameter("allslow_per", composeSmall(turn, 25)),
         composeFigureParameter("alllowdmg", composeSmall(turn, 16)),
     ])];
@@ -1443,7 +1463,17 @@ function composeTurn(
     assert(ally.id > 0, "an act that names an ally names somebody");
     assert(target.id !== actor.id, "and a blow is never thrown at its own thrower");
     const side = getStandingOnSide(state, actor.side);
-    return { shape: state.shape, actor, target, ally, side, round: state.round, ordinal };
+    const opposing = getStandingOnSide(state, target.side);
+    return {
+        shape: state.shape,
+        actor,
+        target,
+        ally,
+        side,
+        opposing,
+        round: state.round,
+        ordinal,
+    };
 }
 
 /** How many turns the fight ran, which is how far down the script it reached. */

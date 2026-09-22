@@ -262,3 +262,5 @@ edited to agree with the new rule.
   carries is read off the mask, and names no cast. **Accepted**
 - [0105](0105-one-line-is-written-where-the-game-already-draws-one.md) — One line is written where
   the game already draws one. **Accepted**
+- [0106](0106-a-shout-reaches-the-side-it-provokes.md) — A shout reaches the side it provokes.
+  **Accepted**

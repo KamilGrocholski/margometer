@@ -1818,9 +1818,9 @@ and composes `eng_game_only_val_+crush %val%`.
 
 ### `+rage` — decoded
 
-The Rage buff firing on this blow, stated as an attack figure. An input to damage, so the `dmg` keys
-beside it already carry whatever it produced — counting it would state the same increase twice, in a
-unit nothing here totals.
+The Rage status firing on this blow, stated as an attack figure. An input to damage, so the `dmg`
+keys beside it already carry whatever it produced — counting it would state the same increase twice,
+in a unit nothing here totals.
 
 _Shape:_ 2 occurrences; on a blow; a whole number
 
@@ -1902,14 +1902,20 @@ name it shares with a figure a statistic here does count. `-absorbm`, two segmen
 message, is damage that pool stopped and reaches `prevented`. This one is the pool being refilled:
 not damage, not a prevention, and not a statistic destroyed.
 
-⚠️ **Whose pool refilled is not settled, and the entry says so rather than reading the slot.** Every
-occurrence rides a blow where the attacker is named on one side and the absorbing combatant on the
-other, and nothing states which of them gained. The help is the source that would answer it (this
-section's own preamble: which combatant a figure belongs to comes from the help, never from the
-sign), and it goes half way: `absagain_per` documents the renewal both this key and `+absorb`
-report, without saying whether the attack that triggers it is one the character landed or one they
-took. So the question the verdict turns on is still open, and this stays a declaration rather than
-something a row could carry.
+⚠️ **Whose pool refilled is the help's answer, and it gives one.** Every occurrence rides a blow
+where the attacker is named on one side and the absorbing combatant on the other, and the slot
+settles nothing — which combatant a figure belongs to comes from the help and never from the sign
+(this section's own preamble). Asked again on 2026-09-22 it answers twice over: absorption is
+generated _z każdym **wykonanym** ciosem … na skutek efektu umiejętności (`absagain_per`)_, and the
+effect table gives that effect as _przywrócenie części absorpcji … **po trafionym ataku**_. A blow
+**performed** is the holder's own, so the pool that refills is the **striker's**.
+
+⚠️ **The second clause alone would not have settled it.** _Po trafionym ataku_ reads both ways in
+Polish — an attack they landed, or one that landed on them — and the first clause is what makes it
+one. An earlier reading of this entry had the help going only half way and left the question open;
+it was open for want of asking, not for want of an answer. **What is now a decision rather than an
+unknown** is whether a row carries this figure: it is still read and totalled by nothing here, and
+moving it out of a declaration is a change to what the decoder hands over.
 
 _Shape:_ 18 occurrences; on a blow; a whole number
 
@@ -2280,13 +2286,16 @@ _Shape:_ 166 occurrences; on a skill announcement; text
 
 _Help:_ names `shout`
 
-_Evidence:_ article view,372 (read 2026-08-09) at the engine name `shout`, described as forcing
-covered characters to attack a chosen target. **The two skills carrying it carry different keys
-beside it**, and neither shape is the other's: over every recording, `Wyzywający okrzyk`
-(`skillId=188`) announces it beside `active_decblock_per-enemies` and `alllowdmg`, and
-`Prowokujący okrzyk` (`skillId=25`) beside `aura-adddmg2_per-meele` and neither of those two. The
-split is re-earnable without opening a recording — the three keys' own `_Shape:_` lines come to this
-one's — and `docs/auras-standing.md` holds it against the material.
+_Evidence:_ article view,372 at the engine name `shout` (re-read 2026-09-22): the effect forces the
+characters carrying it to attack **whoever used the skill**, and lands on the skill's own target
+plus, at random, the rest of the count its parameter states. So the value's names are bearers, and
+the target slot is one of them — an earlier reading here had it forcing them at a chosen target,
+which is the reading **ADR 0064** replaced. **The two skills carrying it carry different keys beside
+it**, and neither shape is the other's: over every recording, `Wyzywający okrzyk` (`skillId=188`)
+announces it beside `active_decblock_per-enemies` and `alllowdmg`, and `Prowokujący okrzyk`
+(`skillId=25`) beside `aura-adddmg2_per-meele` and neither of those two. The split is re-earnable
+without opening a recording — the three keys' own `_Shape:_` lines come to this one's — and
+`docs/auras-standing.md` holds it against the material.
 
 ### `surpass_bonus_total` — decoded
 

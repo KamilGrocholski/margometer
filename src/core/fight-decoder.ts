@@ -45,10 +45,16 @@ const DAMAGE_MARKER = "dmg";
 const DAMAGE_MARKER_AT = 1;
 const RAW_SIGN = "+";
 const APPLIED_SIGN = "-";
-/** The one pair the family rule cannot reach, because the key carries no marker. */
-const DAMAGE_KEYS = ["+thirdatt", "-thirdatt"];
-const PREVENTED_KEYS = ["-absorb", "-absorbm", "-blok"];
-const DESTROYED_KEYS = [
+/**
+ * The one pair the family rule cannot reach, because the key carries no marker.
+ *
+ * These lists are exported for one reader and it is not in `src/`: the docblocks below say every
+ * member is an entry in `docs/protocol-keys.md`, and
+ * `tests/repository/protocol-keys.test.ts` is what holds them to it.
+ */
+export const DAMAGE_KEYS = ["+thirdatt", "-thirdatt"];
+export const PREVENTED_KEYS = ["-absorb", "-absorbm", "-blok"];
+export const DESTROYED_KEYS = [
     "+acdmg",
     "+critpierce",
     "+resdmg",
@@ -255,7 +261,7 @@ const SENTENCE_STOP = ".";
  * the test a key must pass to be here is not "we understand it" — it is whether whatever the
  * figure did is reported elsewhere, in a unit no total keeps, or outside the fight.
  */
-const DECLARATION_KEYS = [
+export const DECLARATION_KEYS = [
     "+absorb",
     "+absorbm",
     "+critpoison_per",
@@ -326,7 +332,7 @@ const PROCS_WITH_A_VALUE = [
  * figure is absent rather than a proc, and one arriving with a value goes back to unread. A hole
  * is not what membership means: `sunshield_per` is composed with none at all.
  */
-const VALUELESS_DECLARATION_KEYS = [
+export const VALUELESS_DECLARATION_KEYS = [
     "+legbon_anguish",
     "+legbon_holytouch",
     "+spell-taken_dmg-all",

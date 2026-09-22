@@ -39,10 +39,18 @@ and not all. **ADR 0049** rejected an attribution measured at 84.6% in the words
 end that is not the bearer, and **ADR 0010** measured what reading it costs: eight of 115 name a
 combatant other than the caster.
 
-**`shout` names a target, not a bearer.** The published help gives it as _forcing covered characters
-to attack a chosen target_, so the character it names is who the caster's own side is pointed at,
-and it is the one cast the target slot is read beside. It resolves against the roster and agrees
-with that slot in every occurrence that reading covered (**ADR 0061**).
+**`shout` names bearers, and the target slot is one of them.** The help's effect table settles it,
+read 2026-09-22: the effect _zmusza Postacie, na które nałożony jest efekt, do obierania za cel
+ataku Postaci, która użyła umiejętności_, and it lands on _Gracza, będącego celem umiejętności oraz
+losowo na pozostałą liczbę Graczy_. So the provoked strike **whoever cast it** — there is no target
+the caster's side is pointed at — and the announcement's target slot names one of the provoked,
+which is why it resolves against the roster and agrees with the value (**ADR 0061**, **ADR 0064**).
+
+⚠️ **This paragraph said the opposite for a while, and the section below always said it right.**
+Before **ADR 0064** the value was read as a target rather than as a list of bearers, and the
+sentence survived the reading that replaced it — two statements of one mechanism, drifting without
+looking different. What the value is remains _What a shout holds_'s to say, and this one points at
+it rather than restating it.
 
 ⚠️ **`allslow_per` is the one key the register does not settle** — it lists it among the effects
 changing attack speed and never says whose. Measured instead: after a `Szadź`, the combatant on the
@@ -82,6 +90,37 @@ measured rather than written down (**V5**).
 ⚠️ **The panel counts on the caster and both sources say the bearer.** `src/core/aura-standing.ts`
 takes the clock off `casterId`, so one cast leaves every row at one moment. The help dates a length
 to whoever is carrying it, and the mask goes out per bearer. **ADR 0101** carries what follows.
+
+**One surface counts on the bearer already.** The line the add-on writes into the game's own tooltip
+stands beside **one fighter**, so it dates a status by the cast reaching their side and counts it in
+**their** turns — `src/core/carried-figure.ts`, off the turn count every cast now carries for
+everybody as it stood. A cast the bearer has already outrun dates nothing there, and takes its
+figure with it: a standing is dropped on the caster's turns, so one whose caster has stopped taking
+them outlives its own length for everybody else.
+
+⚠️ **The mask's own count is a different reading, and not a worse one.** It says how long the bit
+has been lit for that bearer, which begins when a payload first restates them carrying it — turns
+after the cast where they were not restated at the time — and it goes on burning through a re-cast,
+because a second cast into a lit bit makes no 0→1 edge.
+
+**So it can carry no denominator of its own**, and its own length is what shows that: the longest
+the mask holds one bearer reaches **46** of their turns for `swow_down` and **20** for `speed_up`
+(`captures/`, 2026-09-22), where the table gives the skills behind them eight. That is no
+disagreement with the `own` column above — that one counts what a **run** usually comes to, and this
+is the longest one ever ran.
+
+⚠️ **Those two figures moved on 2026-09-22 and the reason is worth keeping.** They were 56 and 20,
+taken while a combatant at zero health still carried whatever their mask last said; the fallen now
+carry nothing (`src/game/engine-warrior.ts`), so the longest run is shorter by the turns a corpse
+was being counted for. `design/dziesiec/measured.json` holds the older pair, as the dated reading of
+a round that was taken before the fix.
+
+⚠️ **The window beside the panel has not moved, and the two now disagree about the same fighter.**
+`Co stoi` counts a **cast**, which has no bearer to be counted on, so the caster's clock is the only
+one it has and **ADR 0102** makes it say so. `Co kto nosi` is the section that answers the same
+question as the tooltip — this fighter, this status — and it still draws the mask's bare count.
+Until one of them moves, a reader hovering a fighter and reading the window sees two numbers for one
+effect.
 
 **The published help states whose turns for ten of its keys, and six of them are ours.** Each row is
 a clause counted in `frozen/help-phrases.ts` and cited by that key's entry in
@@ -134,6 +173,12 @@ caster produces one going-out, so every row in that column is a row no such cloc
 `aura-sa_per` and the table dates it eight turns; eight is also the length most runs of that status
 came to. The two agree, and they agree in the bearer's turns and not the caster's.
 
+**A run cut short by a death never enters the lengths above.** The table closes a run when the bit
+goes out, and a combatant who falls stops being restated at all — measured over `captures/` on
+2026-09-22, the two witnessed bits end 43 runs that way against 233 that go out properly. Those 43
+stay open and are counted nowhere, which is what keeps `own` a statement about the effect rather
+than about who died holding it.
+
 ⚠️ **A refresh nobody saw reads as one long run.** A second cast landing while the bit is lit makes
 no 0→1 edge, so the run that closes is the pair — which is why `own` is the length most runs came to
 rather than a mean, and why the column above it carries lengths the table dates nothing for.
@@ -142,10 +187,10 @@ rather than a mean, and why the column above it carries lengths the table dates 
 `allslow_per` is the one key this document does not settle, and the mask does not name which cast
 lit a bit (**ADR 0061**), so a slow from a skill the corpus never dates lands in the same column.
 
-⚠️ **No bit stands for a provocation.** The frozen table names nine statuses and a shout is none of
-them, so what holds a shouted character for three turns is witnessed by nothing here. The claim that
-a shout runs on the shouted character's turns is neither carried nor refused by this material, and
-the help dates `shout` nowhere. It stays open, which is a different thing from being answered.
+⚠️ **No bit stands for a provocation**, so a shout's length is witnessed by nothing in this section.
+It is witnessed all the same, by what the held character does rather than by what the mask says —
+the register at the foot of this document carries that reading, and **ADR 0103** is what the panel
+does with it. The help dates `shout` nowhere, and it no longer has to.
 
 ## How much it comes to
 
@@ -245,16 +290,23 @@ to say (**ADR 0062**). The column is here so the claim stays re-earnable.
 their two halves apart and each half is a thing that stands: `Wyzywający okrzyk` shouts for three
 turns and debuffs the other side for five. Its `stated` here is the side-wide half's and never the
 shout's, which is the register below's. **ADR 0097**, and the two rows are what holds the claim —
-were the okrzyki one shape, skill 25 would read `other` and five here rather than `caster's` and
-two.
+were the okrzyki one shape, skill 25 would read five here rather than two.
+
+⚠️ **Both `reaches` verdicts moved on 2026-09-22, and the shout is why.**
+`src/core/aura-standing.ts` had `shout` reaching the **caster's** side, which is backwards: the
+help's effect table forces the affected to attack _Postaci, która użyła umiejętności_, and over
+`captures/` **168 of 168 characters named across 166 announcements stand opposite the caster**, none
+on their own side. So `Prowokujący okrzyk` reaches both — it provokes the other side and raises its
+own — and `Wyzywający okrzyk` reaches only the other, its `both` having come from nothing but that
+entry.
 
 |  id | skill              | on | fights | at once | stated | reaches  |
 | --: | ------------------ | -: | -----: | ------: | -----: | -------- |
-|  25 | Prowokujący okrzyk |  4 |      6 |       1 |      2 | caster's |
+|  25 | Prowokujący okrzyk |  4 |      6 |       1 |      2 | both     |
 |  76 | Aura ochrony       | 13 |     16 |       2 |      8 | caster's |
 |  89 | Podwójny dech      | 19 |     19 |       4 |      8 | caster's |
 | 123 | Szadź              | 22 |     23 |       3 |      8 | other    |
-| 188 | Wyzywający okrzyk  | 10 |     17 |       2 |      5 | both     |
+| 188 | Wyzywający okrzyk  | 10 |     17 |       2 |      5 | other    |
 | 219 | Jadowity podmuch   |  1 |      1 |       1 |      8 | other    |
 | 264 | Piętno bestii      | 14 |     17 |       2 |      8 | other    |
 

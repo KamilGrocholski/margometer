@@ -42,6 +42,9 @@ export type AuraReach = "casters-side" | "other-side" | "both-sides";
  * which cites the published help (**V1**). A key absent from here reaches **nothing stated**.
  */
 const REACH_BY_KEY: Record<string, AuraReach> = {
+    // The `all` in the name says everybody and not which side — `allslow_per` below needed a
+    // measurement for the same reason. The register settles this one: _a reduction to the damage
+    // dealt by everyone on the opposing side_ (`docs/protocol-keys.md`).
     "alllowdmg": "other-side",
     "+spell-taken_dmg-all": "other-side",
     "lowheal_per-enemies": "other-side",
@@ -59,7 +62,12 @@ const REACH_BY_KEY: Record<string, AuraReach> = {
     "removedot-allies": "casters-side",
     "removeslow-allies": "casters-side",
     "removestun-allies": "casters-side",
-    [PROVOCATION_KEY]: "casters-side",
+    // ⚠️ **The one entry that had neither a suffix nor a citation, and it was the wrong way
+    // round.** The help's effect table: the affected are forced to attack _Postaci, która użyła
+    // umiejętności_ — you do not force an ally to strike you. Measured over `captures/`
+    // 2026-09-22: of 168 characters named across 166 announcements, **168 stand opposite the
+    // caster and none on their own side**.
+    [PROVOCATION_KEY]: "other-side",
 };
 
 export interface SkillEffectTurns {

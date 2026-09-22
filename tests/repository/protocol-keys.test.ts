@@ -11,12 +11,17 @@ import { assert, assertEquals, assertThrows } from "@std/assert";
 import { FROZEN_HELP_PHRASES } from "@/frozen/help-phrases.ts";
 import { FROZEN_PROTOCOL_KEYS } from "@/frozen/protocol-keys.ts";
 import {
+    DAMAGE_KEYS,
+    DECLARATION_KEYS,
+    DESTROYED_KEYS,
     HEALTH_CHANGE_BY_KEY,
     isAppliedDamageKey,
     isDamageKey,
     NAMED_DAMAGE_KEY,
+    PREVENTED_KEYS,
     SELF_SOURCED_HEALING_KEYS,
     UNACCOUNTED_HEALTH_KEY,
+    VALUELESS_DECLARATION_KEYS,
     WOUND_TICK_KEY,
 } from "@/src/core/fight-decoder.ts";
 import {
@@ -584,4 +589,34 @@ Deno.test("every constant the register names is one the tree still spells", () =
     assert(spelled.length > 0, "and there is TypeScript for them to be spelled in");
     const gone = [...named].filter((one) => !spelled.includes(one)).sort();
     assertEquals(gone, [], "the register names a constant no file in the tree spells");
+});
+
+/** The lists `src/core/fight-decoder.ts` sorts a key by, each with what it is a list of. */
+const SORTED_BY_LIST: Record<string, readonly string[]> = {
+    "damage the family rule cannot reach": DAMAGE_KEYS,
+    "what a defence stopped": PREVENTED_KEYS,
+    "a statistic an attack reduced": DESTROYED_KEYS,
+    "a declaration no total counts": DECLARATION_KEYS,
+    "a declaration carrying no figure": VALUELESS_DECLARATION_KEYS,
+};
+
+/**
+ * ⚠️ **The decoder's own docblocks say every member is an entry here, and nothing held them to
+ * it.** A key sorted into one of those lists and never written up is a key whose meaning lives in
+ * a `const` — which is exactly how a wrong reading survives, as **ADR 0106** found in the table
+ * beside them. The register is where a claim about a key is cited (**V1**), so the list and the
+ * register agree or one of them is out of date.
+ */
+Deno.test("every key the decoder sorts by name is a key the register writes up", () => {
+    const register = Deno.readTextFileSync(REGISTER_PATH);
+    const written = new Set(getRegisteredKeys(register).map((one) => one.key));
+    assert(written.size > 100, `the register was read: ${written.size} entries`);
+    const missing: string[] = [];
+    for (const [what, keys] of Object.entries(SORTED_BY_LIST)) {
+        assert(keys.length > 0, `${what} is a list with something in it`);
+        for (const key of keys) {
+            if (!written.has(key)) missing.push(`${key} — sorted as ${what}`);
+        }
+    }
+    assertEquals(missing, [], "a key the decoder sorts is a key the register carries");
 });
