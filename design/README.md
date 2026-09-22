@@ -41,6 +41,13 @@ every run in between — `deno.json` carries that reason beside the exclusion.
   cites the document that owns it. What another round already measured is cited there and never
   counted again (**V4**, **V5**).
 - **A measurement names its material** — the recording, or the corpus and the date it was taken on.
+- **`measured.json` is a dated snapshot, and `measure.ts` overwrites it.** A round reads the
+  recordings through the **shipped** modules, so a later fix to those modules moves figures that
+  nobody re-asked the question about: `dziesiec/` was measured on a decoder that kept a status on
+  the fallen, and re-running it after that fix moved two figures — one of them drawn on three
+  sheets. The round is the record of a question asked on a date, so **the rewrite is reverted**
+  unless the round is being re-asked, and then every sheet citing a moved figure is re-substituted
+  with it. Take a copy before running it; a `git checkout` here takes the sheets with it.
 - **The vocabulary is `CONTEXT.md`'s** (**N12**), and the sheets are read by somebody who reads the
   panel: *ekran*, *umiejętność*, *Zatrzymane*, *rozbicie* — never *widok*, *ability*, *absorbed*,
   *breakdown*.
