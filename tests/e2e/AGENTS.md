@@ -25,3 +25,15 @@ The root's rules apply in full and are not repeated. What follows is only what i
   because it presses thousands of times inside the page rather than from out here.
 - **A reading the browser animates is polled, not taken once.** A wheel turn is not finished when
   `mouse.wheel` answers.
+- **The suite takes its worker count from free memory, not from the cores.** One worker peaks at
+  3266 MB across a whole run (measured 2026-09-22, sampling every Chrome process once a second; the
+  deepest crawl alone reads 2052, which is the figure that underbudgets it), and Playwright's own
+  default is half the cores — six on that machine, against 3 GB available. Five crawls were killed
+  mid-`evaluate`, each reporting `Channel closed` and
+  `Target page, context or browser has been closed`. `playwright.config.ts` now divides what the
+  kernel says is available, keeps a gigabyte back for whoever is using the machine, and never
+  exceeds what the cores would have allowed. `MARGOMETER_E2E_WORKERS` overrides it.
+- **`Channel closed` is the one failure here that says nothing about the panel.** It is a browser
+  that died, not an `expect` that fell. **The observation that tells the two apart is which tests
+  fail**: a regression fails the same ones every run, and a machine out of memory fails a different
+  set each time, with no `expect` among them.
