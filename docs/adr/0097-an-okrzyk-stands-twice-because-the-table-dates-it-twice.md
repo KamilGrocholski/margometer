@@ -1,6 +1,6 @@
 # 0097. An okrzyk stands twice, because the table dates it twice
 
-- **Status:** Accepted
+- **Status:** Superseded by 0108 in part
 - **Date:** 2026-09-18
 
 ## Context

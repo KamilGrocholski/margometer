@@ -1,6 +1,6 @@
 # 0102. A length says which clock it was counted on
 
-- **Status:** Superseded by 0103 in part
+- **Status:** Superseded by 0103 in part, and by 0108 in part
 - **Date:** 2026-09-21
 
 ## Context

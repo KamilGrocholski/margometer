@@ -1,6 +1,6 @@
 # 0104. What somebody carries is read off the mask, and names no cast
 
-- **Status:** Accepted
+- **Status:** Superseded by 0108 in part
 - **Date:** 2026-09-21
 
 ## Context

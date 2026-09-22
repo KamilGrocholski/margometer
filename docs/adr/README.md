@@ -168,7 +168,7 @@ edited to agree with the new rule.
 - [0058](0058-the-skill-table-is-a-frozen-reading.md) — The skill table is a frozen reading, and the
   descriptions stay out. **Accepted**
 - [0059](0059-what-stands-says-what-has-passed-and-never-what-is-left.md) — What stands says what
-  has passed, and never what is left. **Superseded by 0101 in part**
+  has passed, and never what is left. **Superseded by 0101 in part, and by 0108 in part**
 - [0060](0060-a-grip-says-which-window-it-drags.md) — A grip says which window it drags.
   **Accepted**
 - [0061](0061-a-cast-stands-on-a-side-and-names-only-whom-the-game-names.md) — A cast stands on a
@@ -245,7 +245,7 @@ edited to agree with the new rule.
   folds with it. **Accepted**
 - [0097](0097-an-okrzyk-stands-twice-because-the-table-dates-it-twice.md) — An okrzyk is two dated
   halves on one announcement: the side-wide one stands, the shout holds, and the row names which
-  okrzyk it is. **Accepted**
+  okrzyk it is. **Superseded by 0108 in part**
 - [0098](0098-a-person-beside-the-panel-is-answered-by-what-their-row-cut.md) — A person beside the
   panel is answered by what their row cut. **Superseded by 0100 in part**
 - [0099](0099-the-preview-opens-with-the-install.md) — The published preview opens with the install,
@@ -255,11 +255,12 @@ edited to agree with the new rule.
 - [0101](0101-a-length-is-counted-on-whoever-is-carrying-it.md) — A length is counted on whoever is
   carrying it, not on whoever cast it. **Accepted**
 - [0102](0102-a-length-says-which-clock-it-was-counted-on.md) — A length says which clock it was
-  counted on, and a provocation says that nothing states one. **Superseded by 0103 in part**
+  counted on, and a provocation says that nothing states one. **Superseded by 0103 in part, and by
+  0108 in part**
 - [0103](0103-a-shout-runs-on-the-turns-of-whoever-it-holds.md) — A shout runs on the turns of
   whoever it holds, and the figure sits on their row. **Accepted**
 - [0104](0104-what-somebody-carries-is-read-off-the-mask-and-names-no-cast.md) — What somebody
-  carries is read off the mask, and names no cast. **Accepted**
+  carries is read off the mask, and names no cast. **Superseded by 0108 in part**
 - [0105](0105-one-line-is-written-where-the-game-already-draws-one.md) — One line is written where
   the game already draws one. **Superseded by 0107 in part**
 - [0106](0106-a-shout-reaches-the-side-it-provokes.md) — A shout reaches the side it provokes.
