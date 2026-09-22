@@ -217,8 +217,9 @@ function composeBattleWithWarriors(landed: TooltipLanding[]): Record<string, unk
 
 /**
  * ⚠️ **The failure this test was written for, and it shipped once.** The client rebuilds a
- * fighter's tooltip only while updating them, and a payload carries only what moved — so a row
- * put on a fighter the payload did not restate lands under the rows already there. Over
+ * fighter's tooltip while updating them, and a payload carries only what moved — so a row put on a
+ * fighter it did not rebuild lands under the rows already there. This battle stands up no focus
+ * pass, so here that is anybody the payload did not restate. Over
  * `captures/` that is 8631 payloads of 14309, so the second copy is the common case, not the edge.
  *
  * **A fighter takes one block, and its rows go over together.** Several rows per fighter is the
@@ -255,6 +256,143 @@ Deno.test("rows are put only on the fighters this payload restated, and once eac
         );
     }
     assert(written > 0, "the recording carries fighters carrying something");
+});
+
+/** What the stub's tooltips hold, fighter by fighter, and whom its last focus pass rebuilt. */
+interface RebuildingBattle {
+    battle: Record<string, unknown>;
+    tips: Map<number, string[]>;
+    focusRebuilt: Set<number>;
+}
+
+/**
+ * The client's warrior update as far as a tooltip goes: a restated fighter's tooltip is rebuilt,
+ * and after every payload carrying `w` its focus pass rebuilds whoever it left focused and whoever
+ * the hero focuses now (`src/game/engine-tooltip.ts` cites the build). `held` is the closure the
+ * client's `getFocusedBy` reads, which any update not stating `focusedBy` clears while the field
+ * keeps the name. No recording says which warrior is the hero, so the hero here is the first
+ * person stating a focus: a monster states one too, and it is the fighter it was provoked by.
+ */
+function composeRebuildingBattle(): RebuildingBattle {
+    const tips = new Map<number, string[]>();
+    const focusRebuilt = new Set<number>();
+    const warriorsList: Record<string, Record<string, unknown>> = {};
+    const held = new Map<string, string | null>();
+    const setRebuilt = (id: string, focusedBy: string | null): void => {
+        tips.set(Number(id), []);
+        held.set(id, focusedBy);
+    };
+    const setFocusedBy = (id: string, focusedBy: string | null): void => {
+        const warrior = warriorsList[id];
+        if (warrior === undefined) return;
+        warrior.focusedBy = focusedBy;
+        setRebuilt(id, focusedBy);
+        focusRebuilt.add(Number(id));
+    };
+    const updateData = (payload: unknown): number => {
+        focusRebuilt.clear();
+        if (!isRecord(payload)) return 1;
+        if (payload.w === undefined) return 1;
+        const roster = isRecord(payload.w) ? payload.w : {};
+        for (const [id, stated] of Object.entries(roster)) {
+            const warrior = warriorsList[id] ?? {
+                $: composeTipTarget(tips, Number(id)),
+                getFocusedBy: () => held.get(id) ?? null,
+            };
+            if (isRecord(stated)) Object.assign(warrior, stated);
+            warrior.id = Number(id);
+            warriorsList[id] = warrior;
+            setRebuilt(id, null);
+        }
+        for (const [id, focusedBy] of [...held]) {
+            if (focusedBy !== null) setFocusedBy(id, null);
+        }
+        const hero = Object.values(warriorsList).find((one) => {
+            if (one.npc !== 0) return false;
+            return typeof one.focus === "number" && one.focus !== 0;
+        });
+        if (hero !== undefined) setFocusedBy(String(hero.focus), String(hero.name));
+        return 1;
+    };
+    return { battle: { updateData, warriorsList }, tips, focusRebuilt };
+}
+
+function composeTipTarget(tips: Map<number, string[]>, combatantId: number) {
+    return {
+        find: () => ({
+            concatTip: (row: string) =>
+                tips.set(combatantId, [...tips.get(combatantId) ?? [], row]),
+        }),
+    };
+}
+
+/**
+ * ⚠️ **The failure this was written for, and a reader saw it**: rows on the fighter the hero
+ * focuses, gone on the next hover and back on the one after. The client's focus pass rebuilds
+ * that fighter's tooltip on every payload carrying `w`, and the rows went only to the restated.
+ * Held over every recording: a fighter the focus pass alone rebuilt keeps the rows they had, and
+ * nobody takes two blocks.
+ */
+Deno.test("a fighter the client's focus pass rebuilt keeps their rows, and takes one block", () => {
+    const lost: string[] = [];
+    const doubled: string[] = [];
+    let kept = 0;
+    for (const path of readRecordingPaths()) {
+        const { battle, tips, focusRebuilt } = composeRebuildingBattle();
+        const { environment } = composeEnvironment({ Engine: { battle } });
+        startMargoMeter(environment);
+        const update = battle.updateData;
+        assert(typeof update === "function", "the wrap went on");
+        for (const [index, payload] of getRecordedEngineUpdates(path).entries()) {
+            const before = new Map([...tips].map(([id, rows]) => [id, rows.length]));
+            update(payload);
+            const stated = readStatedIdsFromPayload(payload);
+            for (const id of focusRebuilt) {
+                if (stated.has(id)) continue;
+                if ((before.get(id) ?? 0) === 0) continue;
+                if ((tips.get(id) ?? []).length === 0) lost.push(`${path} #${index}: ${id}`);
+                else kept += 1;
+            }
+            for (const [id, rows] of tips) {
+                const blocks = rows.filter((row) => row === "MargoMeter").length;
+                if (blocks > 1) doubled.push(`${path} #${index}: ${id}`);
+            }
+        }
+    }
+    assertEquals(lost.slice(0, 5), [], `a focused fighter lost their rows, ${lost.length} times`);
+    assertEquals(doubled.slice(0, 5), [], `a fighter took two blocks, ${doubled.length} times`);
+    assert(kept > 0, "the recordings carry a focus the client rebuilds with rows on it");
+});
+
+/** Two people focusing one opponent, which is what the focus pass needs to have anybody to do. */
+const DUET = "captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json";
+
+/**
+ * A focus that moves on is rebuilt twice over: the fighter it leaves, by the pass that clears
+ * them, and the fighter it reaches. No recording moves one while both have rows, so the move is
+ * made here, on the finished duet — the hero turns from the opponent to their own partner, then
+ * to nobody, in payloads that restate the hero alone.
+ */
+Deno.test("a focus that moves on leaves both fighters it touched with their rows", () => {
+    const { battle, tips } = composeRebuildingBattle();
+    const { environment } = composeEnvironment({ Engine: { battle } });
+    startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(DUET)) update(payload);
+    const [hero, partner, opponent] = ["473373", "477718", "462342"];
+    for (const id of [hero, partner, opponent]) {
+        assert((tips.get(Number(id)) ?? []).length > 0, `${id} has rows before the move`);
+    }
+    update({ w: { [hero]: { focus: Number(partner) } } });
+    assert((tips.get(Number(opponent)) ?? []).length > 0, "the fighter it left keeps their rows");
+    assert((tips.get(Number(partner)) ?? []).length > 0, "and the fighter it reached has them");
+    update({ w: { [hero]: { focus: 0 } } });
+    assert((tips.get(Number(partner)) ?? []).length > 0, "and a focus let go of leaves them too");
+    for (const [id, rows] of tips) {
+        const blocks = rows.filter((row) => row === "MargoMeter").length;
+        assert(blocks <= 1, `${id} took one block and not ${blocks}`);
+    }
 });
 
 /**

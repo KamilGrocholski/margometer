@@ -7,7 +7,11 @@
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";
-import { MAXIMUM_ROWS_WRITTEN, writeRowsToTooltips } from "@/src/game/engine-tooltip.ts";
+import {
+    MAXIMUM_ROWS_WRITTEN,
+    readFocusedIdsFromPage,
+    writeRowsToTooltips,
+} from "@/src/game/engine-tooltip.ts";
 import { MAXIMUM_TOOLTIP_ROWS } from "@/src/ui/panel-words.ts";
 
 interface Landed {
@@ -166,4 +170,25 @@ Deno.test("no block asked for is no block written, and the counts say both", () 
     const page = composePage([composeWarrior(11, "Gracz 1", landed)]);
     assertEquals(writeRowsToTooltips(page, new Map()), { written: 0, asked: 0 }, "asked nothing");
     assert(landed.length === 0, "and wrote nothing");
+});
+
+/**
+ * The client's `focusedBy` field keeps the name after an update that clears the closure its
+ * `getFocusedBy` reads, so a reader of the field holds a focus that has moved on — and writes a
+ * second block onto that fighter on every payload after.
+ */
+Deno.test("the focused are whom the client's own method names, whatever the field says", () => {
+    const landed: Landed[] = [];
+    const page = composePage([
+        { ...composeWarrior(11, "Gracz 1", landed), getFocusedBy: () => "Gracz 2" },
+        {
+            ...composeWarrior(21, "Renegat 1", landed),
+            focusedBy: "Gracz 2",
+            getFocusedBy: () => null,
+        },
+        { ...composeWarrior(31, "Renegat 2", landed), focusedBy: "Gracz 2" },
+        { ...composeWarrior(41, "Renegat 3", landed), getFocusedBy: () => "" },
+    ]);
+    assertEquals([...readFocusedIdsFromPage(page)], [11], "one focused, and it is the one asked");
+    assertEquals([...readFocusedIdsFromPage({})], [], "and a page with no fight focuses nobody");
 });

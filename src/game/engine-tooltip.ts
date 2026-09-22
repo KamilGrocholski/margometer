@@ -12,7 +12,7 @@ import { isRecord } from "@/libs/unknown-reading.ts";
 import { MAXIMUM_COMBATANTS } from "@/src/core/combatant-roster.ts";
 import { readBattleFromPage } from "@/src/game/engine-attachment.ts";
 import { readLiveWarriors, WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
-import { getNumberFromUnknown } from "@/libs/unknown-reading.ts";
+import { getNumberFromUnknown, getStatedTextFromUnknown } from "@/libs/unknown-reading.ts";
 
 /**
  * What the client calls the things this file uses, spelled here and nowhere else (**N13**). Read
@@ -25,6 +25,20 @@ const WARRIOR_ELEMENT_FIELD = "$";
 const TOOLTIP_TARGETS = ".canvas-warrior-icon, .grave-warrior-other, .grave-warrior-npc";
 const FIND_METHOD = "find";
 const APPEND_METHOD = "concatTip";
+/**
+ * ⚠️ **The client rebuilds more tooltips than a payload restates.** After every payload carrying
+ * `w`, `setFocusOnWarriors` updates each warrior it left focused with `{focusedBy:null}` and then
+ * the hero's own `focus` with `{focusedBy:<the hero's name>}`, and every update ends in
+ * `createWarriorTip()` — production build `Bb28FQty`, 2026-09-22. Rows written to the restated
+ * alone are gone from the focused fighter's tooltip after every payload that does not restate
+ * them: a tooltip that comes and goes.
+ *
+ * ⚠️ **Asked of `getFocusedBy()`, never read off the `focusedBy` field.** The update copies every
+ * field onto the warrior, but one restating a fighter without `focusedBy` clears only the closure
+ * the method reads; the field keeps the name. Read off the field, a focus that moved on while its
+ * fighter was restated stayed held, and that fighter took a second block on every payload after.
+ */
+const FOCUSED_BY_METHOD = "getFocusedBy";
 
 /** How many fighters a block reached, so the entry can mark a payload that reached nobody. */
 export interface TooltipWriting {
@@ -38,6 +52,27 @@ export interface TooltipWriting {
  * the composer's own bound by `tests/game/engine-tooltip.test.ts`, which can import both.
  */
 export const MAXIMUM_ROWS_WRITTEN = 20;
+
+/**
+ * Whom the client's focus pass left focused, read once the engine's call is over. The fighter it
+ * left focused the time before is the caller's to remember: this pass has written `null` over them.
+ */
+export function readFocusedIdsFromPage(page: unknown): Set<number> {
+    const found = new Set<number>();
+    const battle = readBattleFromPage(page);
+    if (battle === null) return found;
+    for (const warrior of readLiveWarriors(battle)) {
+        const id = getNumberFromUnknown(warrior[WARRIOR_FIELDS.identity]);
+        if (id === null) continue;
+        const asked = warrior[FOCUSED_BY_METHOD];
+        if (typeof asked !== "function") continue;
+        if (getStatedTextFromUnknown(asked.call(warrior)) === null) continue;
+        found.add(id);
+    }
+    assert(found.size <= MAXIMUM_COMBATANTS, "no more focused than a fight puts on a board");
+    assert([...found].every((one) => Number.isFinite(one)), "and every one of them a read id");
+    return found;
+}
 
 /** A jQuery object of the client's, narrowed to the two calls this file makes of it. */
 interface TooltipTarget {

@@ -60,9 +60,10 @@ test("a row is never markup, and several rows are several calls", async ({ panel
 });
 
 /**
- * ⚠️ **The failure this is guarded for.** The client rebuilds a fighter's tooltip only while
- * updating them, so a row put on anybody else lands under the rows already there — and the page's
- * stub clears a fighter exactly as the client does, which is what makes a second copy visible.
+ * ⚠️ **The failure this is guarded for.** A row put on a fighter whose tooltip the client did not
+ * just rebuild lands under the rows already there — and the page's stub clears a restated fighter
+ * as the client does, which is what makes a second copy visible. It stands up no focus pass: the
+ * hero's is `tests/userscript-entry.test.ts`'s to hold.
  */
 test("nobody is written to twice over one payload", async ({ panel }) => {
     await panel.feed(40);

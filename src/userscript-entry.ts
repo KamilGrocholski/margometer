@@ -68,6 +68,7 @@ import {
 import {
     type CapturedCombatant,
     composeSnapshotFromBattle,
+    hasWarriorsInPayload,
     readStatedIdsFromPayload,
 } from "@/src/game/engine-warrior.ts";
 import {
@@ -81,7 +82,7 @@ import {
 } from "@/src/game/kept-fights.ts";
 import type { ReportSubject } from "@/src/game/fight-report.ts";
 import { readDictionaryFromPage, type TranslateLabel } from "@/src/game/game-dictionary.ts";
-import { writeRowsToTooltips } from "@/src/game/engine-tooltip.ts";
+import { readFocusedIdsFromPage, writeRowsToTooltips } from "@/src/game/engine-tooltip.ts";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { composeDefectKeeper, type KeptDefects } from "@/src/ui/panel-defect.ts";
 import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
@@ -1502,6 +1503,11 @@ interface LiveFight {
      * the page and a page without one never grows one (**ADR 0024**).
      */
     translate: TranslateLabel | null;
+    /**
+     * Whom the client's focus pass left focused after the last payload carrying warriors. The next
+     * one rebuilds their tooltip whether it restates them or not (`src/game/engine-tooltip.ts`).
+     */
+    focusedIds: ReadonlySet<number>;
 }
 
 function composeLiveFight(): LiveFight {
@@ -1510,6 +1516,7 @@ function composeLiveFight(): LiveFight {
         combatantsBefore: [],
         place: null,
         translate: null,
+        focusedIds: new Set(),
         openedAt: 0,
         wasOver: false,
     };
@@ -1639,13 +1646,11 @@ function writeCarriedToTooltips(
     try {
         const fight = getReadingFromFight(underway);
         if (fight === null) return;
-        // ⚠️ **Only whom this payload restated.** The client rebuilds a fighter's tooltip while
-        // updating them and at no other time, so a row put on anybody else lands under the rows
-        // already there — measured over `captures/` on 2026-09-21, a combatant already seen is
-        // absent from 8631 payloads of 14309, so the second copy is the common case and not the
-        // edge. Their count cannot have moved either: it is counted in their own turns, and a
-        // turn of theirs is a payload that states them.
-        const stated = readStatedIdsFromPayload(payload);
+        // ⚠️ **Only whose tooltip the client has just rebuilt.** A row put on anybody else lands
+        // under the rows already there — measured over `captures/` on 2026-09-21, a combatant
+        // already seen is absent from 8631 payloads of 14309, so the second copy is the common
+        // case and not the edge.
+        const rebuilt = readRebuiltIdsIntoLive(live, payload, environment.page);
         const held = composeFightStandings(fight.events, STATED_SKILLS, fight.roster);
         const figures = new Map<string, CarriedFigure>();
         for (
@@ -1660,7 +1665,7 @@ function writeCarriedToTooltips(
             figures.set(`${one.combatantId}/${one.bit}`, one);
         }
         const rows = new Map<number, readonly string[]>();
-        for (const combatantId of stated) {
+        for (const combatantId of rebuilt) {
             const reading = composeTooltipReadingFor(combatantId, fight, held, figures);
             const said = composeTooltipRows(reading, live.translate);
             if (said.length === 0) continue;
@@ -1671,6 +1676,22 @@ function writeCarriedToTooltips(
     } catch (failure) {
         defects.add("region", null, failure);
     }
+}
+
+/**
+ * Whose tooltip the client has just rebuilt: whom the payload restated, and on a payload carrying
+ * warriors whom its focus pass updated — the one it left focused last time and the one it focuses
+ * now (`src/game/engine-tooltip.ts`). A copy that joins a fight knows no last time, and misses a
+ * focus that moves on the first payload it sees.
+ */
+function readRebuiltIdsIntoLive(live: LiveFight, payload: unknown, page: unknown): Set<number> {
+    const rebuilt = readStatedIdsFromPayload(payload);
+    if (!hasWarriorsInPayload(payload)) return rebuilt;
+    const focused = readFocusedIdsFromPage(page);
+    for (const id of live.focusedIds) rebuilt.add(id);
+    for (const id of focused) rebuilt.add(id);
+    live.focusedIds = focused;
+    return rebuilt;
 }
 
 /**
