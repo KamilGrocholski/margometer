@@ -327,7 +327,7 @@ function getSentencesFromTooltip(): string[] {
             provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
             provokes: 2,
             statuses: [{ bit, percent: 39 }],
-            holytouchTurnsElapsed: 1,
+            holytouchHealsGiven: 1,
             hasSpentLastheal: true,
         }, said));
     }
@@ -373,7 +373,7 @@ const NOTHING_CARRIED = {
     provokedBy: null,
     provokes: 0,
     statuses: [],
-    holytouchTurnsElapsed: null,
+    holytouchHealsGiven: null,
     hasSpentLastheal: false,
     wasJoinedInProgress: false,
 };
@@ -489,10 +489,12 @@ Deno.test("every row that names a thing and qualifies it is punctuated alike", (
         ...NOTHING_CARRIED,
         provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
         statuses: [{ bit: 3, percent: null }],
-        holytouchTurnsElapsed: 1,
+        holytouchHealsGiven: 1,
         hasSpentLastheal: true,
     }, null);
-    const carrying = said.filter((row) => row.includes(" tur") || row.includes("wykorzystany"));
+    const carrying = said.filter((row) =>
+        row.includes(" tur") || row.includes(" uleczeń") || row.includes("wykorzystany")
+    );
     assertEquals(carrying.length, 3, "the okrzyk and both legendary bonuses, and no status");
     for (const row of carrying) {
         assertStringIncludes(row, STANDING_WORDS.castSeparator, `${row} stands its parts apart`);
@@ -513,6 +515,19 @@ Deno.test("a provocation is said at the end it is read from", () => {
     );
     const shouting = composeTooltipRows({ ...NOTHING_CARRIED, provokes: 10 }, null);
     assertStringIncludes(shouting[1] ?? "", "10 postaci", "the shouter is told how many, not whom");
+});
+
+/**
+ * ⚠️ **The provocation counts down in turns and Dotyk anioła counts up in heals**, and the two
+ * stand a row apart in one tooltip (**ADR 0113**). The noun is all that tells the fractions apart,
+ * so it is asserted whole, at nought — a row lit and not yet healed — and one under the bound.
+ */
+Deno.test("Dotyk anioła says the heals it has given, out of the three it gives", () => {
+    const row = (healsGiven: number) =>
+        composeTooltipRows({ ...NOTHING_CARRIED, holytouchHealsGiven: healsGiven }, null)[1];
+    assertEquals(row(0), "Dotyk anioła · 0 z 3 uleczeń", "lit, and nothing healed yet");
+    assertEquals(row(1), "Dotyk anioła · 1 z 3 uleczeń", "one heal is one");
+    assertEquals(row(2), "Dotyk anioła · 2 z 3 uleczeń", "and the last before it goes");
 });
 
 Deno.test("a label the client answers with markup is refused rather than escaped", () => {
@@ -1218,7 +1233,7 @@ const CARRYING_EVERYTHING = {
         { bit: 3, percent: null },
         { bit: 6, percent: 20 },
     ],
-    holytouchTurnsElapsed: 1,
+    holytouchHealsGiven: 1,
     hasSpentLastheal: true,
     wasJoinedInProgress: false,
 };

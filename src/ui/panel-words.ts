@@ -20,7 +20,7 @@ import type { PanelNoun, PanelSideChoice, PanelStorageChoice } from "@/src/ui/pa
 import type { PanelSidePart } from "@/src/ui/panel-reading.ts";
 import type { StandingTurnState } from "@/src/ui/panel-standing.ts";
 import type { ChargedSkillState } from "@/src/core/charged-skill.ts";
-import { HOLYTOUCH_TURNS_STATED } from "@/src/core/legendary-standing.ts";
+import { HOLYTOUCH_HEALS_STATED } from "@/src/core/legendary-standing.ts";
 
 export interface CountedNoun {
     one: string;
@@ -811,8 +811,8 @@ export interface TooltipReading {
     provokes: number;
     /** What the mask says stands on them, with what the announcements over them come to. */
     statuses: readonly TooltipStatus[];
-    /** Their own turns since the bonus lit, or null where it is not standing on them. */
-    holytouchTurnsElapsed: number | null;
+    /** The heals the bonus has given them since it lit, or null where it is not standing. */
+    holytouchHealsGiven: number | null;
     hasSpentLastheal: boolean;
     /**
      * Whether the panel walked into this fight. **The turns are the one row here counted from
@@ -909,19 +909,20 @@ function addStatusRows(
 
 /**
  * ⚠️ **A row naming a thing and then saying something about it carries the separator**, the way a
- * status and a provocation do. Without it `Dotyk anioła 2 z 3 tur` runs the name into the figure
- * and reads as one phrase, while the rows above it read as two — measured by eye over a drawn
- * block, 2026-09-22, which is the only place the whole set stands together.
+ * status and a provocation do. Without it `Dotyk anioła 1 z 3 uleczeń` runs the name into the
+ * figure and reads as one phrase, while the rows above it read as two — measured by eye over a
+ * drawn block, 2026-09-22, which is the only place the whole set stands together.
+ *
+ * **Dotyk anioła counts up, in heals**, while the provocation above it counts down, in turns: each
+ * heal is on the wire and nothing dates a turn it ends on (**ADR 0113**). The noun is what keeps
+ * the two fractions from reading as one figure.
  */
 function addLegendaryRows(said: string[], reading: TooltipReading): void {
-    const elapsed = reading.holytouchTurnsElapsed;
+    const given = reading.holytouchHealsGiven;
     const apart = STANDING_WORDS.castSeparator;
-    if (elapsed !== null) {
-        const left = composeRemainingTurnsText(
-            HOLYTOUCH_TURNS_STATED - elapsed,
-            HOLYTOUCH_TURNS_STATED,
-        );
-        said.push(`${TOOLTIP_WORDS.holytouch} ${apart} ${left}`);
+    if (given !== null) {
+        const heals = composeOutOfText(given, HOLYTOUCH_HEALS_STATED, COUNTED_NOUNS.heals);
+        said.push(`${TOOLTIP_WORDS.holytouch} ${apart} ${heals}`);
     }
     if (!reading.hasSpentLastheal) return;
     said.push(`${TOOLTIP_WORDS.lastheal} ${apart} ${TOOLTIP_WORDS.spent}`);

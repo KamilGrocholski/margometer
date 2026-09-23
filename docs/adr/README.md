@@ -279,3 +279,5 @@ edited to agree with the new rule.
   and an open tooltip is told. **Accepted**
 - [0112](0112-a-status-says-that-it-stands-and-only-two-rows-count-turns.md) — A status says that it
   stands, and only two rows count turns. **Accepted**
+- [0113](0113-dotyk-aniola-counts-the-heals-it-has-given.md) — Dotyk anioła counts the heals it has
+  given, not the turns it has left. **Accepted**

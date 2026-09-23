@@ -1601,7 +1601,7 @@ function composeTooltipReadingFor(
                 return { bit: one.bit, percent: figure?.percent ?? null };
             },
         ),
-        holytouchTurnsElapsed: legendary?.holytouchTurnsElapsed ?? null,
+        holytouchHealsGiven: legendary?.holytouchHealsGiven ?? null,
         hasSpentLastheal: legendary?.hasSpentLastheal ?? false,
         wasJoinedInProgress: fight.hasJoinedInProgress,
     };

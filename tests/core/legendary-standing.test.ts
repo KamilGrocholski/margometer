@@ -4,9 +4,9 @@
  *
  * Neither rides a `skillId`, so the published skill table dates neither and nothing in
  * `core/aura-standing.ts` has a row for them. What is checked here is the three things only this
- * walk answers — that the run is dated on the holder's own clock, that a second declaration is
- * the game doing it again rather than the same run going on, and that a bonus which fires once
- * stays fired.
+ * walk answers — that the run is counted by the heals it gives the holder, that a second
+ * declaration is the game doing it again rather than the same run going on, and that a bonus
+ * which fires once stays fired.
  */
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
@@ -15,7 +15,7 @@ import {
     addPayloadToLegendaryStandings,
     composeLegendaryStandings,
     composeLegendaryWalk,
-    HOLYTOUCH_TURNS_STATED,
+    HOLYTOUCH_HEALS_STATED,
 } from "@/src/core/legendary-standing.ts";
 
 const HOLDER = 11;
@@ -51,54 +51,94 @@ function composeLastheal(targetId: number): BattleEvent {
     };
 }
 
-function readStanding(
-    walk: ReturnType<typeof composeLegendaryWalk>,
-    turnsByCombatantId: ReadonlyMap<number, number>,
-    combatantId: number,
-) {
-    return composeLegendaryStandings(walk, turnsByCombatantId).find((one) =>
-        one.combatantId === combatantId
-    );
+/** One heal under the effect. A full holder is healed for nought, and that is still a heal. */
+function composeHeal(combatantId: number, amount = 976): BattleEvent {
+    return {
+        kind: "health-change",
+        combatantId,
+        amount,
+        healthPercent: 100,
+        source: "legbon_holytouch_heal",
+        declared: [],
+        announced: null,
+    };
 }
 
-Deno.test("the effect stands for the turns the table gives it, and goes on the one past", () => {
+function readStanding(walk: ReturnType<typeof composeLegendaryWalk>, combatantId: number) {
+    return composeLegendaryStandings(walk).find((one) => one.combatantId === combatantId);
+}
+
+Deno.test("the effect stands for the heals the help gives it, and goes with the last", () => {
     const walk = composeLegendaryWalk();
-    addPayloadToLegendaryStandings(walk, [composeDeclaringBlow(HOLDER)], new Map([[HOLDER, 4]]));
-    const atLighting = readStanding(walk, new Map([[HOLDER, 4]]), HOLDER);
-    assertStrictEquals(atLighting?.holytouchTurnsElapsed, 0, "nought of their turns have passed");
-    const inside = readStanding(walk, new Map([[HOLDER, 4 + HOLYTOUCH_TURNS_STATED - 1]]), HOLDER);
-    assertStrictEquals(inside?.holytouchTurnsElapsed, HOLYTOUCH_TURNS_STATED - 1, "still standing");
-    // **W5**: the bound is a boundary, so the turn past it is asserted beside the one under it.
-    const past = readStanding(walk, new Map([[HOLDER, 4 + HOLYTOUCH_TURNS_STATED]]), HOLDER);
-    assertStrictEquals(past, undefined, "and the row is gone on the turn its length runs out");
+    addPayloadToLegendaryStandings(walk, [composeDeclaringBlow(HOLDER)]);
+    assertStrictEquals(readStanding(walk, HOLDER)?.holytouchHealsGiven, 0, "lit, and none yet");
+    addPayloadToLegendaryStandings(walk, [composeHeal(HOLDER)]);
+    assertStrictEquals(readStanding(walk, HOLDER)?.holytouchHealsGiven, 1, "one heal is one");
+    for (let heal = 2; heal < HOLYTOUCH_HEALS_STATED; heal += 1) {
+        addPayloadToLegendaryStandings(walk, [composeHeal(HOLDER)]);
+    }
+    const inside = readStanding(walk, HOLDER);
+    assertStrictEquals(inside?.holytouchHealsGiven, HOLYTOUCH_HEALS_STATED - 1, "still standing");
+    // **W5**: the bound is a boundary, so the heal reaching it is asserted beside the one under.
+    addPayloadToLegendaryStandings(walk, [composeHeal(HOLDER)]);
+    assertStrictEquals(
+        readStanding(walk, HOLDER),
+        undefined,
+        "and gone on the payload of the last",
+    );
+});
+
+/**
+ * ⚠️ **Seven runs over `captures/` gave all three heals inside the payload that lit them**, so
+ * the order inside one payload is what places them: a heal after the lighting is that run's.
+ */
+Deno.test("a whole run inside one payload is counted, and leaves with it", () => {
+    const walk = composeLegendaryWalk();
+    const heals = Array.from({ length: HOLYTOUCH_HEALS_STATED }, () => composeHeal(HOLDER, 0));
+    addPayloadToLegendaryStandings(walk, [composeDeclaringBlow(HOLDER), ...heals]);
+    assertStrictEquals(readStanding(walk, HOLDER), undefined, "three heals of nought are three");
+});
+
+Deno.test("a heal with no lighting before it opens no run", () => {
+    const walk = composeLegendaryWalk();
+    addPayloadToLegendaryStandings(walk, [composeHeal(HOLDER)]);
+    assertEquals(composeLegendaryStandings(walk), [], "nothing dates where it began");
+    addPayloadToLegendaryStandings(walk, [composeHeal(HOLDER), composeDeclaringBlow(HOLDER)]);
+    assertStrictEquals(readStanding(walk, HOLDER)?.holytouchHealsGiven, 0, "the one before is not");
 });
 
 /**
  * ⚠️ **A second declaration is the game applying it again**, so the run a reader is in restarts.
- * Reading it as one long run would date the row from an effect that has already ended once.
+ * Reading it as one long run would count heals from an effect that has already ended once.
  */
 Deno.test("a second declaration restarts the run rather than lengthening it", () => {
     const walk = composeLegendaryWalk();
-    addPayloadToLegendaryStandings(walk, [composeDeclaringBlow(HOLDER)], new Map([[HOLDER, 1]]));
-    addPayloadToLegendaryStandings(walk, [composeDeclaringBlow(HOLDER)], new Map([[HOLDER, 2]]));
-    const standing = readStanding(walk, new Map([[HOLDER, 3]]), HOLDER);
-    assertStrictEquals(standing?.holytouchTurnsElapsed, 1, "one turn since the later of the two");
+    addPayloadToLegendaryStandings(walk, [composeDeclaringBlow(HOLDER), composeHeal(HOLDER)]);
+    addPayloadToLegendaryStandings(walk, [composeHeal(HOLDER)]);
+    addPayloadToLegendaryStandings(walk, [composeDeclaringBlow(HOLDER)]);
+    addPayloadToLegendaryStandings(walk, [composeHeal(HOLDER)]);
+    const standing = readStanding(walk, HOLDER);
+    assertStrictEquals(standing?.holytouchHealsGiven, 1, "one heal since the later of the two");
 });
 
-Deno.test("the effect is dated on the holder's clock and on nobody else's", () => {
+Deno.test("the heals are counted on the holder and on nobody else", () => {
     const walk = composeLegendaryWalk();
-    addPayloadToLegendaryStandings(walk, [composeDeclaringBlow(HOLDER)], new Map([[HOLDER, 2]]));
-    const standings = composeLegendaryStandings(walk, new Map([[HOLDER, 3], [SOMEBODY_ELSE, 9]]));
+    addPayloadToLegendaryStandings(walk, [
+        composeDeclaringBlow(HOLDER),
+        composeHeal(SOMEBODY_ELSE),
+    ]);
+    const standings = composeLegendaryStandings(walk);
     assertEquals(standings.map((one) => one.combatantId), [HOLDER], "one row, and it is theirs");
-    assertStrictEquals(standings[0]?.holytouchTurnsElapsed, 1, "counted where it lit, not on nine");
+    assertStrictEquals(standings[0]?.holytouchHealsGiven, 0, "and somebody else's heal is not");
 });
 
 Deno.test("a bonus that fires once stays fired, and says nothing of any length", () => {
     const walk = composeLegendaryWalk();
-    addPayloadToLegendaryStandings(walk, [composeLastheal(HOLDER)], new Map([[HOLDER, 1]]));
-    const spent = readStanding(walk, new Map([[HOLDER, 40]]), HOLDER);
-    assertStrictEquals(spent?.hasSpentLastheal, true, "spent forty turns later is still spent");
-    assertStrictEquals(spent?.holytouchTurnsElapsed, null, "and the other bonus says nothing");
+    addPayloadToLegendaryStandings(walk, [composeLastheal(HOLDER)]);
+    addPayloadToLegendaryStandings(walk, []);
+    const spent = readStanding(walk, HOLDER);
+    assertStrictEquals(spent?.hasSpentLastheal, true, "spent a payload later is still spent");
+    assertStrictEquals(spent?.holytouchHealsGiven, null, "and the other bonus says nothing");
 });
 
 /** The two are one row where one combatant carries both, and the row states each of them. */
@@ -107,11 +147,11 @@ Deno.test("a holder of both is one row, and it says both", () => {
     addPayloadToLegendaryStandings(walk, [
         composeDeclaringBlow(HOLDER),
         composeLastheal(HOLDER),
-    ], new Map([[HOLDER, 1]]));
-    const standings = composeLegendaryStandings(walk, new Map([[HOLDER, 1]]));
+    ]);
+    const standings = composeLegendaryStandings(walk);
     assertStrictEquals(standings.length, 1, "one combatant, one row");
     assertStrictEquals(standings[0]?.hasSpentLastheal, true, "the bonus that fired");
-    assertStrictEquals(standings[0]?.holytouchTurnsElapsed, 0, "and the one still running");
+    assertStrictEquals(standings[0]?.holytouchHealsGiven, 0, "and the one still running");
 });
 
 /**
@@ -120,8 +160,8 @@ Deno.test("a holder of both is one row, and it says both", () => {
  */
 Deno.test("a walk nothing has happened in states no standing at all", () => {
     const walk = composeLegendaryWalk();
-    addPayloadToLegendaryStandings(walk, [], new Map());
-    assertEquals(composeLegendaryStandings(walk, new Map()), [], "nothing stands");
+    addPayloadToLegendaryStandings(walk, []);
+    assertEquals(composeLegendaryStandings(walk), [], "nothing stands");
 });
 
 /**
@@ -130,11 +170,7 @@ Deno.test("a walk nothing has happened in states no standing at all", () => {
  */
 Deno.test("the blow's own thrower is the holder, and not whoever it was thrown at", () => {
     const walk = composeLegendaryWalk();
-    addPayloadToLegendaryStandings(
-        walk,
-        [composeDeclaringBlow(SOMEBODY_ELSE)],
-        new Map([[SOMEBODY_ELSE, 1]]),
-    );
-    const standings = composeLegendaryStandings(walk, new Map([[SOMEBODY_ELSE, 1], [21, 5]]));
+    addPayloadToLegendaryStandings(walk, [composeDeclaringBlow(SOMEBODY_ELSE)]);
+    const standings = composeLegendaryStandings(walk);
     assertEquals(standings.map((one) => one.combatantId), [SOMEBODY_ELSE], "it lit on the thrower");
 });

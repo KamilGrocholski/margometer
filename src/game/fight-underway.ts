@@ -375,12 +375,7 @@ export function addPayloadToFight(
         read.decoded,
         readStatusMasksFromPayload(payload),
     );
-    // After the statuses, because the clock they advanced is the one a bonus is dated on.
-    addPayloadToLegendaryStandings(
-        underway.legendary,
-        read.decoded,
-        underway.carried.turnsByCombatantId,
-    );
+    addPayloadToLegendaryStandings(underway.legendary, read.decoded);
     if (FIGHT_ENDS_KEY in payload) underway.isOver = true;
     assert(underway.messagesLost >= 0, "what a payload stated and nobody read is never negative");
     assert(underway.messagesRead >= read.messages.length, "and what it did read is counted once");
@@ -432,10 +427,7 @@ export function getReadingFromFight(underway: FightUnderway): FightReading | nul
         isOnAuto: underway.isOnAuto,
         chargedSkills: underway.chargedSkills,
         carriedStatuses: composeCarriedStatuses(underway.carried),
-        legendaryStandings: composeLegendaryStandings(
-            underway.legendary,
-            underway.carried.turnsByCombatantId,
-        ),
+        legendaryStandings: composeLegendaryStandings(underway.legendary),
         turnsByCombatantId: underway.carried.turnsByCombatantId,
     };
 }

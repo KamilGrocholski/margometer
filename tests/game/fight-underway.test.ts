@@ -522,3 +522,23 @@ Deno.test("a fight that opens takes the legendary bonuses of the one before it a
     assertEquals(after.legendaryStandings, [], "the new fight holds none of them");
     assertEquals(after.carriedStatuses, [], "nor any status, which is reset the same way");
 });
+
+/**
+ * ⚠️ **The walk is tested on heals it composes itself**, so a key spelled one way there and
+ * another by the decoder passes it green while no heal is ever counted. This is the seam: every
+ * recording, payload by payload, through the decoder, must show a run at each count under the
+ * bound — and never at the bound, because the payload carrying the last heal takes the row away.
+ */
+Deno.test("Dotyk anioła counts the heals the decoder reads, over every recording", () => {
+    const counts = new Set<number>();
+    for (const path of readRecordingPaths()) {
+        const underway = composeFightUnderway();
+        for (const update of getRecordedEngineUpdates(path)) {
+            addPayloadToFight(underway, update, BLOWS_GRANTED);
+            for (const one of getReadingFromFight(underway)?.legendaryStandings ?? []) {
+                if (one.holytouchHealsGiven !== null) counts.add(one.holytouchHealsGiven);
+            }
+        }
+    }
+    assertEquals([...counts].sort(), [0, 1, 2], "every count under three, and three never");
+});
