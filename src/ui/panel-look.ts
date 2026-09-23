@@ -155,8 +155,11 @@ export const SPACE = {
 export const PLACE = {
     inset: "8px",
     width: "260px",
-    /** The host against the game's own page, and nothing inside the root. */
-    layer: "9999",
+    /**
+     * The host against the game's own page, and nothing inside the root: the game's interface
+     * layer, won by standing after it in `body`, and under every window of theirs — **ADR 0114**.
+     */
+    layer: "10",
 } as const;
 
 /**

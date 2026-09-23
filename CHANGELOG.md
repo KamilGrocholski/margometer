@@ -66,6 +66,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
   jak wszędzie indziej w panelu i w grze — wcześniej stało tam „wchłanianie".
 - **Poprawka** — Kliknięcie w wiersz panelu albo Pomocnika nie zaznacza już jego tekstu.
 - **Poprawka** — W dużej walce Pomocnik pokazuje wszystkich wyzwanych, a nie pierwszych dwunastu.
+- **Poprawka** — Okna, dymki i menu gry otwierają się teraz nad panelem, a nie pod nim.
 
 ## [0.18.0] — 2026-09-21
 

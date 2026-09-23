@@ -281,3 +281,5 @@ edited to agree with the new rule.
   stands, and only two rows count turns. **Superseded by 0113 in part**
 - [0113](0113-dotyk-aniola-counts-the-heals-it-has-given.md) — Dotyk anioła counts the heals it has
   given, not the turns it has left. **Accepted**
+- [0114](0114-the-game-s-windows-stand-over-the-panel.md) — The game's windows stand over the panel.
+  **Accepted**

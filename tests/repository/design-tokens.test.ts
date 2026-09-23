@@ -73,16 +73,11 @@ const TOKENS_REGISTERED: Record<string, readonly string[]> = {
     lineHeight: [getLineHeightDrawn()],
     panelWidth: [PLACE.width],
     panelInset: [PLACE.inset],
+    panelLayer: [PLACE.layer],
     radius: [SHAPE.radius],
     radiusSmall: [SHAPE.radiusSmall],
     windowShadow: [SHAPE.windowShadow],
 };
-
-/**
- * The one row that states no value, and why it does not. `9999` is a claim about somebody else's
- * windows rather than a length this tree chose, and the number says nothing a reader could check.
- */
-const TOKENS_WORDED = ["panelLayer"];
 
 /** Every backticked span of a cell, in the order it states them. */
 function getQuotedSpans(cell: string): string[] {
@@ -188,7 +183,7 @@ Deno.test("a value that moved is reported, and one that stood still is not", () 
 
 Deno.test("every value DESIGN.md quotes is the one the panel spends", () => {
     const stated = parseTokenRows(DESIGN);
-    assert(stated.size > TOKENS_WORDED.length, "the document states tokens to be checked");
+    assert(stated.size > 0, "the document states tokens to be checked");
     assertEquals(
         getDisagreements(stated, TOKENS_REGISTERED),
         [],
@@ -199,16 +194,10 @@ Deno.test("every value DESIGN.md quotes is the one the panel spends", () => {
 Deno.test("the register and the document name the same rows", () => {
     const stated = parseTokenRows(DESIGN);
     const registered = Object.keys(TOKENS_REGISTERED);
-    const unheld = [...stated.keys()].filter((name) => {
-        if (registered.includes(name)) return false;
-        return !TOKENS_WORDED.includes(name);
-    });
+    const unheld = [...stated.keys()].filter((name) => !registered.includes(name));
     assertEquals(unheld, [], "a row of the document that nothing here reads");
     const vanished = registered.filter((name) => !stated.has(name));
     assertEquals(vanished, [], "the register names a row the document no longer carries");
-    for (const name of TOKENS_WORDED) {
-        assertEquals(stated.get(name), [], `${name} states a value now, so the register holds it`);
-    }
 });
 
 Deno.test("the palette the document prints is the one the panel draws", () => {

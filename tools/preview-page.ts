@@ -8,7 +8,7 @@
  */
 
 import { assert, assertStringIncludes } from "@std/assert";
-import { SHAPE, SIGNAL, SURFACE, TEXT } from "@/src/ui/panel-look.ts";
+import { PLACE, SHAPE, SIGNAL, SURFACE, TEXT } from "@/src/ui/panel-look.ts";
 import { USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
 import {
     composePreviewStateBare,
@@ -102,6 +102,10 @@ const PLAY_STEP_MOST = 900;
  * panel against the ground it really stands on is the whole of what this page is for.
  */
 const GAME_PAGE_COLOUR = "#14171c";
+
+/** Counted down from the panel's own layer, which is the game's and low — **ADR 0114**. */
+const PREVIEW_STRIP_LAYER = Number(PLACE.layer) - 1;
+const PREVIEW_TIPS_LAYER = PREVIEW_STRIP_LAYER - 1;
 
 /**
  * How a page names the two regions its own script has to find. Spelled here and read in
@@ -383,7 +387,7 @@ function composeSplitStyle(): string {
 }
 
 /**
- * The strip's own layer sits under the panel's 9999 (`src/ui/panel-look.ts`) and in the corner
+ * The strip's own layer sits under the panel's (`src/ui/panel-look.ts`) and in the corner
  * the panel does not start in: harness chrome covering the thing under test is worse than none.
  *
  * ⚠️ **Every colour here but the page's own ground is the panel's**, out of `src/ui/panel-look.ts`
@@ -421,7 +425,7 @@ function composePreviewTooltipsPlacedStyle(): string {
 }
 
 function composePreviewTipsCardStyle(): string {
-    const sheet = `.preview-tips { position: fixed; z-index: 8900;
+    const sheet = `.preview-tips { position: fixed; z-index: ${PREVIEW_TIPS_LAYER};
   padding: 10px 12px; overflow-y: auto; box-sizing: border-box;
   border: 1px solid ${SURFACE.border}; background: ${SURFACE.panel}; }
 .preview-tips h2 { margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .06em;
@@ -432,7 +436,8 @@ function composePreviewTipsCardStyle(): string {
 .preview-tip b { color: ${TEXT.plain}; }
 .preview-tip span { color: ${SIGNAL.ours}; }
 `;
-    assertStringIncludes(sheet, "8900", "the column stands under the strip and under the panel");
+    assert(PREVIEW_TIPS_LAYER > 0, "the column stands on the page, not behind its ground");
+    assert(PREVIEW_TIPS_LAYER < PREVIEW_STRIP_LAYER, "and under the strip, so under the panel too");
     assertStringIncludes(sheet, SURFACE.border, "and takes the panel's own tokens, like the rest");
     return sheet;
 }
@@ -468,7 +473,7 @@ function composePreviewStyle(): string {
 .preview-after { margin: 8px 0 0; color: ${TEXT.quiet}; }
 .preview-install + .preview-intro { padding-top: 14px; }
 .preview-said > :first-child { padding-top: 0; }
-.preview-strip { position: fixed; left: 0; right: 0; top: 0; z-index: 9000;
+.preview-strip { position: fixed; left: 0; right: 0; top: 0; z-index: ${PREVIEW_STRIP_LAYER};
   display: flex; flex-wrap: wrap; align-items: center; gap: 6px 16px;
   padding: 8px 16px;
   background: ${SURFACE.raised}; border-bottom: 1px solid ${SURFACE.border}; }
@@ -500,7 +505,7 @@ ${composeSplitStyle()}`;
         "the panel is judged against the game's own page",
     );
     assertStringIncludes(sheet, SURFACE.border, "and everything else takes the panel's own token");
-    assertStringIncludes(sheet, "9000", "and the strip stands under the panel, never over it");
+    assert(PREVIEW_STRIP_LAYER < Number(PLACE.layer), "the strip stands under the panel, not over");
     // Which rules take it, and which may not, is `tests/tools/preview-site.test.ts`'s to hold:
     // one occurrence here passed while the paragraph under the band carried none.
     assertStringIncludes(sheet, MAXIMUM_COLUMN_WIDTH, "a column ends where the windows begin");

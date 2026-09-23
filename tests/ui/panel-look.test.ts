@@ -384,11 +384,10 @@ Deno.test("the card stands over the window beside the panel, and both over the f
     assert(tip > standing, "a card is what a reader pointed at, so nothing else covers it");
     // The frame takes none of its own: it is what both of the others may be dragged over.
     const frame = sheet.slice(sheet.indexOf(":host{"), sheet.indexOf("}", sheet.indexOf(":host{")));
-    assertStringIncludes(frame, `z-index:${PLACE.layer}`, "the host stands over the game's page");
-    assert(
-        Number(PLACE.layer) > tip,
-        "which is a different question from what stands over what inside the root",
-    );
+    assertStringIncludes(frame, `z-index:${PLACE.layer}`, "the host takes its layer on the page");
+    // A positioned host with a layer is a stacking context of its own, which is what keeps the
+    // numbers inside the root from ever meeting the game's (**ADR 0114**).
+    assertStringIncludes(frame, "position:fixed", "and what stands inside it stands in it alone");
 });
 
 Deno.test("a folded panel is drawn by the one region the fold hides", () => {

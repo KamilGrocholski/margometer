@@ -297,6 +297,7 @@ tests/
     panel-fold.spec.ts     The panel folded away and brought back, and what is remembered.
     panel-standing.spec.ts Two windows under one root: two grips, two folds, two corners.
     panel-tooltip.spec.ts  The rows the add-on writes into the game's own tooltip.
+    panel-layer.spec.ts    Where the panel stands among the game's layers: under its windows.
     panel-shelf.spec.ts    The fights kept, the one being read, a pin, and the three stores.
     panel-save.spec.ts     The file the browser really takes, and what is inside it.
     panel-reload.spec.ts   What a reader finds waiting, and what they do not.
@@ -890,19 +891,13 @@ commit that opens or closes one.
     so — a mark, a hue, a pinned row — is the maintainer's (`TODO.md` opens on it, and `DESIGN.md`
     owns the answer).
 
-22. **The panel sits over everything, and nothing measured what it is sitting over.** `PLACE.layer`
-    is `9999`; `DESIGN.md` said of it that it is _high enough to clear the game's own windows_,
-    which is a claim about the game with no reading behind it (**V1**) and the one the hand-kept
-    list asks to reverse. The shadow root is not the question — `all: initial` already cuts the
-    game's stylesheet off the panel, and what a custom property can still reach through is
-    `SECURITY.md`'s, answered by the `MargoMeter-` prefix. What is unanswered is the **stacking**: a
-    dialog of theirs opening under a panel of ours.
-
-    Read on production build `Bb28FQty`, 2026-09-22: **the client's own JavaScript sets no layer
-    above 123** — three values in the whole bundle, `123`, `20` and `10`. Its stylesheet is where
-    the rest would be, and that file is not in this tree; fetching one is **Ask first**, and it is
-    the same request `design/dymek/` already has open for `tipsParser.min.css`. One fetch answers
-    both. Until then any number here is a guess, and this one is a guess that wins every argument.
+22. **The panel's layer is the game's, read once by hand, and nothing reads it again.**
+    `PLACE.layer` is the game's interface layer, and every window of theirs stands over it — **ADR
+    0114**, which carries the stylesheet and the date it was read on.
+    `tests/e2e/panel-layer.spec.ts` holds the order against those two numbers, not against the game:
+    no reading in `frozen/` keeps the stylesheet, so **W10** cannot see the game renumber its
+    layers, and a renumbering moves the panel over its windows or under its interface with every
+    guard green.
 
     ⚠️ **Ask the help before calling something unknowable.** The roster's own twenty was called
     unsourced here for a day on the strength of a search that stopped at its first hit; the help

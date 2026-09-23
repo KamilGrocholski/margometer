@@ -188,9 +188,9 @@ setTipsWatched();`;
  * off a width, because the pair is placed by expression and a width written here would be a
  * second copy of it.
  *
- * ⚠️ **The panel grows when a row opens**, and at layer 9999 it covers a column under it, so a
- * change in either window's size places the column again. A column left less than
- * `LEAST_TIPS_TALL` of the screen is hidden instead: a heading over a sliver says nothing.
+ * ⚠️ **The panel grows when a row opens**, and it stands over the column, so a change in either
+ * window's size places the column again. A column left less than `LEAST_TIPS_TALL` of the screen
+ * is hidden instead: a heading over a sliver says nothing.
  */
 function composeTipsPlaced(): string {
     assert(PREVIEW_TIPS_WIDTH_PIXELS > 0, "the column beside the panel is some width across");
@@ -266,8 +266,7 @@ function composeCorneredFrom(): string {
  * wrong at the next. Read once per placing, on load and on every resize.
  *
  * ⚠️ **Never docked off the panel's own bottom edge.** The panel grows when a row opens, 402px to
- * 602px at 1920×900, and draws at layer 9999 against the strip's 9000, so a bar under it is a bar
- * the panel covers.
+ * 602px at 1920×900, and draws over the strip, so a bar under it is a bar the panel covers.
  */
 function composeStripAtTop(): string {
     assert(PANEL_INSET > 0, "the page starts below the bar by what the sheet leaves");

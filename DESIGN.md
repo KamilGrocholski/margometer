@@ -162,7 +162,7 @@ legibility.
 | `lineHeight`     | `15px` — whole pixels, and what a counted card is multiplied by    |
 | `panelWidth`     | `260px` — narrow on purpose: the panel is a guest                  |
 | `panelInset`     | `8px` — the air a panel keeps from an edge it is pushed against    |
-| `panelLayer`     | 9999 — over everything, and measured against nothing the game does |
+| `panelLayer`     | `10` — the game's interface layer, and under every window it opens |
 
 **Every row is the same height**, accent included. A row whose background is taller than its
 neighbour reads as a different kind of row, and it is not one.
