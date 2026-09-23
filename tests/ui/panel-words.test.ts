@@ -1284,7 +1284,7 @@ const CARRYING_EVERYTHING = {
  * ⚠️ **The order is fixed, whatever a fighter carries** (**ADR 0116**), so a row is found where it
  * was last time. Nothing else holds it: the rows are pushed by six calls in a row, and swapping two
  * of them reddens no other test. The statuses arrive in mask order, poison first, so the slow and
- * the haste standing above the okrzyk is the order doing it and not the mask.
+ * the haste standing above the poison is the order doing it and not the mask.
  */
 Deno.test("the rows stand in the one order the maintainer set", () => {
     assertEquals(composeTooltipRows(CARRYING_EVERYTHING, null), [
@@ -1293,10 +1293,10 @@ Deno.test("the rows stand in the one order the maintainer set", () => {
         "Cios specjalny · Pożoga · 2 z 4",
         "Ostatni ratunek · wykorzystany",
         "Dotyk anioła · 1 z 3",
-        "swow_down 14%",
-        "speed_up 20%",
         "Prowokuje 10 postaci",
         "Sprowokowany przez Gracz 2 · 2 z 3",
+        "swow_down 14%",
+        "speed_up 20%",
         "poisoned",
     ]);
 });

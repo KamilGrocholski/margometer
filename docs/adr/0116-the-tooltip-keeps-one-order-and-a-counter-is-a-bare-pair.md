@@ -21,9 +21,10 @@ move with what a fighter carries, and every counter as the pair alone.
 ## Decision
 
 **The block keeps one order, whatever a fighter carries**: the turns taken, the charge, Ostatni
-ratunek, Dotyk anioła, the slow (`swow_down`), the haste (`speed_up`), the okrzyk — first how many a
-fighter's own shout holds, then who is holding them — and then every other status in mask order. A
-row that has nothing to say is left out and the others keep their places relative to each other.
+ratunek, Dotyk anioła, the okrzyk — first how many a fighter's own shout holds, then who is holding
+them — and then the statuses: the slow (`swow_down`), the haste (`speed_up`), and every other status
+in mask order. A row that has nothing to say is left out and the others keep their places relative
+to each other.
 
 **Every counter is a bare pair, `x z y`**, counting up or down: the charge, the okrzyk, Dotyk
 anioła, and the okrzyk's remainder in Pomocnik. One function draws all of them, `composeCounterText`
@@ -37,8 +38,7 @@ and **ADR 0109** on the noun a remainder carries. The decision is the maintainer
 ## Consequences
 
 Easy: a row is found where it was the last time a fighter was hovered. The slow and the haste, which
-change who acts next, stand above the okrzyk and above every other status, whatever bit the client
-registered them under.
+change who acts next, stand above every other status, whatever bit the client registered them under.
 
 Hard: three fractions in one block now read alike while two of them count up and one down. Only the
 row's own name says which way a pair runs — `Cios specjalny` and `Dotyk anioła` count what has

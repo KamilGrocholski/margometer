@@ -841,8 +841,8 @@ export interface TooltipReading {
  * repository does with an answer it cannot use (**ADR 0024**).
  *
  * **The order is fixed, whatever a fighter carries**, so a row is found where it was last time:
- * the turns, the charge, Ostatni ratunek, Dotyk anioła, the slow, the haste, the okrzyk — whom a
- * fighter's own holds, then who holds them — and every other status. **ADR 0116.**
+ * the turns, the charge, Ostatni ratunek, Dotyk anioła, the okrzyk — whom a fighter's own holds,
+ * then who holds them — and the statuses, the slow and the haste first. **ADR 0116.**
  */
 export function composeTooltipRows(
     reading: TooltipReading,
@@ -852,8 +852,8 @@ export function composeTooltipRows(
     addTurnsRow(said, reading);
     addChargeRow(said, reading);
     addLegendaryRows(said, reading);
-    addStatusRows(said, getLeadingStatuses(reading.statuses), translate);
     addProvocationRows(said, reading);
+    addStatusRows(said, getLeadingStatuses(reading.statuses), translate);
     addStatusRows(said, getTrailingStatuses(reading.statuses), translate);
     const kept = said.filter((row) => !getRowCarriesMarkup(row));
     if (kept.length === 0) return [];
@@ -939,7 +939,7 @@ function addLegendaryRows(said: string[], reading: TooltipReading): void {
     said.push(`${TOOLTIP_WORDS.holytouch} ${apart} ${heals}`);
 }
 
-/** The slow, then the haste, ahead of the okrzyk — **ADR 0116**. */
+/** The slow, then the haste, ahead of every other status — **ADR 0116**. */
 function getLeadingStatuses(statuses: readonly TooltipStatus[]): TooltipStatus[] {
     const leading: TooltipStatus[] = [];
     for (const name of LEADING_STATUS_NAMES) {
