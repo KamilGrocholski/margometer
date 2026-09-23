@@ -5,7 +5,7 @@
 
 export const FROZEN_SKILL_DURATIONS = {
     /** When the page these were read from was fetched, not when a person read it. */
-    fetchedAt: "2026-09-15T13:20:17.965Z",
+    fetchedAt: "2026-09-23T08:58:25.997Z",
     skills: [
         {
             id: 7,
@@ -1541,6 +1541,7 @@ export const FROZEN_SKILL_DURATIONS = {
         {
             id: 263,
             effects: [
+                { key: "test", turns: [5, 5, 5] },
                 { key: "hp", turns: [] },
             ],
         },
@@ -1723,9 +1724,7 @@ export const FROZEN_SKILL_DURATIONS = {
         {
             id: 291,
             effects: [
-                { key: "crush_dmg_physical", turns: [] },
-                { key: "taken_dmg_per-all", turns: [5] },
-                { key: "dmg-target_fire", turns: [5] },
+                { key: "vamp", turns: [5] },
             ],
         },
         {
@@ -1834,13 +1833,15 @@ export const FROZEN_SKILL_DURATIONS = {
         {
             id: 305,
             effects: [
-                { key: "lowdmg_enemy", turns: [] },
+                { key: "vulture_perw", turns: [] },
+                { key: "perdmg", turns: [] },
+                { key: "crit", turns: [] },
             ],
         },
         {
             id: 306,
             effects: [
-                { key: "critpoison", turns: [] },
+                { key: "test", turns: [5, 5, 5] },
             ],
         },
     ],

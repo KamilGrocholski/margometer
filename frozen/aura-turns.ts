@@ -8,7 +8,7 @@
 
 export const FROZEN_AURA_TURNS = {
     /** When the page these were read from was fetched, not when a person read it. */
-    fetchedAt: "2026-09-15T13:20:17.965Z",
+    fetchedAt: "2026-09-23T08:58:25.997Z",
     skills: [
         { id: 25, turns: 2 },
         { id: 76, turns: 8 },
@@ -21,7 +21,6 @@ export const FROZEN_AURA_TURNS = {
         { id: 244, turns: 8 },
         { id: 264, turns: 8 },
         { id: 285, turns: 40 },
-        { id: 291, turns: 5 },
         { id: 298, turns: 8 },
     ],
     shouts: [

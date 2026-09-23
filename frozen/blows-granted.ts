@@ -6,7 +6,7 @@
 
 export const FROZEN_BLOWS_GRANTED = {
     /** When the page these were read from was fetched, not when a person read it. */
-    fetchedAt: "2026-09-15T13:20:17.965Z",
+    fetchedAt: "2026-09-23T08:58:25.997Z",
     skills: [
         { id: 97, blowsGrantedMinimum: 1 },
         { id: 239, blowsGrantedMinimum: 1 },
