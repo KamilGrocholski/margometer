@@ -1,6 +1,6 @@
 # 0112. A status says that it stands, and only two rows count turns
 
-- **Status:** Accepted
+- **Status:** Superseded by 0113 in part
 - **Date:** 2026-09-23
 
 ## Context
