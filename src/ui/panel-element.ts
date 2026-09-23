@@ -72,9 +72,8 @@ import {
     type Caveat,
     CAVEAT_MARK,
     composeChargedSkillSubtitle,
-    composeChargedSkillTurnsText,
+    composeCounterText,
     composeFigureText,
-    composeRemainingTurnsText,
     composeShelfSizeText,
     composeSideCountsText,
     composeTurnOrdinalText,
@@ -857,7 +856,7 @@ function composeChargedSkillTipReading(charged: StandingChargedSkill): TipReadin
     const stated: TipLine = {
         kind: "stat",
         label: STANDING_WORDS.turnsPassed,
-        stated: composeChargedSkillTurnsText(charged.turnsElapsed, charged.turnsStated),
+        stated: composeCounterText(charged.turnsElapsed, charged.turnsStated),
         isStrong: false,
         caveat: null,
     };
@@ -883,7 +882,7 @@ function composeChargedSkillRow(
     const name = composeElement(document, "span", CLASS.rowName);
     name.textContent = charged.skillName;
     const value = composeElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
-    value.textContent = composeChargedSkillTurnsText(charged.turnsElapsed, charged.turnsStated);
+    value.textContent = composeCounterText(charged.turnsElapsed, charged.turnsStated);
     const pips = composeChargedSkillPips(document, charged);
     row.append(cap);
     row.append(name);
@@ -977,7 +976,7 @@ function composeProvokedElements(
                 skillName: provocation.skillName,
                 colour: held.colour,
                 sidePart: held.sidePart,
-                turns: composeRemainingTurnsText(
+                turns: composeCounterText(
                     held.turnsStated - held.turnsElapsed,
                     held.turnsStated,
                 ),

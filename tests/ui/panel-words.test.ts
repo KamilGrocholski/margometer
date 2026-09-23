@@ -26,6 +26,7 @@ import {
     composeChargedRowsText,
     composeChargedSkillSubtitle,
     composeCountedNoun,
+    composeCounterText,
     composeDefectText,
     composeDestroyedText,
     composeFigureText,
@@ -35,7 +36,6 @@ import {
     composeNoParameterRowSuspicion,
     composeNoParameterSuspicion,
     composePlaceWords,
-    composeRemainingTurnsText,
     composeShareText,
     composeShareTexts,
     composeShelfSizeText,
@@ -430,19 +430,18 @@ Deno.test("a status with no figure to its name says no share beside it", () => {
 });
 
 /**
- * The one reading every counted length carries since **ADR 0109**, and the two ends it refuses.
- * A remainder **below** nought and one past the length are both a subtraction somebody got
- * backwards — neither is a figure, so neither is drawn as one. Nought itself is a remainder: a
- * shout holds somebody through the turn its length runs out on.
+ * The one pair every counter draws since **ADR 0116**, up or down, and the two ends it refuses. A
+ * figure **below** nought and one past what is stated are both a subtraction somebody got
+ * backwards — neither is a figure, so neither is drawn as one. Nought itself is drawn: a shout
+ * holds somebody through the turn its length runs out on, and a charge opens on none passed.
  */
-Deno.test("a counted length says what is left, and refuses what is not a remainder", () => {
-    assertEquals(composeRemainingTurnsText(1, 5), "1 z 5 tur", "one turn left of five");
-    assertEquals(composeRemainingTurnsText(5, 5), "5 z 5 tur", "and the whole of it at the start");
-    assertEquals(composeRemainingTurnsText(0, 5), "0 z 5 tur", "and none left is a remainder");
-    assertEquals(composeRemainingTurnsText(-1, 5), PANEL_WORDS.unknown, "below none is not");
-    assertEquals(composeRemainingTurnsText(6, 5), PANEL_WORDS.unknown, "nor more than there was");
-    assertEquals(composeRemainingTurnsText(1, 3), "1 z 3 tur", "never `3 tury`");
-    assertEquals(composeRemainingTurnsText(3, 8), "3 z 8 tur", "and the form past four is unmoved");
+Deno.test("a counter is a bare pair, and refuses what is not inside it", () => {
+    assertEquals(composeCounterText(1, 5), "1 z 5", "one of five, and no noun");
+    assertEquals(composeCounterText(5, 5), "5 z 5", "and the whole of it");
+    assertEquals(composeCounterText(0, 5), "0 z 5", "and none is drawn");
+    assertEquals(composeCounterText(-1, 5), PANEL_WORDS.unknown, "below none is not");
+    assertEquals(composeCounterText(6, 5), PANEL_WORDS.unknown, "nor more than there was");
+    assertEquals(composeCounterText(1.5, 5), PANEL_WORDS.unknown, "nor half a turn");
 });
 
 /**
@@ -512,27 +511,32 @@ Deno.test("a provocation is said at the end it is read from", () => {
         ...NOTHING_CARRIED,
         provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
     }, null);
-    assertStringIncludes(held[1] ?? "", "Gracz 2", "the held fighter is told who holds them");
-    assertStringIncludes(
-        held[1] ?? "",
-        "2 z 3 tur",
-        "and how many of their own turns it still has",
+    assertEquals(
+        held[1],
+        "Sprowokowany przez Gracz 2 · 2 z 3",
+        "the held fighter is told who holds them, and how many of their turns it still has",
     );
-    const shouting = composeTooltipRows({ ...NOTHING_CARRIED, provokes: 10 }, null);
-    assertStringIncludes(shouting[1] ?? "", "10 postaci", "the shouter is told how many, not whom");
+    const shouting = (provokes: number) =>
+        composeTooltipRows({ ...NOTHING_CARRIED, provokes }, null)[1];
+    assertEquals(shouting(10), "Prowokuje 10 postaci", "the shouter is told how many, not whom");
+    assertEquals(shouting(1), "Prowokuje 1 postać", "one is one, in the noun's own form");
+    assertEquals(shouting(2), "Prowokuje 2 postacie", "two to four take the second");
+    assertEquals(shouting(12), "Prowokuje 12 postaci", "and a teen never does");
+    assertEquals(shouting(22), "Prowokuje 22 postacie", "while twenty-two does");
+    assertEquals(shouting(0), undefined, "and holding nobody says nothing");
 });
 
 /**
- * ⚠️ **The provocation counts down in turns and Dotyk anioła counts up in heals**, and the two
- * stand a row apart in one tooltip (**ADR 0113**). The noun is all that tells the fractions apart,
- * so it is asserted whole, at nought — a row lit and not yet healed — and one under the bound.
+ * ⚠️ **The provocation counts down in turns and Dotyk anioła counts up in heals**, in one tooltip
+ * (**ADR 0113**), and neither fraction carries a noun (**ADR 0116**) — so the row is asserted
+ * whole, at nought — a row lit and not yet healed — and one under the bound.
  */
 Deno.test("Dotyk anioła says the heals it has given, out of the three it gives", () => {
     const row = (healsGiven: number) =>
         composeTooltipRows({ ...NOTHING_CARRIED, holytouchHealsGiven: healsGiven }, null)[1];
-    assertEquals(row(0), "Dotyk anioła · 0 z 3 uleczeń", "lit, and nothing healed yet");
-    assertEquals(row(1), "Dotyk anioła · 1 z 3 uleczeń", "one heal is one");
-    assertEquals(row(2), "Dotyk anioła · 2 z 3 uleczeń", "and the last before it goes");
+    assertEquals(row(0), "Dotyk anioła · 0 z 3", "lit, and nothing healed yet");
+    assertEquals(row(1), "Dotyk anioła · 1 z 3", "one heal is one");
+    assertEquals(row(2), "Dotyk anioła · 2 z 3", "and the last before it goes");
 });
 
 Deno.test("a label the client answers with markup is refused rather than escaped", () => {
@@ -1268,6 +1272,7 @@ const CARRYING_EVERYTHING = {
     provokes: 10,
     statuses: [
         { bit: 3, percent: null },
+        { bit: 5, percent: 14 },
         { bit: 6, percent: 20 },
     ],
     holytouchHealsGiven: 1,
@@ -1276,29 +1281,24 @@ const CARRYING_EVERYTHING = {
 };
 
 /**
- * ⚠️ **The order is the whole of what a reader gets for free**, because a tooltip is read from
- * the top and a fighter is hovered for a second. The blow the fight is about to take comes
- * first (**ADR 0115**), what changes whom somebody strikes next second, what changes how they
- * strike third, what is spent or nearly over fourth — and the turns last, as the only row about
- * the whole fight rather than about now. Nothing else holds it: the rows are pushed by five calls
- * in a row, and swapping two of them reddens no other test.
+ * ⚠️ **The order is fixed, whatever a fighter carries** (**ADR 0116**), so a row is found where it
+ * was last time. Nothing else holds it: the rows are pushed by six calls in a row, and swapping two
+ * of them reddens no other test. The statuses arrive in mask order, poison first, so the slow and
+ * the haste standing above the okrzyk is the order doing it and not the mask.
  */
-Deno.test("the rows stand in the order a reader acts on them", () => {
-    const said = composeTooltipRows(CARRYING_EVERYTHING, null);
-    const at = (fragment: string) => said.findIndex((row) => row.includes(fragment));
-    assertEquals(said[0], "MargoMeter", "the name, over everything");
-    assertEquals(at("Cios specjalny"), 1, "the blow about to be taken, first under it");
-    assert(
-        at("Sprowokowany przez") < at("Prowokuje"),
-        "held before holding, which is what they do next",
-    );
-    assert(
-        at("Prowokuje") < at("%"),
-        "the okrzyk before a status, which only changes how they hit",
-    );
-    assert(at("%") < at("Dotyk anioła"), "a status before a bonus already running out");
-    assert(at("Dotyk anioła") < at("Ostatni ratunek"), "running out before already spent");
-    assert(at("Ostatni ratunek") < at("Tury wykonane"), "and the whole fight last of all");
+Deno.test("the rows stand in the one order the maintainer set", () => {
+    assertEquals(composeTooltipRows(CARRYING_EVERYTHING, null), [
+        "MargoMeter",
+        "Tury wykonane 14",
+        "Cios specjalny · Pożoga · 2 z 4",
+        "Ostatni ratunek · wykorzystany",
+        "Dotyk anioła · 1 z 3",
+        "swow_down 14%",
+        "speed_up 20%",
+        "Prowokuje 10 postaci",
+        "Sprowokowany przez Gracz 2 · 2 z 3",
+        "poisoned",
+    ]);
 });
 
 /**

@@ -20,6 +20,7 @@ import type { PanelNoun, PanelSideChoice, PanelStorageChoice } from "@/src/ui/pa
 import type { PanelSidePart } from "@/src/ui/panel-reading.ts";
 import type { StandingTurnState } from "@/src/ui/panel-standing.ts";
 import type { ChargedSkillState } from "@/src/core/charged-skill.ts";
+import { HASTE_BIT_NAME, SLOW_BIT_NAME } from "@/src/core/carried-figure.ts";
 import { HOLYTOUCH_HEALS_STATED } from "@/src/core/legendary-standing.ts";
 
 export interface CountedNoun {
@@ -779,8 +780,7 @@ export const STANDING_WORDS = {
      * **ADR 0100**. Never `PANEL_WORDS.turns`: that one names the turns a combatant took and
      * carries the caveat that the game publishes none of them, while both of these are durations
      * the game itself states — the published skill table for a cast, the payload's own envelope
-     * for a charge. And never the noun, because the figure beside it already ends in one —
-     * `Minęło · 2 z 3 tur`.
+     * for a charge. The pair beside it is bare, `Minęło · 2 z 3` (**ADR 0116**).
      */
     turnsPassed: "Minęło",
     /**
@@ -840,21 +840,21 @@ export interface TooltipReading {
  * is refused rather than escaped — the words in it are the client's own and refusing is what this
  * repository does with an answer it cannot use (**ADR 0024**).
  *
- * The order is what a reader acts on first: a charge is the blow the fight is about to take, the
- * okrzyk changes whom somebody will strike next, a status changes how they strike, a legendary
- * bonus is already spent or nearly over, and the turns are the only row about the whole fight
- * rather than about now. **ADR 0115.**
+ * **The order is fixed, whatever a fighter carries**, so a row is found where it was last time:
+ * the turns, the charge, Ostatni ratunek, Dotyk anioła, the slow, the haste, the okrzyk — whom a
+ * fighter's own holds, then who holds them — and every other status. **ADR 0116.**
  */
 export function composeTooltipRows(
     reading: TooltipReading,
     translate: TranslateLabel | null,
 ): string[] {
     const said: string[] = [];
-    addChargeRow(said, reading);
-    addProvocationRows(said, reading);
-    addStatusRows(said, reading.statuses, translate);
-    addLegendaryRows(said, reading);
     addTurnsRow(said, reading);
+    addChargeRow(said, reading);
+    addLegendaryRows(said, reading);
+    addStatusRows(said, getLeadingStatuses(reading.statuses), translate);
+    addProvocationRows(said, reading);
+    addStatusRows(said, getTrailingStatuses(reading.statuses), translate);
     const kept = said.filter((row) => !getRowCarriesMarkup(row));
     if (kept.length === 0) return [];
     // The name takes a row of the bound like any other, so a block handed over is never longer
@@ -876,32 +876,27 @@ function addTurnsRow(said: string[], reading: TooltipReading): void {
 }
 
 /**
- * ⚠️ **Counts up, with no noun**: the client's own pair, as Pomocnik draws it, and set apart from
- * the provocation's `1 z 3 tur`, which counts down. **ADR 0115.**
+ * ⚠️ **Counts up, with no noun**: the client's own pair, as Pomocnik draws it. The okrzyk's `1 z 3`
+ * counts down and carries no noun either, so the row's own name is all that tells the two
+ * directions apart. **ADR 0115**, **ADR 0116.**
  */
 function addChargeRow(said: string[], reading: TooltipReading): void {
     const charge = reading.charge;
     if (charge === null) return;
     const apart = STANDING_WORDS.castSeparator;
-    const passed = composeChargedSkillTurnsText(charge.turnsElapsed, charge.turnsStated);
+    const passed = composeCounterText(charge.turnsElapsed, charge.turnsStated);
     said.push(`${STANDING_WORDS.chargedSkill} ${apart} ${charge.skillName} ${apart} ${passed}`);
 }
 
 function addProvocationRows(said: string[], reading: TooltipReading): void {
-    const held = reading.provokedBy;
-    if (held !== null) {
-        const passed = composeRemainingTurnsText(
-            held.turnsStated - held.turnsElapsed,
-            held.turnsStated,
-        );
-        said.push(
-            `${TOOLTIP_WORDS.provokedBy} ${held.name} ` +
-                `${STANDING_WORDS.castSeparator} ${passed}`,
-        );
+    if (reading.provokes > 0) {
+        const counted = composeCountedNoun(reading.provokes, COUNTED_NOUNS.combatants);
+        said.push(`${TOOLTIP_WORDS.provokes} ${counted}`);
     }
-    if (reading.provokes <= 0) return;
-    const counted = composeCountedNoun(reading.provokes, COUNTED_NOUNS.combatants);
-    said.push(`${TOOLTIP_WORDS.provokes} ${counted}`);
+    const held = reading.provokedBy;
+    if (held === null) return;
+    const left = composeCounterText(held.turnsStated - held.turnsElapsed, held.turnsStated);
+    said.push(`${TOOLTIP_WORDS.provokedBy} ${held.name} ${STANDING_WORDS.castSeparator} ${left}`);
 }
 
 /**
@@ -925,23 +920,42 @@ function addStatusRows(
 
 /**
  * ⚠️ **A row naming a thing and then saying something about it carries the separator**, the way a
- * status and a provocation do. Without it `Dotyk anioła 1 z 3 uleczeń` runs the name into the
- * figure and reads as one phrase, while the rows above it read as two — measured by eye over a
+ * status and a provocation do. Without it `Dotyk anioła 1 z 3` runs the name into the
+ * figure and reads as one phrase, while the rows around it read as two — measured by eye over a
  * drawn block, 2026-09-22, which is the only place the whole set stands together.
  *
- * **Dotyk anioła counts up, in heals**, while the provocation above it counts down, in turns: each
- * heal is on the wire and nothing dates a turn it ends on (**ADR 0113**). The noun is what keeps
- * the two fractions from reading as one figure.
+ * **Dotyk anioła counts up, in heals**, while the provocation below it counts down, in turns: each
+ * heal is on the wire and nothing dates a turn it ends on (**ADR 0113**). ⚠️ **Neither fraction
+ * carries a noun** (**ADR 0116**), so the row's name is all that says which way one runs.
  */
 function addLegendaryRows(said: string[], reading: TooltipReading): void {
     const given = reading.holytouchHealsGiven;
     const apart = STANDING_WORDS.castSeparator;
-    if (given !== null) {
-        const heals = composeOutOfText(given, HOLYTOUCH_HEALS_STATED, COUNTED_NOUNS.heals);
-        said.push(`${TOOLTIP_WORDS.holytouch} ${apart} ${heals}`);
+    if (reading.hasSpentLastheal) {
+        said.push(`${TOOLTIP_WORDS.lastheal} ${apart} ${TOOLTIP_WORDS.spent}`);
     }
-    if (!reading.hasSpentLastheal) return;
-    said.push(`${TOOLTIP_WORDS.lastheal} ${apart} ${TOOLTIP_WORDS.spent}`);
+    if (given === null) return;
+    const heals = composeCounterText(given, HOLYTOUCH_HEALS_STATED);
+    said.push(`${TOOLTIP_WORDS.holytouch} ${apart} ${heals}`);
+}
+
+/** The slow, then the haste, ahead of the okrzyk — **ADR 0116**. */
+function getLeadingStatuses(statuses: readonly TooltipStatus[]): TooltipStatus[] {
+    const leading: TooltipStatus[] = [];
+    for (const name of LEADING_STATUS_NAMES) {
+        for (const status of statuses) {
+            if (FROZEN_BUFF_BITS.bits[status.bit] === name) leading.push(status);
+        }
+    }
+    return leading;
+}
+
+function getTrailingStatuses(statuses: readonly TooltipStatus[]): TooltipStatus[] {
+    return statuses.filter((status) => {
+        const name = FROZEN_BUFF_BITS.bits[status.bit];
+        if (name === undefined) return true;
+        return !LEADING_STATUS_NAMES.includes(name);
+    });
 }
 
 function getRowCarriesMarkup(row: string): boolean {
@@ -977,6 +991,7 @@ const TOOLTIP_WORDS = {
 const STATUS_CATEGORY = "buff";
 /** What a reader meets outside the panel says whose it is — `SECURITY.md`'s guest rule. */
 const ADD_ON_NAME = "MargoMeter";
+const LEADING_STATUS_NAMES: readonly string[] = [SLOW_BIT_NAME, HASTE_BIT_NAME];
 /** The two characters that would make a row of ours part of somebody else's markup. */
 const MARKUP_OPENER = "<";
 const MARKUP_ENTITY = "&";
@@ -1042,15 +1057,20 @@ export function composeChargedSkillSubtitle(name: string, state: ChargedSkillSta
 }
 
 /**
- * `2 z 4` — what has passed of what the game states. Both halves are the client's own figures
- * and the division between them is the client's too, so nothing here computes a percentage.
+ * `2 z 4` — every counter the panel and the tooltip draw, counting up or down, and **never with a
+ * noun**: the row's own name says what is counted (**ADR 0116**). Nothing here computes the
+ * percentage the pair comes to.
+ *
+ * ⚠️ **Nought is drawn at either end.** A charge's first turn arrives as none passed, and a shout
+ * stands while its turns are `<=` what the table gives it (`core/aura-standing.ts`), so a held
+ * character's last turn arrives as none left.
  */
-export function composeChargedSkillTurnsText(elapsed: number, stated: number): string {
-    if (!Number.isSafeInteger(elapsed)) return PANEL_WORDS.unknown;
+export function composeCounterText(figure: number, stated: number): string {
+    if (!Number.isSafeInteger(figure)) return PANEL_WORDS.unknown;
     if (!Number.isSafeInteger(stated)) return PANEL_WORDS.unknown;
-    if (elapsed < 0) return PANEL_WORDS.unknown;
-    if (stated < elapsed) return PANEL_WORDS.unknown;
-    return `${composeIntegerText(elapsed)} z ${composeIntegerText(stated)}`;
+    if (figure < 0) return PANEL_WORDS.unknown;
+    if (stated < figure) return PANEL_WORDS.unknown;
+    return `${composeIntegerText(figure)} z ${composeIntegerText(stated)}`;
 }
 
 /**
@@ -1075,22 +1095,6 @@ export function composeTurnOrdinalText(ordinal: number): string {
     if (!Number.isSafeInteger(ordinal)) return PANEL_WORDS.unknown;
     if (ordinal < 0) return PANEL_WORDS.unknown;
     return `tura ${composeIntegerText(ordinal)}`;
-}
-
-/**
- * `1 z 5 tur` — what is **left** of a length the game publishes, and the one reading every counted
- * length here carries. **ADR 0109**, turning over the half of **ADR 0059** that drew the other.
- *
- * ⚠️ **Nought is a remainder and is drawn.** A shout stands while its turns are `<=` what the
- * table gives it (`core/aura-standing.ts`), so a held character's last turn arrives as none left.
- * The other end from **ADR 0104**'s `0 tur`, where nought was a bit just lit.
- */
-export function composeRemainingTurnsText(remaining: number, stated: number): string {
-    if (!Number.isSafeInteger(remaining)) return PANEL_WORDS.unknown;
-    if (!Number.isSafeInteger(stated)) return PANEL_WORDS.unknown;
-    if (remaining < 0) return PANEL_WORDS.unknown;
-    if (remaining > stated) return PANEL_WORDS.unknown;
-    return `${composeIntegerText(remaining)} z ${composeGenitiveNoun(stated, COUNTED_NOUNS.turns)}`;
 }
 
 export function getWordsForPin(isPinned: boolean): string {

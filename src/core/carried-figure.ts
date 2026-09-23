@@ -35,6 +35,10 @@ const MAXIMUM_SOURCES = 32;
  */
 const HALVED_FOR_THE_CASTER = ["aura-sa_per"];
 
+/** The client's own spelling, `swow_down` included — **N4**, **N13**. */
+export const SLOW_BIT_NAME = "swow_down";
+export const HASTE_BIT_NAME = "speed_up";
+
 /**
  * Which key moves which status, by the name the client registers the bit under.
  * `docs/auras-standing.md` measures both and no other bit has a key that states a figure for it:
@@ -42,8 +46,8 @@ const HALVED_FOR_THE_CASTER = ["aura-sa_per"];
  * on `aura-sa_per`'s published figure, counted on the bearer's own clock.
  */
 const KEY_BY_BIT_NAME: Record<string, string> = {
-    swow_down: "allslow_per",
-    speed_up: "aura-sa_per",
+    [SLOW_BIT_NAME]: "allslow_per",
+    [HASTE_BIT_NAME]: "aura-sa_per",
 };
 
 /**

@@ -51,8 +51,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Zmiana** — Tury wykonane i tury utracone stoją teraz obok siebie w jednej linii, rozdzielone
   ukośnikiem, a zero utraconych jest wypisane zamiast znikać; w walce, w której nikt nie stracił
   tury, zostaje sama liczba tur wykonanych.
-- **Zmiana** — Licznik tur prowokacji pokazuje teraz, ile tur **zostało**, a nie ile minęło; pasek
-  ładowanego ciosu zostaje bez zmian, bo to liczby samej gry.
+- **Zmiana** — Licznik tur prowokacji pokazuje teraz, ile tur **zostało**, a nie ile minęło, i to
+  samą parą liczb, na przykład „1 z 3”; pasek ładowanego ciosu zostaje bez zmian, bo to liczby samej
+  gry.
 - **Zmiana** — Z Pomocnika znika lista efektów rzuconych na drużynę: licznik tur przy niej liczył
   tury rzucającego, a efekt schodzi każdemu z osobna — to, co stoi na danej postaci, powie ci teraz
   dymek gry po najechaniu na nią.

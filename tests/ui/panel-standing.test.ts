@@ -318,7 +318,7 @@ Deno.test("a shout is drawn under whoever is holding it, and the turns are the h
     );
     assertEquals(
         getTextsByClass(getWindow(host), "row-value figure"),
-        ["1 z 3 tur"],
+        ["1 z 3"],
         "the length stands on the character being held, and never on whoever holds them",
     );
     const rows = getElementsWithin(getWindow(host)).filter((one) =>
@@ -433,7 +433,7 @@ Deno.test("one cast holding two characters states a length for each of them", ()
     // because a shout runs on the turns of the held and two of them are not the same turns in.
     assertEquals(
         getTextsByClass(getWindow(host), "row-value figure"),
-        ["1 z 3 tur", "1 z 3 tur"],
+        ["1 z 3", "1 z 3"],
         "one figure per character held, and none on the row of whoever holds them",
     );
     // **ADR 0062**: the heading counts characters held, which the fold does not change.
@@ -735,7 +735,7 @@ Deno.test("a held character's card states the turns they have taken since the sh
     );
     assertEquals(
         card.stated.map((one) => [one.label, one.value]),
-        [[STANDING_WORDS.turnsLeft, "1 z 3 tur"]],
+        [[STANDING_WORDS.turnsLeft, "1 z 3"]],
         "and states a length of their own, counted on their turns (**ADR 0103**)",
     );
     assertEquals(card.notes, [], "with no sentence under it, because the clock is now theirs");
@@ -883,7 +883,7 @@ Deno.test("a character shouted at before they have moved is held, at none of the
     pointAtElement(host, "pointermove", held, 200);
     assertEquals(
         readTip(host).stated.map((one) => [one.label, one.value]),
-        [[STANDING_WORDS.turnsLeft, "3 z 3 tur"]],
+        [[STANDING_WORDS.turnsLeft, "3 z 3"]],
         "with the whole of the three the table gives it still to run",
     );
 });

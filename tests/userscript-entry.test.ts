@@ -338,10 +338,10 @@ Deno.test("an open tooltip is told to draw again exactly when rows went on", () 
  * it is handed and the core on whatever it composes, so a reading handing the tooltip a charge
  * that had ended — or none at all — reddens neither. The witness here is the game's own
  * `super_cast`, followed payload by payload: a record stating a combatant without one is how the
- * game ends a charge. The row stands exactly where one is stated, first under the name, with the
- * client's own pair (**ADR 0115**).
+ * game ends a charge. The row stands exactly where one is stated, under the turns taken — or under
+ * the name, where no turns row stands — with the client's own pair (**ADR 0115**, **ADR 0116**).
  */
-Deno.test("a charge row stands on whoever the envelope states charging, first in the block", () => {
+Deno.test("a charge row stands on whoever the envelope states charging, under the turns", () => {
     const wrong: string[] = [];
     let charged = 0;
     for (const path of readRecordingPaths()) {
@@ -371,7 +371,9 @@ Deno.test("a charge row stands on whoever the envelope states charging, first in
                     continue;
                 }
                 charged += 1;
-                const under = rows[rows.indexOf("MargoMeter") + 1] ?? "";
+                const opening = rows.indexOf("MargoMeter") + 1;
+                const isTurnsFirst = (rows[opening] ?? "").startsWith("Tury wykonane");
+                const under = rows[isTurnsFirst ? opening + 1 : opening] ?? "";
                 if (under !== stated) wrong.push(`${path} #${index}: ${id} ${under}`);
             }
         }

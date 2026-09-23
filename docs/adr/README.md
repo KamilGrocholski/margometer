@@ -285,3 +285,5 @@ edited to agree with the new rule.
   **Accepted**
 - [0115](0115-a-charge-stands-first-in-a-fighter-s-tooltip.md) — A charge stands first in a
   fighter's tooltip. **Accepted**
+- [0116](0116-the-tooltip-keeps-one-order-and-a-counter-is-a-bare-pair.md) — The tooltip keeps one
+  order, and a counter is a bare pair. **Accepted**
