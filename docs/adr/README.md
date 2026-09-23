@@ -264,11 +264,11 @@ edited to agree with the new rule.
   carries is read off the mask, and names no cast. **Superseded by 0108 in part, and by 0109 in
   part**
 - [0105](0105-one-line-is-written-where-the-game-already-draws-one.md) — One line is written where
-  the game already draws one. **Superseded by 0107 in part**
+  the game already draws one. **Superseded by 0107 in part, and by 0111 in part**
 - [0106](0106-a-shout-reaches-the-side-it-provokes.md) — A shout reaches the side it provokes.
   **Accepted**
 - [0107](0107-a-tooltip-takes-a-block-and-not-a-line.md) — A tooltip takes a block, and not a line.
-  **Accepted**
+  **Superseded by 0111 in part**
 - [0108](0108-what-is-true-of-one-fighter-is-said-on-that-fighter.md) — What is true of one fighter
   is said on that fighter. **Accepted**
 - [0109](0109-a-status-says-the-length-the-help-gives-it.md) — A status says the length the help

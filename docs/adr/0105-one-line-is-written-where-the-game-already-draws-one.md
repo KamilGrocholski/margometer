@@ -1,6 +1,6 @@
 # 0105. One line is written where the game already draws one
 
-- **Status:** Superseded by 0107 in part
+- **Status:** Superseded by 0107 in part, and by 0111 in part
 - **Date:** 2026-09-21
 
 ## Context

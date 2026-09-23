@@ -1,6 +1,6 @@
 # 0107. A tooltip takes a block, and not a line
 
-- **Status:** Accepted
+- **Status:** Superseded by 0111 in part
 - **Date:** 2026-09-22
 
 ## Context
