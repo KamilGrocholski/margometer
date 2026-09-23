@@ -7,6 +7,8 @@
  */
 
 import { assert, assertEquals, assertStringIncludes } from "@std/assert";
+import { WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
+import { READER_SIDE_KEY } from "@/src/game/fight-underway.ts";
 import { USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
 import {
     composePreviewPage,
@@ -208,6 +210,58 @@ Deno.test("both pages carry what landed in the tooltips, and a served one pins i
     assert(
         dressed.indexOf(`id="preview-tips"`) > dressed.indexOf(`class="preview-stage"`),
         "after the two halves, so it stands in neither of their flows",
+    );
+});
+
+/** The rule the column's heading wears, cut out of a page so a property is read where it stands. */
+function getTipsHeadingRule(page: string): string {
+    const opened = page.indexOf(".preview-tips h2 {");
+    assert(opened > 0, "the page styles the column's heading");
+    const closed = page.indexOf("}", opened);
+    assert(closed > opened, "and closes the rule it opened");
+    return page.slice(opened, closed);
+}
+
+Deno.test("the column's heading stays while its cards scroll, on both pages", () => {
+    const bare = composePreviewPage(composeOptions(CALLS));
+    const dressed = composePreviewPage({ ...composeOptions(CALLS), install: INSTALL });
+    for (const page of [bare, dressed]) {
+        const heading = getTipsHeadingRule(page);
+        assertStringIncludes(heading, "position: sticky", "the heading sticks");
+        assertStringIncludes(heading, "top: 0", "to the top of the column");
+        assertStringIncludes(heading, "background:", "over the cards, not through them");
+        assertStringIncludes(page, "scrollbar-width: thin", "and the column scrolls on a thin bar");
+    }
+});
+
+Deno.test("the column opens on the opposing side, read off the side the payload states", () => {
+    const page = composePreviewPage(composeOptions(CALLS));
+    const readerSide = `payload[${JSON.stringify(READER_SIDE_KEY)}]`;
+    assertStringIncludes(
+        page,
+        readerSide,
+        "the stub keeps the reader's side as the game states it",
+    );
+    assertStringIncludes(
+        page,
+        `roster[id][${JSON.stringify(WARRIOR_FIELDS.side)}]`,
+        "and each fighter's under the name the client files it by",
+    );
+    assertStringIncludes(page, "isReaders === (pass === 1)", "the reader's own come second");
+});
+
+Deno.test("a published page stands its band in the middle of its half, heading and all", () => {
+    const dressed = composePreviewPage({ ...composeOptions(CALLS), install: INSTALL });
+    const opened = dressed.indexOf(".preview-said { width: 50vw;");
+    assert(opened > 0, "the half the band stands in is styled once the page splits");
+    const said = dressed.slice(opened, dressed.indexOf("}", opened));
+    assertStringIncludes(said, "align-items: center", "the band stands in the middle of the half");
+    const centred = dressed.indexOf("{ text-align: center; }");
+    assert(centred > 0, "the lines of the band are centred");
+    assertStringIncludes(
+        dressed.slice(dressed.lastIndexOf("}", centred) + 1, centred),
+        ".preview-install h1",
+        "the heading among them",
     );
 });
 

@@ -8,6 +8,8 @@
  */
 
 import { assert, assertStringIncludes } from "@std/assert";
+import { WARRIOR_FIELDS } from "@/src/game/engine-warrior.ts";
+import { READER_SIDE_KEY } from "@/src/game/fight-underway.ts";
 import { PLACE, SHAPE, SIGNAL, SURFACE, TEXT } from "@/src/ui/panel-look.ts";
 import { USERSCRIPT_NAME } from "@/tools/build-userscript.ts";
 import {
@@ -364,7 +366,7 @@ function composeSplitStyle(): string {
   .preview-said { width: 50vw; flex-shrink: 0; box-sizing: border-box;
     padding: 32px; background: ${SURFACE.panel};
     border-right: 1px solid ${SURFACE.border};
-    display: flex; flex-direction: column; align-items: flex-end;
+    display: flex; flex-direction: column; align-items: center;
     overflow-y: auto; }
   .preview-stage { display: block; flex-grow: 1; background: ${GAME_PAGE_COLOUR}; }
   .preview-install { padding: 0; }
@@ -373,6 +375,8 @@ function composeSplitStyle(): string {
   .preview-version { display: block; margin: 10px 0 0; }
   .preview-lede { margin: 10px 0 22px; font-size: 15px; color: ${TEXT.plain}; }
   .preview-intro { padding-left: 0; padding-right: 0; }
+  .preview-install h1, .preview-lede, .preview-needs-line, .preview-after,
+  .preview-intro { text-align: center; }
   .preview-strip { left: 50vw; right: 0; border-left: 1px solid ${SURFACE.border}; }
   .preview-strip select { width: auto; flex: 1 1 14em; min-width: 0; }
   /* The band beside it already says MargoMeter in 38px; the bar repeating it costs a row. */
@@ -426,9 +430,15 @@ function composePreviewTooltipsPlacedStyle(): string {
 
 function composePreviewTipsCardStyle(): string {
     const sheet = `.preview-tips { position: fixed; z-index: ${PREVIEW_TIPS_LAYER};
-  padding: 10px 12px; overflow-y: auto; box-sizing: border-box;
+  padding: 0 12px 10px; overflow-y: auto; box-sizing: border-box;
+  scrollbar-width: thin; scrollbar-color: ${TEXT.quiet} transparent;
   border: 1px solid ${SURFACE.border}; background: ${SURFACE.panel}; }
-.preview-tips h2 { margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: .06em;
+/* The top padding is the heading's, not the column's: a sticky box stops at the scroller's padding
+   edge. Measured in Chrome, 2026-09-23: 10px of it on the column held the scrolled heading 10px
+   down, with the cards passing through the strip above it. */
+.preview-tips h2 { position: sticky; top: 0; z-index: 1; margin: 0 -12px 8px;
+  padding: 10px 12px 6px; background: ${SURFACE.panel}; border-bottom: 1px solid ${SURFACE.border};
+  font-size: 12px; font-weight: 600; letter-spacing: .06em;
   text-transform: uppercase; color: ${TEXT.quiet}; }
 .preview-tip { margin: 0 0 8px; padding: 6px 8px; border: 1px solid ${SURFACE.border};
   border-radius: ${SHAPE.radiusSmall}; background: ${SURFACE.raised};
@@ -439,6 +449,7 @@ function composePreviewTipsCardStyle(): string {
     assert(PREVIEW_TIPS_LAYER > 0, "the column stands on the page, not behind its ground");
     assert(PREVIEW_TIPS_LAYER < PREVIEW_STRIP_LAYER, "and under the strip, so under the panel too");
     assertStringIncludes(sheet, SURFACE.border, "and takes the panel's own tokens, like the rest");
+    assertStringIncludes(sheet, "position: sticky", "its heading stays while the cards scroll");
     return sheet;
 }
 
@@ -614,7 +625,9 @@ function composePreviewStore(): string {
  */
 function composePreviewGame(words: PreviewWords): string {
     assert(words.placeName.length > 0, "the place a bar draws is named by the tool, not a fight");
+    const readerSide = JSON.stringify(READER_SIDE_KEY);
     const stood = `window.PREVIEW_TIPS = {};
+window.PREVIEW_READER_SIDE = null;
 // The client's registry of tooltips is one string per fighter, and these four are all the add-on
 // asks of it (src/game/engine-tooltip.ts). What the game composes stands first, so a block of ours
 // always has a string of theirs to come off to.
@@ -640,6 +653,10 @@ window.Engine = {
     w: {},
     warriorsList: {},
     updateData: function handleCall(payload) {
+      // Kept as text because the recordings state it as text and the client compares loosely.
+      if (payload && payload[${readerSide}] != null) {
+        window.PREVIEW_READER_SIDE = String(payload[${readerSide}]);
+      }
       var roster = payload && payload.w;
       if (roster) {
         for (var id in roster) {
@@ -660,6 +677,7 @@ window.Engine = {
     assertStringIncludes(stood, "updateData", "carrying the call the add-on puts its wrap on");
     assertStringIncludes(stood, "concatTip", "and the methods the add-on writes through");
     assertStringIncludes(stood, "getTipData", "and the one it finds its own block again by");
+    assertStringIncludes(stood, readerSide, "and keeps the side the reader is on, as stated");
     assertStringIncludes(
         stood,
         "map",
@@ -680,35 +698,52 @@ window.Engine = {
  * driver is at the line count **S4** allows one.
  */
 function composePreviewTipsDriver(): string {
+    const side = JSON.stringify(WARRIOR_FIELDS.side);
     const driver = `
 var tipsList = document.getElementById("preview-tips-list");
 
 // What stands in the tooltips after this payload, fighter by fighter, less what the game composed.
 // Nothing is composed here: the rows are whatever src/game/engine-tooltip.ts left in the registry.
+var appendTip = function (said, id) {
+  var rows = String(window.PREVIEW_TIPS[id] || "").split("<br>").slice(1);
+  if (rows.length === 0) return;
+  var block = document.createElement("div");
+  block.className = "preview-tip";
+  var who = document.createElement("b");
+  who.textContent = window.Engine.battle.w[id].name || id;
+  block.append(who);
+  for (var at = 0; at < rows.length; at += 1) {
+    var row = document.createElement("span");
+    row.textContent = rows[at];
+    block.append(row);
+  }
+  said.append(block);
+};
+
+// The opposing side first, then the reader's own, each in the roster's order; one pass where no
+// payload has stated which side the reader is on.
 var renderTips = function () {
   if (tipsList === null) return;
   var said = document.createDocumentFragment();
   var roster = window.Engine.battle.w;
-  for (var id in roster) {
-    var rows = String(window.PREVIEW_TIPS[id] || "").split("<br>").slice(1);
-    if (rows.length === 0) continue;
-    var block = document.createElement("div");
-    block.className = "preview-tip";
-    var who = document.createElement("b");
-    who.textContent = roster[id].name || id;
-    block.append(who);
-    for (var at = 0; at < rows.length; at += 1) {
-      var row = document.createElement("span");
-      row.textContent = rows[at];
-      block.append(row);
+  var readerSide = window.PREVIEW_READER_SIDE;
+  var passes = readerSide === null ? 1 : 2;
+  for (var pass = 0; pass < passes; pass += 1) {
+    for (var id in roster) {
+      var isReaders = String(roster[id][${side}]) === readerSide;
+      if (readerSide === null || isReaders === (pass === 1)) appendTip(said, id);
     }
-    said.append(block);
   }
   tipsList.replaceChildren(said);
 };
 `;
     assertStringIncludes(driver, "preview-tips-list", "it draws into the column the page carries");
     assertStringIncludes(driver, "PREVIEW_TIPS", "and reads what the add-on's own writer landed");
+    assertStringIncludes(
+        driver,
+        side,
+        "and sorts fighters by the side the client files them under",
+    );
     return driver;
 }
 
@@ -843,6 +878,7 @@ var setFightShown = function (fight, calls) {
   window.Engine.battle.w = {};
   window.Engine.battle.warriorsList = {};
   window.PREVIEW_TIPS = {};
+  window.PREVIEW_READER_SIDE = null;
   shownFight = fight;
   PREVIEW.fightName = fight.name;
   PREVIEW.calls = calls;

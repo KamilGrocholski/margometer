@@ -87,15 +87,17 @@ const PREVIEW_SITE_WORDS: PreviewWords = {
 };
 
 /**
- * Two things. That this is a recording rather than a live game — a visitor who does not know it
+ * Three things. That this is a recording rather than a live game — a visitor who does not know it
  * reads the panel as a live connection to somebody's account, which is the one misunderstanding
  * this page could cause. And **that the panel answers a pointer**, which nothing else on the page
  * says: the strongest thing here is a row opening onto what a figure was dealt with, and a
- * visitor who never presses one sees a picture. What the add-on is, and where to get it, the band
- * above this says; that nothing leaves the page is one clause, since the page makes no request.
+ * visitor who never presses one sees a picture. And what the right half shows, both of it,
+ * because the column of tooltips stands apart from the panel and reads as the page's own
+ * furniture otherwise. What the add-on is, and where to get it, the band above this says.
  */
 const PREVIEW_SITE_INTRODUCTION = [
-    "Obok nagrana walka — kliknij wiersz albo najedź na postać. Nic stąd nie wychodzi.",
+    "Obok nagrana walka: zobaczysz panel oraz dymki postaci, zmienione przez dodatek." +
+    " Kliknij wiersz albo najedź na postać.",
     `<a href="${HOMEPAGE}">kod źródłowy</a>`,
 ].join(" ");
 
