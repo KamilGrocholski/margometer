@@ -21,30 +21,6 @@ export const MAXIMUM_STATUS_BITS = 32;
 /** Past the combatants any fight puts on a board, which `core/combatant-roster.ts` also bounds. */
 const MAXIMUM_CARRIERS = 64;
 
-/**
- * How long a status runs for, by the name the client registers the bit under, where the published
- * help states a length for it at all. **The help dates these two and no other bit here.**
- *
- * Trucizna, at the weapon attributes `poison1, of_poison1`: _Są aplikowane na 5 tur po trafieniu
- * przeciwnika obrażeniami o niezerowej wartości_, and _Wyzwalają się przed turą przeciwnika, na
- * którego zostały zaaplikowane_ — so the length is counted on the bearer's own clock, which is
- * the clock this file already counts on. Głęboka rana, at `wound1, of_wound1`, states the same
- * five and caps its own extension at them: _przedłuża efekt obrażeń od głębokich ran o 2 tury
- * (maksymalnie do 5 tur)_. Article `view,372`, read 2026-09-22.
- *
- * ⚠️ **`wound` is Głęboka rana and `deep_wound` is not.** `docs/protocol-keys.md`'s `wound` entry
- * is what joins the bit to the weapon attribute the help dates; no reading joins `deep_wound` to
- * anything the help gives a length, so it carries none here.
- *
- * The corpus agrees rather than merely not disagreeing: `deno task fight:life` on 2026-09-22 puts
- * the length most runs come to at five for `poisoned` and three for `wound`, neither above the
- * ceiling.
- */
-export const TURNS_STATED_BY_STATUS_NAME: Record<string, number> = {
-    poisoned: 5,
-    wound: 5,
-};
-
 /** One status one combatant is holding, with what has passed of it on their own clock. */
 export interface CarriedStatus {
     combatantId: number;

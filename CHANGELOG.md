@@ -39,12 +39,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
-- **Nowość** — Najeżdżając na postać w walce zobaczysz w dymku gry, jak długo stoi na niej każdy
-  stan, ile tur wykonała, kto ją sprowokował i czy wykorzystała ostatni ratunek — tego gra sama nie
-  podaje.
-- **Nowość** — Przy truciźnie i głębokiej ranie dymek odlicza, ile z pięciu tur tej postaci efektowi
-  jeszcze zostało, a kiedy ktoś dotruwa bez przerwy — najmniej, ile na pewno zostało, bo gra nie
-  podaje, kiedy nałożono efekt ostatni raz.
+- **Nowość** — Najeżdżając na postać w walce zobaczysz w dymku gry, jakie stany na niej stoją, ile
+  tur wykonała, kto ją sprowokował i na ile jeszcze tur, i czy wykorzystała ostatni ratunek.
 - **Nowość** — Przy spowolnieniu i przyspieszeniu dymek podaje też, o ile procent, a tam, gdzie tego
   nie widać, nie podaje nic.
 - **Nowość** — Strona z podglądem pokazuje obok panelu, co dodatek dopisuje w dymku każdej postaci,
@@ -54,9 +50,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Zmiana** — Tury wykonane i tury utracone stoją teraz obok siebie w jednej linii, rozdzielone
   ukośnikiem, a zero utraconych jest wypisane zamiast znikać; w walce, w której nikt nie stracił
   tury, zostaje sama liczba tur wykonanych.
-- **Zmiana** — Każdy licznik tur, który dodatek sam liczy — stan, prowokacja, dotyk anioła —
-  pokazuje teraz, ile tur **zostało**, a nie ile minęło; pasek ładowanego ciosu zostaje bez zmian,
-  bo to liczby samej gry.
+- **Zmiana** — Licznik tur prowokacji i dotyku anioła pokazuje teraz, ile tur **zostało**, a nie ile
+  minęło; pasek ładowanego ciosu zostaje bez zmian, bo to liczby samej gry.
 - **Zmiana** — Z Pomocnika znika lista efektów rzuconych na drużynę: licznik tur przy niej liczył
   tury rzucającego, a efekt schodzi każdemu z osobna — to, co stoi na danej postaci, powie ci teraz
   dymek gry po najechaniu na nią.

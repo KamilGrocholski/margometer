@@ -12,9 +12,7 @@ import {
     addPayloadToCarriedStatuses,
     composeCarriedStatuses,
     composeCarriedStatusWalk,
-    TURNS_STATED_BY_STATUS_NAME,
 } from "@/src/core/carried-status.ts";
-import { FROZEN_BUFF_BITS } from "@/frozen/buff-bits.ts";
 
 const SPEED_UP = 6;
 const POISONED = 3;
@@ -134,34 +132,4 @@ Deno.test("a mask with nothing lit carries nothing, which is a reading and not a
     const found = composeCarriedStatuses(walk);
     assertEquals(found, [], "nobody is carrying anything");
     assert(Array.isArray(found), "and the answer is a list rather than nothing at all");
-});
-
-/**
- * **Read both ways, because the two failures look nothing alike.** A name the client no longer
- * registers goes on stating a length for a bit nobody has, silently; a bit whose length the help
- * states and the table has lost draws no ceiling, equally silently. Neither is loud, so both are
- * asked for here.
- *
- * ⚠️ **The pair is named rather than counted.** A test reading the table's own size back
- * passes whatever the table holds, which is the shape that lets a third entry in unread.
- */
-Deno.test("every status the help dates is one the client registers, and only those two are", () => {
-    const dated = Object.keys(TURNS_STATED_BY_STATUS_NAME).sort();
-    assertEquals(dated, ["poisoned", "wound"], "trucizna and głęboka rana, and nothing else");
-    for (const name of dated) {
-        assert(
-            FROZEN_BUFF_BITS.bits.includes(name as (typeof FROZEN_BUFF_BITS.bits)[number]),
-            `${name} is a status the client registers`,
-        );
-    }
-});
-
-/**
- * The figure itself, against the published help: _Są aplikowane na 5 tur_ for both weapon
- * attributes, and Głęboka rana's own extension capped at the same five (article `view,372`,
- * read 2026-09-22). A ceiling that drifts off that sentence is a number this repository invented.
- */
-Deno.test("the length the help states is the length the table carries", () => {
-    assertStrictEquals(TURNS_STATED_BY_STATUS_NAME.poisoned, 5, "trucizna runs five turns");
-    assertStrictEquals(TURNS_STATED_BY_STATUS_NAME.wound, 5, "and głęboka rana the same five");
 });

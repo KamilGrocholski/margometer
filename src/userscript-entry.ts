@@ -1598,12 +1598,7 @@ function composeTooltipReadingFor(
         statuses: fight.carriedStatuses.filter((one) => one.combatantId === combatantId).map(
             (one) => {
                 const figure = figures.get(`${one.combatantId}/${one.bit}`);
-                return {
-                    bit: one.bit,
-                    turnsElapsed: one.turnsElapsed,
-                    percent: figure?.percent ?? null,
-                    length: figure?.length ?? null,
-                };
+                return { bit: one.bit, percent: figure?.percent ?? null };
             },
         ),
         holytouchTurnsElapsed: legendary?.holytouchTurnsElapsed ?? null,

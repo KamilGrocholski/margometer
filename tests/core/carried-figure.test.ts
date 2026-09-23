@@ -68,14 +68,13 @@ function readFigure(
     return found[0];
 }
 
-Deno.test("a cast reaching their side dates the status on the bearer's own turns", () => {
+Deno.test("a cast reaching their side stands on the bearer while their own turns allow", () => {
     const figure = readFigure(
         [composeCast({ key: "aura-sa_per", amount: 20 })],
         SPEED_BIT,
         new Map([[12, 3]]),
     );
-    assertStrictEquals(figure?.percent, 20, "one source, one figure");
-    assertEquals(figure?.length, { turnsElapsed: 3, turnsStated: 8 }, "three of their turns");
+    assertStrictEquals(figure?.percent, 20, "one source, one figure, three of their turns in");
 });
 
 /**
@@ -84,24 +83,23 @@ Deno.test("a cast reaching their side dates the status on the bearer's own turns
  * from it read `21 z 8 tur` over `captures/`. Held to the bearer's clock it goes when it should,
  * and takes its figure with it rather than leaving one the clock will not back.
  */
-Deno.test("a cast the bearer has outrun says nothing, figure and length alike", () => {
+Deno.test("a cast the bearer has outrun says nothing", () => {
     const standings = [composeCast({ key: "aura-sa_per", amount: 20 })];
     const figure = readFigure(standings, SPEED_BIT, new Map([[12, 21]]));
     assertStrictEquals(figure?.percent, null, "no figure from a cast that is over for them");
-    assertStrictEquals(figure?.length, null, "and no length either");
 });
 
 /** **W5: zero is a boundary.** The turn a cast lands on is nought of the bearer's, not none. */
-Deno.test("a cast that has just landed is nought of its turns and not nothing", () => {
+Deno.test("a cast that has just landed stands on the bearer", () => {
     const figure = readFigure(
         [composeCast({ key: "aura-sa_per", amount: 20 })],
         SPEED_BIT,
         new Map([[12, 0]]),
     );
-    assertEquals(figure?.length, { turnsElapsed: 0, turnsStated: 8 }, "nought of eight");
+    assertStrictEquals(figure?.percent, 20, "nought of eight is inside the eight");
 });
 
-Deno.test("two sources add, and the freshest of them dates the row", () => {
+Deno.test("two sources add", () => {
     const standings = [
         composeCast({ key: "aura-sa_per", amount: 20 }),
         composeCast({
@@ -113,7 +111,6 @@ Deno.test("two sources add, and the freshest of them dates the row", () => {
     ];
     const figure = readFigure(standings, SPEED_BIT, new Map([[12, 3]]));
     assertStrictEquals(figure?.percent, 39, "the two highest add");
-    assertEquals(figure?.length, { turnsElapsed: 1, turnsStated: 8 }, "dated by the later cast");
 });
 
 Deno.test("a cast reaching the other side is not read as standing on this one", () => {
@@ -126,7 +123,6 @@ Deno.test("a cast reaching the other side is not read as standing on this one", 
     })];
     const figure = readFigure(standings, SLOW_BIT, new Map([[12, 1]]));
     assertStrictEquals(figure?.percent, null, "their own side's cast does not slow them");
-    assertStrictEquals(figure?.length, null, "and dates nothing on them");
 });
 
 /**
@@ -137,7 +133,6 @@ Deno.test("the caster of a key the help halves for them gets no figure", () => {
     const standings = [composeCast({ key: "aura-sa_per", amount: 20, casterId: 12 })];
     const figure = readFigure(standings, SPEED_BIT, new Map([[12, 1]]));
     assertStrictEquals(figure?.percent, null, "half of twenty is not a figure anybody published");
-    assertEquals(figure?.length, { turnsElapsed: 1, turnsStated: 8 }, "the length still holds");
 });
 
 Deno.test("a status no key is witnessed on gets no row at all", () => {

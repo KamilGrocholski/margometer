@@ -326,7 +326,7 @@ function getSentencesFromTooltip(): string[] {
             turnsTaken: 14,
             provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
             provokes: 2,
-            statuses: [{ bit, turnsElapsed: 38, percent: 39, length: null }],
+            statuses: [{ bit, percent: 39 }],
             holytouchTurnsElapsed: 1,
             hasSpentLastheal: true,
         }, said));
@@ -385,7 +385,7 @@ const NOTHING_CARRIED = {
 Deno.test("the block handed to the game says whose it is, and carries no markup", () => {
     const said = composeTooltipRows({
         ...NOTHING_CARRIED,
-        statuses: [{ bit: 6, turnsElapsed: 3, percent: null, length: null }],
+        statuses: [{ bit: 6, percent: null }],
     }, null);
     const first = said[0];
     assertExists(first, "a status carried composes a row");
@@ -404,7 +404,7 @@ Deno.test("the add-on names itself once, however many rows it has", () => {
     const said = composeTooltipRows({
         ...NOTHING_CARRIED,
         turnsTaken: 14,
-        statuses: [{ bit: 6, turnsElapsed: 3, percent: null, length: null }],
+        statuses: [{ bit: 6, percent: null }],
     }, null);
     assertEquals(said.length, 3, "the name, a status and a count of turns");
     assertEquals(said.filter((row) => row.includes("MargoMeter")).length, 1, "named once");
@@ -417,57 +417,14 @@ Deno.test("the add-on names itself once, however many rows it has", () => {
 Deno.test("a status with no figure to its name says no share beside it", () => {
     const bare = composeTooltipRows({
         ...NOTHING_CARRIED,
-        statuses: [{ bit: 6, turnsElapsed: 3, percent: null, length: null }],
+        statuses: [{ bit: 6, percent: null }],
     }, null);
     assertEquals(bare[1]?.includes("%"), false, "no figure where none may be said");
     const figured = composeTooltipRows({
         ...NOTHING_CARRIED,
-        statuses: [{ bit: 6, turnsElapsed: 3, percent: 39, length: null }],
+        statuses: [{ bit: 6, percent: 39 }],
     }, null);
     assertStringIncludes(figured[1] ?? "", "39%", "and the figure where one may");
-});
-
-/**
- * **The bits the published help dates, by the name the client registers them under** — `poisoned`
- * at 3 and `wound` at 1 in `frozen/buff-bits.ts`.
- *
- * ⚠️ **Past the length the effect was certainly applied again**, and no wire says when
- * (**ADR 0109**). The row goes on counting down at the floor rather than stopping: at least one
- * turn is left while the bit is lit, and the mask's own count never reaches the row.
- */
-Deno.test("a status that outran its length still says what is certainly left", () => {
-    for (const bit of [1, 3]) {
-        const said = composeTooltipRows({
-            ...NOTHING_CARRIED,
-            statuses: [{ bit, turnsElapsed: 38, percent: null, length: null }],
-        }, null);
-        assertStringIncludes(said[1] ?? "", "1 z 5 tur", "the floor, which never overstates");
-        assertEquals(said[1]?.includes("38"), false, "and the count off the mask does not");
-    }
-});
-
-/**
- * **What a player asked for, and what the evidence allows.** Inside the published length the
- * subtraction is the whole answer: five turns of their own, less the ones that have passed.
- *
- * ⚠️ **W5: the boundary is the interesting end**, and here it is where the count reaches the
- * length. One turn short of it a turn is still left; at it, the effect has outlived one
- * application and the row stops counting down.
- */
-Deno.test("a status inside its published length counts down to what is left", () => {
-    const said = (elapsed: number): string =>
-        composeTooltipRows({
-            ...NOTHING_CARRIED,
-            statuses: [{ bit: 3, turnsElapsed: elapsed, percent: null, length: null }],
-        }, null)[1] ?? "";
-    assertStringIncludes(said(0), "5 z 5 tur", "just applied, the whole of it is still to come");
-    assertStringIncludes(said(4), "1 z 5 tur", "and one turn short of the length, one is left");
-    assertStringIncludes(
-        said(5),
-        "1 z 5 tur",
-        "at the length it holds the floor rather than nought",
-    );
-    assertStringIncludes(said(99), "1 z 5 tur", "and however long it has been renewed for");
 });
 
 /**
@@ -487,61 +444,23 @@ Deno.test("a counted length says what is left, and refuses what is not a remaind
 });
 
 /**
- * ⚠️ **38 turns of a five-turn effect is what a reader saw**, and the mechanism is the help's:
- * a later hit extends poison rather than stacking beside it, so a run of applications lit one bit
- * without ever making a second 0→1 edge. The figure was true of our watching and of nothing in
- * the fight, so no bit carries one now.
+ * ⚠️ **No status row counts turns** (**ADR 0112**). The mask says a status stands and never since
+ * when; a count off it read `38 tur` beside a five-turn poison, a length from the help sat at a
+ * floor while hits the payload never announces renewed it, and one from a cast named a moment the
+ * bit does not. What stands is said, with the figure a cast over the bearer comes to.
  */
-Deno.test("a status nothing dates carries no count at all, however long we have seen it", () => {
-    for (const bit of [0, 2, 4, 8]) {
-        const said = composeTooltipRows({
-            ...NOTHING_CARRIED,
-            statuses: [{ bit, turnsElapsed: 38, percent: null, length: null }],
-        }, null);
-        assertEquals(said.length, 2, "the name, and the status under it");
-        assertEquals(said[1]?.includes("tur"), false, "and no length where none is published");
+Deno.test("a status says that it stands, and never for how long", () => {
+    for (let bit = 0; bit < 9; bit += 1) {
+        for (const percent of [null, 20]) {
+            const said = composeTooltipRows(
+                { ...NOTHING_CARRIED, statuses: [{ bit, percent }] },
+                null,
+            );
+            assertEquals(said.length, 2, "the name, and the status under it");
+            assertEquals(said[1]?.includes("tur"), false, `bit ${bit} carries no count of turns`);
+            assertEquals(said[1]?.includes("·"), false, "and nothing set apart beside it");
+        }
     }
-});
-
-/**
- * A cast over this bearer outranks the ceiling: it dates the standing effect rather than bounding
- * it, so the row says how far through it is.
- */
-Deno.test("an announcement still wins over the length the help states", () => {
-    const said = composeTooltipRows({
-        ...NOTHING_CARRIED,
-        statuses: [{
-            bit: 3,
-            turnsElapsed: 38,
-            percent: null,
-            length: { turnsElapsed: 2, turnsStated: 5 },
-        }],
-    }, null);
-    assertStringIncludes(said[1] ?? "", "3 z 5 tur", "what is left of it on them");
-    assertEquals(said[1]?.includes("najwy\u017cej"), false, "and never the ceiling beside it");
-});
-
-/**
- * ⚠️ **The two counts a status can carry are different readings.** The mask's own says how long
- * the bit has been lit for the bearer, which starts when a payload first restates them carrying
- * it; the cast's says how far through the effect is on them. Where both are to hand the row
- * draws the second, and this is what a reader saw go wrong: `0 tur` on a buff just cast.
- */
-Deno.test("a status a cast dates says how far through it is, not how long we have seen it", () => {
-    const dated = composeTooltipRows({
-        ...NOTHING_CARRIED,
-        statuses: [{
-            bit: 6,
-            turnsElapsed: 0,
-            percent: 20,
-            length: { turnsElapsed: 0, turnsStated: 8 },
-        }],
-    }, null);
-    assertStringIncludes(
-        dated[1] ?? "",
-        "8 z 8 tur",
-        "all eight still to run, and never a bare nought",
-    );
 });
 
 /**
@@ -553,7 +472,7 @@ Deno.test("a status a cast dates says how far through it is, not how long we hav
 Deno.test("a status nothing dates, just lit, says no length at all", () => {
     const said = composeTooltipRows({
         ...NOTHING_CARRIED,
-        statuses: [{ bit: 6, turnsElapsed: 3, percent: null, length: null }],
+        statuses: [{ bit: 6, percent: null }],
     }, null);
     assertEquals(said.length, 2, "the name, and the status still said under it");
     assertEquals(said[1]?.includes("0"), false, "and no count of nought is said beside it");
@@ -569,12 +488,12 @@ Deno.test("every row that names a thing and qualifies it is punctuated alike", (
     const said = composeTooltipRows({
         ...NOTHING_CARRIED,
         provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
-        statuses: [{ bit: 3, turnsElapsed: 1, percent: null, length: null }],
+        statuses: [{ bit: 3, percent: null }],
         holytouchTurnsElapsed: 1,
         hasSpentLastheal: true,
     }, null);
     const carrying = said.filter((row) => row.includes(" tur") || row.includes("wykorzystany"));
-    assertEquals(carrying.length, 4, "the okrzyk, the status and both legendary bonuses");
+    assertEquals(carrying.length, 3, "the okrzyk and both legendary bonuses, and no status");
     for (const row of carrying) {
         assertStringIncludes(row, STANDING_WORDS.castSeparator, `${row} stands its parts apart`);
     }
@@ -601,7 +520,7 @@ Deno.test("a label the client answers with markup is refused rather than escaped
     assertEquals(
         composeTooltipRows({
             ...NOTHING_CARRIED,
-            statuses: [{ bit: 6, turnsElapsed: 3, percent: null, length: null }],
+            statuses: [{ bit: 6, percent: null }],
         }, speak),
         [],
         "the answer is the client's, and one this repository cannot use is left alone",
@@ -1284,7 +1203,7 @@ Deno.test("walking in late costs the turns and nothing else", () => {
         ...NOTHING_CARRIED,
         turnsTaken: 9,
         wasJoinedInProgress: true,
-        statuses: [{ bit: 6, turnsElapsed: 3, percent: 20, length: null }],
+        statuses: [{ bit: 6, percent: 20 }],
     }, null);
     assertEquals(late.length, 2, "the name and the status it still knows");
     assertStringIncludes(late[1] ?? "", "20%", "the figure stands, because now is now");
@@ -1296,8 +1215,8 @@ const CARRYING_EVERYTHING = {
     provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
     provokes: 10,
     statuses: [
-        { bit: 3, turnsElapsed: 2, percent: null, length: null },
-        { bit: 6, turnsElapsed: 1, percent: 20, length: { turnsElapsed: 1, turnsStated: 8 } },
+        { bit: 3, percent: null },
+        { bit: 6, percent: 20 },
     ],
     holytouchTurnsElapsed: 1,
     hasSpentLastheal: true,
@@ -1336,12 +1255,7 @@ Deno.test("the rows stand in the order a reader acts on them", () => {
  */
 Deno.test("a block past its stated maximum is cut to it, and one at it is drawn whole", () => {
     const many = (count: number) =>
-        Array.from({ length: count }, (_, at) => ({
-            bit: at,
-            turnsElapsed: 1,
-            percent: null,
-            length: null,
-        }));
+        Array.from({ length: count }, (_, at) => ({ bit: at, percent: null }));
     const atTheBound = composeTooltipRows({
         ...CARRYING_EVERYTHING,
         statuses: many(MAXIMUM_TOOLTIP_ROWS - 6),

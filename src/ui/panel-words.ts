@@ -20,7 +20,6 @@ import type { PanelNoun, PanelSideChoice, PanelStorageChoice } from "@/src/ui/pa
 import type { PanelSidePart } from "@/src/ui/panel-reading.ts";
 import type { StandingTurnState } from "@/src/ui/panel-standing.ts";
 import type { ChargedSkillState } from "@/src/core/charged-skill.ts";
-import { TURNS_STATED_BY_STATUS_NAME } from "@/src/core/carried-status.ts";
 import { HOLYTOUCH_TURNS_STATED } from "@/src/core/legendary-standing.ts";
 
 export interface CountedNoun {
@@ -795,15 +794,12 @@ export const STANDING_WORDS = {
 } as const;
 
 /**
- * One status on one fighter. `length` is how far through the cast standing over them is, counted
- * on **their** turns, and null where no announcement dates it. `turnsElapsed` is the mask's own
- * count, which is what the help's own length is counted down from (**ADR 0109**).
+ * One status on one fighter: that it stands, which the mask says and the game already knows, and
+ * the figure an announcement over them comes to. **No length** — **ADR 0112**.
  */
 export interface TooltipStatus {
     bit: number;
-    turnsElapsed: number;
     percent: number | null;
-    length: { turnsElapsed: number; turnsStated: number } | null;
 }
 
 /** One fighter, as the game's own tooltip could honestly restate them. */
@@ -895,7 +891,8 @@ function addProvocationRows(said: string[], reading: TooltipReading): void {
 /**
  * ⚠️ **A figure stands beside a status only where one may be said of this bearer** — which is
  * `core/carried-figure.ts`'s answer and null far more often than not. Where it is null the row
- * is the status, with whatever length may be said of it and nothing where none may.
+ * is the status alone. **No row here counts turns** (**ADR 0112**): the mask says a status stands
+ * and never since when, and a re-application nobody announces renews it where nothing can see.
  */
 function addStatusRows(
     said: string[],
@@ -904,44 +901,10 @@ function addStatusRows(
 ): void {
     for (const status of statuses) {
         if (said.length >= MAXIMUM_TOOLTIP_ROWS) break;
-        const name = FROZEN_BUFF_BITS.bits[status.bit];
         const word = getWordsForStatusBit(status.bit, translate);
         const percent = status.percent === null ? "" : ` ${composeIntegerText(status.percent)}%`;
-        const stood = getStatusStoodText(status, name);
-        if (stood === null) {
-            said.push(`${word}${percent}`);
-            continue;
-        }
-        said.push(`${word}${percent} ${STANDING_WORDS.castSeparator} ${stood}`);
+        said.push(`${word}${percent}`);
     }
-}
-
-/**
- * What is left of it, or null where nothing may be said — three answers in the order of what each
- * rests on: an announcement over this bearer, the length the published help gives the status, and
- * nothing. **ADR 0109**, which is also why the mask's own count is none of the three.
- */
-function getStatusStoodText(status: TooltipStatus, name: string | undefined): string | null {
-    const length = status.length;
-    if (length !== null) {
-        return composeRemainingTurnsText(
-            length.turnsStated - length.turnsElapsed,
-            length.turnsStated,
-        );
-    }
-    if (name === undefined) return null;
-    const stated = TURNS_STATED_BY_STATUS_NAME[name];
-    if (stated === undefined) return null;
-    // ⚠️ **A floor, and never an estimate.** A re-application extends the effect and makes no
-    // edge the mask can see, so the count can outrun the length — measured over `captures/` on
-    // 2026-09-22 it has, in 61.2% of the moments the poison bit was lit, and closed runs reach
-    // 26 of a bearer's turns against the five the help gives one application. What is certain
-    // while the bit is lit is that **at least one** turn is left, and that what is left is never
-    // more than the published length. Both ends are held here, and the figure only ever
-    // understates — the other direction is what would make it a number nobody can trust.
-    const left = stated - status.turnsElapsed;
-    if (left < 1) return composeRemainingTurnsText(1, stated);
-    return composeRemainingTurnsText(left, stated);
 }
 
 /**

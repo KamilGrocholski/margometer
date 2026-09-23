@@ -69,11 +69,9 @@ holds is unchanged — it is read from the recordings, not from the panel.
 status, with the table's total beside it wherever one figure may be said of that bearer (**ADR
 0107**). That is the one surface where a length and the person it is about are the same reading.
 
-**The length on such a row is the one its evidence supports, and never the mask's count** (**ADR
-0109**). An announcement over the bearer dates the standing effect and the row says how far through
-it is; where the published help states a length for the status instead, the row says that length as
-a **ceiling**, because nothing dates the application it would be counted from. Where neither stands,
-the row is the status and no figure at all.
+**Such a row states no length at all** (**ADR 0112**). The mask says a status stands and never since
+when, and what renews one can be announced nowhere — a weapon's poison is — so a count beside it
+would be a count of what this add-on happened to see.
 
 **A shout is drawn under whoever threw it**, with the characters it holds as rows under that, and
 **a length on each of those rows** — a shout runs on the turns of whoever it holds, so two
@@ -188,9 +186,10 @@ than about who died holding it.
 no 0→1 edge, so the run that closes is the pair — which is why `own` is the length most runs came to
 rather than a mean, and why the column above it carries lengths the table dates nothing for.
 
-**Two bits have a published length that no cast announces**, and they are the two this document's
-register never reaches, because no skill puts them up. The help states both at article `view,372`
-(read 2026-09-22), under the weapon attributes rather than under an effect:
+**Two bits have a published length that the register above never reaches.** The help states both at
+article `view,372` (read 2026-09-22), under the weapon attributes rather than under an effect — and
+trucizna under a skill effect as well, `poisonbon_poison-perw`, which the frozen skill table puts on
+two skills (**ADR 0112** carries what that reading came to):
 
 | status     | what the help calls it | stated                                                 |
 | ---------- | ---------------------- | ------------------------------------------------------ |
@@ -205,7 +204,7 @@ neither source and the table above leaves it out.
 Trucizna carries `Nadpisywanie: NIE` in the help's own table — _kolejne zaaplikowanie obrażeń tylko
 przedłuża ich czas trwania_ — so a bit held for far longer than five is a run of applications and
 never an effect that outlived its length. A reader was shown `38 tur` beside a five-turn trucizna
-before **ADR 0109** took the mask's count off the row.
+before **ADR 0109** took the mask's count off the row, and **ADR 0112** took every count off it.
 
 ⚠️ **`swow_down` does not land on a published figure, and the register already said so.**
 `allslow_per` is the one key this document does not settle, and the mask does not name which cast

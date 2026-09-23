@@ -277,3 +277,5 @@ edited to agree with the new rule.
   one line, divided and never added. **Accepted**
 - [0111](0111-the-block-is-found-again-and-an-open-tooltip-is-told.md) — The block is found again,
   and an open tooltip is told. **Accepted**
+- [0112](0112-a-status-says-that-it-stands-and-only-two-rows-count-turns.md) — A status says that it
+  stands, and only two rows count turns. **Accepted**

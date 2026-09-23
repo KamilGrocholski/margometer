@@ -413,12 +413,13 @@ highest figure counts, so even an announcement would not say whose tick this is.
 there as weapons and skills that apply poison, and a weapon doing it is stated nowhere in the
 protocol.
 
-⚠️ **The same article states how long an application runs, and the panel draws it.** Under the
-weapon attributes `poison1, of_poison1`: _Są aplikowane na 5 tur po trafieniu przeciwnika
+⚠️ **The same article states how long an application runs, and the panel draws none of it.** Under
+the weapon attributes `poison1, of_poison1`: _Są aplikowane na 5 tur po trafieniu przeciwnika
 obrażeniami o niezerowej wartości_, and _Wyzwalają się przed turą przeciwnika, na którego zostały
-zaaplikowane_ — five turns, on the bearer's own clock (read 2026-09-22). With no announcement to
-date the standing application, five is drawn as a **ceiling** and never as a fraction (**ADR
-0109**).
+zaaplikowane_ — five turns, on the bearer's own clock (read 2026-09-22). A skill's
+`poisonbon_poison-perw` applies the same five, and a weapon's application is announced nowhere, so a
+hit renewing the poison can be invisible; a tooltip row says the poison stands and never for how
+long (**ADR 0112**).
 
 ### `fire` — decoded
 

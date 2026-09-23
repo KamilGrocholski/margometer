@@ -63,29 +63,12 @@ export function composeWitnessedKeyByBit(bits: readonly string[]): Map<number, s
     return found;
 }
 
-/**
- * How far through an effect is **on this bearer**: their own turns since the cast stood, against
- * the turns the published table gives it.
- *
- * ⚠️ **Not the count off the mask, and the two disagree.** A bit lights when a payload first
- * restates the bearer carrying it, which can be turns after the cast, and it keeps burning
- * through a re-cast — measured over `captures/` 2026-09-21, the mask's count and the cast's
- * agree in 369 moments of 1 584, running behind in 215 and ahead in 1 000. The bearer's own
- * turns since the cast is the clause the published help dates this family by.
- */
-export interface CarriedLength {
-    turnsElapsed: number;
-    turnsStated: number;
-}
-
 /** One status, with what the announcements standing over its bearer come to. */
 export interface CarriedFigure {
     combatantId: number;
     bit: number;
     /** A share of what the bearer has, or null where no cast over them may be read as theirs. */
     percent: number | null;
-    /** How far through it is on them, or null where no cast over them dates it. */
-    length: CarriedLength | null;
 }
 
 /**
@@ -108,8 +91,7 @@ function getReachCoversBearer(key: string, casterSide: number, bearerSide: numbe
  *
  * ⚠️ **A standing is dropped on the caster's turns** (**ADR 0101**), so one whose caster has
  * stopped taking them outlives its own length for everybody else. Asked on the bearer's clock it
- * goes when it should, and the figure and the length then answer for the same cast rather than
- * one trusting what the other refuses.
+ * goes when it should, and the figure answers for a cast still standing on them.
  */
 function composeCastsOverBearer(
     standings: readonly AuraStanding[],
@@ -132,32 +114,6 @@ function composeCastsOverBearer(
         if (turnsElapsed < 0) continue;
         if (turnsElapsed >= standing.turnsStated) continue;
         found.push(standing);
-    }
-    return found;
-}
-
-/**
- * How far through the freshest cast over this bearer is, on the bearer's own clock. **The
- * freshest**, because where two stand it is the later one that says how long the status keeps
- * standing at all — the earlier one only ever takes figure away when it goes.
- *
- * The casts are the ones `composeCastsOverBearer` already held to this bearer's clock, so a
- * length taken here never runs past what the table gives it.
- */
-function getLengthForBearer(
-    casts: readonly AuraStanding[],
-    combatantId: number,
-    turnsTaken: number,
-): CarriedLength | null {
-    assert(casts.length <= MAXIMUM_SOURCES, "a length is taken over the casts a walk bounded");
-    assert(turnsTaken >= 0, "and a count of turns never runs backwards");
-    let found: CarriedLength | null = null;
-    for (const cast of casts) {
-        const was = cast.turnsAtCastByCombatantId.get(combatantId);
-        if (was === undefined) continue;
-        const turnsElapsed = turnsTaken - was;
-        if (found !== null && found.turnsElapsed <= turnsElapsed) continue;
-        found = { turnsElapsed, turnsStated: cast.turnsStated };
     }
     return found;
 }
@@ -208,7 +164,7 @@ export interface CarriedFigureReading {
     statuses: readonly CarriedStatus[];
     standings: readonly AuraStanding[];
     roster: CombatantRoster;
-    /** Turns taken per combatant, which is the clock a length is counted on. */
+    /** Turns taken per combatant, the clock a cast is held to while it stands on a bearer. */
     turnsByCombatantId: ReadonlyMap<number, number>;
     /**
      * Which key moves which bit, handed over rather than imported: `core` reads no frozen table,
@@ -218,7 +174,7 @@ export interface CarriedFigureReading {
     witnessed: ReadonlyMap<number, string>;
 }
 
-/** One row per status a figure or a length can be said of, and none for the rest. */
+/** One row per status a figure can be said of, and none for the rest. */
 export function composeCarriedFigures(reading: CarriedFigureReading): CarriedFigure[] {
     assert(
         reading.witnessed.size <= MAXIMUM_SOURCES,
@@ -243,7 +199,6 @@ export function composeCarriedFigures(reading: CarriedFigureReading): CarriedFig
                 combatantId: status.combatantId,
                 side: bearer.side,
             }, key),
-            length: getLengthForBearer(casts, status.combatantId, turnsTaken),
         });
     }
     assert(found.length <= reading.statuses.length, "and no more rows than statuses handed in");
