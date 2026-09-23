@@ -55,6 +55,8 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 - **Zmiana** — Z Pomocnika znika lista efektów rzuconych na drużynę: licznik tur przy niej liczył
   tury rzucającego, a efekt schodzi każdemu z osobna — to, co stoi na danej postaci, powie ci teraz
   dymek gry po najechaniu na nią.
+- **Zmiana** — Kiedy nikt nie ładuje ciosu i nikt nie jest sprowokowany, Pomocnik pisze „Nic się nie
+  dzieje." zamiast „Nic nie stoi.".
 - **Poprawka** — Prowokacja liczy się teraz turami tego, kogo sprowokowano, a nie rzucającego, więc
   schodzi z niego wtedy, kiedy naprawdę schodzi.
 - **Poprawka** — Trzy efekty, które panel pokazywał surowym zapisem z protokołu, nazywają się w

@@ -1108,7 +1108,7 @@ function composeStandingBody(
     if (reading.chargedSkills.length === 0) {
         if (reading.provoked.length === 0) {
             const empty = composeElement(document, "div", CLASS.empty);
-            empty.textContent = STANDING_WORDS.nothingStands;
+            empty.textContent = STANDING_WORDS.nothingHappens;
             body.append(empty);
             return body;
         }

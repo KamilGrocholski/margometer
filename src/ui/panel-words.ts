@@ -769,7 +769,7 @@ export const STANDING_WORDS = {
     collapse: "Zwiń Pomocnika",
     expand: "Rozwiń Pomocnika",
     now: "Teraz",
-    nothingStands: "Nic nie stoi.",
+    nothingHappens: "Nic się nie dzieje.",
     /** The two okrzyki share one state, so they share one heading — **ADR 0062**. */
     provocation: "Prowokacja",
     /** Between whoever is holding somebody and the okrzyk they hold them with — **ADR 0097**. */

@@ -163,7 +163,7 @@ Deno.test("a turn the game has stopped numbering is not drawn, and the window sa
     assertStrictEquals(after.holder, null, "and nobody is drawn holding it");
     assertEquals(
         getTextsByClass(getWindow(draw(after).host), "empty"),
-        [getWordsForTurnState("afterFight"), STANDING_WORDS.nothingStands],
+        [getWordsForTurnState("afterFight"), STANDING_WORDS.nothingHappens],
         "the window says the fight ended, and never that the turn could not be read",
     );
 
@@ -178,7 +178,7 @@ Deno.test("a turn the game has stopped numbering is not drawn, and the window sa
     assertStrictEquals(running.turnOrdinal, null, "so what it stated before is not drawn either");
     assertEquals(
         getTextsByClass(getWindow(draw(running).host), "empty"),
-        [getWordsForTurnState("onAuto"), STANDING_WORDS.nothingStands],
+        [getWordsForTurnState("onAuto"), STANDING_WORDS.nothingHappens],
         "and says which kind of fight it is",
     );
 
@@ -249,7 +249,7 @@ Deno.test("a fight with nothing standing says so, and one with no turn says that
     const said = getTextsByClass(getWindow(host), "empty");
     assertEquals(
         said,
-        [getWordsForTurnState("unread"), STANDING_WORDS.nothingStands],
+        [getWordsForTurnState("unread"), STANDING_WORDS.nothingHappens],
         "both are readings rather than an absence of one",
     );
 });
