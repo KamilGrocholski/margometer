@@ -612,12 +612,13 @@ commit that opens or closes one.
    fighter's own tooltip, where a length and the person it is about are one reading. It draws a band
    above them where a combatant is making a **charged skill** ready: one row, the game's own name
    for the blow, one dot per turn of the charge lit to what has passed, and the pair of figures the
-   client itself divides — never the percentage that division comes to. The two ends the protocol
-   names stand for one turn after the fact and then the band is gone, which is one payload: the
-   game's own turn number moves by one on the very next one, 24 times out of 24 over `captures/`
-   2026-09-11. Whom a shout holds is **read off its value**, which names every provoked character
-   separated by a comma and a space, and a name the roster cannot place is dropped rather than
-   guessed at (**ADR 0064**). That table is the third frozen reading (**ADR 0058**), and
+   client itself divides — never the percentage that division comes to. A charge still running is
+   also the first row of that fighter's own tooltip, as the same pair (**ADR 0115**). The two ends
+   the protocol names stand for one turn after the fact and then the band is gone, which is one
+   payload: the game's own turn number moves by one on the very next one, 24 times out of 24 over
+   `captures/` 2026-09-11. Whom a shout holds is **read off its value**, which names every provoked
+   character separated by a comma and a space, and a name the roster cannot place is dropped rather
+   than guessed at (**ADR 0064**). That table is the third frozen reading (**ADR 0058**), and
    `docs/auras-standing.md` is its register over `captures/`. Both READMEs are written and show the
    set `deno task panel:shots` takes, so the release plumbing is whole and has now run at a tag —
    what is left of it is held by a person, which is what the gap below it is about.

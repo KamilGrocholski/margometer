@@ -39,9 +39,9 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 
 ## [Niewydane]
 
-- **Nowość** — Najeżdżając na postać w walce zobaczysz w dymku gry, jakie stany na niej stoją, ile
-  tur wykonała, kto ją sprowokował i na ile jeszcze tur, ile z trzech uleczeń dał jej już dotyk
-  anioła i czy wykorzystała ostatni ratunek.
+- **Nowość** — Najeżdżając na postać w walce zobaczysz w dymku gry, jaki cios specjalny ładuje i ile
+  tur ładowania już minęło, jakie stany na niej stoją, ile tur wykonała, kto ją sprowokował i na ile
+  jeszcze tur, ile z trzech uleczeń dał jej już dotyk anioła i czy wykorzystała ostatni ratunek.
 - **Nowość** — Przy spowolnieniu i przyspieszeniu dymek podaje też, o ile procent, a tam, gdzie tego
   nie widać, nie podaje nic.
 - **Nowość** — Strona z podglądem pokazuje obok panelu, co dodatek dopisuje w dymku każdej postaci,

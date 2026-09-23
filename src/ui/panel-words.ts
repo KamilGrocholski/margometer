@@ -805,6 +805,8 @@ export interface TooltipStatus {
 /** One fighter, as the game's own tooltip could honestly restate them. */
 export interface TooltipReading {
     turnsTaken: number;
+    /** What they are making ready, or null: an ended charge is Pomocnik's (**ADR 0115**). */
+    charge: { skillName: string; turnsElapsed: number; turnsStated: number } | null;
     /** Whoever is holding them with an okrzyk, and how far through the shout's turns they are. */
     provokedBy: { name: string; turnsElapsed: number; turnsStated: number } | null;
     /** How many characters their own okrzyk is holding. Never their names — **ADR 0103**. */
@@ -838,15 +840,17 @@ export interface TooltipReading {
  * is refused rather than escaped — the words in it are the client's own and refusing is what this
  * repository does with an answer it cannot use (**ADR 0024**).
  *
- * The order is what a reader acts on first: the okrzyk changes whom somebody will strike next, a
- * status changes how they strike, a legendary bonus is already spent or nearly over, and the
- * turns are the only row about the whole fight rather than about now.
+ * The order is what a reader acts on first: a charge is the blow the fight is about to take, the
+ * okrzyk changes whom somebody will strike next, a status changes how they strike, a legendary
+ * bonus is already spent or nearly over, and the turns are the only row about the whole fight
+ * rather than about now. **ADR 0115.**
  */
 export function composeTooltipRows(
     reading: TooltipReading,
     translate: TranslateLabel | null,
 ): string[] {
     const said: string[] = [];
+    addChargeRow(said, reading);
     addProvocationRows(said, reading);
     addStatusRows(said, reading.statuses, translate);
     addLegendaryRows(said, reading);
@@ -869,6 +873,18 @@ function addTurnsRow(said: string[], reading: TooltipReading): void {
     if (reading.wasJoinedInProgress) return;
     if (reading.turnsTaken <= 0) return;
     said.push(`${TOOLTIP_WORDS.turnsTaken} ${composeFigureText(reading.turnsTaken)}`);
+}
+
+/**
+ * ⚠️ **Counts up, with no noun**: the client's own pair, as Pomocnik draws it, and set apart from
+ * the provocation's `1 z 3 tur`, which counts down. **ADR 0115.**
+ */
+function addChargeRow(said: string[], reading: TooltipReading): void {
+    const charge = reading.charge;
+    if (charge === null) return;
+    const apart = STANDING_WORDS.castSeparator;
+    const passed = composeChargedSkillTurnsText(charge.turnsElapsed, charge.turnsStated);
+    said.push(`${STANDING_WORDS.chargedSkill} ${apart} ${charge.skillName} ${apart} ${passed}`);
 }
 
 function addProvocationRows(said: string[], reading: TooltipReading): void {
@@ -966,8 +982,8 @@ const MARKUP_OPENER = "<";
 const MARKUP_ENTITY = "&";
 /**
  * Every row one fighter can put up, **counted off the parts rather than off the corpus**: the
- * add-on's own name, the okrzyk from either end, the two legendary bonuses, the turns taken, and
- * one row per status the client registers.
+ * add-on's own name, the charge, the okrzyk from either end, the two legendary bonuses, the turns
+ * taken, and one row per status the client registers.
  *
  * ⚠️ **A figure taken off the corpus was the wrong figure here.** The tallest block over
  * `captures/` is seven (`design/dziesiec/measured.json`), and a fabricated ten-a-side already
@@ -975,7 +991,7 @@ const MARKUP_ENTITY = "&";
  * clamps rather than asserts, because a fighter with one thing more to say is not a reason to
  * stop drawing (**A11**, **ADR 0051**).
  */
-const ROWS_BESIDE_THE_STATUSES = 6;
+const ROWS_BESIDE_THE_STATUSES = 7;
 export const MAXIMUM_TOOLTIP_ROWS = FROZEN_BUFF_BITS.bits.length + ROWS_BESIDE_THE_STATUSES;
 
 /**

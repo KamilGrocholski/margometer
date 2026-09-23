@@ -333,6 +333,57 @@ Deno.test("an open tooltip is told to draw again exactly when rows went on", () 
     assert(quiet > 0, "a fighter nothing happened to was left alone, and it happened");
 });
 
+/**
+ * ⚠️ **Held at the seam, against the envelope itself.** The composer is green on whatever charge
+ * it is handed and the core on whatever it composes, so a reading handing the tooltip a charge
+ * that had ended — or none at all — reddens neither. The witness here is the game's own
+ * `super_cast`, followed payload by payload: a record stating a combatant without one is how the
+ * game ends a charge. The row stands exactly where one is stated, first under the name, with the
+ * client's own pair (**ADR 0115**).
+ */
+Deno.test("a charge row stands on whoever the envelope states charging, first in the block", () => {
+    const wrong: string[] = [];
+    let charged = 0;
+    for (const path of readRecordingPaths()) {
+        const { battle, registries } = composeRebuildingBattle();
+        const { environment } = composeEnvironment({ Engine: { battle } });
+        startMargoMeter(environment);
+        const update = battle.updateData;
+        assert(typeof update === "function", "the wrap went on");
+        const statedById = new Map<number, string | null>();
+        for (const [index, payload] of getRecordedEngineUpdates(path).entries()) {
+            update(payload);
+            const warriors = isRecord(payload) && isRecord(payload.w) ? payload.w : {};
+            for (const [id, warrior] of Object.entries(warriors)) {
+                if (!isRecord(warrior)) continue;
+                const charge = warrior.super_cast;
+                const row = isRecord(charge)
+                    ? `Cios specjalny · ${charge.name} · ${charge.turn} z ${charge.total_turns}`
+                    : null;
+                statedById.set(Number(id), row);
+            }
+            for (const [id, registry] of registries) {
+                const rows = registry.text.split("<br>");
+                const stated = statedById.get(id) ?? null;
+                const drawn = rows.filter((row) => row.startsWith("Cios specjalny"));
+                if (stated === null) {
+                    if (drawn.length > 0) wrong.push(`${path} #${index}: ${id} ${drawn[0]}`);
+                    continue;
+                }
+                charged += 1;
+                const under = rows[rows.indexOf("MargoMeter") + 1] ?? "";
+                if (under !== stated) wrong.push(`${path} #${index}: ${id} ${under}`);
+            }
+        }
+    }
+    assertEquals(
+        wrong.slice(0, 5),
+        [],
+        `a charge row disagreed with the envelope ${wrong.length}×`,
+    );
+    assert(charged > 0, "the recordings carry fighters charging, and their rows were read");
+});
+
 /** Two people focusing one opponent, which is what the focus pass needs to have anybody to do. */
 const DUET = "captures/2026-09-09-tempest-duet-vs-wojownik-ne0iTNdg-0.14.0.json";
 

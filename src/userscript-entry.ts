@@ -1574,9 +1574,10 @@ function setLiveFightOpened(screen: ScreenState): void {
 }
 
 /**
- * What one fighter's tooltip would say, gathered from the four readers that know part of it: the
- * mask says what stands on them, the announcements say how much, the clock says how long, and
- * the two legendary bonuses say what is running and what is spent.
+ * What one fighter's tooltip would say, gathered from the five readers that know part of it: the
+ * envelope says what they are making ready, the mask says what stands on them, the announcements
+ * say how much, the clock says how long, and the two legendary bonuses say what is running and
+ * what is spent.
  */
 function composeTooltipReadingFor(
     combatantId: number,
@@ -1584,11 +1585,19 @@ function composeTooltipReadingFor(
     held: FightStandings,
     figures: ReadonlyMap<string, CarriedFigure>,
 ): TooltipReading {
+    const charging = fight.chargedSkills.filter((one) => one.state === "charging").find((one) =>
+        one.combatantId === combatantId
+    );
     const legendary = fight.legendaryStandings.find((one) => one.combatantId === combatantId);
     const provoked = held.provocations.find((one) => one.provokedId === combatantId);
     const caster = provoked === undefined ? undefined : fight.roster.byId.get(provoked.casterId);
     return {
         turnsTaken: fight.turnsByCombatantId.get(combatantId) ?? 0,
+        charge: charging === undefined ? null : {
+            skillName: charging.skillName,
+            turnsElapsed: charging.turnsElapsed,
+            turnsStated: charging.turnsStated,
+        },
         provokedBy: provoked === undefined ? null : {
             name: caster?.name ?? PANEL_WORDS.withoutActor,
             turnsElapsed: provoked.turnsElapsed,

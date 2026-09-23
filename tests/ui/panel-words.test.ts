@@ -324,6 +324,7 @@ function getSentencesFromTooltip(): string[] {
         found.push(...composeTooltipRows({
             ...NOTHING_CARRIED,
             turnsTaken: 14,
+            charge: { skillName: "Cios", turnsElapsed: bit - 3, turnsStated: 1 },
             provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
             provokes: 2,
             statuses: [{ bit, percent: 39 }],
@@ -370,6 +371,7 @@ Deno.test("each way a fight can end has its own word, and no two share one", () 
 /** A fighter with nothing standing on them, so a test says only what it is about. */
 const NOTHING_CARRIED = {
     turnsTaken: 0,
+    charge: null,
     provokedBy: null,
     provokes: 0,
     statuses: [],
@@ -487,15 +489,18 @@ Deno.test("a status nothing dates, just lit, says no length at all", () => {
 Deno.test("every row that names a thing and qualifies it is punctuated alike", () => {
     const said = composeTooltipRows({
         ...NOTHING_CARRIED,
+        charge: { skillName: "Pożoga", turnsElapsed: 2, turnsStated: 4 },
         provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
         statuses: [{ bit: 3, percent: null }],
         holytouchHealsGiven: 1,
         hasSpentLastheal: true,
     }, null);
-    const carrying = said.filter((row) =>
-        row.includes(" tur") || row.includes(" uleczeń") || row.includes("wykorzystany")
+    const carrying = said.filter((row) => row.includes(" z ") || row.includes("wykorzystany"));
+    assertEquals(
+        carrying.length,
+        4,
+        "the charge, the okrzyk and both legendary bonuses, and no status",
     );
-    assertEquals(carrying.length, 3, "the okrzyk and both legendary bonuses, and no status");
     for (const row of carrying) {
         assertStringIncludes(row, STANDING_WORDS.castSeparator, `${row} stands its parts apart`);
     }
@@ -540,6 +545,37 @@ Deno.test("a label the client answers with markup is refused rather than escaped
         [],
         "the answer is the client's, and one this repository cannot use is left alone",
     );
+});
+
+/**
+ * ⚠️ **The charge restates the client's pair, counting up**, where the provocation a row below it
+ * counts down (**ADR 0115**): Pomocnik draws the same pair for the same charge, and a remainder
+ * here would be a second number for it. The missing noun is what tells the two fractions apart,
+ * so the row is asserted whole — at nought, a charge just begun, and at the whole, the turn it
+ * lands on.
+ */
+Deno.test("a charge says the blow and how much of it has passed, as the client states it", () => {
+    const row = (turnsElapsed: number, turnsStated: number) =>
+        composeTooltipRows({
+            ...NOTHING_CARRIED,
+            charge: { skillName: "Pożoga", turnsElapsed, turnsStated },
+        }, null)[1];
+    assertEquals(row(0, 4), "Cios specjalny · Pożoga · 0 z 4", "just begun");
+    assertEquals(row(2, 4), "Cios specjalny · Pożoga · 2 z 4", "half through");
+    assertEquals(row(4, 4), "Cios specjalny · Pożoga · 4 z 4", "and on the last turn");
+    assertEquals(row(0, 1), "Cios specjalny · Pożoga · 0 z 1", "a charge of one turn, begun");
+    assertEquals(row(1, 1), "Cios specjalny · Pożoga · 1 z 1", "and at its other end");
+    assertEquals(row(5, 4), `Cios specjalny · Pożoga · ${PANEL_WORDS.unknown}`, "past the whole");
+    assertEquals(row(-1, 4), `Cios specjalny · Pożoga · ${PANEL_WORDS.unknown}`, "below none");
+});
+
+/** A blow's name is the client's, so one carrying markup is refused like any label of theirs. */
+Deno.test("a charge whose name carries markup puts no row in", () => {
+    const said = composeTooltipRows({
+        ...NOTHING_CARRIED,
+        charge: { skillName: "<b>Pożoga</b>", turnsElapsed: 0, turnsStated: 2 },
+    }, null);
+    assertEquals(said, [], "nothing else to say, so the tooltip is left as the game made it");
 });
 
 /** **W5: zero is a boundary.** Nothing carried composes no row, which is not an empty one. */
@@ -1227,6 +1263,7 @@ Deno.test("walking in late costs the turns and nothing else", () => {
 /** Everything one fighter can be at once, so a test about order has every row to order. */
 const CARRYING_EVERYTHING = {
     turnsTaken: 14,
+    charge: { skillName: "Pożoga", turnsElapsed: 2, turnsStated: 4 },
     provokedBy: { name: "Gracz 2", turnsElapsed: 1, turnsStated: 3 },
     provokes: 10,
     statuses: [
@@ -1240,15 +1277,17 @@ const CARRYING_EVERYTHING = {
 
 /**
  * ⚠️ **The order is the whole of what a reader gets for free**, because a tooltip is read from
- * the top and a fighter is hovered for a second. What changes whom somebody strikes next comes
- * first, what changes how they strike second, what is spent or nearly over third — and the turns
- * last, as the only row about the whole fight rather than about now. Nothing else holds it: the
- * rows are pushed by four calls in a row, and swapping two of them reddens no other test.
+ * the top and a fighter is hovered for a second. The blow the fight is about to take comes
+ * first (**ADR 0115**), what changes whom somebody strikes next second, what changes how they
+ * strike third, what is spent or nearly over fourth — and the turns last, as the only row about
+ * the whole fight rather than about now. Nothing else holds it: the rows are pushed by five calls
+ * in a row, and swapping two of them reddens no other test.
  */
 Deno.test("the rows stand in the order a reader acts on them", () => {
     const said = composeTooltipRows(CARRYING_EVERYTHING, null);
     const at = (fragment: string) => said.findIndex((row) => row.includes(fragment));
     assertEquals(said[0], "MargoMeter", "the name, over everything");
+    assertEquals(at("Cios specjalny"), 1, "the blow about to be taken, first under it");
     assert(
         at("Sprowokowany przez") < at("Prowokuje"),
         "held before holding, which is what they do next",
@@ -1273,7 +1312,7 @@ Deno.test("a block past its stated maximum is cut to it, and one at it is drawn 
         Array.from({ length: count }, (_, at) => ({ bit: at, percent: null }));
     const atTheBound = composeTooltipRows({
         ...CARRYING_EVERYTHING,
-        statuses: many(MAXIMUM_TOOLTIP_ROWS - 6),
+        statuses: many(MAXIMUM_TOOLTIP_ROWS - 7),
     }, null);
     assertEquals(atTheBound.length, MAXIMUM_TOOLTIP_ROWS, "every row it was allowed stands");
     const past = composeTooltipRows({
