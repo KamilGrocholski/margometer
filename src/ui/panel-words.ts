@@ -832,8 +832,7 @@ export interface TooltipReading {
  *
  * The rows go to the client one at a time, because `concatTip` puts a `<br>` of its own between
  * whatever is there and what it is handed (production build `Bb28FQty`, read 2026-09-21) — so a
- * block of rows costs this add-on no markup at all, and `SECURITY.md`'s _no node is made, moved,
- * removed or styled_ stands untouched.
+ * block of rows costs this add-on no markup at all (`src/game/engine-tooltip.ts`, **ADR 0111**).
  *
  * **The first row is the add-on's name and nothing else.** A reader meets these outside the
  * panel, where `SECURITY.md`'s guest rule asks whose they are — and a name folded into the first

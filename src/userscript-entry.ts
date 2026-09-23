@@ -65,12 +65,7 @@ import {
     composeNextCapture,
     type FightCapture,
 } from "@/src/game/fight-capture.ts";
-import {
-    type CapturedCombatant,
-    composeSnapshotFromBattle,
-    hasWarriorsInPayload,
-    readStatedIdsFromPayload,
-} from "@/src/game/engine-warrior.ts";
+import { type CapturedCombatant, composeSnapshotFromBattle } from "@/src/game/engine-warrior.ts";
 import {
     composeKeptRotation,
     getIsEverySlotPinned,
@@ -82,7 +77,7 @@ import {
 } from "@/src/game/kept-fights.ts";
 import type { ReportSubject } from "@/src/game/fight-report.ts";
 import { readDictionaryFromPage, type TranslateLabel } from "@/src/game/game-dictionary.ts";
-import { readFocusedIdsFromPage, writeRowsToTooltips } from "@/src/game/engine-tooltip.ts";
+import { composeTooltipWriter, type TooltipWriter } from "@/src/game/engine-tooltip.ts";
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import { composeDefectKeeper, type KeptDefects } from "@/src/ui/panel-defect.ts";
 import { composePanelHost, type PanelHandle, type PanelPress } from "@/src/ui/panel-element.ts";
@@ -1503,11 +1498,8 @@ interface LiveFight {
      * the page and a page without one never grows one (**ADR 0024**).
      */
     translate: TranslateLabel | null;
-    /**
-     * Whom the client's focus pass left focused after the last payload carrying warriors. The next
-     * one rebuilds their tooltip whether it restates them or not (`src/game/engine-tooltip.ts`).
-     */
-    focusedIds: ReadonlySet<number>;
+    /** Remembers the block it left on each fighter, which is what lets it write every payload. */
+    tooltips: TooltipWriter;
 }
 
 function composeLiveFight(): LiveFight {
@@ -1516,7 +1508,7 @@ function composeLiveFight(): LiveFight {
         combatantsBefore: [],
         place: null,
         translate: null,
-        focusedIds: new Set(),
+        tooltips: composeTooltipWriter(),
         openedAt: 0,
         wasOver: false,
     };
@@ -1622,35 +1614,30 @@ function composeTooltipReadingFor(
 
 /**
  * The add-on's own rows onto every fighter the game is already drawing a tooltip for. **After the
- * engine's own call**, which is where the wrap puts us: the game rebuilds each tooltip on this
- * same payload, so a row written before it would be one the game had just thrown away.
+ * engine's own call**, which is where the wrap puts us: the game rebuilds tooltips while it takes
+ * this payload, so a row written before it would be one the game had just thrown away.
  *
  * Guarded here as well as inside the writer, because this is the panel's own layer reaching into
  * somebody else's program and a throw of theirs must cost a row and never the fight (**E5**).
  *
- * **Cost, measured over `captures/` on 2026-09-22 (S3).** Reading one payload comes to 0.068 ms
- * on average and 4.544 ms at worst; the standings and figures composed here add 0.048 ms and
- * 1.841 ms — **71% of what reading costs**. Most of that is a second walk of the same events:
- * `composeStandingOrNothing` composes the same standings again when the panel draws, so a
- * payload walks them twice. Composing once and handing both readers the same answer would take
- * it back, and is **deliberately not done**: it is a cache on the newest payload, and 48
- * microseconds is not worth a thing that can go stale.
+ * **Cost, measured over `captures/` on 2026-09-23 (S3)**, 1376 payloads through the wrap, three
+ * runs each way: 1.570 ms a payload on average without this function and 1.636 ms with it — 0.066
+ * ms, 4% of the call, the panel's own drawing included. The worst payload moves less than the runs
+ * move each other, 9.5 to 11.4 ms either way. Part of it is a second walk of the same events:
+ * `composeStandingOrNothing` composes the same standings again when the panel draws. Composing
+ * once and handing both readers the same answer would take that back, and is **deliberately not
+ * done**: it is a cache on the newest payload, and 66 microseconds is not worth a thing that can
+ * go stale.
  */
 function writeCarriedToTooltips(
     live: LiveFight,
     underway: FightUnderway,
     environment: UserscriptEnvironment,
-    payload: unknown,
     defects: KeptDefects,
 ): void {
     try {
         const fight = getReadingFromFight(underway);
         if (fight === null) return;
-        // ⚠️ **Only whose tooltip the client has just rebuilt.** A row put on anybody else lands
-        // under the rows already there — measured over `captures/` on 2026-09-21, a combatant
-        // already seen is absent from 8631 payloads of 14309, so the second copy is the common
-        // case and not the edge.
-        const rebuilt = readRebuiltIdsIntoLive(live, payload, environment.page);
         const held = composeFightStandings(fight.events, STATED_SKILLS, fight.roster);
         const figures = new Map<string, CarriedFigure>();
         for (
@@ -1665,33 +1652,14 @@ function writeCarriedToTooltips(
             figures.set(`${one.combatantId}/${one.bit}`, one);
         }
         const rows = new Map<number, readonly string[]>();
-        for (const combatantId of rebuilt) {
+        for (const combatantId of fight.roster.byId.keys()) {
             const reading = composeTooltipReadingFor(combatantId, fight, held, figures);
-            const said = composeTooltipRows(reading, live.translate);
-            if (said.length === 0) continue;
-            rows.set(combatantId, said);
+            rows.set(combatantId, composeTooltipRows(reading, live.translate));
         }
-        if (rows.size === 0) return;
-        writeRowsToTooltips(environment.page, rows);
+        live.tooltips.write(environment.page, rows);
     } catch (failure) {
         defects.add("region", null, failure);
     }
-}
-
-/**
- * Whose tooltip the client has just rebuilt: whom the payload restated, and on a payload carrying
- * warriors whom its focus pass updated — the one it left focused last time and the one it focuses
- * now (`src/game/engine-tooltip.ts`). A copy that joins a fight knows no last time, and misses a
- * focus that moves on the first payload it sees.
- */
-function readRebuiltIdsIntoLive(live: LiveFight, payload: unknown, page: unknown): Set<number> {
-    const rebuilt = readStatedIdsFromPayload(payload);
-    if (!hasWarriorsInPayload(payload)) return rebuilt;
-    const focused = readFocusedIdsFromPage(page);
-    for (const id of live.focusedIds) rebuilt.add(id);
-    for (const id of focused) rebuilt.add(id);
-    live.focusedIds = focused;
-    return rebuilt;
 }
 
 /**
@@ -1723,7 +1691,7 @@ function readPayloadIntoLive(
         live.translate = readDictionaryFromPage(environment.page);
         live.openedAt = environment.now();
     }
-    writeCarriedToTooltips(live, underway, environment, stated.payload, defects);
+    writeCarriedToTooltips(live, underway, environment, defects);
     // Once, on the call that ends it: a fight put on the shelf twice is two fights.
     if (fight !== null && fight.isOver && !live.wasOver) {
         live.wasOver = true;

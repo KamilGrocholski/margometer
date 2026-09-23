@@ -98,18 +98,17 @@ function composeProbe(): string {
  */
 function composeGame(place: string): string {
     return `window.MARGOMETER_TIPS = {};
+// The client's registry of tooltips is one string per fighter, and these four are all the add-on
+// asks of it (src/game/engine-tooltip.ts). \`told\` counts what an open tooltip was told.
+window.MARGOMETER_TOLD = {};
 var composeTipTarget = function (id) {
-  return {
-    find: function () {
-      return {
-        concatTip: function (row) {
-          var held = window.MARGOMETER_TIPS[id] || [];
-          held.push(row);
-          window.MARGOMETER_TIPS[id] = held;
-        }
-      };
-    }
+  var targets = {
+    getTipData: function () { return window.MARGOMETER_TIPS[id]; },
+    tip: function (content) { window.MARGOMETER_TIPS[id] = content; },
+    concatTip: function (row) { window.MARGOMETER_TIPS[id] += "<br>" + row; },
+    trigger: function () { window.MARGOMETER_TOLD[id] = (window.MARGOMETER_TOLD[id] || 0) + 1; }
   };
+  return { find: function () { return targets; } };
 };
 window.Engine = {
   battle: {
@@ -125,7 +124,7 @@ window.Engine = {
           // mutates — a payload restates only what moved, so a fighter replaced by it loses the
           // name they were introduced under — and a warrior with no name is one
           // \`readLiveWarriors\` steps over.
-          window.MARGOMETER_TIPS[id] = [];
+          window.MARGOMETER_TIPS[id] = "game";
           var held = window.Engine.battle.w[id] || { $: composeTipTarget(id) };
           for (var field in roster[id]) held[field] = roster[id][field];
           window.Engine.battle.w[id] = held;

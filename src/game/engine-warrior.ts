@@ -118,9 +118,8 @@ export function readCombatantsFromPayload(payload: unknown): Combatant[] {
 
 /**
  * Whom this payload restated. A payload carries only what moved — measured over `captures/` on
- * 2026-09-21, a combatant already seen is absent from 8631 of 14309 payloads — and the client
- * rebuilds a fighter's tooltip while updating them. This is most of the set whose tooltip has just
- * been rewritten; the rest is the client's focus pass (`src/game/engine-tooltip.ts`).
+ * 2026-09-21, a combatant already seen is absent from 8631 of 14309 payloads. Read by the rounds
+ * under `design/` that measure a payload's own cast.
  */
 export function readStatedIdsFromPayload(payload: unknown): Set<number> {
     const found = new Set<number>();
@@ -135,16 +134,6 @@ export function readStatedIdsFromPayload(payload: unknown): Set<number> {
     assert(found.size <= MAXIMUM_COMBATANTS, "a payload states no more than a fight holds");
     assert([...found].every((one) => Number.isSafeInteger(one)), "and every one of them whole");
     return found;
-}
-
-/**
- * Whether the client takes this payload's warriors up at all, which is what runs its focus pass:
- * `isset(r.w)&&(t.updateWarriors(r.w)…`, with `isset` being `t!==void 0` — production build
- * `Bb28FQty`, 2026-09-22. An empty `w`, or a null one, is taken up as well.
- */
-export function hasWarriorsInPayload(payload: unknown): boolean {
-    if (!isRecord(payload)) return false;
-    return payload[WARRIORS_KEY] !== undefined;
 }
 
 /**

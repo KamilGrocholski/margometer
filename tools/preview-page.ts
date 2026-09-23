@@ -513,9 +513,9 @@ ${composeSplitStyle()}`;
  * fighter this payload restated.
  *
  * ⚠️ **It is the real path, not a rendering of its own.** The fighters on this page carry a
- * `$` of the client's shape, so `src/game/engine-tooltip.ts` finds them, calls `concatTip` once
- * per row, and what stands here is whatever landed — a renamed method or a dropped row shows up
- * as an empty block rather than as a column that looks right.
+ * `$` of the client's shape, so `src/game/engine-tooltip.ts` finds them and writes through the
+ * registry's own methods, and what stands here is whatever landed — a renamed method or a dropped
+ * row shows up as an empty block rather than as a column that looks right.
  */
 function composePreviewTooltips(words: PreviewWords): string {
     assert(words.tooltips.length > 0, "the column says what it is showing");
@@ -610,18 +610,17 @@ function composePreviewStore(): string {
 function composePreviewGame(words: PreviewWords): string {
     assert(words.placeName.length > 0, "the place a bar draws is named by the tool, not a fight");
     const stood = `window.PREVIEW_TIPS = {};
+// The client's registry of tooltips is one string per fighter, and these four are all the add-on
+// asks of it (src/game/engine-tooltip.ts). What the game composes stands first, so a block of ours
+// always has a string of theirs to come off to.
 var composePreviewTipTarget = function (id) {
-  return {
-    find: function () {
-      return {
-        concatTip: function (row) {
-          var held = window.PREVIEW_TIPS[id] || [];
-          held.push(row);
-          window.PREVIEW_TIPS[id] = held;
-        }
-      };
-    }
+  var targets = {
+    getTipData: function () { return window.PREVIEW_TIPS[id]; },
+    tip: function (content) { window.PREVIEW_TIPS[id] = content; },
+    concatTip: function (row) { window.PREVIEW_TIPS[id] += "<br>" + row; },
+    trigger: function () {}
   };
+  return { find: function () { return targets; } };
 };
 // Accumulated, not replaced, because the client's own record is one object it mutates — a
 // payload restates only what moved, so a fighter replaced by it loses the name they were
@@ -641,7 +640,7 @@ window.Engine = {
         for (var id in roster) {
           // The client rebuilds a fighter's tooltip while updating them, so what was written
           // last time is gone before anything of ours is written this time.
-          window.PREVIEW_TIPS[id] = [];
+          window.PREVIEW_TIPS[id] = "game";
           var held = composePreviewWarrior(id, roster[id]);
           window.Engine.battle.w[id] = held;
           window.Engine.battle.warriorsList[id] = held;
@@ -654,7 +653,8 @@ window.Engine = {
   hero: { d: { x: 1, y: 1 } }
 };`;
     assertStringIncludes(stood, "updateData", "carrying the call the add-on puts its wrap on");
-    assertStringIncludes(stood, "concatTip", "and the one method the add-on writes through");
+    assertStringIncludes(stood, "concatTip", "and the methods the add-on writes through");
+    assertStringIncludes(stood, "getTipData", "and the one it finds its own block again by");
     assertStringIncludes(
         stood,
         "map",
@@ -678,14 +678,14 @@ function composePreviewTipsDriver(): string {
     const driver = `
 var tipsList = document.getElementById("preview-tips-list");
 
-// What landed in the tooltips this payload, fighter by fighter. Nothing is composed here: the
-// rows are whatever src/game/engine-tooltip.ts handed the fighters through their own concatTip.
+// What stands in the tooltips after this payload, fighter by fighter, less what the game composed.
+// Nothing is composed here: the rows are whatever src/game/engine-tooltip.ts left in the registry.
 var renderTips = function () {
   if (tipsList === null) return;
   var said = document.createDocumentFragment();
   var roster = window.Engine.battle.w;
   for (var id in roster) {
-    var rows = window.PREVIEW_TIPS[id] || [];
+    var rows = String(window.PREVIEW_TIPS[id] || "").split("<br>").slice(1);
     if (rows.length === 0) continue;
     var block = document.createElement("div");
     block.className = "preview-tip";

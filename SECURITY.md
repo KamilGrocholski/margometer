@@ -49,10 +49,16 @@ whole security model, and everything else is a consequence.
   the game already shows for a fighter — one call to the client's own `concatTip` per row, which
   holds its tooltips as strings in a registry of its own and writes the break between them itself,
   so a block of rows still costs this add-on no markup. **No node is made, moved, removed or
-  styled**, nothing of ours stands on the page, and the game overwrites that registry on its next
-  payload, so a detach leaves nothing behind. It is the only thing this add-on puts outside itself,
-  `src/game/engine-tooltip.ts` is the only file that does it, and **ADR 0105** carries what it cost
-  to decide.
+  styled**, and nothing of ours stands on the page.
+- **What is read back is our own block, and only to take it off.** The registry's string is read
+  with the client's `getTipData` to find the block this add-on left there; a changed one comes off
+  through the client's `tip`, handed that string less ours, and whatever else stands in it — the
+  game's, another add-on's — stays where it stood. After the rows go on, the add-on triggers
+  `tipupdate`, the event the client's own `tip` triggers, and the client's own code draws an open
+  tooltip again. The game rewrites a fighter's entry whenever it updates them, so a detach leaves
+  the last block only until then. It is the only thing this add-on puts outside itself,
+  `src/game/engine-tooltip.ts` is the only file that does it, and **ADR 0105**, **ADR 0107** and
+  **ADR 0111** carry what it cost to decide.
 
 ## Being a guest on the page
 

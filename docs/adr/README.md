@@ -275,3 +275,5 @@ edited to agree with the new rule.
   gives it, and nothing where the help gives none. **Accepted**
 - [0110](0110-turns-taken-and-turns-lost-stand-on-one-line.md) — Turns taken and turns lost stand on
   one line, divided and never added. **Accepted**
+- [0111](0111-the-block-is-found-again-and-an-open-tooltip-is-told.md) — The block is found again,
+  and an open tooltip is told. **Accepted**
