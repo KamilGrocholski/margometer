@@ -37,7 +37,7 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
-## [Niewydane]
+## [0.19.0] — 2026-09-23
 
 - **Nowość** — Najeżdżając na postać w walce zobaczysz w dymku gry, jaki cios specjalny ładuje i ile
   tur ładowania już minęło, jakie stany na niej stoją, ile tur wykonała, kto ją sprowokował i na ile
