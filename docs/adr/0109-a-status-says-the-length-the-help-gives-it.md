@@ -1,6 +1,6 @@
 # 0109. A status says the length the help gives it, and nothing where the help gives none
 
-- **Status:** Accepted
+- **Status:** Superseded by 0112 in part
 - **Date:** 2026-09-22
 
 ## Context
