@@ -272,7 +272,8 @@ edited to agree with the new rule.
 - [0108](0108-what-is-true-of-one-fighter-is-said-on-that-fighter.md) — What is true of one fighter
   is said on that fighter. **Accepted**
 - [0109](0109-a-status-says-the-length-the-help-gives-it.md) — A status says the length the help
-  gives it, and nothing where the help gives none. **Superseded by 0112 in part**
+  gives it, and nothing where the help gives none. **Superseded by 0112 in part, and by 0116 in
+  part**
 - [0110](0110-turns-taken-and-turns-lost-stand-on-one-line.md) — Turns taken and turns lost stand on
   one line, divided and never added. **Accepted**
 - [0111](0111-the-block-is-found-again-and-an-open-tooltip-is-told.md) — The block is found again,
@@ -280,10 +281,10 @@ edited to agree with the new rule.
 - [0112](0112-a-status-says-that-it-stands-and-only-two-rows-count-turns.md) — A status says that it
   stands, and only two rows count turns. **Superseded by 0113 in part, and by 0115 in part**
 - [0113](0113-dotyk-aniola-counts-the-heals-it-has-given.md) — Dotyk anioła counts the heals it has
-  given, not the turns it has left. **Accepted**
+  given, not the turns it has left. **Superseded by 0116 in part**
 - [0114](0114-the-game-s-windows-stand-over-the-panel.md) — The game's windows stand over the panel.
   **Accepted**
 - [0115](0115-a-charge-stands-first-in-a-fighter-s-tooltip.md) — A charge stands first in a
-  fighter's tooltip. **Accepted**
+  fighter's tooltip. **Superseded by 0116 in part**
 - [0116](0116-the-tooltip-keeps-one-order-and-a-counter-is-a-bare-pair.md) — The tooltip keeps one
   order, and a counter is a bare pair. **Accepted**

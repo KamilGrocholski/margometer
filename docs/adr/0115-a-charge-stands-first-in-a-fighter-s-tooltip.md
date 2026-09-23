@@ -1,6 +1,6 @@
 # 0115. A charge stands first in a fighter's tooltip
 
-- **Status:** Accepted
+- **Status:** Superseded by 0116 in part
 - **Date:** 2026-09-23
 
 ## Context

@@ -1,6 +1,6 @@
 # 0113. Dotyk anioła counts the heals it has given, not the turns it has left
 
-- **Status:** Accepted
+- **Status:** Superseded by 0116 in part
 - **Date:** 2026-09-23
 
 ## Context
