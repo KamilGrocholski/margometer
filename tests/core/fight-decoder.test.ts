@@ -23,6 +23,7 @@ import {
     MESSAGES_MAXIMUM,
     NAME_LENGTH_MAXIMUM,
 } from "@/src/core/fight-decoder.ts";
+import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "@/src/core/turn-clock.ts";
 import {
     BLOWS_GRANTED,
     decodeRecordedFight,
@@ -882,6 +883,25 @@ Deno.test("a reach the table could not bound still stops where the bound says", 
     assertEquals(attacks.length, 5, "every blow is read");
     assertEquals(attacks[3]?.announced?.skillName, "Struna płomienna", "the fourth still rides it");
     assertEquals(attacks[4]?.announced, null, "and the fifth is past what the bound allows");
+});
+
+/**
+ * The claim above is a property of this corpus under this rule, not a theorem: a blow past what
+ * the table granted would still stand mid-strike under no announcement. No recording carries one,
+ * 0 runs of three after an announcement, so it is written out rather than left unsaid.
+ */
+Deno.test("a blow past what the table granted takes no skill, and opens no turn", () => {
+    const events = decode([GRANTED_ANNOUNCEMENT, GRANTED_FIRST, GRANTED_SECOND, GRANTED_SECOND]);
+    let standing = NO_TURN_STANDING;
+    const openers: (number | null)[] = [];
+    for (const event of events) {
+        openers.push(event.kind === "attack" ? lookupTurnOpener(event, standing) : null);
+        standing = composeTurnStanding(event, standing);
+    }
+    const attacks = events.filter((event) => event.kind === "attack");
+    assertEquals(attacks.length, 3, "three blows are read");
+    assertEquals(attacks[2]?.announced, null, "the third is past what the table granted");
+    assertStrictEquals(openers.at(-1), null, "and it opens no turn, so the two readings disagree");
 });
 
 /** The one event of a message, which is left unread, and the keys it names as unread. */

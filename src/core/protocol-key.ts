@@ -74,6 +74,29 @@ export const HOLYTOUCH_DECLARATION_KEY = "+legbon_holytouch";
 export const HOLYTOUCH_HEAL_KEY = "legbon_holytouch_heal";
 /** The legendary bonus that heals once a fight, stated by name inside the value. */
 export const LASTHEAL_KEY = "legbon_lastheal";
+/** The reduction of healing the help scopes to the caster's opposing side. */
+export const HEALING_REDUCER_KEY = "lowheal_per-enemies";
+/**
+ * Two keys, not one: `+injure` announces the wound a blow has just left, and `injure` is that
+ * wound ticking afterwards, in a message of its own.
+ */
+export const WOUND_ANNOUNCEMENT_KEY = "+injure";
+export const WOUND_TICK_KEY = "injure";
+const HEAL_KEY = "heal";
+/** A blow landing critically, and the game's own `of_` spelling of the same. */
+const CRITICAL_KEY = "+crit";
+const CRITICAL_OF_KEY = "+of_crit";
+export const CRITICAL_PROC_KEYS: readonly string[] = [CRITICAL_KEY, CRITICAL_OF_KEY];
+/**
+ * The keys whose giver is the one healed, on the published help's word rather than on the
+ * grammar: each entry's `_Cause:_` in `develop:docs/protocol-keys.md` reads *the subject's own*.
+ * Being stated at one end is not what puts a key here. `[ASK]` before a fourth joins the list.
+ */
+export const SELF_SOURCED_HEALING_KEYS: readonly string[] = [
+    HEAL_KEY,
+    HOLYTOUCH_HEAL_KEY,
+    LASTHEAL_KEY,
+];
 
 /** The one pair the family rule cannot reach, because the key carries no marker. */
 const DAMAGE_KEYS = ["+thirdatt", "-thirdatt"];
@@ -97,8 +120,8 @@ const DESTROYED_KEYS = [
  * and reaches a player as a message nobody could read.
  */
 const PROC_END_BY_KEY: ReadonlyMap<string, ProcEnd> = new Map<string, ProcEnd>([
-    ["+crit", "actor"],
-    ["+of_crit", "actor"],
+    [CRITICAL_KEY, "actor"],
+    [CRITICAL_OF_KEY, "actor"],
     ["+pierce", "actor"],
     ["-pierceb", "target"],
     ["+stun", "actor"],
@@ -146,13 +169,13 @@ const PROCS_WITH_VALUE = [
  * to. Both are ours to supply; the protocol states a magnitude and leaves the rest to the key.
  */
 const HEALTH_CHANGE_BY_KEY = new Map<string, { sign: 1 | -1; isOnTarget: boolean }>([
-    ["heal", { sign: 1, isOnTarget: false }],
+    [HEAL_KEY, { sign: 1, isOnTarget: false }],
     [HOLYTOUCH_HEAL_KEY, { sign: 1, isOnTarget: false }],
     ["heal_target", { sign: 1, isOnTarget: true }],
     ["npc_heal", { sign: 1, isOnTarget: false }],
     ["bandage", { sign: 1, isOnTarget: false }],
     ["poison", { sign: -1, isOnTarget: false }],
-    ["injure", { sign: -1, isOnTarget: false }],
+    [WOUND_TICK_KEY, { sign: -1, isOnTarget: false }],
     ["wound", { sign: -1, isOnTarget: false }],
     ["fire", { sign: -1, isOnTarget: false }],
     ["light", { sign: -1, isOnTarget: false }],
@@ -173,7 +196,7 @@ const DECLARATION_KEYS = [
     "+crush_physical",
     "+engback",
     "+exp",
-    "+injure",
+    WOUND_ANNOUNCEMENT_KEY,
     "+legbon_puncture",
     "+ph",
     "+rage",
@@ -203,7 +226,7 @@ const DECLARATION_KEYS = [
     "heal_per-enemies",
     "hp_per-allies",
     "hp_per-enemies",
-    "lowheal_per-enemies",
+    HEALING_REDUCER_KEY,
     "mana",
     "poison_lowdmg_per-enemies",
     PREPARE_KEY,

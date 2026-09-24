@@ -48,6 +48,8 @@ const WARRIOR_FIELDS = {
     level: "lvl",
     health: "hp",
     healthMaximum: "max",
+    healthNow: "cur",
+    healthPercent: "hpp",
 } as const;
 
 export interface RecordedFight {
@@ -55,8 +57,17 @@ export interface RecordedFight {
     /** One list per call the engine made, which is the unit an announcement is glued inside. */
     payloads: readonly (readonly string[])[];
     messages: readonly string[];
-    /** Off the snapshots, first sighting kept. One recording holds no snapshot, and so nobody. */
+    /** Off the snapshots, first sighting kept. Two recordings hold no snapshot, and so nobody. */
     combatants: readonly Combatant[];
+    /** Every snapshot's health, as the client itself stated all three figures. */
+    healthReadings: readonly RecordedHealth[];
+}
+
+export interface RecordedHealth {
+    combatantId: number;
+    health: number;
+    healthMaximum: number;
+    healthPercent: number;
 }
 
 export interface RecordedDecoding {
@@ -105,6 +116,7 @@ function readRecordedFight(path: string, document: unknown): RecordedFight {
     assert(Array.isArray(calls), `${path} lists the calls the engine made`);
     const payloads: string[][] = [];
     const byId = new Map<number, Combatant>();
+    const healthReadings: RecordedHealth[] = [];
     for (const call of calls) {
         const carried = readRecordedField(call, CAPTURE_FIELDS.messages, path);
         assert(Array.isArray(carried), `${path} states the messages a call carried`);
@@ -118,12 +130,27 @@ function readRecordedFight(path: string, document: unknown): RecordedFight {
         if (!Array.isArray(after)) continue;
         for (const snapshot of after) {
             const combatant = readRecordedCombatant(snapshot, path);
+            healthReadings.push(readRecordedHealth(snapshot, path));
             const first = byId.get(combatant.id);
             if (first === undefined) byId.set(combatant.id, combatant);
             else assertEquals(first, combatant, `${path} restates a combatant differently`);
         }
     }
-    return { path, payloads, messages: payloads.flat(), combatants: [...byId.values()] };
+    const combatants = [...byId.values()];
+    return { path, payloads, messages: payloads.flat(), combatants, healthReadings };
+}
+
+function readRecordedHealth(snapshot: unknown, path: string): RecordedHealth {
+    const combatantId = readRecordedField(snapshot, WARRIOR_FIELDS.id, path);
+    const held = readRecordedField(snapshot, WARRIOR_FIELDS.health, path);
+    const health = readRecordedField(held, WARRIOR_FIELDS.healthNow, path);
+    const healthMaximum = readRecordedField(held, WARRIOR_FIELDS.healthMaximum, path);
+    const healthPercent = readRecordedField(held, WARRIOR_FIELDS.healthPercent, path);
+    assert(typeof combatantId === "number", `${path}: an id`);
+    assert(typeof health === "number", `${path}: health held`);
+    assert(typeof healthMaximum === "number", `${path}: a health maximum`);
+    assert(typeof healthPercent === "number", `${path}: a health percentage`);
+    return { combatantId, health, healthMaximum, healthPercent };
 }
 
 function readRecordedCombatant(snapshot: unknown, path: string): Combatant {
