@@ -500,7 +500,13 @@ They are not folded in as payloads arrive: sizing a team heal reads messages fro
 ```ts
 /** As tallying: the bounds are asserted, and a broken one is the frame step's defect. */
 export function replayFightStandings(view: FightView, stated: StatedSkills): FightStandings;
+/** What a carried status comes to, where a standing cast of its key reaches the bearer's side. */
+export function tallyCarriedFigures(reading: CarriedFigureReading): CarriedFigure[];
 ```
+
+Which side a key reaches is `getKeyReading`'s file's to say (`lookupKeyReach`), beside what the key
+means. The published tables (`StatedSkills`, the blows granted, the status bits) are handed in by
+whoever holds a frozen reading; `core/` imports none.
 
 ## 7. The game's edge
 

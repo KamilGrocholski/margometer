@@ -27,8 +27,8 @@ import {
     SESSION_OPTIONS,
 } from "@/src/core/fight-session.ts";
 import { tallyFightStatistics } from "@/src/core/fight-statistics.ts";
+import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
 import {
-    BLOWS_GRANTED,
     decodeRecordedFight,
     readRecordedFights,
     type RecordedFight,

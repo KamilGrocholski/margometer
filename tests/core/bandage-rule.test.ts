@@ -11,7 +11,8 @@ import { indexCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { getStatedHealthsFromEvent } from "@/src/core/combatant-health.ts";
 import { decodePayloadMessages } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
-import { BLOWS_GRANTED, lookupRecordedFight, readRecordedFights } from "@/tests/recorded-fights.ts";
+import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
+import { lookupRecordedFight, readRecordedFights } from "@/tests/recorded-fights.ts";
 
 const KEY = "bandage";
 const BANDAGE = "captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json";

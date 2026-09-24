@@ -10,8 +10,8 @@ import { assert, assertEquals, assertExists } from "@std/assert";
 import { indexCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodePayloadMessages } from "@/src/core/fight-decoder.ts";
 import { parseProtocolMessage } from "@/src/core/protocol-message.ts";
+import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
 import {
-    BLOWS_GRANTED,
     lookupRecordedFight,
     readRecordedFights,
     type RecordedFight,

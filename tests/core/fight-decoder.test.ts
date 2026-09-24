@@ -24,8 +24,8 @@ import {
     NAME_LENGTH_MAXIMUM,
 } from "@/src/core/fight-decoder.ts";
 import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "@/src/core/turn-clock.ts";
+import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
 import {
-    BLOWS_GRANTED,
     decodeRecordedFight,
     lookupRecordedFight,
     readRecordedFights,

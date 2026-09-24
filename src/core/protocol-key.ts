@@ -76,6 +76,13 @@ export const HOLYTOUCH_HEAL_KEY = "legbon_holytouch_heal";
 export const LASTHEAL_KEY = "legbon_lastheal";
 /** The reduction of healing the help scopes to the caster's opposing side. */
 export const HEALING_REDUCER_KEY = "lowheal_per-enemies";
+/** The key an announcement carries when it provokes: its value names the provoked. */
+export const PROVOCATION_KEY = "shout";
+/** Keys stating a figure for a status a mask witnesses (`develop:docs/auras-standing.md`). */
+export const SLOW_ALL_KEY = "allslow_per";
+export const HASTE_AURA_KEY = "aura-sa_per";
+/** Between the names in a value that carries several: `winner`, `loser` and `shout` all use it. */
+export const NAME_SEPARATOR = ", ";
 /**
  * Two keys, not one: `+injure` announces the wound a blow has just left, and `injure` is that
  * wound ticking afterwards, in a message of its own.
@@ -212,11 +219,11 @@ const DECLARATION_KEYS = [
     "active_decblock_per-enemies",
     "afterheal",
     "alllowdmg",
-    "allslow_per",
+    SLOW_ALL_KEY,
     "aura-ac_per",
     "aura-adddmg2_per-meele",
     "aura-resall",
-    "aura-sa_per",
+    HASTE_AURA_KEY,
     "combo-max",
     "critmval-allies",
     "critval-allies",
@@ -230,7 +237,7 @@ const DECLARATION_KEYS = [
     "mana",
     "poison_lowdmg_per-enemies",
     PREPARE_KEY,
-    "shout",
+    PROVOCATION_KEY,
     "surpass_bonus_total",
     TEXT_KEY,
 ];
@@ -252,7 +259,67 @@ const VALUELESS_DECLARATION_KEYS = [
     "sunshield_per",
 ];
 
+/**
+ * Which side a cast reaches, relative to its caster: not which side is the reader's, which is the
+ * panel's to say. A key absent from the table reaches **nothing stated**.
+ */
+export const KEY_REACHES = ["casters-side", "other-side"] as const;
+export type KeyReach = (typeof KEY_REACHES)[number];
+
+/** Cited in `develop:docs/auras-standing.md`, which cites the register, which cites the help. */
+const REACH_BY_KEY: ReadonlyMap<string, KeyReach> = new Map<string, KeyReach>([
+    // The `all` says everybody and not which side. The register: _a reduction to the damage dealt
+    // by everyone on the opposing side_ (`develop:docs/protocol-keys.md`).
+    ["alllowdmg", "other-side"],
+    ["+spell-taken_dmg-all", "other-side"],
+    [HEALING_REDUCER_KEY, "other-side"],
+    ["active_decblock_per-enemies", "other-side"],
+    ["poison_lowdmg_per-enemies", "other-side"],
+    // ⚠️ The one the register does not settle. Measured over `develop:captures/` 2026-09-09: after
+    // a `Szadź` the opposing combatant carries `swow_down` in 77 casts of 77.
+    [SLOW_ALL_KEY, "other-side"],
+    ["aura-adddmg2_per-meele", "casters-side"],
+    ["aura-ac_per", "casters-side"],
+    ["aura-resall", "casters-side"],
+    [HASTE_AURA_KEY, "casters-side"],
+    ["critval-allies", "casters-side"],
+    ["critmval-allies", "casters-side"],
+    ["removedot-allies", "casters-side"],
+    ["removeslow-allies", "casters-side"],
+    ["removestun-allies", "casters-side"],
+    // The affected are forced to attack _Postaci, która użyła umiejętności_: you do not force an
+    // ally to strike you. Over `develop:captures/` 2026-09-22, 168 of 168 characters named across
+    // 166 announcements stand opposite the caster.
+    [PROVOCATION_KEY, "other-side"],
+]);
+
+const TEAM_WIDE_OPENING = "aura-";
+const TEAM_WIDE_ENDINGS = ["-all", "-allies", "-enemies"];
+/**
+ * Team-wide by meaning, carrying neither shape above. `healall_per` is not here because it is
+ * health rather than a standing, and reaches a row of its own.
+ */
+const TEAM_WIDE_KEYS = [PROVOCATION_KEY, SLOW_ALL_KEY, "alllowdmg"];
+
 const KEY_READING_BY_KEY: ReadonlyMap<string, KeyReading> = indexKeyReadings();
+
+/** `null`: the key reaches no side anybody has stated. */
+export function lookupKeyReach(key: string): KeyReach | null {
+    assert(key.length > 0, "a reach is asked of a key");
+    const reach = REACH_BY_KEY.get(key) ?? null;
+    if (reach !== null) assert(isTeamWideKey(key), "a key reaching a side is a team-wide key");
+    return reach;
+}
+
+/** Whether a key reaches more than one combatant, by its shape or by its meaning. */
+export function isTeamWideKey(key: string): boolean {
+    assert(key.length > 0, "a key that is asked about is named");
+    if (key.startsWith(TEAM_WIDE_OPENING)) return true;
+    for (const ending of TEAM_WIDE_ENDINGS) {
+        if (key.endsWith(ending)) return true;
+    }
+    return TEAM_WIDE_KEYS.includes(key);
+}
 
 export function getKeyReading(key: string): KeyReading | null {
     assert(key.length > 0, "a key asked about is a key the message wrote");

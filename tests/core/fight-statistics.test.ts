@@ -19,7 +19,8 @@ import {
     tallyFightStatistics,
     verifyFightStatistics,
 } from "@/src/core/fight-statistics.ts";
-import { BLOWS_GRANTED, readRecordedFights } from "@/tests/recorded-fights.ts";
+import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
+import { readRecordedFights } from "@/tests/recorded-fights.ts";
 
 /** One payload decoded from no standing, as the session decodes one. */
 function decode(messages: readonly string[], roster: CombatantRoster | null): BattleEvent[] {

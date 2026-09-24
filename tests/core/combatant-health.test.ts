@@ -15,7 +15,8 @@ import {
 } from "@/src/core/combatant-health.ts";
 import { indexCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodePayloadMessages } from "@/src/core/fight-decoder.ts";
-import { BLOWS_GRANTED, readRecordedFights } from "@/tests/recorded-fights.ts";
+import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
+import { readRecordedFights } from "@/tests/recorded-fights.ts";
 
 const PERCENT_PLACES = 100;
 

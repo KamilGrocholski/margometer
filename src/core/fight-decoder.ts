@@ -34,6 +34,7 @@ import {
     getKeyReading,
     KEY_FAMILY,
     type KeyReading,
+    NAME_SEPARATOR,
     RAW_SIGN,
     SKILL_ID_KEY,
     TEXT_KEY,
@@ -113,8 +114,6 @@ const PERCENT_OPENER = "(";
 const PERCENT_CLOSER = "%)";
 /** The key a draw arrives on is the winners'; the same mark on the losers' is not read. */
 const NO_WINNER = "?";
-/** Between the names of a side. */
-const NAME_SEPARATOR = ", ";
 /**
  * What the game puts between the combatant it is talking about and what it has to say, and how it
  * ends a sentence about something other than a turn. 319 of 319 turns lost over

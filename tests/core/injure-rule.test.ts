@@ -17,7 +17,8 @@ import {
 } from "@/src/core/fight-statistics.ts";
 import { WOUND_ANNOUNCEMENT_KEY, WOUND_TICK_KEY as TICK_KEY } from "@/src/core/protocol-key.ts";
 import { parseProtocolMessage, type ProtocolMessage } from "@/src/core/protocol-message.ts";
-import { BLOWS_GRANTED, lookupRecordedFight, readRecordedFights } from "@/tests/recorded-fights.ts";
+import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
+import { lookupRecordedFight, readRecordedFights } from "@/tests/recorded-fights.ts";
 
 /** A victim wounded by three different attackers, which is what makes *freshest* a claim. */
 const THREE_ATTACKERS = "captures/2026-08-15-tempest-grupa-vs-hildur-3-1786514810315-none.json";

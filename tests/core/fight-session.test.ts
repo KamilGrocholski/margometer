@@ -31,7 +31,7 @@ import {
     SESSION_OPTIONS,
     SESSION_PHASE,
 } from "@/src/core/fight-session.ts";
-import { BLOWS_GRANTED } from "@/tests/recorded-fights.ts";
+import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
 
 const NOTHING: PayloadRecord = {
     isInit: false,

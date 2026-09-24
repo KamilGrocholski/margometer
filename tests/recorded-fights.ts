@@ -9,27 +9,10 @@
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { type Combatant, indexCombatantRoster } from "@/src/core/combatant-roster.ts";
-import {
-    decodePayloadMessages,
-    type DecoderTables,
-    indexBlowsGrantedBySkillId,
-    type UnreadMessage,
-} from "@/src/core/fight-decoder.ts";
+import { decodePayloadMessages, type UnreadMessage } from "@/src/core/fight-decoder.ts";
+import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
 
 export const RECORDINGS_REVISION = "fa1dcce";
-
-/**
- * The published table as `develop:frozen/blows-granted.ts` froze it, fetched
- * 2026-09-23T08:58:25.997Z. A test wanting the rule with no table behind it hands over an empty
- * map instead.
- */
-export const BLOWS_GRANTED: DecoderTables = {
-    blowsGrantedBySkillId: indexBlowsGrantedBySkillId([
-        { id: 97, blowsGrantedMinimum: 1 },
-        { id: 239, blowsGrantedMinimum: 1 },
-        { id: 283, blowsGrantedMinimum: 2 },
-    ]),
-};
 
 const RECORDINGS_DIRECTORY = "captures/";
 const RECORDING_EXTENSION = ".json";

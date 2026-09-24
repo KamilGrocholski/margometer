@@ -14,7 +14,8 @@ import { decodePayloadMessages, type DecoderTables } from "@/src/core/fight-deco
 import { tallyFightStatistics, verifyFightStatistics } from "@/src/core/fight-statistics.ts";
 import { parseProtocolMessage, type ProtocolMessage } from "@/src/core/protocol-message.ts";
 import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "@/src/core/turn-clock.ts";
-import { BLOWS_GRANTED, readRecordedFights, type RecordedFight } from "@/tests/recorded-fights.ts";
+import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
+import { readRecordedFights, type RecordedFight } from "@/tests/recorded-fights.ts";
 
 /**
  * The keys are the game's, restated here on purpose: a test reading the decoder's own table back
