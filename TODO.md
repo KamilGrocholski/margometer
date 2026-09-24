@@ -20,6 +20,7 @@
 - [ ] Data: !!!IMPORTANT!!! Get more combat data — higher levels, more enemies, and 10vs10 player vs. player fights (I really need this for further development, now I only know 1-93lvl)
 
 ## Up Next
+- [ ] Fix: Do not interrupt the userspace
 - [ ] Feat: A user SHOULD be able to see his character in the ranking, and `Pomocnik` in an easier way - maybe marker or font color
 - [ ] Fix: A click on a row in `Pomocnik` selects its text
 - [ ] Plan: Should dmg applied and taken take into account only health or also absorbtion?
@@ -27,6 +28,8 @@
 - [ ] Plan: Add a fight visualization - a simple chart with bars or something
 
 ## Done
+- [x] Check: Verify the naming - margometer->margonem, margonem->margometer, internal
+- [x] Fix: !!!IMPORTANT!!! The game's css index should have higher priority than ours
 
 ## Later
 - [ ] Add views for: abilities ranking - uses, dmg, heal, etc; legbon ranking - procs;
@@ -38,6 +41,9 @@
 
 ---
 ## History
+
+### Done v0.19.0
+- [x] Fix: Game mechanics misunderstood - updating `Pomocnik` and adding tips(ask discord after)
 
 ### Done v0.18.0, v0.17.0
 - [x] Feat: A special skill in `Pomocnik` SHOULD have a tip - every row SHOULD(do it also in this task)
