@@ -1,0 +1,261 @@
+/**
+ * Every column of shares the panel draws comes to a hundred (`develop:DESIGN.md`).
+ *
+ * A section short of the whole is the failure this repository exists to prevent, one rung down: a
+ * reader adds the rows, gets ninety-four, and has no way of knowing whether six points went
+ * missing or were never there. So the rule is held over every recording, every screen, every seat
+ * and every rung, rather than over the one screen a change was made on.
+ */
+
+import {
+    assert,
+    assertEquals,
+    AssertionError,
+    assertNotStrictEquals,
+    assertThrows,
+} from "@std/assert";
+import { SHARE_FLOOR } from "@/src/ui/panel-words.ts";
+import { parseSharePoints } from "@/tests/share-text.ts";
+import {
+    NOTHING_SUSPECT,
+    PINNED_STANDING,
+    presentDrill,
+    presentPair,
+    presentPart,
+    presentScreen,
+} from "@/src/ui/panel-reading.ts";
+import {
+    OPENED_PART,
+    type PanelMetric,
+    type PanelSideChoice,
+    SCREEN_ORDER,
+    SIDE_CHOICE,
+} from "@/src/ui/panel-screen.ts";
+import { readRecordedFights, tallyRecordedFight } from "@/tests/recorded-fights.ts";
+
+const HUNDRED = 100;
+/** What a row holding something too small to state a point prints, in place of a share. */
+const NO_SHARE = "0%";
+
+/** As a row is drawn: what it holds, beside the share it printed for it. */
+interface ShareRow {
+    figure: number;
+    shareText: string;
+}
+
+interface Section {
+    where: string;
+    rows: ShareRow[];
+    total: number;
+}
+
+/** Null where the column is not drawn at all: a section nobody sees makes no claim. */
+function getShareSum(section: Section): number | null {
+    if (section.total <= 0) return null;
+    if (section.rows.length === 0) return null;
+    return section.rows.reduce((sum, one) => sum + parseSharePoints(one.shareText), 0);
+}
+
+/**
+ * Nothing prints `0%` and something below a point prints `<1%`, and the two are never swapped: a
+ * row saying nought where a figure stands is the panel losing it, and one saying `<1%` where none
+ * does is the panel inventing it. A `<1%` row costs the column no point, so a column carrying one
+ * still comes to a hundred in the numbers it prints.
+ */
+function expectShareTellsNothingFromSomething(where: string, row: ShareRow): void {
+    assert(row.figure >= 0, `${where}: a row drawn holds no less than nothing`);
+    if (row.figure === 0) {
+        assertEquals(row.shareText, NO_SHARE, `${where}: a row holding nothing states a share`);
+        return;
+    }
+    assertNotStrictEquals(
+        row.shareText,
+        NO_SHARE,
+        `${where}: ${row.figure} printed as none of the whole`,
+    );
+    if (row.shareText === SHARE_FLOOR) return;
+    assert(parseSharePoints(row.shareText) > 0, `${where}: a share of nought is not a share`);
+}
+
+/**
+ * Every rung under one row. The closing row of each cut is part of its column: it is what the
+ * rows above do not hold, so a column read without it is the shortfall itself.
+ */
+function composeSectionsForScreenRow(
+    fight: ReturnType<typeof tallyRecordedFight>,
+    metric: PanelMetric,
+    combatantId: number,
+): Section[] {
+    const { roster, statistics } = fight;
+    const drill = presentDrill(statistics, roster, metric, combatantId);
+    if (drill === null) return [];
+    const found: Section[] = [
+        {
+            where: `${metric}/drill.byOpponent`,
+            rows: composeCutShares(drill.byOpponent.rows, drill.byOpponent.unnamed),
+            total: drill.total,
+        },
+        {
+            where: `${metric}/drill.bySkill`,
+            rows: composeCutShares(drill.bySkill.rows, drill.bySkill.plain),
+            total: drill.total,
+        },
+        {
+            where: `${metric}/drill.byElement`,
+            rows: composeCutShares(drill.byElement.rows, drill.byElement.unnamed),
+            total: drill.total,
+        },
+    ];
+    for (const other of drill.byOpponent.rows) {
+        const at = [combatantId, other.combatantId] as const;
+        const pair = presentPair(statistics, roster, metric, at[0], at[1]);
+        if (pair === null) continue;
+        found.push({
+            where: `${metric}/pair.parts`,
+            rows: composeCutShares(pair.parts, null),
+            total: pair.total,
+        });
+        found.push({
+            where: `${metric}/pair.byElement`,
+            rows: composeCutShares(pair.byElement.rows, pair.byElement.unnamed),
+            total: pair.total,
+        });
+    }
+    // Every kind of part, and the kinds beside the announcements: each opens onto a level of
+    // its own, and a column that came to ninety-something on any of them is the finding.
+    const parts = [
+        ...drill.bySkill.rows.map((one) => one.part),
+        ...drill.byElement.rows.map((one) => ({ kind: OPENED_PART.element, element: one.element })),
+    ];
+    for (const part of parts) {
+        const held = presentPart(statistics, roster, metric, combatantId, part);
+        if (held === null) continue;
+        found.push({
+            where: `${metric}/part.byOpponent`,
+            rows: composeCutShares(held.byOpponent.rows, held.byOpponent.unnamed),
+            total: held.total,
+        });
+    }
+    return found;
+}
+
+/** The ranking of one screen for one seat, and every rung the rows on it open onto. */
+function composeSectionsForScreen(
+    fight: ReturnType<typeof tallyRecordedFight>,
+    metric: PanelMetric,
+    side: PanelSideChoice,
+    readerSide: number | null,
+): Section[] {
+    const { roster, statistics } = fight;
+    const reading = presentScreen(
+        statistics,
+        roster,
+        metric,
+        side,
+        readerSide,
+        NOTHING_SUSPECT,
+    );
+    const found: Section[] = [{
+        where: `${metric}/ranking`,
+        // A pinned figure standing as a cut is already inside the rows; only one standing apart
+        // joins the whole, which is the arithmetic `presentScreen` shares them by. The
+        // section under the list joins it too: it is what the screen counts and no row above it
+        // holds, so a column read without it is the shortfall itself.
+        rows: [
+            ...reading.rows,
+            ...reading.pinned.filter((one) => one.standing === PINNED_STANDING.apart),
+            ...(reading.outsideRanking === null ? [] : [reading.outsideRanking]),
+        ],
+        total: reading.total,
+    }];
+    for (const row of reading.rows) {
+        found.push(...composeSectionsForScreenRow(fight, metric, row.combatantId));
+    }
+    return found;
+}
+
+function composeCutShares(
+    rows: readonly ShareRow[],
+    closing: ShareRow | null,
+): ShareRow[] {
+    const shares = rows.map((one) => ({ figure: one.figure, shareText: one.shareText }));
+    if (closing === null) return shares;
+    return [...shares, { figure: closing.figure, shareText: closing.shareText }];
+}
+
+Deno.test("every column of shares the panel draws comes to a hundred", () => {
+    let drawn = 0;
+    for (const path of readRecordedFights().map((one) => one.path)) {
+        const fight = tallyRecordedFight(path);
+        const seats = [...new Set([...fight.roster.byId.values()].map((one) => one.side))];
+        for (const readerSide of [null, ...seats]) {
+            for (
+                const side of [
+                    SIDE_CHOICE.everyone,
+                    SIDE_CHOICE.reader,
+                    SIDE_CHOICE.opposing,
+                ] as const
+            ) {
+                if (readerSide === null && side !== SIDE_CHOICE.everyone) continue;
+                for (const metric of SCREEN_ORDER) {
+                    for (
+                        const section of composeSectionsForScreen(fight, metric, side, readerSide)
+                    ) {
+                        const sum = getShareSum(section);
+                        if (sum === null) continue;
+                        drawn += 1;
+                        assertEquals(sum, HUNDRED, `${path}: ${section.where} comes to ${sum}`);
+                        for (const row of section.rows) {
+                            expectShareTellsNothingFromSomething(
+                                `${path}: ${section.where}`,
+                                row,
+                            );
+                        }
+                    }
+                }
+            }
+        }
+    }
+    // The reader is proved by what it found as well as by what it passed: a sweep that stopped
+    // reaching the rungs would agree with every screen it never opened.
+    assertEquals(drawn, 48_735, "every column the corpus draws, 2026-09-21");
+});
+
+function composeSection(where: string, rows: ShareRow[], total: number): Section {
+    return { where, rows, total };
+}
+
+/** The sample it must flag, so a green run is the columns adding up and not the reader stopping. */
+Deno.test("a column short of the whole is read as short", () => {
+    const short = composeSection("made up", [
+        { figure: 600, shareText: "60%" },
+        { figure: 340, shareText: "34%" },
+    ], 1000);
+    assertEquals(getShareSum(short), 94, "the reader adds a column that misses the hundred");
+    const floored = composeSection("made up", [
+        { figure: 994, shareText: "99%" },
+        { figure: 1, shareText: SHARE_FLOOR },
+        { figure: 5, shareText: "1%" },
+    ], 1000);
+    assertEquals(getShareSum(floored), 100, "a row below a point costs the column no point");
+    assertEquals(getShareSum(composeSection("made up", [], 1000)), null, "an undrawn column");
+    const whole: ShareRow[] = [{ figure: 1, shareText: "100%" }];
+    assertEquals(getShareSum(composeSection("made up", whole, 0)), null, "or one of nothing");
+});
+
+/** And the two the other reader must flag, which are the ways a row can misword what it holds. */
+Deno.test("a row wording nothing as something, or the reverse, is read as wrong", () => {
+    expectShareTellsNothingFromSomething("held", { figure: 0, shareText: NO_SHARE });
+    expectShareTellsNothingFromSomething("held", { figure: 1, shareText: SHARE_FLOOR });
+    expectShareTellsNothingFromSomething("held", { figure: 500, shareText: "50%" });
+    assertThrows(
+        () => expectShareTellsNothingFromSomething("held", { figure: 1, shareText: NO_SHARE }),
+        AssertionError,
+        "printed as none of the whole",
+    );
+    assertThrows(
+        () => expectShareTellsNothingFromSomething("held", { figure: 0, shareText: SHARE_FLOOR }),
+        AssertionError,
+        "a row holding nothing states a share",
+    );
+});

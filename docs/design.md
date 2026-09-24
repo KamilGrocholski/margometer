@@ -798,20 +798,30 @@ export const FAILURE_FATES: { readonly [Kind in RuntimeFailure["kind"]]: Failure
 
 ## 9. UI
 
+A reading is a plain function of what it is handed, and returns the reading itself, as `develop`
+does: its inputs are the statistics, the roster, the metric, the side chosen, the reader's side and
+the suspicions, and the words are the module's, not a parameter. The two failures a reading could
+name are degraded in place (E12) rather than returned: rows past the roster's bound are clamped to
+`COMBATANTS_MAXIMUM` after the sort, and a combatant missing from the roster reads with no side and
+no name. The status bits the tooltip words are handed in, since `ui/` imports no frozen table.
+
 ```ts
 export function presentScreen(
-    figures: FightFigures,
-    view: FightView,
-    screen: ScreenState,
-    words: PanelWords,
-): Result<ScreenReading, ReadingFailure>;
+    statistics: FightStatistics,
+    roster: CombatantRoster,
+    metric: PanelMetric,
+    choice: PanelSideChoice,
+    readerSide: number | null,
+    suspicions: FightSuspicions,
+): ScreenReading;
 export function presentStanding(
-    standings: FightStandings,
-    view: FightView,
-): Result<StandingReading, ReadingFailure>;
-export type ReadingFailure =
-    | { kind: "combatant-not-in-roster"; combatantId: number }
-    | { kind: "rows-clamped"; rows: number; maximum: number };
+    provocations: readonly ProvocationStanding[],
+    chargedSkills: readonly ChargedSkillStanding[],
+    roster: CombatantRoster,
+    readerSide: number | null,
+    turn: StandingTurn,
+): StandingReading;
+// and presentDrill, presentPair, presentPart, presentHalfNamed…, presentCard beside them
 
 export interface PanelView {
     render(screen: ShownScreen): RenderReport;

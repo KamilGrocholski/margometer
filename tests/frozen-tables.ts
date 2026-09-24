@@ -4,12 +4,14 @@
  * by the fetch it was taken from.
  */
 
+import { assert } from "@std/assert";
 import {
     indexAuraTurnsBySkillId,
     indexShoutsBySkillId,
     type StatedSkills,
 } from "@/src/core/aura-standing.ts";
 import { type DecoderTables, indexBlowsGrantedBySkillId } from "@/src/core/fight-decoder.ts";
+import { RECORDINGS_REVISION } from "@/tests/recorded-fights.ts";
 
 /** `develop:frozen/blows-granted.ts`, fetched 2026-09-23T08:58:25.997Z. */
 export const BLOWS_GRANTED: DecoderTables = {
@@ -59,3 +61,17 @@ export const BUFF_BITS = [
     "frostbite",
     "shock",
 ] as const;
+
+/**
+ * A `develop:frozen/` module too wide to copy by hand, read out of git at the revision the
+ * recordings are read at and imported as it stands, so what a test holds cannot drift from it.
+ */
+export async function readFrozenModule(name: string): Promise<Record<string, unknown>> {
+    const shown = new Deno.Command("git", {
+        args: ["show", `${RECORDINGS_REVISION}:frozen/${name}.ts`],
+        stdout: "piped",
+    }).outputSync();
+    assert(shown.success, `develop:frozen/${name}.ts is there at ${RECORDINGS_REVISION}`);
+    const text = new TextDecoder().decode(shown.stdout);
+    return await import(`data:application/typescript,${encodeURIComponent(text)}`);
+}

@@ -24,7 +24,12 @@ the word that reaches a console or a file. The type is `VocabularyWord<typeof VO
 literal. The object is singular (`STORAGE_CHOICE`), and its list plural (`STORAGE_CHOICES`).
 
 A list of somebody else's keys that code only walks, such as `WARRIOR_COLLECTIONS` in
-`src/game/warrior-snapshot.ts`, is not a vocabulary and stays an array.
+`src/game/warrior-snapshot.ts`, is not a vocabulary and stays an array. **Nor is a field name** that
+only ever keys its own `FieldKeys` map and is passed to a field reader
+(`getNumberField(entry, WARRIOR_FIELDS, "id")`): the compiler holds it against that map, and it
+never travels on as a value. Decided with the maintainer on 2026-09-24. A map keyed by our
+vocabulary, such as `FAILURE_FATES`, is keyed by the vocabulary's members
+(`[ENGINE_FAILURE.engineAbsent]`), never by the words.
 
 ## Consequences
 

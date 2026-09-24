@@ -1,0 +1,1632 @@
+/**
+ * Everything the reader reads, and the only Polish in `src/`. Identifiers around the sentences
+ * stay English, which is what keeps the boundary visible in one file.
+ *
+ * **Anything a table below does not hold reaches the reader as the game wrote it** — a key, a
+ * letter, a token. Wording a mechanic nobody named would be a claim about the game.
+ * `develop ADR 0011`.
+ */
+
+import { clamp } from "@/libs/number-range.ts";
+import type { VocabularyWord } from "@/libs/vocabulary.ts";
+import { formatInteger } from "@/libs/number-text.ts";
+import type { OutcomeResult } from "@/src/core/battle-event.ts";
+import type {
+    FightMoment,
+    PanelSidePart,
+    PanelUnnamedEnd,
+    PinnedCase,
+} from "@/src/ui/panel-reading.ts";
+import type { StorageChoice } from "@/src/ui/panel-choice.ts";
+import type { PanelMetric, PanelNoun, PanelSideChoice } from "@/src/ui/panel-screen.ts";
+import type { StandingTurnState } from "@/src/ui/panel-standing.ts";
+import type { ChargedSkillState } from "@/src/core/charged-skill.ts";
+import { HASTE_BIT_NAME, SLOW_BIT_NAME } from "@/src/core/carried-figure.ts";
+import { HOLYTOUCH_HEALS_STATED } from "@/src/core/legendary-standing.ts";
+
+export interface CountedNoun {
+    one: string;
+    few: string;
+    many: string;
+}
+
+export const SUSPECT_MARK = "⚠ ";
+
+export const DEFECT_MARK = "✖ ";
+
+export const TURN_MARK = "▸ ";
+
+/**
+ * Beside the suspect mark and never instead of it. `SUSPECT_MARK` says a figure may be short
+ * because something in **this** fight could not be read; this one says the figure is complete and
+ * answers a narrower question than its label, whatever was recorded (`develop:CONTEXT.md`). One
+ * glyph over both claims would make the permanent look temporary and the temporary look permanent.
+ * `develop ADR 0088`.
+ *
+ * ⚠️ **The letter only — the ring around it is drawn** (`develop:DESIGN.md`, `develop ADR 0092`).
+ * `ⓘ` stood here until it was measured: no family this machine offers carries U+24D8, so all of
+ * them fall back to one face whose circled letters are condensed, and what a reader met beside a
+ * figure was a vertical sliver rather than a circle. The widths are that record's and the ring is
+ * `develop:src/ui/panel-look.ts`'s.
+ */
+export const CAVEAT_MARK = "i";
+
+export const PANEL_WORDS = {
+    title: "MargoMeter",
+    // Neither says "bez": the figure was placed, and it is the person that was never named.
+    withoutActor: "Nieznany sprawca",
+    withoutTarget: "Nieznany cel",
+    unknown: "Nie wiadomo",
+    nothingYet: "Nikogo tu jeszcze nie ma.",
+    noFightYet: "Nie było jeszcze walki.",
+    // Never "no fight yet": there was one, and it is this panel that could not show it.
+    fightUnread: "Nie da się pokazać tej walki.",
+    noSides: "brak składu",
+    fights: "Walki",
+    backFromFights: "wróć",
+    storage: "Trzymaj",
+    ourSide: "My",
+    theirSide: "Oni",
+    withoutSide: "Bez strony",
+    wholeFight: "Cała walka",
+    openFights: "Pokaż albo schowaj zapisane walki",
+    back: "skład",
+    shelfEmpty: "Nie ma jeszcze zapisanych walk",
+    fightOver: "Walka skończona",
+    dealtTo: "KOMU",
+    takenFrom: "OD KOGO",
+    damageKind: "TYP OBRAŻEŃ",
+    healthSource: "OD CZEGO",
+    skills: "CZYM",
+    withoutKind: "Bez podanego typu",
+    /** What a bound would not give a row to, summed. Never the row that closes a section: that
+     * one is what the game named nothing for, and this is what it named (`develop ADR 0055`). */
+    restOfKinds: "pozostałe",
+    /**
+     * The section under the list, and the row inside it. **Never `pozostałe`**, which the line
+     * above already is: that one is a bound's leftovers inside a cut, and a reader meeting one
+     * word over two different claims has no way to tell which they are looking at (**N9**).
+     */
+    outsideRanking: "POZA RANKINGIEM",
+    outsideRow: "Poza wierszami",
+    outsideNote: "Tej części nie ma nigdzie wyżej — ani na wierszu postaci, ani pod listą.",
+    restNote: "Za dużo pozycji, żeby pokazać każdą — te są tu zsumowane.",
+    undrawn: "nie dało się narysować",
+    combatants: "Postacie",
+    share: "Udział w walce",
+    shareOfFigure: "Udział w tej liczbie",
+    drag: "Przeciągnij, żeby przesunąć",
+    collapse: "Zwiń okno",
+    expand: "Rozwiń okno",
+    saveFight: "Zapisz tę walkę do pliku: policzone liczby i surowy zapis prosto z gry",
+} as const;
+
+/** Lower case: the shelf composes these a row at a time, and the header shouts them in CSS. */
+const OUTCOME_WORDS: Record<OutcomeResult, string> = {
+    won: "wygrana",
+    lost: "przegrana",
+    drawn: "remis",
+    fled: "ucieczka",
+};
+
+export function getWordsForOutcome(outcome: OutcomeResult): string {
+    const words = OUTCOME_WORDS[outcome];
+    return words;
+}
+
+const NOTHING_WORDS: Record<PanelMetric, string> = {
+    damageDealtApplied: "Nie zadała nikomu obrażeń.",
+    damageTakenApplied: "Nic jej nie ubyło.",
+    healthGiven: "Nikogo nie leczyła.",
+    healthRestored: "Nikt jej nie leczył.",
+};
+
+export function getWordsForNothing(metric: PanelMetric): string {
+    const words = NOTHING_WORDS[metric];
+    return words;
+}
+
+/**
+ * The closing row of a skills section, which is the figure no announcement covered.
+ *
+ * ⚠️ **The two healing entries are never read, and they stay.** What no announcement covered on a
+ * healing screen
+ * is named by the key the game stated it under and stands as a row of its own, so nothing is left
+ * to close against. The table is exhaustive for the reason every table here is: a fifth screen
+ * becomes a question the compiler asks rather than one inheriting whichever wording came first.
+ */
+const UNANNOUNCED_WORDS: Record<PanelMetric, string> = {
+    damageDealtApplied: "Zwykły cios",
+    damageTakenApplied: "Zwykły cios",
+    healthGiven: "Bez podanej umiejętności",
+    healthRestored: "Bez podanej umiejętności",
+};
+
+export function getWordsForUnannounced(metric: PanelMetric): string {
+    const words = UNANNOUNCED_WORDS[metric];
+    return words;
+}
+
+const NOUN_WORDS: Record<PanelNoun, string> = {
+    damage: "Obrażenia",
+    healing: "Leczenie",
+};
+
+/**
+ * Worded per screen rather than per direction: Polish uses one word for damage given and another
+ * for healing given, and a label covering both would be ours rather than the language's.
+ */
+const DIRECTION_WORDS: Record<PanelMetric, string> = {
+    damageDealtApplied: "zadane",
+    damageTakenApplied: "otrzymane",
+    healthGiven: "dane",
+    healthRestored: "otrzymane",
+};
+
+const SIDE_WORDS: Record<PanelSideChoice, string> = {
+    everyone: "Wszyscy",
+    reader: "My",
+    opposing: "Oni",
+};
+
+export function getWordsForNoun(noun: PanelNoun): string {
+    const words = NOUN_WORDS[noun];
+    return words;
+}
+
+export function getWordsForDirection(metric: PanelMetric): string {
+    const words = DIRECTION_WORDS[metric];
+    return words;
+}
+
+export function getWordsForSide(choice: PanelSideChoice): string {
+    const words = SIDE_WORDS[choice];
+    return words;
+}
+
+/** Spelled both ways round: `Leczenie` alone means either, and here the two stand together. */
+const CARD_METRIC_WORDS: Record<PanelMetric, string> = {
+    damageDealtApplied: "Zadane",
+    damageTakenApplied: "Otrzymane",
+    healthGiven: "Leczenie dane",
+    healthRestored: "Leczenie otrzymane",
+};
+
+export function getWordsForCardMetric(metric: PanelMetric): string {
+    const words = CARD_METRIC_WORDS[metric];
+    return words;
+}
+
+/**
+ * **The limit, and never our reason for it** (**L3**): a reader is told what cannot be known from
+ * what the game sent, not that a decoder of ours found no end to charge. The fourth is drawn by no
+ * pinned row — `healthGiven` states no target to leave out — and stands because the same sentence
+ * rides the rows inside an opened figure, where the end follows the direction.
+ */
+const UNNAMED_END_NOTES: Record<PanelUnnamedEnd, Record<PanelNoun, string>> = {
+    actor: {
+        damage: "Gra nie mówi, kto to zadał — wiadomo tylko, że życia ubyło.",
+        healing: "Gra nie mówi, kto leczył — wiadomo tylko, komu życia przybyło.",
+    },
+    target: {
+        damage: "Gra nie mówi, w kogo — wiadomo tylko, że cios wszedł.",
+        healing: "Gra nie mówi, komu — wiadomo tylko, że leczenie weszło.",
+    },
+};
+
+export function getWordsForUnnamedEnd(end: PanelUnnamedEnd, noun: PanelNoun): string {
+    const words = UNNAMED_END_NOTES[end][noun];
+    return words;
+}
+
+/**
+ * Every figure the panel draws whose label names more than the figure counts, whatever the
+ * recording. A closed set, so the sentences a card can carry are bounded by it (**S11**), and the
+ * order is the order they stand in — two cards carrying the same pair say them the same way round.
+ *
+ * **It is not the card's alone**: the row closing a damage section carries the third, which is
+ * what took `Card` out of this name (**N9**). A row spends the same glyph and the same sentence,
+ * and a second register for it would be the same rule in two copies.
+ *
+ * Three and not five. `Ciosy` was weighed and left out: what would qualify it is a wide swing's
+ * further targets, and `+swing` is absent from every recording (`develop:docs/protocol-keys.md`),
+ * so the sentence would be a standing charge for a case no material carries. `develop ADR 0088`,
+ * widened by `develop ADR 0089`.
+ */
+export const CAVEAT = {
+    reduction: "reduction",
+    turns: "turns",
+    unannounced: "unannounced",
+} as const;
+export type Caveat = VocabularyWord<typeof CAVEAT>;
+export const CAVEATS = Object.values(CAVEAT);
+
+/**
+ * Which caveat the closing row of a section carries, and none on a healing screen — where the
+ * section closes against nothing at all. The noun is handed over rather than read off the metric,
+ * as the unnamed ends' is: this file imports no screen of its own.
+ */
+const UNANNOUNCED_CAVEATS: Record<PanelNoun, Caveat | null> = {
+    damage: CAVEAT.unannounced,
+    healing: null,
+};
+
+export function getCaveatForUnannounced(noun: PanelNoun): Caveat | null {
+    return UNANNOUNCED_CAVEATS[noun];
+}
+
+const APART_NOTE = "Nikt tego nie ma na swoim wierszu — dlatego stoi osobno.";
+
+/**
+ * **What decides whether a reader may add this figure to what they have just read.** Two of the
+ * five are inside the ranking and three are not, and a bar looks the same either way.
+ */
+const PINNED_STANDING_NOTES: Record<PinnedCase, string> = {
+    dealtWithNoActor: APART_NOTE,
+    givenWithNoActor: APART_NOTE,
+    takenWithNoTarget: APART_NOTE,
+    takenWithNoActor: "Te obrażenia są już policzone wyżej, u tych, którym ubyło życia.",
+    restoredWithNoActor: "To leczenie jest już policzone wyżej, u tych, którzy je dostali.",
+};
+
+export function getWordsForPinnedStanding(kase: PinnedCase): string {
+    const words = PINNED_STANDING_NOTES[kase];
+    return words;
+}
+
+/**
+ * ⚠️ **The end a figure was counted by is not always the shown team's own end.** One standing
+ * apart is charged by the end the game **did** name and damage crosses on the way
+ * (`getPartCharged`, `develop ADR 0013`), so on `Otrzymane` the named end is whoever swung — and a
+ * sentence naming it would read as the shown team having swung.
+ */
+const PINNED_SCOPE_NOTES: Record<PinnedCase, string> = {
+    dealtWithNoActor: "Tylko z pokazanej drużyny — to ona to zadała, choć gra nie mówi kto.",
+    givenWithNoActor: "Tylko z pokazanej drużyny — to ona to wyleczyła, choć gra nie mówi kto.",
+    takenWithNoActor: "Tylko z pokazanej drużyny — liczone po tym, komu ubyło życia.",
+    takenWithNoTarget: "Tylko z pokazanej drużyny — gra nie mówi, kogo z niej.",
+    restoredWithNoActor: "Tylko z pokazanej drużyny — liczone po tym, komu przybyło życia.",
+};
+
+export function getWordsForPinnedScope(kase: PinnedCase): string {
+    const words = PINNED_SCOPE_NOTES[kase];
+    return words;
+}
+
+/**
+ * ⚠️ **It says nothing about what the game did or did not state, and that is the point.** It
+ * covers two ways of having no end at all — a name matching nobody in the roster, or nothing
+ * stated at either end — and a sentence naming one would be false of the other.
+ */
+export const NEITHER_END_WORDS = {
+    label: "Nie do przypisania",
+    note: "Ta część nie trafiła na żaden wiersz — nie wiadomo ani kto, ani komu.",
+} as const;
+
+export const CARD_WORDS = {
+    /**
+     * The heading over the figures the fight is summed over, and it is what the two blow headings
+     * below are read against: a card whose blocks each name their own scope needs the widest one
+     * named too, or the widest reads as the default every other figure is a part of.
+     */
+    wholeFight: "W całej walce",
+    /**
+     * **It says what the protocol stated, not what this reader summed.** `surowe z ciosów` named a
+     * scope, and the scope was not true: `-dmga` — *obrażenia nieuchronne* — never carries a
+     * `+dmga` half, because nothing reduces it (`develop:docs/protocol-keys.md`), so the figure
+     * sits below the blows' own applied total on 5 of the 113 rows stating one, measured over
+     * `develop:captures/` on 2026-09-14. Worded as what was **stated** it claims nothing about
+     * coverage, which is the register the rest of this file's sentences are written in (**L3**).
+     */
+    raw: "Podane przed redukcją",
+    blows: "Ciosy",
+    blowsWithoutSkill: "bez umiejętności",
+    skillUses: "Użycia umiejętności",
+    /**
+     * **Two labels, because the card states one figure or two**: which one is whether a lost turn
+     * was heard anywhere in this fight, and where none was the second half is unread, not nought.
+     * At 22 characters the longer one is `LABEL_CHARACTERS_MAXIMUM` exactly, which is why its
+     * slash carries no space where the figures beside it do. `develop ADR 0110`.
+     */
+    turns: "Tury wykonane",
+    turnsWithLost: "Tury wykonane/utracone",
+    prevented: "Zatrzymane",
+    blowsCritical: "Krytyki",
+    /** A subset of the line above, which is what a sub-line under it means. */
+    blowsCriticalOffhand: "bronią pomocniczą",
+    /**
+     * A heading each, because the two runs stand together and half the keys under them belong to
+     * the other end: `+legbon_curse` fires when its holder attacks and `-legbon_cleanse` when its
+     * holder is hit (`develop:docs/protocol-keys.md`). `develop ADR 0032`.
+     */
+    striking: "W ciosach zadanych",
+    struck: "W ciosach przyjętych",
+    /** Said only where the row under the card states a narrower figure than the card does. */
+    scope: "Liczby z całej walki.",
+    /**
+     * A heading over a run of parts and **never a sum of them**: points of armour and percentage
+     * points of resistance stand under it, and one number over both would be two quantities
+     * wearing one word (`src/core/battle-event.ts`).
+     */
+    destroyed: "Zniszczone",
+    /**
+     * The instruction a row gives, and it stands wherever pressing leads somewhere —
+     * `develop:DESIGN.md` owns that rule. The right press is not named beside it: a reader on the
+     * ranking has nowhere to go back to, so a row's card would promise a gesture that does nothing
+     * there.
+     */
+    gesture: "LPM — rozwiń wiersz",
+    /**
+     * The way back, and it stands on the crumb alone — which is drawn only where a level is open,
+     * so both gestures it names do something wherever it is read. The second is the cheapest
+     * gesture the panel has and the only one nothing else states. `develop ADR 0086`.
+     */
+    gestureBack: "LPM tutaj — wróć o krok",
+    gestureBackAnywhere: "PPM gdziekolwiek — wróć o krok",
+    /**
+     * Said where the window is too short for the whole card, which is the one thing this panel
+     * cannot answer by drawing less of a figure. **L3**: what is not shown, never which of our
+     * runs was dropped to make it fit.
+     */
+    cut: "Nie wszystko się mieści w tym oknie.",
+} as const;
+
+/**
+ * **L3**: what the game does not report, and never what this reader summed. Each is said once at
+ * the foot of the card however many of its figures drew a glyph.
+ *
+ * `reduction` is owed wherever a figure stated before reduction or a figure a defence stopped
+ * stands, and **one** thing is owed: that the subtraction a reader will try does not work
+ * (`src/core/battle-event.ts`).
+ *
+ * ⚠️ **It names no pair.** Told *not to subtract one from the other*, a reader points at
+ * whichever two numbers stand nearest — and `Zatrzymane` stands directly under the figure before
+ * reduction, a different pair from the one such a sentence is written for. `z tych liczb` voids
+ * every subtraction a reader can try instead of forbidding one and allowing the rest in silence.
+ *
+ * `turns` says the one thing `develop:CONTEXT.md` states about a turn count: the game numbers the
+ * turns it granted and this counts what was spent, so their sum is not what anybody was given.
+ * Written to 60 characters so that, mark and all, it wraps to two lines of the card rather than
+ * three (`develop:src/ui/panel-tip.ts`).
+ *
+ * ⚠️ **`unannounced` cannot say the interesting half, and that is the rule working, not failing.**
+ * Whether a blow standing under no announcement is the game's own default action or one whose
+ * announcement this reading did not reach is a question about **us**, and a player is owed the
+ * limit rather than our reason for it (**L3**). What it does say holds whatever we read: the game
+ * names no skill there. `develop:docs/unannounced-damage.md` carries the half that cannot be
+ * printed.
+ */
+const CAVEAT_NOTES: Record<Caveat, string> = {
+    reduction:
+        "Pancerza ani odporności gra nie podaje, więc z tych liczb nie wyliczysz całej redukcji.",
+    turns: "Gra nie podaje, ile tur ktoś dostał, tylko co w nich zrobił.",
+    unannounced: "Gra nie mówi, czym te ciosy zadano — wiadomo tylko, że padły.",
+};
+
+export function getNoteForCaveat(caveat: Caveat): string {
+    const words = CAVEAT_NOTES[caveat];
+    return words;
+}
+
+/**
+ * The defence that stopped part of a blow — **the game's own word for it, every one of them**
+ * (`develop ADR 0077`). Drawn as sub-lines under `Zatrzymane`, so each names the defence rather
+ * than describing what it did: the line above already said that.
+ *
+ * A word here is a claim about the game, held to the frozen counts by
+ * `tests/ui/panel-words.test.ts`. The physical absorption is bare where the magical one carries
+ * its kind, which is the article's own asymmetry — `develop:docs/protocol-keys.md` measures it.
+ *
+ * **Keyed by the client's own token, with no sign**, the way an element is: a figure carries the
+ * token and the sign says which half of the blow it was, not which defence. The procs below are
+ * keyed the other way for the opposite reason — there the sign is part of what the key names.
+ * How often each is stated is `develop:docs/protocol-keys.md`'s, key by key.
+ */
+export const DEFENCE_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
+    blok: "blok",
+    absorb: "absorpcja",
+    absorbm: "absorpcja magiczna",
+}));
+
+/**
+ * What fired beside a blow, in the player's words. Ours, and short: these sit in a column beside a
+ * count, so each is the mechanic's name and not a sentence about it.
+ *
+ * **Not every key in `BLOW_END_BY_PROC_KEY` has a word here**, and `CLIENT_ID_BY_UNWORDED_KEY`
+ * below names the ones that do not and says why. The six keys sharing `ogłuszenie` are one event
+ * the client spells two ways — `+stun`, and the five variants of the monster statistic — which is
+ * what `+stun2-d`'s entry in `develop:docs/protocol-keys.md` says outright.
+ *
+ * **Keyed with the sign**, for the reason `DEFENCE_WORD_BY_KEY` above states: `+wound` is a wound
+ * a blow announced and `wound` is one ticking afterwards, and they are different rows on different
+ * screens.
+ */
+export const PROC_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
+    "+crit": "krytyk",
+    /** Never drawn beside the others: the card states it under the count it is a part of. */
+    "+of_crit": "bronią pomocniczą",
+    "+pierce": "przebicie",
+    "-pierceb": "blok przebicia",
+    "+stun": "ogłuszenie",
+    "+stun2": "ogłuszenie",
+    "+stun2-c": "ogłuszenie",
+    "+stun2-d": "ogłuszenie",
+    "+stun2-f": "ogłuszenie",
+    "+stun2-l": "ogłuszenie",
+    "+freeze": "zamrożenie",
+    "+wound": "głęboka rana",
+    /**
+     * The same wound off the auxiliary weapon, sharing the word rather than taking one of its own:
+     * a second row would split one mechanic over the hand that threw it, which is a difference the
+     * five stun keys were not given either.
+     */
+    "+of_wound": "głęboka rana",
+    /** A deep wound something weakened, which is a deep wound: `PROC_SUB_WORD_BY_KEY` says so. */
+    "+woundpoison": "głęboka rana",
+    "+woundfrost": "głęboka rana",
+    "+woundmagic": "głęboka rana",
+    "+of_woundpoison": "głęboka rana",
+    "+of_woundmagic": "głęboka rana",
+    "+fastarrow": "szybka strzała",
+    "+acdmg_destroyed": "pancerz zniszczony",
+    "-evade": "unik",
+    "-contra": "kontra",
+    "-arrowblock": "blok strzały",
+}));
+
+/**
+ * Counted in the row above rather than beside it, and named under it: the qualifier, never the
+ * mechanic. A wound something weakened is a wound, so a reader counting the ones they left reads
+ * every one of them off one line — over `develop:captures/` on 2026-09-18 one combatant announced
+ * six deep wounds, all of them weakened, and their card stated no deep-wound count at all.
+ * `develop ADR 0095`.
+ *
+ * `+of_crit` is the same shape and is not here: the count it narrows is one of blows and not of
+ * announcements, so `src/ui/panel-card.ts` draws it against a figure this table has no unit for.
+ */
+export const PROC_SUB_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
+    "+woundpoison": "osłabiona",
+    "+woundfrost": "osłabiona",
+    "+woundmagic": "osłabiona",
+    "+of_woundpoison": "osłabiona",
+    "+of_woundmagic": "osłabiona",
+}));
+
+/**
+ * A name out of the running client, or null where it has none to give. Declared here rather than
+ * imported: `docs/design.md` §4 names no direction from `ui/` to `game/`.
+ *
+ * The category is the client's own filing, and it is optional because most of what the panel asks
+ * for sits in the default one. `develop:src/game/game-dictionary.ts` is where the shape is
+ * answered, and the compiler holds the two to each other at every call site the entry composes.
+ */
+export type TranslateLabel = (id: string, category?: string) => string | null;
+
+/**
+ * What a label **of ours** may run to before the column cuts it. `.tip-label` is `nowrap` with an
+ * ellipsis, so a long one costs the card no height — it costs the end of the word, and a cut label
+ * reads as a shorter label with nothing saying it was cut (`develop ADR 0088`). Our own words are
+ * ours to keep short, and `tests/ui/blow-vocabulary.test.ts` holds every one of them to this.
+ */
+export const LABEL_CHARACTERS_MAXIMUM = 22;
+/**
+ * The same for a label out of the player's own client, which **is not ours to keep short**.
+ *
+ * Held apart from the bound above because the two answer different questions. Ours asks what we
+ * may write; this one asks what external data may be before it has clearly gone wrong — the
+ * client's dictionary runs to 41 characters for the keys this module asks about
+ * (`Zapobiegnięto ładowaniu ciosu specjalnego.`, build `1785244275300`, read 2026-09-22), and at
+ * 22 three of those seven were refused and drawn as the raw protocol key instead.
+ *
+ * ⚠️ **The figure is the label, not the entry.** `getLabelFromEntry` takes the leading sign and
+ * the trailing full stop off before anybody measures it, so `-Płomienne oczyszczenie` reaches
+ * this line at 22 and always fitted. Measuring the dictionary rather than the reader's answer
+ * counted a fourth refusal that was never happening.
+ *
+ * ⚠️ **A label past the column is still cut, and now it is the client's words being cut.** That
+ * is the trade this number makes: a Polish sentence with its end missing rather than a key the
+ * game wrote for itself.
+ */
+export const CLIENT_LABEL_CHARACTERS_MAXIMUM = 64;
+
+/**
+ * The seven keys this repository has no word for, and what the client calls each in its own
+ * dictionary. **The panel asks only here** — every other key it draws it has a word of its own for,
+ * chosen short enough for the column above, and an answer out of somebody else's program is not.
+ * `develop ADR 0024`. Four are legendary bonuses whose published name has not been read; three are
+ * what article `view,372` does not carry at all (`develop ADR 0011`).
+ *
+ * Every id is spelled by the client, checked against `.cache/game-client/production/main.js` at
+ * build `Bb28FQty` on 2026-09-21. Six are `msg_` and the key; `+superspell-dispel` is the one
+ * that is not, and it is why this is a table rather than a rule.
+ */
+export const CLIENT_ID_BY_UNWORDED_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
+    "+legbon_curse": "msg_+legbon_curse",
+    "+legbon_verycrit": "msg_+legbon_verycrit",
+    "-legbon_cleanse": "msg_-legbon_cleanse",
+    "-legbon_glare": "msg_-legbon_glare",
+    "-tenacity": "msg_-tenacity",
+    "+superspell-dispel": "msg_+dispel",
+    "+superspell-prevented": "msg_+superspell-prevented",
+}));
+
+/** Ours, then the player's own client, then the key as the game wrote it. `develop ADR 0024`. */
+export function getWordsForBlowKey(key: string, translate: TranslateLabel | null = null): string {
+    const words = PROC_WORD_BY_KEY.get(key) ?? DEFENCE_WORD_BY_KEY.get(key);
+    if (words !== undefined) {
+        return words;
+    }
+    const stated = getClientWordsForKey(key, translate);
+    if (stated !== null) return stated;
+    return key;
+}
+
+/** Null where nobody is asked, where the client has no name, or where the name will not fit. */
+function getClientWordsForKey(key: string, translate: TranslateLabel | null): string | null {
+    if (translate === null) return null;
+    const id = CLIENT_ID_BY_UNWORDED_KEY.get(key);
+    if (id === undefined) return null;
+    const label = translate(id);
+    if (label === null) return null;
+    // ⚠️ **The client's bound and not ours.** At 22 this refused three of the seven — their keys
+    // land 56 times over `develop:captures/` — and drew `+superspell-prevented` at a reader who has
+    // a dictionary saying `Zapobiegnięto ładowaniu ciosu specjalnego.`
+    if (label.length > CLIENT_LABEL_CHARACTERS_MAXIMUM) return null;
+    if (label.length === 0) return null;
+    return label;
+}
+
+/** The word standing under the row a key's count landed on, and `""` where it stands alone. */
+export function getSubWordsForBlowKey(key: string): string {
+    return PROC_SUB_WORD_BY_KEY.get(key) ?? "";
+}
+
+/**
+ * What a blow destroyed on whoever took it: the statistic, and **the unit its figure is in**.
+ * `+acdmg` counts points of armour and `+resdmg` percentage points of resistance
+ * (`develop:docs/protocol-keys.md`), so a column of bare numbers under one heading is a column a
+ * reader will add up and get a number that means nothing.
+ *
+ * The unit rides the figure rather than the name because the name shares its column with three
+ * others and the figure has the room. Keyed by the token, like the defences above.
+ */
+export const DESTROYED_WORD_BY_KEY: ReadonlyMap<string, { name: string; unit: string }> = new Map(
+    Object.entries({
+        acdmg: { name: "pancerz", unit: "pkt" },
+        // The one pair here that empties the same pool in the same unit, so the names say which
+        // took it rather than what it was (`develop:docs/protocol-keys.md`).
+        critpierce: { name: "pancerz z przebicia", unit: "pkt" },
+        resdmg: { name: "odporność", unit: "p.p." },
+        // The element rides after a colon rather than after "na", which the bound decides:
+        // `odporność na błyskawice` is 23 characters against LABEL_CHARACTERS_MAXIMUM below,
+        // and a label past it is cut by the column with nothing saying it was cut.
+        resdmgf: { name: "odporność: ogień", unit: "p.p." },
+        resdmgc: { name: "odporność: zimno", unit: "p.p." },
+        resdmgl: { name: "odporność: błyskawice", unit: "p.p." },
+        // `acdmg` opening this table is one letter away and is armour in points, not this
+        // (`develop:docs/protocol-keys.md`).
+        actdmg: { name: "odporność: trucizna", unit: "p.p." },
+        // The article's own words, as the defence line above already draws them — one pool, one
+        // spelling on both surfaces (`develop ADR 0077`, **N13**).
+        abdest_per: { name: "absorpcja", unit: "pkt" },
+        abmdest_per: { name: "absorpcja magiczna", unit: "pkt" },
+    }),
+);
+
+export function getWordsForDestroyed(statistic: string): string {
+    const held = DESTROYED_WORD_BY_KEY.get(statistic);
+    if (held === undefined) return statistic;
+    return held.name;
+}
+
+/** The figure with the unit it is in, which is the whole reason the two are never totalled. */
+export function formatDestroyed(statistic: string, figure: number): string {
+    const stated = formatFigure(figure);
+    const held = DESTROYED_WORD_BY_KEY.get(statistic);
+    if (held === undefined) return stated;
+    return `${stated} ${held.unit}`;
+}
+
+/**
+ * Profession → the player's word for it. Ours rather than the client's own `eq_prof` headings,
+ * for the reason `develop ADR 0011` gives, and the six letters are the six the recordings state
+ * (`src/ui/panel-palette.ts` colours the same six).
+ */
+export const PROFESSION_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
+    w: "Wojownik",
+    p: "Paladyn",
+    t: "Tropiciel",
+    h: "Łowca",
+    m: "Mag",
+    b: "Tancerz ostrzy",
+}));
+
+export function getWordsForProfession(profession: string): string {
+    const words = PROFESSION_WORD_BY_KEY.get(profession);
+    if (words === undefined) return profession;
+    return words;
+}
+
+const SIDE_PART_WORDS: Record<PanelSidePart, string | null> = {
+    reader: SIDE_WORDS.reader,
+    opposing: SIDE_WORDS.opposing,
+    nobody: null,
+};
+
+/**
+ * Who somebody is: profession, level, side — the words the row's rule stands on.
+ * `develop ADR 0065`.
+ */
+export function formatCardSubtitle(
+    profession: string | null,
+    level: number | null,
+    sidePart: PanelSidePart,
+): string | null {
+    if (level !== null) {
+        if (!Number.isSafeInteger(level)) level = null;
+    }
+    if (level !== null) {
+        if (level <= 0) level = null;
+    }
+    const said: string[] = [];
+    if (profession !== null) said.push(getWordsForProfession(profession));
+    if (level !== null) said.push(`(${formatWhole(level)})`);
+    const stated = said.join(" ");
+    const side = SIDE_PART_WORDS[sidePart];
+    if (side === null) return stated.length === 0 ? null : stated;
+    return stated.length === 0 ? side : `${stated} · ${side}`;
+}
+
+/**
+ * The letter in a damage key, in the player's words — **the game's own, every one of them.**
+ * Not the client's `stat-damage-…` family, which words them for a character sheet in a grammar
+ * this column cannot take (`develop ADR 0011`); the published help's `Typ obrażeń` table and its
+ * `dmgmul…` bonus list, which name the types themselves. `develop ADR 0073`.
+ *
+ * A word here is therefore a claim about the game and not a matter of taste, and
+ * `tests/ui/panel-words.test.ts` holds each to the frozen counts. A kind the help does not name
+ * is left out rather than invented: it reaches a reader as the game's own token, which is what
+ * `develop ADR 0011` asks for and is visible where an invention is not.
+ */
+export const ELEMENT_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
+    dmg: "fizyczne",
+    dmgd: "dystansowe",
+    dmgo: "pomocnicze",
+    dmgf: "ogień",
+    dmgc: "zimno",
+    dmgl: "błyskawice",
+    dmga: "nieuchronne",
+    dmgp: "trucizna",
+    thirdatt: "trzeci cios",
+}));
+
+/**
+ * The key health moved under, in the player's words. Ours, like the damage kinds beside it and for
+ * the reason `develop ADR 0011` gives: the client words most of these as sentences with holes in
+ * them, which is not a phrase a column can take. How often each is stated is
+ * `develop:docs/protocol-keys.md`'s, key by key.
+ */
+export const HEALTH_SOURCE_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
+    heal: "przywracanie życia",
+    heal_target: "uleczenie wskazanego",
+    legbon_holytouch_heal: "dotyk anioła",
+    legbon_lastheal: "ostatni ratunek",
+    healall_per: "uleczenie sojuszników",
+    npc_heal: "regeneracja potwora",
+    bandage: "bandażowanie",
+}));
+
+export function getWordsForHealthSource(source: string): string {
+    const words = HEALTH_SOURCE_WORD_BY_KEY.get(source);
+    if (words === undefined) return source;
+    return words;
+}
+
+export const COUNTED_NOUNS = {
+    messages: { one: "wiadomość", few: "wiadomości", many: "wiadomości" },
+    heals: { one: "uleczenie", few: "uleczenia", many: "uleczeń" },
+    fights: { one: "walka", few: "walki", many: "walk" },
+    combatants: { one: "postać", few: "postacie", many: "postaci" },
+    turns: { one: "tura", few: "tury", many: "tur" },
+} as const;
+
+/**
+ * What takes health down outside a blow, in the player's words.
+ *
+ * Kept apart from the elements above, and the pairs are the reason: `poison` is the poisoning
+ * ticking afterwards and `dmgp` is the damage a blow of that element lands, so one label over
+ * both would be two quantities under one word — a wrong number that looks right. The same split
+ * holds for `fire` against `dmgf` and `light` against `dmgl`. How much each takes and over how
+ * many movements is `develop:docs/protocol-keys.md`'s, key by key.
+ */
+export const HEALTH_LOSS_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
+    poison: "zatrucie",
+    fire: "podpalenie",
+    light: "porażenie",
+    injure: "zranienie",
+    wound: "głęboka rana",
+    anguish: "krwawienie",
+    heal: "ujemne przywracanie życia",
+}));
+
+/** What a figure was made of, whether a blow carried it or health went out under it. */
+export function getWordsForDamageKind(kind: string): string {
+    const words = ELEMENT_WORD_BY_KEY.get(kind) ?? HEALTH_LOSS_WORD_BY_KEY.get(kind);
+    if (words === undefined) return kind;
+    return words;
+}
+
+const TEEN_FLOOR = 12;
+const TEEN_CEILING = 14;
+const FEW_FLOOR = 2;
+const FEW_CEILING = 4;
+const TEN = 10;
+const HUNDRED = 100;
+
+/**
+ * One, a few, or many: Polish picks by the last digit, except in the teens, where it picks many
+ * whatever that digit is. Twenty-two takes the few form and twelve does not.
+ */
+export function formatCountedNoun(count: number, noun: CountedNoun): string {
+    if (!Number.isSafeInteger(count)) return `${PANEL_WORDS.unknown} ${noun.many}`;
+    if (count < 0) return `${PANEL_WORDS.unknown} ${noun.many}`;
+    if (count === 1) return `1 ${noun.one}`;
+    const lastTwo = count % HUNDRED;
+    const last = count % TEN;
+    if (lastTwo >= TEEN_FLOOR && lastTwo <= TEEN_CEILING) return `${count} ${noun.many}`;
+    if (last >= FEW_FLOOR && last <= FEW_CEILING) return `${count} ${noun.few}`;
+    return `${count} ${noun.many}`;
+}
+
+/** The window beside the panel: the turn in hand, what is being made ready, and who holds whom. */
+export const STANDING_WORDS = {
+    title: "Pomocnik",
+    drag: "Przeciągnij, żeby przesunąć",
+    collapse: "Zwiń Pomocnika",
+    expand: "Rozwiń Pomocnika",
+    now: "Teraz",
+    nothingHappens: "Nic się nie dzieje.",
+    /** The two okrzyki share one state, so they share one heading — `develop ADR 0062`. */
+    provocation: "Prowokacja",
+    /**
+     * Between whoever is holding somebody and the okrzyk they hold them with — `develop ADR 0097`.
+     */
+    castSeparator: "·",
+    /**
+     * What a card in this window states its turns under — a cast's, and a charge's since
+     * `develop ADR 0100`. Never `PANEL_WORDS.turns`: that one names the turns a combatant took and
+     * carries the caveat that the game publishes none of them, while both of these are durations
+     * the game itself states — the published skill table for a cast, the payload's own envelope
+     * for a charge. The pair beside it is bare, `Minęło · 2 z 3` (`develop ADR 0116`).
+     */
+    turnsPassed: "Minęło",
+    /**
+     * What a length **this panel** counts says instead, since `develop ADR 0109`: the figure beside
+     * it is what is left, not what has gone. `turnsPassed` stays for the charge, whose pair is the
+     * client's own and is restated rather than counted.
+     */
+    turnsLeft: "Zostało",
+    /** The game's own name for it, taken from the client's own label — **N13**, **L2**. */
+    chargedSkill: "Cios specjalny",
+} as const;
+
+/**
+ * One status on one fighter: that it stands, which the mask says and the game already knows, and
+ * the figure an announcement over them comes to. **No length** — `develop ADR 0112`.
+ */
+export interface TooltipStatus {
+    bit: number;
+    percent: number | null;
+}
+
+/** One fighter, as the game's own tooltip could honestly restate them. */
+export interface TooltipReading {
+    turnsTaken: number;
+    /** What they are making ready, or null: an ended charge is Pomocnik's (`develop ADR 0115`). */
+    charge: { skillName: string; turnsElapsed: number; turnsStated: number } | null;
+    /** Whoever is holding them with an okrzyk, and how far through the shout's turns they are. */
+    provokedBy: { name: string; turnsElapsed: number; turnsStated: number } | null;
+    /** How many characters their own okrzyk is holding. Never their names — `develop ADR 0103`. */
+    provokes: number;
+    /** What the mask says stands on them, with what the announcements over them come to. */
+    statuses: readonly TooltipStatus[];
+    /** The heals the bonus has given them since it lit, or null where it is not standing. */
+    holytouchHealsGiven: number | null;
+    hasSpentLastheal: boolean;
+    /**
+     * Whether the panel walked into this fight. **The turns are the one row here counted from
+     * the fight's own start**, so they are the one row a late start understates — everything
+     * else says what stands now.
+     */
+    wasJoinedInProgress: boolean;
+}
+
+/**
+ * What the add-on adds to the game's own tooltip for one fighter: **one row per thing it has to
+ * say**, and an empty list where it has nothing.
+ *
+ * The rows go to the client one at a time, because `concatTip` puts a `<br>` of its own between
+ * whatever is there and what it is handed (production build `Bb28FQty`, read 2026-09-21) — so a
+ * block of rows costs this add-on no markup at all (`develop:src/game/engine-tooltip.ts`,
+ * `develop ADR 0111`).
+ *
+ * **The first row is the add-on's name and nothing else.** A reader meets these outside the panel,
+ * where `develop:SECURITY.md`'s guest rule asks whose they are — and a name folded into the first
+ * row indents that row past the others, so the block stops reading as a list of one thing each.
+ *
+ * ⚠️ **Each row becomes part of an HTML string somebody else composed**, so a row carrying markup
+ * is refused rather than escaped — the words in it are the client's own and refusing is what this
+ * repository does with an answer it cannot use (`develop ADR 0024`).
+ *
+ * **The order is fixed, whatever a fighter carries**, so a row is found where it was last time:
+ * the turns, the charge, Ostatni ratunek, Dotyk anioła, the okrzyk — whom a fighter's own holds,
+ * then who holds them — and the statuses, the slow and the haste first. `develop ADR 0116`.
+ */
+export function presentTooltipRows(
+    reading: TooltipReading,
+    translate: TranslateLabel | null,
+    statusBits: readonly string[],
+): string[] {
+    const rowsMaximum = statusBits.length + ROWS_BESIDE_THE_STATUSES;
+    const said: string[] = [];
+    addTurnsRow(said, reading);
+    addChargeRow(said, reading);
+    addLegendaryRows(said, reading);
+    addProvocationRows(said, reading);
+    const words = { translate, statusBits, rowsMaximum };
+    addStatusRows(said, getLeadingStatuses(reading.statuses, statusBits), words);
+    addStatusRows(said, getTrailingStatuses(reading.statuses, statusBits), words);
+    const kept = said.filter((row) => !getRowCarriesMarkup(row));
+    if (kept.length === 0) return [];
+    // The name takes a row of the bound like any other, so a block handed over is never longer
+    // than the maximum however many rows were composed.
+    return [ADD_ON_NAME, ...kept].slice(0, rowsMaximum);
+}
+
+/**
+ * ⚠️ **A figure that may be short is drawn where it can be marked, and nowhere else.** The panel
+ * draws these on a fight it walked into and says over them that every number may be understated
+ * (`formatJoinedInProgressSuspicion`). This block has no room for that sentence and no mark of its
+ * own, so the row it cannot qualify is the row it does not draw — `develop:CONTEXT.md`'s
+ * **Suspect** is marked beside the figure it concerns or it is not a suspect, it is a wrong number.
+ */
+function addTurnsRow(said: string[], reading: TooltipReading): void {
+    if (reading.wasJoinedInProgress) return;
+    if (reading.turnsTaken <= 0) return;
+    said.push(`${TOOLTIP_WORDS.turnsTaken} ${formatFigure(reading.turnsTaken)}`);
+}
+
+/**
+ * ⚠️ **Counts up, with no noun**: the client's own pair, as Pomocnik draws it. The okrzyk's `1 z 3`
+ * counts down and carries no noun either, so the row's own name is all that tells the two
+ * directions apart. `develop ADR 0115`, `develop ADR 0116`.
+ */
+function addChargeRow(said: string[], reading: TooltipReading): void {
+    const charge = reading.charge;
+    if (charge === null) return;
+    const apart = STANDING_WORDS.castSeparator;
+    const passed = formatCounter(charge.turnsElapsed, charge.turnsStated);
+    said.push(`${STANDING_WORDS.chargedSkill} ${apart} ${charge.skillName} ${apart} ${passed}`);
+}
+
+function addProvocationRows(said: string[], reading: TooltipReading): void {
+    if (reading.provokes > 0) {
+        const counted = formatCountedNoun(reading.provokes, COUNTED_NOUNS.combatants);
+        said.push(`${TOOLTIP_WORDS.provokes} ${counted}`);
+    }
+    const held = reading.provokedBy;
+    if (held === null) return;
+    const left = formatCounter(held.turnsStated - held.turnsElapsed, held.turnsStated);
+    said.push(`${TOOLTIP_WORDS.provokedBy} ${held.name} ${STANDING_WORDS.castSeparator} ${left}`);
+}
+
+/**
+ * ⚠️ **A figure stands beside a status only where one may be said of this bearer** — which is
+ * `core/carried-figure.ts`'s answer and null far more often than not. Where it is null the row is
+ * the status alone. **No row here counts turns** (`develop ADR 0112`): the mask says a status
+ * stands and never since when, and a re-application nobody announces renews it where nothing can
+ * see.
+ */
+function addStatusRows(
+    said: string[],
+    statuses: readonly TooltipStatus[],
+    words: {
+        translate: TranslateLabel | null;
+        statusBits: readonly string[];
+        rowsMaximum: number;
+    },
+): void {
+    for (const status of statuses) {
+        if (said.length >= words.rowsMaximum) break;
+        const word = getWordsForStatusBit(status.bit, words.translate, words.statusBits);
+        const percent = status.percent === null ? "" : ` ${formatWhole(status.percent)}%`;
+        said.push(`${word}${percent}`);
+    }
+}
+
+/**
+ * ⚠️ **A row naming a thing and then saying something about it carries the separator**, the way a
+ * status and a provocation do. Without it `Dotyk anioła 1 z 3` runs the name into the
+ * figure and reads as one phrase, while the rows around it read as two — measured by eye over a
+ * drawn block, 2026-09-22, which is the only place the whole set stands together.
+ *
+ * **Dotyk anioła counts up, in heals**, while the provocation below it counts down, in turns: each
+ * heal is on the wire and nothing dates a turn it ends on (`develop ADR 0113`). ⚠️ **Neither
+ * fraction carries a noun** (`develop ADR 0116`), so the row's name is all that says which way one
+ * runs.
+ */
+function addLegendaryRows(said: string[], reading: TooltipReading): void {
+    const given = reading.holytouchHealsGiven;
+    const apart = STANDING_WORDS.castSeparator;
+    if (reading.hasSpentLastheal) {
+        said.push(`${TOOLTIP_WORDS.lastheal} ${apart} ${TOOLTIP_WORDS.spent}`);
+    }
+    if (given === null) return;
+    const heals = formatCounter(given, HOLYTOUCH_HEALS_STATED);
+    said.push(`${TOOLTIP_WORDS.holytouch} ${apart} ${heals}`);
+}
+
+/** The slow, then the haste, ahead of every other status — `develop ADR 0116`. */
+function getLeadingStatuses(
+    statuses: readonly TooltipStatus[],
+    statusBits: readonly string[],
+): TooltipStatus[] {
+    const leading: TooltipStatus[] = [];
+    for (const name of LEADING_STATUS_NAMES) {
+        for (const status of statuses) {
+            if (statusBits[status.bit] === name) leading.push(status);
+        }
+    }
+    return leading;
+}
+
+function getTrailingStatuses(
+    statuses: readonly TooltipStatus[],
+    statusBits: readonly string[],
+): TooltipStatus[] {
+    return statuses.filter((status) => {
+        const name = statusBits[status.bit];
+        if (name === undefined) return true;
+        return !LEADING_STATUS_NAMES.includes(name);
+    });
+}
+
+function getRowCarriesMarkup(row: string): boolean {
+    if (row.includes(MARKUP_OPENER)) return true;
+    return row.includes(MARKUP_ENTITY);
+}
+
+/**
+ * The words the tooltip says and the panel does not. **Two of them are the game's own** — the
+ * bonuses are named as `HEALTH_SOURCE_WORD_BY_KEY` names them, so the two surfaces cannot drift
+ * into two spellings of one thing (**N13**).
+ */
+const TOOLTIP_WORDS = {
+    /**
+     * ⚠️ **Two skills put a fighter here, so the row names the state and never either of them.**
+     * `Wyzywający okrzyk` and `Prowokujący okrzyk` announce the one key — 118 casts against 48 over
+     * `develop:captures/`, 2026-09-22 — so a row reading `Wyzwany` named one of the two while the
+     * state had come from either.
+     */
+    provokedBy: "Sprowokowany przez",
+    provokes: "Prowokuje",
+    holytouch: "Dotyk anioła",
+    lastheal: "Ostatni ratunek",
+    /** The bonus fires once a fight, so this is a state and never a count. */
+    spent: "wykorzystany",
+    turnsTaken: "Tury wykonane",
+} as const;
+
+/**
+ * The client files the statuses a mask carries under its own category, so an id asked without one
+ * reaches the default dictionary and answers nothing. Read on development build `1781609507010`.
+ */
+const STATUS_CATEGORY = "buff";
+/** What a reader meets outside the panel says whose it is — `develop:SECURITY.md`'s guest rule. */
+const ADD_ON_NAME = "MargoMeter";
+const LEADING_STATUS_NAMES: readonly string[] = [SLOW_BIT_NAME, HASTE_BIT_NAME];
+/** The two characters that would make a row of ours part of somebody else's markup. */
+const MARKUP_OPENER = "<";
+const MARKUP_ENTITY = "&";
+/**
+ * Every row one fighter can put up, **counted off the parts rather than off the corpus**: the
+ * add-on's own name, the charge, the okrzyk from either end, the two legendary bonuses, the turns
+ * taken, and one row per status the client registers.
+ *
+ * ⚠️ **A figure taken off the corpus was the wrong figure here.** The tallest block over
+ * `develop:captures/` is seven (`design/dziesiec/measured.json`), and a fabricated ten-a-side
+ * already stands eleven — so a bound set at what had been seen was one row above what was
+ * happening. It clamps rather than asserts, because a fighter with one thing more to say is not a
+ * reason to stop drawing (**A11**, `develop ADR 0051`).
+ */
+export const ROWS_BESIDE_THE_STATUSES = 7;
+
+/**
+ * The client's word for a status, or the key as the game wrote it — the second and third rungs of
+ * `develop ADR 0024`, and there is no first here: this repository has no word of its own for any of
+ * the nine, and inventing one would put a made-up label where the game already has a real one.
+ */
+export function getWordsForStatusBit(
+    bit: number,
+    translate: TranslateLabel | null,
+    statusBits: readonly string[],
+): string {
+    const key = statusBits[bit];
+    if (key === undefined) return PANEL_WORDS.unknown;
+    if (translate === null) return key;
+    const said = translate(key, STATUS_CATEGORY);
+    if (said === null) return key;
+    if (said.length === 0) return key;
+    if (said.length > CLIENT_LABEL_CHARACTERS_MAXIMUM) return key;
+    return said;
+}
+
+/**
+ * What the heading says about a charge, and nothing where it is still running: there the row is
+ * the whole statement. Both ends stand for one turn and then the section is gone.
+ *
+ * ⚠️ **One of these two words is ours.** The game has a sentence for the break — `msg_+dispel`,
+ * „Przerwanie ciosu specjalnego." — and none at all for a blow that simply landed, so `wykonane`
+ * is this panel's word and is deliberately the plainest one available (**L3**).
+ */
+const CHARGED_SKILL_WORDS: Record<ChargedSkillState, string> = {
+    charging: "",
+    struck: "wykonane",
+    broken: "przerwane",
+};
+
+export function getWordsForChargedSkill(state: ChargedSkillState): string {
+    const words = CHARGED_SKILL_WORDS[state];
+    return words;
+}
+
+/**
+ * The line under a charge's name on its card: whoever is making the blow ready, and at either end
+ * what became of it. The band's own heading states one state word off the first charge it drew,
+ * so a card saying nothing about its own row's would leave a second charge described by the
+ * first's. `develop ADR 0100`.
+ */
+export function formatChargedSkillSubtitle(name: string, state: ChargedSkillState): string {
+    const said = getWordsForChargedSkill(state);
+    if (said.length === 0) return name;
+    return `${name} ${STANDING_WORDS.castSeparator} ${said}`;
+}
+
+/**
+ * `2 z 4` — every counter the panel and the tooltip draw, counting up or down, and **never with a
+ * noun**: the row's own name says what is counted (`develop ADR 0116`). Nothing here computes the
+ * percentage the pair comes to.
+ *
+ * ⚠️ **Nought is drawn at either end.** A charge's first turn arrives as none passed, and a shout
+ * stands while its turns are `<=` what the table gives it (`core/aura-standing.ts`), so a held
+ * character's last turn arrives as none left.
+ */
+export function formatCounter(figure: number, stated: number): string {
+    if (!Number.isSafeInteger(figure)) return PANEL_WORDS.unknown;
+    if (!Number.isSafeInteger(stated)) return PANEL_WORDS.unknown;
+    if (figure < 0) return PANEL_WORDS.unknown;
+    if (stated < figure) return PANEL_WORDS.unknown;
+    return `${formatWhole(figure)} z ${formatWhole(stated)}`;
+}
+
+/**
+ * What the window says where it draws no turn, one sentence per state and none where there is a
+ * turn to draw. `unread` is not "no turn": there the game numbers one and this reading is what
+ * could not take it, while the other two are the game numbering none at all. `develop ADR 0072`.
+ */
+const TURN_STATE_WORDS: Record<StandingTurnState, string> = {
+    held: "",
+    unread: "Nie wiadomo, czyja tura.",
+    afterFight: "Walka się skończyła.",
+    onAuto: "Szybka walka — gra nie podaje tur.",
+};
+
+export function getWordsForTurnState(state: StandingTurnState): string {
+    const words = TURN_STATE_WORDS[state];
+    return words;
+}
+
+/** The game's own numbering, and never a count of what this fight has run. */
+export function formatTurnOrdinal(ordinal: number): string {
+    if (!Number.isSafeInteger(ordinal)) return PANEL_WORDS.unknown;
+    if (ordinal < 0) return PANEL_WORDS.unknown;
+    return `tura ${formatWhole(ordinal)}`;
+}
+
+export function getWordsForPin(isPinned: boolean): string {
+    if (isPinned) return "Odepnij — będzie mogła zniknąć";
+    return "Przypnij, żeby nie zniknęła";
+}
+
+const STORAGE_WORDS: Record<StorageChoice, string> = {
+    local: "na stałe",
+    session: "do zamknięcia karty",
+    memory: "tylko teraz",
+};
+
+export function getWordsForStorage(choice: StorageChoice): string {
+    const words = STORAGE_WORDS[choice];
+    return words;
+}
+
+export const STORE_REFUSED_ANSWER = "Przeglądarka nie przyjęła tej walki — nie została zapisana. " +
+    "Odepnij którąś, żeby zrobić miejsce.";
+
+export const STORE_MADE_ROOM_ANSWER =
+    "Zabrakło miejsca w przeglądarce — najstarsze walki zostały usunięte, żeby zmieścić tę. " +
+    "Przypnij te, które chcesz zachować.";
+
+export const EVERY_SLOT_PINNED_ANSWER =
+    "Wszystkie miejsca są zajęte przez przypięte walki — ta się nie zapisała.";
+
+export const CHOICE_REFUSED_ANSWER =
+    "Przeglądarka nie zapisała tego wyboru — zostaje tak, jak było.";
+
+const LIVE_FIGHT_TIME = "teraz";
+const LIVE_FIGHT_OUTCOME = "trwa";
+const TWO_DIGITS = 2;
+/** The month a person counts first, which is the offset a lookup by month subtracts. */
+const FIRST_MONTH = 1;
+/** The calendar's own edges. A month outside its own is caught by finding no word for it. */
+const FIRST_DAY = 1;
+const DAY_MAXIMUM = 31;
+/**
+ * The months as a Polish calendar shortens them: three letters each, so a dated column is one
+ * width whichever month it falls in. A word rather than a number because two numbers either side
+ * of a separator are a date nobody can order without being told which half is which.
+ */
+const MONTH_WORDS = [
+    "sty",
+    "lut",
+    "mar",
+    "kwi",
+    "maj",
+    "cze",
+    "lip",
+    "sie",
+    "wrz",
+    "paź",
+    "lis",
+    "gru",
+];
+
+/**
+ * Two digits either side and the day in front of them: a column of times jumping between four and
+ * five characters reads as a column of different things, and a shelf spanning days reads as one
+ * day where nothing says which. Empty where the moment does not read back — `00:00` is a reading,
+ * and so is a day nobody stated.
+ *
+ * The place is what pays for the width, on every row (`develop:DESIGN.md`, `develop ADR 0084`).
+ */
+export function getWordsForShelfTime(at: FightMoment | null, isLive: boolean): string {
+    if (isLive) return LIVE_FIGHT_TIME;
+    if (at === null) return "";
+    if (at.hour < 0) return "";
+    if (at.minute < 0) return "";
+    if (at.day < FIRST_DAY) return "";
+    if (at.day > DAY_MAXIMUM) return "";
+    const month = MONTH_WORDS[at.month - FIRST_MONTH];
+    if (month === undefined) return "";
+    const day = formatTwoDigits(at.day);
+    if (day === "") return "";
+    const clock = `${formatTwoDigits(at.hour)}:${formatTwoDigits(at.minute)}`;
+    return `${day} ${month} ${clock}`;
+}
+
+function formatTwoDigits(value: number): string {
+    if (!Number.isSafeInteger(value)) return "";
+    if (value < 0) return "";
+    const digits = formatWhole(value);
+    return digits.length >= TWO_DIGITS ? digits : `0${digits}`;
+}
+
+/**
+ * The multiplication sign rather than `v`: `4v4` is English shorthand, and this panel's one
+ * borrowed word would be it. The header says the same with `vs`, where there is room for a word.
+ */
+export function formatShelfSize(counts: readonly number[]): string {
+    counts = counts.filter((one) => one > 0);
+    if (counts.length === 0) return "";
+    return counts.map((count) => formatFigure(count)).join("×");
+}
+
+export function getWordsForShelfOutcome(outcome: OutcomeResult | null, isLive: boolean): string {
+    // How it went outranks the word for one going on: a fight that has ended is still the live
+    // one until the next begins, and *trwa* over a fight the game has already called is wrong.
+    if (outcome !== null) return getWordsForOutcome(outcome);
+    if (isLive) return LIVE_FIGHT_OUTCOME;
+    return "";
+}
+
+export function formatUses(uses: number): string {
+    if (uses < 0) return PANEL_WORDS.unknown;
+    return `×${formatFigure(uses)}`;
+}
+
+/** The sign is taken off first and put back last, so a lone minus never joins its digits. */
+const MINUS_SIGN = "-";
+const THOUSAND_DIGITS = 3;
+const THOUSAND_SEPARATOR = "\u00a0";
+/** A safe integer is sixteen digits, so five groups is past every figure the protocol states. */
+const THOUSAND_GROUPS_MAXIMUM = 5;
+
+/** Three names is what fits beside a count; past that the sentence says how many instead. */
+export const NAMED_ROWS_MAXIMUM = 3;
+
+/**
+ * Whom a gap reaches, as the sentence puts them: names while they are few, a count past that — a
+ * list growing with the fight would be a second ranking, drawn in a paragraph. `develop ADR 0070`.
+ */
+export function formatChargedRows(names: readonly string[], charged: number): string {
+    if (charged <= 0) return "";
+    if (charged > NAMED_ROWS_MAXIMUM) {
+        return ` (dotyczy ${composeGenitiveNoun(charged, COUNTED_NOUNS.combatants)})`;
+    }
+    if (names.length === 0) return "";
+    return ` (${names.join(", ")})`;
+}
+
+/**
+ * How much a reading could not read, against how much there was: two of twelve is a fight nobody
+ * can trust, two of four hundred is a number in the third decimal place. A denominator of one is
+ * dropped — it adds nothing, and `z 1` wants a genitive singular this vocabulary has not got.
+ */
+function formatOutOf(count: number, stated: number, noun: CountedNoun): string {
+    if (stated <= 1) return formatCountedNoun(count, noun);
+    if (stated < count) return formatCountedNoun(count, noun);
+    return `${formatWhole(count)} z ${composeGenitiveNoun(stated, noun)}`;
+}
+
+/**
+ * A count under a word governing the genitive — `z`, `dotyczy`. The **many** form is the genitive
+ * plural: `1 z 3 uleczeń`, never `3 uleczenia`, which is the form nothing governs.
+ */
+function composeGenitiveNoun(count: number, noun: CountedNoun): string {
+    return `${formatWhole(count)} ${noun.many}`;
+}
+
+/**
+ * What a reading could not be sure of, each as one sentence a player can act on. The count sits
+ * in an apposition, so one sentence carries all three Polish forms without the verb agreeing with
+ * it. Each says **what cannot be known** and never what this reader could not do (**L3**), which
+ * is what keeps the three unread causes apart. `develop ADR 0070`.
+ */
+export function formatUnknownKeySuspicion(
+    count: number,
+    stated: number,
+    whom: string,
+): string {
+    if (count <= 0) return "";
+    const said = formatOutOf(count, stated, COUNTED_NOUNS.messages);
+    return "Nie wiadomo, co znaczyła część tego, co powiedziała gra — " +
+        `${said} bez odczytu${whom}, więc liczby mogą być zaniżone.`;
+}
+
+export function formatNoParameterSuspicion(
+    count: number,
+    stated: number,
+    whom: string,
+): string {
+    if (count <= 0) return "";
+    const said = formatOutOf(count, stated, COUNTED_NOUNS.messages);
+    return "Część tego, co powiedziała gra, nie niosła żadnej liczby — " +
+        `${said} bez odczytu${whom}, więc liczby mogą być zaniżone.`;
+}
+
+/** It names nobody, and takes no `whom`: a message nothing could be read out of named no end. */
+export function formatGrammarRefusedSuspicion(count: number, stated: number): string {
+    if (count <= 0) return "";
+    const said = formatOutOf(count, stated, COUNTED_NOUNS.messages);
+    return "Części tego, co powiedziała gra, nie dało się rozłożyć na słowa — " +
+        `${said} bez odczytu, więc liczby mogą być zaniżone.`;
+}
+
+/** The count sits in an apposition: under *nie dotarło* the verb would have to agree with it. */
+export function formatLostMessageSuspicion(count: number, stated: number): string {
+    if (count <= 0) return "";
+    const said = formatOutOf(count, stated, COUNTED_NOUNS.messages);
+    return `Część walki nie dotarła do panelu — ${said} bez odbioru, ` +
+        "więc wszystkie liczby mogą być zaniżone.";
+}
+
+/** No count: what happened before the reading began is stated nowhere. */
+export function formatJoinedInProgressSuspicion(): string {
+    return "Panel zaczął czytać tę walkę już w trakcie — nie widział jej początku, " +
+        "więc wszystkie liczby mogą być zaniżone.";
+}
+
+export function formatUnplacedHealSuspicion(
+    count: number,
+    stated: number,
+    whom: string,
+): string {
+    if (count <= 0) return "";
+    const said = formatOutOf(count, stated, COUNTED_NOUNS.heals);
+    return `Nie da się rozdzielić leczenia drużyny — ${said} bez podziału${whom}, ` +
+        "więc leczenie może być zaniżone.";
+}
+
+/**
+ * The same suspicions about one person — and after `develop ADR 0069` the only place one naming
+ * somebody is said. No denominator: what a row would be counted out of is the messages naming that
+ * person, which nothing counts. `postać` is feminine, so the possessive is `jej` whoever the row
+ * is.
+ */
+export function formatUnknownKeyRowSuspicion(count: number): string {
+    if (count <= 0) return "";
+    const said = formatCountedNoun(count, COUNTED_NOUNS.messages);
+    return `Nie wiadomo, co znaczyła część tego, co gra powiedziała z jej udziałem — ${said} ` +
+        "bez odczytu, więc jej liczby mogą być zaniżone.";
+}
+
+export function formatNoParameterRowSuspicion(count: number): string {
+    if (count <= 0) return "";
+    const said = formatCountedNoun(count, COUNTED_NOUNS.messages);
+    return `Część tego, co gra powiedziała z jej udziałem, nie niosła żadnej liczby — ${said} ` +
+        "bez odczytu, więc jej liczby mogą być zaniżone.";
+}
+
+export function formatUnplacedHealRowSuspicion(count: number): string {
+    if (count <= 0) return "";
+    const said = formatCountedNoun(count, COUNTED_NOUNS.heals);
+    return `Nie da się rozdzielić jej leczenia drużyny — ${said} bez podziału, ` +
+        "więc jej leczenie może być zaniżone.";
+}
+
+export const REGION_WORDS = {
+    header: "nagłówka",
+    strips: "zakładek",
+    crumb: "ścieżki",
+    list: "listy",
+    pinned: "wiersza",
+    sides: "podsumowania stron",
+    outside: "tego, co zostało poza rankingiem",
+    suspicions: "ostrzeżenia",
+    defects: "spisu usterek",
+    /** The card a row opens. It is not a region of the panel's frame, and it is drawn like one. */
+    tip: "szczegółów wiersza",
+    /** The window beside the panel. Its own region, drawn and undrawn like any other. */
+    standing: "pomocnika",
+} as const;
+
+export type PanelRegion = keyof typeof REGION_WORDS;
+
+export function formatUndrawn(region: PanelRegion): string {
+    return `Nie udało się narysować ${REGION_WORDS[region]}.`;
+}
+
+/**
+ * Every kind of defect the panel words, so a reader over the words can be held to the list
+ * (**S11**). The runtime's `DEFECT_KIND` is the same set, held to this one by a test rather than
+ * imported, because the panel imports nothing from the runtime (§4).
+ */
+export const PANEL_DEFECT_KIND = {
+    kept: "kept",
+    keeping: "keeping",
+    mount: "mount",
+    region: "region",
+    reading: "reading",
+    figures: "figures",
+    gesture: "gesture",
+    file: "file",
+    engine: "engine",
+} as const;
+export type PanelDefectKind = VocabularyWord<typeof PANEL_DEFECT_KIND>;
+
+/** **L3**: a player is told a part of the panel is missing, never what our code believed. */
+const DEFECT_WORDS: Record<PanelDefectKind, string> = {
+    kept: "Panel nie odczytał tego, co miał zapisane",
+    keeping: "Panel nie zapisał tej walki",
+    // Said in the past: a panel that is being read got onto the page in the end, and one that
+    // never did is not there to say anything at all.
+    mount: "Panel nie od razu stanął na stronie",
+    region: "Panel nie narysował jednej ze swoich części",
+    reading: "Panel nie przeliczył tej walki",
+    figures: "Liczby w panelu nie zgadzają się ze sobą",
+    gesture: "Panel nie wykonał kliknięcia",
+    file: "Panel nie przygotował pliku z walką",
+    // Chosen by the maintainer on 2026-09-24: a panel waiting for a game says what it cannot see.
+    engine: "Nie widać walki w grze",
+};
+
+/**
+ * A whole number as text, degrading rather than asserting (`AGENTS.md` E12): `formatInteger`
+ * asserts its input is a safe integer, and the panel is the layer that must not stop. On every
+ * whole number it is `formatInteger`; a fraction rounds, and what is no number is the unknown word.
+ */
+export function formatWhole(value: number): string {
+    if (Number.isSafeInteger(value)) return formatInteger(value);
+    if (!Number.isFinite(value)) return PANEL_WORDS.unknown;
+    const rounded = Math.round(value);
+    if (!Number.isSafeInteger(rounded)) return PANEL_WORDS.unknown;
+    return formatInteger(rounded);
+}
+
+/** A tally of one is not drawn: `(1×)` reads as a count somebody has to work out. */
+export function formatDefect(
+    kind: PanelDefectKind,
+    region: PanelRegion | null,
+    count: number,
+): string {
+    const said = kind === PANEL_DEFECT_KIND.region && region !== null
+        ? `Panel nie narysował ${REGION_WORDS[region]}`
+        : DEFECT_WORDS[kind];
+    const isTallied = Number.isSafeInteger(count) && count > 1;
+    const times = isTallied ? ` (${formatWhole(count)}×)` : "";
+    return `${said}${times}.`;
+}
+
+/**
+ * The fight as a headcount. The people the roster could not place are counted apart rather than
+ * added to a side, because which side they are on is exactly what nobody knows.
+ */
+export function formatSideCounts(sizes: readonly number[], unplaced: number): string {
+    const counts = sizes.filter((one) => one > 0);
+    if (counts.length === 0) return PANEL_WORDS.noSides;
+    const counted = counts.map((count) => formatFigure(count)).join(" vs ");
+    if (unplaced <= 0) return counted;
+    return `${counted} +${formatFigure(unplaced)}`;
+}
+
+/**
+ * ⚠️ **Divided and never added**: the sum is not the turns anybody was granted
+ * (`develop ADR 0110`). Spaced on the space that never breaks, for the reason `formatFigure` spaces
+ * thousands on — a figure folded across two lines reads as a number half its size
+ * (`develop:DESIGN.md`).
+ */
+export function formatTurns(taken: number, lost: number): string {
+    const divider = `${THOUSAND_SEPARATOR}/${THOUSAND_SEPARATOR}`;
+    return `${formatFigure(taken)}${divider}${formatFigure(lost)}`;
+}
+
+/**
+ * Thousands spaced as the game spaces them, on a space that never breaks — `develop:DESIGN.md`. A
+ * figure that is not one is drawn as *not known*, never as `0`: they are different claims
+ * (`develop:CONTEXT.md`).
+ */
+export function formatFigure(value: number): string {
+    // ⚠️ One check, not two, and every caller relies on it: rounding what is not a number answers
+    // what is not a whole one either, so a second guard anywhere above this is unreachable.
+    const rounded = Math.round(value);
+    if (!Number.isSafeInteger(rounded)) return PANEL_WORDS.unknown;
+    const digits = formatWhole(rounded);
+    const sign = digits.startsWith(MINUS_SIGN) ? MINUS_SIGN : "";
+    const body = digits.slice(sign.length);
+    let spaced = "";
+    let start = body.length;
+    for (let group = 0; group < THOUSAND_GROUPS_MAXIMUM; group += 1) {
+        if (start <= THOUSAND_DIGITS) break;
+        const from = start - THOUSAND_DIGITS;
+        spaced = `${THOUSAND_SEPARATOR}${body.slice(from, start)}${spaced}`;
+        start = from;
+    }
+    return `${sign}${body.slice(0, start)}${spaced}`;
+}
+
+/**
+ * What the panel draws where a share is owed and rounds to nothing. Exported because two
+ * guards read a drawn share back into points and both spelled this string themselves, so a
+ * floor changed here would have left them measuring a string the panel no longer draws.
+ */
+export const SHARE_FLOOR = "<1%";
+/** More shares than the widest section draws rows — `tests/ui/share-bound.test.ts` holds it so. */
+export const SHARES_MAXIMUM = 384;
+
+/**
+ * A share in whole points, with the floor spent where it is owed. A figure under half a point
+ * rounds to `0%`, and on a panel that keeps zero and unknown apart that is a third thing neither
+ * of them means: something happened, and it was too small to round to. Over `develop:captures/` on
+ * 2026-08-29, across the four screens and the three side choices, 55 rows print this floor — and
+ * without it every one of them would read `0%` beside a figure that is not one.
+ */
+function formatSharePoints(points: number, isPresent: boolean): string {
+    if (!Number.isSafeInteger(points)) return PANEL_WORDS.unknown;
+    if (points < 0) return PANEL_WORDS.unknown;
+    if (points === 0 && isPresent) return SHARE_FLOOR;
+    return `${formatWhole(points)}%`;
+}
+
+interface ShareInPoints {
+    index: number;
+    amount: number;
+    points: number;
+    remainder: number;
+}
+
+function composeSharesInPoints(amounts: readonly number[], whole: number): ShareInPoints[] {
+    return amounts.map((amount, index) => {
+        const exact = (amount / whole) * HUNDRED;
+        const points = Math.floor(exact);
+        return { index, amount, points, remainder: exact - points };
+    });
+}
+
+/** A group with nobody in it takes no points and sorts last, which is what an empty one is. */
+const NOBODY_TO_PAY: ShareInPoints = { index: 0, amount: 0, points: 0, remainder: 0 };
+
+function getShareGroupHead(group: readonly ShareInPoints[]): ShareInPoints {
+    return group[0] ?? NOBODY_TO_PAY;
+}
+
+/**
+ * Equal figures take a point together or not at all: the plain method hands the last point to one
+ * row of a tie, and two identical numbers with different shares beside them read as a panel that
+ * cannot add up. So a group of equal figures is one candidate costing as many points as it has
+ * members, and where the points left will not cover it a smaller remainder is paid instead. Over
+ * `develop:captures/` on 2026-08-29 that is 12 groups of equal figures across the four screens and
+ * the three side choices.
+ */
+function composeShareGroups(shares: readonly ShareInPoints[]): ShareInPoints[][] {
+    const byAmount = new Map<number, ShareInPoints[]>();
+    for (const share of shares) {
+        // A share with nothing discarded is a whole number of points already.
+        if (share.remainder <= 0) continue;
+        const held = byAmount.get(share.amount);
+        if (held === undefined) byAmount.set(share.amount, [share]);
+        else held.push(share);
+    }
+    const groups = [...byAmount.values()];
+    groups.sort((one, other) => {
+        const first = getShareGroupHead(one);
+        const second = getShareGroupHead(other);
+        if (first.remainder !== second.remainder) return second.remainder - first.remainder;
+        return first.index - second.index;
+    });
+    return groups;
+}
+
+/**
+ * Every share of one whole, written so what the reader adds up comes to what the panel says it is a
+ * share of. Rounding each on its own loses up to half a point per row in the same direction: of the
+ * 312 screens drawing a figure over `develop:captures/` on 2026-08-29, 106 would print a set that
+ * did not add to a hundred. The largest remainder decides who takes the points that are left; a
+ * second decimal place does not close it, because `33,3%` three times adds to `99,9%` and the
+ * column still does not sum.
+ */
+export function formatShares(amounts: readonly number[], whole: number): string[] {
+    // A whole that is not a number states no share of anything, and neither does one at or below
+    // nothing: every row reads `0%`, which is what a screen with no figure on it already draws.
+    if (!Number.isFinite(whole)) return amounts.map(() => formatSharePoints(0, false));
+    if (whole <= 0) return amounts.map(() => formatSharePoints(0, false));
+    const shares = composeSharesInPoints(amounts.slice(0, SHARES_MAXIMUM), whole);
+    const held = shares.reduce((sum, one) => sum + one.points, 0);
+    const exact = shares.reduce((sum, one) => sum + one.points + one.remainder, 0);
+    let left = Math.round(exact) - held;
+    const unpaid: ShareInPoints[][] = [];
+    for (const group of composeShareGroups(shares)) {
+        if (group.length > left) {
+            unpaid.push(group);
+            continue;
+        }
+        for (const share of group) share.points += 1;
+        left -= group.length;
+    }
+    // Where nothing but a group too big to pay for is left, the column adding up wins over the
+    // evenness and the group is split, earliest row first.
+    for (const group of unpaid) {
+        for (const share of group) {
+            if (left <= 0) break;
+            share.points += 1;
+            left -= 1;
+        }
+    }
+    return shares.map((one) => formatSharePoints(one.points, one.amount > 0));
+}
+
+export function formatShare(share: number): string {
+    if (!Number.isFinite(share)) return PANEL_WORDS.unknown;
+    const held = clamp(share, 0, 1);
+    return formatSharePoints(Math.round(held * HUNDRED), held > 0);
+}
+
+export function formatPlace(
+    mapName: string | null,
+    x: number | null,
+    y: number | null,
+): string | null {
+    const named = mapName !== null && mapName.length > 0 ? mapName : null;
+    const tile = x === null || y === null ? null : `(${x}, ${y})`;
+    if (named === null) return tile;
+    if (tile === null) return named;
+    return `${named} ${tile}`;
+}

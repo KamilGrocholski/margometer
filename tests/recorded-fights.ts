@@ -8,15 +8,23 @@
 
 import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
 import type { BattleEvent } from "@/src/core/battle-event.ts";
-import { type Combatant, indexCombatantRoster } from "@/src/core/combatant-roster.ts";
+import {
+    type Combatant,
+    type CombatantRoster,
+    indexCombatantRoster,
+} from "@/src/core/combatant-roster.ts";
 import { decodePayloadMessages, type UnreadMessage } from "@/src/core/fight-decoder.ts";
 import {
     commitPayload,
     type FightSession,
+    type FightView,
+    getFightView,
     initFightSession,
     preparePayload,
     SESSION_OPTIONS,
 } from "@/src/core/fight-session.ts";
+import { tallyFightFigures } from "@/src/core/fight-figures.ts";
+import type { FightStatistics } from "@/src/core/fight-statistics.ts";
 import { readPayloadEnvelope } from "@/src/game/payload-envelope.ts";
 import { FILE_FIELD } from "@/src/runtime/fight-file.ts";
 import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
@@ -61,6 +69,13 @@ export interface RecordedHealth {
     health: number;
     healthMaximum: number;
     healthPercent: number;
+}
+
+/** A recording as the panel is handed it: the session's view, and the figures tallied off it. */
+export interface RecordedTally {
+    view: FightView;
+    roster: CombatantRoster;
+    statistics: FightStatistics;
 }
 
 export interface RecordedDecoding {
@@ -118,6 +133,12 @@ export function replayRecordedFight(fight: RecordedFight): FightSession {
         commitPayload(session, prepared.value);
     }
     return session;
+}
+
+export function tallyRecordedFight(path: string): RecordedTally {
+    const view = getFightView(replayRecordedFight(lookupRecordedFight(path)));
+    assertExists(view, `${path}: a recording states a fight to tally`);
+    return { view, roster: view.roster, statistics: tallyFightFigures(view).statistics };
 }
 
 function readRecordedFight(path: string, document: unknown): RecordedFight {

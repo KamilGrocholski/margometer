@@ -443,3 +443,4 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/throws.test.ts`                | E1, E13             |
 | `tests/repository/names.test.ts`                 | N1, N10             |
 | `tests/repository/layers.test.ts`                | `docs/design.md` §4 |
+| `tests/repository/reader-layer.test.ts`          | A11                 |

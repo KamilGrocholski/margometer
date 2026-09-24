@@ -6,6 +6,7 @@
 import { assertEquals, assertStrictEquals } from "@std/assert";
 import { RESULT_FAILURE } from "@/libs/result.ts";
 import { DEFECT_KIND, initDefectLedger } from "@/src/runtime/defect-ledger.ts";
+import { PANEL_DEFECT_KIND } from "@/src/ui/panel-words.ts";
 
 /** Past this the ledger stops counting, restated here on purpose: it is not exported. */
 const COUNT_STATED = 1048576;
@@ -68,4 +69,13 @@ Deno.test("the count stops at its bound, and counts to it", () => {
     ledger.add({ kind: DEFECT_KIND.region, failure: FIRST });
     assertStrictEquals(ledger.getCounts()[0]?.count, COUNT_STATED, "and no further past it");
     assertStrictEquals(lines.length, 1, "with still one line");
+});
+
+/**
+ * The panel words every defect the runtime keeps, and imports nothing from the runtime to do it
+ * (`docs/design.md` §4), so the two lists are held to each other here.
+ */
+Deno.test("every defect the runtime keeps is one the panel has words for", () => {
+    const kept = Object.values(DEFECT_KIND).sort();
+    assertEquals(kept, Object.values(PANEL_DEFECT_KIND).sort(), "the same kinds, both ways");
 });
