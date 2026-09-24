@@ -1,0 +1,71 @@
+/**
+ * What could not be done, and how often: counted per kind, and the first of a kind written to the
+ * console as one line, never per render (`AGENTS.md` E9).
+ */
+
+import { assertEquals, assertStrictEquals } from "@std/assert";
+import { RESULT_FAILURE } from "@/libs/result.ts";
+import { DEFECT_KIND, initDefectLedger } from "@/src/runtime/defect-ledger.ts";
+
+/** Past this the ledger stops counting, restated here on purpose: it is not exported. */
+const COUNT_STATED = 1048576;
+
+function composeLedger() {
+    const lines: [string, unknown][] = [];
+    const ledger = initDefectLedger({
+        writeBrandedLine: (kind, detail) => void lines.push([kind, detail]),
+    });
+    return { ledger, lines };
+}
+
+const FIRST = { kind: RESULT_FAILURE.invariantBroken, cause: "first" } as const;
+const SECOND = { kind: RESULT_FAILURE.invariantBroken, cause: "second" } as const;
+
+Deno.test("the first defect of a kind writes one line, and the rest are counted", () => {
+    const { ledger, lines } = composeLedger();
+    ledger.add({ kind: DEFECT_KIND.reading, failure: FIRST });
+    assertEquals(lines, [[DEFECT_KIND.reading, FIRST]], "one line, with the failure beside it");
+    ledger.add({ kind: DEFECT_KIND.reading, failure: SECOND });
+    ledger.add({ kind: DEFECT_KIND.reading, failure: SECOND });
+    assertStrictEquals(lines.length, 1, "and no second line for the same kind");
+    const counts = ledger.getCounts();
+    assertEquals(counts, [{ kind: DEFECT_KIND.reading, count: 3, first: FIRST }], "three, first");
+});
+
+Deno.test("counts are kept per kind, and each kind has its own line", () => {
+    const { ledger, lines } = composeLedger();
+    assertEquals(ledger.getCounts(), [], "a ledger nothing was added to holds nothing");
+    ledger.add({ kind: DEFECT_KIND.file, failure: FIRST });
+    ledger.add({ kind: DEFECT_KIND.engine, failure: SECOND });
+    ledger.add({ kind: DEFECT_KIND.file, failure: SECOND });
+    assertEquals(
+        lines.map(([kind]) => kind),
+        [DEFECT_KIND.file, DEFECT_KIND.engine],
+        "a line each",
+    );
+    const counts = ledger.getCounts().map((one) => [one.kind, one.count]);
+    assertEquals(counts, [[DEFECT_KIND.file, 2], [DEFECT_KIND.engine, 1]], "and a count each");
+});
+
+Deno.test("what the ledger hands out is a copy, so a reader cannot move a count (S9)", () => {
+    const { ledger } = composeLedger();
+    ledger.add({ kind: DEFECT_KIND.kept, failure: FIRST });
+    const handed = ledger.getCounts();
+    const row = handed[0];
+    if (row !== undefined) row.count = 99;
+    assertStrictEquals(ledger.getCounts()[0]?.count, 1, "the ledger's own count is untouched");
+});
+
+/** Reached by adding: a million adds take well under a second, and the bound is what is proved. */
+Deno.test("the count stops at its bound, and counts to it", () => {
+    const { ledger, lines } = composeLedger();
+    for (let added = 0; added < COUNT_STATED - 1; added += 1) {
+        ledger.add({ kind: DEFECT_KIND.region, failure: FIRST });
+    }
+    assertStrictEquals(ledger.getCounts()[0]?.count, COUNT_STATED - 1, "one short of the bound");
+    ledger.add({ kind: DEFECT_KIND.region, failure: FIRST });
+    assertStrictEquals(ledger.getCounts()[0]?.count, COUNT_STATED, "at the bound");
+    ledger.add({ kind: DEFECT_KIND.region, failure: FIRST });
+    assertStrictEquals(ledger.getCounts()[0]?.count, COUNT_STATED, "and no further past it");
+    assertStrictEquals(lines.length, 1, "with still one line");
+});

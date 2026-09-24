@@ -221,14 +221,28 @@ export interface FrameScheduler {
 export interface FrameHandle {
     cancel(): void;
 }
+/**
+ * The page's `setInterval`, for the search for the engine (§10.1). The step is guarded where it is
+ * handed over (E10), and its failure goes to `onStepFailure` rather than into the browser's timer.
+ */
+export interface IntervalScheduler {
+    every(
+        step: () => void,
+        everyMilliseconds: number,
+        onStepFailure: (failure: BrokenInvariant) => void,
+    ): Result<IntervalHandle, ForeignFailure>;
+}
+export interface IntervalHandle {
+    cancel(): Result<void, ForeignFailure>;
+}
 
 // The engine
 export interface EnginePort {
-    readBattle(): Result<EngineBattle, EngineFailure>;
+    readBattle(): Result<EngineBattle, EngineFailure | ForeignFailure>;
 }
 export interface EngineBattle {
     wrap(listener: PayloadListener): Result<WrapHandle, EngineFailure>;
-    readWarriors(): Result<WarriorSnapshot, WarriorFailure>;
+    readWarriors(): Result<WarriorSnapshot, WarriorFailure | ForeignFailure>;
 }
 /** Called in the game's stack. */
 export interface PayloadListener {
@@ -237,7 +251,8 @@ export interface PayloadListener {
 }
 export interface WrapHandle {
     detach(): Result<void, EngineFailure>;
-    getFailureCount(): number;
+    getFailureCount(): number; // the listener guards itself; this counts what escaped it
+    getFirstFailure(): BrokenInvariant | null; // what a defect carries
 }
 export type EngineFailure =
     | { kind: "engine-absent" } // neither spelling answered
@@ -302,8 +317,9 @@ export interface FileSink {
 }
 export type FileFailure = { kind: "file-api-absent" } | ForeignFailure;
 /** Once per kind. */
+/** The kind is handed in as text: `game/` imports nothing of the runtime's (§4). */
 export interface ConsolePort {
-    writeBrandedLine(kind: DefectKind, failure: RuntimeFailure): void;
+    writeBrandedLine(kind: string, detail: unknown): void;
 }
 ```
 
