@@ -96,7 +96,7 @@ export const MESSAGES_MAXIMUM = 32768;
  * `develop:docs/unannounced-damage.md` carries the measurement, `develop ADR 0078` the rule.
  */
 const BLOWS_GRANTED_MAXIMUM = 4;
-/** A skill's name is a phrase; the longest in `develop:captures/` is far short of this, 2026-09-01. */
+/** A skill's name is a phrase; the longest in `develop:captures/` is far short, 2026-09-01. */
 export const NAME_LENGTH_MAXIMUM = 4096;
 
 /** This family may state a second member after the health figure. It is not health. */
@@ -118,7 +118,8 @@ const NAME_SEPARATOR = ", ";
 /**
  * What the game puts between the combatant it is talking about and what it has to say, and how it
  * ends a sentence about something other than a turn. 319 of 319 turns lost over
- * `develop:captures/` on 2026-09-03 have this shape, with nothing else matching. `develop ADR 0049`.
+ * `develop:captures/` on 2026-09-03 have this shape, with nothing else matching
+ * (`develop ADR 0049`).
  */
 const TURN_LOST_SEPARATOR = " - ";
 const SENTENCE_STOP = ".";

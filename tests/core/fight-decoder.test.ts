@@ -535,9 +535,10 @@ Deno.test("an escape beside a stated winner is still what the fight came to", ()
 });
 
 /**
- * What stands behind the entry in `develop:docs/protocol-keys.md`: the escape is read off the client's own
- * branch and the published help, and the material says nothing either way. A recording of one
- * would turn this red, which is the point — it is the day the entry gets a measurement.
+ * What stands behind the entry in `develop:docs/protocol-keys.md`: the escape is read off the
+ * client's own branch and the published help, and the material says nothing either way. A
+ * recording of one would turn this red, which is the point: it is the day the entry gets a
+ * measurement.
  */
 Deno.test("no recording carries an escape, which is why the register cites the client", () => {
     let fled = 0;
@@ -554,10 +555,10 @@ Deno.test("no recording carries an escape, which is why the register cites the c
 });
 
 /**
- * The claim `develop:docs/protocol-keys.md` files `-dmga` under, and the one the panel's word rests on:
- * the published help says the ordinary reductions do not reach this damage, and a protocol that
- * reports no reduction has no raw side to report either. A `+dmga` is therefore a finding rather
- * than a gap — it would mean something reduces the key after all, and the word would be wrong.
+ * The claim `develop:docs/protocol-keys.md` files `-dmga` under, and the one the panel's word
+ * rests on: the published help says the ordinary reductions do not reach this damage, and a
+ * protocol that reports no reduction has no raw side to report either. A `+dmga` is therefore a
+ * finding rather than a gap: it would mean something reduces the key after all.
  * The applied count stands beside it so a walk that has stopped finding the element reddens too.
  */
 Deno.test("the one element with no raw half still has an applied one", () => {
@@ -744,7 +745,7 @@ Deno.test("every message in every recording decodes, and the pairs hold", () => 
     assert(tally.unsized > 0, "and a share stated about a whole side, which no row can carry");
     assert(tally.declared > 0, "and messages that state something and report nothing");
     assert(tally.resolved > tally.byName / 2, "most of which a roster can put on somebody");
-    // Every key `develop:captures/` carries is read now, so the panel says nothing is missing — which is
+    // Every key `develop:captures/` carries is read now, so the panel says nothing is missing:
     // a claim about the material rather than about the decoder, and the probes above are what
     // hold the other half.
     assertEquals(tally.unread, 0, "and nothing in the recordings goes unread any more");
@@ -894,8 +895,8 @@ function getOnlyUnread(events: readonly BattleEvent[]): readonly string[] {
 
 /**
  * Probes, every one: no recording states any of these shapes (measured 2026-09-21, 0 of every
- * value over `develop:captures/`), and each once reached an assertion instead of the unread row — which
- * on the fight's last message left it never over, and on any other lost the payload whole.
+ * value over `develop:captures/`), and each once reached an assertion instead of the unread row,
+ * which on the fight's last message left it never over, and on any other lost the payload whole.
  */
 Deno.test("a value the game's own text can spell goes unread, and never into an assertion", () => {
     assertEquals(
@@ -1017,7 +1018,7 @@ Deno.test("the standing a payload ends on is what the next may start from", () =
  * Probes, every one: the recordings never reach these branches, and each was a mutation that lit
  * nothing until it was written out here.
  */
-Deno.test("a proc is read on a blow and while it states nothing, or where the table lets it", () => {
+Deno.test("a proc is read on a blow while it states nothing, or where the table lets it", () => {
     const bare = decode(["1=50.00;2=50.00;+dmg=10;-dmg=10;+crit"]);
     assertEquals(bare.map((one) => one.kind), ["attack"], "a proc on a blow is part of it");
     assertEquals(getOnlyUnreadAfterAttack(decode(["1=50.00;2=50.00;+dmg=10;-dmg=10;+crit=5"])), [

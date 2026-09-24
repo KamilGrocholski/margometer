@@ -63,6 +63,17 @@ export const APPLIED_SIGN = "-";
 /** Free text for the client's own log, and the one key nothing is kept from. */
 export const TEXT_KEY = "txt";
 export const SKILL_ID_KEY = "skillId";
+/** A combatant moving: one of the two default actions a turn can go on (article 372 §2.3). */
+export const STEP_KEY = "step";
+/** A skill being made ready, the other way a turn passes with nothing struck. */
+export const PREPARE_KEY = "prepare";
+/** What the client announces beside the blow that broke a charge. */
+export const CHARGE_BROKEN_KEY = "+superspell-dispel";
+/** The legendary bonus lit on its holder's blow, and the heal that runs under it. */
+export const HOLYTOUCH_DECLARATION_KEY = "+legbon_holytouch";
+export const HOLYTOUCH_HEAL_KEY = "legbon_holytouch_heal";
+/** The legendary bonus that heals once a fight, stated by name inside the value. */
+export const LASTHEAL_KEY = "legbon_lastheal";
 
 /** The one pair the family rule cannot reach, because the key carries no marker. */
 const DAMAGE_KEYS = ["+thirdatt", "-thirdatt"];
@@ -110,7 +121,7 @@ const PROC_END_BY_KEY: ReadonlyMap<string, ProcEnd> = new Map<string, ProcEnd>([
     ["+legbon_verycrit", "actor"],
     ["-legbon_cleanse", "target"],
     ["-legbon_glare", "target"],
-    ["+superspell-dispel", "unsettled"],
+    [CHARGE_BROKEN_KEY, "unsettled"],
     ["+superspell-prevented", "unsettled"],
     ["-tenacity", "unsettled"],
     ["-evade", "target"],
@@ -136,7 +147,7 @@ const PROCS_WITH_VALUE = [
  */
 const HEALTH_CHANGE_BY_KEY = new Map<string, { sign: 1 | -1; isOnTarget: boolean }>([
     ["heal", { sign: 1, isOnTarget: false }],
-    ["legbon_holytouch_heal", { sign: 1, isOnTarget: false }],
+    [HOLYTOUCH_HEAL_KEY, { sign: 1, isOnTarget: false }],
     ["heal_target", { sign: 1, isOnTarget: true }],
     ["npc_heal", { sign: 1, isOnTarget: false }],
     ["bandage", { sign: 1, isOnTarget: false }],
@@ -195,7 +206,7 @@ const DECLARATION_KEYS = [
     "lowheal_per-enemies",
     "mana",
     "poison_lowdmg_per-enemies",
-    "prepare",
+    PREPARE_KEY,
     "shout",
     "surpass_bonus_total",
     TEXT_KEY,
@@ -208,13 +219,13 @@ const DECLARATION_KEYS = [
  */
 const VALUELESS_DECLARATION_KEYS = [
     "+legbon_anguish",
-    "+legbon_holytouch",
+    HOLYTOUCH_DECLARATION_KEY,
     "+spell-taken_dmg-all",
     "en-regen-cast",
     "removedot-allies",
     "removeslow-allies",
     "removestun-allies",
-    "step",
+    STEP_KEY,
     "sunshield_per",
 ];
 
@@ -260,7 +271,7 @@ function indexKeyReadings(): Map<string, KeyReading> {
     add("flee", { kind: KEY_FAMILY.fled });
     add("healall_per", { kind: KEY_FAMILY.unaccountedHealth });
     add("+oth_dmg", { kind: KEY_FAMILY.namedDamage });
-    add("legbon_lastheal", { kind: KEY_FAMILY.namedHealing });
+    add(LASTHEAL_KEY, { kind: KEY_FAMILY.namedHealing });
     assert(found.size > PROC_END_BY_KEY.size, "every family is indexed, not only the procs");
     return found;
 }

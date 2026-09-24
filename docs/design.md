@@ -389,11 +389,16 @@ assertion that fires while preparing leaves the session untouched, because the w
 ```ts
 export const SESSION_PHASE = { waiting: "waiting", underway: "underway", over: "over" } as const;
 export type SessionPhase = (typeof SESSION_PHASE)[keyof typeof SESSION_PHASE];
+/** A record the four functions below read and write; nothing else writes to it. */
 export interface FightSession {
-    getPhase(): SessionPhase;
-    getView(): FightView | null; // a reading, never the map (S9)
+    readonly options: SessionOptions;
+    standing: SessionStanding | null; // null: no payload yet
+    events: BattleEvent[];
 }
 export function initFightSession(options: SessionOptions): FightSession;
+export function getSessionPhase(session: FightSession): SessionPhase;
+/** A reading: the arrays are the session's own, typed read-only, and nothing here writes (S9). */
+export function getFightView(session: FightSession): FightView | null;
 /** Phase one: reads and computations, the session untouched. */
 export function preparePayload(
     session: FightSession,
@@ -404,8 +409,10 @@ export function preparePayload(
 export function commitPayload(session: FightSession, prepared: PreparedPayload): PayloadCommitted;
 
 export interface PreparedPayload {
-    readonly payloadIndex: number;
+    readonly payloadIndex: number; // what the standing it was read against had applied
+    readonly isOpening: boolean; // `init`, or the first payload the session sees
     readonly decoded: PayloadDecoded;
+    readonly next: SessionStanding; // everything but the events, which commit appends
 }
 export interface PayloadCommitted {
     hasOpened: boolean;
@@ -413,8 +420,25 @@ export interface PayloadCommitted {
     eventsAdded: number;
     unreadAdded: number;
 }
-/** The one refusal, and its fate is a suspect rather than a defect. */
-export type PayloadRejected = { kind: "payload-before-init" }; // joined in progress: a fact
+/** A fight past a bound the options state; what stands is left whole. */
+export type PayloadRejected =
+    | { kind: "cast-exceeded"; count: number; maximum: number }
+    | { kind: "events-exceeded"; count: number; maximum: number }
+    | { kind: "payloads-exceeded"; count: number; maximum: number };
+
+/** What the envelope hands the session. Core owns the type because core reads it (§4). */
+export interface PayloadRecord {
+    isInit: boolean;
+    isEnd: boolean;
+    messages: readonly string[];
+    messagesStated: number | null; // the length of `mi`; null where it is absent, never zero
+    readerSide: number | null;
+    isOnAuto: boolean | null;
+    turnStatement: TurnStatement | null; // the queue's least entry, the only one it states
+    combatants: readonly Combatant[];
+    statusMasksByCombatantId: ReadonlyMap<number, number>;
+    chargeStatements: readonly ChargedSkillStatement[];
+}
 
 /** `develop`'s `FightReading`, same content. */
 export interface FightView {
@@ -422,6 +446,7 @@ export interface FightView {
     events: readonly BattleEvent[];
     unread: UnreadCounts;
     messagesLost: number;
+    messagesRead: number;
     hasJoinedInProgress: boolean;
     isOver: boolean;
     readerSide: number | null;
@@ -439,6 +464,11 @@ export interface SessionOptions {
     combatantsMaximum: number;
 }
 ```
+
+A payload arriving before `init` is read, as `develop` reads it: it opens a fight marked joined in
+progress, and `hasJoinedInProgress` is the suspect the reader sees. No recording begins that way (0
+of 35, 2026-09-24); a reader reloading mid-fight does. The carried statuses, the legendary bonuses
+and the charges are walks `prepare…` computes as new values, so preparing touches nothing.
 
 ### 6.5 Figures
 
@@ -481,10 +511,10 @@ export type EnvelopeField = keyof Pick<
     | "isInit"
     | "isEnd"
     | "messages"
-    | "messageIndex"
+    | "messagesStated"
     | "readerSide"
     | "isOnAuto"
-    | "turnQueue"
+    | "turnStatement"
     | "combatants"
 >;
 /** The only place the game's envelope keys are spelled; the compiler holds it complete. */
@@ -492,10 +522,10 @@ const ENVELOPE_KEYS: { readonly [Field in EnvelopeField]: string } = {
     isInit: "init",
     isEnd: "endBattle",
     messages: "m",
-    messageIndex: "mi",
+    messagesStated: "mi",
     readerSide: "myteam",
     isOnAuto: "auto",
-    turnQueue: "turns_warriors",
+    turnStatement: "turns_warriors",
     combatants: "w",
 };
 
@@ -503,21 +533,13 @@ const ENVELOPE_KEYS: { readonly [Field in EnvelopeField]: string } = {
 export function readPayloadEnvelope(
     payload: unknown,
     atMilliseconds: number,
-): Result<PayloadRecord, EnvelopeFailure>;
-export interface PayloadRecord {
-    isInit: boolean;
-    isEnd: boolean;
-    messages: readonly string[];
-    messageIndex: number | null;
-    readerSide: number | null;
-    isOnAuto: boolean | null;
-    turnQueue: readonly TurnStatement[] | null;
-    combatants: readonly Combatant[] | null;
-    statusMasksByCombatantId: ReadonlyMap<number, number>;
-    chargeStatements: readonly ChargedSkillStatement[];
+): Result<EnvelopeReading, EnvelopeFailure>;
+/** The session's `PayloadRecord` (§6.4), and what only the file and the shelf read beside it. */
+export interface EnvelopeReading {
+    record: PayloadRecord;
     snapshotBefore: WarriorSnapshot | null;
     atMilliseconds: number;
-    /** For the file and the shelf, copied in the game's stack. `null`: thinning dropped the call. */
+    /** For the file and the shelf, copied in the game's stack. `null`: thinning dropped it. */
     captured: CapturedCall | null;
 }
 
@@ -816,7 +838,7 @@ onPayload(payload) ─ runGuarded:
    captureCall             err → a "file" defect; the fight reads on, the file loses this call
    preparePayload          ok  → commitPayload → unread counted (suspect)
                                  hasClosed → keepFight → ShelfWritten | ShelfFailure
-                           err → payload-before-init: joined in progress (suspect)
+                           err → a bound the options state: a "reading" defect
                            assertion → a "reading" defect; the session untouched
    markStale               the first mark asks for a frame
 end: no DOM; cost bounded by the message count; a JSON copy only of a call thinning keeps
@@ -849,7 +871,8 @@ defect once, because no failure goes without a mark.
 | Failure                                         | Fate                   | What the reader sees                                   |
 | ----------------------------------------------- | ---------------------- | ------------------------------------------------------ |
 | `unread` (grammar, unknown key, no parameter)   | `shown-as-suspect`     | a count beside the figure, a suspicion sentence        |
-| `payload-before-init`                           | `shown-as-suspect`     | "joined in progress"                                   |
+| `PayloadRejected`                               | `defect` "reading"     | the defects section; the fight read so far stands      |
+| `hasJoinedInProgress` (data, not a failure)     | `shown-as-suspect`     | "joined in progress"                                   |
 | `EnvelopeFailure`                               | `defect` "reading"     | the defects section: what could not be done, how often |
 | `BrokenInvariant`                               | `defect` of its step   | as above; one console line per kind                    |
 | `hasFiguresDisagreed` (data, not a failure)     | `defect` "figures"     | as above                                               |

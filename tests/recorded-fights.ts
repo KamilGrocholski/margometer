@@ -87,7 +87,7 @@ export function lookupRecordedFight(path: string): RecordedFight {
     return found;
 }
 
-/** Each payload decoded on its own, as `develop` decodes a call: no announcement stands across two. */
+/** Each payload decoded on its own, as `develop` decodes a call: no announcement spans two. */
 export function decodeRecordedFight(fight: RecordedFight): RecordedDecoding {
     const roster = indexCombatantRoster(fight.combatants);
     const decoding: RecordedDecoding = { events: [], unread: [] };
