@@ -421,12 +421,21 @@ TypeScript idiom, with the naming rules stated here.
 
 Every guard that **exists**. Nothing is listed here before it runs.
 
-**None does yet.** Every rule above is held by reading until a guard for it runs, and a guard joins
-this table in the commit that makes it pass. A rule ending **`by-reading`** carries an observation
-no machine can compute, and stays out of this table for good.
+Every rule not in it is held by reading until a guard for it runs, and a guard joins this table in
+the commit that makes it pass. A rule ending **`by-reading`** carries an observation no machine can
+compute, and stays out of this table for good.
 
 **A reader is proved by a sample it must flag and a sample it must not.** The first catches a reader
 that has stopped finding its subject; only the second catches one that finds too much.
 
-| Guard | Holds |
-| ----- | ----- |
+| Guard                                            | Holds   |
+| ------------------------------------------------ | ------- |
+| `deno check`, strict, with unused names an error | S7      |
+| `tests/repository/function-length.test.ts`       | S4      |
+| `tests/repository/regular-expressions.test.ts`   | C7      |
+| `tests/repository/import-paths.test.ts`          | C8      |
+| `tests/repository/non-null-assertions.test.ts`   | C12     |
+| `tests/repository/synchronous-bundle.test.ts`    | S13     |
+| `tests/repository/assert-imports.test.ts`        | A6, A10 |
+| `tests/repository/throws.test.ts`                | E1, E13 |
+| `tests/repository/names.test.ts`                 | N1, N10 |

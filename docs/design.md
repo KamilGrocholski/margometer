@@ -166,7 +166,7 @@ export function compareTallies(
     other: readonly [string, number],
 ): number;
 
-// libs/text-walk.ts — as on `develop`: isDigitAt, getEndOfRun, isDigitRun, getQuotedLiteral
+// libs/text-walk.ts — as on `develop`: isDigitAt, getEndOfRun, isDigitRun
 ```
 
 What is deliberately **not** here:
@@ -881,7 +881,8 @@ defect once, because no failure goes without a mark.
 This branch starts empty, so the order is what makes each step testable on the last:
 
 1. `libs/`: `result`, `vocabulary`, `unknown-value`, `json-text`, `number-text`, `number-range`,
-   `text-walk`. The gate and its first guards arrive in the same commit as the first code.
+   `text-walk`, each in the step that brings its first consumer (`AGENTS.md` C9), so this list is an
+   order and not a batch. The gate and its first guards arrive in the same commit as the first code.
 2. `core/` grammar and decoder, carried over from `develop` with its tests, returning `Result`.
 3. `core/` session (`preparePayload`, `commitPayload`), figures, standings.
 4. `game/` ports and the envelope, warriors and capture readers.

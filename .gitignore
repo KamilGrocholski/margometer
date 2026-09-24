@@ -1,0 +1,11 @@
+# The built userscript. A release attaches it; git does not carry it.
+dist/
+
+# Game client sources, fetched on demand. Outside git by copyright requirement.
+.cache/
+
+# What npm installs for a browser suite.
+node_modules/
+
+# Fights nobody fought, composed for one machine. Never material, and never in git.
+fabricated/
