@@ -537,8 +537,9 @@ const ENVELOPE_KEYS: { readonly [Field in EnvelopeField]: string } = {
 
 /**
  * In the game's stack: bounded, and it builds arrays and records of its own. The snapshot and the
- * copy for the file are other readings of the same call (`readWarriorSnapshot`, `captureCall`), and
- * the listener holds the three side by side rather than this one carrying the other two.
+ * copy for the file are other readings of the same call (`readWarriorSnapshot`,
+ * `prepareCapture`), and the listener holds the three side by side rather than this one carrying
+ * the other two.
  */
 export function readPayloadEnvelope(payload: unknown): Result<PayloadRecord, EnvelopeFailure>;
 
@@ -564,32 +565,34 @@ export type EnvelopeFailure =
  * state) and a JSON copy of a call that is kept. `develop` does the same at the same place, so the
  * cost in the game's stack does not grow. `snapshotAfter` reads the fight after the original.
  */
-export function captureCall(
-    seen: CaptureSeen,
-    payload: unknown,
-    messages: readonly string[],
-    snapshotBefore: WarriorSnapshot | null,
-    snapshotAfter: WarriorSnapshot | null,
-): Result<CapturedCall | null, CaptureFailure>;
-export interface CaptureSeen {
-    shapes: ReadonlySet<string>;
-    states: ReadonlySet<string>;
+export function prepareCapture(
+    standing: CaptureStanding,
+    call: EngineCall, // the payload, its messages, and the snapshots either side
+    isOpening: boolean,
+): CaptureStanding;
+export interface CaptureStanding {
+    readonly calls: readonly CapturedCall[];
+    readonly droppedCalls: number;
+    readonly isTruncated: boolean; // the ceiling was reached: the file says its tail is missing
+    readonly shapesSeen: ReadonlySet<string>;
+    readonly statesSeen: ReadonlySet<string>;
 }
-export type CaptureFailure =
-    | { kind: "capture-uncopyable" }
-    | { kind: "calls-exceeded"; count: number; maximum: number };
 
-export function readWarriorSnapshot(battle: EngineBattle): Result<WarriorSnapshot, WarriorFailure>;
+/** Called on the live battle object by the engine port, inside its `callForeign`. */
+export function readWarriorSnapshot(battle: unknown): Result<WarriorSnapshot, WarriorFailure>;
 export type WarriorFailure =
-    | { kind: "warriors-absent" }
-    | { kind: "warrior-malformed"; index: number }
-    | ForeignFailure;
+    | { kind: "warriors-absent" } // no collection answered with a named warrior
+    | { kind: "warriors-exceeded"; count: number; maximum: number };
 ```
 
 A warrior entry the payload restates only in part (it carries only what moved) is not a combatant
 stated in full, and is passed over rather than refused: that is how the game writes. What is refused
 is the shape around the entries: a field of the wrong type, a list past its bound, an id stated
 twice.
+
+Capture has no failure of its own. The ceiling is a state of the file and not an error: it stops
+collecting, counts what it dropped and says its tail is missing (`isTruncated`), which the format
+has carried since version 1. A payload the JSON round trip cannot carry is recorded as `null`.
 
 Whether the game mutates a payload after the call does not need to be settled. Everything read is
 built into arrays and records of ours in the game's stack, strings are immutable, and the raw
@@ -839,7 +842,7 @@ onBeforeCall ─ runGuarded(readWarriorSnapshot) ─▶ snapshotBefore | null
 onPayload(payload) ─ runGuarded:
    readPayloadEnvelope     err → a "reading" defect (and messagesLost, where countable)
    readWarriorSnapshot     after the original → snapshotAfter | null
-   captureCall             err → a "file" defect; the fight reads on, the file loses this call
+   prepareCapture          → the capture standing, committed with the session's payload
    preparePayload          ok  → commitPayload → unread counted (suspect)
                                  hasClosed → keepFight → ShelfWritten | ShelfFailure
                            err → a bound the options state: a "reading" defect
