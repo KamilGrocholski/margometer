@@ -1361,6 +1361,7 @@ export function composeUndrawnText(region: PanelRegion): string {
 /** Every kind of defect there is, so a reader over the words can be held to the list — **S11**. */
 export const DEFECT_KINDS = [
     "kept",
+    "keeping",
     "mount",
     "region",
     "reading",
@@ -1374,6 +1375,7 @@ export type DefectKind = typeof DEFECT_KINDS[number];
 /** **L3**: a player is told a part of the panel is missing, never what our code believed. */
 const DEFECT_WORDS: Record<DefectKind, string> = {
     kept: "Panel nie odczytał tego, co miał zapisane",
+    keeping: "Panel nie zapisał tej walki",
     // Said in the past: a panel that is being read got onto the page in the end, and one that
     // never did is not there to say anything at all.
     mount: "Panel nie od razu stanął na stronie",

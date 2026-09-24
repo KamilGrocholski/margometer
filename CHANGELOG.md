@@ -37,6 +37,11 @@ Wszystkie istotne zmiany w tym dodatku są tu notowane.
 > wszystko może się zmienić w każdej chwili. Do czasu `1.0.0` czytaj wpisy oznaczone **Zmiana**
 > przed aktualizacją.
 
+## [Niewydane]
+
+- **Poprawka** — Gdy panel nie zdoła odczytać jakiejś chwili walki albo przygotować jej zapisu,
+  dalej ją liczy i mówi, czego nie zrobił, zamiast po cichu przestać się odświeżać.
+
 ## [0.19.0] — 2026-09-23
 
 - **Nowość** — Najeżdżając na postać w walce zobaczysz w dymku gry, jaki cios specjalny ładuje i ile

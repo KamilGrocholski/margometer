@@ -56,7 +56,6 @@ import {
     CLASS,
     composeStyleSheet,
     getColourForProfession,
-    getTipRoom,
     SIGNAL,
     TIP,
 } from "@/src/ui/panel-look.ts";
@@ -328,15 +327,6 @@ const WAITING_LIST_NAME = "waiting";
  * carries in with the seven a bare movement does.
  */
 const MAXIMUM_TIP_CUT_PARTS = 6;
-/**
- * The widest a card may stand, as a number. `TIP.widthMaximum` is where that bound is chosen, and
- * this reads it rather than restating it: the two spellings drifted on 2026-09-15 and the failure
- * was silent — the card drew at one width and was placed as if it were the other, standing 43px
- * over the rows it explains. What the card is actually drawn at is the sheet's to decide now
- * (**ADR 0091**); this is what the **side** it opens on is decided by, and nothing else. A bound
- * nothing could be read from leaves the card where the sheet puts it.
- */
-const MAXIMUM_TIP_WIDTH = getIntegerFromText(TIP.widthMaximum.slice(0, -2)) ?? 0;
 /** A bar is written to one place: a tenth of a 260-pixel row is a quarter of a pixel. */
 const FILL_PLACES = 1;
 const AS_PERCENT = 100;
@@ -2357,7 +2347,14 @@ function composeRegionInPlace(
     handleFailure: HandlePanelFailure,
 ): PanelElement {
     const next = composeRegion(document, region, compose, handleFailure);
-    standing.replaceWith(next);
+    // The document's own call, and a region's to lose rather than the whole draw's: what stands
+    // is the region as it was, which a reader has already read once.
+    try {
+        standing.replaceWith(next);
+    } catch (failure) {
+        handleFailure({ kind: "region", region, failure });
+        return standing;
+    }
     return next;
 }
 
@@ -2487,11 +2484,15 @@ function setDragOrNothing(
     host: PanelElement,
     getBar: () => PanelElement,
     placement: PanelPlacement | null,
-    handleGesture: (failure: unknown) => void,
+    handleFailure: HandlePanelFailure,
     windowName: PanelWindowName = PANEL_WINDOW,
 ): PanelDragHandle | null {
     if (placement === null) return null;
-    return setPanelDrag(root, host, getBar, placement, handleGesture, windowName);
+    return setPanelDrag(root, host, getBar, placement, {
+        handleGesture: (failure) => handleFailure({ kind: "gesture", region: null, failure }),
+        // The panel stands, on the sheet's corner rather than the reader's place.
+        handlePlace: (failure) => handleFailure({ kind: "mount", region: null, failure }),
+    }, windowName);
 }
 
 /**
@@ -2555,20 +2556,28 @@ function composeTipBeside(
         return { position, windowName };
     };
     const composeAcross = (key: string): TipAcross | null => {
+        // `TIP.widthMaximum` is read rather than restated: the two spellings drifted on 2026-09-15
+        // and the card, drawn at one width and placed as if it were the other, stood 43px over the
+        // rows it explains. It decides the **side** a card opens on and nothing else (**ADR
+        // 0091**), and read where the card is placed, under the gesture's guard rather than while
+        // the bundle loads: a bound nothing could be read from leaves the card where the sheet
+        // puts it, and never at a width of nought (**E10**).
+        const widthMaximum = getIntegerFromText(TIP.widthMaximum.slice(0, -2));
+        if (widthMaximum === null) return null;
         const viewport = placement?.getViewport() ?? null;
         if (key.startsWith(STANDING_TIP_PREFIX)) {
             const standing = composePlace(windows.getStanding(), STANDING_WINDOW);
-            return composeTipAcross(standing, viewport, MAXIMUM_TIP_WIDTH);
+            return composeTipAcross(standing, viewport, widthMaximum);
         }
         const panel = composePlace(windows.getPanel(), PANEL_WINDOW);
-        return composeTipAcross(panel, viewport, MAXIMUM_TIP_WIDTH);
+        return composeTipAcross(panel, viewport, widthMaximum);
     };
     return composeTipHandle(
         document,
         register,
         (standing, compose) => composeTipInPlace(standing, compose, handleFailure),
         composeAcross,
-        () => getTipRoom(placement?.getViewport()?.height ?? null),
+        () => placement?.getViewport()?.height ?? null,
     );
 }
 
@@ -2610,13 +2619,13 @@ export function composePanelHost(
     setPanelRootChildren(root, [regions.title, frame, tip.element, standing.element]);
     setPanelRootListeners(root, handlePress, tip.show, handleGesture, standing.element);
     // After the listeners that read a press, and on the same root: a drag is four more of them.
-    drag = setDragOrNothing(root, host, () => regions.title, placement, handleGesture);
+    drag = setDragOrNothing(root, host, () => regions.title, placement, handleFailure);
     standingDrag = setDragOrNothing(
         root,
         standing.element,
         () => standingBar,
         standingPlacement,
-        handleGesture,
+        handleFailure,
         STANDING_WINDOW,
     );
     return composePanelDrawing({

@@ -235,13 +235,41 @@ function getCallArguments(code: string, opensAt: number): string {
     return "";
 }
 
-/** Whether the function handed over opens with the `try` **E12** asks for. */
+/**
+ * Whether the function handed over **is** the `try` **E12** asks for, from its opening brace to its
+ * closing one. Opening on one is not enough: a statement after the `catch` runs unguarded on the
+ * loop somebody else runs, and reads exactly like a guarded listener at its first line.
+ */
 function isHandoverGuarded(argumentText: string): boolean {
     const arrowAt = argumentText.indexOf("=>");
     if (arrowAt === -1) return true;
     const body = argumentText.slice(arrowAt + 2).trimStart();
     if (!body.startsWith("{")) return false;
-    return body.slice(1).trimStart().startsWith("try");
+    const closed = getEndOfBraces(body, 0);
+    if (closed === null) return false;
+    const inside = body.slice(1, closed).trim();
+    if (!inside.startsWith("try")) return false;
+    const tried = getEndOfBraces(inside, inside.indexOf("{"));
+    if (tried === null) return false;
+    const after = inside.slice(tried + 1).trimStart();
+    if (!after.startsWith("catch")) return false;
+    const caught = getEndOfBraces(after, after.indexOf("{"));
+    if (caught === null) return false;
+    return after.slice(caught + 1).trim().length === 0;
+}
+
+/** Where the brace opening at `open` closes, or null where it never does. */
+function getEndOfBraces(code: string, open: number): number | null {
+    if (open === -1) return null;
+    assertStrictEquals(code.charAt(open), "{", "a block is read from its opening brace");
+    let depth = 0;
+    for (let at = open; at < code.length; at += 1) {
+        if (code.charAt(at) === "{") depth += 1;
+        if (code.charAt(at) !== "}") continue;
+        depth -= 1;
+        if (depth === 0) return at;
+    }
+    return null;
 }
 
 function getUnguardedHandovers(text: string): number[] {
@@ -268,7 +296,18 @@ Deno.test("no callback is handed to somebody else's loop unguarded", () => {
     assertEquals(getUnguardedHandovers(spread), [1], "and one written over four lines");
     const guarded = "root.addEventListener(PRESS, (event) => {\n    try {\n        handle(event);" +
         "\n    } catch (failure) {\n        mark(failure);\n    }\n});";
-    assertEquals(getUnguardedHandovers(guarded), [], "a listener opening on a try is guarded");
+    assertEquals(getUnguardedHandovers(guarded), [], "a listener that is a try is guarded");
+    const trailing =
+        "root.addEventListener(PRESS, (event) => {\n    try {\n        handle(event);" +
+        "\n    } catch (failure) {\n        mark(failure);\n    }\n    after(event);\n});";
+    assertEquals(
+        getUnguardedHandovers(trailing),
+        [1],
+        "and one with a line after its catch is not",
+    );
+    const finished =
+        "page.setTimeout(() => {\n    try {\n        a();\n    } finally {\n    }\n}, 0);";
+    assertEquals(getUnguardedHandovers(finished), [1], "nor one whose try only has a finally");
     const passed = "page.setInterval(step, everyMilliseconds);";
     assertEquals(getUnguardedHandovers(passed), [], "a step already guarded is passed, not made");
     const stated = "    every(step: () => void, everyMilliseconds: number): number;";

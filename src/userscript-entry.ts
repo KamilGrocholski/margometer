@@ -141,20 +141,37 @@ const FOLD_KEY = "MargoMeter-folded";
 const FOLDED = "1";
 const PLACE_KEY = "MargoMeter-place";
 /**
- * The published table, put into the shape `core/` reads once and not per payload: `core` imports
+ * The frozen readings, put into the shape `core/` reads once and not per payload: `core` imports
  * no frozen reading, so whoever holds one hands it over (`ARCHITECTURE.md`).
  */
-const STATED_SKILLS: StatedSkills = {
-    turnsBySkillId: composeAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills),
-    shoutsBySkillId: composeShoutsBySkillId(FROZEN_AURA_TURNS.shouts),
-};
+interface FrozenReadings {
+    statedSkills: StatedSkills;
+    /** Which status a key states a figure for, at the position the client registered it. */
+    witnessedKeyByBit: ReadonlyMap<number, string>;
+    /** The same table, for the other question it answers (**ADR 0078**). */
+    blowsGrantedBySkillId: ReadonlyMap<number, number>;
+}
+
 /**
- * Which status a key states a figure for, at the position the client registered it. The third
- * frozen reading handed to `core`, and for the same reason as the two above it.
+ * ⚠️ **Composed on first use and never while the bundle loads.** The composers assert over the
+ * tables, and a module's own initialiser runs before any boundary this add-on has: there, a table
+ * past a bound is a raw throw in the game's console with no copy of the add-on standing. Asked for
+ * inside each boundary that uses it, a table that will not compose costs what that boundary costs.
  */
-const WITNESSED_KEY_BY_BIT = composeWitnessedKeyByBit(FROZEN_BUFF_BITS.bits);
-/** The same reading, for the other question the table answers (**ADR 0078**). */
-const BLOWS_GRANTED_BY_SKILL_ID = composeBlowsGrantedBySkillId(FROZEN_BLOWS_GRANTED.skills);
+const frozenReadings: { held: FrozenReadings | null } = { held: null };
+
+function getFrozenReadings(): FrozenReadings {
+    if (frozenReadings.held !== null) return frozenReadings.held;
+    frozenReadings.held = {
+        statedSkills: {
+            turnsBySkillId: composeAuraTurnsBySkillId(FROZEN_AURA_TURNS.skills),
+            shoutsBySkillId: composeShoutsBySkillId(FROZEN_AURA_TURNS.shouts),
+        },
+        witnessedKeyByBit: composeWitnessedKeyByBit(FROZEN_BUFF_BITS.bits),
+        blowsGrantedBySkillId: composeBlowsGrantedBySkillId(FROZEN_BLOWS_GRANTED.skills),
+    };
+    return frozenReadings.held;
+}
 
 /**
  * The window beside the panel keeps its own two answers. Two windows, two folds and two corners:
@@ -186,7 +203,7 @@ export interface UserscriptEnvironment {
      * is answered with one that forgets, so the panel is never handed nothing.
      */
     composeShelfStore(choice: PanelStorageChoice): BrowserStore;
-    write: ((name: string, text: string) => void) | null;
+    write: ((name: string, text: string, handleFailure: (failure: unknown) => void) => void) | null;
     /** The moment is asked for: a fight off the shelf states when it was fought. **ADR 0053**. */
     readSurroundings(atMilliseconds: number): CaptureSurroundings;
     now(): number;
@@ -638,7 +655,7 @@ function composeKeptFiguresOrNothing(
 function composeKeptFigures(kept: KeptFight): FightFigures | null {
     const underway = composeFightUnderway();
     for (const payload of kept.payloads) {
-        addPayloadToFight(underway, payload, BLOWS_GRANTED_BY_SKILL_ID);
+        addPayloadToFight(underway, payload, getFrozenReadings().blowsGrantedBySkillId);
     }
     return composeFightFigures(underway);
 }
@@ -774,7 +791,11 @@ function drawStanding(
 function composeStandingOrNothing(underway: FightUnderway): StandingReading | null {
     const fight = getReadingFromFight(underway);
     if (fight === null) return null;
-    const held = composeFightStandings(fight.events, STATED_SKILLS, fight.roster);
+    const held = composeFightStandings(
+        fight.events,
+        getFrozenReadings().statedSkills,
+        fight.roster,
+    );
     return composeStandingReading(
         held.provocations,
         fight.chargedSkills,
@@ -1271,12 +1292,24 @@ function composeStoodDown(): GameAttachment {
  * when one of them cannot.
  */
 export function startFromWindow(page: unknown): GameAttachment {
-    if (!isUserscriptWindow(page)) return composeStoodDown();
+    if (!isWindowOrNothing(page)) return composeStoodDown();
     try {
         return startFromUserscriptWindow(page);
     } catch (failure) {
         reportStoodDown(page, failure);
         return composeStoodDown();
+    }
+}
+
+/**
+ * Asked of a page nothing has checked yet, whose getters are its own: one that throws is a page
+ * this cannot stand on, and there is no console yet that it may be trusted to have.
+ */
+function isWindowOrNothing(page: unknown): page is UserscriptWindow {
+    try {
+        return isUserscriptWindow(page);
+    } catch {
+        return false;
     }
 }
 
@@ -1311,8 +1344,7 @@ function startFromUserscriptWindow(page: UserscriptWindow): GameAttachment {
         report,
         store: composeStoreForChoice(page, STORAGE_DEFAULT),
         composeShelfStore: (choice) => composeStoreForChoice(page, choice),
-        write: (name, text) =>
-            writeTextToFile(page, name, text, (failure) => report(FAILURE_LINE, failure)),
+        write: (name, text, handleFailure) => writeTextToFile(page, name, text, handleFailure),
         readSurroundings: (atMilliseconds) => ({
             world: readWorldFromPage(page),
             gameBuild: readGameBuildFromPage(page),
@@ -1468,7 +1500,13 @@ function writeRecording(
             defects.add("file", null, "a recording that would not be written as text");
             return;
         }
-        write(composeCaptureFileName(handover.surroundings), text);
+        // The release of the file lands on the browser's clock after this `try` has closed, so
+        // its failure is handed the same mark as every other one here rather than the console.
+        write(
+            composeCaptureFileName(handover.surroundings),
+            text,
+            (failure) => defects.add("file", null, failure),
+        );
     } catch (failure) {
         defects.add("file", null, failure);
     }
@@ -1642,7 +1680,11 @@ function writeCarriedToTooltips(
     try {
         const fight = getReadingFromFight(underway);
         if (fight === null) return;
-        const held = composeFightStandings(fight.events, STATED_SKILLS, fight.roster);
+        const held = composeFightStandings(
+            fight.events,
+            getFrozenReadings().statedSkills,
+            fight.roster,
+        );
         const figures = new Map<string, CarriedFigure>();
         for (
             const one of composeCarriedFigures({
@@ -1650,7 +1692,7 @@ function writeCarriedToTooltips(
                 standings: held.standings,
                 roster: fight.roster,
                 turnsByCombatantId: fight.turnsByCombatantId,
-                witnessed: WITNESSED_KEY_BY_BIT,
+                witnessed: getFrozenReadings().witnessedKeyByBit,
             })
         ) {
             figures.set(`${one.combatantId}/${one.bit}`, one);
@@ -1678,18 +1720,16 @@ function readPayloadIntoLive(
     stated: { payload: unknown; battle: EngineBattle },
     defects: KeptDefects,
 ): boolean {
-    addPayloadToFight(underway, stated.payload, BLOWS_GRANTED_BY_SKILL_ID);
+    const isRead = addPayloadOrNothing(underway, stated.payload, defects);
     // The fight takes a record and nothing else, so only a record left its messages last in the
-    // list: read after anything else, that entry belongs to the call before this one.
-    const messages = isRecord(stated.payload) ? underway.messagesByPayload.at(-1) ?? [] : [];
-    live.capture = composeNextCapture(live.capture, {
-        payload: stated.payload,
-        messages,
-        combatantsBefore: live.combatantsBefore,
-        combatantsAfter: composeSnapshotFromBattle(stated.battle),
-    });
-    const fight = getReadingFromFight(underway);
-    const isOpening = fight !== null && fight.payloads === 1;
+    // list: read after anything else, that entry belongs to the call before this one — and so
+    // does it after a payload the fight refused.
+    const messages = isRead && isRecord(stated.payload)
+        ? underway.messagesByPayload.at(-1) ?? []
+        : [];
+    addCallToRecording(live, stated, messages, defects);
+    const fight = getReadingOrNothing(underway, defects);
+    const isOpening = isRead && fight !== null && fight.payloads === 1;
     if (isOpening) {
         live.place = readPlaceFromPage(environment.page);
         live.translate = readDictionaryFromPage(environment.page);
@@ -1699,10 +1739,88 @@ function readPayloadIntoLive(
     // Once, on the call that ends it: a fight put on the shelf twice is two fights.
     if (fight !== null && fight.isOver && !live.wasOver) {
         live.wasOver = true;
-        keepFight(underway, shelf, live, environment.readSurroundings(environment.now()).gameBuild);
+        keepFightOrNothing(underway, shelf, live, environment, defects);
     }
     if (fight !== null && !fight.isOver) live.wasOver = false;
     return isOpening;
+}
+
+/**
+ * ⚠️ **Each step of a payload is guarded on its own.** Under the engine wrap's guard alone, a
+ * snapshot of a battle past the cast's bound, or a payload the decoder refuses, skips the draw
+ * behind it: the panel stands on the last payload it read with nothing on it saying so, and the
+ * console hears it once while the reader never does (**E11**). The wrap's guard stays under all.
+ */
+function addPayloadOrNothing(
+    underway: FightUnderway,
+    payload: unknown,
+    defects: KeptDefects,
+): boolean {
+    try {
+        addPayloadToFight(underway, payload, getFrozenReadings().blowsGrantedBySkillId);
+        return true;
+    } catch (failure) {
+        defects.add("reading", null, failure);
+        return false;
+    }
+}
+
+/** What the recording loses is the file, and the fight on screen goes on being read. */
+function addCallToRecording(
+    live: LiveFight,
+    stated: { payload: unknown; battle: EngineBattle },
+    messages: readonly string[],
+    defects: KeptDefects,
+): void {
+    try {
+        live.capture = composeNextCapture(live.capture, {
+            payload: stated.payload,
+            messages,
+            combatantsBefore: live.combatantsBefore,
+            combatantsAfter: composeSnapshotFromBattle(stated.battle),
+        });
+    } catch (failure) {
+        defects.add("file", null, failure);
+    }
+}
+
+/** `getReadingFromFight` asserts over what the fight holds, and a draw is what it would cost. */
+function getReadingOrNothing(underway: FightUnderway, defects: KeptDefects): FightReading | null {
+    try {
+        return getReadingFromFight(underway);
+    } catch (failure) {
+        defects.add("reading", null, failure);
+        return null;
+    }
+}
+
+/**
+ * The shelf's own failure, which is not the store's refusal: a refusal is an answer the shelf
+ * states (**E5**), and this is the fight never reaching it.
+ */
+function keepFightOrNothing(
+    underway: FightUnderway,
+    shelf: ShelfKeeper,
+    live: LiveFight,
+    environment: UserscriptEnvironment,
+    defects: KeptDefects,
+): void {
+    try {
+        const gameBuild = environment.readSurroundings(environment.now()).gameBuild;
+        keepFight(underway, shelf, live, gameBuild);
+    } catch (failure) {
+        defects.add("keeping", null, failure);
+    }
+}
+
+/** A snapshot that will not read costs the recording its state before this call, and no more. */
+function readSnapshotOrNothing(battle: EngineBattle, defects: KeptDefects): CapturedCombatant[] {
+    try {
+        return composeSnapshotFromBattle(battle);
+    } catch (failure) {
+        defects.add("file", null, failure);
+        return [];
+    }
 }
 
 export function startMargoMeter(environment: UserscriptEnvironment): GameAttachment {
@@ -1783,7 +1901,7 @@ function composeGameReader(
     return {
         handleAttached: showAndMount,
         handleBeforeCall: (battle) => {
-            live.combatantsBefore = composeSnapshotFromBattle(battle);
+            live.combatantsBefore = readSnapshotOrNothing(battle, defects);
         },
         handlePayload: (payload, battle) => {
             const isOpening = readPayloadIntoLive(live, underway, shelf, environment, {

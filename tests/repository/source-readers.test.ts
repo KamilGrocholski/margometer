@@ -17,28 +17,8 @@ import {
     isDeclarationOpener,
 } from "@/tests/source-graph.ts";
 import { getSourcePaths } from "@/tests/source-paths.ts";
+import { FUNCTION_NODES, readAstNodes } from "@/tests/source-parse.ts";
 
-/**
- * `Deno.lint` is declared only under the `deno.unstable` library, and naming that in
- * `compilerOptions.lib` would show every unstable API of the runtime to `src/` as well. C13 keeps
- * the assertion inside a test for exactly this, and the shape below is the whole of what is used.
- */
-interface AstNode {
-    type: string;
-    range: [number, number];
-    body?: { type: string } | null;
-    params?: readonly unknown[];
-}
-type AstVisitor = Record<string, (node: AstNode) => void>;
-interface LintPlugin {
-    name: string;
-    rules: Record<string, { create: () => AstVisitor }>;
-}
-const lint = (Deno as unknown as {
-    lint: { runPlugin(plugin: LintPlugin, filename: string, source: string): unknown };
-}).lint;
-
-const FUNCTION_NODES = ["FunctionDeclaration", "FunctionExpression", "ArrowFunctionExpression"];
 const MAXIMUM_FUNCTION_LINES = 70;
 const BUNDLED_ROOTS = ["libs/", "src/"];
 /**
@@ -77,13 +57,10 @@ function readAstFunctions(path: string, text: string): { from: number; to: numbe
     assert(path.length > 0, "a file being parsed is named");
     const lineAt = composeLineIndex(text);
     const found: { from: number; to: number }[] = [];
-    const visit = (node: AstNode) => {
-        if (node.body?.type !== "BlockStatement") return;
+    for (const node of readAstNodes(path, text, FUNCTION_NODES)) {
+        if (node.body?.type !== "BlockStatement") continue;
         found.push({ from: lineAt(node.range[0]), to: lineAt(node.range[1]) });
-    };
-    const visitors: AstVisitor = {};
-    for (const kind of FUNCTION_NODES) visitors[kind] = visit;
-    lint.runPlugin({ name: "read", rules: { walk: { create: () => visitors } } }, path, text);
+    }
     assert(found.every((one) => one.to >= one.from), "a function never ends before it opens");
     return found;
 }
@@ -145,13 +122,10 @@ const NESTED_SAMPLE = [
 function readParsedByLine(path: string, text: string): Map<number, boolean> {
     const lineAt = composeLineIndex(text);
     const found = new Map<number, boolean>();
-    const visit = (node: AstNode) => {
-        if (node.body?.type !== "BlockStatement") return;
+    for (const node of readAstNodes(path, text, FUNCTION_NODES)) {
+        if (node.body?.type !== "BlockStatement") continue;
         found.set(lineAt(node.range[0]), (node.params ?? []).length > 0);
-    };
-    const visitors: AstVisitor = {};
-    for (const kind of FUNCTION_NODES) visitors[kind] = visit;
-    lint.runPlugin({ name: "handed", rules: { walk: { create: () => visitors } } }, path, text);
+    }
     return found;
 }
 

@@ -268,7 +268,7 @@ tests/
     workflows.test.ts      The three CI workflows, pinned to one runtime between them.
     type-assertions.test.ts  C13, and the register of crossings that narrow no other way.
     errors.test.ts         The error hierarchy, each reader proved on a sample first.
-    unguarded-paths.test.ts  What standing up reaches, with no `try` anywhere over it.
+    unguarded-paths.test.ts  What standing up and every `catch` reach unguarded, and loading.
     names.test.ts          File names, exported functions and exported types.
     protocol-keys.test.ts  The register help claims, re-counted against the frozen table.
     readmes.test.ts        The two READMEs to one skeleton, and both to one set of shots.
@@ -314,6 +314,7 @@ tests/
   style-sheet.ts           The panel's stylesheet read back, for the guards that read it.
   source-paths.ts          Every TypeScript file under the directories that hold one.
   source-graph.ts          What a function reaches, and what stands over the call.
+  source-parse.ts          The same tree through a parser, for a guard that reads it twice.
 .agents/skills/verify/     How to drive the add-on in a browser and read what it drew.
 .claude/settings.json      Denies the tool calls that would write to the maintainer's list.
 ```
@@ -773,19 +774,24 @@ commit that opens or closes one.
     generic argument needs the type information a reader over text does not have. It closes if the
     spelling ever arrives, which is the day it would be worth the machinery.
 
-13. **The path guard walks one entry, and a method is judged rather than resolved.**
-    `tests/repository/unguarded-paths.test.ts` walks the call graph from the add-on standing up,
-    following only calls no `try` stands over, and holds that nothing it reaches can throw. That is
-    **E14** read as a path rather than as a file. Two things it does not compute, and only one of
-    them is silent. **What object a method stands on is not a reader over text's to say**, so a call
-    through one draws no edge — but every method standing on a frame the walk reaches is listed in
-    that file's own register, with the reason it cannot stop the add-on, read both ways: a crossing
-    that is gone stops being excused and a new one fails until somebody has looked at it. Resolving
-    them by name instead was measured and refused: `store.read` and `figures.read` are one name and
-    two different programs, and following both said standing up reaches the whole session machinery,
-    which it does not. **It walks one entry**, because every other way in is a callback and **E12**
-    holds those to opening on a `try`. And a call resolves by name inside its own file or through
-    what that file imports, so a local shadowing an import would draw an edge that is not there.
+13. **The path guard walks from standing up and from every `catch`, and a call it cannot resolve is
+    judged rather than followed.** `tests/repository/unguarded-paths.test.ts` walks the call graph
+    from the add-on standing up and from every `catch` body in the bundle, following only calls no
+    `try` stands over, and holds that nothing it reaches can throw. That is **E14** read as a path
+    rather than as a file. **What object a method stands on, and what a parameter was handed, are
+    not a reader over text's to say**, so a call through either draws no edge — but every one
+    standing on a frame the walk reaches is listed in that file's own register, with the reason it
+    cannot stop the add-on, read both ways: a crossing that is gone stops being excused and a new
+    one fails until somebody has looked at it. Resolving methods by name instead was measured and
+    refused: `store.read` and `figures.read` are one name and two different programs, and following
+    both said standing up reaches the whole session machinery, which it does not. **An expression
+    arrow is read as a call on the frame that writes it**, which over-reaches — a closure handed on
+    reads as called — and the register says which rows are that. **A closure with a block body is
+    not walked from where it is written**: whoever calls it holds it, and every callback handed to a
+    loop this program does not own is held by **E12** to being one `try` from brace to brace. What
+    the bundle calls while it loads is read apart, by a parser, because it runs before any entry
+    does. And a call resolves by name inside its own file or through what that file imports, so a
+    local shadowing an import would draw an edge that is not there.
 
 14. **Half of E14 is held by reading.** `tests/repository/sources.test.ts` holds **A11** whole —
     what a reader touches spells no assertion and imports none — and

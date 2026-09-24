@@ -90,13 +90,21 @@ interface Search {
     hasFailed: boolean;
 }
 
+/**
+ * ⚠️ **Reached from the `catch` a look ends in**, so it asserts nothing (**E14**): a throw here
+ * would leave the boundary it stands at and land in the browser's timer. The clock is the page's,
+ * and a cancel it refuses leaves a search that is done and a timer that finds it done.
+ */
 function stopLookingForEngine(search: Search, schedule: Scheduler): void {
-    assert(search.looks >= 0, "a look that happened is counted");
     search.isDone = true;
     if (search.handle === null) return;
-    schedule.cancel(search.handle);
+    const handle = search.handle;
     search.handle = null;
-    assert(search.handle === null, "a search that stopped is holding no timer");
+    try {
+        schedule.cancel(handle);
+    } catch {
+        return;
+    }
 }
 
 function lookForEngine(
@@ -152,15 +160,26 @@ function handleLookFailure(
     schedule: Scheduler,
     search: Search,
 ): void {
-    assert(search.looks > 0, "a failure belongs to a look that happened");
     if (!search.hasFailed) {
         search.hasFailed = true;
-        report.handleFirstFailure(failure);
+        reportGuarded(() => report.handleFirstFailure(failure));
     }
-    assert(search.hasFailed, "a failure that was marked stays marked");
     if (search.looks < MAXIMUM_LOOKS) return;
     stopLookingForEngine(search, schedule);
-    report.handleSearchAbandoned();
+    reportGuarded(() => report.handleSearchAbandoned());
+}
+
+/**
+ * The report is the entry's, and it writes to somebody else's console from inside a `catch`: a
+ * throw out of it would be the one exception of ours the timer sees. The flag above is the mark
+ * that stays — **E11**, as `wrapEngineBattle` keeps its count.
+ */
+function reportGuarded(tell: () => void): void {
+    try {
+        tell();
+    } catch {
+        return;
+    }
 }
 
 export function attachToGame(
@@ -191,8 +210,6 @@ export function attachToGame(
     };
     look();
     if (!search.isDone) search.handle = schedule.every(look, LOOK_EVERY_MILLISECONDS);
-    assert(search.looks > 0, "the first look happens before any clock is asked for");
-    assert(search.looks <= MAXIMUM_LOOKS, "and stays inside the bound like every other");
     return {
         detach(): void {
             stopLookingForEngine(search, schedule);

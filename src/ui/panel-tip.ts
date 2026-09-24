@@ -8,7 +8,7 @@
 
 import type { PanelDocument, PanelElement } from "@/src/ui/panel-element.ts";
 import type { TipAcross } from "@/src/ui/panel-drag.ts";
-import { CLASS, getTipHeight } from "@/src/ui/panel-look.ts";
+import { CLASS, getTipHeight, getTipRoom } from "@/src/ui/panel-look.ts";
 import { CARD_WORDS, type Caveat, CAVEAT_MARK } from "@/src/ui/panel-words.ts";
 
 /**
@@ -441,8 +441,8 @@ export function composeTipHandle(
     redraw: TipRedraw,
     /** Asked with the key the card is open for: the two windows do not open on the same side. */
     getAcross: (key: string) => TipAcross | null = () => null,
-    /** How much of the window a card has to stand in. Null is a page that states no height. */
-    getRoom: () => number | null = () => null,
+    /** Asked as a card opens, never as the panel is built. Null is a page stating no height. */
+    getViewportHeight: () => number | null = () => null,
 ): TipHandle {
     let standing = composeTipElement(document, null);
     let openKey: string | null = null;
@@ -451,7 +451,7 @@ export function composeTipHandle(
     const setTo = (key: string, reading: TipReading): void => {
         // Cut here rather than where a card is composed: the one place that knows both it and the
         // window, and on the way in for a card opened and for one a redraw put up again.
-        const shown = composeTipWithin(reading, getRoom());
+        const shown = composeTipWithin(reading, getTipRoom(getViewportHeight()));
         openSize = getTipSize(shown);
         standing = redraw(standing, () => composeTipElement(document, shown));
         setTipPlace(standing, openTop, getAcross(key), openSize);

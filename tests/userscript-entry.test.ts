@@ -31,7 +31,7 @@ import { readKeptFights } from "@/src/game/kept-fights.ts";
 import { getJsonReading } from "@/libs/json-text.ts";
 import { isRecord } from "@/libs/unknown-reading.ts";
 import type { PanelElement } from "@/src/ui/panel-element.ts";
-import { getWordsForTurnState, PANEL_WORDS } from "@/src/ui/panel-words.ts";
+import { composeDefectText, getWordsForTurnState, PANEL_WORDS } from "@/src/ui/panel-words.ts";
 import type { Scheduler } from "@/src/game/engine-attachment.ts";
 import {
     composeFakeDocument,
@@ -604,7 +604,15 @@ Deno.test("nothing a page does makes the add-on throw where it is started", () =
             throw new RangeError("a document that will not be reached");
         },
     };
-    for (const page of [composeFakeWindow(), throwing, {}, null, "a window", 7, []]) {
+    // Every member it asks for is there, and the last one asked for throws: the page is looked
+    // at to its end before anything guards it.
+    const late = composeFakeWindow();
+    Object.defineProperty(late, "document", {
+        get(): unknown {
+            throw new RangeError("a document torn down under the check");
+        },
+    });
+    for (const page of [composeFakeWindow(), throwing, late, {}, null, "a window", 7, []]) {
         const stood = startFromWindow(page);
         assertStrictEquals(typeof stood.isAttached, "function", "something came back, every time");
         stood.detach();
@@ -2012,4 +2020,93 @@ Deno.test("a store that will not take the fights leaves them where they were", (
     );
     assertEquals(held.held.get("MargoMeter-storage"), undefined, "and so does the answer");
     assertEquals(getTextsByClass(host, "strip selected"), ["na stałe"], "which the strip says");
+});
+
+/** Every row of the ranking as a reader reads it, name and figure, in the order drawn. */
+function getRankingTexts(host: FakeElement): string[] {
+    const list = getElementsWithin(host).find((one) => one.className === "list");
+    assertExists(list, "the panel drew its list");
+    return getElementsWithin(list)
+        .filter((one) => one.className.split(" ")[0] === "row")
+        .map((row) => row.children.map((one) => one.textContent).join(" | "));
+}
+
+/** One more fighter than a fight holds, which every reader of a cast refuses by assertion. */
+function composeCastPastItsBound(): Record<string, unknown> {
+    const warriors: Record<string, unknown> = {};
+    for (let id = 1; id <= 21; id += 1) {
+        warriors[id] = { id, name: `fighter ${id}`, team: 1, prof: "w", lvl: 60, hp: { max: 1 } };
+    }
+    return warriors;
+}
+
+Deno.test("a battle that cannot be snapshotted costs the file, and the panel reads on", () => {
+    const clean = replayRecordedFight(HILDUR);
+    const battle: Record<string, unknown> = {
+        updateData: () => 1,
+        warriorsList: composeCastPastItsBound(),
+    };
+    const { environment, shown, reported } = composeEnvironment({ Engine: { battle } });
+    const attachment = startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+
+    const panel = shown[0] as FakeElement;
+    assertEquals(getRankingTexts(panel), getRankingTexts(clean.host), "the fight is read whole");
+    const said = getTextsByClass(panel, "defect");
+    assertStrictEquals(said.length, 1, "and one line says what could not be done");
+    assertStringIncludes(said[0] ?? "", composeDefectText("file", null, 1).slice(0, -1));
+    assertStrictEquals(reported.length, 1, "E11: the console hears it once");
+    attachment.detach();
+});
+
+Deno.test("a payload the fight refuses is said on the panel, and the next one is read", () => {
+    const clean = replayRecordedFight(HILDUR);
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown, reported } = composeEnvironment({ Engine: { battle } });
+    const attachment = startMargoMeter(environment);
+    const update = battle.updateData;
+    assert(typeof update === "function", "the wrap went on");
+    const payloads = getRecordedEngineUpdates(HILDUR);
+    const middle = Math.floor(payloads.length / 2);
+    for (const [at, payload] of payloads.entries()) {
+        if (at === middle) update({ w: composeCastPastItsBound() });
+        update(payload);
+    }
+
+    const panel = shown[0] as FakeElement;
+    assertEquals(
+        getRankingTexts(panel),
+        getRankingTexts(clean.host),
+        "the payload refused cost nothing the fight around it said",
+    );
+    const said = getTextsByClass(panel, "defect");
+    assertStrictEquals(said.length, 1, "and one line says the panel refused it");
+    assertStringIncludes(said[0] ?? "", composeDefectText("reading", null, 1));
+    assertStrictEquals(reported.length, 1, "E11: the console hears it once");
+    attachment.detach();
+});
+
+Deno.test("a window that will not say its size costs the panel its place, and no more", () => {
+    const battle: Record<string, unknown> = { updateData: () => 1 };
+    const { environment, shown } = composeEnvironment({ Engine: { battle } });
+    const refused: UserscriptEnvironment = {
+        ...environment,
+        readViewport: () => {
+            throw new RangeError("a window torn down while it was asked");
+        },
+    };
+    const attachment = startMargoMeter(refused);
+    assert(attachment.isAttached(), "the add-on stood up");
+    const update = battle.updateData;
+    assert(typeof update === "function", "and the wrap went on");
+    for (const payload of getRecordedEngineUpdates(HILDUR)) update(payload);
+
+    const panel = shown[0] as FakeElement;
+    assertExists(panel, "the panel went up");
+    const said = getTextsByClass(panel, "defect");
+    assertStrictEquals(said.length, 1, "and one line says it did not stand where it was meant to");
+    assertStringIncludes(said[0] ?? "", composeDefectText("mount", null, 1).slice(0, -1));
+    attachment.detach();
 });

@@ -836,6 +836,32 @@ Deno.test("a region that throws is marked in place, and said once however often 
 });
 
 /**
+ * The document's own call is a region's to lose as well: a draw that could not put a region in
+ * place leaves the one a reader already has, and the rest of the panel moves on without it.
+ */
+Deno.test("a region the document will not replace is kept as it was, and said", () => {
+    const document = composeFakeDocument();
+    const marks: string[] = [];
+    const panel = composePanelHost(document, () => {}, (mark) => {
+        marks.push(`${mark.kind}/${mark.region}`);
+    });
+    const reading = readFight();
+    panel.show({ ...composeShownScreen(reading) });
+    const host = panel.element as FakeElement;
+    const standing = getElementsWithin(host).filter((one) => one.className === CLASS.header);
+    assertStrictEquals(standing.length, 1, "the header stands once, to be refused");
+    for (const one of standing) {
+        one.replaceWith = () => {
+            throw new RangeError("a node the document will not let go of");
+        };
+    }
+    panel.show({ ...composeShownScreen(reading) });
+    assertEquals(marks, ["region/header"], "the failure names the region it cost, and only that");
+    assertStrictEquals(standing[0]?.replacedBy, null, "and the header a reader had stays put");
+    assert(getTextsByClass(host, "row-name").length > 0, "while the ranking is drawn again");
+});
+
+/**
  * A suspicion about one person goes on their row and nowhere else: a sentence under the list
  * qualifies every row on it, and a reader looking at one of them could not tell whether it meant
  * theirs. `DESIGN.md` — put a suspicion where its consequence is.

@@ -49,6 +49,11 @@ export function getBlockOpenedAt(lines: readonly string[], from: number): number
         if (code.endsWith(";")) return null;
         if (code.endsWith("{")) return needsArrow ? null : at;
     }
+    // ⚠️ **Past the bound, a function is not skipped: it is one no guard reads.** A signature of
+    // fourteen lines answered null here, and every guard over bodies stepped over it in silence.
+    if (limit === from + MAXIMUM_DECLARATION_LINES) {
+        assert(!first.includes("function "), "a function opens its body inside the lines read");
+    }
     return null;
 }
 
@@ -258,8 +263,9 @@ function getCloseOfTry(body: readonly string[], at: number): number | null {
  */
 export function getOwnLines(body: readonly string[]): boolean[] {
     const own = body.map(() => true);
+    const opened = getBlockOpenedAt(body, 0) ?? 0;
     for (const [at, line] of body.entries()) {
-        if (at === 0) continue;
+        if (at <= opened) continue;
         if (isCommentLine(line)) continue;
         if (!isClosureOpener(getCodeOutsideStrings(line))) continue;
         const closed = getCloseOfBlock(body, at);
@@ -547,6 +553,11 @@ function composeSourceFunction(
             // only what a file declares at its margin — so without this a `catch` handing its
             // failure to a counter beside it reaches nothing at all.
             for (const inner of closures.get(name) ?? []) reaches.push(inner);
+            // ⚠️ **A name nothing here resolves is a parameter or a global.** Dropped, it is a
+            // call nobody sees: `handleFailure(failure)` inside a `catch` would draw no edge and
+            // no row, and what a boundary hands its failure to is the one thing that must not
+            // throw. So it is judged as a method is, by a row somebody wrote.
+            if (!bodies.has(name) && held === undefined && !closures.has(name)) methods.push(name);
         }
         for (const name of getCalledMethods(code)) {
             if (name === declared) continue;

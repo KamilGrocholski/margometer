@@ -144,3 +144,49 @@ Deno.test("a game whose method never comes is left alone once the looking ends",
     assertEquals(told.abandoned, 0, "nor as a page with no game on it, which this page has");
     assert(!attachment.isAttached(), "and nothing was wrapped");
 });
+
+/** A page tearing down throws out of its own `getEngine`, and it does so on every look. */
+function composeThrowingPage(): Record<string, unknown> {
+    return {
+        getEngine: (): unknown => {
+            throw new RangeError("a page being torn down");
+        },
+    };
+}
+
+Deno.test("a look that throws is marked once, and the search runs out where it would have", () => {
+    const { report, told } = composeReport();
+    const { schedule, tick } = composeScheduler();
+    const attachment = attachToGame(composeThrowingPage(), schedule, report);
+    assertEquals(told.failures.length, 1, "the first look that threw was reported");
+    tick(300);
+    assertEquals(told.failures.length, 1, "and none of the looks after it were");
+    assertEquals(told.abandoned, 1, "the search ended at its bound, and said so once");
+    assert(!attachment.isAttached(), "and nothing was wrapped");
+});
+
+Deno.test("a report that throws from inside a look's catch reaches neither start nor clock", () => {
+    const { schedule, tick } = composeScheduler();
+    let cancels = 0;
+    const refusing: Scheduler = {
+        every: schedule.every,
+        cancel: (handle) => {
+            cancels += 1;
+            schedule.cancel(handle);
+            throw new RangeError("a clock that will not let go");
+        },
+    };
+    const report: AttachmentReport = {
+        ...composeReport().report,
+        handleFirstFailure: () => {
+            throw new RangeError("a console that will not write");
+        },
+        handleSearchAbandoned: () => {
+            throw new RangeError("nor at the end");
+        },
+    };
+    const attachment = attachToGame(composeThrowingPage(), refusing, report);
+    tick(300);
+    assertEquals(cancels, 1, "the search stopped once, though the clock refused it");
+    assert(!attachment.isAttached(), "and the add-on is still standing to say it attached nothing");
+});

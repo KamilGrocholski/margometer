@@ -542,8 +542,9 @@ the same thing a second way.
 | `tests/repository/decisions.test.ts`          | the decision records                                                             |
 | `tests/repository/sources.test.ts`            | S1–2, S4–5, S11, S13, A3, A10–11, C4–5, C7–8, C15–16, L1 in part                 |
 | `tests/repository/errors.test.ts`             | E1, E2, E11–E13, E14 part, each with a sample                                    |
-| `tests/repository/unguarded-paths.test.ts`    | E14's paths, and the methods they step over                                      |
+| `tests/repository/unguarded-paths.test.ts`    | E14's paths, the calls they step over, and what the bundle calls as it loads     |
 | `tests/source-graph.ts`                       | the reader both of those stand on, S1 included                                   |
+| `tests/source-parse.ts`                       | the parser the second readings stand on                                          |
 | `tests/repository/source-line.test.ts`        | the line reader under all of them, both ways                                     |
 | `tests/repository/source-readers.test.ts`     | those readers against a parse of the same tree                                   |
 | `tests/repository/counted-material.test.ts`   | V5 over the corpus count, both ways                                              |

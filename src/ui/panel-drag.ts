@@ -273,6 +273,15 @@ export interface PanelPlacement {
     handleMoved(position: PanelPosition): void;
 }
 
+/**
+ * What a drag costs when it fails, which is one of two things: the gesture a hand made, or the
+ * place the panel was meant to open at. They are told apart because a reader is told which.
+ */
+export interface PanelDragFailures {
+    handleGesture(failure: unknown): void;
+    handlePlace(failure: unknown): void;
+}
+
 export function setGripMark(grip: PanelElement, windowName: PanelWindowName): void {
     grip.setAttribute(GRIP_ATTRIBUTE, windowName);
 }
@@ -335,14 +344,11 @@ export function setPanelDrag(
     host: PanelElement,
     getBar: () => PanelElement,
     placement: PanelPlacement,
-    handleFailure: (failure: unknown) => void,
+    failures: PanelDragFailures,
     windowName: PanelWindowName = PANEL_WINDOW,
 ): PanelDragHandle {
-    // The reader's place, or the middle of the window: a position from the first frame is what
-    // lets the detail window and the card answer the side they stand on (**ADR 0090**), where a
-    // panel left on the sheet's corner has no `left` for either of them to read.
-    let position = placement.position ??
-        composeOpeningPosition(windowName, placement.getViewport());
+    const handleFailure = (failure: unknown): void => failures.handleGesture(failure);
+    let position = setPanelDragOpening(host, placement, windowName, failures);
     let grab: PanelGrab | null = null;
     // A position that writes no style leaves the host on the sheet's own corner, which is a place
     // — and the panel is still there to be grabbed (**E14**).
@@ -352,9 +358,6 @@ export function setPanelDrag(
         position = next;
         host.setAttribute(STYLE_ATTRIBUTE, style);
     };
-    if (position !== null) {
-        setHostPosition(composeClampedPosition(position, placement.getViewport()));
-    }
     const setGuarded = (type: string, handle: (event: PanelEvent) => void): void => {
         setGuardedListener(root, type, handle, (failure) => {
             // A grab left standing after a failure moves the panel under the next pointer that
@@ -398,6 +401,35 @@ export function setPanelDrag(
         getPosition: () => position,
         handleDrawn: () => setPanelDragHeldAgain(grab, getBar(), handleFailure),
     };
+}
+
+/**
+ * The reader's place, or the middle of the window: a position from the first frame is what lets
+ * the detail window and the card answer the side they stand on (**ADR 0090**), where a panel left
+ * on the sheet's corner has no `left` for either of them to read.
+ *
+ * ⚠️ **This runs on the stack the add-on stands up on**, under no region: a place that will not
+ * be read or written leaves the panel on the sheet's corner and the drag still wired (**E14**).
+ */
+function setPanelDragOpening(
+    host: PanelElement,
+    placement: PanelPlacement,
+    windowName: PanelWindowName,
+    failures: PanelDragFailures,
+): PanelPosition | null {
+    try {
+        const opening = placement.position ??
+            composeOpeningPosition(windowName, placement.getViewport());
+        if (opening === null) return null;
+        const clamped = composeClampedPosition(opening, placement.getViewport());
+        const style = composePositionStyle(clamped, windowName);
+        if (style === null) return opening;
+        host.setAttribute(STYLE_ATTRIBUTE, style);
+        return clamped;
+    } catch (failure) {
+        failures.handlePlace(failure);
+        return null;
+    }
 }
 
 /**
