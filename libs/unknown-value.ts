@@ -8,6 +8,7 @@
 
 import { assert } from "@std/assert/assert";
 import { err, ok, type Result } from "@/libs/result.ts";
+import type { VocabularyWord } from "@/libs/vocabulary.ts";
 
 /** Read-only: a write into somebody else's object through this type does not compile. */
 export interface UnknownRecord {
@@ -17,8 +18,14 @@ export interface UnknownRecord {
 /** Keys are theirs, fields are ours. */
 export type FieldKeys<Field extends string> = { readonly [Name in Field]: string };
 
-export const FIELD_TYPES = ["number", "text", "stated-text", "record", "list"] as const;
-export type FieldType = (typeof FIELD_TYPES)[number];
+export const FIELD_TYPE = {
+    number: "number",
+    text: "text",
+    statedText: "stated-text",
+    record: "record",
+    list: "list",
+} as const;
+export type FieldType = VocabularyWord<typeof FIELD_TYPE>;
 
 export const FIELD_FAILURE = { wrongType: "field-wrong-type", tooLong: "field-too-long" } as const;
 export type FieldFailure<Field extends string> =
@@ -41,10 +48,10 @@ export function getNumberField<Field extends string>(
     const value = getOwnValue(record, keys[field]);
     if (value === undefined) return ok(null);
     if (typeof value !== "number") {
-        return err({ kind: FIELD_FAILURE.wrongType, field, expected: "number" });
+        return err({ kind: FIELD_FAILURE.wrongType, field, expected: FIELD_TYPE.number });
     }
     if (!Number.isFinite(value)) {
-        return err({ kind: FIELD_FAILURE.wrongType, field, expected: "number" });
+        return err({ kind: FIELD_FAILURE.wrongType, field, expected: FIELD_TYPE.number });
     }
     return ok(value);
 }
@@ -58,7 +65,7 @@ export function getTextField<Field extends string>(
     const value = getOwnValue(record, keys[field]);
     if (value === undefined) return ok(null);
     if (typeof value !== "string") {
-        return err({ kind: FIELD_FAILURE.wrongType, field, expected: "text" });
+        return err({ kind: FIELD_FAILURE.wrongType, field, expected: FIELD_TYPE.text });
     }
     return ok(value);
 }
@@ -70,10 +77,12 @@ export function getStatedTextField<Field extends string>(
     field: Field,
 ): Result<string | null, FieldFailure<Field>> {
     const text = getTextField(record, keys, field);
-    if (!text.ok) return err({ kind: FIELD_FAILURE.wrongType, field, expected: "stated-text" });
+    if (!text.ok) {
+        return err({ kind: FIELD_FAILURE.wrongType, field, expected: FIELD_TYPE.statedText });
+    }
     if (text.value === null) return text;
     if (text.value.length === 0) {
-        return err({ kind: FIELD_FAILURE.wrongType, field, expected: "stated-text" });
+        return err({ kind: FIELD_FAILURE.wrongType, field, expected: FIELD_TYPE.statedText });
     }
     return text;
 }
@@ -85,7 +94,9 @@ export function getRecordField<Field extends string>(
 ): Result<UnknownRecord | null, FieldFailure<Field>> {
     const value = getOwnValue(record, keys[field]);
     if (value === undefined) return ok(null);
-    if (!isRecord(value)) return err({ kind: FIELD_FAILURE.wrongType, field, expected: "record" });
+    if (!isRecord(value)) {
+        return err({ kind: FIELD_FAILURE.wrongType, field, expected: FIELD_TYPE.record });
+    }
     return ok(value);
 }
 
@@ -101,7 +112,7 @@ export function getListField<Field extends string>(
     const value = getOwnValue(record, keys[field]);
     if (value === undefined) return ok(null);
     if (!Array.isArray(value)) {
-        return err({ kind: FIELD_FAILURE.wrongType, field, expected: "list" });
+        return err({ kind: FIELD_FAILURE.wrongType, field, expected: FIELD_TYPE.list });
     }
     if (value.length > maximum) {
         return err({ kind: FIELD_FAILURE.tooLong, field, count: value.length, maximum });

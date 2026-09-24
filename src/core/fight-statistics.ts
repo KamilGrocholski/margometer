@@ -14,7 +14,9 @@ import {
     type BattleEvent,
     type DamageFigure,
     type HealthChangeEvent,
+    OUTCOME_RESULT,
     type UnknownMessageEvent,
+    UNREAD_CAUSE,
 } from "@/src/core/battle-event.ts";
 import type { TeamHeal } from "@/src/core/combatant-health.ts";
 import { COMBATANTS_MAXIMUM } from "@/src/core/combatant-roster.ts";
@@ -22,6 +24,7 @@ import {
     CRITICAL_PROC_KEYS,
     getKeyReading,
     KEY_FAMILY,
+    PROC_END,
     SELF_SOURCED_HEALING_KEYS,
     WOUND_ANNOUNCEMENT_KEY,
     WOUND_TICK_KEY,
@@ -503,10 +506,14 @@ function addFightOutcome(build: StatisticsBuild, event: BattleEvent): void {
     if (event.kind !== BATTLE_EVENT.fightOutcome) return;
     const held = build.outcome ?? { wonNames: [], lostNames: [], isDrawn: false, isFled: false };
     assert(event.combatantNames.every((one) => one.length > 0), "a side named is named in full");
-    if (event.result === "drawn") build.outcome = { ...held, isDrawn: true };
-    if (event.result === "fled") build.outcome = { ...held, isFled: true };
-    if (event.result === "won") build.outcome = { ...held, wonNames: [...event.combatantNames] };
-    if (event.result === "lost") build.outcome = { ...held, lostNames: [...event.combatantNames] };
+    if (event.result === OUTCOME_RESULT.drawn) build.outcome = { ...held, isDrawn: true };
+    if (event.result === OUTCOME_RESULT.fled) build.outcome = { ...held, isFled: true };
+    if (event.result === OUTCOME_RESULT.won) {
+        build.outcome = { ...held, wonNames: [...event.combatantNames] };
+    }
+    if (event.result === OUTCOME_RESULT.lost) {
+        build.outcome = { ...held, lostNames: [...event.combatantNames] };
+    }
     assert(build.outcome !== null, "a fight that stated its end holds one");
 }
 
@@ -531,10 +538,10 @@ function addBlowProcs(
         const reading = getKeyReading(key);
         assert(reading !== null, "a proc the decoder stated is a key the table reads");
         assert(reading.kind === KEY_FAMILY.proc, "and one it places as a proc");
-        if (reading.end === "actor") {
+        if (reading.end === PROC_END.actor) {
             if (striker !== null) addToCut(striker.procsWhenStriking, key, 1);
         }
-        if (reading.end === "target") {
+        if (reading.end === PROC_END.target) {
             if (struck !== null) addToCut(struck.procsWhenStruck, key, 1);
         }
     }
@@ -934,11 +941,11 @@ function addNamedHealingEvent(build: StatisticsBuild, event: BattleEvent): void 
  */
 function addUnreadMessage(build: StatisticsBuild, event: UnknownMessageEvent): void {
     const { unreadCause, combatantIds } = event;
-    if (unreadCause === "unknown-key") build.unreadMessagesUnknownKey += 1;
-    if (unreadCause === "no-parameter") build.unreadMessagesNoParameter += 1;
-    if (unreadCause === "grammar-refused") build.unreadMessagesGrammarRefused += 1;
+    if (unreadCause === UNREAD_CAUSE.unknownKey) build.unreadMessagesUnknownKey += 1;
+    if (unreadCause === UNREAD_CAUSE.noParameter) build.unreadMessagesNoParameter += 1;
+    if (unreadCause === UNREAD_CAUSE.grammarRefused) build.unreadMessagesGrammarRefused += 1;
     assert(combatantIds.length <= COMBATANTS_MAXIMUM, "a message names ends inside the bound");
-    if (unreadCause === "grammar-refused") {
+    if (unreadCause === UNREAD_CAUSE.grammarRefused) {
         assert(combatantIds.length === 0, "a grammar nobody could read named nobody either");
         return;
     }
@@ -947,7 +954,7 @@ function addUnreadMessage(build: StatisticsBuild, event: UnknownMessageEvent): v
         if (charged.has(combatantId)) continue;
         charged.add(combatantId);
         const figures = getFiguresForCombatant(build.byCombatantId, combatantId);
-        if (unreadCause === "unknown-key") figures.unreadMessagesUnknownKey += 1;
+        if (unreadCause === UNREAD_CAUSE.unknownKey) figures.unreadMessagesUnknownKey += 1;
         else figures.unreadMessagesNoParameter += 1;
     }
     assert(charged.size <= combatantIds.length, "a row is charged for it once, or not at all");

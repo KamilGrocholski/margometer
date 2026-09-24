@@ -18,6 +18,7 @@ import {
     SESSION_OPTIONS,
 } from "@/src/core/fight-session.ts";
 import { readPayloadEnvelope } from "@/src/game/payload-envelope.ts";
+import { FILE_FIELD } from "@/src/runtime/fight-file.ts";
 import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
 
 export const RECORDINGS_REVISION = "fa1dcce";
@@ -26,16 +27,10 @@ const RECORDINGS_DIRECTORY = "captures/";
 const RECORDING_EXTENSION = ".json";
 
 /**
- * The recording's own keys, as `develop:src/game/fight-capture.ts` spells them, and the warrior
- * keys inside a snapshot, which are the game's and `develop:src/game/engine-warrior.ts` spells
- * for the add-on (N13).
+ * The warrior keys inside a snapshot, as a recording keeps them. They are the game's, and
+ * `src/game/warrior-snapshot.ts` copies them under their own names; the recording's own keys are
+ * `FILE_FIELD`'s (N13).
  */
-const CAPTURE_FIELDS = {
-    calls: "calls",
-    payload: "payload",
-    messages: "messages",
-    after: "combatantsAfter",
-} as const;
 const WARRIOR_FIELDS = {
     id: "id",
     name: "name",
@@ -126,14 +121,14 @@ export function replayRecordedFight(fight: RecordedFight): FightSession {
 }
 
 function readRecordedFight(path: string, document: unknown): RecordedFight {
-    const calls = readRecordedField(document, CAPTURE_FIELDS.calls, path);
+    const calls = readRecordedField(document, FILE_FIELD.calls, path);
     assert(Array.isArray(calls), `${path} lists the calls the engine made`);
     const payloads: string[][] = [];
     const updates: unknown[] = [];
     const byId = new Map<number, Combatant>();
     const healthReadings: RecordedHealth[] = [];
     for (const call of calls) {
-        const carried = readRecordedField(call, CAPTURE_FIELDS.messages, path);
+        const carried = readRecordedField(call, FILE_FIELD.messages, path);
         assert(Array.isArray(carried), `${path} states the messages a call carried`);
         const messages: string[] = [];
         for (const message of carried) {
@@ -141,8 +136,8 @@ function readRecordedFight(path: string, document: unknown): RecordedFight {
             messages.push(message);
         }
         payloads.push(messages);
-        updates.push(readRecordedField(call, CAPTURE_FIELDS.payload, path));
-        const after = readRecordedField(call, CAPTURE_FIELDS.after, path);
+        updates.push(readRecordedField(call, FILE_FIELD.payload, path));
+        const after = readRecordedField(call, FILE_FIELD.combatantsAfter, path);
         if (!Array.isArray(after)) continue;
         for (const snapshot of after) {
             const combatant = readRecordedCombatant(snapshot, path);

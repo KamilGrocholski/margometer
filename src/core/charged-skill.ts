@@ -8,6 +8,7 @@
  */
 
 import { assert } from "@std/assert/assert";
+import type { VocabularyWord } from "@/libs/vocabulary.ts";
 import { BATTLE_EVENT, type BattleEvent } from "@/src/core/battle-event.ts";
 import { CHARGE_BROKEN_KEY } from "@/src/core/protocol-key.ts";
 
@@ -18,8 +19,12 @@ import { CHARGE_BROKEN_KEY } from "@/src/core/protocol-key.ts";
 export const CHARGED_SKILLS_MAXIMUM = 4;
 
 /** Charging, or one of the two ends the protocol names. The other endings state nothing. */
-export const CHARGED_SKILL_STATES = ["charging", "struck", "broken"] as const;
-export type ChargedSkillState = (typeof CHARGED_SKILL_STATES)[number];
+export const CHARGED_SKILL_STATE = {
+    charging: "charging",
+    struck: "struck",
+    broken: "broken",
+} as const;
+export type ChargedSkillState = VocabularyWord<typeof CHARGED_SKILL_STATE>;
 
 /** One combatant as a payload's envelope states them, and the charge they carry or do not. */
 export interface ChargedSkillStatement {
@@ -60,7 +65,7 @@ export function prepareChargedSkills(
         if (statement?.charge !== undefined) {
             if (statement.charge !== null) continue;
         }
-        if (held.state !== "charging") {
+        if (held.state !== CHARGED_SKILL_STATE.charging) {
             if (!isPastItsTurn(held, ordinal)) next.push(held);
             continue;
         }
@@ -127,8 +132,10 @@ function lookupEndedState(
     broken: ReadonlySet<number>,
 ): ChargedSkillState | null {
     assert(standing.skillName.length > 0, "a charge that stood names the blow being made ready");
-    if (announced.get(standing.combatantId)?.has(standing.skillName) === true) return "struck";
-    if (broken.has(standing.combatantId)) return "broken";
+    if (announced.get(standing.combatantId)?.has(standing.skillName) === true) {
+        return CHARGED_SKILL_STATE.struck;
+    }
+    if (broken.has(standing.combatantId)) return CHARGED_SKILL_STATE.broken;
     return null;
 }
 
@@ -156,7 +163,7 @@ function prepareChargedSkillsCharging(
         skillName: charge.skillName,
         turnsElapsed: charge.turnsElapsed,
         turnsStated: charge.turnsStated,
-        state: "charging",
+        state: CHARGED_SKILL_STATE.charging,
         endedAtOrdinal: null,
     };
 }

@@ -10,7 +10,7 @@ import { err } from "@/libs/result.ts";
 import {
     encodeProtocolMessage,
     GRAMMAR_REFUSAL,
-    MESSAGE_ENDS,
+    MESSAGE_END,
     parseProtocolMessage,
     SEGMENTS_MAXIMUM,
 } from "@/src/core/protocol-message.ts";
@@ -61,8 +61,8 @@ Deno.test("a segment with no value is a key on its own", () => {
 });
 
 Deno.test("what the grammar does not cover is refused, and says which end", () => {
-    const actor = err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end: MESSAGE_ENDS[0] });
-    const target = err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end: MESSAGE_ENDS[1] });
+    const actor = err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end: MESSAGE_END.actor });
+    const target = err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end: MESSAGE_END.target });
     assertEquals(parseProtocolMessage("482845"), target, "a message with no target");
     assertEquals(parseProtocolMessage(""), actor, "empty text names no actor");
     assertEquals(parseProtocolMessage("gracz;0;step"), actor, "an id that is not a number");
@@ -75,7 +75,7 @@ Deno.test("what the grammar does not cover is refused, and says which end", () =
 Deno.test("an id past what a number holds exactly is refused, not rounded", () => {
     const highest = parseOrFail("9007199254740991;0;step");
     assertEquals(highest.actor, { combatantId: 9007199254740991, healthPercent: null }, "the last");
-    const refused = err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end: MESSAGE_ENDS[0] });
+    const refused = err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end: MESSAGE_END.actor });
     assertEquals(parseProtocolMessage("9007199254740992;0;step"), refused, "and the first past it");
 });
 

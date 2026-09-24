@@ -9,7 +9,7 @@
 import { assertEquals, assertStrictEquals } from "@std/assert";
 import { BATTLE_EVENT, type BattleEvent } from "@/src/core/battle-event.ts";
 import {
-    CHARGED_SKILL_STATES,
+    CHARGED_SKILL_STATE,
     CHARGED_SKILLS_MAXIMUM,
     type ChargedSkillStanding,
     type ChargedSkillStatement,
@@ -194,7 +194,11 @@ Deno.test("a charge reaches every state the vocabulary names, and no other", () 
     const struck = prepareChargedSkills(opened, stateless(), announce(BLOW), 11);
     const broken = prepareChargedSkills(opened, stateless(), breakCharge(MONSTER), 11);
     const reached: ChargedSkillStanding[] = [...opened, ...struck, ...broken];
-    assertEquals(reached.map((one) => one.state), [...CHARGED_SKILL_STATES], "in that order");
+    assertEquals(
+        reached.map((one) => one.state),
+        Object.values(CHARGED_SKILL_STATE),
+        "in that order",
+    );
 });
 
 /** A mark made on a numbered turn, and a next payload numbering none: the mark goes with it. */

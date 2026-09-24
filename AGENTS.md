@@ -3,8 +3,8 @@
 This branch, `rewrite/2026-09`, is MargoMeter written again from nothing. Its rules are `develop`'s
 at `fa1dcce`, rewritten for the design round of 2026-09-24, and its architecture is
 [`docs/design.md`](docs/design.md)'s. A rule carried over from `develop` keeps its evidence in
-`develop`'s decision records, cited as `develop ADR NNNN`. This branch has no decision records of
-its own yet: the first decision that changes a rule here writes one.
+`develop`'s decision records, cited as `develop ADR NNNN`. This branch's own are `docs/adr/`,
+numbered from 0001 and cited as `ADR NNNN`, and a decision that changes a rule here writes one.
 
 These instructions apply to every directory unless a closer `AGENTS.md` overrides a rule for its
 subtree.
@@ -273,11 +273,14 @@ TypeScript idiom, with the naming rules stated here.
   boundary: it is handed its values. `develop ADR 0042`.
 - **N17.** A collection is plural and never says which container holds it: `combatants`, not
   `combatantList`. A map is named for the lookup it takes: `damageByElement`.
-- **N18. A closed set of our own strings has one vocabulary**, and its type is derived from it:
-  `const STORAGE_CHOICES = ["local", "session", "memory"] as const` and
-  `type StorageChoice = (typeof STORAGE_CHOICES)[number]`. A string arriving from outside is checked
-  against it with `isOneOf`, **and only there** — a string our own code wrote is the compiler's to
-  check (**A12**). No `enum`, which emits an object nobody here writes (**S8**), and no
+- **N18. A closed set of our own strings has one vocabulary object**, its type derived from it and
+  its list, where a list is wanted, from its values:
+  `const STORAGE_CHOICE = { local: "local", session: "session", memory: "memory" } as const`,
+  `type StorageChoice = VocabularyWord<typeof STORAGE_CHOICE>` and
+  `const STORAGE_CHOICES = Object.values(STORAGE_CHOICE)`. Code names a word by its key,
+  `STORAGE_CHOICE.local`, never by the literal. A string arriving from outside is checked against
+  the list with `isOneOf`, **and only there** — a string our own code wrote is the compiler's to
+  check (**A12**). ADR 0001. No `enum`, which emits an object nobody here writes (**S8**), and no
   `Object.freeze`, which would check at run time what `as const` already forbids. **One exception: a
   protocol message's key** stays a `string`, because the set is the game's and grows. The decoder's
   `getKeyReading` decides whether a key means anything, and an unknown one is an unread message,

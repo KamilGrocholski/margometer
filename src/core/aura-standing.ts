@@ -8,12 +8,13 @@
  */
 
 import { assert } from "@std/assert/assert";
+import type { VocabularyWord } from "@/libs/vocabulary.ts";
 import { BATTLE_EVENT, type BattleEvent, type DeclaredEffect } from "@/src/core/battle-event.ts";
 import { type CombatantRoster, lookupCombatantIdByName } from "@/src/core/combatant-roster.ts";
 import type { FightView } from "@/src/core/fight-session.ts";
 import {
     isTeamWideKey,
-    KEY_REACHES,
+    KEY_REACH,
     lookupKeyReach,
     NAME_SEPARATOR,
     PROVOCATION_KEY,
@@ -21,8 +22,8 @@ import {
 import { composeTurnStanding, lookupTurnOpener, NO_TURN_STANDING } from "@/src/core/turn-clock.ts";
 
 /** A cast reaches what its keys reach, and both sides where its keys disagree. */
-export const AURA_REACHES = [...KEY_REACHES, "both-sides"] as const;
-export type AuraReach = (typeof AURA_REACHES)[number];
+export const AURA_REACH = { ...KEY_REACH, bothSides: "both-sides" } as const;
+export type AuraReach = VocabularyWord<typeof AURA_REACH>;
 
 /** Past every cast the corpus holds in one fight, so the walk carries a stated maximum. */
 export const STANDINGS_MAXIMUM = 256;
@@ -129,7 +130,7 @@ export function lookupReachOfEffects(effects: readonly { effect: string }[]): Au
         const reach = lookupKeyReach(one.effect);
         if (reach === null) continue;
         if (found === null) found = reach;
-        else if (found !== reach) found = "both-sides";
+        else if (found !== reach) found = AURA_REACH.bothSides;
     }
     return found;
 }

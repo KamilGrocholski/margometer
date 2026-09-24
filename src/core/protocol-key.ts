@@ -7,6 +7,8 @@
  */
 
 import { assert } from "@std/assert/assert";
+import type { VocabularyWord } from "@/libs/vocabulary.ts";
+import { OUTCOME_RESULT } from "@/src/core/battle-event.ts";
 
 export const KEY_FAMILY = {
     damage: "damage",
@@ -31,11 +33,11 @@ export const KEY_FAMILY = {
  * sign**: `+legbon_curse` fires when its holder attacks and `-legbon_cleanse` when its holder is
  * struck, on messages of one shape. `unsettled` is a refusal, not a default.
  */
-export const PROC_ENDS = ["actor", "target", "unsettled"] as const;
-export type ProcEnd = (typeof PROC_ENDS)[number];
+export const PROC_END = { actor: "actor", target: "target", unsettled: "unsettled" } as const;
+export type ProcEnd = VocabularyWord<typeof PROC_END>;
 
-export const DAMAGE_HALVES = ["raw", "applied"] as const;
-export type DamageHalf = (typeof DAMAGE_HALVES)[number];
+export const DAMAGE_HALF = { raw: "raw", applied: "applied" } as const;
+export type DamageHalf = VocabularyWord<typeof DAMAGE_HALF>;
 
 export type KeyReading =
     | { kind: typeof KEY_FAMILY.damage; half: DamageHalf }
@@ -48,7 +50,10 @@ export type KeyReading =
     | { kind: typeof KEY_FAMILY.skillName }
     | { kind: typeof KEY_FAMILY.customSkillName }
     | { kind: typeof KEY_FAMILY.skillId }
-    | { kind: typeof KEY_FAMILY.outcome; result: "won" | "lost" }
+    | {
+        kind: typeof KEY_FAMILY.outcome;
+        result: typeof OUTCOME_RESULT.won | typeof OUTCOME_RESULT.lost;
+    }
     | { kind: typeof KEY_FAMILY.fled }
     | { kind: typeof KEY_FAMILY.unaccountedHealth }
     | { kind: typeof KEY_FAMILY.namedDamage }
@@ -127,36 +132,36 @@ const DESTROYED_KEYS = [
  * and reaches a player as a message nobody could read.
  */
 const PROC_END_BY_KEY: ReadonlyMap<string, ProcEnd> = new Map<string, ProcEnd>([
-    [CRITICAL_KEY, "actor"],
-    [CRITICAL_OF_KEY, "actor"],
-    ["+pierce", "actor"],
-    ["-pierceb", "target"],
-    ["+stun", "actor"],
-    ["+stun2", "actor"],
-    ["+stun2-c", "actor"],
-    ["+stun2-d", "actor"],
-    ["+stun2-f", "actor"],
-    ["+stun2-l", "actor"],
-    ["+freeze", "actor"],
-    ["+wound", "actor"],
-    ["+of_wound", "actor"],
-    ["+woundpoison", "actor"],
-    ["+woundfrost", "actor"],
-    ["+woundmagic", "actor"],
-    ["+of_woundpoison", "actor"],
-    ["+of_woundmagic", "actor"],
-    ["+fastarrow", "actor"],
-    ["+acdmg_destroyed", "actor"],
-    ["+legbon_curse", "actor"],
-    ["+legbon_verycrit", "actor"],
-    ["-legbon_cleanse", "target"],
-    ["-legbon_glare", "target"],
-    [CHARGE_BROKEN_KEY, "unsettled"],
-    ["+superspell-prevented", "unsettled"],
-    ["-tenacity", "unsettled"],
-    ["-evade", "target"],
-    ["-contra", "target"],
-    ["-arrowblock", "target"],
+    [CRITICAL_KEY, PROC_END.actor],
+    [CRITICAL_OF_KEY, PROC_END.actor],
+    ["+pierce", PROC_END.actor],
+    ["-pierceb", PROC_END.target],
+    ["+stun", PROC_END.actor],
+    ["+stun2", PROC_END.actor],
+    ["+stun2-c", PROC_END.actor],
+    ["+stun2-d", PROC_END.actor],
+    ["+stun2-f", PROC_END.actor],
+    ["+stun2-l", PROC_END.actor],
+    ["+freeze", PROC_END.actor],
+    ["+wound", PROC_END.actor],
+    ["+of_wound", PROC_END.actor],
+    ["+woundpoison", PROC_END.actor],
+    ["+woundfrost", PROC_END.actor],
+    ["+woundmagic", PROC_END.actor],
+    ["+of_woundpoison", PROC_END.actor],
+    ["+of_woundmagic", PROC_END.actor],
+    ["+fastarrow", PROC_END.actor],
+    ["+acdmg_destroyed", PROC_END.actor],
+    ["+legbon_curse", PROC_END.actor],
+    ["+legbon_verycrit", PROC_END.actor],
+    ["-legbon_cleanse", PROC_END.target],
+    ["-legbon_glare", PROC_END.target],
+    [CHARGE_BROKEN_KEY, PROC_END.unsettled],
+    ["+superspell-prevented", PROC_END.unsettled],
+    ["-tenacity", PROC_END.unsettled],
+    ["-evade", PROC_END.target],
+    ["-contra", PROC_END.target],
+    ["-arrowblock", PROC_END.target],
 ]);
 
 /**
@@ -263,34 +268,34 @@ const VALUELESS_DECLARATION_KEYS = [
  * Which side a cast reaches, relative to its caster: not which side is the reader's, which is the
  * panel's to say. A key absent from the table reaches **nothing stated**.
  */
-export const KEY_REACHES = ["casters-side", "other-side"] as const;
-export type KeyReach = (typeof KEY_REACHES)[number];
+export const KEY_REACH = { castersSide: "casters-side", otherSide: "other-side" } as const;
+export type KeyReach = VocabularyWord<typeof KEY_REACH>;
 
 /** Cited in `develop:docs/auras-standing.md`, which cites the register, which cites the help. */
 const REACH_BY_KEY: ReadonlyMap<string, KeyReach> = new Map<string, KeyReach>([
     // The `all` says everybody and not which side. The register: _a reduction to the damage dealt
     // by everyone on the opposing side_ (`develop:docs/protocol-keys.md`).
-    ["alllowdmg", "other-side"],
-    ["+spell-taken_dmg-all", "other-side"],
-    [HEALING_REDUCER_KEY, "other-side"],
-    ["active_decblock_per-enemies", "other-side"],
-    ["poison_lowdmg_per-enemies", "other-side"],
+    ["alllowdmg", KEY_REACH.otherSide],
+    ["+spell-taken_dmg-all", KEY_REACH.otherSide],
+    [HEALING_REDUCER_KEY, KEY_REACH.otherSide],
+    ["active_decblock_per-enemies", KEY_REACH.otherSide],
+    ["poison_lowdmg_per-enemies", KEY_REACH.otherSide],
     // ⚠️ The one the register does not settle. Measured over `develop:captures/` 2026-09-09: after
     // a `Szadź` the opposing combatant carries `swow_down` in 77 casts of 77.
-    [SLOW_ALL_KEY, "other-side"],
-    ["aura-adddmg2_per-meele", "casters-side"],
-    ["aura-ac_per", "casters-side"],
-    ["aura-resall", "casters-side"],
-    [HASTE_AURA_KEY, "casters-side"],
-    ["critval-allies", "casters-side"],
-    ["critmval-allies", "casters-side"],
-    ["removedot-allies", "casters-side"],
-    ["removeslow-allies", "casters-side"],
-    ["removestun-allies", "casters-side"],
+    [SLOW_ALL_KEY, KEY_REACH.otherSide],
+    ["aura-adddmg2_per-meele", KEY_REACH.castersSide],
+    ["aura-ac_per", KEY_REACH.castersSide],
+    ["aura-resall", KEY_REACH.castersSide],
+    [HASTE_AURA_KEY, KEY_REACH.castersSide],
+    ["critval-allies", KEY_REACH.castersSide],
+    ["critmval-allies", KEY_REACH.castersSide],
+    ["removedot-allies", KEY_REACH.castersSide],
+    ["removeslow-allies", KEY_REACH.castersSide],
+    ["removestun-allies", KEY_REACH.castersSide],
     // The affected are forced to attack _Postaci, która użyła umiejętności_: you do not force an
     // ally to strike you. Over `develop:captures/` 2026-09-22, 168 of 168 characters named across
     // 166 announcements stand opposite the caster.
-    [PROVOCATION_KEY, "other-side"],
+    [PROVOCATION_KEY, KEY_REACH.otherSide],
 ]);
 
 const TEAM_WIDE_OPENING = "aura-";
@@ -327,7 +332,7 @@ export function getKeyReading(key: string): KeyReading | null {
     if (listed !== undefined) return listed;
     const marker = key.slice(DAMAGE_MARKER_AT, DAMAGE_MARKER_AT + DAMAGE_MARKER.length);
     if (marker !== DAMAGE_MARKER) return null;
-    const half: DamageHalf = key.startsWith(RAW_SIGN) ? "raw" : "applied";
+    const half: DamageHalf = key.startsWith(RAW_SIGN) ? DAMAGE_HALF.raw : DAMAGE_HALF.applied;
     assert(!KEY_READING_BY_KEY.has(key), "a key read by the family rule is in no list");
     return { kind: KEY_FAMILY.damage, half };
 }
@@ -339,7 +344,10 @@ function indexKeyReadings(): Map<string, KeyReading> {
         found.set(key, reading);
     };
     for (const key of DAMAGE_KEYS) {
-        add(key, { kind: KEY_FAMILY.damage, half: key.startsWith(RAW_SIGN) ? "raw" : "applied" });
+        add(key, {
+            kind: KEY_FAMILY.damage,
+            half: key.startsWith(RAW_SIGN) ? DAMAGE_HALF.raw : DAMAGE_HALF.applied,
+        });
     }
     for (const key of PREVENTED_KEYS) add(key, { kind: KEY_FAMILY.prevented });
     for (const key of DESTROYED_KEYS) add(key, { kind: KEY_FAMILY.destroyed });
@@ -356,8 +364,8 @@ function indexKeyReadings(): Map<string, KeyReading> {
     add("tspell", { kind: KEY_FAMILY.skillName });
     add("tcustom", { kind: KEY_FAMILY.customSkillName });
     add(SKILL_ID_KEY, { kind: KEY_FAMILY.skillId });
-    add("winner", { kind: KEY_FAMILY.outcome, result: "won" });
-    add("loser", { kind: KEY_FAMILY.outcome, result: "lost" });
+    add("winner", { kind: KEY_FAMILY.outcome, result: OUTCOME_RESULT.won });
+    add("loser", { kind: KEY_FAMILY.outcome, result: OUTCOME_RESULT.lost });
     add("flee", { kind: KEY_FAMILY.fled });
     add("healall_per", { kind: KEY_FAMILY.unaccountedHealth });
     add("+oth_dmg", { kind: KEY_FAMILY.namedDamage });

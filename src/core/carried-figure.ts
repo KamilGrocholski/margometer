@@ -11,7 +11,12 @@ import { assert } from "@std/assert/assert";
 import type { AuraStanding } from "@/src/core/aura-standing.ts";
 import type { CarriedStatus } from "@/src/core/carried-status.ts";
 import type { CombatantRoster } from "@/src/core/combatant-roster.ts";
-import { HASTE_AURA_KEY, lookupKeyReach, SLOW_ALL_KEY } from "@/src/core/protocol-key.ts";
+import {
+    HASTE_AURA_KEY,
+    KEY_REACH,
+    lookupKeyReach,
+    SLOW_ALL_KEY,
+} from "@/src/core/protocol-key.ts";
 
 /**
  * How many sources one effect adds up from: _Efekt ulega kumulacji do maksymalnie dwóch źródeł od
@@ -139,7 +144,7 @@ function doesReachCoverBearer(key: string, casterSide: number, bearerSide: numbe
     assert(Number.isSafeInteger(casterSide), "and between two sides the roster states");
     const reach = lookupKeyReach(key);
     if (reach === null) return false;
-    if (reach === "casters-side") return casterSide === bearerSide;
+    if (reach === KEY_REACH.castersSide) return casterSide === bearerSide;
     return casterSide !== bearerSide;
 }
 

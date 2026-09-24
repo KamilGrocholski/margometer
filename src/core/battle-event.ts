@@ -4,6 +4,8 @@
  * `develop:docs/protocol-keys.md`.
  */
 
+import type { VocabularyWord } from "@/libs/vocabulary.ts";
+
 export const BATTLE_EVENT = {
     attack: "attack",
     damageToNamedCombatant: "damage-to-named-combatant",
@@ -18,12 +20,16 @@ export const BATTLE_EVENT = {
 } as const;
 
 /** `drawn` is a fight nobody won; `fled` is one an escape broke off. Neither names a side. */
-export const OUTCOME_RESULTS = ["won", "lost", "drawn", "fled"] as const;
-export type OutcomeResult = (typeof OUTCOME_RESULTS)[number];
+export const OUTCOME_RESULT = { won: "won", lost: "lost", drawn: "drawn", fled: "fled" } as const;
+export type OutcomeResult = VocabularyWord<typeof OUTCOME_RESULT>;
 
 /** Why a message went unread. `grammar-refused` names nobody, so two of the three reach a row. */
-export const UNREAD_CAUSES = ["unknown-key", "no-parameter", "grammar-refused"] as const;
-export type UnreadCause = (typeof UNREAD_CAUSES)[number];
+export const UNREAD_CAUSE = {
+    unknownKey: "unknown-key",
+    noParameter: "no-parameter",
+    grammarRefused: "grammar-refused",
+} as const;
+export type UnreadCause = VocabularyWord<typeof UNREAD_CAUSE>;
 
 export interface DamageFigure {
     element: string;

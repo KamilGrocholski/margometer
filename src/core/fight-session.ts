@@ -9,7 +9,8 @@
 
 import { assert } from "@std/assert/assert";
 import { err, ok, type Result } from "@/libs/result.ts";
-import type { BattleEvent, UnreadCause } from "@/src/core/battle-event.ts";
+import type { VocabularyWord } from "@/libs/vocabulary.ts";
+import { type BattleEvent, UNREAD_CAUSE, type UnreadCause } from "@/src/core/battle-event.ts";
 import {
     type Combatant,
     type CombatantRoster,
@@ -66,7 +67,7 @@ export interface PayloadRecord {
 }
 
 export const SESSION_PHASE = { waiting: "waiting", underway: "underway", over: "over" } as const;
-export type SessionPhase = (typeof SESSION_PHASE)[keyof typeof SESSION_PHASE];
+export type SessionPhase = VocabularyWord<typeof SESSION_PHASE>;
 
 export interface SessionOptions {
     eventsMaximum: number;
@@ -162,7 +163,11 @@ export interface PayloadCommitted {
     unreadAdded: number;
 }
 
-const NO_UNREAD: UnreadCounts = { "unknown-key": 0, "no-parameter": 0, "grammar-refused": 0 };
+const NO_UNREAD: UnreadCounts = {
+    [UNREAD_CAUSE.unknownKey]: 0,
+    [UNREAD_CAUSE.noParameter]: 0,
+    [UNREAD_CAUSE.grammarRefused]: 0,
+};
 
 export function initFightSession(options: SessionOptions): FightSession {
     assert(options.combatantsMaximum <= COMBATANTS_MAXIMUM, "a cast is bounded by the roster");

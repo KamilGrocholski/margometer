@@ -10,6 +10,7 @@
 
 import { assert } from "@std/assert/assert";
 import { err, ok, type Result } from "@/libs/result.ts";
+import type { VocabularyWord } from "@/libs/vocabulary.ts";
 import { formatInteger, parseInteger } from "@/libs/number-text.ts";
 import { encodeHealthPercent, parseHealthPercent } from "@/src/core/protocol-number.ts";
 
@@ -30,8 +31,8 @@ export interface ProtocolMessage {
     readonly parameters: readonly MessageParameter[];
 }
 
-export const MESSAGE_ENDS = ["actor", "target"] as const;
-export type MessageEnd = (typeof MESSAGE_ENDS)[number];
+export const MESSAGE_END = { actor: "actor", target: "target" } as const;
+export type MessageEnd = VocabularyWord<typeof MESSAGE_END>;
 
 export const GRAMMAR_REFUSAL = {
     segmentsExceeded: "segments-exceeded",
@@ -57,12 +58,12 @@ export function parseProtocolMessage(text: string): Result<ProtocolMessage, Gram
     if (!segments.ok) return segments;
     const [actorSegment, targetSegment] = segments.value;
     assert(actorSegment !== undefined, "text always splits into at least one segment");
-    const actor = parseProtocolMessageSide(actorSegment, MESSAGE_ENDS[0]);
+    const actor = parseProtocolMessageSide(actorSegment, MESSAGE_END.actor);
     if (!actor.ok) return actor;
     if (targetSegment === undefined) {
-        return err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end: MESSAGE_ENDS[1] });
+        return err({ kind: GRAMMAR_REFUSAL.sideUnreadable, end: MESSAGE_END.target });
     }
-    const target = parseProtocolMessageSide(targetSegment, MESSAGE_ENDS[1]);
+    const target = parseProtocolMessageSide(targetSegment, MESSAGE_END.target);
     if (!target.ok) return target;
 
     const parameters: MessageParameter[] = [];

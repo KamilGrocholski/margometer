@@ -85,7 +85,9 @@ export function callForeign<Value>(call: () => Value): Result<Value, ForeignFail
 /** A broad catch around our own code at a boundary: an assertion becomes `BrokenInvariant`. */
 export function runGuarded<Value>(step: () => Value): Result<Value, BrokenInvariant>;
 
-// libs/vocabulary.ts
+// libs/vocabulary.ts: a vocabulary is an object, its type and its list derived (ADR 0001)
+export type VocabularyWord<Vocabulary extends Readonly<Record<string, string>>> =
+    Vocabulary[keyof Vocabulary];
 export function isOneOf<const Words extends readonly string[]>(
     words: Words,
     value: unknown,
@@ -101,8 +103,14 @@ export function isRecord(value: unknown): value is UnknownRecord;
 
 /** Keys are the game's, fields are ours: the same map as `ENVELOPE_KEYS` (§7). */
 export type FieldKeys<Field extends string> = { readonly [Name in Field]: string };
-export const FIELD_TYPES = ["number", "text", "stated-text", "record", "list"] as const;
-export type FieldType = (typeof FIELD_TYPES)[number];
+export const FIELD_TYPE = {
+    number: "number",
+    text: "text",
+    statedText: "stated-text",
+    record: "record",
+    list: "list",
+} as const;
+export type FieldType = VocabularyWord<typeof FIELD_TYPE>;
 export const FIELD_FAILURE = { wrongType: "field-wrong-type", tooLong: "field-too-long" } as const;
 export type FieldFailure<Field extends string> =
     | { kind: typeof FIELD_FAILURE.wrongType; field: Field; expected: FieldType }
@@ -274,15 +282,15 @@ export interface KeyValueStore {
     write(key: StoreKey, value: string): Result<void, StoreFailure>;
     remove(key: StoreKey): Result<void, StoreFailure>;
 }
-export const STORE_KEYS = [
-    "MargoMeter-fights",
-    "MargoMeter-folded",
-    "MargoMeter-place",
-    "MargoMeter-pomocnik-folded",
-    "MargoMeter-pomocnik-place",
-    "MargoMeter-storage",
-] as const;
-export type StoreKey = (typeof STORE_KEYS)[number];
+export const STORE_KEY = {
+    fights: "MargoMeter-fights",
+    panelFolded: "MargoMeter-folded",
+    panelPlace: "MargoMeter-place",
+    helperFolded: "MargoMeter-pomocnik-folded",
+    helperPlace: "MargoMeter-pomocnik-place",
+    storage: "MargoMeter-storage",
+} as const;
+export type StoreKey = VocabularyWord<typeof STORE_KEY>;
 export type StoreFailure =
     | { kind: "store-unavailable" }
     | { kind: "store-refused"; cause: unknown } // a quota refusal is an answer
@@ -602,18 +610,18 @@ payload for the file is copied there too. Nothing reads the game's object after 
 
 ```ts
 // Defects
-export const DEFECT_KINDS = [
-    "kept",
-    "keeping",
-    "mount",
-    "region",
-    "reading",
-    "figures",
-    "gesture",
-    "file",
-    "engine",
-] as const;
-export type DefectKind = (typeof DEFECT_KINDS)[number];
+export const DEFECT_KIND = {
+    kept: "kept",
+    keeping: "keeping",
+    mount: "mount",
+    region: "region",
+    reading: "reading",
+    figures: "figures",
+    gesture: "gesture",
+    file: "file",
+    engine: "engine",
+} as const;
+export type DefectKind = VocabularyWord<typeof DEFECT_KIND>;
 export interface Defect {
     kind: DefectKind;
     region: PanelRegion | null;
@@ -639,15 +647,20 @@ export interface WindowSetting {
     position: PanelPosition | null;
     isCollapsed: boolean;
 }
-export function readSetting<Key extends SettingKey>(
+/**
+ * One reader and one writer per field rather than a generic pair: a value typed by its key needs a
+ * conditional type, and narrowing into one needs a cast, which C13 refuses in `src/`.
+ */
+export function readStorageChoice(store: KeyValueStore): Result<StorageChoice, SettingFailure>;
+export function readWindowFold(
     store: KeyValueStore,
-    key: Key,
-): Result<SettingValue<Key>, SettingFailure>;
-export function writeSetting<Key extends SettingKey>(
+    window: PanelWindow,
+): Result<boolean, SettingFailure>;
+export function readWindowPosition(
     store: KeyValueStore,
-    key: Key,
-    value: SettingValue<Key>,
-): Result<void, SettingFailure>;
+    window: PanelWindow,
+): Result<PanelPosition | null, SettingFailure>; // null: the reader put it nowhere
+// and `writeStorageChoice`, `writeWindowFold`, `writeWindowPosition` beside them
 export type SettingFailure =
     | StoreFailure
     | { kind: "setting-unreadable"; key: SettingKey }
@@ -680,22 +693,27 @@ export interface ShelfWritten {
 export type ShelfFailure =
     | StoreFailure
     | { kind: "shelf-unreadable" }
-    | { kind: "shelf-version-unknown"; version: number }
+    | { kind: "shelf-unwritable" }
+    | { kind: "shelf-version-unknown"; version: number | null }
     | { kind: "every-slot-pinned"; maximum: number }
     | { kind: "store-refused-after-rotation"; attempts: number }
-    | { kind: "fight-already-kept"; openedAt: number };
+    | { kind: "fight-already-kept"; openedAt: number }
+    | { kind: "fight-not-kept"; openedAt: number };
 
 // The file
-/** The inverse of `decode`: meaning into the structure of a file. */
+/**
+ * The inverse of `decode`: meaning into the structure of a file, version 4 byte for byte. The calls
+ * are the live capture's, or a kept fight's payloads with the messages the envelope reads back out
+ * of them; the report is the figures. `addOnVersion` arrives in `surroundings` with the build.
+ */
 export function encodeFightFile(
-    view: FightView,
-    figures: FightFigures | null,
-    surroundings: CaptureSurroundings,
-): Result<FightFile, ExportFailure>;
-export type ExportFailure =
-    | { kind: "no-fight-on-screen" }
-    | { kind: "calls-exceeded"; count: number; maximum: number }
-    | { kind: "export-unserializable" };
+    calls: FileCalls,
+    subject: FileSubject | null,
+    surroundings: FileSurroundings,
+): Result<FightFile, FileEncodingFailure>;
+export type FileEncodingFailure = { kind: "export-unserializable"; cause: unknown };
+/** Which fight the file is of is the intent's question, and its refusal is the runtime's. */
+export type ExportFailure = { kind: "no-fight-on-screen" } | FileEncodingFailure;
 
 // A payload and an intent change state at once; drawing waits for one frame
 export interface Runtime {
@@ -750,15 +768,15 @@ export type RuntimeFailure =
     | GestureFailure
     | ForeignFailure
     | BrokenInvariant;
-export const FATES = [
-    "shown-as-unknown",
-    "shown-as-suspect",
-    "defect",
-    "shelf-answer",
-    "fallback-with-defect",
-    "stand-down",
-] as const;
-export type FailureFate = (typeof FATES)[number];
+export const FAILURE_FATE = {
+    shownAsUnknown: "shown-as-unknown",
+    shownAsSuspect: "shown-as-suspect",
+    defect: "defect",
+    shelfAnswer: "shelf-answer",
+    fallbackWithDefect: "fallback-with-defect",
+    standDown: "stand-down",
+} as const;
+export type FailureFate = VocabularyWord<typeof FAILURE_FATE>;
 export const FAILURE_FATES: { readonly [Kind in RuntimeFailure["kind"]]: FailureFate };
 ```
 
@@ -925,8 +943,9 @@ This branch starts empty, so the order is what makes each step testable on the l
    order and not a batch. The gate and its first guards arrive in the same commit as the first code.
 2. `core/` grammar and decoder, carried over from `develop` with its tests, returning `Result`.
 3. `core/` session (`preparePayload`, `commitPayload`), figures, standings.
-4. `game/` ports and the envelope, warriors and capture readers.
-5. `runtime/`: defects, settings, shelf, file, `markStale`, `FAILURE_FATES`.
+4. `game/`: the envelope, warriors and capture readers.
+5. `runtime/`: defects, settings, shelf, file, `markStale`, `FAILURE_FATES`. Each port of §5 arrives
+   with the runtime piece that consumes it (`AGENTS.md` C9), in `game/` where it reads the page.
 6. `ui/`: `present…`, `PanelView`, intents.
 7. The entry, and the userscript build.
 8. The simulator:

@@ -18,8 +18,10 @@ import {
     type DeclaredEffect,
     type DestroyedStatistic,
     type FightOutcomeEvent,
+    OUTCOME_RESULT,
     type PreventedDamage,
     type UnknownMessageEvent,
+    UNREAD_CAUSE,
     type UnreadCause,
 } from "@/src/core/battle-event.ts";
 import {
@@ -222,7 +224,7 @@ export function decodeMessage(
     const parsed = parseProtocolMessage(text);
     if (!parsed.ok) {
         const standing = composeStandingAfterMessage(context, [], null);
-        const cause: UnreadCause = "grammar-refused";
+        const cause: UnreadCause = UNREAD_CAUSE.grammarRefused;
         const refused = { cause, keys: [], combatantIds: [], text, events: [], standing };
         return err({ kind: DECODE_FAILURE.unread, ...refused });
     }
@@ -237,12 +239,12 @@ export function decodeMessage(
     assert(events.length <= message.parameters.length, "a message stays inside its bound");
     if (reading.unreadKeys.length > 0) {
         const combatantIds = getNamedCombatantIds(message);
-        const unread = { cause: "unknown-key" as const, keys: reading.unreadKeys, combatantIds };
+        const unread = { cause: UNREAD_CAUSE.unknownKey, keys: reading.unreadKeys, combatantIds };
         return err({ kind: DECODE_FAILURE.unread, ...unread, text, events, standing });
     }
     if (events.length === 0) {
         const combatantIds = getNamedCombatantIds(message);
-        const empty = { cause: "no-parameter" as const, keys: [], combatantIds, events };
+        const empty = { cause: UNREAD_CAUSE.noParameter, keys: [], combatantIds, events };
         return err({ kind: DECODE_FAILURE.unread, ...empty, text, standing });
     }
     return ok({ events, standing });
@@ -507,15 +509,22 @@ function decodeNamedHealing(
  * (production build `ne0iTNdg`), so it arrives bare or valued and both read the same.
  */
 function decodeFledOutcome(): FightOutcomeEvent {
-    return { kind: BATTLE_EVENT.fightOutcome, result: "fled", combatantNames: [] };
+    return { kind: BATTLE_EVENT.fightOutcome, result: OUTCOME_RESULT.fled, combatantNames: [] };
 }
 
 /** `loser=?` is not a side of that name, so it is left unread rather than read as a draw. */
-function decodeFightOutcome(value: string, result: "won" | "lost"): FightOutcomeEvent | null {
+function decodeFightOutcome(
+    value: string,
+    result: typeof OUTCOME_RESULT.won | typeof OUTCOME_RESULT.lost,
+): FightOutcomeEvent | null {
     if (value.length === 0) return null;
     if (value === NO_WINNER) {
-        if (result === "lost") return null;
-        return { kind: BATTLE_EVENT.fightOutcome, result: "drawn", combatantNames: [] };
+        if (result === OUTCOME_RESULT.lost) return null;
+        return {
+            kind: BATTLE_EVENT.fightOutcome,
+            result: OUTCOME_RESULT.drawn,
+            combatantNames: [],
+        };
     }
     const combatantNames = value.split(NAME_SEPARATOR);
     if (combatantNames.some((one) => one.length === 0)) return null;
