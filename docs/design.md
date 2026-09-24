@@ -34,16 +34,16 @@ layer), the recording file format (§11) and the six boundaries of `AGENTS.md`'s
 TigerStyle, translated to an add-on that is a guest in somebody else's page. The binding form of
 each is the `AGENTS.md` rule named beside it.
 
-| #  | Principle                                 | What it means here                                                                                                                                                                         |
-| -- | ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| T1 | Two kinds of error.                       | An operating error is expected and returns a `Result`. A programmer error is a broken invariant, asserted, and caught only by `runGuarded` at a boundary. `AGENTS.md` E1–E4.               |
-| T2 | A limit on everything.                    | Every collection states a maximum, and capacities are fixed when a fight opens. S11.                                                                                                       |
-| T3 | In somebody else's stack, only what must. | In the game's stack: reading the envelope, copying for the file, `preparePayload`/`commitPayload`. The cost is bounded by the message count; nothing throws past `runGuarded`. No drawing. |
-| T4 | A deterministic core.                     | `core/` is pure transitions `(state, input) → Result`. All I/O goes through ports, so a simulator replays recordings with injected faults — the VOPR idea.                                 |
-| T5 | Parse, don't validate.                    | A value from the game is read into a type of ours at the edge in `game/`. Above it nothing is `unknown`.                                                                                   |
-| T6 | Explicit control flow.                    | `Result` has no `map`/`andThen`. Every call site writes `if (!result.ok)`. S1.                                                                                                             |
-| T7 | Absent in the protocol is not a failure.  | `T \| null` in a domain type means "the protocol did not state it", which is a fact. `Err` means "reading failed". E6.                                                                     |
-| T8 | Batch where the cost is.                  | A payload and a click only mark the panel stale. One scheduled frame computes and draws once, however many changes arrived. There is no queue, because there is nothing to hold in one.    |
+| #  | Principle                                 | What it means here                                                                                                                                                                                                    |
+| -- | ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| T1 | Two kinds of error.                       | An operating error is expected and returns a `Result`. A programmer error is a broken invariant, asserted, and caught only by `runGuarded` at a boundary. `AGENTS.md` E1–E4.                                          |
+| T2 | A limit on everything.                    | Every collection states a maximum, and capacities are fixed when a fight opens. S11.                                                                                                                                  |
+| T3 | In somebody else's stack, only what must. | In the game's stack: reading the envelope, copying for the file, `preparePayload`/`commitPayload`. The cost is bounded by the message count; nothing throws past `runGuarded`. No drawing.                            |
+| T4 | A deterministic core.                     | `core/` is pure transitions `(state, input) → Result`. All I/O goes through ports, so a simulator replays recordings with injected faults — the VOPR idea.                                                            |
+| T5 | Parse, don't validate.                    | A value from the game is read into a type of ours at the edge in `game/`, and every bound on it is checked there, once. Above the edge nothing is `unknown`, and a bound broken there is a bug of ours: an assertion. |
+| T6 | Explicit control flow.                    | `Result` has no `map`/`andThen`. Every call site writes `if (!result.ok)`. S1.                                                                                                                                        |
+| T7 | Absent in the protocol is not a failure.  | `T \| null` in a domain type means "the protocol did not state it", which is a fact. `Err` means "reading failed". E6.                                                                                                |
+| T8 | Batch where the cost is.                  | A payload and a click only mark the panel stale. One scheduled frame computes and draws once, however many changes arrived. There is no queue, because there is nothing to hold in one.                               |
 
 ## 3. Foundation: `libs/`
 
@@ -344,42 +344,37 @@ export interface UnreadMessage extends Fault {
 /** The one owner of what a protocol key means. `null` is `unknown-key`. */
 export function getKeyReading(key: string): KeyReading | null;
 
+/** The envelope has bounded the message count already; here it is asserted. */
 export function decodePayloadMessages(
     texts: readonly string[],
     context: DecodeContext,
-): Result<PayloadDecoded, DecodeBoundReached>;
+): PayloadDecoded;
 export interface PayloadDecoded {
     events: readonly BattleEvent[];
     unread: readonly UnreadMessage[];
     standing: AnnouncementStanding;
 }
-export type DecodeBoundReached = {
-    kind: "messages-exceeded" | "parameters-exceeded";
-    count: number;
-    maximum: number;
-};
 ```
 
-An `UnreadMessage` is one message's failure. The session records it as a fact — counted, and shown
-as a suspect — so the payload as a whole succeeds. `UnknownMessageEvent` stays in `BattleEvent`.
+An `UnreadMessage` is one message's failure, and it stays a `Result` because its fate differs from a
+defect: the session records it as a fact — counted, and shown as a suspect — so the payload as a
+whole succeeds. A message with too many segments is one of them (`GrammarRefusal`), because the
+count comes off the game's text. `UnknownMessageEvent` stays in `BattleEvent`.
 
 ### 6.3 Roster
 
 ```ts
-export function indexCombatantRoster(
-    combatants: readonly Combatant[],
-): Result<CombatantRoster, RosterRefusal>;
+/** The envelope has bounded the cast and refused a repeated id already; here both are asserted. */
+export function indexCombatantRoster(combatants: readonly Combatant[]): CombatantRoster;
 /** `null`: ambiguous, or nobody. */
 export function lookupCombatantIdByName(roster: CombatantRoster, name: string): number | null;
-export type RosterRefusal =
-    | { kind: "combatants-exceeded"; count: number; maximum: number }
-    | { kind: "combatant-id-repeated"; combatantId: number };
 ```
 
 ### 6.4 The fight session
 
 A state machine whose transition runs in two phases, as TigerBeetle's `prepare` and `commit` do:
-every read and every computation first, then one write. A payload lands whole or not at all.
+every read and every computation first, then one write. A payload lands whole or not at all: an
+assertion that fires while preparing leaves the session untouched, because the write never ran.
 
 ```ts
 export const SESSION_PHASE = { waiting: "waiting", underway: "underway", over: "over" } as const;
@@ -389,13 +384,13 @@ export interface FightSession {
     getView(): FightView | null; // a reading, never the map (S9)
 }
 export function initFightSession(options: SessionOptions): FightSession;
-/** Phase one: reads and computations, the session untouched. The only place a payload is refused. */
+/** Phase one: reads and computations, the session untouched. */
 export function preparePayload(
     session: FightSession,
     record: PayloadRecord,
     tables: DecoderTables,
 ): Result<PreparedPayload, PayloadRejected>;
-/** Phase two: the write alone. It cannot fail, because whatever could failed in phase one. */
+/** Phase two: the write alone. Nothing here can fail but an assertion. */
 export function commitPayload(session: FightSession, prepared: PreparedPayload): PayloadCommitted;
 
 export interface PreparedPayload {
@@ -408,12 +403,8 @@ export interface PayloadCommitted {
     eventsAdded: number;
     unreadAdded: number;
 }
-export type PayloadRejected =
-    | { kind: "payload-before-init" } // joined in progress: a fact, not a defect
-    | { kind: "events-exceeded"; count: number; maximum: number }
-    | { kind: "turn-queue-exceeded"; count: number; maximum: number }
-    | RosterRefusal
-    | DecodeBoundReached;
+/** The one refusal, and its fate is a suspect rather than a defect. */
+export type PayloadRejected = { kind: "payload-before-init" }; // joined in progress: a fact
 
 /** `develop`'s `FightReading`, same content. */
 export interface FightView {
@@ -442,7 +433,7 @@ export interface SessionOptions {
 ### 6.5 Figures
 
 ```ts
-export function tallyFightFigures(view: FightView): Result<FightFigures, FiguresRefusal>;
+export function tallyFightFigures(view: FightView): FightFigures;
 /** The balances in one place: assertions only. */
 export function verifyFightFigures(figures: FightFigures): void;
 export interface FightFigures {
@@ -450,11 +441,12 @@ export interface FightFigures {
     heals: ReadonlyMap<BattleEvent, TeamHeal>;
     payloadsApplied: number;
 }
-export type FiguresRefusal =
-    | { kind: "cut-exceeded"; cut: string; count: number; maximum: number }
-    | { kind: "skills-exceeded"; count: number; maximum: number }
-    | { kind: "procs-exceeded"; count: number; maximum: number };
 ```
+
+Tallying returns figures, not a `Result`. Every way it could fail — a cut, a skill list or a proc
+list past its bound — ends where a broken invariant ends, in the "reading" defect `runGuarded`
+leaves, so a failure type would add code on every path and change no outcome. The bounds are
+asserted.
 
 The six balances — applied, restored, half-named and the rest — stay assertions, because they are
 invariants rather than failures. A disagreement that _can_ happen (`hasFiguresDisagreed`) stays
@@ -466,14 +458,8 @@ They are not folded in as payloads arrive: sizing a team heal reads messages fro
 ### 6.6 Standings
 
 ```ts
-export function replayFightStandings(
-    view: FightView,
-    stated: StatedSkills,
-): Result<FightStandings, StandingsRefusal>;
-export type StandingsRefusal = {
-    kind: "standings-exceeded" | "carriers-exceeded" | "sources-exceeded";
-    maximum: number;
-};
+/** As tallying: the bounds are asserted, and a broken one is the frame step's defect. */
+export function replayFightStandings(view: FightView, stated: StatedSkills): FightStandings;
 ```
 
 ## 7. The game's edge
@@ -528,12 +514,19 @@ export interface PayloadRecord {
 export const ENVELOPE_FAILURE = {
     payloadNotRecord: "payload-not-record",
     payloadFieldMalformed: "payload-field-malformed",
-    payloadMessagesExceeded: "payload-messages-exceeded",
+    payloadFieldTooLong: "payload-field-too-long",
+    payloadCombatantRepeated: "payload-combatant-repeated",
 } as const;
 export type EnvelopeFailure =
     | { kind: typeof ENVELOPE_FAILURE.payloadNotRecord }
     | { kind: typeof ENVELOPE_FAILURE.payloadFieldMalformed; field: EnvelopeField } // ours
-    | { kind: typeof ENVELOPE_FAILURE.payloadMessagesExceeded; count: number; maximum: number };
+    | {
+        kind: typeof ENVELOPE_FAILURE.payloadFieldTooLong;
+        field: EnvelopeField;
+        count: number;
+        maximum: number;
+    }
+    | { kind: typeof ENVELOPE_FAILURE.payloadCombatantRepeated; combatantId: number };
 
 /**
  * In the game's stack, right after the original: the thinning decision (payload shape and cast
@@ -813,7 +806,8 @@ onPayload(payload) ─ runGuarded:
    captureCall             err → a "file" defect; the fight reads on, the file loses this call
    preparePayload          ok  → commitPayload → unread counted (suspect)
                                  hasClosed → keepFight → ShelfWritten | ShelfFailure
-                           err → a "reading" defect; the session untouched
+                           err → payload-before-init: joined in progress (suspect)
+                           assertion → a "reading" defect; the session untouched
    markStale               the first mark asks for a frame
 end: no DOM; cost bounded by the message count; a JSON copy only of a call thinning keeps
 ```
@@ -842,23 +836,23 @@ defect once, because no failure goes without a mark.
 
 ### 10.5 The failure map
 
-| Failure                                                | Fate                   | What the reader sees                                   |
-| ------------------------------------------------------ | ---------------------- | ------------------------------------------------------ |
-| `unread` (grammar, unknown key, no parameter)          | `shown-as-suspect`     | a count beside the figure, a suspicion sentence        |
-| `payload-before-init`                                  | `shown-as-suspect`     | "joined in progress"                                   |
-| `PayloadRejected`, `EnvelopeFailure`, `FiguresRefusal` | `defect` "reading"     | the defects section: what could not be done, how often |
-| `BrokenInvariant`                                      | `defect` of its step   | as above; one console line per kind                    |
-| `hasFiguresDisagreed` (data, not a failure)            | `defect` "figures"     | as above                                               |
-| `StoreFailure` on choosing a store                     | `fallback-with-defect` | memory; the storage strip says it was refused          |
-| `ShelfFailure`                                         | `shelf-answer`         | the shelf's answer row                                 |
-| `SettingFailure`                                       | `fallback-with-defect` | the default position or fold; a "kept" defect          |
-| `RenderFailure`                                        | `defect` "region"      | an undrawn mark where the region stands                |
-| `GestureFailure`                                       | `defect` "gesture"     | nothing happened, marked once                          |
-| `ExportFailure`, `FileFailure`                         | `defect` "file"        | as above                                               |
-| `TooltipFailure`                                       | `defect` "region"      | the game's tooltip without our rows                    |
-| `PageReadFailure`                                      | `shown-as-unknown`     | no place line; our word instead of the game's          |
-| `EngineFailure` another-reader, `BootFailure`          | `stand-down`           | no panel, one console line                             |
-| `EngineFailure` search-abandoned, method-absent        | `defect` "engine"      | the panel waits, one console line                      |
+| Failure                                         | Fate                   | What the reader sees                                   |
+| ----------------------------------------------- | ---------------------- | ------------------------------------------------------ |
+| `unread` (grammar, unknown key, no parameter)   | `shown-as-suspect`     | a count beside the figure, a suspicion sentence        |
+| `payload-before-init`                           | `shown-as-suspect`     | "joined in progress"                                   |
+| `EnvelopeFailure`                               | `defect` "reading"     | the defects section: what could not be done, how often |
+| `BrokenInvariant`                               | `defect` of its step   | as above; one console line per kind                    |
+| `hasFiguresDisagreed` (data, not a failure)     | `defect` "figures"     | as above                                               |
+| `StoreFailure` on choosing a store              | `fallback-with-defect` | memory; the storage strip says it was refused          |
+| `ShelfFailure`                                  | `shelf-answer`         | the shelf's answer row                                 |
+| `SettingFailure`                                | `fallback-with-defect` | the default position or fold; a "kept" defect          |
+| `RenderFailure`                                 | `defect` "region"      | an undrawn mark where the region stands                |
+| `GestureFailure`                                | `defect` "gesture"     | nothing happened, marked once                          |
+| `ExportFailure`, `FileFailure`                  | `defect` "file"        | as above                                               |
+| `TooltipFailure`                                | `defect` "region"      | the game's tooltip without our rows                    |
+| `PageReadFailure`                               | `shown-as-unknown`     | no place line; our word instead of the game's          |
+| `EngineFailure` another-reader, `BootFailure`   | `stand-down`           | no panel, one console line                             |
+| `EngineFailure` search-abandoned, method-absent | `defect` "engine"      | the panel waits, one console line                      |
 
 ### 10.6 Where a broad catch stands
 

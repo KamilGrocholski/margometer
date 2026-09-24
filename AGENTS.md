@@ -124,7 +124,10 @@ The shapes are `docs/design.md` §3; the fate of each failure is its §10.5.
   game did not send a field, storage refused, a message does not parse — is **returned** as a
   `Result`, never thrown. A broken invariant is an **assertion**. Nothing the bundle carries throws
   on purpose except an assertion; the only other exceptions it meets are thrown by code it did not
-  write.
+  write. **A bound on what arrives from outside is checked once, at the edge that reads it**, and
+  fails as a `Result` there; past the edge the same bound is an assertion, because only a bug of
+  ours can break it. A `Result` travels only where its reason changes what happens next — a failure
+  that would end in the same defect as a broken invariant is not given a type of its own.
 - **E2. A `Result` is `{ ok: true, value } | { ok: false, error }`, and nothing else.** It has no
   combinators: every call site branches with `if (!result.ok)`, which is **S1**'s explicit control
   flow. `ok` carries no boolean prefix; that exception to **N8** is stated there.
