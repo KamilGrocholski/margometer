@@ -535,19 +535,12 @@ const ENVELOPE_KEYS: { readonly [Field in EnvelopeField]: string } = {
     combatants: "w",
 };
 
-/** In the game's stack: bounded, and it builds arrays and records of its own. */
-export function readPayloadEnvelope(
-    payload: unknown,
-    atMilliseconds: number,
-): Result<EnvelopeReading, EnvelopeFailure>;
-/** The session's `PayloadRecord` (§6.4), and what only the file and the shelf read beside it. */
-export interface EnvelopeReading {
-    record: PayloadRecord;
-    snapshotBefore: WarriorSnapshot | null;
-    atMilliseconds: number;
-    /** For the file and the shelf, copied in the game's stack. `null`: thinning dropped it. */
-    captured: CapturedCall | null;
-}
+/**
+ * In the game's stack: bounded, and it builds arrays and records of its own. The snapshot and the
+ * copy for the file are other readings of the same call (`readWarriorSnapshot`, `captureCall`), and
+ * the listener holds the three side by side rather than this one carrying the other two.
+ */
+export function readPayloadEnvelope(payload: unknown): Result<PayloadRecord, EnvelopeFailure>;
 
 export const ENVELOPE_FAILURE = {
     payloadNotRecord: "payload-not-record",
@@ -592,6 +585,11 @@ export type WarriorFailure =
     | { kind: "warrior-malformed"; index: number }
     | ForeignFailure;
 ```
+
+A warrior entry the payload restates only in part (it carries only what moved) is not a combatant
+stated in full, and is passed over rather than refused: that is how the game writes. What is refused
+is the shape around the entries: a field of the wrong type, a list past its bound, an id stated
+twice.
 
 Whether the game mutates a payload after the call does not need to be settled. Everything read is
 built into arrays and records of ours in the game's stack, strings are immutable, and the raw

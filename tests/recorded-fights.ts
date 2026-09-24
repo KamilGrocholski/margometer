@@ -10,6 +10,14 @@ import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/ass
 import type { BattleEvent } from "@/src/core/battle-event.ts";
 import { type Combatant, indexCombatantRoster } from "@/src/core/combatant-roster.ts";
 import { decodePayloadMessages, type UnreadMessage } from "@/src/core/fight-decoder.ts";
+import {
+    commitPayload,
+    type FightSession,
+    initFightSession,
+    preparePayload,
+    SESSION_OPTIONS,
+} from "@/src/core/fight-session.ts";
+import { readPayloadEnvelope } from "@/src/game/payload-envelope.ts";
 import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
 
 export const RECORDINGS_REVISION = "fa1dcce";
@@ -22,7 +30,12 @@ const RECORDING_EXTENSION = ".json";
  * keys inside a snapshot, which are the game's and `develop:src/game/engine-warrior.ts` spells
  * for the add-on (N13).
  */
-const CAPTURE_FIELDS = { calls: "calls", messages: "messages", after: "combatantsAfter" } as const;
+const CAPTURE_FIELDS = {
+    calls: "calls",
+    payload: "payload",
+    messages: "messages",
+    after: "combatantsAfter",
+} as const;
 const WARRIOR_FIELDS = {
     id: "id",
     name: "name",
@@ -37,6 +50,8 @@ const WARRIOR_FIELDS = {
 
 export interface RecordedFight {
     path: string;
+    /** Each call's payload exactly as the engine received it, for the envelope to read. */
+    updates: readonly unknown[];
     /** One list per call the engine made, which is the unit an announcement is glued inside. */
     payloads: readonly (readonly string[])[];
     messages: readonly string[];
@@ -94,10 +109,27 @@ export function decodeRecordedFight(fight: RecordedFight): RecordedDecoding {
     return decoding;
 }
 
+/**
+ * A recording run the add-on's own way: every call through the envelope, then into the session.
+ * The cast comes off the payloads here, as the add-on reads it, and not off the snapshots.
+ */
+export function replayRecordedFight(fight: RecordedFight): FightSession {
+    const session = initFightSession(SESSION_OPTIONS);
+    for (const update of fight.updates) {
+        const record = readPayloadEnvelope(update);
+        assert(record.ok, `${fight.path}: a recorded call is read by the envelope`);
+        const prepared = preparePayload(session, record.value, BLOWS_GRANTED);
+        assert(prepared.ok, `${fight.path}: and is inside every bound the session states`);
+        commitPayload(session, prepared.value);
+    }
+    return session;
+}
+
 function readRecordedFight(path: string, document: unknown): RecordedFight {
     const calls = readRecordedField(document, CAPTURE_FIELDS.calls, path);
     assert(Array.isArray(calls), `${path} lists the calls the engine made`);
     const payloads: string[][] = [];
+    const updates: unknown[] = [];
     const byId = new Map<number, Combatant>();
     const healthReadings: RecordedHealth[] = [];
     for (const call of calls) {
@@ -109,6 +141,7 @@ function readRecordedFight(path: string, document: unknown): RecordedFight {
             messages.push(message);
         }
         payloads.push(messages);
+        updates.push(readRecordedField(call, CAPTURE_FIELDS.payload, path));
         const after = readRecordedField(call, CAPTURE_FIELDS.after, path);
         if (!Array.isArray(after)) continue;
         for (const snapshot of after) {
@@ -120,7 +153,7 @@ function readRecordedFight(path: string, document: unknown): RecordedFight {
         }
     }
     const combatants = [...byId.values()];
-    return { path, payloads, messages: payloads.flat(), combatants, healthReadings };
+    return { path, updates, payloads, messages: payloads.flat(), combatants, healthReadings };
 }
 
 function readRecordedHealth(snapshot: unknown, path: string): RecordedHealth {
