@@ -1,0 +1,266 @@
+/**
+ * What a protocol key means: the one owner of it (`docs/design.md` §6.2). The families are the
+ * client's own and each is cited in `develop:docs/protocol-keys.md`. Nothing is read because it
+ * looks like a number.
+ *
+ * `null` is a key with no meaning yet, which the decoder leaves unread and names.
+ */
+
+import { assert } from "@std/assert/assert";
+
+export const KEY_FAMILY = {
+    damage: "damage",
+    prevented: "prevented",
+    destroyed: "destroyed",
+    proc: "proc",
+    healthChange: "health-change",
+    declaration: "declaration",
+    valuelessDeclaration: "valueless-declaration",
+    skillName: "skill-name",
+    customSkillName: "custom-skill-name",
+    skillId: "skill-id",
+    outcome: "outcome",
+    fled: "fled",
+    unaccountedHealth: "unaccounted-health",
+    namedDamage: "named-damage",
+    namedHealing: "named-healing",
+} as const;
+
+/**
+ * Which end of the blow a proc belongs to, and `unsettled` where nobody knows. **Never read off the
+ * sign**: `+legbon_curse` fires when its holder attacks and `-legbon_cleanse` when its holder is
+ * struck, on messages of one shape. `unsettled` is a refusal, not a default.
+ */
+export const PROC_ENDS = ["actor", "target", "unsettled"] as const;
+export type ProcEnd = (typeof PROC_ENDS)[number];
+
+export const DAMAGE_HALVES = ["raw", "applied"] as const;
+export type DamageHalf = (typeof DAMAGE_HALVES)[number];
+
+export type KeyReading =
+    | { kind: typeof KEY_FAMILY.damage; half: DamageHalf }
+    | { kind: typeof KEY_FAMILY.prevented }
+    | { kind: typeof KEY_FAMILY.destroyed }
+    | { kind: typeof KEY_FAMILY.proc; end: ProcEnd; doesTakeValue: boolean }
+    | { kind: typeof KEY_FAMILY.healthChange; sign: 1 | -1; isOnTarget: boolean }
+    | { kind: typeof KEY_FAMILY.declaration }
+    | { kind: typeof KEY_FAMILY.valuelessDeclaration }
+    | { kind: typeof KEY_FAMILY.skillName }
+    | { kind: typeof KEY_FAMILY.customSkillName }
+    | { kind: typeof KEY_FAMILY.skillId }
+    | { kind: typeof KEY_FAMILY.outcome; result: "won" | "lost" }
+    | { kind: typeof KEY_FAMILY.fled }
+    | { kind: typeof KEY_FAMILY.unaccountedHealth }
+    | { kind: typeof KEY_FAMILY.namedDamage }
+    | { kind: typeof KEY_FAMILY.namedHealing };
+
+/** The client's default branch reads characters 1 to 3 of a key: `+` is raw, the rest applied. */
+const DAMAGE_MARKER = "dmg";
+const DAMAGE_MARKER_AT = 1;
+export const RAW_SIGN = "+";
+export const APPLIED_SIGN = "-";
+
+/** Free text for the client's own log, and the one key nothing is kept from. */
+export const TEXT_KEY = "txt";
+export const SKILL_ID_KEY = "skillId";
+
+/** The one pair the family rule cannot reach, because the key carries no marker. */
+const DAMAGE_KEYS = ["+thirdatt", "-thirdatt"];
+const PREVENTED_KEYS = ["-absorb", "-absorbm", "-blok"];
+const DESTROYED_KEYS = [
+    "+acdmg",
+    "+critpierce",
+    "+resdmg",
+    "+resdmgc",
+    "+resdmgf",
+    "+resdmgl",
+    // One letter from `+acdmg`, and a different pool: that empties armour in points, this a
+    // poison resistance in percentage points (`develop:docs/protocol-keys.md`).
+    "+actdmg",
+    "+abdest_per",
+    "+abmdest_per",
+];
+
+/**
+ * ⚠️ **Membership is the second thing this table states.** A proc it does not hold goes unread
+ * and reaches a player as a message nobody could read.
+ */
+const PROC_END_BY_KEY: ReadonlyMap<string, ProcEnd> = new Map<string, ProcEnd>([
+    ["+crit", "actor"],
+    ["+of_crit", "actor"],
+    ["+pierce", "actor"],
+    ["-pierceb", "target"],
+    ["+stun", "actor"],
+    ["+stun2", "actor"],
+    ["+stun2-c", "actor"],
+    ["+stun2-d", "actor"],
+    ["+stun2-f", "actor"],
+    ["+stun2-l", "actor"],
+    ["+freeze", "actor"],
+    ["+wound", "actor"],
+    ["+of_wound", "actor"],
+    ["+woundpoison", "actor"],
+    ["+woundfrost", "actor"],
+    ["+woundmagic", "actor"],
+    ["+of_woundpoison", "actor"],
+    ["+of_woundmagic", "actor"],
+    ["+fastarrow", "actor"],
+    ["+acdmg_destroyed", "actor"],
+    ["+legbon_curse", "actor"],
+    ["+legbon_verycrit", "actor"],
+    ["-legbon_cleanse", "target"],
+    ["-legbon_glare", "target"],
+    ["+superspell-dispel", "unsettled"],
+    ["+superspell-prevented", "unsettled"],
+    ["-tenacity", "unsettled"],
+    ["-evade", "target"],
+    ["-contra", "target"],
+    ["-arrowblock", "target"],
+]);
+
+/**
+ * The procs read as procs **while carrying a figure**, which no other one is. The figure is not
+ * read: what the percentage is taken off is unsettled (`develop ADR 0085`).
+ */
+const PROCS_WITH_VALUE = [
+    "+woundpoison",
+    "+woundfrost",
+    "+woundmagic",
+    "+of_woundpoison",
+    "+of_woundmagic",
+];
+
+/**
+ * Health moving outside a blow: which way it goes, and which slot holds the combatant it happens
+ * to. Both are ours to supply; the protocol states a magnitude and leaves the rest to the key.
+ */
+const HEALTH_CHANGE_BY_KEY = new Map<string, { sign: 1 | -1; isOnTarget: boolean }>([
+    ["heal", { sign: 1, isOnTarget: false }],
+    ["legbon_holytouch_heal", { sign: 1, isOnTarget: false }],
+    ["heal_target", { sign: 1, isOnTarget: true }],
+    ["npc_heal", { sign: 1, isOnTarget: false }],
+    ["bandage", { sign: 1, isOnTarget: false }],
+    ["poison", { sign: -1, isOnTarget: false }],
+    ["injure", { sign: -1, isOnTarget: false }],
+    ["wound", { sign: -1, isOnTarget: false }],
+    ["fire", { sign: -1, isOnTarget: false }],
+    ["light", { sign: -1, isOnTarget: false }],
+    ["anguish", { sign: -1, isOnTarget: false }],
+]);
+
+/**
+ * Keys stating something no total here counts: an input, an outcome in a unit this meter does not
+ * keep, or one outside the fight. The test is not "we understand it"; it is whether whatever the
+ * figure did is reported elsewhere, in a unit no total keeps, or outside the fight.
+ */
+const DECLARATION_KEYS = [
+    "+absorb",
+    "+absorbm",
+    "+critpoison_per",
+    "+critsa",
+    "+critslow_per",
+    "+crush_physical",
+    "+engback",
+    "+exp",
+    "+injure",
+    "+legbon_puncture",
+    "+ph",
+    "+rage",
+    "+taken_dmg",
+    "-endest",
+    "-legbon_critred",
+    "-legbon_facade",
+    "-manadest",
+    "-poison_lowdmg_per",
+    "active_absorbdest_per",
+    "active_block_per",
+    "active_decblock_per",
+    "active_decblock_per-enemies",
+    "afterheal",
+    "alllowdmg",
+    "allslow_per",
+    "aura-ac_per",
+    "aura-adddmg2_per-meele",
+    "aura-resall",
+    "aura-sa_per",
+    "combo-max",
+    "critmval-allies",
+    "critval-allies",
+    "en-regen",
+    "energy",
+    "heal_per-allies",
+    "heal_per-enemies",
+    "hp_per-allies",
+    "hp_per-enemies",
+    "lowheal_per-enemies",
+    "mana",
+    "poison_lowdmg_per-enemies",
+    "prepare",
+    "shout",
+    "surpass_bonus_total",
+    TEXT_KEY,
+];
+
+/**
+ * Read **only** while they carry no value. The client composes `+legbon_holytouch` with a hole for
+ * a figure, so one arriving with a value goes back to unread. A hole is not what membership means:
+ * `sunshield_per` is composed with none at all.
+ */
+const VALUELESS_DECLARATION_KEYS = [
+    "+legbon_anguish",
+    "+legbon_holytouch",
+    "+spell-taken_dmg-all",
+    "en-regen-cast",
+    "removedot-allies",
+    "removeslow-allies",
+    "removestun-allies",
+    "step",
+    "sunshield_per",
+];
+
+const KEY_READING_BY_KEY: ReadonlyMap<string, KeyReading> = indexKeyReadings();
+
+export function getKeyReading(key: string): KeyReading | null {
+    assert(key.length > 0, "a key asked about is a key the message wrote");
+    const listed = KEY_READING_BY_KEY.get(key);
+    if (listed !== undefined) return listed;
+    const marker = key.slice(DAMAGE_MARKER_AT, DAMAGE_MARKER_AT + DAMAGE_MARKER.length);
+    if (marker !== DAMAGE_MARKER) return null;
+    const half: DamageHalf = key.startsWith(RAW_SIGN) ? "raw" : "applied";
+    assert(!KEY_READING_BY_KEY.has(key), "a key read by the family rule is in no list");
+    return { kind: KEY_FAMILY.damage, half };
+}
+
+function indexKeyReadings(): Map<string, KeyReading> {
+    const found = new Map<string, KeyReading>();
+    const add = (key: string, reading: KeyReading) => {
+        assert(!found.has(key), "a key belongs to one family");
+        found.set(key, reading);
+    };
+    for (const key of DAMAGE_KEYS) {
+        add(key, { kind: KEY_FAMILY.damage, half: key.startsWith(RAW_SIGN) ? "raw" : "applied" });
+    }
+    for (const key of PREVENTED_KEYS) add(key, { kind: KEY_FAMILY.prevented });
+    for (const key of DESTROYED_KEYS) add(key, { kind: KEY_FAMILY.destroyed });
+    for (const [key, end] of PROC_END_BY_KEY) {
+        add(key, { kind: KEY_FAMILY.proc, end, doesTakeValue: PROCS_WITH_VALUE.includes(key) });
+    }
+    for (const [key, change] of HEALTH_CHANGE_BY_KEY) {
+        add(key, { kind: KEY_FAMILY.healthChange, ...change });
+    }
+    for (const key of DECLARATION_KEYS) add(key, { kind: KEY_FAMILY.declaration });
+    for (const key of VALUELESS_DECLARATION_KEYS) {
+        add(key, { kind: KEY_FAMILY.valuelessDeclaration });
+    }
+    add("tspell", { kind: KEY_FAMILY.skillName });
+    add("tcustom", { kind: KEY_FAMILY.customSkillName });
+    add(SKILL_ID_KEY, { kind: KEY_FAMILY.skillId });
+    add("winner", { kind: KEY_FAMILY.outcome, result: "won" });
+    add("loser", { kind: KEY_FAMILY.outcome, result: "lost" });
+    add("flee", { kind: KEY_FAMILY.fled });
+    add("healall_per", { kind: KEY_FAMILY.unaccountedHealth });
+    add("+oth_dmg", { kind: KEY_FAMILY.namedDamage });
+    add("legbon_lastheal", { kind: KEY_FAMILY.namedHealing });
+    assert(found.size > PROC_END_BY_KEY.size, "every family is indexed, not only the procs");
+    return found;
+}

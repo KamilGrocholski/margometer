@@ -319,6 +319,8 @@ A message the grammar refuses is data, not an exception, so no error class is ne
 export interface DecoderTables {
     blowsGrantedBySkillId: ReadonlyMap<number, number>;
 }
+/** `null`: no announcement reaches the next message. */
+export type AnnouncementStanding = StandingAnnouncement | null;
 export interface DecodeContext {
     roster: CombatantRoster | null;
     standing: AnnouncementStanding;
@@ -339,9 +341,12 @@ export interface UnreadMessage extends Fault {
     keys: readonly string[];
     combatantIds: readonly number[];
     text: string;
+    /** What was read beside the unread keys, so a blow with a new proc keeps its damage. */
+    events: readonly BattleEvent[];
+    standing: AnnouncementStanding;
 }
 
-/** The one owner of what a protocol key means. `null` is `unknown-key`. */
+/** `src/core/protocol-key.ts`: the one owner of what a key means. `null` is `unknown-key`. */
 export function getKeyReading(key: string): KeyReading | null;
 
 /** The envelope has bounded the message count already; here it is asserted. */
@@ -359,7 +364,12 @@ export interface PayloadDecoded {
 An `UnreadMessage` is one message's failure, and it stays a `Result` because its fate differs from a
 defect: the session records it as a fact — counted, and shown as a suspect — so the payload as a
 whole succeeds. A message with too many segments is one of them (`GrammarRefusal`), because the
-count comes off the game's text. `UnknownMessageEvent` stays in `BattleEvent`.
+count comes off the game's text. `UnknownMessageEvent` stays in `BattleEvent`, and
+`decodePayloadMessages` puts one after the events an `UnreadMessage` carries, which is where
+`develop` puts it.
+
+The standing a payload ends on is handed back. `develop` starts every call from none, so a session
+that hands it into the next call draws different figures (`AGENTS.md` W8).
 
 ### 6.3 Roster
 

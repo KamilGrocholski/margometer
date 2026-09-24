@@ -14,7 +14,7 @@ import {
     parseProtocolMessage,
     SEGMENTS_MAXIMUM,
 } from "@/src/core/protocol-message.ts";
-import { readRecordedMessages } from "@/tests/recorded-messages.ts";
+import { readRecordedFights } from "@/tests/recorded-fights.ts";
 
 /** `2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json`, the samples' own fight. */
 const HIT = "482845=100.00;-161518=70.07;+dmgd=466;+acdmg=5;-dmgd=223";
@@ -95,7 +95,7 @@ Deno.test("a message is read up to its bound, and refused one segment past it", 
 });
 
 Deno.test("every message in every recording parses and writes back unchanged", () => {
-    const recordings = readRecordedMessages();
+    const recordings = readRecordedFights();
     let read = 0;
     let nobodyNamed = 0;
     for (const recording of recordings) {
