@@ -10,12 +10,9 @@ import type { Caveat } from "@/src/ui/panel-words.ts";
 export const TIP_LINE = { stat: "stat", sub: "sub", heading: "heading", note: "note" } as const;
 
 /**
- * What a sentence at the foot of a card is about, which is the only thing that decides its ink.
- * One field and not a flag each: a sentence is a suspicion or a caveat and never both.
- *
- * ⚠️ **The glyph stays inside the sentence's own `text`.** It is counted in what the note costs the
- * card's height, and hoisting it into a node of its own would shorten every note in that arithmetic
- * while the drawn sentence stayed the same length.
+ * What a sentence at the foot of a card is about, which alone decides its ink. ⚠️ The glyph stays
+ * inside the sentence's `text`: it counts in the card's height, and a node of its own would
+ * shorten every note in that arithmetic while the drawn sentence stayed as long.
  */
 export const TIP_NOTE_TONE = { plain: "plain", suspect: "suspect", caveat: "caveat" } as const;
 export type TipNoteTone = VocabularyWord<typeof TIP_NOTE_TONE>;
@@ -26,11 +23,7 @@ export type TipLine =
         label: string;
         stated: string;
         isStrong: boolean;
-        /**
-         * Which sentence at the foot of the card the glyph beside this figure points at, and null
-         * where the figure claims nothing beyond itself. **Required rather than optional**, so a
-         * figure joining the card is asked whether its label names more than it counts.
-         */
+        /** Required, so a figure joining the card is asked whether it names more than it counts. */
         caveat: Caveat | null;
     }
     | { kind: typeof TIP_LINE.sub; label: string; stated: string }

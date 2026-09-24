@@ -20,14 +20,13 @@ import {
     type StoreKey,
 } from "@/src/game/browser-store.ts";
 import {
+    PANEL_WINDOW,
     type PanelPosition,
+    type PanelWindow,
     STORAGE_CHOICE,
     STORAGE_CHOICES,
     type StorageChoice,
 } from "@/src/ui/panel-choice.ts";
-
-export const PANEL_WINDOW = { panel: "panel", helper: "helper" } as const;
-export type PanelWindow = VocabularyWord<typeof PANEL_WINDOW>;
 
 export const SETTING_KEY = {
     storage: "storage",

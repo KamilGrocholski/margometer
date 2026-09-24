@@ -1,0 +1,2920 @@
+/**
+ * What the panel puts on the page, read back out of the document it was handed.
+ *
+ * The reading it draws comes from a real recording through every layer beneath it, so what is on
+ * screen here is what would be on screen in play.
+ */
+
+import {
+    assert,
+    assertArrayIncludes,
+    assertEquals,
+    assertExists,
+    assertStrictEquals,
+    assertStringIncludes,
+} from "@std/assert";
+import { tallyFightStatistics } from "@/src/core/fight-statistics.ts";
+import { isOneOf } from "@/libs/vocabulary.ts";
+import { PANEL_WINDOW } from "@/src/ui/panel-choice.ts";
+import type { PanelDefect, PanelView, ShownScreen } from "@/src/ui/panel-element.ts";
+import { PANEL_INTENT, type PanelIntent } from "@/src/ui/panel-intent.ts";
+import { composeShownScreen, SHOWN_LIST } from "@/tests/shown-screen.ts";
+import { initTestView, NOTHING_WAITING, TEST_VERSION } from "@/tests/panel-view.ts";
+import { readTip } from "@/tests/drawn-card.ts";
+import {
+    NOTHING_SUSPECT,
+    type PinnedRow,
+    presentDrill,
+    presentHalfNamed,
+    presentPair,
+    presentPart,
+    presentScreen,
+    type ScreenReading,
+    SIDE_PART,
+    UNNAMED_END,
+} from "@/src/ui/panel-reading.ts";
+import { CLASS, composeStyleSheet } from "@/src/ui/panel-look.ts";
+import { lookupColourForProfession, SIGNAL } from "@/src/ui/panel-palette.ts";
+import {
+    getNounForMetric,
+    getWordsForMetric,
+    OPENED_PART,
+    type PanelMetric,
+    type PanelSideChoice,
+    presentDirectionStrips,
+    presentNounStrips,
+    presentSideStrips,
+    SCREEN_ORDER,
+} from "@/src/ui/panel-screen.ts";
+import {
+    CARD_WORDS,
+    formatCardSubtitle,
+    formatFigure,
+    formatUndrawn,
+    getCaveatForUnannounced,
+    getNoteForCaveat,
+    getWordsForCardMetric,
+    getWordsForDamageKind,
+    getWordsForHealthSource,
+    getWordsForNothing,
+    getWordsForOutcome,
+    getWordsForPinnedScope,
+    getWordsForPinnedStanding,
+    getWordsForStorage,
+    getWordsForUnannounced,
+    getWordsForUnnamedEnd,
+    PANEL_DEFECT_KIND,
+    PANEL_REGION,
+    PANEL_WORDS,
+    SUSPECT_MARK,
+    TURN_MARK,
+} from "@/src/ui/panel-words.ts";
+import {
+    composeFakeDocument,
+    dragOnElement,
+    type FakeElement,
+    getElementsWithin,
+    getTextsByClass,
+    pointAtElement,
+    pressElement,
+} from "@/tests/fake-document.ts";
+import { tallyRecordedFight } from "@/tests/recorded-fights.ts";
+import { getDeclaration, getRuleBody } from "@/tests/style-sheet.ts";
+
+/**
+ * The place these views stand in. Every test here reads what was drawn rather than where the
+ * region was left, so one name says they are all the same place; the scroll tests name their own.
+ */
+/** Somewhere down a list, for a test that cares that the number came back rather than which. */
+const SOMEWHERE_DOWN = 240;
+
+const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
+/** Whose row on _leczenie dane_ opens onto a skill that reached somebody else. */
+const HEALER = 469657;
+/**
+ * A fight whose hardest-hit row opens onto both kinds of opponent: one the level under says more
+ * about, and one it says exactly the row again about. On `HILDUR` every pair opens, because the
+ * boss both strikes and wounds each member (`src/core/fight-statistics.ts`, develop ADR 0022).
+ */
+const BOTH_KINDS_OF_PAIR = "captures/2026-08-12-tempest-grupa-vs-hildur-1-1786514810315-none.json";
+/** The widest spread of keys behind a half-named figure in the corpus: four of them. */
+const FOUR_KINDS = "captures/2026-08-27-luvia-grupa-vs-amaimon-53XkBRxF-0.9.0.json";
+
+function readFight(): ScreenReading {
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    return presentScreen(
+        statistics,
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+}
+
+function openFirstRow() {
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    const reading = presentScreen(
+        statistics,
+        roster,
+        "damageDealtApplied",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+    const first = reading.rows[0];
+    assertExists(first, "there is a row to open");
+    const drill = presentDrill(statistics, roster, "damageDealtApplied", first.combatantId);
+    assertExists(drill, "and the screen it sits on cuts further");
+    return { reading, drill, opened: first };
+}
+
+/** The fight the pinned tests are read from, on the screen each of them asks about. */
+function readPinnedFight(
+    metric: PanelMetric,
+    choice: PanelSideChoice = "everyone",
+    path: string = HILDUR,
+) {
+    const { roster, statistics } = tallyRecordedFight(path);
+    const readerSide = [...roster.byId.values()][0]?.side ?? null;
+    const reading = presentScreen(
+        statistics,
+        roster,
+        metric,
+        choice,
+        readerSide,
+        NOTHING_SUSPECT,
+    );
+    return { reading, statistics, roster, readerSide };
+}
+
+/** A pinned row on one screen and one choice of side, with the card a pointer opens on it. */
+function readPinned(
+    metric: PanelMetric,
+    choice: PanelSideChoice,
+    path: string = HILDUR,
+): { pinned: PinnedRow; card: ReturnType<typeof readTip> } {
+    const { reading } = readPinnedFight(metric, choice, path);
+    return readPinnedCard(reading, metric, choice);
+}
+
+/** The same, off a reading built by hand: no recording pins a figure on either healing screen. */
+function readPinnedCard(
+    reading: ScreenReading,
+    metric: PanelMetric,
+    choice: PanelSideChoice,
+): { pinned: PinnedRow; card: ReturnType<typeof readTip> } {
+    const pinned = reading.pinned[0];
+    assertExists(pinned, `${metric} ${choice}: this fight pins a figure`);
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(reading, metric), side: choice });
+    const host = panel.element as FakeElement;
+    const part = getElementsWithin(host).find(
+        (one) => one.attributes.get("data-tip") === `pinned:${pinned.end}`,
+    );
+    assertExists(part, `${metric} ${choice}: the pinned row is drawn`);
+    pointAtElement(host, "pointermove", part, 300);
+    return { pinned, card: readTip(host) };
+}
+
+function draw(
+    reading: ScreenReading,
+    defects: readonly PanelDefect[] = [],
+    place: { readerSide: number | null; turnHolderId: number | null } = {
+        readerSide: null,
+        turnHolderId: null,
+    },
+): FakeElement {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(reading),
+        readerSide: place.readerSide,
+        turnHolderId: place.turnHolderId,
+        defects,
+    });
+    return panel.element as FakeElement;
+}
+
+Deno.test("the panel goes into a shadow root, under a name of ours", () => {
+    const host = draw(readFight());
+    assertEquals(host.attributes.get("id"), "MargoMeter-Panel", "the host is named as ours");
+    assertExists(host.shadow, "and everything else is behind a root of its own");
+    assertEquals(host.children.length, 0, "nothing is put beside the root");
+    assertEquals(
+        host.shadow.length,
+        5,
+        "the look, the bar, the panel, the detail, and the window beside it",
+    );
+});
+
+Deno.test("every name a reader meets before the panel's contents is ours", () => {
+    const host = draw(readFight());
+    const outside = [host, ...(host.shadow ?? [])];
+    for (const element of outside) {
+        if (element.className === "") continue;
+        assert(element.className.startsWith("MargoMeter-"), `${element.className} is unprefixed`);
+    }
+    const inside = getElementsWithin(host).filter((one) => !outside.includes(one));
+    assert(inside.length > 0, "and there is something inside the root to be exempt");
+    assert(
+        inside.some((one) => !one.className.startsWith("MargoMeter-")),
+        "which is exempt, because the game's stylesheet cannot reach behind the root",
+    );
+});
+
+Deno.test("the strips say which screen the panel is on, and mark it as more than a colour", () => {
+    const host = draw(readFight());
+    const strips = getElementsWithin(host).filter((one) => one.className === "strips");
+    // Two rows: which quantity, then which way round. Nothing said which side is the reader's
+    // own, so the second row carries no side strips beside the directions.
+    assertEquals(strips.length, 2, "which quantity, and which way round");
+    const drawn = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "strip");
+    assertEquals(
+        drawn.length,
+        presentNounStrips("damageDealtApplied").length +
+            presentDirectionStrips("damageDealtApplied").length,
+        "one strip for each thing the two rows offer",
+    );
+    const current = drawn.filter((one) => one.className.includes("selected"));
+    assertEquals(current.length, 2, "one on each strip is where the panel is");
+    for (const marked of current) {
+        // More than a hue: the marked strip stands on the raised surface, which is a shape.
+        assert(marked.className.split(" ").length > 1, "and it is marked, not only tinted");
+    }
+    for (const one of drawn) {
+        const screen = one.attributes.get("data-screen");
+        assertExists(screen, "each strip says which screen it would reach");
+        assert(isOneOf(SCREEN_ORDER, screen), "by a name a screen answers to");
+    }
+});
+
+Deno.test("the side strip is drawn where the client said which side is the reader's own", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(readFight()), side: "reader", readerSide: 1 });
+    const host = panel.element as FakeElement;
+    const strips = getElementsWithin(host).filter((one) => one.className === "strips");
+    assertEquals(strips.length, 2, "two rows, and whose rows shares the lower one");
+    const sides = getElementsWithin(host).filter(
+        (one) => one.attributes.get("data-side") !== undefined,
+    );
+    assertEquals(sides.length, presentSideStrips("reader").length, "one strip for each choice");
+    const lower = strips[1];
+    assertExists(lower, "the lower row is drawn");
+    assertArrayIncludes(lower.children, [sides[0] ?? lower], "and the side strips stand on it");
+    assert(
+        lower.children.some((one) => one.className === "strips-gap"),
+        "behind the gap that holds them against the right edge",
+    );
+    const marked = sides.filter((one) => one.className.includes("selected"));
+    assertEquals(marked[0]?.attributes.get("data-side"), "reader", "and the chosen one is marked");
+});
+
+/**
+ * The shelf covers the screen rather than being one of them, so nothing on the strips claims the
+ * reader is on a screen they cannot see.
+ */
+Deno.test("the shelf is a screen of its own, with the way back and no strips at all", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(readFight()),
+        readerSide: 1,
+        isOnShelf: true,
+        place: "Mapa (1, 2)",
+    });
+    const host = panel.element as FakeElement;
+    // A header saying how this fight went, over a list of other fights, answers a question
+    // nobody asked of that list; a strip picking a figure of it is the same thing twice. The one
+    // strip here is the shelf's own, and it asks about the list rather than about a fight.
+    const strips = getElementsWithin(host).filter((one) => one.className === "strips");
+    assertEquals(strips.length, 1, "one strip, and it is not one of the fight's");
+    assertEquals(getTextsByClass(host, "strips-label"), [PANEL_WORDS.storage], "what it asks");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.attributes.get("data-storage") !== undefined)
+            .map((one) => one.attributes.get("data-storage")),
+        ["local", "session", "memory"],
+        "the three places a shelf can be kept, in the order they keep longest",
+    );
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "strip selected").map((one) =>
+            one.textContent
+        ),
+        [getWordsForStorage("local")],
+        "with the reader's own answer marked as more than a colour",
+    );
+    assertEquals(getTextsByClass(host, "header-place"), [], "and no header of the fight's");
+    assertEquals(getTextsByClass(host, "crumb-here"), [PANEL_WORDS.fights], "the shelf says so");
+    assertEquals(
+        getTextsByClass(host, "crumb-back"),
+        [`‹ ${PANEL_WORDS.backFromFights}`],
+        "and the way off it goes back to the fight rather than up the shelf",
+    );
+
+    const shelf = getElementsWithin(host).filter(
+        (one) => one.attributes.get("data-shelf") !== undefined,
+    );
+    assertEquals(shelf.length, 1, "the shelf is reached by one control, on the bar");
+    assert(shelf[0]?.className.startsWith("titlebar-button"), "a control and not a strip");
+});
+
+/**
+ * The side strip narrows a ranking, is not drawn over a shelf, and narrows no shelf — so a shelf
+ * standing at whichever height that strip last answered was following a choice about a list it is
+ * not. The reader's own answer survives leaving the shelf, so it is a press and a press away.
+ */
+Deno.test("the shelf stands at its own height, whatever the side strip was last asked", () => {
+    const readShelfHeight = (side: PanelSideChoice) => {
+        const { reading } = readPinnedFight("damageDealtApplied", side);
+        const document = composeFakeDocument();
+        const panel = initTestView(document);
+        panel.render({
+            ...composeShownScreen(reading),
+            side,
+            isOnShelf: true,
+            readerSide: 1,
+            turnHolderId: null,
+        });
+        const host = panel.element as FakeElement;
+        return getElementsWithin(host).find((one) => one.className.startsWith("list"))
+            ?.attributes.get("style");
+    };
+    const everyone = readShelfHeight("everyone");
+    assertExists(everyone, "the shelf is a list, and a list states how tall it stands");
+    assertEquals(readShelfHeight("reader"), everyone, "a side chosen shortens no shelf");
+    assertEquals(readShelfHeight("opposing"), everyone, "and neither does the other one");
+});
+
+Deno.test("a fight draws a row for everybody in it, named", () => {
+    const reading = readFight();
+    const host = draw(reading);
+    // A pinned row is a row of the same shape and opens like one, so the cursor separates neither
+    // of them: what does is the mark, and a person's names them by id. It wears `apart` as well,
+    // which is why this reads the mark rather than matching the class list whole.
+    const rows = getElementsWithin(host).filter((one) =>
+        one.className.split(" ").includes(CLASS.rowDrillable) &&
+        one.attributes.get("data-row") !== undefined
+    );
+    assertEquals(rows.length, reading.rows.length, "one row for each of them");
+    for (const row of rows) {
+        const name = row.children.find((one) => one.className === "row-name");
+        assertExists(name, "each row says who it is about");
+        assert(name.textContent.length > 0, "and says it in words");
+    }
+    const figures = getTextsByClass(host, `${CLASS.rowValue} ${CLASS.figure}`);
+    const first = reading.rows[0];
+    assertExists(first, "there is a first row");
+    assertEquals(figures[0], formatFigure(first.figure), "with the figure the reading holds");
+    const ranks = getTextsByClass(host, "row-rank");
+    assertEquals(ranks[0], "1.", "and its place in the ranking before the name");
+    const shares = getTextsByClass(host, "row-share");
+    assertEquals(shares[0], `(${first.shareText})`, "and the share the bar draws, in brackets");
+});
+
+Deno.test("a fight nothing has happened in says so, rather than drawing nothing", () => {
+    const host = draw({
+        rows: [],
+        outcome: null,
+        sizes: [],
+        unplaced: 0,
+        total: 0,
+        pinned: [],
+        outsideRanking: null,
+        suspicions: [],
+        hasFiguresDisagreed: false,
+        sides: null,
+        visibleRows: 11,
+    });
+    assertEquals(getTextsByClass(host, "empty"), [PANEL_WORDS.nothingYet], "it says so in words");
+    assertEquals(getTextsByClass(host, "row-name"), [], "and draws no row at all");
+});
+
+Deno.test("what nobody can be charged with is a row apart from the ranking", () => {
+    const reading = readFight();
+    const host = draw(reading);
+    assert(reading.pinned.length > 0, "this fight has damage tied to no attacker");
+    const blocks = getElementsWithin(host).filter((one) => one.className === "pinned-region");
+    assertEquals(blocks.length, 1, "which stands below the ranking in a block of its own");
+    const inside = blocks[0]?.children ?? [];
+    assertEquals(inside.length, 1, "holding one row");
+    assert(inside[0]?.className.includes("row"), "which is a row like any other");
+    const list = getElementsWithin(host).find((one) => one.className === "list");
+    assertExists(list, "and the list is a region of its own");
+    assertEquals(
+        getElementsWithin(list).filter((one) => one.className === "pinned-region"),
+        [],
+        "which the pinned row stands outside, so it never scrolls away",
+    );
+});
+
+/**
+ * The two questions a pinned row raises, answered where a reader asks them. The second is the one
+ * that was a trap: `Otrzymane` states a figure the rows above it already hold, and nothing on
+ * screen said so. `develop ADR 0038`.
+ */
+Deno.test("a pinned row says what the game left out, and where its figure stands", () => {
+    const held = readPinned("damageDealtApplied", "everyone");
+    assertEquals(held.pinned.end, "actor", "this fight leaves the striker out");
+    assertEquals(
+        held.card.notes,
+        [
+            getWordsForUnnamedEnd("actor", "damage"),
+            getWordsForPinnedStanding(held.pinned.case),
+            CARD_WORDS.gesture,
+        ],
+        "under everybody it says two things, and that pressing leads somewhere",
+    );
+    assertArrayIncludes(
+        held.card.lines,
+        [PANEL_WORDS.share],
+        "over the share it takes of the screen",
+    );
+
+    const narrowed = readPinned("damageDealtApplied", "reader");
+    assertEquals(
+        narrowed.card.notes[2],
+        getWordsForPinnedScope(narrowed.pinned.case),
+        "and a chosen side adds what that side is to the figure",
+    );
+    assertEquals(narrowed.card.notes.length, 4, "which is the third sentence and the last");
+});
+
+/**
+ * The sentence a screen showing a cut owes, and the one it must not repeat: the figure there is
+ * already inside the rows above it, and the wording says so rather than saying it stands apart.
+ */
+Deno.test("a pinned row already counted in the list above it says so", () => {
+    const held = readPinned("damageTakenApplied", "everyone");
+    assertEquals(held.pinned.standing, "cut", "on this screen the rows hold the figure");
+    const said = getWordsForPinnedStanding(held.pinned.case);
+    assertArrayIncludes(held.card.notes, [said], "and the card says it is counted there");
+    const apart = readPinned("damageDealtApplied", "everyone");
+    assert(
+        !held.card.notes.includes(getWordsForPinnedStanding(apart.pinned.case)),
+        "never the sentence for a figure standing apart",
+    );
+});
+
+/**
+ * ⚠️ **The question a reader opens this row to answer, answered before they open it.** develop ADR
+ * 0039 kept the cut and put it a press away; the card states the same rows, worded by the same
+ * table and ranked the same way, so the run under the heading and the level under the row are one
+ * answer read in two places. `develop ADR 0041`.
+ */
+Deno.test("a pinned row says what its figure was dealt with, before anybody presses it", () => {
+    const held = readPinned("damageDealtApplied", "everyone", FOUR_KINDS);
+    assertEquals(held.card.headings, [PANEL_WORDS.damageKind], "the card heads the run it draws");
+    assertEquals(held.card.groups, 3, "the figure, what it was made of, and the sentences");
+    const kinds = held.pinned.kinds.rows;
+    assert(kinds.length > 1, "this fight states more than one key for what it names nobody for");
+    const said = held.card.stated.filter((one) => one.isSub);
+    assertEquals(
+        said.map((one) => one.label),
+        kinds.map((one) => getWordsForDamageKind(one.element)),
+        "one line per kind, in the order the level under the row draws them",
+    );
+    assertEquals(
+        said.map((one) => one.value),
+        kinds.map((one) => `${formatFigure(one.figure)} (${one.shareText})`),
+        "each stating the figure and the share that level states for it",
+    );
+    const total = kinds.reduce((sum, one) => sum + one.figure, 0);
+    assertEquals(total, held.pinned.figure, "and the run comes to the figure over it");
+});
+
+/**
+ * The other noun's heading, on a figure built for it: no recording pins either healing screen, so
+ * the word `OD CZEGO` reaches a card nowhere in the material. A key restoring health is not a kind
+ * of damage, and one heading over both would be two quantities under one word.
+ */
+Deno.test("a pinned row on a healing screen heads its run with the key, not the kind", () => {
+    const { roster } = tallyRecordedFight(HILDUR);
+    const [healed] = [...roster.byId.keys()];
+    assertExists(healed, "the fight holds somebody to heal");
+    const statistics = tallyFightStatistics([{
+        kind: "health-change",
+        combatantId: healed,
+        amount: 400,
+        healthPercent: null,
+        source: "bandage",
+        declared: [],
+        announced: null,
+    }], new Map());
+    const reading = presentScreen(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+    const held = readPinnedCard(reading, "healthGiven", "everyone");
+    assertEquals(held.card.headings, [PANEL_WORDS.healthSource], "the key is what put it back");
+    assertEquals(
+        held.card.stated.filter((one) => one.isSub).map((one) => one.label),
+        [getWordsForHealthSource("bandage")],
+        "and it is worded out of the table that screen's rows are worded from",
+    );
+});
+
+/**
+ * The card is a preview and the level is the whole of it, so what will not fit on the card is
+ * summed rather than dropped: a run short of the figure over it is a run that lies about it. No
+ * recording reaches this — the widest pinned row over `develop:captures/` states four keys on
+ * 2026-09-01 — so the seven are built here. `develop ADR 0041`.
+ */
+Deno.test("a pinned row with more kinds than the card holds sums the rest into one line", () => {
+    const { roster } = tallyRecordedFight(HILDUR);
+    const [struck] = [...roster.byId.keys()];
+    assertExists(struck, "the fight holds somebody to strike");
+    const keys = ["poison", "fire", "light", "injure", "wound", "anguish", "heal"];
+    const statistics = tallyFightStatistics(
+        keys.map((source, at) => ({
+            kind: "health-change" as const,
+            combatantId: struck,
+            amount: -(keys.length - at) * 100,
+            healthPercent: null,
+            source,
+            declared: [],
+            announced: null,
+        })),
+        new Map(),
+    );
+    const reading = presentScreen(
+        statistics,
+        roster,
+        "damageTakenApplied",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+    const held = readPinnedCard(reading, "damageTakenApplied", "everyone");
+    assertEquals(held.pinned.kinds.rows.length, keys.length, "the level holds every key of it");
+    const said = held.card.stated.filter((one) => one.isSub);
+    assertEquals(said.length, 7, "and the card holds six of them, and one line for the rest");
+    assertEquals(said[6]?.label, PANEL_WORDS.restOfKinds, "which says it is the rest of them");
+    assertEquals(said[6]?.value, formatFigure(100), "at what those keys came to");
+    const kinds = held.pinned.kinds.rows.reduce((sum, one) => sum + one.figure, 0);
+    assertEquals(kinds, held.pinned.figure, "and the level under it is still the whole figure");
+});
+
+/**
+ * A pinned row opens like any other, and is marked unlike any other: nobody stands behind it to
+ * be named by an id, so the mark names the end it leaves out.
+ */
+Deno.test("a pinned row is pressed by the end it leaves out, from any part of it", () => {
+    const reading = readFight();
+    const pressed: PanelIntent[] = [];
+    const document = composeFakeDocument();
+    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+    panel.render({ ...composeShownScreen(reading), side: "everyone" as const });
+    const host = panel.element as FakeElement;
+    const block = getElementsWithin(host).find((one) => one.className === "pinned-region");
+    assertExists(block, "the pinned row stands in a block of its own");
+    const row = block.children[0];
+    assertExists(row, "and there is a row inside it");
+    assertStringIncludes(row.className, "drillable", "which wears the cursor of a row that opens");
+    for (const part of [row, ...row.children]) {
+        assertEquals(part.attributes.get("data-unnamed"), "actor", "every cell carries the mark");
+    }
+    const name = row.children.find((one) => one.className === "row-name");
+    assertExists(name, "the row names what it stands for");
+    pressElement(host, "pointerdown", name);
+    assertEquals(
+        pressed,
+        [{ kind: PANEL_INTENT.openUnnamed, end: UNNAMED_END.actor }],
+        "and a press asks for that end",
+    );
+});
+
+/**
+ * What the level says. The people are the end the game **did** name, headed by the row rather than
+ * by the screen, so a figure with no striker is headed by whom it reached. The kinds are the one
+ * question a row naming nobody can still answer, and both cut the same figure.
+ */
+Deno.test("a pinned row opens onto the end the game did name, under its own heading", () => {
+    const { reading, statistics, roster } = readPinnedFight("damageDealtApplied");
+    const pinned = reading.pinned[0];
+    assertExists(pinned, "this fight pins a figure");
+    const halfNamed = presentHalfNamed(statistics, roster, pinned.case, "everyone", null);
+    assertExists(halfNamed, "which opens onto a level");
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(reading), halfNamed });
+    const host = panel.element as FakeElement;
+    const sections = getElementsWithin(host)
+        .filter((one) => one.className === "section-heading")
+        .map((one) => one.children[0]?.textContent);
+    assertEquals(
+        sections,
+        [PANEL_WORDS.dealtTo, PANEL_WORDS.damageKind],
+        "two sections: whom the health went from, and what it was taken with",
+    );
+    const named = getTextsByClass(host, "row-name");
+    assertEquals(
+        named,
+        [
+            ...halfNamed.rows.map((one) => one.name ?? PANEL_WORDS.unknown),
+            ...halfNamed.kinds.rows.map((one) => getWordsForDamageKind(one.element)),
+        ],
+        "and lists both, each in the order the reading ranked it",
+    );
+    const doesOpen = getElementsWithin(host)
+        .filter((one) => one.className === "row drillable")
+        .map((one) => one.attributes.get("data-row") ?? one.attributes.get("data-kind"));
+    assertEquals(
+        doesOpen,
+        [
+            ...halfNamed.rows.map((one) => `${one.combatantId}`),
+            ...halfNamed.kinds.rows.map((one) => one.element),
+        ],
+        "every row of it opens: each is one of the two folds read the other way round",
+    );
+    const crumb = getTextsByClass(host, "crumb-here");
+    assertEquals(crumb, [PANEL_WORDS.withoutActor], "and the way back says which row is open");
+});
+
+/**
+ * The same sentence one level down, and only that one: the other two are about a ranking and a
+ * side, and a row inside somebody's own figure stands under neither.
+ */
+Deno.test("an end left out inside an opened figure says what was left out, and no more", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(reading),
+        drill: {
+            ...drill,
+            byOpponent: {
+                ...drill.byOpponent,
+                unnamed: { figure: 120, fill: 0.1, shareText: "<1%" },
+            },
+        },
+    });
+    const host = panel.element as FakeElement;
+    const part = getElementsWithin(host).find(
+        (one) => one.attributes.get("data-tip") === "to:nobody",
+    );
+    assertExists(part, "the row for the end nobody was named at is drawn");
+    pointAtElement(host, "pointermove", part, 300);
+    const card = readTip(host);
+    assertEquals(
+        card.notes,
+        [getWordsForUnnamedEnd("target", "damage")],
+        "one sentence, and it is the one about what the game did not say",
+    );
+});
+
+Deno.test("the fight is totalled in two figures, and a suspicion is said under them", () => {
+    const reading = readFight();
+    const sides = { reader: 300, opposing: 700, nobody: 0 };
+    const host = draw({ ...reading, sides });
+    const strip = getElementsWithin(host).filter((one) => one.className === "MargoMeter-sides");
+    assertEquals(strip.length, 1, "the strip is there whether or not anything went wrong");
+    const line = getElementsWithin(host).find((one) => one.className === "sides");
+    assertEquals(
+        line?.children.map((one) => one.textContent),
+        [formatFigure(300), "My / Oni", formatFigure(700)],
+        "the reader's own side, what the two are, and the other side",
+    );
+    const track = getElementsWithin(host).find((one) => one.className === "sides-track");
+    assertEquals(
+        track?.children.map((one) => one.attributes.get("style")),
+        ["width:30.0%", "width:70.0%"],
+        "and a track split where the fight is split, with no segment for a part of nothing",
+    );
+    assertEquals(getTextsByClass(host, "sides-spare"), [], "and nothing said about no side");
+    assertEquals(getTextsByClass(host, "suspicion"), [], "nothing here is short, so none is said");
+
+    // Colour never carries a meaning alone: each figure stands beside its own label, in its own
+    // fixed place, and the ink is what the segment of the track paints itself with.
+    const ours = getElementsWithin(host).find((one) =>
+        one.className === `${CLASS.sidesOurs} ${CLASS.figure}`
+    );
+    assertExists(ours, "the reader's own side is named as theirs");
+    assertEquals(ours.attributes.get("style"), undefined, "and no colour is written onto it");
+});
+
+/**
+ * The strip totals the whole fight whatever the list under it is showing, so wherever the two
+ * differ the label has to say so. The pinned row's level was the one that did not: it is reached
+ * without opening a row, and the question was spelled as `drill === null`.
+ */
+Deno.test("the strip says it is the whole fight wherever the list under it is not", () => {
+    const { reading, statistics, roster, readerSide } = readPinnedFight("damageDealtApplied");
+    const opened = reading.rows[0];
+    assertExists(opened, "there is a row to open");
+    const drill = presentDrill(statistics, roster, "damageDealtApplied", opened.combatantId);
+    assertExists(drill, "and it opens");
+    const halfNamed = presentHalfNamed(
+        statistics,
+        roster,
+        "dealtWithNoActor",
+        "everyone",
+        readerSide,
+    );
+    assertExists(halfNamed, "and this fight pins a figure that opens too");
+
+    const readLabel = (over: Partial<ShownScreen>) => {
+        const document = composeFakeDocument();
+        const panel = initTestView(document);
+        panel.render({ ...composeShownScreen(reading), ...over });
+        return getTextsByClass(panel.element as FakeElement, CLASS.sidesLabel);
+    };
+    const whole = `${PANEL_WORDS.wholeFight} · ${PANEL_WORDS.ourSide} / ${PANEL_WORDS.theirSide}`;
+    const both = `${PANEL_WORDS.ourSide} / ${PANEL_WORDS.theirSide}`;
+
+    assertEquals(readLabel({}), [both], "on the ranking the strip and the list are one fight");
+    assertEquals(readLabel({ drill }), [whole], "inside a row the strip is wider than the list");
+    assertEquals(
+        readLabel({ halfNamed }),
+        [whole],
+        "and inside a pinned row it is wider too, which is what the label has to say",
+    );
+});
+
+Deno.test("what belongs to neither side is drawn as belonging to neither", () => {
+    const reading = readFight();
+    const host = draw({ ...reading, sides: { reader: 300, opposing: 600, nobody: 100 } });
+    assertEquals(
+        getTextsByClass(host, "sides-spare"),
+        [],
+        "not a line of its own text: the label and the figure are two cells inside it",
+    );
+    const spare = getElementsWithin(host).find((one) => one.className.includes("sides-spare"));
+    assertEquals(
+        spare?.children.map((one) => one.textContent),
+        [PANEL_WORDS.withoutSide, formatFigure(100)],
+        "below the two, saying what cannot be charged and how much of it there is",
+    );
+    const track = getElementsWithin(host).find((one) => one.className === "sides-track");
+    assertEquals(track?.children.length, 3, "and the track states it as a third segment");
+});
+
+Deno.test("a suspicion about the reading is said under the strip, in words and once", () => {
+    const reading = readFight();
+    const said = "Nie udało się odczytać wszystkiego.";
+    const short = draw({ ...reading, suspicions: [said] });
+    assertEquals(
+        getTextsByClass(short, "suspicion"),
+        [`⚠ ${said}`],
+        "in words, behind a glyph, since colour never carries a meaning alone",
+    );
+    const list = getElementsWithin(short).find((one) => one.className === "list");
+    assertExists(list, "the list is a region of its own");
+    const under = getElementsWithin(list).filter((one) => one.className === "suspicion");
+    assertEquals(under, [], "and the suspicion is not a row, so it never scrolls away with one");
+});
+
+/**
+ * A defect is a claim about the add-on and a suspicion is a claim about the fight, so the panel
+ * keeps them in two blocks. Collapsing them is how a reader learns to skip both —
+ * `develop:CONTEXT.md`.
+ */
+Deno.test("what the panel could not do stands apart from what the reading leaves suspect", () => {
+    const reading = readFight();
+    const suspicion = "Nie udało się odczytać wszystkiego.";
+    const defect = { kind: PANEL_DEFECT_KIND.region, region: PANEL_REGION.list, count: 1 };
+    const host = draw({ ...reading, suspicions: [suspicion] }, [defect]);
+    assertEquals(
+        getTextsByClass(host, "defect"),
+        ["✖ Panel nie narysował listy."],
+        "in words, behind a glyph of its own, since colour never carries a meaning alone",
+    );
+    assertEquals(
+        getTextsByClass(host, "suspicion"),
+        [`⚠ ${suspicion}`],
+        "and the suspicion keeps its own block and its own glyph",
+    );
+});
+
+Deno.test("a panel with nothing to admit to draws no block at all", () => {
+    const host = draw(readFight());
+    assertEquals(getTextsByClass(host, "defect"), [], "the block is drawn only where there is one");
+});
+
+/**
+ * The one thing this whole surface exists for: a region that will not draw costs its own place and
+ * nothing else, and the reader is told rather than left reading a panel that is quietly short.
+ */
+Deno.test("a region that throws is marked in place, and said once however often it happens", () => {
+    const document = composeFakeDocument();
+    const marks: string[] = [];
+    const panel = initTestView(document);
+    const reading = readFight();
+    const broken = {
+        ...reading,
+        get sides(): ScreenReading["sides"] {
+            throw new RangeError("a region that will not draw");
+        },
+    };
+    for (let time = 0; time < 2; time += 1) {
+        const report = panel.render({ ...composeShownScreen(broken) });
+        marks.push(...report.undrawn.map((one) => `${one.kind}/${one.region}`));
+    }
+    assertEquals(
+        marks,
+        ["region-undrawn/sides", "region-undrawn/sides"],
+        "the failure says which part of the panel it cost, every time it happens",
+    );
+    const host = panel.element as FakeElement;
+    assertEquals(
+        getTextsByClass(host, "undrawn"),
+        [formatUndrawn("sides")],
+        "and that part stands as a marker of its own size, in place",
+    );
+    assert(getTextsByClass(host, "row-name").length > 0, "while the ranking is drawn as it was");
+});
+
+/**
+ * The document's own call is a region's to lose as well: a draw that could not put a region in
+ * place leaves the one a reader already has, and the rest of the panel moves on without it.
+ */
+Deno.test("a region the document will not replace is kept as it was, and said", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const reading = readFight();
+    panel.render({ ...composeShownScreen(reading) });
+    const host = panel.element as FakeElement;
+    const standing = getElementsWithin(host).filter((one) => one.className === CLASS.header);
+    assertStrictEquals(standing.length, 1, "the header stands once, to be refused");
+    for (const one of standing) {
+        one.replaceWith = () => {
+            throw new RangeError("a node the document will not let go of");
+        };
+    }
+    const report = panel.render({ ...composeShownScreen(reading) });
+    const marks = report.undrawn.map((one) => `${one.kind}/${one.region}`);
+    assertEquals(
+        marks,
+        ["region-undrawn/header"],
+        "the failure names the region it cost, and only that",
+    );
+    assertStrictEquals(standing[0]?.replacedBy, null, "and the header a reader had stays put");
+    assert(getTextsByClass(host, "row-name").length > 0, "while the ranking is drawn again");
+});
+
+/**
+ * A suspicion about one person goes on their row and nowhere else: a sentence under the list
+ * qualifies every row on it, and a reader looking at one of them could not tell whether it meant
+ * theirs. `develop:DESIGN.md` — put a suspicion where its consequence is.
+ */
+Deno.test("a suspicion about one person is a mark on their row, and on nobody else's", () => {
+    const reading = readFight();
+    const first = reading.rows[0];
+    assertExists(first, "there is a row to mark");
+    const host = draw({
+        ...reading,
+        rows: reading.rows.map((row) =>
+            row.combatantId === first.combatantId
+                ? { ...row, detail: { ...row.detail, unreadMessagesUnknownKey: 2 } }
+                : row
+        ),
+    });
+    const marks = getElementsWithin(host).filter((one) => one.className === CLASS.rowSuspect);
+    assertEquals(marks.length, 1, "one row wears it, out of a fight of eleven");
+    assertEquals(marks[0]?.textContent, SUSPECT_MARK, "as a glyph, never as a colour alone");
+    assertEquals(
+        getTextsByClass(host, "suspicion"),
+        [],
+        "and nothing about it stands under the list",
+    );
+
+    const unmarked = draw(reading);
+    assertEquals(
+        getElementsWithin(unmarked).filter((one) => one.className === CLASS.rowSuspect),
+        [],
+        "a fight nothing went unread in draws no mark at all",
+    );
+});
+
+Deno.test("every listener sits on the root, where a press is not retargeted", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const host = panel.element as FakeElement;
+    // Outside a shadow root a press is retargeted to the host, so a listener there reads null off
+    // every attribute the panel writes. `PanelElement` carries no `addEventListener` for that
+    // reason; this holds the other half, which is that the root got one of each and no more.
+    assertEquals(
+        [...host.rootListeners.keys()],
+        ["pointerdown", "contextmenu", "pointermove", "pointerout"],
+        "a press, the way back, a move that opens the detail, and the leave that closes it",
+    );
+    for (const type of host.rootListeners.keys()) {
+        assertEquals(host.rootListeners.get(type)?.length, 1, `${type} is listened for once`);
+    }
+    for (const element of getElementsWithin(host)) {
+        assertEquals(element.rootListeners.size, element === host ? 4 : 0, "no row carries one");
+    }
+});
+
+Deno.test("a press on a strip reaches the panel, and a press on anything else does not", () => {
+    const document = composeFakeDocument();
+    const pressed: PanelIntent[] = [];
+    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+    panel.render(composeShownScreen(readFight()));
+    const host = panel.element as FakeElement;
+    const strips = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "strip");
+    const other = strips.find((one) => one.attributes.get("data-screen") === "damageTakenApplied");
+    assertExists(other, "there is a screen to reach for");
+    pressElement(host, "pointerdown", other);
+    assertEquals(
+        pressed,
+        [{ kind: PANEL_INTENT.metric, metric: "damageTakenApplied" }],
+        "the strip's screen",
+    );
+
+    const title = getElementsWithin(host).find((one) => one.className.endsWith("titlebar"));
+    assertExists(title, "there is something that is not a strip to press");
+    pressElement(host, "pointerdown", title);
+    assertEquals(pressed.length, 1, "the bar asks for nothing, so pressing it moves nothing");
+});
+
+/** A side is not a screen, and the one listener has to hand the two over as different presses. */
+Deno.test("a press on a side asks for that side, and on the shelf for the shelf", () => {
+    const document = composeFakeDocument();
+    const pressed: PanelIntent[] = [];
+    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+    panel.render({ ...composeShownScreen(readFight()), readerSide: 1 });
+    const host = panel.element as FakeElement;
+    const opposing = getElementsWithin(host).find(
+        (one) => one.attributes.get("data-side") === "opposing",
+    );
+    assertExists(opposing, "the side strip offers the other side");
+    pressElement(host, "pointerdown", opposing);
+    assertEquals(
+        pressed.at(-1),
+        { kind: PANEL_INTENT.side, side: "opposing" },
+        "and asks for it by name",
+    );
+
+    const shelf = getElementsWithin(host).find((one) => one.attributes.has("data-shelf"));
+    assertExists(shelf, "the bar carries the shelf control");
+    pressElement(host, "pointerdown", shelf);
+    assertEquals(
+        pressed.at(-1),
+        { kind: PANEL_INTENT.shelf },
+        "which asks for the shelf and nothing else",
+    );
+});
+
+Deno.test("the listener outlives a redraw, because the host does", () => {
+    const document = composeFakeDocument();
+    const pressed: PanelIntent[] = [];
+    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+    panel.render(composeShownScreen(readFight()));
+    const host = panel.element as FakeElement;
+    const before = getElementsWithin(host).filter((one) => one.className === "strips").length;
+
+    panel.render(composeShownScreen(readFight(), "healthRestored"));
+    const strips = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "strip");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "strips").length,
+        before,
+        "the strips are drawn again, not drawn twice",
+    );
+    assertEquals(
+        strips.length,
+        presentNounStrips("healthRestored").length +
+            presentDirectionStrips("healthRestored").length,
+        "and each carries what the new screen puts on it",
+    );
+    const current = strips.filter((one) => one.className.includes("selected"));
+    // The marked noun carries the screen it would cross to, which for the noun already being
+    // read is the screen itself: crossing back keeps the direction rather than turning it round.
+    assertEquals(
+        current.map((one) => one.attributes.get("data-screen")),
+        ["healthRestored", "healthRestored"],
+        "both strips are on the new screen",
+    );
+
+    const strip = strips[0];
+    assertExists(strip, "and the rows still have strips");
+    pressElement(host, "pointerdown", strip);
+    // The damage noun, which from healing received crosses to damage received: a press reaches
+    // the listener the host has carried since before either redraw.
+    assertEquals(
+        pressed.at(-1),
+        { kind: PANEL_INTENT.metric, metric: "damageTakenApplied" },
+        "after a redraw",
+    );
+});
+
+Deno.test("a region that cannot be drawn is replaced by itself, and the rest stands", () => {
+    const document = composeFakeDocument();
+    const failures: unknown[] = [];
+    const reading = readFight();
+    const broken: ScreenReading = {
+        ...reading,
+        get rows(): never {
+            throw new RangeError("a region of ours failed");
+        },
+    };
+    const panel = initTestView(document, { onFailure: (failure) => failures.push(failure) });
+    failures.push(...panel.render(composeShownScreen(broken)).undrawn);
+    const host = panel.element as FakeElement;
+    assertEquals(failures.length, 1, "the failure is reported once");
+    assertEquals(
+        getTextsByClass(host, "undrawn"),
+        [formatUndrawn("list")],
+        "and the region that failed says so in its own place, naming itself",
+    );
+    assertEquals(host.shadow?.length, 5, "while both windows keep their shape");
+    const bar = getElementsWithin(host).find((one) => one.className === "MargoMeter-titlebar");
+    assert(
+        bar?.textContent.endsWith(PANEL_WORDS.title),
+        "the bar stands, saying whose panel it is",
+    );
+});
+
+/** How many rows an opened figure draws, over all three of its cuts. */
+function countDrillRows(drill: {
+    byOpponent: { rows: unknown[]; unnamed: unknown };
+    bySkill: { rows: unknown[]; plain: unknown };
+    byElement: { rows: unknown[]; unnamed: unknown };
+}): number {
+    const held = (rows: unknown[], extra: unknown) => rows.length + (extra === null ? 0 : 1);
+    return held(drill.byOpponent.rows, drill.byOpponent.unnamed) +
+        held(drill.bySkill.rows, drill.bySkill.plain) +
+        held(drill.byElement.rows, drill.byElement.unnamed);
+}
+
+Deno.test("an opened row stands over the screen, and states whose it is", () => {
+    const { reading, drill, opened } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(reading), drill });
+    const host = panel.element as FakeElement;
+    const within = getElementsWithin(host);
+    const crumbs = getTextsByClass(host, "crumb-here");
+    assertEquals(crumbs, [opened.name], "the way back names whose row stands open");
+    const rows = within.filter((one) => one.className.split(" ")[0] === "row");
+    assertEquals(rows.length, countDrillRows(drill), "a row for each part of it, in each cut");
+    // A person opens where the pair says something; a kind and a skill open nothing at all.
+    const opening = rows.filter((one) => one.attributes.get("data-row") !== undefined);
+    assertEquals(
+        opening.length,
+        drill.byOpponent.rows.filter((one) => one.doesOpenPair).length,
+        "and the ones that open are the people the level under them would say something about",
+    );
+    const sections = getElementsWithin(host).filter((one) => one.className === "section-heading");
+    assertEquals(
+        sections.map((one) => one.children[0]?.textContent),
+        [PANEL_WORDS.dealtTo, PANEL_WORDS.skills, PANEL_WORDS.damageKind],
+        "one heading per cut: whom it reached, what it was done with, what it was made of",
+    );
+    for (const section of sections) {
+        assertEquals(
+            section.children[1]?.textContent,
+            formatFigure(drill.total),
+            "each standing over the figure it cuts, so a share is read against what it is of",
+        );
+    }
+    const named = getTextsByClass(host, "row-name");
+    // The kinds this fight's top dealer carries, and none of them the physical one.
+    assertArrayIncludes(named, ["ogień"], "and a kind is drawn in the reader's words");
+    assert(!named.includes("dmgf"), "never under the token the protocol stated it on");
+    // ⚠️ **Every row of this level opens, and the closing one was the last to.** It was the single
+    // leaf here until `develop ADR 0081` gave it the cut of whoever stood at the other end; this
+    // fight's other cuts all hold something a level under them would say. A leaf surviving on this
+    // level is a row that lost its level rather than one that never had one.
+    const leaves = rows.filter((one) => one.className.split(" ").includes(CLASS.rowLeaf));
+    assertEquals(leaves.length, 0, "nothing on this level of this fight stays shut");
+    const closing = rows.find((one) => one.attributes.get("data-plain") !== undefined);
+    assertExists(closing, "and the row that closes the cut is one of the rows that open");
+    const crumb = within.filter((one) => one.className === "crumb");
+    assertEquals(crumb.length, 1, "and one way back");
+});
+
+Deno.test("a ranking row says which side it stands on, on the edge opposite the cap", () => {
+    const reading = readFight();
+    const sides = new Set(reading.rows.map((one) => one.side));
+    assert(sides.size > 1, "this fight has two sides to tell apart");
+    const readerSide = reading.rows[0]?.side ?? null;
+    assertExists(readerSide, "and a side to read it from");
+    const host = draw(reading, [], { readerSide, turnHolderId: null });
+    const rows = getElementsWithin(host).filter((one) =>
+        one.className === "row drillable" && one.attributes.get("data-row") !== undefined
+    );
+    assertEquals(rows.length, reading.rows.length, "a row for each combatant");
+    for (const [at, drawn] of rows.entries()) {
+        const row = reading.rows[at];
+        assertExists(row, "a row drawn is a row the reading holds");
+        const rule = drawn.children.find((one) => one.className === "row-side");
+        assertExists(rule, "every row the roster places wears one");
+        const ink = row.side === readerSide ? SIGNAL.ours : SIGNAL.theirs;
+        assertEquals(rule.attributes.get("style"), `color:${ink}`, "in the ink for that side");
+        // The mark goes on every part of a row and not the row alone: a listener reads what was
+        // pressed off the node under the hand, so a rule that swallowed a press would be a row
+        // that stopped opening at its right edge.
+        assertEquals(
+            rule.attributes.get("data-row"),
+            `${row.combatantId}`,
+            "and carries the row's own press mark",
+        );
+        assertExists(rule.attributes.get("data-tip"), "and the row's card with it");
+    }
+    // ⚠️ **W5: zero is a boundary.** A fight the client named no side of the reader's own on gets
+    // no rule at all — not a grey one. A panel that cannot place somebody says nothing.
+    const seatless = getElementsWithin(draw(reading)).filter((one) => one.className === "row-side");
+    assertEquals(seatless, [], "and a fight with no seat to read from draws none of them");
+});
+
+Deno.test("the ranking marks whose turn it is, and marks nobody else", () => {
+    const reading = readFight();
+    const held = reading.rows[1]?.combatantId;
+    assertExists(held, "somebody past the top row, so the mark is not the first row by accident");
+    const host = draw(reading, [], { readerSide: null, turnHolderId: held });
+    const marks = getElementsWithin(host).filter((one) => one.className === "row-turn");
+    assertEquals(marks.map((one) => one.textContent), [TURN_MARK], "one row wears it");
+    assertEquals(
+        marks[0]?.attributes.get("data-row"),
+        `${held}`,
+        "and it is the row of the combatant the game is numbering",
+    );
+    // A fight already over numbers nobody's turn, which the entry answers by handing null: the
+    // panel then draws no mark, and every name keeps the width the mark would have taken.
+    const none = getElementsWithin(draw(reading)).filter((one) => one.className === "row-turn");
+    assertEquals(none, [], "a fight numbering nobody marks nobody");
+});
+
+Deno.test("a ranking row's bar is its profession's, and colourless without one", () => {
+    const reading = readFight();
+    const host = draw(reading);
+    const rows = getElementsWithin(host).filter((one) =>
+        one.className === "row drillable" && one.attributes.get("data-row") !== undefined
+    );
+    assertEquals(rows.length, reading.rows.length, "a row for each combatant");
+    for (const [at, drawn] of rows.entries()) {
+        const row = reading.rows[at];
+        assertExists(row, "a row drawn is a row the reading holds");
+        const hue = lookupColourForProfession(row.profession);
+        const bar = drawn.children.find((one) => one.className === "bar");
+        const drawnBar = bar?.attributes.get("style") ?? "";
+        assertStringIncludes(
+            drawnBar,
+            hue,
+            `${row.profession}: the bar wears that profession's hue`,
+        );
+        // Against the biggest figure on the screen and never against the whole: the top row is a
+        // full bar, which is the length every row below it is read against.
+        assertStringIncludes(drawnBar, `${(row.fill * 100).toFixed(1)}%`, "and is that long");
+        const cap = drawn.children.find((one) => one.className === "bar-cap");
+        assert((cap?.attributes.get("style") ?? "").includes(hue), "and the cap is the full hue");
+    }
+    const nobody = lookupColourForProfession(null);
+    const colourless = rows.filter((one) =>
+        (one.children.find((part) => part.className === "bar")?.attributes.get("style") ?? "")
+            .includes(nobody)
+    );
+    // Every combatant in `develop:captures/` states a profession, measured 2026-08-29, so the
+    // colourless bar is reachable only through a roster that says nothing — which is what the next
+    // line does.
+    assertEquals(colourless, [], "this fight names a profession for everybody in it");
+    const unstated = draw({
+        ...reading,
+        rows: reading.rows.map((one) => ({ ...one, profession: null })),
+    });
+    const bars = getElementsWithin(unstated).filter((one) => one.className === "bar");
+    assert(bars.length > 0, "there are rows to draw");
+    for (const one of bars) {
+        assert((one.attributes.get("style") ?? "").includes(nobody), "each takes the colourless");
+    }
+});
+
+Deno.test("a kind's row carries a bar of its own, measured against its own cut", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(reading), drill });
+    const host = panel.element as FakeElement;
+    const bars = getElementsWithin(host).filter((one) => one.className === "bar");
+    assertEquals(
+        bars.length,
+        countDrillRows(drill),
+        "a bar on every row of every cut, and no more",
+    );
+    const largest = drill.byElement.rows[0];
+    assertExists(largest, "the largest kind is the first drawn");
+    assertEquals(largest.fill, 1, "and fills its row, being the biggest of its own cut");
+    const before = drill.byOpponent.rows.length + unnamedBefore(drill) +
+        drill.bySkill.rows.length + (drill.bySkill.plain === null ? 0 : 1);
+    const drawn = bars[before];
+    assertExists(drawn, "there is a kind to draw a bar for");
+    const style = drawn.attributes.get("style") ?? "";
+    // Colourless, like every row that names no combatant: the hue on this panel says who.
+    assertStringIncludes(
+        style,
+        lookupColourForProfession(null),
+        "in the colour of no category at all",
+    );
+    assertStringIncludes(style, "width:100.0%", "and the length its share of the cut states");
+});
+
+/** How many rows the cut by whom drew before the kinds start, its unnamed part included. */
+function unnamedBefore(drill: { byOpponent: { unnamed: unknown } }): number {
+    return drill.byOpponent.unnamed === null ? 0 : 1;
+}
+
+Deno.test("a part of a figure no kind was stated for is drawn last, under the kinds", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(reading),
+        // Health that went down outside a blow, which the protocol states carrying no kind.
+        drill: {
+            ...drill,
+            byElement: {
+                ...drill.byElement,
+                unnamed: { figure: 140, fill: 0.1, shareText: "<1%" },
+            },
+        },
+    });
+    const host = panel.element as FakeElement;
+    const named = getTextsByClass(host, "row-name");
+    assertEquals(named[named.length - 1], PANEL_WORDS.withoutKind, "drawn last, under the kinds");
+    const figures = getTextsByClass(host, `${CLASS.rowValue} ${CLASS.figure}`);
+    assertEquals(figures[figures.length - 1], "140", "at what fell outside every kind");
+});
+
+Deno.test("pressing a row asks to open it, and the way back asks to close it", () => {
+    const { reading, drill } = openFirstRow();
+    const pressed: PanelIntent[] = [];
+    const document = composeFakeDocument();
+    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+    panel.render(composeShownScreen(reading));
+    const host = panel.element as FakeElement;
+    // The press lands on the deepest element under the pointer, which is the name inside the row.
+    const name = getElementsWithin(host).find((one) => one.className === "row-name");
+    assertExists(name, "there is a row to press");
+    pressElement(host, "pointerdown", name);
+    const combatantId = reading.rows[0]?.combatantId;
+    assertExists(combatantId, "the row pressed is somebody's");
+    assertEquals(pressed, [{ kind: PANEL_INTENT.openRow, combatantId }], "that row");
+
+    panel.render({ ...composeShownScreen(reading), drill });
+    const back = getElementsWithin(host).find((one) => one.className === "crumb-back");
+    assertExists(back, "an opened row has a way back");
+    pressElement(host, "pointerdown", back);
+    assertEquals(
+        pressed.at(-1),
+        { kind: PANEL_INTENT.close },
+        "which asks for nothing but the way back",
+    );
+
+    // One gesture in, one gesture out: the way out works from anywhere on the panel, so the
+    // cheapest gesture is not the one that has to be aimed at a control.
+    const anywhere = getElementsWithin(host).find((one) => one.className === "list");
+    assertExists(anywhere, "there is somewhere on the panel to press");
+    pointAtElement(host, "contextmenu", anywhere, 0);
+    assertEquals(
+        pressed.at(-1),
+        { kind: PANEL_INTENT.close },
+        "and a right press anywhere asks for it too",
+    );
+});
+
+Deno.test("the bar says where the fight is being fought, and stays a bar without it", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const shown = composeShownScreen(readFight());
+    panel.render({ ...shown, place: "Mapa (12, 34)" });
+    const host = panel.element as FakeElement;
+    // A line of its own under the headcount, because it is the one thing on the header whose
+    // length this panel does not choose.
+    assertEquals(
+        getTextsByClass(host, "header-place"),
+        ["Mapa (12, 34)"],
+        "the place, its own line",
+    );
+    const header = getElementsWithin(host).find((one) => one.className === "header");
+    assertEquals(header?.children.length, 2, "under the line that says what the fight is");
+
+    panel.render({ ...shown, place: null });
+    assertEquals(getTextsByClass(host, "header-place"), [], "and nothing where nothing was said");
+    assertEquals(
+        getElementsWithin(host).find((one) => one.className === "header")?.children.length,
+        1,
+        "the header standing on, at the size it always has",
+    );
+});
+
+Deno.test("a folded panel is its bar and nothing else, and offers the way back", () => {
+    const document = composeFakeDocument();
+    const pressed: PanelIntent[] = [];
+    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+    const host = panel.element as FakeElement;
+    const shown = composeShownScreen(readFight());
+
+    panel.render(shown);
+    // A block body, not an expression: the recursion guard reads a one-line named arrow as
+    // opening no brace, and so reads every line after it as this function's body — gap 13.
+    const controls = () => {
+        const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
+        return getElementsWithin(bar ?? host).filter((one) =>
+            one.className.startsWith(CLASS.control)
+        );
+    };
+    assertEquals(
+        controls().map((one) => [...one.attributes.keys()].find((key) => key.startsWith("data-"))),
+        ["data-shelf", "data-save", "data-fold"],
+        "the bar carries the three controls, in that order",
+    );
+    const control = controls().find((one) => one.attributes.has("data-fold"));
+    assertExists(control, "an unfolded panel carries the control that folds it");
+    assertEquals(control.textContent, "\u2014", "which says what a press would do");
+    assertEquals(control.attributes.get("title"), PANEL_WORDS.collapse, "in the reader's words");
+    assert(getElementsWithin(host).some((one) => one.className.startsWith("row ")), "a ranking");
+    pressElement(host, "pointerdown", control);
+    assertEquals(
+        pressed.at(-1),
+        { kind: PANEL_INTENT.fold, window: PANEL_WINDOW.panel },
+        "and a press on it asks for the fold",
+    );
+
+    panel.render({ ...shown, isCollapsed: true });
+    const folded = getElementsWithin(host).filter((one) => one.className.endsWith(CLASS.folded));
+    assertEquals(folded.length, 1, "everything under the bar is folded away in one region");
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className.startsWith("row ")).length,
+        0,
+        "and no row is composed for a screen nobody is looking at",
+    );
+    const back = controls().find((one) => one.attributes.has("data-fold"));
+    assertExists(back, "the bar is still a bar, and still carries its controls");
+    assertEquals(back.textContent, "+", "which now offers the way back rather than the way in");
+    assertEquals(back.attributes.get("title"), PANEL_WORDS.expand, "and says so in the same words");
+    const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
+    assert(bar?.textContent.endsWith(PANEL_WORDS.title), "the name standing on");
+});
+
+Deno.test("the panel says which build drew it, in the bar and on the host", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const host = panel.element as FakeElement;
+    assertEquals(
+        host.attributes.get("data-margometer-version"),
+        TEST_VERSION,
+        "the host states it where anything outside the root can read it",
+    );
+    panel.render({ ...composeShownScreen(readFight()), place: "Mapa (12, 34)" });
+    assertEquals(
+        getTextsByClass(host, "titlebar-version"),
+        [TEST_VERSION],
+        "and the bar says it once, beside the name",
+    );
+    assertEquals(
+        getTextsByClass(host, "header-place"),
+        ["Mapa (12, 34)"],
+        "with the place still drawn, on the header where it belongs",
+    );
+});
+
+/** Whether a `font` shorthand states the whole-pixel line the rest of the panel is drawn on. */
+function getIsLineWhole(font: string): boolean {
+    const slash = font.indexOf("/");
+    if (slash === -1) return false;
+    const ends = font.indexOf(" ", slash);
+    if (ends === -1) return false;
+    return font.slice(slash + 1, ends).endsWith("px");
+}
+
+/**
+ * Which regions are undressed for the ground they paint.
+ *
+ * `:host{all:initial}` reaches every child of the root and nothing else does, so a region hanging
+ * there is drawn in the browser's own serif at `medium`, in `canvastext`, unless it says
+ * otherwise. A box painting no ground of its own puts no text on one either, so it is exempt.
+ */
+function getUndressedRegions(sheet: string, classNames: readonly string[]): string[] {
+    const found: string[] = [];
+    for (const className of classNames) {
+        const body = getRuleBody(sheet, `.${className}`);
+        if (getDeclaration(body, "background") === null) continue;
+        const font = getDeclaration(body, "font");
+        if (font === null) {
+            found.push(className);
+            continue;
+        }
+        if (!getIsLineWhole(font)) {
+            found.push(className);
+            continue;
+        }
+        if (getDeclaration(body, "color") === null) found.push(className);
+    }
+    return found;
+}
+
+Deno.test("a region hanging off the root states its own type and its own ink", () => {
+    // The detail window stated neither, and was drawn in the browser's serif at `medium` in black
+    // on `raised` — figures nobody could read. Seen in Chrome 152 on 2026-08-29.
+    const host = draw(readFight());
+    const regions = (host.shadow ?? [])
+        .filter((one) => one.className.length > 0)
+        .map((one) => one.className.split(" ")[0] ?? "");
+    assertArrayIncludes(
+        regions,
+        [CLASS.tip],
+        "the detail window hangs there with the rest of them",
+    );
+    assertEquals(
+        getUndressedRegions(composeStyleSheet(), regions),
+        [],
+        "`all: initial` reaches a root's children, so a ground of its own needs an ink of its own",
+    );
+    // A reader is proved by a sample it must flag and a sample it must not.
+    assertEquals(getUndressedRegions(".a{background:red;}", ["a"]), ["a"], "a ground with no ink");
+    assertEquals(
+        getUndressedRegions(".a{background:red;color:blue;font:11px/1.4 x y;}", ["a"]),
+        ["a"],
+        "and a line stated as a factor is not the rhythm the rest of the panel is drawn on",
+    );
+    assertEquals(
+        getUndressedRegions(".a{background:red;color:blue;font:11px/15px x y;}", ["a"]),
+        [],
+        "a region that says all three is dressed for what it paints",
+    );
+    assertEquals(getUndressedRegions(".a{display:flex;}", ["a"]), [], "and one painting no ground");
+});
+
+Deno.test("every row a reader can point at says which detail is its own", () => {
+    const host = draw(readFight());
+    // Read by the class it carries rather than by its whole list: the pinned row opens like the
+    // rest and states a detail like the rest, and matching `row drillable` whole dropped it off
+    // this walk the moment a row standing apart from the ranking started saying so.
+    const rows = getElementsWithin(host).filter((one) =>
+        one.className.split(" ").includes(CLASS.rowDrillable)
+    );
+    assert(rows.length > 0, "a fight draws rows");
+    for (const row of rows) {
+        const key = row.attributes.get("data-tip");
+        assertExists(key, "a row carries the name its detail is filed under");
+        // A pointer lands on the deepest element under it, so every part wears the row's mark.
+        for (const part of row.children) {
+            assertEquals(part.attributes.get("data-tip"), key, "and so does every part of it");
+        }
+    }
+});
+
+Deno.test("pointing at a ranking row opens everything that row had to leave out", () => {
+    const reading = readFight();
+    const host = draw(reading);
+    assertEquals(readTip(host).lines, [], "a panel nobody has pointed at says nothing");
+    const first = reading.rows[0];
+    assertExists(first, "there is a row to point at");
+    const name = getElementsWithin(host).find((one) => one.className === "row-name");
+    assertExists(name, "whose name is the deepest thing under the pointer");
+    pointAtElement(host, "pointermove", name, 412);
+
+    const shown = readTip(host);
+    assertEquals(shown.className, CLASS.tip, "which opens the detail");
+    assertEquals(
+        shown.name,
+        [first.name ?? PANEL_WORDS.unknown],
+        "the name in full, which the row itself may have cut",
+    );
+    assertEquals(
+        shown.subtitle,
+        [formatCardSubtitle(first.profession, first.detail.level, SIDE_PART.nobody)],
+        "and what they are beside how far along, off the roster the fight was fought by",
+    );
+    const figures = shown.stated.filter((one) => !one.isSub);
+    assertEquals(
+        figures.slice(0, SCREEN_ORDER.length).map((one) => one.label),
+        SCREEN_ORDER.map((metric) => getWordsForCardMetric(metric)),
+        "and all four figures, in the order the strip over the list puts them",
+    );
+    assertEquals(
+        figures.slice(0, SCREEN_ORDER.length).map((one) => one.value),
+        SCREEN_ORDER.map((metric) => formatFigure(first.detail[metric])),
+        "each stating what the statistics hold for this combatant, not what this screen shows",
+    );
+    assertEquals(
+        shown.stated.filter((one) => one.isStrong).map((one) => one.label),
+        [getWordsForCardMetric("damageDealtApplied")],
+        "with the one on screen in bold, and no other",
+    );
+    assert(
+        shown.stated.some((one) => one.isSub),
+        "and the part of a figure the protocol could say less than the whole of stands under it",
+    );
+
+    pointAtElement(host, "pointerout", name, 412, null);
+    assertEquals(readTip(host).className, `${CLASS.tip} ${CLASS.tipHidden}`, "and leaving closes");
+});
+
+Deno.test("crossing from one part of a row to another is not leaving it", () => {
+    const host = draw(readFight());
+    const parts = getElementsWithin(host).filter((one) => one.attributes.has("data-tip"));
+    const [name, other] = [
+        parts.find((one) => one.className === "row-name"),
+        parts.find((one) => one.className === `${CLASS.rowValue} ${CLASS.figure}`),
+    ];
+    assertExists(name, "a row draws a name");
+    assertExists(other, "and a figure beside it, each its own element under the pointer");
+    assertEquals(
+        name.attributes.get("data-tip"),
+        other.attributes.get("data-tip"),
+        "both of them filed under the one row they are parts of",
+    );
+    pointAtElement(host, "pointermove", name, 412);
+    const opened = readTip(host);
+    assertEquals(opened.className, CLASS.tip, "pointing at one of them opens the card");
+
+    // `pointerout` bubbles, so it fires on every crossing inside the row as well as on leaving it.
+    pointAtElement(host, "pointerout", name, 412, other);
+    assertEquals(
+        readTip(host).className,
+        CLASS.tip,
+        "and a crossing that lands on the same row's mark leaves the card standing",
+    );
+    assertEquals(readTip(host).lines, opened.lines, "saying what it was already saying");
+});
+
+/**
+ * The same card at every level a person stands on, and its figures are the fight's: the card is
+ * about the person, and the row it stands over is one cut of them. `develop ADR 0032`.
+ */
+Deno.test("a person inside an opened row opens the card the ranking opens", () => {
+    const { reading, drill, opened } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(reading), drill });
+    const host = panel.element as FakeElement;
+    const other = drill.byOpponent.rows[0];
+    assertExists(other, "the opened figure reached somebody");
+    const listed = reading.rows.find((one) => one.combatantId === other.combatantId);
+    assertExists(listed, "and the ranking holds them too");
+    const pointAt = (key: string) => {
+        const part = getElementsWithin(host).find(
+            (one) => one.attributes.get("data-tip") === key,
+        );
+        assertExists(part, `${key} is a row on the panel`);
+        pointAtElement(host, "pointermove", part, 300);
+        return readTip(host);
+    };
+    const card = pointAt(`to:${other.combatantId}`);
+    assertEquals(card.name, [other.name ?? PANEL_WORDS.unknown], "the card names them in full");
+    assertEquals(
+        SCREEN_ORDER.map(getWordsForCardMetric).filter((words) => !card.lines.includes(words)),
+        [],
+        "and states all four of their figures, the way the ranking's card does",
+    );
+    const words = getWordsForCardMetric("damageDealtApplied");
+    const dealt = card.stated.find((line) => line.label === words);
+    assertExists(dealt, "the screen's own figure among them");
+    assertEquals(
+        dealt.value,
+        formatFigure(listed.detail.damageDealtApplied),
+        "read off the whole fight, and not off the cut the row under it states",
+    );
+    assert(
+        dealt.value !== formatFigure(other.figure),
+        "which on this recording is a different number, so the two cannot be confused",
+    );
+    assertArrayIncludes(
+        card.notes,
+        [CARD_WORDS.scope],
+        "and the card says which of the two it means",
+    );
+    // The one card whose figures are its row's: on the ranking the two are the same number, so
+    // the sentence saying otherwise would answer nobody's question.
+    const ranking = draw(reading);
+    const listedPart = getElementsWithin(ranking).find(
+        (one) => one.attributes.get("data-tip") === `row:${opened.combatantId}`,
+    );
+    assertExists(listedPart, "the row this level was opened from is one of the ranking's");
+    pointAtElement(ranking, "pointermove", listedPart, 300);
+    assert(!readTip(ranking).notes.includes(CARD_WORDS.scope), "and says no such thing");
+});
+
+/**
+ * The other rung a person stands on, and the last: whom one skill reached. Nothing there opens
+ * (`develop:docs/drill-levels.md`), so the card carries the figures and not the instruction.
+ */
+Deno.test("a person under an opened skill opens a card promising no gesture", () => {
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    const reading = presentScreen(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+    const drill = presentDrill(statistics, roster, "healthGiven", HEALER);
+    assertExists(drill, "the healer's row opens");
+    const announced = drill.bySkill.rows.find((one) => one.doesOpenPart);
+    assertExists(announced, "onto a skill that reached somebody else");
+    assertStrictEquals(announced.part.kind, "skill", "and one the game announced by name");
+    const skill = presentPart(statistics, roster, "healthGiven", HEALER, announced.part);
+    assertExists(skill, "which opens onto the people it reached");
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(reading, "healthGiven"), drill, part: skill });
+    const host = panel.element as FakeElement;
+    const reached = skill.byOpponent.rows[0];
+    assertExists(reached, "somebody it reached");
+    const part = getElementsWithin(host).find(
+        (one) => one.attributes.get("data-tip") === `reached:${reached.combatantId}`,
+    );
+    assertExists(part, "and they are a row somebody can point at");
+    pointAtElement(host, "pointermove", part, 300);
+    const card = readTip(host);
+    assertEquals(
+        SCREEN_ORDER.map(getWordsForCardMetric).filter((words) => !card.lines.includes(words)),
+        [getWordsForCardMetric("damageDealtApplied")],
+        "the card states every figure they have here too, and the one they have not is dropped",
+    );
+    assertArrayIncludes(
+        card.lines,
+        [getWordsForCardMetric("healthGiven")],
+        "the screen's own among them, which is the figure this row was pointed at for",
+    );
+    assertArrayIncludes(
+        card.notes,
+        [CARD_WORDS.scope],
+        "and says the figures are the whole fight's",
+    );
+    assert(!card.notes.includes(CARD_WORDS.gesture), "and promises nothing, because nothing opens");
+});
+
+Deno.test("a share inside an opened row is of that row, never of the fight", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(reading), drill });
+    const host = panel.element as FakeElement;
+    const kind = drill.byElement.rows[0];
+    assertExists(kind, "the opened row is cut by kind");
+    const rows = getElementsWithin(host).filter(
+        (one) => one.attributes.get("data-tip") === `kind:${kind.element}`,
+    );
+    const first = rows[0];
+    assertExists(first, "and that cut is a row somebody can point at");
+    pointAtElement(host, "pointermove", first, 300);
+    assertEquals(
+        readTip(host).lines,
+        [
+            getWordsForDamageKind(kind.element),
+            getWordsForMetric("damageDealtApplied"),
+            PANEL_WORDS.shareOfFigure,
+            formatFigure(kind.figure),
+            kind.shareText,
+        ],
+        "a kind is a share of the figure standing open above it",
+    );
+    assertEquals(readTip(host).groups, 1, "and a row with no cut kept for it says it in one run");
+});
+
+Deno.test("a shelf row opens the place its own cell had to cut", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(readFight()),
+        shelf: [{
+            openedAt: 17,
+            at: { day: 13, month: 9, hour: 21, minute: 5 },
+            sizes: [10, 1],
+            place: "Bagno Wisielców (128, 74)",
+            outcome: "lost",
+            isLive: false,
+            isChosen: false,
+            isPinned: false,
+            isPinnable: true,
+        }],
+        isOnShelf: true,
+    });
+    const host = panel.element as FakeElement;
+    const row = getElementsWithin(host).find((one) =>
+        one.attributes.get("data-tip") === "shelf:17"
+    );
+    assertExists(row, "the fight is a row a reader can point at");
+    assertEquals(
+        [getTextsByClass(host, "row-time")[0], getTextsByClass(host, "row-size")[0]],
+        ["13 wrz 21:05", "10×1"],
+        "when it was, to the day, and how big it was, before the place that can be cut",
+    );
+    assertEquals(getTextsByClass(host, "row-value")[0], "przegrana", "and how it went, last");
+    pointAtElement(host, "pointermove", row, 120);
+    assertEquals(
+        readTip(host).lines,
+        ["Bagno Wisielców (128, 74)"],
+        "and the place whole, which is the half the row loses to an ellipsis",
+    );
+});
+
+Deno.test("a panel that has seen no fight says so, at the height a ranking stands at", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const host = panel.element as FakeElement;
+    panel.renderWaiting(NOTHING_WAITING);
+    const list = getElementsWithin(host).find((one) => one.className.startsWith("list"));
+    assertExists(list, "the list is drawn");
+    assertEquals(list.className, "list list-waiting", "as the one list its sentence is centred in");
+    assertEquals(
+        getTextsByClass(host, "empty"),
+        [PANEL_WORDS.noFightYet],
+        "saying what is missing",
+    );
+    assertEquals(list.attributes.get("style"), "--MargoMeter-rows:11", "at the ranking's height");
+    // Nothing else: there is no screen to pick, no row to open and nothing to total, so a strip
+    // would be a control over a fight that is not on.
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className === "strips"),
+        [],
+        "no strips",
+    );
+    assertEquals(getTextsByClass(host, "MargoMeter-summary"), [], "and no strip under it");
+    const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
+    assert(bar?.textContent.endsWith(PANEL_WORDS.title), "while the bar stands as it always does");
+
+    panel.renderWaiting({ ...NOTHING_WAITING, isCollapsed: true });
+    const folded = getElementsWithin(host).filter((one) => one.className.endsWith(CLASS.folded));
+    assertEquals(folded.length, 1, "a reader who folded the panel away keeps it folded");
+    assertEquals(getTextsByClass(host, "empty"), [], "and nothing under the bar is composed");
+});
+
+Deno.test("the header says how the fight went, and says nothing where nobody could tell", () => {
+    const reading = readFight();
+    const won = draw({ ...reading, outcome: "won" });
+    assertEquals(
+        getTextsByClass(won, "header-outcome"),
+        [getWordsForOutcome("won")],
+        "in the word the shelf uses too, shouted by the sheet rather than by the words",
+    );
+    const line = getElementsWithin(won).find((one) => one.className === "header-line");
+    assertEquals(line?.children.length, 2, "beside what the fight is, at the other end of it");
+    const fled = draw({ ...reading, outcome: "fled" });
+    assertEquals(
+        getTextsByClass(fled, "header-outcome"),
+        [getWordsForOutcome("fled")],
+        "and a fight an escape broke off says so in the same place",
+    );
+    const unsaid = draw({ ...reading, outcome: null });
+    assertEquals(getTextsByClass(unsaid, "header-outcome"), [], "and nothing at all where none");
+    assertEquals(
+        getElementsWithin(unsaid).find((one) => one.className === "header-line")?.children.length,
+        1,
+        "no gap reserved for a word that was never said",
+    );
+});
+
+Deno.test("the bar is what moves the panel, and where it was let go is reported once", () => {
+    const document = composeFakeDocument();
+    const moved: Array<{ left: number; top: number }> = [];
+    const panel = initTestView(document, {
+        onIntent: (intent) => {
+            if (intent.kind === PANEL_INTENT.move) moved.push(intent.position);
+        },
+        placement: { position: null, readViewport: () => ({ width: 1280, height: 900 }) },
+    });
+    const host = panel.element as FakeElement;
+    panel.render(composeShownScreen(readFight()));
+    const bar = getElementsWithin(host).find((one) => one.className === CLASS.title);
+    assertExists(bar, "the bar is drawn");
+    assertEquals(bar.attributes.get("data-grip"), "panel", "and it says which window it drags");
+
+    // Nobody has moved this one, so it stands in the middle of the window from the first frame,
+    // which is also the place the first grab starts from.
+    assertEquals(
+        host.attributes.get("style"),
+        "left:510px;top:153px;--MargoMeter-panel-top:153px;right:auto",
+        "a panel nobody has moved is put in the middle of the window it was drawn into",
+    );
+
+    dragOnElement(host, "pointerdown", bar, { clientX: 1100, clientY: 20 });
+    dragOnElement(host, "pointermove", bar, { clientX: 1000, clientY: 120 });
+    assertEquals(
+        host.attributes.get("style"),
+        "left:410px;top:253px;--MargoMeter-panel-top:253px;right:auto",
+        "the panel follows the hand, by the distance the hand moved",
+    );
+    assertEquals(moved, [], "and nothing is stored while it is still being dragged");
+
+    dragOnElement(host, "pointerup", bar, { clientX: 1000, clientY: 120 });
+    assertEquals(moved, [{ left: 410, top: 253 }], "where it was let go is reported, once");
+
+    dragOnElement(host, "pointermove", bar, { clientX: 500, clientY: 500 });
+    assertEquals(
+        host.attributes.get("style"),
+        "left:410px;top:253px;--MargoMeter-panel-top:253px;right:auto",
+        "and a pointer moving with nothing held moves nothing",
+    );
+});
+
+Deno.test("the version label on the bar is a handle, like the bar around it", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document, {
+        placement: {
+            position: { left: 40, top: 40 },
+            readViewport: () => ({ width: 1280, height: 900 }),
+        },
+    });
+    const host = panel.element as FakeElement;
+    panel.renderWaiting(NOTHING_WAITING);
+    const version = getElementsWithin(host).find((one) => one.className === CLASS.titleVersion);
+    assertExists(version, "the bar states the version it was built at");
+    assertEquals(version.attributes.get("data-grip"), "panel", "and a drag may start from it");
+
+    dragOnElement(host, "pointerdown", version, { clientX: 100, clientY: 100 });
+    dragOnElement(host, "pointermove", version, { clientX: 400, clientY: 300 });
+    assertEquals(
+        host.attributes.get("style"),
+        "left:340px;top:240px;--MargoMeter-panel-top:240px;right:auto",
+        "the panel follows a hand that took hold of the label",
+    );
+});
+
+Deno.test("a press on a control is not a drag, whatever the pointer does next", () => {
+    const document = composeFakeDocument();
+    const panel = initTestView(document, {
+        placement: {
+            position: { left: 40, top: 40 },
+            readViewport: () => ({ width: 1280, height: 900 }),
+        },
+    });
+    const host = panel.element as FakeElement;
+    panel.renderWaiting(NOTHING_WAITING);
+    const fold = getElementsWithin(host).find((one) => one.attributes.has("data-fold"));
+    assertExists(fold, "the bar carries the control that folds the panel");
+    dragOnElement(host, "pointerdown", fold, { clientX: 100, clientY: 100 });
+    dragOnElement(host, "pointermove", fold, { clientX: 400, clientY: 400 });
+    assertEquals(
+        host.attributes.get("style"),
+        "left:40px;top:40px;--MargoMeter-panel-top:40px;right:auto",
+        "the panel stays where the reader left it: a press on a control is that control's",
+    );
+});
+
+/**
+ * The twin of the press that outlives a redraw: a press is one moment and cannot be broken by a
+ * payload landing, a drag is three, and what carries it across them is the pointer held by a bar
+ * every draw replaces.
+ */
+Deno.test("a draw landing mid-drag does not take the panel out of the hand", () => {
+    const document = composeFakeDocument();
+    const moved: Array<{ left: number; top: number }> = [];
+    const panel = initTestView(document, {
+        onIntent: (intent) => {
+            if (intent.kind === PANEL_INTENT.move) moved.push(intent.position);
+        },
+        placement: {
+            position: { left: 40, top: 40 },
+            readViewport: () => ({ width: 1280, height: 900 }),
+        },
+    });
+    const host = panel.element as FakeElement;
+    const readBar = () => getElementsWithin(host).find((one) => one.className === CLASS.title);
+    panel.renderWaiting(NOTHING_WAITING);
+    const held = readBar();
+    assertExists(held, "the bar is drawn");
+    dragOnElement(host, "pointerdown", held, { clientX: 100, clientY: 20 });
+    assertEquals(held.pointersHeld, [1], "the bar takes hold of the pointer that pressed it");
+
+    panel.renderWaiting(NOTHING_WAITING);
+    const drawn = readBar();
+    assertExists(drawn, "a payload landing draws the bar again");
+    assertStrictEquals(held.replacedBy, drawn, "and the one holding the pointer has left the tree");
+    assertEquals(drawn.pointersHeld, [1], "so the hold is taken again, on the bar standing now");
+
+    dragOnElement(host, "pointermove", drawn, { clientX: 300, clientY: 220 });
+    assertEquals(
+        host.attributes.get("style"),
+        "left:240px;top:240px;--MargoMeter-panel-top:240px;right:auto",
+        "the panel goes on following the hand across the draw",
+    );
+    dragOnElement(host, "pointerup", drawn, { clientX: 300, clientY: 220 });
+    assertEquals(moved, [{ left: 240, top: 240 }], "where it was let go is reported, once");
+    assertEquals(drawn.pointersReleased, [1], "let go of by the bar that was holding it");
+    assertEquals(held.pointersReleased, [], "and never by the one that left the tree");
+});
+
+/** Healing opens onto who, what with, and — on the receiving side alone — under which key. */
+Deno.test("a healing row opens, and says whose the health was and what put it back", () => {
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    const open = (screen: "healthGiven" | "healthRestored") => {
+        const reading = presentScreen(
+            statistics,
+            roster,
+            screen,
+            "everyone",
+            null,
+            NOTHING_SUSPECT,
+        );
+        const first = reading.rows[0];
+        assertExists(first, `${screen}: there is a row to open`);
+        const drill = presentDrill(statistics, roster, screen, first.combatantId);
+        assertExists(drill, `${screen}: and it opens`);
+        const document = composeFakeDocument();
+        const panel = initTestView(document);
+        panel.render({ ...composeShownScreen(reading, screen), drill });
+        const host = panel.element as FakeElement;
+        return getElementsWithin(host)
+            .filter((one) => one.className === "section-heading")
+            .map((one) => one.children[0]?.textContent);
+    };
+    assertEquals(
+        open("healthRestored"),
+        [PANEL_WORDS.takenFrom, PANEL_WORDS.skills, PANEL_WORDS.healthSource],
+        "health received is cut by who put it back, what put it back and the key it came under",
+    );
+    // No cut by key: the keys the protocol names belong to whoever received the health, so a
+    // giver's row cut by one would be worded with somebody else's cause.
+    assertEquals(
+        open("healthGiven"),
+        [PANEL_WORDS.dealtTo, PANEL_WORDS.skills],
+        "and health given by whom it reached and what it was given with",
+    );
+});
+
+Deno.test("a row opened on a screen its own figure is nothing on says so, about them", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(reading, "healthGiven"),
+        // The same person, carried onto a screen they did nothing on: one press of a strip away,
+        // because the strips carry an opened row from screen to screen.
+        drill: { ...drill, total: 0, byOpponent: { rows: [], unnamed: null } },
+    });
+    const host = panel.element as FakeElement;
+    assertEquals(
+        getTextsByClass(host, "empty"),
+        [getWordsForNothing("healthGiven")],
+        "a sentence about that person rather than an empty box",
+    );
+    assertEquals(getTextsByClass(host, "crumb-here"), [drill.name], "and they are still open");
+});
+
+Deno.test("an opened row grows the list to what its cuts need, and never shortens it", () => {
+    const { reading, drill } = openFirstRow();
+    const drawOpened = (open: typeof drill | null) => {
+        const document = composeFakeDocument();
+        const panel = initTestView(document);
+        panel.render({ ...composeShownScreen(reading), drill: open });
+        const host = panel.element as FakeElement;
+        const list = getElementsWithin(host).find((one) => one.className.startsWith("list"));
+        return list?.attributes.get("style");
+    };
+    const ranking = drawOpened(null);
+    assertEquals(
+        ranking,
+        `--MargoMeter-rows:${reading.visibleRows}`,
+        "the ranking is its own floor",
+    );
+
+    // Two cuts, each costing its rows, the part named for nobody and the heading over them.
+    const heads = (
+        rows: unknown[],
+        extra: unknown,
+    ) => (rows.length === 0 && extra === null ? 0 : 1);
+    const needed = countDrillRows(drill) + heads(drill.byOpponent.rows, drill.byOpponent.unnamed) +
+        heads(drill.bySkill.rows, drill.bySkill.plain) +
+        heads(drill.byElement.rows, drill.byElement.unnamed);
+    assert(needed > reading.visibleRows, "this fight opens onto more rows than the ranking has");
+    assertEquals(
+        drawOpened(drill),
+        `--MargoMeter-rows:${needed}`,
+        "so the list grows to hold them",
+    );
+
+    // And a cut that needs less keeps the floor: pressing a row must not shorten the window
+    // under the hand that pressed it.
+    const small = {
+        ...drill,
+        byOpponent: { rows: [], unnamed: null },
+        bySkill: { rows: [], rest: null, plain: null, hasFiguresDisagreed: false },
+        byElement: { rows: drill.byElement.rows.slice(0, 2), rest: null, unnamed: null },
+    };
+    assertEquals(
+        drawOpened(small),
+        `--MargoMeter-rows:${reading.visibleRows}`,
+        "a shorter breakdown is drawn at the ranking's height rather than below it",
+    );
+});
+
+/**
+ * ⚠️ **The same place, drawn again, which is what a payload landing on an open level is.** The
+ * region is kept rather than replaced there (`develop ADR 0052`), so a height carried on the
+ * element rather than composed onto the new one froze at whatever the first draw of that place
+ * asked for: a level that grew as the fight went on went on being drawn at the ranking's eleven,
+ * and the section was cut off in the middle — the one thing counting the rows exists to stop.
+ *
+ * The test above draws each state on a panel of its own, which is the one path where nothing is
+ * kept, and that is why it stayed green through it.
+ */
+Deno.test("a level that grows while the fight goes on grows the region it is drawn in", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const shown = {
+        ...composeShownScreen(reading),
+        // One place, whatever the level under it has come to: a payload moves no field of the
+        // name, which is exactly `composeListName`'s answer while a row stands open.
+        listName: SHOWN_LIST,
+    };
+    // The level as it stands early in a fight: fewer rows than the ranking promised.
+    const early = {
+        ...drill,
+        byOpponent: { rows: drill.byOpponent.rows.slice(0, 1), unnamed: null },
+        bySkill: { rows: [], rest: null, plain: null, hasFiguresDisagreed: false },
+        byElement: { rows: [], rest: null, unnamed: null },
+    };
+    panel.render({ ...shown, drill: early });
+    const host = panel.element as FakeElement;
+    const readHeight = () =>
+        getElementsWithin(host).find((one) => one.className.startsWith("list"))
+            ?.attributes.get("style");
+    assertEquals(
+        readHeight(),
+        `--MargoMeter-rows:${reading.visibleRows}`,
+        "a level shorter than the ranking is drawn at the ranking's height",
+    );
+
+    const heads = (
+        rows: unknown[],
+        extra: unknown,
+    ) => (rows.length === 0 && extra === null ? 0 : 1);
+    const needed = countDrillRows(drill) + heads(drill.byOpponent.rows, drill.byOpponent.unnamed) +
+        heads(drill.bySkill.rows, drill.bySkill.plain) +
+        heads(drill.byElement.rows, drill.byElement.unnamed);
+    assert(needed > reading.visibleRows, "and the whole of it needs more rows than the ranking");
+
+    panel.render({ ...shown, drill });
+    assertEquals(
+        readHeight(),
+        `--MargoMeter-rows:${needed}`,
+        "so the region the reader is standing in grows with the level, rather than cutting it off",
+    );
+});
+
+/**
+ * A cut of one row states the whole of the figure over it, and states what that figure was made
+ * of — which the heading does not. Drawn, therefore, and pressable: the row a reader cannot press
+ * is the row that answers nothing.
+ */
+Deno.test("a cut that repeats the figure above it is drawn all the same", () => {
+    const { reading, drill } = openFirstRow();
+    const headings = (open: typeof drill) => {
+        const document = composeFakeDocument();
+        const panel = initTestView(document);
+        panel.render({ ...composeShownScreen(reading, "damageTakenApplied"), drill: open });
+        const host = panel.element as FakeElement;
+        return getElementsWithin(host)
+            .filter((one) => one.className === "section-heading")
+            .map((one) => one.children[0]?.textContent);
+    };
+    const one = drill.byElement.rows[0];
+    assertExists(one, "the fight cuts this figure by kind");
+    // One kind carrying the whole figure is that figure again under another heading.
+    const repeated = {
+        ...drill,
+        total: one.figure,
+        bySkill: { rows: [], rest: null, plain: null, hasFiguresDisagreed: false },
+        byElement: { rows: [one], rest: null, unnamed: null },
+    };
+    assertEquals(
+        headings(repeated),
+        [PANEL_WORDS.takenFrom, PANEL_WORDS.damageKind],
+        "so the cut of one is drawn under its own heading",
+    );
+
+    const two = drill.byElement.rows.slice(0, 2);
+    assertStrictEquals(two.length, 2, "and the fight cuts it by more than one");
+    const split = {
+        ...drill,
+        total: two.reduce((sum, row) => sum + row.figure, 0),
+        bySkill: { rows: [], rest: null, plain: null, hasFiguresDisagreed: false },
+        byElement: { rows: two, rest: null, unnamed: null },
+    };
+    assertEquals(
+        headings(split),
+        [PANEL_WORDS.takenFrom, PANEL_WORDS.damageKind],
+        "while a cut that says more than the figure above it is drawn",
+    );
+});
+
+/**
+ * The heading carries the figure and never what it was dealt with, so one row holding the whole
+ * of it is where a reader learns which skill that was — and a key row answers the same question
+ * in the game's own word for it. Neither is a repetition, and the keys standing a section lower
+ * on one screen is no reason to take the answer off this one.
+ */
+Deno.test("a lone row of a section names what the heading over it never does", () => {
+    const { reading, drill } = openFirstRow();
+    const headings = (open: typeof drill) => {
+        const document = composeFakeDocument();
+        const panel = initTestView(document);
+        panel.render({ ...composeShownScreen(reading), drill: open });
+        return getElementsWithin(panel.element as FakeElement)
+            .filter((one) => one.className === "section-heading")
+            .map((one) => one.children[0]?.textContent);
+    };
+    const only = drill.bySkill.rows[0];
+    assertExists(only, "the fight cuts this figure by the skills it was dealt with");
+    assertEquals(only.part.kind, "skill", "and the row standing first is an announcement");
+    const alone = {
+        ...drill,
+        total: only.figure,
+        byOpponent: { rows: [], unnamed: null },
+        byElement: { rows: [], rest: null, unnamed: null },
+        bySkill: { rows: [only], rest: null, plain: null, hasFiguresDisagreed: false },
+    };
+    assertEquals(headings(alone), [PANEL_WORDS.skills], "so the section is drawn all the same");
+
+    const key = { ...only, part: { kind: "source" as const, source: "heal" } };
+    const keyed = {
+        ...alone,
+        bySkill: { rows: [key], rest: null, plain: null, hasFiguresDisagreed: false },
+    };
+    assertEquals(headings(keyed), [PANEL_WORDS.skills], "and so is a lone key row");
+});
+
+/** Every heading a level may draw, and there is no sixth: none of them is a name out of a fight. */
+const CUT_HEADINGS: string[] = [
+    PANEL_WORDS.dealtTo,
+    PANEL_WORDS.takenFrom,
+    PANEL_WORDS.skills,
+    PANEL_WORDS.damageKind,
+    PANEL_WORDS.healthSource,
+];
+
+/** What each heading is made of: the words it wears, and the classes of its two cells. */
+function getHeadingCells(host: FakeElement): Array<[string, string[]]> {
+    return getElementsWithin(host)
+        .filter((one) => one.className === CLASS.section)
+        .map((one) => [
+            one.children[0]?.textContent ?? "",
+            one.children.map((cell) => cell.className),
+        ]);
+}
+
+/**
+ * ⚠️ **A heading is two cells and a constant, at every level.** Both were class-less spans until
+ * 2026-09-01, so nothing held the figure beside a heading to one line and nothing stopped a heading
+ * growing a name out of the recording — which is how `111111` came to be read as `111` over `111`.
+ * `develop:DESIGN.md` owns the rule; this holds the DOM to it, `tests/ui/panel-look.test.ts` the
+ * sheet.
+ */
+Deno.test("a heading is its words and a figure, and says only what its level is cut by", () => {
+    const { reading, drill } = openFirstRow();
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    const healer = 469657;
+    const healing = presentScreen(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+    const opened = presentDrill(statistics, roster, "healthGiven", healer);
+    assertExists(opened, "the healer's row opens");
+    const announced = opened.bySkill.rows.find((one) => one.doesOpenPart);
+    assertExists(announced, "onto a skill that reached somebody else");
+    const part = presentPart(statistics, roster, "healthGiven", healer, announced.part);
+    assertExists(part, "which opens onto the people it reached");
+    const pair = presentPair(statistics, roster, "healthGiven", healer, healer);
+    assertExists(pair, "and the person inside it opens onto the pair");
+
+    const levels = [
+        { reading, current: "damageDealtApplied" as const, drill, pair: null, part: null },
+        { reading: healing, current: "healthGiven" as const, drill: opened, pair, part: null },
+        { reading: healing, current: "healthGiven" as const, drill: opened, pair: null, part },
+    ];
+    let counted = 0;
+    for (const level of levels) {
+        const document = composeFakeDocument();
+        const panel = initTestView(document);
+        panel.render({ ...composeShownScreen(reading), ...level });
+        const cells = getHeadingCells(panel.element as FakeElement);
+        assert(cells.length > 0, "a level that cuts a figure draws a heading over each cut");
+        counted += cells.length;
+        assertEquals(
+            cells.filter(([words]) => !CUT_HEADINGS.includes(words)).map(([words]) => words),
+            [],
+            "every heading is one of the five, and never a name the recording carries",
+        );
+        assertEquals(
+            cells.filter(([, classes]) =>
+                classes.join(" ") !== `${CLASS.sectionWords} ${CLASS.figure}`
+            ).map(([words]) => words),
+            [],
+            "each of them the words that shorten and the figure that does not",
+        );
+    }
+    assert(counted >= levels.length, "and every level drawn was measured, not skipped");
+});
+
+/** The figures under the list are cells like any other, and the class is what says so. */
+Deno.test("both totals and what belongs to neither side are drawn as figures", () => {
+    const host = draw({ ...readFight(), sides: { reader: 300, opposing: 600, nobody: 100 } });
+    const figures = getElementsWithin(host).filter((one) =>
+        one.className.split(" ").includes(CLASS.figure)
+    );
+    const under = figures.filter((one) => !one.className.includes(CLASS.rowValue));
+    assertEquals(
+        under.map((one) => one.textContent),
+        [formatFigure(300), formatFigure(600), formatFigure(100)],
+        "the two sides and the spare, each wearing the class that holds it to one line",
+    );
+});
+
+Deno.test("a blow nothing announced closes the skills, and says how many there were", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(reading),
+        // Three blows that were all blocked are three blows: the row is drawn at nothing, and a
+        // section that skipped it would say the combatant never swung.
+        drill: {
+            ...drill,
+            bySkill: {
+                rows: [],
+                rest: null,
+                plain: {
+                    blows: 3,
+                    place: 1,
+                    doesOpenPart: false,
+                    figure: 0,
+                    fill: 0,
+                    shareText: "0%",
+                },
+                hasFiguresDisagreed: false,
+            },
+        },
+    });
+    const host = panel.element as FakeElement;
+    const named = getTextsByClass(host, "row-name");
+    const closing = getWordsForUnannounced("damageDealtApplied");
+    assertArrayIncludes(named, [closing], "the closing row stands in its own section");
+    const shares = getTextsByClass(host, "row-share");
+    assertArrayIncludes(
+        shares,
+        ["(0% · ×3)"],
+        "carrying the count only its absence of a skill states",
+    );
+});
+
+/**
+ * ⚠️ **The mark goes on every span of the row, and this is why.** A listener reads what was
+ * pressed off the node under the hand and walks no ancestors, so a mark on the row alone left the
+ * name and the figure swallowing the press — the two thirds of a row a reader actually aims at.
+ */
+/**
+ * The row a bound leaves behind stands **between** the named rows and the one that closes the
+ * section, because it is neither: what it holds the game named, and what the closing row holds it
+ * named nothing for. It opens nothing — a sum of parts nobody can list is a level of no figure.
+ * `develop ADR 0055`.
+ */
+Deno.test("what a section could not draw is a row of its own, over the one that closes it", () => {
+    const { reading, drill } = openFirstRow();
+    const rows = drill.bySkill.rows.slice(0, 2);
+    assert(rows.length > 0, "there are named rows to stand over");
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(reading),
+        drill: {
+            ...drill,
+            bySkill: {
+                rows,
+                rest: { blows: null, figure: 300, fill: 0.5, shareText: "30%" },
+                plain: {
+                    blows: 4,
+                    place: 3,
+                    doesOpenPart: false,
+                    figure: 100,
+                    fill: 0.2,
+                    shareText: "10%",
+                },
+                hasFiguresDisagreed: false,
+            },
+        },
+    });
+    const host = panel.element as FakeElement;
+
+    const said = getTextsByClass(host, CLASS.rowName);
+    const at = said.indexOf(PANEL_WORDS.restOfKinds);
+    assert(at !== -1, "the sum is drawn as a row a reader can see and add up");
+    const closing = said.indexOf(getWordsForUnannounced("damageDealtApplied"));
+    // ⚠️ **It stands last, and until 2026-09-12 it stood over the closing row.** `develop ADR 0055`
+    // put it between the named rows and the closing one while both held no place; the closing row
+    // has taken one since (`develop ADR 0079`) and this has not, so the sum is the only row of the
+    // section left outside the order. What develop ADR 0055 settled is unmoved: it is never folded
+    // into the row it now stands under.
+    assert(at > closing, "and it stands outside the order, under the rows that hold a place");
+
+    const marked = getElementsWithin(host).filter((one) =>
+        one.textContent === PANEL_WORDS.restOfKinds
+    );
+    for (const one of marked) {
+        assertEquals(one.attributes.get("data-skill"), undefined, "and nothing on it opens");
+        assertEquals(one.attributes.get("data-row"), undefined, "in any of the three ways");
+        assertEquals(one.attributes.get("data-kind"), undefined, "a part row can open");
+    }
+});
+
+/** And the same in the section cut by key, whose closing row claims the game stated no kind. */
+Deno.test("a cut by key draws what it could not key, over the row saying none was stated", () => {
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({
+        ...composeShownScreen(reading),
+        drill: {
+            ...drill,
+            byElement: {
+                rows: drill.byElement.rows.slice(0, 2),
+                rest: { figure: 300, fill: 0.5, shareText: "30%" },
+                unnamed: { figure: 100, fill: 0.2, shareText: "10%" },
+            },
+        },
+    });
+    const host = panel.element as FakeElement;
+
+    const said = getTextsByClass(host, CLASS.rowName);
+    const at = said.indexOf(PANEL_WORDS.restOfKinds);
+    assert(at !== -1, "the sum a fold could not key is drawn");
+    const closing = said.indexOf(PANEL_WORDS.withoutKind);
+    assert(closing > at, "over the row for what the game stated no kind of at all");
+});
+
+Deno.test("a skill that opens asks for itself by name, wherever the press lands on it", () => {
+    const { reading, drill } = openFirstRow();
+    const pressed: PanelIntent[] = [];
+    const document = composeFakeDocument();
+    const panel = initTestView(document, { onIntent: (intent) => pressed.push(intent) });
+    const rows = [
+        {
+            part: { kind: "skill" as const, name: "Dotyk anioła" },
+            uses: 1,
+            figure: 500,
+            fill: 1,
+            shareText: "50%",
+            doesOpenPart: true,
+        },
+        {
+            part: { kind: "skill" as const, name: "Zmrrożenie" },
+            uses: 8,
+            figure: 500,
+            fill: 1,
+            shareText: "50%",
+            doesOpenPart: false,
+        },
+    ];
+    panel.render({
+        ...composeShownScreen(reading, "healthGiven"),
+        drill: {
+            ...drill,
+            total: 1000,
+            bySkill: { rows, rest: null, plain: null, hasFiguresDisagreed: false },
+        },
+    });
+    const host = panel.element as FakeElement;
+    const named = getElementsWithin(host).filter((one) => one.className === "row-name");
+    const opening = named.filter((one) => one.textContent === "Dotyk anioła");
+    assertEquals(opening.length, 1, "the skill that reached somebody else is drawn");
+    const marked = getElementsWithin(host).filter((one) => one.attributes.has("data-skill"));
+    assertEquals(
+        [...new Set(marked.map((one) => one.attributes.get("data-skill")))],
+        ["Dotyk anioła"],
+        "and it is the one thing on the screen that opens",
+    );
+    // The name first, which is where a reader aims and where a press is most easily swallowed,
+    // and the count beside the value: a press that lands nowhere leaves the one before it standing.
+    for (const [at, part] of [opening[0], marked[0]].entries()) {
+        assertExists(part, "the row and the name a reader aims at both carry the mark");
+        pressElement(host, "pointerdown", part);
+        assertEquals(pressed.length, at + 1, "every press on the row lands");
+        assertEquals(
+            pressed.at(-1),
+            {
+                kind: PANEL_INTENT.openPart,
+                part: { kind: OPENED_PART.skill, name: "Dotyk anioła" },
+            },
+            "asking for itself by the name it was announced under, which is not a number",
+        );
+    }
+});
+
+/**
+ * The marks a row may wear before its name, each drawn only on the rows it reaches. They are named
+ * here rather than filtered by shape: a cell appearing before a name for any other reason is the
+ * bug the check below was written for, and a filter that could not tell the two apart would let
+ * it back in.
+ */
+const ROW_MARK_CELLS = ["row-suspect", "row-caveat", "row-turn"];
+
+/** Where a row's name starts, which is the sum of every cell drawn before it. */
+function getCellsBeforeName(row: FakeElement): string[] {
+    const before: string[] = [];
+    for (const part of row.children) {
+        const named = part.className.split(" ")[0] ?? "";
+        if (named === "row-name") return before;
+        before.push(named);
+    }
+    return before;
+}
+
+/** The same cells with the marks taken out, which is the shape every row keeps whatever it says. */
+function getCellsBeforeMarks(row: FakeElement): string[] {
+    return getCellsBeforeName(row).filter((one) => !ROW_MARK_CELLS.includes(one));
+}
+
+Deno.test("every row in a list draws the same cells before its name", () => {
+    // The bug this catches was photographed. A ranking row's place held the space before its
+    // name and a drilled row had a profession badge holding the same space; when the badge went,
+    // the drill's names slid 14.5px left of the ranking's and sat on the bar's own cap, while
+    // the ranking read as it always had. Nothing went red, because a row's parts are drawn from
+    // whatever the reading happens to carry rather than from a shape every row keeps.
+    const { reading, drill } = openFirstRow();
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    const shown = composeShownScreen(reading);
+    const shapes = new Map<string, string[]>();
+    const marked = new Set<string>();
+    for (const [screen, opened] of [["ranking", null], ["drilled", drill]] as const) {
+        panel.render({ ...shown, drill: opened });
+        const host = panel.element as FakeElement;
+        for (const row of getElementsWithin(host)) {
+            if (row.className.split(" ")[0] !== "row") continue;
+            if (row.children.length === 0) continue;
+            const kept = getCellsBeforeMarks(row);
+            shapes.set(`${screen}: ${kept.join(",")}`, kept);
+            for (const cell of getCellsBeforeName(row)) {
+                if (kept.includes(cell)) continue;
+                marked.add(cell);
+            }
+        }
+    }
+    assertEquals(
+        [...shapes.keys()].sort(),
+        ["drilled: bar,bar-cap,row-rank", "ranking: bar,bar-cap,row-rank"],
+        "a row on one screen is built of the cells a row on the other is",
+    );
+    // The half a shape check cannot state: what a row wears on top of that shape is a mark, and
+    // a mark is one of three. A badge slipping back in reads as a cell nobody registered.
+    for (const cell of marked) {
+        assertArrayIncludes(ROW_MARK_CELLS, [cell], `${cell}: a cell before a name and no mark`);
+    }
+});
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, the healer at 469657: two announced
+ * skills and
+ * health that moved under `heal`, which nothing announced.
+ *
+ * The key is drawn under the reader's own word for it and never under the token, and never under
+ * a row saying nothing was said — the game said `heal`, and the help calls it a regeneration.
+ */
+Deno.test("a healing section draws the key the game named, not a row saying it did not", () => {
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    const reading = presentScreen(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+    const drill = presentDrill(statistics, roster, "healthGiven", 469657);
+    assertExists(drill, "the healer's row opens");
+    assertEquals(drill.bySkill.plain, null, "onto a section closing against nothing");
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(reading, "healthGiven"), drill });
+    const named = getTextsByClass(panel.element as FakeElement, "row-name");
+    assert(
+        named.includes(getWordsForHealthSource("heal")),
+        "the key stands under the word a player reads",
+    );
+    assert(!named.includes("heal"), "never under the token the protocol stated it on");
+    assert(
+        !named.includes(getWordsForUnannounced("healthGiven")),
+        "and no row says the game left it unsaid, because the game did not",
+    );
+    assert(
+        named.includes("Leczenie ran"),
+        "with the announcements beside it under their own names",
+    );
+});
+
+/**
+ * `2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json`, the combatant at 469657 and
+ * themselves: health they
+ * put back into themselves under one announcement and under `heal`, which nothing announced.
+ *
+ * One section, because the two kinds of row are two parts of one figure — drawn apart they would
+ * be two columns each coming to some fraction of a hundred.
+ */
+Deno.test("an opened healing pair draws its announcements and its keys as one section", () => {
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    const healer = 469657;
+    const reading = presentScreen(
+        statistics,
+        roster,
+        "healthGiven",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+    const drill = presentDrill(statistics, roster, "healthGiven", healer);
+    assertExists(drill, "the healer's row opens");
+    const pair = presentPair(statistics, roster, "healthGiven", healer, healer);
+    assertExists(pair, "and the person inside it opens onto the pair");
+    assert(pair.parts.length > 1, "which says more than the row that was pressed");
+
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(reading, "healthGiven"), drill, pair });
+    const host = panel.element as FakeElement;
+    const headings = getElementsWithin(host).filter((one) => one.className === "section-heading");
+    assertEquals(headings.length, 1, "one section, holding the whole of what passed between them");
+    assertEquals(
+        headings[0]?.children[0]?.textContent,
+        PANEL_WORDS.skills,
+        "saying what it cuts, and leaving whom to the crumb over it",
+    );
+    assertEquals(
+        headings[0]?.children[1]?.textContent,
+        formatFigure(pair.total),
+        "and standing over the figure the row that opened it stated",
+    );
+    const rows = getElementsWithin(host).filter((one) => one.className.split(" ")[0] === "row");
+    assertEquals(rows.length, pair.parts.length, "a row for each part, and no other");
+    assert(
+        rows.every((one) => one.attributes.get("data-row") === undefined),
+        "and nothing on this rung opens any further",
+    );
+    const named = getTextsByClass(host, "row-name");
+    assertArrayIncludes(
+        named,
+        [getWordsForHealthSource("heal")],
+        "a key is drawn in the reader's words",
+    );
+    assert(!named.includes("heal"), "never under the token the protocol stated it on");
+    assert(
+        named.some((one) => one === "Zdrowa atmosfera"),
+        "and an announcement under the name it was announced by",
+    );
+});
+
+/**
+ * A reader inside an opened row meets rows that open and rows that do not, and only the cursor
+ * ever told the two apart. What stays shut is what the statistics keep no second cut of: damage
+ * that ticked with nobody named at the other end has no level of people to open onto.
+ */
+Deno.test("a row that opens says so, and a row that does not says nothing of the kind", () => {
+    const { roster, statistics } = tallyRecordedFight(BOTH_KINDS_OF_PAIR);
+    const reading = presentScreen(
+        statistics,
+        roster,
+        "damageTakenApplied",
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+    const first = reading.rows[0];
+    assertExists(first, "there is a row to open");
+    const drill = presentDrill(statistics, roster, "damageTakenApplied", first.combatantId);
+    assertExists(drill, "and it opens");
+    const opening = drill.byOpponent.rows.find((one) => one.doesOpenPair);
+    const shut = drill.byElement.rows.find((one) => !one.doesOpenPart);
+    assertExists(opening, "onto everybody it passed between, all of whom open");
+    assertExists(shut, "and onto a kind of it nobody was named at the other end of");
+
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(reading, "damageTakenApplied"), drill });
+    const host = panel.element as FakeElement;
+    const pointAtRow = (key: string) => {
+        const part = getElementsWithin(host).find((one) => {
+            if (one.className !== "row-name") return false;
+            return one.attributes.get("data-tip") === key;
+        });
+        assertExists(part, `${key} is a row on the panel`);
+        pointAtElement(host, "pointermove", part, 412);
+        const tip = (host.shadow ?? []).find((one) => one.className.startsWith(CLASS.tip));
+        assertExists(tip, "and pointing at it opens the detail");
+        return getTextsByClass(tip, CLASS.tipNote);
+    };
+    assertEquals(
+        pointAtRow(`to:${opening.combatantId}`).at(-1),
+        CARD_WORDS.gesture,
+        "the row that opens says what pressing it does, last of the card's sentences",
+    );
+    assert(
+        !pointAtRow(`kind:${shut.element}`).includes(CARD_WORDS.gesture),
+        "and the one that does not promises no gesture",
+    );
+    // Said at every level the card stands on, because the row under it states a cut of the figure
+    // the card holds and nothing else on screen says the card means the whole fight.
+    for (const row of drill.byOpponent.rows) {
+        assert(
+            pointAtRow(`to:${row.combatantId}`).includes(CARD_WORDS.scope),
+            "and every person row says the figures over them are the fight's",
+        );
+    }
+});
+
+/**
+ * The notes on the rows of one opened figure, read off the drawn panel: the name a row is drawn
+ * under, and what its detail says about pressing it.
+ */
+function composeNotesForOpenedRow(
+    metric: PanelMetric,
+    combatantId: number,
+): Map<string, string[]> {
+    const { roster, statistics } = tallyRecordedFight(HILDUR);
+    const reading = presentScreen(
+        statistics,
+        roster,
+        metric,
+        "everyone",
+        null,
+        NOTHING_SUSPECT,
+    );
+    const drill = presentDrill(statistics, roster, metric, combatantId);
+    assertExists(drill, "the row opens");
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    panel.render({ ...composeShownScreen(reading, metric), drill });
+    const host = panel.element as FakeElement;
+    const found = new Map<string, string[]>();
+    for (const row of getElementsWithin(host).filter((one) => one.className === "row-name")) {
+        pointAtElement(host, "pointermove", row, 412);
+        const tip = (host.shadow ?? []).find((one) => one.className.startsWith(CLASS.tip));
+        assertExists(tip, "and pointing at a row of it opens the detail");
+        found.set(row.textContent, getTextsByClass(tip, CLASS.tipNote));
+    }
+    return found;
+}
+
+/** The other mark, on the sections that open by it: a part states the same instruction. */
+Deno.test("a part that opens says so under the same words a person does", () => {
+    const given = composeNotesForOpenedRow("healthGiven", 469657);
+    assertEquals(
+        given.get("Zdrowa atmosfera"),
+        [CARD_WORDS.gesture],
+        "an announcement says pressing it opens",
+    );
+    assertEquals(
+        given.get(getWordsForHealthSource("heal")),
+        [CARD_WORDS.gesture],
+        "and so does the key beside it, which opens onto whom the health reached",
+    );
+    // The same key on the screen about what reached this combatant: a key names whoever received
+    // the health, so the receiving side keeps no giver to list and the row promises nothing.
+    const restored = composeNotesForOpenedRow("healthRestored", 469657);
+    assertEquals(
+        restored.get(getWordsForHealthSource("heal")),
+        [],
+        "the key promises nothing where the statistics keep no cut of it",
+    );
+});
+
+/** The one region that scrolls, as it stands in the panel right now. */
+function readList(host: FakeElement): FakeElement {
+    const list = getElementsWithin(host).find((one) => one.className.includes(CLASS.list));
+    assertExists(list, "the panel draws the one region that scrolls");
+    return list;
+}
+
+/** A panel with a fight on it, and the reading its views are drawn from. */
+function composeScrolledPanel(): {
+    panel: PanelView;
+    shown: ShownScreen;
+} {
+    const document = composeFakeDocument();
+    const panel = initTestView(document);
+    return { panel, shown: { ...composeShownScreen(readFight()), listName: "ranking" } };
+}
+
+Deno.test("a redraw of the same place puts the region back where the reader left it", () => {
+    const { panel, shown } = composeScrolledPanel();
+    panel.render(shown);
+    const host = panel.element as FakeElement;
+    readList(host).scrollTop = SOMEWHERE_DOWN;
+
+    panel.render(shown);
+
+    const after = readList(host);
+    assertStrictEquals(
+        after.scrollTop,
+        SOMEWHERE_DOWN,
+        "the payload left the reader where they were",
+    );
+    assert(after.replacedBy === null, "and it is the region that was just drawn");
+});
+
+Deno.test("a place nobody has been starts at the top, and the one left keeps its position", () => {
+    const { panel, shown } = composeScrolledPanel();
+    panel.render(shown);
+    const host = panel.element as FakeElement;
+    readList(host).scrollTop = SOMEWHERE_DOWN;
+
+    panel.render({ ...shown, listName: "opened" });
+    assertStrictEquals(readList(host).scrollTop, 0, "a level opened is read from its top");
+
+    panel.render(shown);
+    assertStrictEquals(
+        readList(host).scrollTop,
+        SOMEWHERE_DOWN,
+        "and the way back is where it was",
+    );
+});
+
+Deno.test("a fold keeps the place, and unfolding gives the reader it back", () => {
+    const { panel, shown } = composeScrolledPanel();
+    panel.render(shown);
+    const host = panel.element as FakeElement;
+    readList(host).scrollTop = SOMEWHERE_DOWN;
+
+    panel.render({ ...shown, isCollapsed: true });
+    assertEquals(
+        getElementsWithin(host).filter((one) => one.className.includes(CLASS.list)),
+        [],
+        "a panel folded away draws no list at all",
+    );
+
+    panel.render(shown);
+    assertStrictEquals(readList(host).scrollTop, SOMEWHERE_DOWN, "and unfolding is where it was");
+});
+
+Deno.test("the bar a panel waits behind carries nobody's position", () => {
+    const { panel, shown } = composeScrolledPanel();
+    panel.render(shown);
+    const host = panel.element as FakeElement;
+    readList(host).scrollTop = SOMEWHERE_DOWN;
+
+    panel.renderWaiting(NOTHING_WAITING);
+    const waiting = readList(host);
+    assert(waiting.className.includes(CLASS.listWaiting), "the panel is back to waiting for one");
+    assertStrictEquals(waiting.scrollTop, 0, "and the bar it waits behind stands at its own top");
+
+    panel.render(shown);
+    assertStrictEquals(readList(host).scrollTop, SOMEWHERE_DOWN, "the fight is where it was left");
+});
+
+/**
+ * ⚠️ **A sentence nothing reads is a sentence nobody is told.** `tests/ui/panel-words.test.ts`
+ * proves this one is allowed in front of a player; only a walk over the drawn panel proves it
+ * reaches the row it was written for. And it is written for the damage screens alone — a healing
+ * section closes against nothing, so there is no row there to carry it (`develop ADR 0080`).
+ */
+Deno.test("the closing row's card says what the game did not, and only on a damage screen", () => {
+    for (const metric of SCREEN_ORDER) {
+        const { reading, statistics, roster } = readPinnedFight(metric, "everyone");
+        const opened = reading.rows[0];
+        assertExists(opened, `${metric}: the ranking holds a row to open`);
+        const drill = presentDrill(statistics, roster, metric, opened.combatantId);
+        assertExists(drill, `${metric}: the first row opens`);
+        const document = composeFakeDocument();
+        const panel = initTestView(document);
+        panel.render({ ...composeShownScreen(reading, metric), drill });
+        const host = panel.element as FakeElement;
+        const row = getElementsWithin(host).find(
+            (one) => one.attributes.get("data-tip") === "skill:plain",
+        );
+        const caveat = getCaveatForUnannounced(getNounForMetric(metric));
+        if (row === undefined) {
+            assertEquals(caveat, null, `${metric}: a screen drawing no closing row owes nothing`);
+            continue;
+        }
+        assertExists(caveat, `${metric}: a screen drawing the row has a sentence for it`);
+        pointAtElement(host, "pointermove", row, 300);
+        // The sentence alone: the ring opening it is a node of its own, drawn from the tone, and
+        // never a character inside the text (`develop ADR 0092`).
+        assertArrayIncludes(
+            readTip(host).notes,
+            [getNoteForCaveat(caveat)],
+            `${metric}: the card says what the game did not say about these blows`,
+        );
+        // The glyph and the sentence are one answer, so the row wears the mark the card explains.
+        assertEquals(
+            row.children.filter((one) => one.className === CLASS.rowCaveat).length,
+            1,
+            `${metric}: and the row wears the mark that sentence is the foot of`,
+        );
+    }
+});
+
+/**
+ * ⚠️ **The same row, one rung down.** A pair's section closes against the same blows and the
+ * caveat rides the same field, so a level that drops it hands a reader at the bottom of the drill
+ * a figure that means narrower with nothing saying so — no ring, and no sentence on its card. A
+ * walk over the level above reads none of this rung, which is where every other claim about the
+ * mark is made (`develop ADR 0089`).
+ */
+Deno.test("a row closing a pair says what it says one level up, and its neighbours do not", () => {
+    let drawn = 0;
+    for (const metric of SCREEN_ORDER) {
+        const { reading, statistics, roster } = readPinnedFight(metric, "everyone");
+        const opened = reading.rows[0];
+        assertExists(opened, `${metric}: the ranking holds a row to open`);
+        const drill = presentDrill(statistics, roster, metric, opened.combatantId);
+        assertExists(drill, `${metric}: the first row opens`);
+        const other = drill.byOpponent.rows.find((one) => one.doesOpenPair);
+        if (other === undefined) continue;
+        const pair = presentPair(
+            statistics,
+            roster,
+            metric,
+            opened.combatantId,
+            other.combatantId,
+        );
+        assertExists(pair, `${metric}: the end inside that row opens onto the pair`);
+        const document = composeFakeDocument();
+        const panel = initTestView(document);
+        panel.render({ ...composeShownScreen(reading, metric), drill, pair });
+        const host = panel.element as FakeElement;
+        const rows = getElementsWithin(host).filter(
+            (one) => one.attributes.get("data-tip")?.startsWith("pair-") === true,
+        );
+        const closing = rows.find((one) => one.attributes.get("data-tip") === "pair-skill:plain");
+        // Every other part of a pair names what it was, so a mark on one would point at nothing.
+        for (const row of rows) {
+            if (row === closing) continue;
+            assertEquals(
+                row.children.filter((one) => one.className === CLASS.rowCaveat).length,
+                0,
+                `${metric}: a part the game named wears no mark`,
+            );
+        }
+        if (closing === undefined) continue;
+        const caveat = getCaveatForUnannounced(getNounForMetric(metric));
+        assertExists(caveat, `${metric}: a screen drawing the row has a sentence for it`);
+        drawn += 1;
+        assertEquals(
+            closing.children.filter((one) => one.className === CLASS.rowCaveat).length,
+            1,
+            `${metric}: the row closing a pair wears the mark it wears one level up`,
+        );
+        pointAtElement(host, "pointermove", closing, 300);
+        assertArrayIncludes(
+            readTip(host).notes,
+            [getNoteForCaveat(caveat)],
+            `${metric}: and its card says what the game did not say about these blows`,
+        );
+    }
+    assert(drawn > 0, "a screen of this fight drew the row, so the walk above read one");
+});
+
+/**
+ * The section under the list, drawn. **Both halves are held here**: that it reaches the page at
+ * all, and that it does not when there is nothing for it to say — a section standing empty under
+ * every fight would be a claim the panel makes about all of them.
+ */
+Deno.test("what no row holds stands under the list, hatched, and says so on its card", () => {
+    const reading = readFight();
+    assertEquals(reading.outsideRanking, null, "the recording leaves nothing outside the ranking");
+    const quiet = draw(reading);
+    assertEquals(
+        getTextsByClass(quiet, "section-words").filter(
+            (one) => one === PANEL_WORDS.outsideRanking,
+        ),
+        [],
+        "so the section is not drawn at all",
+    );
+
+    const outside = { figure: 1000, fill: 0.5, shareText: "10%" };
+    const host = draw({ ...reading, outsideRanking: outside });
+    assertArrayIncludes(
+        getTextsByClass(host, "section-words"),
+        [PANEL_WORDS.outsideRanking],
+        "a figure on nobody's row brings the section with it",
+    );
+    assertArrayIncludes(
+        getTextsByClass(host, "row-name"),
+        [PANEL_WORDS.outsideRow],
+        "and the row inside it is named",
+    );
+    const row = getElementsWithin(host).find(
+        (one) => one.attributes.get("data-tip") === "outside",
+    );
+    assertExists(row, "the row is drawn with a card to open");
+    // ⚠️ **The hatch is read off this row and not off the panel**, which is the whole visual
+    // claim: it holds no place in the order above it. Asking whether anything on the screen wears
+    // the accent is a reader the pinned rows answer for, whatever this row does.
+    const hatched = getElementsWithin(host).find((one) =>
+        one.children.some((child) =>
+            child.className === "row-name" && child.textContent === PANEL_WORDS.outsideRow
+        )
+    );
+    assertExists(hatched, "the row itself is on the page");
+    assert(hatched.className.includes("apart"), "wearing the accent every placeless row wears");
+    pointAtElement(host, "pointermove", row, 300);
+    const card = readTip(host);
+    assertArrayIncludes(
+        card.notes,
+        [PANEL_WORDS.outsideNote],
+        "and its card says what cannot be known about it",
+    );
+});

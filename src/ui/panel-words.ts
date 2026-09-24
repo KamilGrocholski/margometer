@@ -37,17 +37,10 @@ export const DEFECT_MARK = "✖ ";
 export const TURN_MARK = "▸ ";
 
 /**
- * Beside the suspect mark and never instead of it. `SUSPECT_MARK` says a figure may be short
- * because something in **this** fight could not be read; this one says the figure is complete and
- * answers a narrower question than its label, whatever was recorded (`develop:CONTEXT.md`). One
- * glyph over both claims would make the permanent look temporary and the temporary look permanent.
- * `develop ADR 0088`.
- *
- * ⚠️ **The letter only — the ring around it is drawn** (`develop:DESIGN.md`, `develop ADR 0092`).
- * `ⓘ` stood here until it was measured: no family this machine offers carries U+24D8, so all of
- * them fall back to one face whose circled letters are condensed, and what a reader met beside a
- * figure was a vertical sliver rather than a circle. The widths are that record's and the ring is
- * `develop:src/ui/panel-look.ts`'s.
+ * Beside the suspect mark and never instead of it: `SUSPECT_MARK` says a figure may be short
+ * because this fight could not be read; this one says it is complete and answers a narrower
+ * question than its label (`develop ADR 0088`). ⚠️ The letter only — the ring is drawn: no family
+ * here carries U+24D8, and the fallback face drew a sliver (`develop ADR 0092`).
  */
 export const CAVEAT_MARK = "i";
 
@@ -220,18 +213,11 @@ export function getWordsForUnnamedEnd(end: PanelUnnamedEnd, noun: PanelNoun): st
 }
 
 /**
- * Every figure the panel draws whose label names more than the figure counts, whatever the
- * recording. A closed set, so the sentences a card can carry are bounded by it (**S11**), and the
- * order is the order they stand in — two cards carrying the same pair say them the same way round.
- *
- * **It is not the card's alone**: the row closing a damage section carries the third, which is
- * what took `Card` out of this name (**N9**). A row spends the same glyph and the same sentence,
- * and a second register for it would be the same rule in two copies.
- *
- * Three and not five. `Ciosy` was weighed and left out: what would qualify it is a wide swing's
- * further targets, and `+swing` is absent from every recording (`develop:docs/protocol-keys.md`),
- * so the sentence would be a standing charge for a case no material carries. `develop ADR 0088`,
- * widened by `develop ADR 0089`.
+ * Every figure whose label names more than the figure counts: a closed set, so a card's sentences
+ * are bounded (S11), in the order they stand. The row closing a damage section carries the third,
+ * which is why the name is not the card's (N9). `Ciosy` was left out: `+swing` is absent from every
+ * recording, so its sentence would stand for a case no material carries (`develop ADR 0088`,
+ * `0089`).
  */
 export const CAVEAT = {
     reduction: "reduction",
@@ -372,29 +358,12 @@ export const CARD_WORDS = {
 } as const;
 
 /**
- * **L3**: what the game does not report, and never what this reader summed. Each is said once at
- * the foot of the card however many of its figures drew a glyph.
- *
- * `reduction` is owed wherever a figure stated before reduction or a figure a defence stopped
- * stands, and **one** thing is owed: that the subtraction a reader will try does not work
- * (`src/core/battle-event.ts`).
- *
- * ⚠️ **It names no pair.** Told *not to subtract one from the other*, a reader points at
- * whichever two numbers stand nearest — and `Zatrzymane` stands directly under the figure before
- * reduction, a different pair from the one such a sentence is written for. `z tych liczb` voids
- * every subtraction a reader can try instead of forbidding one and allowing the rest in silence.
- *
- * `turns` says the one thing `develop:CONTEXT.md` states about a turn count: the game numbers the
- * turns it granted and this counts what was spent, so their sum is not what anybody was given.
- * Written to 60 characters so that, mark and all, it wraps to two lines of the card rather than
- * three (`develop:src/ui/panel-tip.ts`).
- *
- * ⚠️ **`unannounced` cannot say the interesting half, and that is the rule working, not failing.**
- * Whether a blow standing under no announcement is the game's own default action or one whose
- * announcement this reading did not reach is a question about **us**, and a player is owed the
- * limit rather than our reason for it (**L3**). What it does say holds whatever we read: the game
- * names no skill there. `develop:docs/unannounced-damage.md` carries the half that cannot be
- * printed.
+ * **L3**: what the game does not report, never what this reader summed; each said once at the foot
+ * of the card. ⚠️ `reduction` names no pair: told not to subtract, a reader points at the nearest
+ * two numbers, and `z tych liczb` voids every subtraction instead of forbidding one. `turns` is
+ * written to 60 characters, so it wraps to two lines of the card and not three. ⚠️ `unannounced`
+ * says the game names no skill there, and not whether our reading missed one: that half is ours,
+ * and `develop:docs/unannounced-damage.md` carries it.
  */
 const CAVEAT_NOTES: Record<Caveat, string> = {
     reduction:
@@ -409,18 +378,10 @@ export function getNoteForCaveat(caveat: Caveat): string {
 }
 
 /**
- * The defence that stopped part of a blow — **the game's own word for it, every one of them**
- * (`develop ADR 0077`). Drawn as sub-lines under `Zatrzymane`, so each names the defence rather
- * than describing what it did: the line above already said that.
- *
- * A word here is a claim about the game, held to the frozen counts by
- * `tests/ui/panel-words.test.ts`. The physical absorption is bare where the magical one carries
- * its kind, which is the article's own asymmetry — `develop:docs/protocol-keys.md` measures it.
- *
- * **Keyed by the client's own token, with no sign**, the way an element is: a figure carries the
- * token and the sign says which half of the blow it was, not which defence. The procs below are
- * keyed the other way for the opposite reason — there the sign is part of what the key names.
- * How often each is stated is `develop:docs/protocol-keys.md`'s, key by key.
+ * The defence that stopped part of a blow, in the game's own word (`develop ADR 0077`), drawn as
+ * sub-lines under `Zatrzymane`; each word is held to the frozen counts by its test. Keyed by the
+ * client's token with no sign, the way an element is: the sign says which half of the blow it was,
+ * not which defence.
  */
 export const DEFENCE_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
     blok: "blok",
@@ -510,22 +471,11 @@ export type TranslateLabel = (id: string, category?: string) => string | null;
  */
 export const LABEL_CHARACTERS_MAXIMUM = 22;
 /**
- * The same for a label out of the player's own client, which **is not ours to keep short**.
- *
- * Held apart from the bound above because the two answer different questions. Ours asks what we
- * may write; this one asks what external data may be before it has clearly gone wrong — the
- * client's dictionary runs to 41 characters for the keys this module asks about
- * (`Zapobiegnięto ładowaniu ciosu specjalnego.`, build `1785244275300`, read 2026-09-22), and at
- * 22 three of those seven were refused and drawn as the raw protocol key instead.
- *
- * ⚠️ **The figure is the label, not the entry.** `getLabelFromEntry` takes the leading sign and
- * the trailing full stop off before anybody measures it, so `-Płomienne oczyszczenie` reaches
- * this line at 22 and always fitted. Measuring the dictionary rather than the reader's answer
- * counted a fourth refusal that was never happening.
- *
- * ⚠️ **A label past the column is still cut, and now it is the client's words being cut.** That
- * is the trade this number makes: a Polish sentence with its end missing rather than a key the
- * game wrote for itself.
+ * The same for a label out of the player's own client, which is not ours to keep short: its
+ * dictionary runs to 41 characters for the keys asked about (build `1785244275300`, read
+ * 2026-09-22), and at 22 three of seven were drawn as the raw key. ⚠️ The label is measured after
+ * `getLabelFromEntry` takes the sign and the full stop off. ⚠️ A label past the column is still
+ * cut: the client's words cut, rather than a key the game wrote for itself.
  */
 export const CLIENT_LABEL_CHARACTERS_MAXIMUM = 64;
 
@@ -842,25 +792,12 @@ export interface TooltipReading {
 }
 
 /**
- * What the add-on adds to the game's own tooltip for one fighter: **one row per thing it has to
- * say**, and an empty list where it has nothing.
- *
- * The rows go to the client one at a time, because `concatTip` puts a `<br>` of its own between
- * whatever is there and what it is handed (production build `Bb28FQty`, read 2026-09-21) — so a
- * block of rows costs this add-on no markup at all (`develop:src/game/engine-tooltip.ts`,
- * `develop ADR 0111`).
- *
- * **The first row is the add-on's name and nothing else.** A reader meets these outside the panel,
- * where `develop:SECURITY.md`'s guest rule asks whose they are — and a name folded into the first
- * row indents that row past the others, so the block stops reading as a list of one thing each.
- *
- * ⚠️ **Each row becomes part of an HTML string somebody else composed**, so a row carrying markup
- * is refused rather than escaped — the words in it are the client's own and refusing is what this
- * repository does with an answer it cannot use (`develop ADR 0024`).
- *
- * **The order is fixed, whatever a fighter carries**, so a row is found where it was last time:
- * the turns, the charge, Ostatni ratunek, Dotyk anioła, the okrzyk — whom a fighter's own holds,
- * then who holds them — and the statuses, the slow and the haste first. `develop ADR 0116`.
+ * What the add-on adds to the game's tooltip for one fighter: one row per thing to say, empty where
+ * there is nothing. Rows go one at a time: `concatTip` puts a `<br>` of its own between them
+ * (production build `Bb28FQty`, read 2026-09-21; `develop ADR 0111`). The first row is the add-on's
+ * name alone, the guest rule of `develop:SECURITY.md`. ⚠️ Each row lands in HTML somebody else
+ * composed, so a row carrying markup is refused rather than escaped (`develop ADR 0024`). The order
+ * is fixed, so a row is found where it was last time (`develop ADR 0116`).
  */
 export function presentTooltipRows(
     reading: TooltipReading,
@@ -1373,7 +1310,24 @@ export function formatUnplacedHealRowSuspicion(count: number): string {
         "więc jej leczenie może być zaniżone.";
 }
 
-export const REGION_WORDS = {
+export const PANEL_REGION = {
+    header: "header",
+    strips: "strips",
+    crumb: "crumb",
+    list: "list",
+    pinned: "pinned",
+    sides: "sides",
+    outside: "outside",
+    suspicions: "suspicions",
+    defects: "defects",
+    /** The card a row opens. It is not a region of the panel's frame, and it is drawn like one. */
+    tip: "tip",
+    /** The window beside the panel. Its own region, drawn and undrawn like any other. */
+    standing: "standing",
+} as const;
+export type PanelRegion = VocabularyWord<typeof PANEL_REGION>;
+
+export const REGION_WORDS: { readonly [Region in PanelRegion]: string } = {
     header: "nagłówka",
     strips: "zakładek",
     crumb: "ścieżki",
@@ -1383,13 +1337,9 @@ export const REGION_WORDS = {
     outside: "tego, co zostało poza rankingiem",
     suspicions: "ostrzeżenia",
     defects: "spisu usterek",
-    /** The card a row opens. It is not a region of the panel's frame, and it is drawn like one. */
     tip: "szczegółów wiersza",
-    /** The window beside the panel. Its own region, drawn and undrawn like any other. */
     standing: "pomocnika",
-} as const;
-
-export type PanelRegion = keyof typeof REGION_WORDS;
+};
 
 export function formatUndrawn(region: PanelRegion): string {
     return `Nie udało się narysować ${REGION_WORDS[region]}.`;

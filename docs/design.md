@@ -823,8 +823,19 @@ export function presentStanding(
 ): StandingReading;
 // and presentDrill, presentPair, presentPart, presentHalfNamed…, presentCard beside them
 
+export function initPanelView(document: PanelDocument, options: PanelViewOptions): PanelView;
+export interface PanelViewOptions {
+    version: string;
+    onIntent: (intent: PanelIntent) => void;
+    /** What failed while no render was running: a gesture, a card, a window's opening place. */
+    onFailure: (failure: ViewFailure) => void;
+    placement: PanelPlacement | null;
+    standingPlacement: PanelPlacement | null;
+    translate: TranslateLabel | null;
+}
 export interface PanelView {
-    render(screen: ShownScreen): RenderReport;
+    element: PanelElement;
+    render(shown: ShownScreen): RenderReport;
     renderWaiting(waiting: WaitingReading): RenderReport;
     renderStanding(standing: StandingReading | null, isCollapsed: boolean): RenderReport;
 }
@@ -833,29 +844,38 @@ export interface RenderReport {
     undrawn: readonly RenderFailure[];
 }
 export type RenderFailure = { kind: "region-undrawn"; region: PanelRegion; cause: unknown };
-export type GestureFailure = { kind: "gesture-dropped"; listener: string; cause: unknown };
+export type GestureFailure = { kind: "gesture-dropped"; listener: PanelListener; cause: unknown };
+export type PlacementFailure = { kind: "window-unplaced"; window: PanelWindow; cause: unknown };
 
 /** What the reader asked for, before anything is done about it. `develop` calls it `PanelPress`. */
 export type PanelIntent =
     | { kind: "metric"; metric: PanelMetric }
     | { kind: "side"; side: PanelSideChoice }
     | { kind: "open-row"; combatantId: number }
+    | { kind: "open-unnamed"; end: PanelUnnamedEnd }
     | { kind: "open-part"; part: OpenedPart }
     | { kind: "close" }
-    | { kind: "fold"; window: "panel" | "helper" }
-    | { kind: "move"; window: "panel" | "helper"; position: PanelPosition }
+    | { kind: "fold"; window: PanelWindow }
+    | { kind: "move"; window: PanelWindow; position: PanelPosition }
     | { kind: "save-file" }
     | { kind: "storage"; choice: StorageChoice }
+    | { kind: "shelf" }
     | { kind: "show-kept"; openedAt: number }
-    | { kind: "pin"; openedAt: number; isPinned: boolean }
-    | { kind: "remove-kept"; openedAt: number }
-    | { kind: "show-live" };
+    | { kind: "show-live" }
+    | { kind: "pin"; openedAt: number };
 ```
 
+The intents are `develop`'s presses, one for one: `pin` toggles, as `develop`'s does, so it carries
+no state, and there is no `remove-kept`, because `develop` has no such press. A press is read off
+one `data-*` mark per control (`PANEL_MARK`), never a class; a mark stating a value nothing of ours
+writes is `IntentFailure` `mark-unknown`, which the listener reports as a dropped gesture. A
+`PanelDefect` the panel states is `{ kind, region, count }`: which defect, the region the first of
+its kind left undrawn (null where the kind is not a region's), and how often it happened.
+
 The UI returns `Result` and `RenderReport` and neither throws nor asserts. An exception out of the
-DOM is caught by `callForeign` inside its region. A listener composes an intent from the pressed
-element's `data-*` attributes and calls `runtime.onIntent` at once, under `runGuarded`: a throw
-there drops one gesture and leaves the state untouched.
+DOM is caught by `callForeign` or `runGuarded` inside its region. A listener reads an intent from
+the element's `data-*` attributes and calls `onIntent` at once, under `runGuarded`: a throw there
+drops one gesture, reported to `onFailure`, and leaves the state untouched.
 
 Every union above with a `kind` gets its vocabulary object when it is built (`AGENTS.md` N19). The
 literals stand in the variants here only so the document reads; §7 shows the built form.

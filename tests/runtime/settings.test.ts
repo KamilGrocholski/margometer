@@ -16,7 +16,6 @@ import {
     STORE_KEY,
 } from "@/src/game/browser-store.ts";
 import {
-    PANEL_WINDOW,
     readStorageChoice,
     readWindowFold,
     readWindowPosition,
@@ -27,7 +26,7 @@ import {
     writeWindowFold,
     writeWindowPosition,
 } from "@/src/runtime/settings.ts";
-import { STORAGE_CHOICE } from "@/src/ui/panel-choice.ts";
+import { PANEL_WINDOW, STORAGE_CHOICE } from "@/src/ui/panel-choice.ts";
 
 const REFUSAL = new DOMException("this browser forbids storage", "SecurityError");
 

@@ -1,8 +1,4 @@
-/**
- * What a reader chooses about the panel and the runtime keeps for them: where the shelf is kept,
- * and where a window stands. Here because the panel offers both and the runtime stores both, and
- * the panel imports nothing above it (`docs/design.md` §4).
- */
+/** What a reader chooses about the panel and the runtime keeps; the panel imports nothing above. */
 
 import type { VocabularyWord } from "@/libs/vocabulary.ts";
 
@@ -15,3 +11,7 @@ export interface PanelPosition {
     left: number;
     top: number;
 }
+
+/** The panel, and the window beside it that `develop` calls the standing window. */
+export const PANEL_WINDOW = { panel: "panel", helper: "helper" } as const;
+export type PanelWindow = VocabularyWord<typeof PANEL_WINDOW>;

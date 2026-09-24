@@ -75,8 +75,8 @@ import {
     HEALTH_SOURCE_WORD_BY_KEY,
     NEITHER_END_WORDS,
     PANEL_DEFECT_KIND,
+    PANEL_REGION,
     PANEL_WORDS,
-    type PanelRegion,
     presentTooltipRows,
     PROC_SUB_WORD_BY_KEY,
     PROC_WORD_BY_KEY,
@@ -209,8 +209,8 @@ function getSentences(): string[] {
     // The region kind takes a region, so every one of those is asked as well.
     for (const kind of Object.values(PANEL_DEFECT_KIND)) {
         found.push(formatDefect(kind, null, 1));
-        for (const region of Object.keys(REGION_WORDS)) {
-            found.push(formatDefect(kind, region as PanelRegion, 2));
+        for (const region of Object.values(PANEL_REGION)) {
+            found.push(formatDefect(kind, region, 2));
         }
     }
     found.push(...getSentencesFromSuspicions());
@@ -228,8 +228,8 @@ function getSentences(): string[] {
     found.push(STORE_REFUSED_ANSWER, STORE_MADE_ROOM_ANSWER);
     found.push(EVERY_SLOT_PINNED_ANSWER, CHOICE_REFUSED_ANSWER);
     found.push(...getSentencesFromChoices());
-    for (const region of Object.keys(REGION_WORDS)) {
-        found.push(formatUndrawn(region as PanelRegion));
+    for (const region of Object.values(PANEL_REGION)) {
+        found.push(formatUndrawn(region));
     }
     // A word that says nothing where there is nothing to say is not a sentence: `held` is the
     // state with a turn to draw, and a shelf neither live nor ended has no word to stand under.
@@ -668,6 +668,7 @@ const HOLDS_NO_WORD: Record<string, string> = {
     CLIENT_ID_BY_UNWORDED_KEY: "ids the running client answers to, spelled by it",
     THOUSAND_SEPARATOR: "the space a figure groups on, written as its escape",
     PANEL_DEFECT_KIND: "what the defects are called here, which the panel never says",
+    PANEL_REGION: "what the regions are called here; their words are in `REGION_WORDS`",
     CAVEAT: "what the caveats are called here; the sentences are in `CAVEAT_NOTES`",
     UNANNOUNCED_CAVEATS: "which of those a closing row owes, which is a key and not a word",
     formatDefect: "the branch a region takes, and a branch is not a word",
