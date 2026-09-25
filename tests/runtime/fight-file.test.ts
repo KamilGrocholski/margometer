@@ -30,11 +30,8 @@ import {
     type FileSurroundings,
 } from "#/src/runtime/fight-file.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
-import {
-    readRecordedFights,
-    RECORDINGS_REVISION,
-    replayRecordedFight,
-} from "#/tests/recorded-fights.ts";
+import { readRecordedFights, replayRecordedFight } from "#/tests/recorded-fights.ts";
+import { RECORDINGS_REVISION } from "#/tests/recording-revision.ts";
 
 /**
  * The newest envelope. `formatVersion` does not identify the shape (every recording of

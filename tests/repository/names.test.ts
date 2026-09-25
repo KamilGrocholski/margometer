@@ -17,7 +17,7 @@ import { isDigitAt } from "#/libs/text-walk.ts";
 /** Named for their category rather than their contents (N10). */
 const CATEGORY_STEMS = ["utils", "helpers", "common", "misc", "index"];
 const TYPE_NODES = ["TSTypeAliasDeclaration", "TSInterfaceDeclaration", "ClassDeclaration"];
-const FILE_SUFFIXES = [".test.ts", ".ts"];
+const FILE_SUFFIXES = [".test.ts", ".spec.ts", ".ts"];
 
 Deno.test("a file named for its category or out of kebab-case is flagged", () => {
     assertEquals(lookupMisnamedFile("libs/utils.ts"), ["libs/utils.ts names a category"], "N10");

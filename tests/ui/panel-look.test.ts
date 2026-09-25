@@ -35,7 +35,7 @@ import {
     SIGNAL,
 } from "#/src/ui/panel-palette.ts";
 import { parseInteger } from "#/libs/number-text.ts";
-import { RECORDINGS_REVISION } from "#/tests/recorded-fights.ts";
+import { RECORDINGS_REVISION } from "#/tests/recording-revision.ts";
 import { getDeclaration, getRuleBody, RULES_IN_A_SHEET } from "#/tests/style-sheet.ts";
 
 /** WCAG AA for text at the size this panel prints figures, and for a mark that is not text. */

@@ -39,11 +39,13 @@ const SECTION_RANKS: { readonly [Kind in Section]: number } = {
     [SECTION.constants]: 2,
     [SECTION.functions]: 3,
 };
-const TYPE_NODES = ["TSInterfaceDeclaration", "TSTypeAliasDeclaration"];
+/** `declare global` is a type declaration too: it states the shape of somebody else's object. */
+const TYPE_NODES = ["TSInterfaceDeclaration", "TSTypeAliasDeclaration", "TSModuleDeclaration"];
 const IMPORT_NODES = ["ImportDeclaration", "ExportAllDeclaration"];
 const ITEMS_MAXIMUM = 400;
 const TYPEOF_OPENER = "typeof ";
-const CASE_OPENER = "Deno.test(";
+/** A test file's cases, Deno's and the browser suite's, and the settings the latter's stand under. */
+const CASE_OPENERS = ["Deno.test(", "test(", "test.describe(", "test.use("];
 
 Deno.test("a constant above a type, and a function above a constant, are flagged", () => {
     const sample = composeSample([
@@ -113,7 +115,7 @@ function readTopItemsStatement(
     derived: Set<string>,
 ): TopItem | null {
     const range = statement.range;
-    if (file.text.startsWith(CASE_OPENER, range[0])) {
+    if (CASE_OPENERS.some((opener) => file.text.startsWith(opener, range[0]))) {
         // A test file's cases are what it is for, so each opens a run as an export does.
         const name = `the case at line ${getLineAt(file.text, range[0])}`;
         return { name, section: SECTION.functions, isExported: true, isFunction: true, range };
@@ -218,6 +220,16 @@ Deno.test("imports, types, constants and functions in that order pass", () => {
     assertEquals(lookupDeclarationsOutOfOrder(sample), [], "the order a reader meets them in");
 });
 
+Deno.test("a global declared for the page stands with the types", () => {
+    const sample = composeSample([
+        "const LIMIT = 1;",
+        "declare global { var probe: number; }",
+    ]);
+    assertEquals(lookupDeclarationsOutOfOrder(sample), [
+        "sample.ts:2 global stands with the types but after LIMIT, which is one of the constants",
+    ], "it is a shape, stated like any other");
+});
+
 Deno.test("a vocabulary stands with the type derived from it, and nowhere lower", () => {
     const standing = composeSample([
         'const WORD = { one: "one" } as const;',
@@ -272,6 +284,22 @@ Deno.test("a test file's helper stands under the first case that calls it, and n
         'Deno.test("two", () => { sampleOf(); });',
     ]);
     assertEquals(lookupDeclarationsOutOfOrder(under), [], "and under its first case it passes");
+});
+
+Deno.test("a browser spec's helper stands under the first case that calls it, too", () => {
+    const above = composeSample([
+        "function readPlace(): number { return 1; }",
+        'test.use({ place: "E2E" });',
+        'test("one", () => { readPlace(); });',
+    ]);
+    assertEquals(lookupDeclarationsOutOfOrder(above), [
+        "sample.ts:1 readPlace stands above the case at line 3, the first function that calls it",
+    ], "a case of the browser suite opens a run as Deno's does");
+    const under = composeSample([
+        'test.describe("one", () => { test("two", () => { readPlace(); }); });',
+        "function readPlace(): number { return 1; }",
+    ]);
+    assertEquals(lookupDeclarationsOutOfOrder(under), [], "and a helper under its describe passes");
 });
 
 Deno.test("every module in the tree reads in that order", () => {

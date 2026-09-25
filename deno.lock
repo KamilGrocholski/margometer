@@ -47,6 +47,12 @@
       "jsr:@std/assert@1",
       "jsr:@std/fs@1",
       "jsr:@std/jsonc@1"
-    ]
+    ],
+    "packageJson": {
+      "dependencies": [
+        "npm:@playwright/test@^1.56.0",
+        "npm:@types/node@^26.4.1"
+      ]
+    }
   }
 }

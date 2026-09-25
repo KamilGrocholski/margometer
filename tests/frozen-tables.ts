@@ -12,7 +12,7 @@ import {
 import { type DecoderTables, indexBlowsGrantedBySkillId } from "#/src/core/fight-decoder.ts";
 import { FROZEN_AURA_TURNS } from "#/frozen/aura-turns.ts";
 import { FROZEN_BLOWS_GRANTED } from "#/frozen/blows-granted.ts";
-import { RECORDINGS_REVISION } from "./recorded-fights.ts";
+import { RECORDINGS_REVISION } from "./recording-revision.ts";
 
 export const BLOWS_GRANTED: DecoderTables = {
     blowsGrantedBySkillId: indexBlowsGrantedBySkillId(FROZEN_BLOWS_GRANTED.skills),

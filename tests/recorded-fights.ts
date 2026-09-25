@@ -28,6 +28,7 @@ import type { FightStatistics } from "#/src/core/fight-statistics.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import { BLOWS_GRANTED } from "./frozen-tables.ts";
+import { RECORDINGS_DIRECTORY, RECORDINGS_REVISION } from "./recording-revision.ts";
 
 export interface RecordedFight {
     path: string;
@@ -61,9 +62,6 @@ export interface RecordedDecoding {
     unread: UnreadMessage[];
 }
 
-export const RECORDINGS_REVISION = "fa1dcce";
-
-const RECORDINGS_DIRECTORY = "captures/";
 const RECORDING_EXTENSION = ".json";
 
 /**

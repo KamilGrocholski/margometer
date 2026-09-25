@@ -2,7 +2,8 @@
  * C8: an import from the importing file's own directory is written `./name.ts`, and every other one
  * from the repository root, `#/path.ts`; both carry the file's extension.
  *
- * The standard library is imported by the name `deno.json` maps for it, and nothing else is.
+ * The standard library is imported by the name `deno.json` maps for it, and nothing else is, except
+ * in the browser suite, which runs on Node: `tests/e2e/AGENTS.md` states that exception.
  */
 
 import { assertEquals } from "@std/assert";
@@ -17,6 +18,9 @@ import {
 const ROOT_PREFIX = "#/";
 const SIBLING_PREFIX = "./";
 const STANDARD_PREFIX = "@std/";
+const BROWSER_SUITE_DIRECTORY = "tests/e2e/";
+/** What Node and the one npm package lend the browser suite, and nobody else. */
+const BROWSER_SUITE_PREFIXES = ["node:", "@playwright/test"];
 
 Deno.test("a sibling from the root, a cousin by a relative path, a bare URL and no extension are flagged", () => {
     const sample = composeSample([
@@ -57,6 +61,9 @@ function lookupMisspeltImports(file: SourceFile): string[] {
 
 function isImportSpeltForItsPlace(source: string, directory: string): boolean {
     if (source.startsWith(STANDARD_PREFIX)) return true;
+    if (directory === BROWSER_SUITE_DIRECTORY) {
+        if (BROWSER_SUITE_PREFIXES.some((prefix) => source.startsWith(prefix))) return true;
+    }
     const name = source.slice(source.lastIndexOf("/") + 1);
     if (!name.includes(".")) return false;
     if (source.startsWith(SIBLING_PREFIX)) {
@@ -70,6 +77,22 @@ function isImportSpeltForItsPlace(source: string, directory: string): boolean {
 Deno.test("a file at the root imports its sibling by ./ and nothing else from the root", () => {
     const sample = composeSample(['import { a } from "#/a.ts";', 'import { b } from "./b.ts";']);
     assertEquals(lookupMisspeltImports(sample), ['sample.ts imports "#/a.ts"'], "the root's own");
+});
+
+Deno.test("Node and Playwright are the browser suite's to import, and nobody else's", () => {
+    const sample = composeSample([
+        'import { readFileSync } from "node:fs";',
+        'import { expect } from "@playwright/test";',
+    ]);
+    assertEquals(
+        lookupMisspeltImports({ ...sample, path: "tests/e2e/sample.spec.ts" }),
+        [],
+        "there",
+    );
+    assertEquals(lookupMisspeltImports({ ...sample, path: "tests/ui/sample.test.ts" }), [
+        'tests/ui/sample.test.ts imports "node:fs"',
+        'tests/ui/sample.test.ts imports "@playwright/test"',
+    ], "and anywhere else they are flagged");
 });
 
 Deno.test("every import in the tree is spelt for where it stands", () => {

@@ -13,7 +13,10 @@
         "check": "deno fmt --check && deno lint && deno check && deno check --frozen --config project/browser-lib.json src/userscript-boot.ts && deno test -A && deno task build",
         // A release passes its version; a build without one takes what this file declares, marked
         // `-dev`. `dist/` is what a release attaches, and git does not carry it.
-        "build": "deno run -A tools/build-userscript.ts"
+        "build": "deno run -A tools/build-userscript.ts",
+        // The built file in the Chrome this machine has, on Node: outside the gate on purpose
+        // (`develop ADR 0047`), and what W9 asks of a change under `src/` before it is done.
+        "e2e": "npx playwright test"
     },
     "fmt": {
         // 100 columns, so nothing is hidden by a scrollbar.
