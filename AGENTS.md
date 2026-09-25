@@ -382,7 +382,8 @@ TypeScript idiom, with the naming rules stated here.
 - **W9.** A change under `src/` is not done until the end-to-end suite is green as well, from the
   commit that brings the suite. `develop ADR 0047`.
 - **W10.** A work round that relies on frozen readings of the game starts with them current, by
-  `develop`'s `frozen/AGENTS.md` until this branch carries its own.
+  `develop`'s `frozen/AGENTS.md`: this branch's readings are `develop`'s at the revision the
+  recordings are read at, and move only with it (ADR 0004).
 
 ## Git
 
@@ -451,5 +452,6 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/layers.test.ts`                | `docs/design.md` §4 |
 | `tests/repository/browser-suite-keys.test.ts`    | N13                 |
 | `tests/repository/reader-layer.test.ts`          | A11                 |
+| `tests/repository/frozen-readings.test.ts`       | ADR 0004            |
 | `deno check --config project/browser-lib.json`   | the browser floor   |
 | `requireBundleInBrowser` in the build            | Never: the network  |
