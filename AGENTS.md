@@ -305,6 +305,8 @@ joins it in the commit that creates the file.
   `fight:develop`
 - `tools/drill-report.ts` — which rows of the panel open onto another level, over the recordings:
   `panel:drill`
+- `tools/fabricated-fight.ts` — a fight nobody fought, ten a side, written under `fabricated/`
+  outside git: `fight:fabricate`
 - `tools/fight-figures.ts` — what a recording adds up to per combatant, as a terminal table:
   `fight:figures`
 - `tools/game-client-source.ts` — fetches and dates the game client's JavaScript into `.cache/`:
@@ -324,7 +326,7 @@ joins it in the commit that creates the file.
 - `tools/preview-page.ts` — the page both previews draw: the game page, the bar, the tooltips
   column, a store that forgets, and the install band
 - `tools/preview-server.ts` — serves the preview with a picker, rebuilt and reloaded on change,
-  saying a failed build: `preview`
+  saying a failed build: `preview`, `preview:fabricated`
 - `tools/preview-site.ts` — builds the one-page preview GitHub Pages publishes, which keeps nothing
   and plays its fight once: `preview:site`
 - `tools/preview-state.ts` — what `deno task preview` carries in its address across a reload
@@ -782,6 +784,7 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/skill-durations.test.ts`         | ADR 0005                  |
 | `tests/repository/redacted-names.test.ts`          | `captures/AGENTS.md`      |
 | `tests/repository/captured-fight-register.test.ts` | `docs/captured-fights.md` |
+| `tests/repository/fabricated-fights.test.ts`       | `captures/AGENTS.md`      |
 | `tests/repository/protocol-keys.test.ts`           | `docs/protocol-keys.md`   |
 | `tests/repository/cited-paths.test.ts`             | C3, C15                   |
 | `tests/repository/broad-catches.test.ts`           | E4                        |

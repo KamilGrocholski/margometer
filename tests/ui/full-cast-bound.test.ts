@@ -3,9 +3,9 @@
  *
  * No recording states this. The corpus is ten against one, and none of it carries a blow the
  * protocol gave no target, so twenty rows with `Nieznany sprawca` and `Nieznany cel` drawn beside
- * them has never been on a screen. `develop` draws it off the fabricated ten-a-side, which this
- * branch does not carry; the cast here is built from messages instead, and the whole of it drawn,
- * because a bound that fails inside a region says nothing.
+ * them has never been on a screen. `develop` draws it off the fabricated ten-a-side
+ * (`tools/fabricated-fight.ts`); the cast here is built from messages instead, and the whole of it
+ * drawn, because a bound that fails inside a region says nothing.
  */
 
 import { assert, assertEquals, assertStrictEquals } from "@std/assert";

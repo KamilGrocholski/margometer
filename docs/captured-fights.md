@@ -348,7 +348,7 @@ evidence.
   `-manadest`**, and the register had written down that none did. Mana is a pool no total here
   keeps, so the key is read as a declaration beside `-endest` (`docs/protocol-keys.md`). The
   fabricated fight states it too, and that is never material — it is what stands where `captures/`
-  is silent (`develop:tools/fabricated-fight.ts`).
+  is silent (`tools/fabricated-fight.ts`).
 
   ⚠️ **It carries `-endest` as well, and both keys state one figure for the whole fight** — 10 twice
   and 4 three times — where the published help describes a bonus weakening by 5% of its initial

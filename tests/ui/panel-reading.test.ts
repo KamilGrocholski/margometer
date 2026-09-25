@@ -2982,7 +2982,7 @@ Deno.test("a pair states its parts largest first, the closing row among them", (
 
 /**
  * From `develop:tests/ui/full-cast-bound.test.ts`, on a cast built here: that file widens the
- * fabricated ten-a-side, which this branch does not carry. The roster refuses a cast past its
+ * fabricated ten-a-side (`tools/fabricated-fight.ts`). The roster refuses a cast past its
  * bound, so the reading is driven past its own the one way the exported surface allows — figures
  * for somebody the roster does not hold. The list is what it costs (**S11**, `develop ADR 0051`).
  */

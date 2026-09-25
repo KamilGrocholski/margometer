@@ -13,11 +13,17 @@ import {
     assertThrows,
 } from "@std/assert";
 import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
+import {
+    createFabricatedFight,
+    encodeFabricatedFight,
+    requireFabricationShape,
+} from "#/tools/fabricated-fight.ts";
 import { PreviewServeError, UserscriptBuildError } from "#/tools/margometer-tool-error.ts";
 import {
     initPreviewServer,
     LISTENERS_MAXIMUM,
     openPreviewEvents,
+    readFabricatedPaths,
     readPreviewFlags,
     RELOAD_SCRIPT,
     type ReloadListener,
@@ -234,12 +240,59 @@ Deno.test("a path whose name a recording already carries is refused, not drawn o
 });
 
 Deno.test("the flags are read by walking them, and one nobody reads is refused", () => {
-    assertEquals(readPreviewFlags([]), { port: 4173, fight: null, fromPaths: [] }, "none given");
+    assertEquals(
+        readPreviewFlags([]),
+        { port: 4173, fight: null, fromPaths: [], shouldOpenFabricated: false },
+        "none given",
+    );
     assertEquals(
         readPreviewFlags(["--port", "0", "--fight", "a", "--from", "x", "--from", "y"]),
-        { port: 0, fight: "a", fromPaths: ["x", "y"] },
+        { port: 0, fight: "a", fromPaths: ["x", "y"], shouldOpenFabricated: false },
         "each, and `--from` as often as it is given",
+    );
+    assertEquals(
+        readPreviewFlags(["--fabricated", "--from", "x"]),
+        { port: 4173, fight: null, fromPaths: ["x"], shouldOpenFabricated: true },
+        "and `--fabricated` taking no value, so the flag after it is still read as one",
     );
     assertThrows(() => readPreviewFlags(["--site"]), PreviewServeError, "--site");
     assertThrows(() => readPreviewFlags(["--nothing", "x"]), PreviewServeError, "--nothing");
+});
+
+/**
+ * `fabricated/` is ignored by version control and is absent on the machine running the gate, so
+ * the directory here is a temporary one, and both ways it can be missing its fights are refused.
+ */
+Deno.test("a directory with no fabricated fight in it is refused, loudly", () => {
+    const directory = Deno.makeTempDirSync();
+    try {
+        const absent = `${directory}/absent`;
+        assertThrows(() => readFabricatedPaths(absent), PreviewServeError, "is not here");
+        assertThrows(() => readFabricatedPaths(absent), PreviewServeError, "fight:fabricate");
+        Deno.writeTextFileSync(`${directory}/notes.txt`, "not a fight");
+        assertThrows(() => readFabricatedPaths(directory), PreviewServeError, "holds no fight");
+    } finally {
+        Deno.removeSync(directory, { recursive: true });
+    }
+});
+
+Deno.test("every fabricated fight in the directory is drawn beside the recordings", async () => {
+    const directory = Deno.makeTempDirSync();
+    const shape = requireFabricationShape(1, 8, 5);
+    Deno.writeTextFileSync(
+        `${directory}/duel.json`,
+        encodeFabricatedFight(createFabricatedFight(shape)),
+    );
+    Deno.writeTextFileSync(`${directory}/notes.txt`, "not a fight");
+    const paths = readFabricatedPaths(directory);
+    assertEquals(paths, [`${directory}/duel.json`], "the one fight, and nothing that is no JSON");
+    const preview = initTestServer(paths);
+    try {
+        const answer = await fetch(`${preview.url}/?fight=duel`);
+        assertEquals(answer.status, 200, "a fabricated fight is one the server draws");
+        assertStringIncludes(await answer.text(), "duel", "and says which one");
+    } finally {
+        await preview.stop();
+        Deno.removeSync(directory, { recursive: true });
+    }
 });

@@ -118,7 +118,7 @@ export const TURN_VERDICTS: readonly TurnVerdict[] = Object.values(TURN_VERDICT)
  * The payload's own witness of whose turn is in progress. The runtime reads the queue and never
  * this, so it is spelled here, the one reader of it (N13).
  */
-const WITNESS_KEYS = { holder: "current" } as const;
+export const WITNESS_KEYS = { holder: "current" } as const;
 const ARGUMENTS_MAXIMUM = 256;
 const RECORDINGS_MAXIMUM = 4096;
 const NAME_WIDTH = 68;

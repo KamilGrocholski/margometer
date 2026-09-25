@@ -35,9 +35,16 @@
         // `docs/reading-a-turn.md` carry what each reports.
         "fight:turns": "deno run -A tools/turn-count.ts",
         "fight:openers": "deno run -A tools/turn-reading.ts",
+        // A fight nobody fought, written where git does not look. No recording holds ten on
+        // both sides (`docs/captured-fights.md`), so this is the only ten-a-side the panel can be
+        // looked at on. Never material, and `tools/fabricated-fight.ts` says why.
+        "fight:fabricate": "deno run -A tools/fabricated-fight.ts",
         // The panel in a browser over any recording, stepped by hand, rebuilt and reloaded when a
         // file the bundle reads changes. The page is the one the browser suite drives.
         "preview": "deno run -A tools/preview-server.ts",
+        // The same server, plus every fight under `fabricated/`: the shapes no recording carries.
+        // That directory is git's to ignore, so this refuses loudly where there is none.
+        "preview:fabricated": "deno run -A tools/preview-server.ts --fabricated",
         // One picture per state the READMEs show, into `screenshots/`, in the Chrome the browser
         // suite drives. It refuses a tree whose `src/` is not in a commit (`DESIGN.md`); a release
         // takes the set with `--release` (`docs/releasing.md`).

@@ -26,6 +26,7 @@ export const TOOL_ERROR_CODE = {
     givingWay: "GivingWay",
     turnCount: "TurnCount",
     turnReading: "TurnReading",
+    fabricatedFight: "FabricatedFight",
 } as const;
 export type ToolErrorCode = VocabularyWord<typeof TOOL_ERROR_CODE>;
 
@@ -176,5 +177,12 @@ export class TurnCountError extends MargoMeterToolError {
 export class TurnReadingError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super(TOOL_ERROR_CODE.turnReading, reason, options);
+    }
+}
+
+/** A fabricated fight refused: a shape past a bound somebody else owns, or a path out of its place. */
+export class FabricatedFightError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.fabricatedFight, reason, options);
     }
 }

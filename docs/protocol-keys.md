@@ -1710,9 +1710,8 @@ value.
 occurrences state 10, on two blows struck by one combatant in
 `captures/2026-09-19-luvia-tropiciel-vs-mag-Bb28FQty-0.17.0.json`, where the documented rule would
 have the second below the first — the same disagreement `-endest` above carries, and read the same
-way. The fabricated fight of `develop:tools/fabricated-fight.ts` states the key as well, which is
-what `develop:tests/tools/fabricated-fight.test.ts` holds every key this register calls `decoded`
-to.
+way. The fabricated fight of `tools/fabricated-fight.ts` states the key as well, which is what
+`tests/tools/fabricated-fight.test.ts` holds every key this register calls `decoded` to.
 
 ### `+critslow_per` — decoded
 

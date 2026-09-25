@@ -4,9 +4,11 @@
  * It serves `tools/preview-page.ts` over the landing fight with a picker for the rest, carries the
  * entry, the screen and the store through a reload (`tools/preview-state.ts`), and says a failed
  * build where the panel is. Nothing here ships, and `SECURITY.md`'s rule against the network binds
- * `src/`, not this. `--from` opens a recording at any path beside the rest.
+ * `src/`, not this. `--from` opens a recording at any path beside the rest, and `--fabricated`
+ * every fight `tools/fabricated-fight.ts` wrote.
  *
- *     deno task preview [--port N] [--fight NAME] [--from PATH]…
+ *     deno task preview [--port N] [--fight NAME] [--from PATH]… [--fabricated]
+ *     deno task preview:fabricated
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
@@ -26,6 +28,7 @@ import {
     readUserscriptFiles,
     USERSCRIPT_NAME,
 } from "./build-userscript.ts";
+import { FABRICATED_DIRECTORY } from "./fabricated-fight.ts";
 import { PreviewServeError, UserscriptBuildError } from "./margometer-tool-error.ts";
 import { composePreviewPage, type PreviewFightLink, type PreviewWords } from "./preview-page.ts";
 import { LANDING_RECORDING } from "./preview-site.ts";
@@ -85,6 +88,8 @@ const FAILURE_LINE = "MargoMeterTool/Preview";
 const FLAG_PORT = "--port";
 const FLAG_FIGHT = "--fight";
 const FLAG_FROM = "--from";
+const FLAG_FABRICATED = "--fabricated";
+const RECORDING_SUFFIX = ".json";
 /** Past every shape a person makes to look at one (S11). */
 const FROM_PATHS_MAXIMUM = 64;
 const TEXT_ENCODER = new TextEncoder();
@@ -367,16 +372,25 @@ export function tellPreviewListeners(
     assert(listeners.size <= LISTENERS_MAXIMUM, "the listeners stay inside their bound");
 }
 
-/** The flags, walked: `--port N`, `--fight NAME`, and `--from PATH` as often as it is given. */
+/**
+ * The flags, walked: `--port N`, `--fight NAME`, `--from PATH` as often as it is given, and
+ * `--fabricated`, the one taking no value.
+ */
 export function readPreviewFlags(args: readonly string[]): {
     port: number;
     fight: string | null;
     fromPaths: string[];
+    shouldOpenFabricated: boolean;
 } {
     let port = DEFAULT_PORT;
     let fight: string | null = null;
+    let shouldOpenFabricated = false;
     const fromPaths: string[] = [];
     for (let at = 0; at < args.length; at += 1) {
+        if (args[at] === FLAG_FABRICATED) {
+            shouldOpenFabricated = true;
+            continue;
+        }
         const value = args[at + 1];
         if (value === undefined) throw new PreviewServeError(`${args[at]} takes a value`);
         if (args[at] === FLAG_PORT) port = parseInteger(value) ?? DEFAULT_PORT;
@@ -386,12 +400,49 @@ export function readPreviewFlags(args: readonly string[]): {
         at += 1;
     }
     assert(fromPaths.length <= args.length, "no more paths than were given");
-    return { port, fight, fromPaths };
+    return { port, fight, fromPaths, shouldOpenFabricated };
+}
+
+/**
+ * Every fight a directory of fabricated ones holds, which is what `--fabricated` opens beside the
+ * recordings. ⚠️ **The directory is ignored by version control**, so it is absent on every machine
+ * that has not made one. That is not an empty answer to fall through on: a preview asked for these
+ * and handed the recordings alone would look like it had them, so the refusal is loud and names
+ * what writes one.
+ */
+export function readFabricatedPaths(directory: string): string[] {
+    assert(directory.length > 0, "fabricated fights are read from somewhere");
+    const listed = callForeign(() => [...Deno.readDirSync(directory)]);
+    if (!listed.ok) {
+        const cause = listed.error.cause;
+        const reason = cause instanceof Deno.errors.NotFound ? "is not here" : "cannot be read";
+        throw new PreviewServeError(
+            `${directory}/ ${reason}: \`deno task fight:fabricate\` writes one`,
+            { cause },
+        );
+    }
+    const paths = listed.value
+        .filter((entry) => entry.isFile)
+        .filter((entry) => entry.name.endsWith(RECORDING_SUFFIX))
+        .map((entry) => `${directory}/${entry.name}`)
+        .sort();
+    if (paths.length === 0) {
+        throw new PreviewServeError(
+            `${directory}/ holds no fight: \`deno task fight:fabricate\` writes one`,
+        );
+    }
+    if (paths.length > FROM_PATHS_MAXIMUM) {
+        throw new PreviewServeError(`${directory}/ holds more fights than ${FROM_PATHS_MAXIMUM}`);
+    }
+    return paths;
 }
 
 if (import.meta.main) {
     const flags = readPreviewFlags(Deno.args);
-    const preview = initPreviewServer({ port: flags.port, fromPaths: flags.fromPaths });
+    const fromPaths = flags.shouldOpenFabricated
+        ? [...flags.fromPaths, ...readFabricatedPaths(FABRICATED_DIRECTORY)]
+        : flags.fromPaths;
+    const preview = initPreviewServer({ port: flags.port, fromPaths });
     const opening = flags.fight === null
         ? preview.url
         : `${preview.url}/?fight=${encodeURIComponent(flags.fight)}`;
