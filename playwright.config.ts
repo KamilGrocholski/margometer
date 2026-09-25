@@ -7,7 +7,7 @@ import { readFileSync } from "node:fs";
 import { cpus, freemem } from "node:os";
 import { defineConfig, devices } from "@playwright/test";
 
-/** Spelled as `develop:tools/panel-screenshots.ts` does, and held level by that tool's own guard. */
+/** Spelled as `tools/panel-shots.ts` does, and held level by `tests/tools/panel-shots.test.ts`. */
 const BROWSER_VARIABLE = "MARGOMETER_BROWSER";
 /** Raises or lowers the count below, for somebody who knows what their machine has spare. */
 const WORKERS_VARIABLE = "MARGOMETER_E2E_WORKERS";

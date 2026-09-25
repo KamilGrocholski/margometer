@@ -86,29 +86,6 @@ export function composeSitePage(fight: RecordedFight, version: string): string {
 }
 
 /**
- * Both windows put in the top right corner before the add-on reads where they stand, by the same
- * stored place a reader's drag writes. A panel opening centred covers the band, and a drag
- * written here instead would be a second copy of how the panel moves.
- */
-function composeWindowsSeeded(): string {
-    const helperOffset = PLACE.insetPixels + PLACE.widthPixels + SPACE_PIXELS.wide +
-        STANDING.widthPixels;
-    return `(function setWindowsSeeded() {
-  try {
-    var top = ${PLACE.insetPixels};
-    var panelLeft = Math.max(0, window.innerWidth - ${PLACE.insetPixels + PLACE.widthPixels});
-    var helperLeft = Math.max(0, window.innerWidth - ${helperOffset});
-    localStorage.setItem(${JSON.stringify(STORE_KEY.panelPlace)},
-      JSON.stringify({ left: panelLeft, top: top }));
-    localStorage.setItem(${JSON.stringify(STORE_KEY.helperPlace)},
-      JSON.stringify({ left: helperLeft, top: top }));
-  } catch (reason) {
-    console.warn("MargoMeter/Preview", reason);
-  }
-})();`;
-}
-
-/**
  * What the add-on is, what it needs, and the button. `chrome://extensions` stays plain text: a
  * browser refuses that navigation from a page, so a link there does nothing and reads as broken.
  * Every figure the sentence promises is one the panel draws, which is the whole test of it.
@@ -212,6 +189,29 @@ function composeSiteStrip(): string {
   var through = Number.isSafeInteger(stated) && stated >= 0 && location.search !== "" ? stated : total;
   probe.feed(through);
   show();
+})();`;
+}
+
+/**
+ * Both windows put in the top right corner before the add-on reads where they stand, by the same
+ * stored place a reader's drag writes. A panel opening centred covers the band, and a drag
+ * written here instead would be a second copy of how the panel moves.
+ */
+export function composeWindowsSeeded(): string {
+    const helperOffset = PLACE.insetPixels + PLACE.widthPixels + SPACE_PIXELS.wide +
+        STANDING.widthPixels;
+    return `(function setWindowsSeeded() {
+  try {
+    var top = ${PLACE.insetPixels};
+    var panelLeft = Math.max(0, window.innerWidth - ${PLACE.insetPixels + PLACE.widthPixels});
+    var helperLeft = Math.max(0, window.innerWidth - ${helperOffset});
+    localStorage.setItem(${JSON.stringify(STORE_KEY.panelPlace)},
+      JSON.stringify({ left: panelLeft, top: top }));
+    localStorage.setItem(${JSON.stringify(STORE_KEY.helperPlace)},
+      JSON.stringify({ left: helperLeft, top: top }));
+  } catch (reason) {
+    console.warn("MargoMeter/Preview", reason);
+  }
 })();`;
 }
 

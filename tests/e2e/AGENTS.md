@@ -1,9 +1,11 @@
 # The browser suite
 
 This directory is the only part of the repository that Deno does not run. It is `@playwright/test`,
-on Node, driving the built userscript in the Chrome this machine has — `develop ADR 0047`. One file
-is run by both: `game-page.ts`, the page itself, which `deno task preview` serves as well, so it
-imports nothing at all.
+on Node, driving the built userscript in the Chrome this machine has — `develop ADR 0047`. Three
+files are run by Deno as well: `game-page.ts`, the page itself, which `deno task preview` and
+`deno task preview:site` serve and so imports nothing at all; and `panel-camera.ts` with the
+`panel-page.ts` under it, which `deno task panel:shots` drives Chrome through, since Playwright is
+this directory's to import. None of the three calls a `Deno` API.
 
 The root's rules apply in full and are not repeated. What follows is only what is true here.
 

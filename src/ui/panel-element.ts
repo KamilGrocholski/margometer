@@ -459,7 +459,7 @@ const HOST_NAME = "MargoMeter-Panel";
 const VERSION_ATTRIBUTE = "data-margometer-version";
 /** Four is every charge length the corpus states, and a clamp on a figure the game hands us. */
 const CHARGED_PIPS_MAXIMUM = 8;
-const TIP_ATTRIBUTE = "data-tip";
+export const TIP_ATTRIBUTE = "data-tip";
 /**
  * The one card key no row states, so it can be a constant where every other is composed off what
  * the row stands for: one crumb is drawn at a time and its card says the same two things whatever

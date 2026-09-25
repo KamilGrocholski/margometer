@@ -18,6 +18,7 @@ export const TOOL_ERROR_CODE = {
     buffBitTable: "BuffBitTable",
     skillTable: "SkillTable",
     helpArticle: "HelpArticle",
+    panelShot: "PanelShot",
 } as const;
 export type ToolErrorCode = VocabularyWord<typeof TOOL_ERROR_CODE>;
 
@@ -112,5 +113,12 @@ export class SkillTableError extends MargoMeterToolError {
 export class HelpArticleError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super(TOOL_ERROR_CODE.helpArticle, reason, options);
+    }
+}
+
+/** A set of pictures that could not be taken honestly: a dirty tree, no browser, a panel astray. */
+export class PanelShotError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.panelShot, reason, options);
     }
 }

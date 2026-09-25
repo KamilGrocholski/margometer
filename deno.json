@@ -29,6 +29,10 @@
         // The panel in a browser over any recording, stepped by hand, rebuilt and reloaded when a
         // file the bundle reads changes. The page is the one the browser suite drives.
         "preview": "deno run -A tools/preview-server.ts",
+        // One picture per state the READMEs show, into `screenshots/`, in the Chrome the browser
+        // suite drives. It refuses a tree whose `src/` is not in a commit (`DESIGN.md`); a release
+        // takes the set with `--release` (`docs/releasing.md`).
+        "panel:shots": "deno run -A tools/panel-shots.ts",
         // The same page as one file somebody without this repository can open, under
         // `dist/preview/`, which `.github/workflows/pages.yml` publishes with `--release`.
         "preview:site": "deno run -A tools/preview-site.ts",

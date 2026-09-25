@@ -7,7 +7,8 @@
  * about that.
  */
 
-import { expect, HOST_SELECTOR, type PanelHandle, test } from "./panel-fixture.ts";
+import { expect, type PanelHandle, test } from "./panel-fixture.ts";
+import { HOST_SELECTOR } from "./game-page.ts";
 import { readEdgesOf, readPointsAlongBar, setDragged } from "./panel-probe.ts";
 import { waitForFrame } from "./panel-page.ts";
 

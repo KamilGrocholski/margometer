@@ -8,10 +8,10 @@ ends in a pointer, that pointer is where the rule lives.
 
 ## 0. What a release is here
 
-Two files change together — `CHANGELOG.md` moves `[Niewydane]` under a number, and `deno.json` gains
-that number — and then three pushes go out in an order that matters. What a tag turns into is
-`.github/workflows/release.yml`'s to do, and nothing after the tag is by hand but the checks in
-step 5.
+Three things change together — `CHANGELOG.md` moves `[Niewydane]` under a number, `deno.json` gains
+that number, and `screenshots/` is taken again — and then three pushes go out in an order that
+matters. What a tag turns into is `.github/workflows/release.yml`'s to do, and nothing after the tag
+is by hand but the checks in step 5.
 
 Which branch holds what: **G6**. The order the three pushes go in, and where the wait is: **G7**.
 
@@ -25,16 +25,31 @@ Which branch holds what: **G6**. The order the three pushes go in, and where the
 - [ ] Both READMEs, sentence by sentence, and the band the published page opens with
       (`tools/preview-site.ts`). Every claim on any of the three is about what a stranger is about
       to install.
-- [ ] `screenshots/` is the set `develop` took at `0.19.0`, and no tool here retakes it. Where the
-      panel's look changed since, the set is retaken by hand before the release commit, and
-      `screenshots/taken-at.json` states the number it was taken at.
 
 ## 2. The release commit
 
-Move what has accumulated under `[Niewydane]` to the new number with its date, and bump the
-declaration in `deno.json` — both in one commit. How a section is written and what the move is: the
-header comment of `CHANGELOG.md`. Why the section is the body of the release, and why the
-declaration is in one place: **develop ADR 0018**.
+Move what has accumulated under `[Niewydane]` to the new number with its date, bump the declaration
+in `deno.json`, and photograph the panel at the number it ships as. All three **uncommitted**, and
+then one commit over the lot:
+
+```bash
+# `CHANGELOG.md` and `deno.json` are edited first, and left in the working tree.
+deno task panel:shots --release
+```
+
+`--release` puts the declared number on the panel instead of the `-dev` mark a build nobody tagged
+wears. The shoot is allowed over this edit because `tools/panel-shots.ts` refuses uncommitted work
+under `src/` and nowhere else. **One commit and not two**, because `tests/tools/panel-shots.test.ts`
+holds the set to the declaration: bump first and the set states the release before it, shoot first
+and it states a number the tree does not declare.
+
+- [ ] **Open every one.** No machine can say whether the state in a picture is reachable
+      (`DESIGN.md`, _The Frame Is Not A Screen Rule_).
+- [ ] The title bar reads the bare number in every one of them, and `screenshots/taken-at.json`
+      states it unmarked.
+
+How a section is written and what the move is: the header comment of `CHANGELOG.md`. Why the section
+is the body of the release, and why the declaration is in one place: **develop ADR 0018**.
 
 ```
 build(release): <the number>, and what it is
@@ -95,8 +110,10 @@ hand:
 | Held                                                 | By                                     |
 | ---------------------------------------------------- | -------------------------------------- |
 | the declaration has a section, and it says something | `tests/repository/changelog.test.ts`   |
+| the set was taken at a version this tree is          | `tests/tools/panel-shots.test.ts`      |
 | the tag and the declaration agree                    | `.github/workflows/release.yml`        |
 | the built files carry the tagged version             | `.github/workflows/release.yml`        |
+| the set was taken at the tagged version, unmarked    | `.github/workflows/release.yml`        |
 | the tag sits on `main`                               | `.github/workflows/release.yml`        |
 | the file stays inside what the second host takes     | `tests/tools/build-userscript.test.ts` |
 

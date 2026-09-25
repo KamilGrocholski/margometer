@@ -57,6 +57,8 @@ export interface PanelPageOptions {
  * (`src/runtime/margometer-runtime.ts`), so one round is all a flush should ever need.
  */
 const FRAMES_FLUSHED_MAXIMUM = 4;
+/** The host the add-on puts in the page, which every reading of it starts from. */
+export const HOST_SELECTOR = "#MargoMeter-Panel";
 /** What the page hangs its own machinery off, where a test reaches it. */
 export const PROBE_NAME = "margometerE2e";
 /** What the stub answers `updateData` with, so a test can watch the wrap hand it back. */

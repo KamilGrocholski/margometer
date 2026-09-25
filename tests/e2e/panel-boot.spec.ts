@@ -6,8 +6,8 @@
  * something a browser refuses has nothing to fail. This is where it fails. **`develop ADR 0047`.**
  */
 
-import { expect, HOST_SELECTOR, test } from "./panel-fixture.ts";
-import { ENGINE_ANSWER } from "./game-page.ts";
+import { expect, test } from "./panel-fixture.ts";
+import { ENGINE_ANSWER, HOST_SELECTOR } from "./game-page.ts";
 import { waitForFrame } from "./panel-page.ts";
 
 /** The line every failure of the add-on's own is branded with, in the one console it holds. */

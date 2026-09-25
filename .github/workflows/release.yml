@@ -84,6 +84,16 @@ jobs:
                   grep -qx "// @version      ${version}" dist/margometer.user.js
                   grep -qx "// @version      ${version}" dist/margometer.meta.js
 
+            # The pictures a README shows are of the panel, and the panel states the version it was
+            # built at. A set taken before the bump, or without `--release`, puts the previous
+            # number or a `-dev` mark on the front page, and nothing about a PNG looks wrong. The
+            # gate holds the set to the declaration (`tests/tools/panel-shots.test.ts`); this holds
+            # it to the tag, which is the only place the mark itself can be caught.
+            - name: the pictures were taken at the tagged version
+              run: |
+                  version="${GITHUB_REF_NAME#v}"
+                  grep -qF "\"version\": \"${version}\"" screenshots/taken-at.json
+
             # The notes are this version's section of CHANGELOG.md, which is the one document here
             # written for players — not a generated list of commit subjects, for the reason develop ADR
             # 0018 gives. A version with no section fails here, before anything is public.

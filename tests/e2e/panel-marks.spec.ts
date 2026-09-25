@@ -8,7 +8,7 @@
  */
 
 import { expect, test } from "./panel-fixture.ts";
-import { HOST_SELECTOR } from "./panel-fixture.ts";
+import { HOST_SELECTOR } from "./game-page.ts";
 import { waitForFrame } from "./panel-page.ts";
 
 test("a mark before a name leaves that name whole", async ({ panel }) => {

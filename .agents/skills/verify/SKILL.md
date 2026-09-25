@@ -43,6 +43,17 @@ path of its own**, as Pages does (`/margometer/`): an absolute `src` works every
 deployment. Then check the panel appears, the windows stand clear of the band, and the console is
 empty.
 
+## The screenshots
+
+```bash
+deno task panel:shots             # marked -dev
+deno task panel:shots --release   # a release, and only a release
+```
+
+Six pictures into `screenshots/` with `taken-at.json` beside them. It refuses while `src/` carries
+anything no commit holds, and a failed run leaves the previous set alone. Open every one: no machine
+can say whether the state in a picture is reachable.
+
 ## Reading the panel back out
 
 `document.getElementById("MargoMeter-Panel")`: every element the add-on puts in the page is named

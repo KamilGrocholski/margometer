@@ -18,6 +18,7 @@ import {
     composePanelPage,
     type EnginePresence,
     GAME_SCRIPT_NAME,
+    HOST_SELECTOR,
     type PanelPageOptions,
     PLACE_NAME,
 } from "./game-page.ts";
@@ -83,8 +84,6 @@ interface PanelWorkerFixtures {
     built: { script: string; version: string };
 }
 
-/** The host the add-on puts in the page, and the marks a test reaches its controls by. */
-export const HOST_SELECTOR = "#MargoMeter-Panel";
 /** What a region that gave way is drawn as. Nowhere in a healthy panel. */
 export const UNDRAWN_SELECTOR = ".undrawn";
 /** What no row a person reads may ever say. */
