@@ -20,21 +20,9 @@ import {
     WINDOW_PART,
     type WindowPart,
 } from "#/src/userscript-entry.ts";
-import { composeFakeDocument, type FakeElement, getElementsWithin } from "./fake-document.ts";
+import { getElementsWithin } from "./fake-document.ts";
+import { composeFakeWindow, type FakeWindow, flushFakeFrames } from "./fake-window.ts";
 import { lookupRecordedFight } from "./recorded-fights.ts";
-
-interface FakeWindow {
-    page: Record<string, unknown>;
-    /** Every console line, as the values it was written with. */
-    lines: unknown[][];
-    shown: FakeElement[];
-    frames: (() => void)[];
-    stored: Map<string, string>;
-    session: Map<string, string>;
-    /** Every anchor the page made, and what was done with it. */
-    anchors: { download: string; href: string; className: string; calls: string[] }[];
-    blobs: unknown[];
-}
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 const BRANDED_STOOD_DOWN = `MargoMeter/Panel ${BOOT_FAILURE.windowUnusable}`;
@@ -50,94 +38,16 @@ const MEMBERS_BY_PART: readonly (readonly [WindowPart, readonly string[]])[] = [
     [WINDOW_PART.downloads, ["Blob"]],
     [WINDOW_PART.downloads, ["URL"]],
 ];
-const FRAMES_MAXIMUM = 64;
 
 Deno.test("a page stating what the add-on calls stands it up, and the panel goes up at a frame", () => {
     const window = composeFakeWindow();
     const runtime = startMargoMeter(window.page);
     assertExists(runtime, "the add-on stood up");
     assertEquals(window.shown, [], "nothing is drawn before the page gives a frame");
-    flushFrames(window);
+    flushFakeFrames(window);
     assertStrictEquals(window.shown.length, 1, "one panel, put up at the first frame");
     assertEquals(window.lines, [], "and not a word of failure");
 });
-
-/** A page of the test's own, stating every member the entry reads and a game with a battle. */
-function composeFakeWindow(): FakeWindow {
-    const window: FakeWindow = {
-        page: {},
-        lines: [],
-        shown: [],
-        frames: [],
-        stored: new Map(),
-        session: new Map(),
-        anchors: [],
-        blobs: [],
-    };
-    const faked = composeFakeDocument();
-    const createElement = faked.createElement.bind(faked);
-    const document = Object.assign(faked, {
-        createElement: (tag: string) => {
-            if (tag !== "a") return createElement(tag);
-            return composeFakeAnchor(window);
-        },
-        querySelectorAll: () => [{ src: "/js/main.min.53XkBRxF.js" }],
-        body: { append: (node: FakeElement) => void window.shown.push(node) },
-    });
-    window.page = {
-        document,
-        console: { error: (...values: unknown[]) => void window.lines.push(values) },
-        setInterval: () => 1,
-        clearInterval: () => {},
-        setTimeout: () => 1,
-        requestAnimationFrame: (step: () => void) => window.frames.push(step),
-        cancelAnimationFrame: () => void window.frames.splice(0, window.frames.length),
-        Date,
-        Blob: class {
-            constructor(parts: unknown) {
-                window.blobs.push(parts);
-            }
-        },
-        URL: class {
-            static createObjectURL = () => "blob:1";
-            static revokeObjectURL = () => {};
-        },
-        localStorage: composeFakeStorage(window.stored),
-        sessionStorage: composeFakeStorage(window.session),
-        innerWidth: 1280,
-        innerHeight: 900,
-        location: { hostname: "tempest.margonem.pl" },
-        navigator: { userAgent: "a browser that said so" },
-        Engine: { battle: { updateData: () => 1 } },
-    };
-    return window;
-}
-
-function composeFakeAnchor(window: FakeWindow) {
-    const anchor = { download: "", href: "", className: "", calls: [] as string[] };
-    window.anchors.push(anchor);
-    return Object.assign(anchor, {
-        click: () => void anchor.calls.push("click"),
-        remove: () => void anchor.calls.push("remove"),
-    });
-}
-
-function composeFakeStorage(stored: Map<string, string>) {
-    return {
-        getItem: (key: string) => stored.get(key) ?? null,
-        setItem: (key: string, value: string) => void stored.set(key, value),
-        removeItem: (key: string) => void stored.delete(key),
-    };
-}
-
-function flushFrames(window: FakeWindow): void {
-    for (let fallen = 0; fallen < FRAMES_MAXIMUM; fallen += 1) {
-        const step = window.frames.shift();
-        if (step === undefined) return;
-        step();
-    }
-    assert(false, "a frame asks for no second frame of its own");
-}
 
 Deno.test("a recording played through the page's own method reaches the panel and the store", () => {
     const window = composeFakeWindow();
@@ -147,7 +57,7 @@ Deno.test("a recording played through the page's own method reaches the panel an
         const updateData = engine.battle.updateData;
         assert(typeof updateData === "function", "the wrap stands where the method stood");
         Reflect.apply(updateData, engine.battle, [payload]);
-        flushFrames(window);
+        flushFakeFrames(window);
     }
     const host = window.shown[0];
     assertExists(host, "a panel went up");
@@ -200,7 +110,7 @@ Deno.test("a store the browser forbids reading costs the store, and not the add-
         },
     });
     assertExists(startMargoMeter(window.page), "the add-on stood up");
-    flushFrames(window);
+    flushFakeFrames(window);
     assertStrictEquals(window.shown.length, 1, "and its panel went up");
     delete window.page.localStorage;
     assertExists(startMargoMeter(window.page), "as it does on a page lending no store at all");
@@ -255,7 +165,7 @@ function playRecording(window: FakeWindow, path: string): void {
         const updateData = engine.battle.updateData;
         assert(typeof updateData === "function", "the wrap stands where the method stood");
         Reflect.apply(updateData, engine.battle, [payload]);
-        flushFrames(window);
+        flushFakeFrames(window);
     }
 }
 

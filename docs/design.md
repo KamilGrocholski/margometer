@@ -1047,30 +1047,33 @@ This branch starts empty, so the order is what makes each step testable on the l
    keeper, the frame, the tooltip and the file, with the dictionary, tooltip, frame, clock,
    surroundings and file ports.
 7. The entry, and the userscript build.
-8. The simulator:
+8. The simulator, `tests/simulation.ts`. It stands the add-on up by its own entry over a page and a
+   game of the tests' own (`tests/fake-window.ts`, `tests/rebuilding-battle.ts`), plays a recording
+   through the game's method, and has the page refuse and throw where a real one could:
 
 ```ts
 export interface FaultPlan {
     seed: number;
-    storeRefusalPercent: number;
-    foreignThrowPercent: number;
+    storeRefusalPercent: number; // a write to a store refused, as a full one refuses it
+    foreignThrowPercent: number; // any other call into the page throwing
     payloadsPerFrame: number;
 }
-export function initSimulatedPorts(plan: FaultPlan, recording: Recording): SimulatedPorts;
-export function runSimulation(ports: SimulatedPorts, recording: Recording): SimulationReport;
+export function runSimulation(plan: FaultPlan, updates: readonly unknown[]): SimulationReport;
 export interface SimulationReport {
-    hasThrownIntoGame: boolean;
-    figuresEqualFaultFree: boolean;
-    unhandledKinds: readonly string[];
-    defects: readonly DefectCount[];
+    hasThrownIntoGame: boolean; // from the game's call, the start, or a frame
+    ranking: string; // what the last frame drew, compared with a run left alone
+    kindsSaid: string[]; // every kind of failure the console heard
+    unhandledKinds: string[]; // those `FAILURE_FATES` has no fate for
+    faultsInjected: number;
 }
 ```
 
-What the simulator holds, on every recording and every seed:
+What `tests/simulation.test.ts` holds, on every recording and every seed:
 
 - nothing reached the game's stack;
-- with no data faults injected, the figures equal a fault-free run;
-- every failure met a fate.
+- none of the faults touches the data, so the figures equal a run left alone;
+- every failure met a fate;
+- a fault of the page's is met as the page's, and never as a broken invariant of ours.
 
 **The rewrite is proven against `develop`.** On every recording, the figures this branch draws equal
 the figures `develop` @ `fa1dcce` draws. A difference is a finding in one of the two, never a golden

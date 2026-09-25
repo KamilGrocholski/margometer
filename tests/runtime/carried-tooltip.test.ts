@@ -4,18 +4,12 @@
  * read back out of the registry a reader's pointer would draw from.
  */
 
-import { assert, assertEquals, assertExists, assertStrictEquals } from "@std/assert";
+import { assert, assertEquals, assertStrictEquals } from "@std/assert";
 import { isRecord } from "#/libs/unknown-value.ts";
 import { PANEL_WORDS } from "#/src/ui/panel-words.ts";
 import { lookupRecordedFight, readRecordedFights } from "#/tests/recorded-fights.ts";
+import { composeRebuildingBattle } from "#/tests/rebuilding-battle.ts";
 import { initRuntimeWorld } from "#/tests/runtime-world.ts";
-
-/** One fighter's entry in the client's registry of tooltips, and what an open one was told. */
-interface TooltipRegistry {
-    text: string;
-    appended: number;
-    told: number;
-}
 
 const HILDUR = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /** Two people focusing one opponent, which is what the focus pass needs to have anybody to do. */
@@ -54,76 +48,6 @@ Deno.test("every fighter keeps one block through every payload, whoever was rebu
     assertEquals(doubled.slice(0, 5), [], `a fighter took two blocks, ${doubled.length} times`);
     assert(kept > 0, "the recordings carry fighters whose blocks were kept");
 });
-
-/**
- * A battle holding its fighters the way the client does, as far as a tooltip goes: a restated
- * fighter's tooltip is rebuilt, and after every payload carrying `w` its focus pass rebuilds
- * whoever it left focused and whoever the hero focuses now (`develop ADR 0111` cites the build).
- * No recording says which warrior is the hero, so the hero here is the first person stating one.
- */
-function composeRebuildingBattle() {
-    const registries = new Map<number, TooltipRegistry>();
-    const warriorsList: Record<string, Record<string, unknown>> = {};
-    const held = new Map<string, string | null>();
-    const setRebuilt = (id: string, focusedBy: string | null): void => {
-        const registry = registries.get(Number(id)) ?? { text: "", appended: 0, told: 0 };
-        registry.text = `tooltip ${id}`;
-        registries.set(Number(id), registry);
-        held.set(id, focusedBy);
-    };
-    const setFocusedBy = (id: string, focusedBy: string | null): void => {
-        const warrior = warriorsList[id];
-        if (warrior === undefined) return;
-        warrior.focusedBy = focusedBy;
-        setRebuilt(id, focusedBy);
-    };
-    const updateData = (payload: unknown): number => {
-        if (!isRecord(payload)) return 1;
-        if (payload.w === undefined) return 1;
-        const roster = isRecord(payload.w) ? payload.w : {};
-        for (const [id, stated] of Object.entries(roster)) {
-            const warrior = warriorsList[id] ?? { $: composeTipHolder(registries, Number(id)) };
-            if (isRecord(stated)) Object.assign(warrior, stated);
-            warrior.id = Number(id);
-            warriorsList[id] = warrior;
-            setRebuilt(id, null);
-        }
-        for (const [id, focusedBy] of [...held]) {
-            if (focusedBy !== null) setFocusedBy(id, null);
-        }
-        const hero = Object.values(warriorsList).find((one) => {
-            if (one.npc !== 0) return false;
-            return typeof one.focus === "number" && one.focus !== 0;
-        });
-        if (hero !== undefined) setFocusedBy(String(hero.focus), String(hero.name));
-        return 1;
-    };
-    const battle: Record<string, unknown> = { updateData, warriorsList };
-    return { page: { Engine: { battle } }, registries };
-}
-
-/** The client's jQuery set of one fighter's tooltip holders, over that fighter's registry entry. */
-function composeTipHolder(registries: Map<number, TooltipRegistry>, combatantId: number) {
-    const get = (): TooltipRegistry => {
-        const registry = registries.get(combatantId);
-        assertExists(registry, "a fighter the page draws has a tooltip");
-        return registry;
-    };
-    const targets = {
-        getTipData: () => get().text,
-        tip: (content: string) => {
-            get().text = content;
-        },
-        concatTip: (row: string) => {
-            get().text = `${get().text}<br>${row}`;
-            get().appended += 1;
-        },
-        trigger: () => {
-            get().told += 1;
-        },
-    };
-    return { find: () => targets };
-}
 
 /** How many blocks of ours a registry entry holds: the name opens every one of them. */
 function countBlocksInText(text: string): number {
