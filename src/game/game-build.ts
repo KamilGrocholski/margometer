@@ -53,6 +53,15 @@ export function initPageBuild(scripts: PageScripts): BuildPort {
  * does not hold is not the end of the search: a page states this name more than once.
  */
 export function parseGameBuild(text: string): string | null {
+    const span = lookupScriptNameSpan(text);
+    if (span === null) return null;
+    return text.slice(span.buildStart, span.buildEnd);
+}
+
+/** Where the name starts, and where the id inside it does, so both readers walk once. */
+function lookupScriptNameSpan(
+    text: string,
+): { nameStart: number; buildStart: number; buildEnd: number } | null {
     let from = 0;
     for (let look = 0; look < LOOKS_MAXIMUM; look += 1) {
         const head = text.indexOf(SCRIPT_NAME_HEAD, from);
@@ -64,7 +73,7 @@ export function parseGameBuild(text: string): string | null {
         if (buildEnd - buildStart < BUILD_CHARACTERS_MINIMUM) continue;
         if (!text.startsWith(SCRIPT_NAME_TAIL, buildEnd)) continue;
         assert(head < buildStart, "a name starts before the id inside it");
-        return text.slice(buildStart, buildEnd);
+        return { nameStart: head, buildStart, buildEnd };
     }
     return null;
 }
@@ -79,4 +88,17 @@ function isAlphanumericAt(text: string, index: number): boolean {
     }
     if (character >= "A") return character <= "Z";
     return false;
+}
+
+/**
+ * The whole `main.min.53XkBRxF.js`, for a tool that has to ask for the file rather than date it.
+ * Composing the name from the id asks for one that is not there: the separator before the id is
+ * the client's to choose, and it changed once (read 2026-08-25).
+ */
+export function parseGameBundleName(text: string): string | null {
+    const span = lookupScriptNameSpan(text);
+    if (span === null) return null;
+    const end = span.buildEnd + SCRIPT_NAME_TAIL.length;
+    assert(end <= text.length, "a name ends inside the text it was read from");
+    return text.slice(span.nameStart, end);
 }

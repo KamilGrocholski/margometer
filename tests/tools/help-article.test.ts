@@ -1,0 +1,112 @@
+/**
+ * The published help, turned into text and searched.
+ *
+ * Every sample here is invented: the help is the operator's own writing and none of its
+ * sentences enter this repository (`NOTICE.md`). What the frozen table is held to is its own
+ * shape and the article it names — the counts themselves are a measurement, not a fixture.
+ */
+
+import { assert, assertEquals, assertStringIncludes, assertThrows } from "@std/assert";
+import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
+import {
+    CACHE_ROOT,
+    countOccurrences,
+    countPhrases,
+    formatDumpAge,
+    FROZEN_HELP_BANNER,
+    isDumpStale,
+    lookupFragments,
+    MECHANICS_ARTICLE,
+    requireCachedHelpArticle,
+} from "#/tools/help-article.ts";
+import { HelpArticleError } from "#/tools/margometer-tool-error.ts";
+
+const READ_AT = "2026-08-09T12:00:00.000Z";
+const READ_AT_MILLISECONDS = Date.parse(READ_AT);
+const MILLISECONDS_PER_DAY = 86_400_000;
+
+Deno.test("two hits inside one window read as one fragment, and two far apart as two", () => {
+    const near = `${"a".repeat(50)}NEEDLE${"b".repeat(10)}NEEDLE${"c".repeat(50)}`;
+    assertEquals(lookupFragments(near, "needle", 90, 6).length, 1, "one window, one slice");
+    assertEquals(countOccurrences(near, "needle"), 2, "though the count still says two");
+
+    // Keying a repeat on the fragment's first characters collapses two hits preceded by the same
+    // content — a table, a repeated heading — and the hit from elsewhere vanishes silently.
+    const block = `${"x".repeat(40)}NEEDLE${"y".repeat(40)}`;
+    const far = `${block}${"z".repeat(500)}${block}`;
+    const fragments = lookupFragments(far, "needle", 90, 6);
+    assertEquals(fragments.length, 2, "identical surroundings are not the same hit");
+    assertEquals(fragments[0]?.slice(0, 60), fragments[1]?.slice(0, 60) ?? "", "identical, kept");
+});
+
+Deno.test("a search states what it will not do", () => {
+    const text = Array.from({ length: 5 }, () => `NEEDLE${"q".repeat(400)}`).join("");
+    assertEquals(lookupFragments(text, "needle", 100, 3).length, 3, "no more than asked for");
+    assertEquals(lookupFragments(text, "absent", 100, 3), [], "and nothing where there is nothing");
+    assertThrows(() => lookupFragments(text, "", 100, 3), HelpArticleError, "empty phrase");
+});
+
+Deno.test("a dump says how old it is, and says it loudly once it is worth re-fetching", () => {
+    assertEquals(formatDumpAge(READ_AT, READ_AT_MILLISECONDS), "read 2026-08-09 12:00 UTC, today");
+    assertEquals(
+        formatDumpAge(READ_AT, READ_AT_MILLISECONDS + MILLISECONDS_PER_DAY),
+        "read 2026-08-09 12:00 UTC, yesterday",
+        "the day after",
+    );
+    const week = formatDumpAge(READ_AT, READ_AT_MILLISECONDS + 7 * MILLISECONDS_PER_DAY);
+    assertStringIncludes(week, "7 days ago", "a week is stated in days");
+    assertStringIncludes(week, "re-fetch", "and is the point at which the tool says so");
+    const day = formatDumpAge(READ_AT, READ_AT_MILLISECONDS + 6 * MILLISECONDS_PER_DAY);
+    assert(!day.includes("re-fetch"), "the day before it is not");
+    assert(formatDumpAge("not a date", READ_AT_MILLISECONDS).includes("stale"), "nor is a guess");
+
+    // The words and the verdict a script reads come from one comparison, so the boundary is
+    // asserted on both sides of it rather than only where the sentence changes.
+    assert(!isDumpStale(READ_AT, READ_AT_MILLISECONDS), "a dump fetched now is not stale");
+    assert(!isDumpStale(READ_AT, READ_AT_MILLISECONDS + 6 * MILLISECONDS_PER_DAY), "nor at six");
+    assert(isDumpStale(READ_AT, READ_AT_MILLISECONDS + 7 * MILLISECONDS_PER_DAY), "at seven it is");
+    assert(isDumpStale("not a date", READ_AT_MILLISECONDS), "and a date nobody reads counts stale");
+});
+
+Deno.test("an article this cannot date is an article it will not answer from", () => {
+    const whole = {
+        article: "372",
+        url: "https://pomoc.margonem.pl/index/view,372",
+        fetchedAt: READ_AT,
+        textPath: ".cache/help/372/text.txt",
+        textLength: 400132,
+    };
+    assertEquals(requireCachedHelpArticle(whole, "372").textLength, 400132, "a whole manifest");
+    const { fetchedAt: _dropped, ...truncated } = whole;
+    assertThrows(() => requireCachedHelpArticle(truncated, "372"), HelpArticleError);
+    assertThrows(
+        () => requireCachedHelpArticle({ ...whole, article: "9" }, "372"),
+        HelpArticleError,
+    );
+});
+
+Deno.test("counts are deduplicated and sorted, so a re-freeze shows real change only", () => {
+    const counts = countPhrases("blok blok crit", ["crit", "blok", "crit"]);
+    assertEquals(counts, [["blok", 2], ["crit", 1]], "asked twice, counted once, in order");
+    assertEquals(countPhrases("blok", ["absent"]), [["absent", 0]], "a zero is an answer");
+});
+
+Deno.test("the frozen counts name the article they were taken from", () => {
+    assertEquals(FROZEN_HELP_PHRASES.article, MECHANICS_ARTICLE, "the one this tool reads");
+    assert(FROZEN_HELP_PHRASES.fetchedAt.length > 0, "and the dump they were taken from");
+    assert(Object.keys(FROZEN_HELP_PHRASES.counts).length > 0, "there are counts in the table");
+    assert(CACHE_ROOT.startsWith(".cache/"), "the dump itself stays where nothing publishes it");
+});
+
+/**
+ * The frozen counts against the generator that writes them, the same way the key table is held.
+ * A regeneration needs the cached dump and CI has none; the banner needs nothing.
+ */
+Deno.test("the frozen phrases stand under the banner their generator writes", () => {
+    const frozen = Deno.readTextFileSync("frozen/help-phrases.ts");
+    assert(FROZEN_HELP_BANNER.length > 0, "the generator states a banner");
+    assert(
+        frozen.startsWith(FROZEN_HELP_BANNER),
+        "frozen/help-phrases.ts was written by an older version of its generator",
+    );
+});

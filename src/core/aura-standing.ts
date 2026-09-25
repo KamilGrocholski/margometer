@@ -32,6 +32,12 @@ export interface ShoutStated {
     coverageMinimum: number;
 }
 
+/** One effect of a skill as the published table dates it, level by level. */
+export interface SkillEffectTurns {
+    key: string;
+    turns: readonly number[];
+}
+
 /** What the table states about the skills the window draws, handed over rather than imported. */
 export interface StatedSkills {
     turnsBySkillId: ReadonlyMap<number, number>;
@@ -160,6 +166,28 @@ export function indexShoutsBySkillId(
     }
     assert(found.size === stated.length, "and each of them is named once");
     return found;
+}
+
+/**
+ * How long the published table says a skill stands on a side: ⚠️ **the longest of its side-wide
+ * effects**, since a skill running one for three turns and another for five is not over at three.
+ * The shout half is dated by its own row and takes no part: skill 25 shouts for 3 turns and stands
+ * on its side for 2 (`frozen/skill-durations.ts`, read 2026-09-21), and the longest over both stood
+ * the aura a turn past the table. Null where no effect reaches a side. `tools/skill-table.ts`
+ * freezes the aura table by this, so the rule and the table cannot be two readings.
+ */
+export function lookupStatedTurns(effects: readonly SkillEffectTurns[]): number | null {
+    assert(effects.length <= STANDINGS_MAXIMUM, "a skill states a bounded list of effects");
+    let longest = 0;
+    for (const effect of effects) {
+        if (effect.key === PROVOCATION_KEY) continue;
+        if (!isTeamWideKey(effect.key)) continue;
+        for (const turns of effect.turns) {
+            if (turns > longest) longest = turns;
+        }
+    }
+    assert(longest >= 0, "a duration that was read is not below nothing");
+    return longest === 0 ? null : longest;
 }
 
 /**

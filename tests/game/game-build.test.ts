@@ -8,7 +8,7 @@
 
 import { assertEquals, assertStrictEquals } from "@std/assert";
 import { err, ok, RESULT_FAILURE } from "#/libs/result.ts";
-import { initPageBuild, parseGameBuild } from "#/src/game/game-build.ts";
+import { initPageBuild, parseGameBuild, parseGameBundleName } from "#/src/game/game-build.ts";
 import { PAGE_READ_FAILURE, PAGE_READING } from "#/src/game/page-reading.ts";
 
 Deno.test("both names the client has served give up their build", () => {
@@ -88,5 +88,20 @@ Deno.test("a name of full length whose tail does not hold is passed for the next
         parseGameBuild("main.min.53XkBRxF.css then main.min.Bb28FQty.js"),
         "Bb28FQty",
         "the second one answers where the first had the wrong tail",
+    );
+});
+
+Deno.test("the bundle's whole name is read where the id is, in both shapes the client served", () => {
+    const page = '<script src="/js/main.min.53XkBRxF.js"></script>';
+    assertStrictEquals(parseGameBundleName(page), "main.min.53XkBRxF.js");
+    assertStrictEquals(
+        parseGameBundleName("/js/main.min1786514810315.js"),
+        "main.min1786514810315.js",
+    );
+    assertStrictEquals(parseGameBundleName("main.min.short.js"), null, "an id too short is none");
+    assertStrictEquals(
+        parseGameBundleName("main.min.53XkBRxF.css"),
+        null,
+        "and so is another file",
     );
 });

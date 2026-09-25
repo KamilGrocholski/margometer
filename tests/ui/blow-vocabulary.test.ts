@@ -25,7 +25,8 @@ import {
     PROC_SUB_WORD_BY_KEY,
     PROC_WORD_BY_KEY,
 } from "#/src/ui/panel-words.ts";
-import { BLOWS_GRANTED, readFrozenModule } from "#/tests/frozen-tables.ts";
+import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
+import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
 import { readRecordedFights } from "#/tests/recorded-fights.ts";
 
 interface BlowKeys {
@@ -33,10 +34,6 @@ interface BlowKeys {
     defences: Set<string>;
     destroyed: Set<string>;
 }
-
-const { FROZEN_PROTOCOL_KEYS } = await readFrozenModule("protocol-keys") as {
-    FROZEN_PROTOCOL_KEYS: { keys: readonly string[] };
-};
 
 const CARRIED = getBlowKeysFromRecordings();
 

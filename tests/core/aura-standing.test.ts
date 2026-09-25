@@ -19,6 +19,7 @@ import {
     indexAuraTurnsBySkillId,
     indexShoutsBySkillId,
     lookupReachOfEffects,
+    lookupStatedTurns,
     replayFightStandings,
     type StatedSkills,
 } from "#/src/core/aura-standing.ts";
@@ -743,5 +744,30 @@ Deno.test("the slow a Szadź casts reaches the other side", () => {
         lookupReachOfEffects([{ effect: "allslow_per" }]),
         "other-side",
         "the one reach settled by measurement rather than by the register",
+    );
+});
+
+Deno.test("a skill stands for its longest side-wide effect, and a shout dates none of it", () => {
+    // `Wyzywający okrzyk` runs one effect for three turns and two for five; the shortest would call
+    // the skill over while part of it still stands.
+    const stated = lookupStatedTurns([
+        { key: "shout", turns: [3, 3] },
+        { key: "alllowdmg", turns: [5, 5] },
+        { key: "red-sa", turns: [] },
+    ]);
+    assertStrictEquals(stated, 5, "the longest of those that reach a side");
+    assertStrictEquals(lookupStatedTurns([{ key: "cooldown", turns: [6] }]), null, "none reach");
+    assertStrictEquals(
+        lookupStatedTurns([
+            { key: "shout", turns: [3, 3, 3] },
+            { key: "aura-adddmg2_per-meele_physical", turns: [2] },
+        ]),
+        2,
+        "the side-wide half stands on its own turns",
+    );
+    assertStrictEquals(
+        lookupStatedTurns([{ key: "shout", turns: [3, 3, 3] }]),
+        null,
+        "and a skill that only shouts reaches no side-wide row",
     );
 });

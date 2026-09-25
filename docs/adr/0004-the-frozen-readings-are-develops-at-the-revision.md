@@ -1,6 +1,6 @@
 # 0004. The frozen readings are `develop`'s at the revision the recordings are read at
 
-- **Status:** Accepted
+- **Status:** Superseded by ADR 0005
 - **Date:** 2026-09-25
 
 ## Context

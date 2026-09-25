@@ -12,6 +12,12 @@ export const TOOL_ERROR_CODE = {
     developReport: "DevelopReport",
     changelog: "Changelog",
     captureIntake: "CaptureIntake",
+    gameSource: "GameSource",
+    gameUnreachable: "GameUnreachable",
+    protocolKeyTable: "ProtocolKeyTable",
+    buffBitTable: "BuffBitTable",
+    skillTable: "SkillTable",
+    helpArticle: "HelpArticle",
 } as const;
 export type ToolErrorCode = VocabularyWord<typeof TOOL_ERROR_CODE>;
 
@@ -64,5 +70,47 @@ export class ChangelogError extends MargoMeterToolError {
 export class CaptureIntakeError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super(TOOL_ERROR_CODE.captureIntake, reason, options);
+    }
+}
+
+/** The client's page or bundle could not be read the way this tool expects, or its cache is broken. */
+export class GameSourceError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.gameSource, reason, options);
+    }
+}
+
+/** A world that did not answer. Its own class, because "the game moved on" and "nobody could ask" lead to different verdicts. */
+export class GameUnreachableError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.gameUnreachable, reason, options);
+    }
+}
+
+/** The client's key table could not be lifted out of its bundle. */
+export class ProtocolKeyTableError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.protocolKeyTable, reason, options);
+    }
+}
+
+/** The client's status bits could not be lifted out of its bundle. */
+export class BuffBitTableError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.buffBitTable, reason, options);
+    }
+}
+
+/** The published skill table could not be read, or no longer holds its shape. */
+export class SkillTableError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.skillTable, reason, options);
+    }
+}
+
+/** The published help could not be read, or a phrase it is asked for is not a phrase. */
+export class HelpArticleError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.helpArticle, reason, options);
     }
 }

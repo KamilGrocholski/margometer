@@ -28,6 +28,19 @@
         // The panel in a browser over any recording, stepped by hand, rebuilt and reloaded when a
         // file the bundle reads changes. The page is the one the browser suite drives.
         "preview": "deno run -A tools/preview-server.ts",
+        // Every reading of the game this repository stands on, asked whether it is still the
+        // game's, and made current again. What a work round starts with (W10), because the gate
+        // reaches no network and so cannot tell that one went behind: `frozen/AGENTS.md`.
+        "game:readings": "deno run -A tools/game-readings.ts",
+        // The client fetched and dated, so a claim about it names the build it was read on.
+        "game:client": "deno run -A tools/game-client-source.ts",
+        // Every key the client branches on, and the bits a status mask is read by.
+        "game:keys": "deno run -A tools/protocol-key-table.ts",
+        "game:buffs": "deno run -A tools/buff-bit-table.ts",
+        // Every skill the game publishes, and the turns each effect runs for.
+        "game:skills": "deno run -A tools/skill-table.ts",
+        // The published help, cached and searched, and the counts the panel's words are held to.
+        "game:help": "deno run -A tools/help-article.ts",
         // How a recording the add-on wrote becomes material: redacted, and written into
         // `captures/` for a person to read and commit.
         "capture:intake": "deno run -A tools/capture-intake.ts",
@@ -48,6 +61,10 @@
         "exclude": [
             // Evidence. Formatting a recording is editing it (`captures/AGENTS.md`).
             "captures/",
+            // Written by their tools, headers and layout included; regenerating is how they
+            // change (`frozen/AGENTS.md`).
+            "frozen/protocol-keys.ts",
+            "frozen/help-phrases.ts",
             // Fights nobody fought, and output nobody hand-writes.
             "fabricated/",
             "dist/",

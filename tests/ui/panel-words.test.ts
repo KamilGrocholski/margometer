@@ -93,18 +93,12 @@ import { STORAGE_CHOICES } from "#/src/ui/panel-choice.ts";
 import { PINNED_CASES, SIDE_PART, UNNAMED_END } from "#/src/ui/panel-reading.ts";
 import { PANEL_NOUN, SCREEN_ORDER, SIDE_CHOICES } from "#/src/ui/panel-screen.ts";
 import { STANDING_TURN_STATE } from "#/src/ui/panel-standing.ts";
-import { readFrozenModule } from "#/tests/frozen-tables.ts";
 import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
+import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
+import { FROZEN_PROTOCOL_KEYS } from "#/frozen/protocol-keys.ts";
 
 /** What a block may run to: a row per status the client names, and the rows beside them. */
 const TOOLTIP_ROWS_MAXIMUM = FROZEN_BUFF_BITS.bits.length + ROWS_BESIDE_THE_STATUSES;
-
-const { FROZEN_PROTOCOL_KEYS } = await readFrozenModule("protocol-keys") as {
-    FROZEN_PROTOCOL_KEYS: { keys: readonly string[] };
-};
-const { FROZEN_HELP_PHRASES } = await readFrozenModule("help-phrases") as {
-    FROZEN_HELP_PHRASES: { counts: Record<string, number> };
-};
 
 /** Words this repository chose for itself. A reader is told what is missing, never our reason. */
 const OUR_VOCABULARY = [

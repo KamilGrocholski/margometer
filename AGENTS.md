@@ -382,8 +382,8 @@ TypeScript idiom, with the naming rules stated here.
 - **W9.** A change under `src/` is not done until the end-to-end suite is green as well, from the
   commit that brings the suite. `develop ADR 0047`.
 - **W10.** A work round that relies on frozen readings of the game starts with them current, by
-  `develop`'s `frozen/AGENTS.md`: this branch's readings are `develop`'s at the revision the
-  recordings are read at, and move only with it (ADR 0004).
+  `frozen/AGENTS.md`: `deno task game:readings status`, and `refresh` where one went behind (ADR
+  0005).
 
 ## Git
 
@@ -437,21 +437,23 @@ compute, and stays out of this table for good.
 **A reader is proved by a sample it must flag and a sample it must not.** The first catches a reader
 that has stopped finding its subject; only the second catches one that finds too much.
 
-| Guard                                            | Holds               |
-| ------------------------------------------------ | ------------------- |
-| `deno check`, strict, with unused names an error | S7                  |
-| `tests/repository/declaration-order.test.ts`     | C1                  |
-| `tests/repository/function-length.test.ts`       | S4                  |
-| `tests/repository/regular-expressions.test.ts`   | C7                  |
-| `tests/repository/import-paths.test.ts`          | C8                  |
-| `tests/repository/non-null-assertions.test.ts`   | C12                 |
-| `tests/repository/synchronous-bundle.test.ts`    | S13                 |
-| `tests/repository/assert-imports.test.ts`        | A6, A10             |
-| `tests/repository/throws.test.ts`                | E1, E13             |
-| `tests/repository/names.test.ts`                 | N1, N10             |
-| `tests/repository/layers.test.ts`                | `docs/design.md` §4 |
-| `tests/repository/browser-suite-keys.test.ts`    | N13                 |
-| `tests/repository/reader-layer.test.ts`          | A11                 |
-| `tests/repository/frozen-readings.test.ts`       | ADR 0004            |
-| `deno check --config project/browser-lib.json`   | the browser floor   |
-| `requireBundleInBrowser` in the build            | Never: the network  |
+| Guard                                              | Holds                     |
+| -------------------------------------------------- | ------------------------- |
+| `deno check`, strict, with unused names an error   | S7                        |
+| `tests/repository/declaration-order.test.ts`       | C1                        |
+| `tests/repository/function-length.test.ts`         | S4                        |
+| `tests/repository/regular-expressions.test.ts`     | C7                        |
+| `tests/repository/import-paths.test.ts`            | C8                        |
+| `tests/repository/non-null-assertions.test.ts`     | C12                       |
+| `tests/repository/synchronous-bundle.test.ts`      | S13                       |
+| `tests/repository/assert-imports.test.ts`          | A6, A10                   |
+| `tests/repository/throws.test.ts`                  | E1, E13                   |
+| `tests/repository/names.test.ts`                   | N1, N10                   |
+| `tests/repository/layers.test.ts`                  | `docs/design.md` §4       |
+| `tests/repository/browser-suite-keys.test.ts`      | N13                       |
+| `tests/repository/reader-layer.test.ts`            | A11                       |
+| `tests/repository/skill-durations.test.ts`         | ADR 0005                  |
+| `tests/repository/redacted-names.test.ts`          | `captures/AGENTS.md`      |
+| `tests/repository/captured-fight-register.test.ts` | `docs/captured-fights.md` |
+| `deno check --config project/browser-lib.json`     | the browser floor         |
+| `requireBundleInBrowser` in the build              | Never: the network        |
