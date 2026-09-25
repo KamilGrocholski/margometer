@@ -4,10 +4,10 @@
  * said is the fixture's, over every stop the crawl made.
  */
 
-import process from "node:process";
-import { RECORDINGS_DIRECTORY, RECORDINGS_REVISION } from "#/tests/recording-revision.ts";
+import { readdirSync } from "node:fs";
+import { RECORDINGS_DIRECTORY } from "#/tests/recording-sources.ts";
 import { expect, test } from "./panel-fixture.ts";
-import { readRecordingText, waitForFrame } from "./panel-page.ts";
+import { waitForFrame } from "./panel-page.ts";
 import { composeCrawlScript, type CrawlReport } from "./panel-crawler.ts";
 
 /** The largest recording there is, which is the one worth walking to the bottom. */
@@ -80,14 +80,11 @@ test.describe("a panel narrower than what it drew", () => {
  * out. Read rather than listed (`develop:captures/AGENTS.md`), and an empty directory is a failure.
  */
 function readRecordingPaths(): string[] {
-    const listed = readRecordingText(process.cwd(), [
-        "ls-tree",
-        "--name-only",
-        RECORDINGS_REVISION,
-        RECORDINGS_DIRECTORY,
-    ]);
-    const paths = listed.split("\n").filter((path) => path.endsWith(".json")).sort();
-    expect(paths.length, `there are recordings at ${RECORDINGS_REVISION}`).toBeGreaterThan(0);
+    const paths = readdirSync(RECORDINGS_DIRECTORY)
+        .filter((name) => name.endsWith(".json"))
+        .map((name) => `${RECORDINGS_DIRECTORY}${name}`)
+        .sort();
+    expect(paths.length, `there are recordings under ${RECORDINGS_DIRECTORY}`).toBeGreaterThan(0);
     return paths;
 }
 

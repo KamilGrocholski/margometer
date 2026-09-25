@@ -1,8 +1,6 @@
 /**
- * The recordings, read out of git at the revision `AGENTS.md` W8 names, without a checkout.
- *
- * `captures/` lives on `develop`, and touching it is asked first on any branch, so this reads git's
- * objects and writes nothing. A recording arrives as `unknown` and is walked rather than cast: a
+ * The recordings, read off `captures/` in the tree. Discovered by reading the directory, never by a
+ * list of names (`captures/AGENTS.md`), and never written to. A recording arrives as `unknown` and is walked rather than cast: a
  * shape a recording does not have is a finding, not a field that quietly reads `undefined`.
  */
 
@@ -28,7 +26,7 @@ import type { FightStatistics } from "#/src/core/fight-statistics.ts";
 import { readPayloadEnvelope } from "#/src/game/payload-envelope.ts";
 import { FILE_FIELD } from "#/src/runtime/fight-file.ts";
 import { BLOWS_GRANTED } from "./frozen-tables.ts";
-import { RECORDINGS_DIRECTORY, RECORDINGS_REVISION } from "./recording-revision.ts";
+import { RECORDINGS_DIRECTORY } from "./recording-sources.ts";
 
 export interface RecordedFight {
     path: string;
@@ -90,23 +88,17 @@ let recordedFights: readonly RecordedFight[] | null = null;
 
 export function readRecordedFights(): readonly RecordedFight[] {
     if (recordedFights !== null) return recordedFights;
-    const paths = readGitText(["ls-tree", "--name-only", RECORDINGS_REVISION, RECORDINGS_DIRECTORY])
-        .split("\n")
-        .filter((line) => line.endsWith(RECORDING_EXTENSION));
+    const paths = [...Deno.readDirSync(RECORDINGS_DIRECTORY)]
+        .filter((entry) => entry.isFile)
+        .map((entry) => `${RECORDINGS_DIRECTORY}${entry.name}`)
+        .filter((path) => path.endsWith(RECORDING_EXTENSION))
+        .sort();
     assert(paths.length > 0, "an empty evidence directory is a finding, not a pass");
     assertStrictEquals(new Set(paths).size, paths.length, "a recording is listed once");
     recordedFights = paths.map((path) => {
-        const text = readGitText(["show", `${RECORDINGS_REVISION}:${path}`]);
-        return readRecordedFight(path, JSON.parse(text));
+        return readRecordedFight(path, JSON.parse(Deno.readTextFileSync(path)));
     });
     return recordedFights;
-}
-
-function readGitText(args: string[]): string {
-    const output = new Deno.Command("git", { args, stdout: "piped", stderr: "piped" }).outputSync();
-    const error = new TextDecoder().decode(output.stderr);
-    assert(output.success, `git ${args.join(" ")} answered: ${error}`);
-    return new TextDecoder().decode(output.stdout);
 }
 
 /** A recording's parsed text, wherever it was read from. Its shape is asserted, not trusted. */
@@ -185,7 +177,7 @@ function readRecordedHealth(snapshot: unknown, path: string): RecordedHealth {
 /** By the path it has under `captures/` on `develop`. */
 export function lookupRecordedFight(path: string): RecordedFight {
     const found = readRecordedFights().find((one) => one.path === path);
-    assertExists(found, `${path} is a recording at ${RECORDINGS_REVISION}`);
+    assertExists(found, `${path} is a recording under ${RECORDINGS_DIRECTORY}`);
     return found;
 }
 

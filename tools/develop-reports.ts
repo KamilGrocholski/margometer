@@ -1,5 +1,5 @@
 /**
- * `docs/design.md` §12's proof, run by hand: the reports `develop` prints at `RECORDINGS_REVISION`,
+ * `docs/design.md` §12's proof, run by hand: the reports `develop` prints at `DEVELOP_REVISION`,
  * from its own tree and its own tasks, against the ones this branch prints. The figures are held
  * recording by recording, and the decoding status as one text. A difference is a finding in one
  * of the two, never an expectation to move (`AGENTS.md` W8). It stays out of the gate because it
@@ -12,10 +12,15 @@ import { assert, assertStrictEquals } from "@std/assert";
 import { emptyDirSync } from "@std/fs";
 import { formatInteger } from "#/libs/number-text.ts";
 import { callForeign } from "#/libs/result.ts";
-import { RECORDINGS_REVISION } from "#/tests/recording-revision.ts";
-import { formatDecodingStatus } from "./decoding-status.ts";
-import { formatRecordedFigures } from "./fight-figures.ts";
+import { DEVELOP_REVISION } from "#/tests/recording-sources.ts";
+import { formatMaterialStatus } from "./decoding-status.ts";
+import { formatMaterialFigures } from "./fight-figures.ts";
 import { DevelopReportError } from "./margometer-tool-error.ts";
+import {
+    formatRecordingName,
+    readRecordedMaterial,
+    type RecordedMaterial,
+} from "./recorded-material.ts";
 
 /** One section the two reports do not print alike: a recording, or a whole report. */
 export interface ReportDifference {
@@ -234,16 +239,41 @@ function runDevelopCommand(command: string, args: readonly string[]): void {
     }
 }
 
-if (import.meta.main) {
-    const figures = compareReportSections(
-        readDevelopReport(RECORDINGS_REVISION, FIGURES_TASK),
-        formatRecordedFigures([]),
+/**
+ * The recordings `develop` reported on, out of the ones in the tree: a recording admitted since
+ * that revision is one `develop` never read, and is named apart rather than counted as a
+ * difference.
+ */
+export function selectDevelopMaterial(
+    material: RecordedMaterial,
+    developNames: ReadonlySet<string>,
+): { shared: RecordedMaterial; newer: string[] } {
+    assert(developNames.size <= SECTIONS_MAXIMUM, "develop reported on a bounded material");
+    const shared = material.fights.filter((fight) =>
+        developNames.has(formatRecordingName(fight.path))
     );
+    const newer = material.fights
+        .filter((fight) => !developNames.has(formatRecordingName(fight.path)))
+        .map((fight) => formatRecordingName(fight.path));
+    assertStrictEquals(
+        shared.length + newer.length,
+        material.fights.length,
+        "each is one or other",
+    );
+    return { shared: { material: material.material, fights: shared }, newer };
+}
+
+if (import.meta.main) {
+    const developFigures = readDevelopReport(DEVELOP_REVISION, FIGURES_TASK);
+    const developNames = new Set(indexReportSections(developFigures).keys());
+    const chosen = selectDevelopMaterial(readRecordedMaterial([]), developNames);
+    const figures = compareReportSections(developFigures, formatMaterialFigures(chosen.shared));
     const decoding = compareWholeReports(
         DECODING_TASK,
-        readDevelopReport(RECORDINGS_REVISION, DECODING_TASK),
-        formatDecodingStatus([]),
+        readDevelopReport(DEVELOP_REVISION, DECODING_TASK),
+        formatMaterialStatus(chosen.shared),
     );
+    for (const name of chosen.newer) console.log(`+ ${name}: admitted since ${DEVELOP_REVISION}`);
     for (const line of formatComparison(FIGURES_TASK, figures)) console.log(line);
     for (const line of formatComparison(DECODING_TASK, decoding)) console.log(line);
     const differ = figures.differences.length + decoding.differences.length;

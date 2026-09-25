@@ -158,12 +158,9 @@ Deno.test("a snapshot is written in the fields and the order the recordings carr
     assert(checked > 0, "the recordings carry snapshots to compare against");
 });
 
-/** The recording as git holds it, for the snapshots `tests/recorded-fights.ts` folds away. */
+/** The recording as the file holds it, for the snapshots `tests/recorded-fights.ts` folds away. */
 function readRecordedText(path: string): string {
-    const args = ["show", `fa1dcce:${path}`];
-    const output = new Deno.Command("git", { args, stdout: "piped" }).outputSync();
-    assert(output.success, `git show ${path}`);
-    return new TextDecoder().decode(output.stdout);
+    return Deno.readTextFileSync(path);
 }
 
 Deno.test("what a payload states about a combatant is what the snapshot states", () => {

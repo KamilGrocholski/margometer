@@ -1,0 +1,5913 @@
+{
+  "formatVersion": 3,
+  "addOnVersion": "0.14.0",
+  "capturedAt": "2026-09-09T07:53:16.949Z",
+  "world": "tempest",
+  "gameBuild": "ne0iTNdg",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0",
+  "droppedCalls": 103,
+  "isTruncated": false,
+  "calls": [
+    {
+      "index": 0,
+      "payload": {
+        "init": "1",
+        "auto": "0",
+        "battleground": "h.jpg",
+        "skills_disabled": [],
+        "skills_combo_max": [
+          [
+            85,
+            3
+          ]
+        ],
+        "skills": [
+          "-1",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "-2",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "232",
+          "Zatruta strzała",
+          "5",
+          "9",
+          "2",
+          "(description from the game — removed, NOTICE.md)",
+          "reqp=h;reqw=dis,poison;lvl=25",
+          "1/10",
+          "poisonbon_poison-perw=134;energy=25;lowdmg_enemy=7;combo-skill=1",
+          "",
+          "97",
+          "Podwójny strzał",
+          "5",
+          "9",
+          "1",
+          "(description from the game — removed, NOTICE.md)",
+          "reqp=h;reqw=dis;lvl=25",
+          "1/10",
+          "energy=23;lowdmg_self=25;add_attacks=1;combo-skill=1;cooldown=3;agi=0.2",
+          "",
+          "85",
+          "Błyskawiczny strzał",
+          "5",
+          "9",
+          "4",
+          "(description from the game — removed, NOTICE.md)",
+          "reqp=h;reqw=dis;lvl=25",
+          "1/10",
+          "red-sa=16;active_decevade_per=100;combo_energyrestore_per=5;combo-max=3;cooldown=5 ",
+          "",
+          "113",
+          "Krytyczne wzmocnienie",
+          "5",
+          "11",
+          "1",
+          "(description from the game — removed, NOTICE.md)",
+          "reqp=h;reqw=dis;lvl=50",
+          "1/10",
+          "active_crit=6@2;energy=16;combo-crit=1;cooldown=2 ",
+          "",
+          "264",
+          "Piętno bestii",
+          "1",
+          "10",
+          "5",
+          "(description from the game — removed, NOTICE.md)",
+          "reqp=h;lvl=35",
+          "10/10",
+          "taken_dmg_per-all=15@8;red-sa=-35;energy=48;cooldown=8",
+          ""
+        ],
+        "w": {
+          "462342": {
+            "originalId": 462342,
+            "name": "Gracz 1",
+            "lvl": 64,
+            "oplvl": 64,
+            "prof": "w",
+            "gender": "m",
+            "npc": 0,
+            "hp": {
+              "max": 15615,
+              "cur": 15615,
+              "hpp": 100
+            },
+            "team": 1,
+            "y": 2,
+            "icon": "/kuf/kuf_trollxvi2.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "ac": {
+              "cur": 1035,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "originalId": 473373,
+            "name": "Gracz 2",
+            "lvl": 70,
+            "oplvl": 70,
+            "prof": "h",
+            "gender": "m",
+            "npc": 0,
+            "hp": {
+              "max": 14467,
+              "cur": 12689,
+              "hpp": 87.71
+            },
+            "team": 2,
+            "y": 5,
+            "icon": "/kuf/kuf_h17-h3-low-m.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "mana": 0,
+            "energy": 150,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 0,
+            "ac": {
+              "cur": 521,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "cooldowns": [],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 473373
+          },
+          "477718": {
+            "originalId": 477718,
+            "name": "Gracz 3",
+            "lvl": 70,
+            "oplvl": 70,
+            "prof": "t",
+            "gender": "m",
+            "npc": 0,
+            "hp": {
+              "max": 13313,
+              "cur": 13313,
+              "hpp": 100
+            },
+            "team": 2,
+            "y": 5,
+            "icon": "/trop/40/m_tr12.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "mana": 230,
+            "energy": 158,
+            "mana0": 230,
+            "energy0": 158,
+            "fast": 0,
+            "ac": {
+              "cur": 397,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 12,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 38,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "id": 477718
+          }
+        },
+        "myteam": 2,
+        "move": 15,
+        "start_move": 15,
+        "current": 473373,
+        "turns_warriors": {
+          "1": 473373,
+          "2": 477718,
+          "3": 462342,
+          "4": 473373,
+          "5": 477718,
+          "6": 462342,
+          "7": 473373,
+          "8": 477718,
+          "9": 473373,
+          "10": 462342
+        },
+        "poolTime": {
+          "total": 120,
+          "minimum": 2,
+          "penalty": 5,
+          "left": 120
+        },
+        "m": [
+          "473373=87.71;0;poison_lowdmg_per-enemies=10"
+        ],
+        "mi": [
+          0
+        ]
+      },
+      "messages": [
+        "473373=87.71;0;poison_lowdmg_per-enemies=10"
+      ],
+      "combatantsBefore": [],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 15615,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 1035,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 150,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 230,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 120
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 15615,
+              "hpp": 100
+            },
+            "y": 2,
+            "ac": {
+              "cur": 1035,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 115
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12689,
+              "hpp": 87.71
+            },
+            "mana": 0,
+            "energy": 105,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 0,
+            "ac": {
+              "cur": 521,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "cooldowns": [
+              [
+                264,
+                8
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 473373
+          }
+        },
+        "move": 0,
+        "current": 477718,
+        "turns_warriors": {
+          "2": 477718,
+          "3": 462342,
+          "4": 477718,
+          "5": 473373,
+          "6": 462342,
+          "7": 473373,
+          "8": 477718,
+          "9": 462342,
+          "10": 473373,
+          "11": 477718
+        },
+        "m": [
+          "473373=87.71;462342=100.00;tspell=Piętno bestii;skillId=264;+spell-taken_dmg-all"
+        ],
+        "mi": [
+          1
+        ]
+      },
+      "messages": [
+        "473373=87.71;462342=100.00;tspell=Piętno bestii;skillId=264;+spell-taken_dmg-all"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 15615,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 1035,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 150,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 230,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 15615,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 1035,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 105,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 230,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "payload": {
+        "w": {
+          "477718": {
+            "poolTime": {
+              "left": 116
+            },
+            "hp": {
+              "max": 13313,
+              "cur": 13313,
+              "hpp": 100
+            },
+            "mana": 169,
+            "energy": 158,
+            "mana0": 230,
+            "energy0": 158,
+            "fast": 0,
+            "ac": {
+              "cur": 397,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 12,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 38,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 0,
+            "id": 477718
+          }
+        },
+        "move": 0,
+        "current": 462342,
+        "turns_warriors": {
+          "3": 462342,
+          "4": 477718,
+          "5": 473373,
+          "6": 462342,
+          "7": 473373,
+          "8": 477718,
+          "9": 473373,
+          "10": 462342,
+          "11": 477718,
+          "12": 473373
+        },
+        "m": [
+          "477718=100.00;477718=100.00;tspell=Podwójny dech;skillId=89;aura-sa_per=20"
+        ],
+        "mi": [
+          2
+        ]
+      },
+      "messages": [
+        "477718=100.00;477718=100.00;tspell=Podwójny dech;skillId=89;aura-sa_per=20"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 15615,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 1035,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 105,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 230,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 15615,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 1035,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 105,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 116
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 15615,
+              "hpp": 100
+            },
+            "y": 2,
+            "ac": {
+              "cur": 1035,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 115
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12689,
+              "hpp": 87.71
+            },
+            "mana": 0,
+            "energy": 105,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 0,
+            "ac": {
+              "cur": 521,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 462342,
+            "cooldowns": [
+              [
+                264,
+                8
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 473373
+          },
+          "477718": {
+            "poolTime": {
+              "left": 116
+            },
+            "hp": {
+              "max": 13313,
+              "cur": 13313,
+              "hpp": 100
+            },
+            "mana": 169,
+            "energy": 158,
+            "mana0": 230,
+            "energy0": 158,
+            "fast": 0,
+            "ac": {
+              "cur": 397,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 12,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 38,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 462342,
+            "id": 477718
+          }
+        },
+        "move": 0,
+        "current": 477718,
+        "turns_warriors": {
+          "4": 477718,
+          "5": 473373,
+          "6": 462342,
+          "7": 473373,
+          "8": 477718,
+          "9": 462342,
+          "10": 473373,
+          "11": 477718,
+          "12": 473373,
+          "13": 462342
+        },
+        "m": [
+          "462342=100.00;473373=87.71;tspell=Wyzywający okrzyk;skillId=188;shout=Gracz 3, Gracz 2;active_decblock_per-enemies=10;alllowdmg=5"
+        ],
+        "mi": [
+          3
+        ]
+      },
+      "messages": [
+        "462342=100.00;473373=87.71;tspell=Wyzywający okrzyk;skillId=188;shout=Gracz 3, Gracz 2;active_decblock_per-enemies=10;alllowdmg=5"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 15615,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 1035,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 105,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 15615,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 1035,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 105,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 4,
+      "payload": {
+        "w": {
+          "477718": {
+            "poolTime": {
+              "left": 116
+            },
+            "hp": {
+              "max": 13313,
+              "cur": 13313,
+              "hpp": 100
+            },
+            "mana": 169,
+            "energy": 158,
+            "mana0": 230,
+            "energy0": 158,
+            "fast": 1,
+            "ac": {
+              "cur": 397,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 12,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 38,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 462342,
+            "id": 477718
+          }
+        }
+      },
+      "messages": [],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 15615,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 1035,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 105,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 15615,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 1035,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 105,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 5,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 116
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 14989,
+              "hpp": 95.99
+            },
+            "y": 2,
+            "ac": {
+              "cur": 999,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 32,
+            "focus": 0,
+            "id": 462342
+          },
+          "477718": {
+            "poolTime": {
+              "left": 111
+            },
+            "hp": {
+              "max": 13313,
+              "cur": 13313,
+              "hpp": 100
+            },
+            "mana": 183,
+            "energy": 140,
+            "mana0": 230,
+            "energy0": 158,
+            "fast": 1,
+            "ac": {
+              "cur": 397,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 12,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 38,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 462342,
+            "id": 477718
+          }
+        },
+        "move": 15,
+        "start_move": 15,
+        "current": 473373,
+        "turns_warriors": {
+          "5": 473373,
+          "6": 462342,
+          "7": 473373,
+          "8": 477718,
+          "9": 473373,
+          "10": 462342,
+          "11": 477718,
+          "12": 473373,
+          "13": 477718,
+          "14": 473373
+        },
+        "poolTime": {
+          "left": 115
+        },
+        "m": [
+          "477718=100.00;462342=100.00;tspell=Podwójne trafienie;skillId=239",
+          "477718=100.00;462342=98.05;+dmgd=717;+dmgc=545;+acdmg=18;-legbon_facade=13;+taken_dmg=190;-dmgd=13;-dmgc=102;-dmga=190",
+          "477718=100.00;462342=95.99;+dmgd=733;+dmgc=545;+acdmg=18;+legbon_holytouch;+taken_dmg=192;-dmgd=23;-dmgc=106;-dmga=192"
+        ],
+        "mi": [
+          4,
+          5,
+          6
+        ]
+      },
+      "messages": [
+        "477718=100.00;462342=100.00;tspell=Podwójne trafienie;skillId=239",
+        "477718=100.00;462342=98.05;+dmgd=717;+dmgc=545;+acdmg=18;-legbon_facade=13;+taken_dmg=190;-dmgd=13;-dmgc=102;-dmga=190",
+        "477718=100.00;462342=95.99;+dmgd=733;+dmgc=545;+acdmg=18;+legbon_holytouch;+taken_dmg=192;-dmgd=23;-dmgc=106;-dmga=192"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 15615,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 1035,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 105,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 14989,
+            "hpp": 95.99
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 999,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 105,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 183,
+          "energy": 140,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 6,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 116
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 14063,
+              "hpp": 90.06
+            },
+            "y": 2,
+            "ac": {
+              "cur": 988,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 40,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12689,
+              "hpp": 87.71
+            },
+            "mana": 0,
+            "energy": 108,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 521,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 462342,
+            "cooldowns": [
+              [
+                264,
+                7
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 2,
+            "id": 473373
+          }
+        },
+        "move": 0,
+        "current": 462342,
+        "turns_warriors": {
+          "6": 462342,
+          "7": 473373,
+          "8": 477718,
+          "9": 473373,
+          "10": 462342,
+          "11": 477718,
+          "12": 473373,
+          "13": 477718,
+          "14": 473373,
+          "15": 462342
+        },
+        "m": [
+          "473373=87.71;462342=91.55;+crit;+pierce;+dmgd=1610;+acdmg=11;-pierceb;-legbon_critred=25;+taken_dmg=242;-dmgd=445;-dmga=249",
+          "462342=92.24;0;heal=109",
+          "462342=90.06;0;poison=341,16"
+        ],
+        "mi": [
+          7,
+          8,
+          9
+        ]
+      },
+      "messages": [
+        "473373=87.71;462342=91.55;+crit;+pierce;+dmgd=1610;+acdmg=11;-pierceb;-legbon_critred=25;+taken_dmg=242;-dmgd=445;-dmga=249",
+        "462342=92.24;0;heal=109",
+        "462342=90.06;0;poison=341,16"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 14989,
+            "hpp": 95.99
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 999,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 105,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 183,
+          "energy": 140,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 14063,
+            "hpp": 90.06
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 988,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 108,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 183,
+          "energy": 140,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 7,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 10585,
+              "hpp": 67.79
+            },
+            "y": 3,
+            "ac": {
+              "cur": 879,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 40,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12689,
+              "hpp": 87.71
+            },
+            "mana": 0,
+            "energy": 138,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 521,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 0,
+            "cooldowns": [
+              [
+                85,
+                1
+              ],
+              [
+                264,
+                2
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 473373
+          },
+          "477718": {
+            "poolTime": {
+              "left": 111
+            },
+            "hp": {
+              "max": 13313,
+              "cur": 13313,
+              "hpp": 100
+            },
+            "mana": 230,
+            "energy": 140,
+            "mana0": 230,
+            "energy0": 158,
+            "fast": 1,
+            "ac": {
+              "cur": 397,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 12,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 38,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 0,
+            "id": 477718
+          }
+        },
+        "move": 15,
+        "start_move": 15,
+        "current": 473373,
+        "turns_warriors": {
+          "18": 473373,
+          "19": 462342,
+          "20": 477718,
+          "21": 473373,
+          "22": 477718,
+          "23": 462342,
+          "24": 473373,
+          "25": 477718,
+          "26": 473373,
+          "27": 462342
+        },
+        "poolTime": {
+          "left": 114
+        },
+        "m": [
+          "462342=90.06;0;step",
+          "473373=87.71;462342=90.06;tspell=Błyskawiczny strzał;skillId=85;energy=-15;combo-max=2",
+          "473373=87.71;462342=87.83;+dmgd=1036;+legbon_curse;+acdmg=11;+taken_dmg=155;-dmgd=190;-dmga=159",
+          "477718=100.00;0;legbon_holytouch_heal=0",
+          "477718=100.00;462342=87.83;+dmgd=829;+dmgc=655;-arrowblock;-dmgd=0",
+          "473373=87.71;462342=85.48;+dmgd=1051;+acdmg=11;+taken_dmg=158;-dmgd=204;-dmga=162",
+          "462342=86.15;0;heal=104",
+          "462342=83.96;0;poison=341,16",
+          "0;0;txt=Gracz 1 - utrata tury",
+          "477718=100.00;0;legbon_holytouch_heal=0",
+          "477718=100.00;462342=82.10;+pierce;+dmgd=858;+dmgc=655;-legbon_glare;+acdmg=18;-blok=454;-pierceb;+taken_dmg=227;-dmgd=0;-dmgc=64;-dmga=227",
+          "473373=87.71;462342=79.57;+dmgd=1069;+acdmg=11;+taken_dmg=160;-dmgd=231;-dmga=164",
+          "477718=100.00;0;legbon_holytouch_heal=0",
+          "0;0;txt=Gracz 3 - utrata tury",
+          "473373=87.71;462342=76.53;+dmgd=1157;+legbon_curse;+acdmg=11;+taken_dmg=174;-dmgd=296;-dmga=179",
+          "462342=77.16;0;heal=98",
+          "462342=74.97;0;poison=341,16",
+          "0;0;txt=Gracz 1 - utrata tury",
+          "473373=87.71;462342=72.35;+dmgd=1075;+acdmg=11;+taken_dmg=161;-dmgd=245;-dmga=165",
+          "477718=100.00;462342=72.35;tspell=Podwójne trafienie;skillId=239",
+          "477718=100.00;462342=70.25;+dmgd=645;+dmgc=545;+acdmg=18;+taken_dmg=179;-dmgd=16;-dmgc=133;-dmga=179",
+          "477718=100.00;462342=67.79;+dmgd=729;+dmgc=545;+acdmg=18;+taken_dmg=191;-dmgd=56;-dmgc=137;-dmga=191"
+        ],
+        "mi": [
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19,
+          20,
+          21,
+          22,
+          23,
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31
+        ]
+      },
+      "messages": [
+        "462342=90.06;0;step",
+        "473373=87.71;462342=90.06;tspell=Błyskawiczny strzał;skillId=85;energy=-15;combo-max=2",
+        "473373=87.71;462342=87.83;+dmgd=1036;+legbon_curse;+acdmg=11;+taken_dmg=155;-dmgd=190;-dmga=159",
+        "477718=100.00;0;legbon_holytouch_heal=0",
+        "477718=100.00;462342=87.83;+dmgd=829;+dmgc=655;-arrowblock;-dmgd=0",
+        "473373=87.71;462342=85.48;+dmgd=1051;+acdmg=11;+taken_dmg=158;-dmgd=204;-dmga=162",
+        "462342=86.15;0;heal=104",
+        "462342=83.96;0;poison=341,16",
+        "0;0;txt=Gracz 1 - utrata tury",
+        "477718=100.00;0;legbon_holytouch_heal=0",
+        "477718=100.00;462342=82.10;+pierce;+dmgd=858;+dmgc=655;-legbon_glare;+acdmg=18;-blok=454;-pierceb;+taken_dmg=227;-dmgd=0;-dmgc=64;-dmga=227",
+        "473373=87.71;462342=79.57;+dmgd=1069;+acdmg=11;+taken_dmg=160;-dmgd=231;-dmga=164",
+        "477718=100.00;0;legbon_holytouch_heal=0",
+        "0;0;txt=Gracz 3 - utrata tury",
+        "473373=87.71;462342=76.53;+dmgd=1157;+legbon_curse;+acdmg=11;+taken_dmg=174;-dmgd=296;-dmga=179",
+        "462342=77.16;0;heal=98",
+        "462342=74.97;0;poison=341,16",
+        "0;0;txt=Gracz 1 - utrata tury",
+        "473373=87.71;462342=72.35;+dmgd=1075;+acdmg=11;+taken_dmg=161;-dmgd=245;-dmga=165",
+        "477718=100.00;462342=72.35;tspell=Podwójne trafienie;skillId=239",
+        "477718=100.00;462342=70.25;+dmgd=645;+dmgc=545;+acdmg=18;+taken_dmg=179;-dmgd=16;-dmgc=133;-dmga=179",
+        "477718=100.00;462342=67.79;+dmgd=729;+dmgc=545;+acdmg=18;+taken_dmg=191;-dmgd=56;-dmgc=137;-dmga=191"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 14063,
+            "hpp": 90.06
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 988,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 108,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 183,
+          "energy": 140,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 10585,
+            "hpp": 67.79
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 879,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 138,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 230,
+          "energy": 140,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 8,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 9833,
+              "hpp": 62.97
+            },
+            "y": 3,
+            "ac": {
+              "cur": 868,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 40,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12689,
+              "hpp": 87.71
+            },
+            "mana": 0,
+            "energy": 141,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 521,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 0,
+            "cooldowns": [
+              [
+                85,
+                0
+              ],
+              [
+                264,
+                1
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 473373
+          }
+        },
+        "move": 0,
+        "current": 462342,
+        "turns_warriors": {
+          "19": 462342,
+          "20": 477718,
+          "21": 473373,
+          "22": 477718,
+          "23": 462342,
+          "24": 473373,
+          "25": 477718,
+          "26": 473373,
+          "27": 462342,
+          "28": 477718
+        },
+        "m": [
+          "473373=87.71;462342=64.56;+dmgd=1153;+acdmg=11;+taken_dmg=173;-dmgd=326;-dmga=178",
+          "462342=65.16;0;heal=93",
+          "462342=62.97;0;poison=341,16"
+        ],
+        "mi": [
+          32,
+          33,
+          34
+        ]
+      },
+      "messages": [
+        "473373=87.71;462342=64.56;+dmgd=1153;+acdmg=11;+taken_dmg=173;-dmgd=326;-dmga=178",
+        "462342=65.16;0;heal=93",
+        "462342=62.97;0;poison=341,16"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 10585,
+            "hpp": 67.79
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 879,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 138,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 230,
+          "energy": 140,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 9833,
+            "hpp": 62.97
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 868,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 141,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 230,
+          "energy": 140,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 9,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 113
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 9833,
+              "hpp": 62.97
+            },
+            "y": 4,
+            "ac": {
+              "cur": 868,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 40,
+            "focus": 0,
+            "id": 462342
+          }
+        },
+        "move": 0,
+        "current": 477718,
+        "turns_warriors": {
+          "20": 477718,
+          "21": 473373,
+          "22": 477718,
+          "23": 462342,
+          "24": 473373,
+          "25": 477718,
+          "26": 473373,
+          "27": 462342,
+          "28": 477718,
+          "29": 473373
+        },
+        "m": [
+          "462342=62.97;0;step"
+        ],
+        "mi": [
+          35
+        ]
+      },
+      "messages": [
+        "462342=62.97;0;step"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 9833,
+            "hpp": 62.97
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 868,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 141,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 230,
+          "energy": 140,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 9833,
+            "hpp": 62.97
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 868,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 141,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 230,
+          "energy": 140,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 10,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 113
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 8691,
+              "hpp": 55.66
+            },
+            "y": 4,
+            "ac": {
+              "cur": 839,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 40,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12689,
+              "hpp": 87.71
+            },
+            "mana": 0,
+            "energy": 144,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 521,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "cooldowns": [
+              [
+                85,
+                0
+              ],
+              [
+                264,
+                0
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 473373
+          },
+          "477718": {
+            "poolTime": {
+              "left": 111
+            },
+            "hp": {
+              "max": 13313,
+              "cur": 13313,
+              "hpp": 100
+            },
+            "mana": 230,
+            "energy": 154,
+            "mana0": 230,
+            "energy0": 158,
+            "fast": 1,
+            "ac": {
+              "cur": 397,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 12,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 38,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 0,
+            "id": 477718
+          }
+        },
+        "move": 0,
+        "current": 462342,
+        "turns_warriors": {
+          "23": 462342,
+          "24": 473373,
+          "25": 477718,
+          "26": 473373,
+          "27": 462342,
+          "28": 477718,
+          "29": 473373,
+          "30": 477718,
+          "31": 462342,
+          "32": 473373
+        },
+        "m": [
+          "477718=100.00;462342=59.24;+pierce;+dmgd=803;+dmgc=690;-legbon_glare;+acdmg=18;-pierceb;+legbon_holytouch;+taken_dmg=224;-dmgd=105;-dmgc=253;-dmga=224",
+          "473373=87.71;462342=57.28;+dmgd=1180;+acdmg=11;-blok=354;+legbon_holytouch;+taken_dmg=177;-dmgd=124;-dmga=182",
+          "477718=100.00;0;legbon_holytouch_heal=0",
+          "0;0;txt=Gracz 3 - utrata tury",
+          "462342=57.84;0;heal=87",
+          "462342=55.66;0;poison=341,16"
+        ],
+        "mi": [
+          36,
+          37,
+          38,
+          39,
+          40,
+          41
+        ]
+      },
+      "messages": [
+        "477718=100.00;462342=59.24;+pierce;+dmgd=803;+dmgc=690;-legbon_glare;+acdmg=18;-pierceb;+legbon_holytouch;+taken_dmg=224;-dmgd=105;-dmgc=253;-dmga=224",
+        "473373=87.71;462342=57.28;+dmgd=1180;+acdmg=11;-blok=354;+legbon_holytouch;+taken_dmg=177;-dmgd=124;-dmga=182",
+        "477718=100.00;0;legbon_holytouch_heal=0",
+        "0;0;txt=Gracz 3 - utrata tury",
+        "462342=57.84;0;heal=87",
+        "462342=55.66;0;poison=341,16"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 9833,
+            "hpp": 62.97
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 868,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 141,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 230,
+          "energy": 140,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 8691,
+            "hpp": 55.66
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 839,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 144,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 230,
+          "energy": 154,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 11,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 112
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 8432,
+              "hpp": 54
+            },
+            "y": 4,
+            "ac": {
+              "cur": 839,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 72,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12689,
+              "hpp": 87.71
+            },
+            "mana": 0,
+            "energy": 99,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 510,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 0,
+            "cooldowns": [
+              [
+                85,
+                0
+              ],
+              [
+                264,
+                8
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 473373
+          },
+          "477718": {
+            "poolTime": {
+              "left": 111
+            },
+            "hp": {
+              "max": 13313,
+              "cur": 13313,
+              "hpp": 100
+            },
+            "mana": 169,
+            "energy": 158,
+            "mana0": 230,
+            "energy0": 158,
+            "fast": 1,
+            "ac": {
+              "cur": 397,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 12,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 38,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 0,
+            "id": 477718
+          }
+        },
+        "move": 0,
+        "current": 462342,
+        "turns_warriors": {
+          "26": 462342,
+          "27": 473373,
+          "28": 477718,
+          "29": 473373,
+          "30": 477718,
+          "31": 462342,
+          "32": 473373,
+          "33": 477718,
+          "34": 473373,
+          "35": 462342
+        },
+        "m": [
+          "462342=55.66;473373=87.71;tspell=Błyskawiczny atak;skillId=204",
+          "462342=55.66;473373=84.75;-poison_lowdmg_per=10;+dmg=863;+acdmg=11;+legbon_puncture=12;-dmg=428",
+          "473373=85.24;0;heal=70",
+          "473373=87.71;0;legbon_holytouch_heal=358",
+          "473373=87.71;462342=55.66;tspell=Piętno bestii;skillId=264;+spell-taken_dmg-all",
+          "477718=100.00;0;legbon_holytouch_heal=0",
+          "477718=100.00;477718=100.00;tspell=Podwójny dech;skillId=89;aura-sa_per=20",
+          "462342=56.18;0;heal=82",
+          "462342=54.00;0;poison=341,16"
+        ],
+        "mi": [
+          42,
+          43,
+          44,
+          45,
+          46,
+          47,
+          48,
+          49,
+          50
+        ]
+      },
+      "messages": [
+        "462342=55.66;473373=87.71;tspell=Błyskawiczny atak;skillId=204",
+        "462342=55.66;473373=84.75;-poison_lowdmg_per=10;+dmg=863;+acdmg=11;+legbon_puncture=12;-dmg=428",
+        "473373=85.24;0;heal=70",
+        "473373=87.71;0;legbon_holytouch_heal=358",
+        "473373=87.71;462342=55.66;tspell=Piętno bestii;skillId=264;+spell-taken_dmg-all",
+        "477718=100.00;0;legbon_holytouch_heal=0",
+        "477718=100.00;477718=100.00;tspell=Podwójny dech;skillId=89;aura-sa_per=20",
+        "462342=56.18;0;heal=82",
+        "462342=54.00;0;poison=341,16"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 8691,
+            "hpp": 55.66
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 839,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 144,
+          "ac": {
+            "cur": 521,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 230,
+          "energy": 154,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 8432,
+            "hpp": 54
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 839,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 99,
+          "ac": {
+            "cur": 510,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 12,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 111
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 8432,
+              "hpp": 54
+            },
+            "y": 4,
+            "ac": {
+              "cur": 839,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 40,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12374,
+              "hpp": 85.53
+            },
+            "mana": 0,
+            "energy": 99,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 499,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 0,
+            "cooldowns": [
+              [
+                85,
+                0
+              ],
+              [
+                264,
+                8
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 473373
+          }
+        },
+        "move": 15,
+        "start_move": 15,
+        "current": 473373,
+        "turns_warriors": {
+          "27": 473373,
+          "28": 477718,
+          "29": 473373,
+          "30": 477718,
+          "31": 462342,
+          "32": 473373,
+          "33": 477718,
+          "34": 473373,
+          "35": 462342,
+          "36": 477718
+        },
+        "poolTime": {
+          "left": 114
+        },
+        "m": [
+          "462342=54.00;473373=81.88;tspell=Zdruzgotanie;skillId=39;-poison_lowdmg_per=10;+oth_dmg=844,a,Gracz 2(81.88%);combo-max=3",
+          "462342=54.00;473373=79.07;-poison_lowdmg_per=10;+dmg=830;+acdmg=11;-dmg=406",
+          "473373=79.53;0;heal=67",
+          "473373=85.53;0;legbon_holytouch_heal=868"
+        ],
+        "mi": [
+          51,
+          52,
+          53,
+          54
+        ]
+      },
+      "messages": [
+        "462342=54.00;473373=81.88;tspell=Zdruzgotanie;skillId=39;-poison_lowdmg_per=10;+oth_dmg=844,a,Gracz 2(81.88%);combo-max=3",
+        "462342=54.00;473373=79.07;-poison_lowdmg_per=10;+dmg=830;+acdmg=11;-dmg=406",
+        "473373=79.53;0;heal=67",
+        "473373=85.53;0;legbon_holytouch_heal=868"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 8432,
+            "hpp": 54
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 839,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 99,
+          "ac": {
+            "cur": 510,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 8432,
+            "hpp": 54
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 839,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12374,
+            "hpp": 85.53
+          },
+          "mana": 0,
+          "energy": 99,
+          "ac": {
+            "cur": 499,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 13,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 111
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 4945,
+              "hpp": 31.67
+            },
+            "y": 4,
+            "ac": {
+              "cur": 763,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 40,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12689,
+              "hpp": 87.71
+            },
+            "mana": 0,
+            "energy": 105,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 499,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 0,
+            "cooldowns": [
+              [
+                85,
+                4
+              ],
+              [
+                264,
+                6
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 1,
+            "id": 473373
+          },
+          "477718": {
+            "poolTime": {
+              "left": 111
+            },
+            "hp": {
+              "max": 13313,
+              "cur": 13313,
+              "hpp": 100
+            },
+            "mana": 197,
+            "energy": 147,
+            "mana0": 230,
+            "energy0": 158,
+            "fast": 1,
+            "ac": {
+              "cur": 397,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 12,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 38,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 0,
+            "id": 477718
+          }
+        },
+        "move": 0,
+        "current": 462342,
+        "turns_warriors": {
+          "31": 462342,
+          "32": 473373,
+          "33": 477718,
+          "34": 473373,
+          "35": 462342,
+          "36": 477718,
+          "37": 473373,
+          "38": 473373,
+          "39": 477718,
+          "40": 462342
+        },
+        "m": [
+          "473373=85.53;462342=54.00;tspell=Błyskawiczny strzał;skillId=85",
+          "473373=85.53;462342=48.97;+crit;+dmgd=1625;+acdmg=11;-legbon_critred=25;+taken_dmg=244;-dmgd=535;-dmga=251",
+          "477718=100.00;0;legbon_holytouch_heal=0",
+          "477718=100.00;462342=48.97;tspell=Podwójne trafienie;skillId=239",
+          "477718=100.00;462342=44.19;+crit;+dmgd=1029;+dmgc=806;+acdmg=18;+legbon_holytouch;-legbon_critred=25;+taken_dmg=275;-dmgd=203;-dmgc=268;-dmga=275",
+          "477718=100.00;462342=41.33;+dmgd=691;+dmgc=580;+acdmg=18;+taken_dmg=191;-dmgd=67;-dmgc=188;-dmga=191",
+          "473373=85.97;0;heal=63",
+          "473373=87.71;0;legbon_holytouch_heal=252",
+          "473373=87.71;462342=37.78;+dmgd=1150;+acdmg=11;+taken_dmg=173;-dmgd=376;-dmga=178",
+          "477718=100.00;0;legbon_holytouch_heal=0",
+          "477718=100.00;462342=33.37;+dmgd=852;+dmgc=690;+acdmg=18;+taken_dmg=232;-dmgd=176;-dmgc=282;-dmga=232",
+          "462342=33.85;0;heal=76",
+          "462342=31.67;0;poison=341,16"
+        ],
+        "mi": [
+          55,
+          56,
+          57,
+          58,
+          59,
+          60,
+          61,
+          62,
+          63,
+          64,
+          65,
+          66,
+          67
+        ]
+      },
+      "messages": [
+        "473373=85.53;462342=54.00;tspell=Błyskawiczny strzał;skillId=85",
+        "473373=85.53;462342=48.97;+crit;+dmgd=1625;+acdmg=11;-legbon_critred=25;+taken_dmg=244;-dmgd=535;-dmga=251",
+        "477718=100.00;0;legbon_holytouch_heal=0",
+        "477718=100.00;462342=48.97;tspell=Podwójne trafienie;skillId=239",
+        "477718=100.00;462342=44.19;+crit;+dmgd=1029;+dmgc=806;+acdmg=18;+legbon_holytouch;-legbon_critred=25;+taken_dmg=275;-dmgd=203;-dmgc=268;-dmga=275",
+        "477718=100.00;462342=41.33;+dmgd=691;+dmgc=580;+acdmg=18;+taken_dmg=191;-dmgd=67;-dmgc=188;-dmga=191",
+        "473373=85.97;0;heal=63",
+        "473373=87.71;0;legbon_holytouch_heal=252",
+        "473373=87.71;462342=37.78;+dmgd=1150;+acdmg=11;+taken_dmg=173;-dmgd=376;-dmga=178",
+        "477718=100.00;0;legbon_holytouch_heal=0",
+        "477718=100.00;462342=33.37;+dmgd=852;+dmgc=690;+acdmg=18;+taken_dmg=232;-dmgd=176;-dmgc=282;-dmga=232",
+        "462342=33.85;0;heal=76",
+        "462342=31.67;0;poison=341,16"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 8432,
+            "hpp": 54
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 839,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12374,
+            "hpp": 85.53
+          },
+          "mana": 0,
+          "energy": 99,
+          "ac": {
+            "cur": 499,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 4945,
+            "hpp": 31.67
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 763,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 105,
+          "ac": {
+            "cur": 499,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 197,
+          "energy": 147,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 14,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 110
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 4945,
+              "hpp": 31.67
+            },
+            "y": 4,
+            "ac": {
+              "cur": 763,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 72,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12009,
+              "hpp": 83.01
+            },
+            "mana": 0,
+            "energy": 105,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 488,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 65,
+            "focus": 0,
+            "cooldowns": [
+              [
+                85,
+                4
+              ],
+              [
+                264,
+                6
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 1,
+            "id": 473373
+          }
+        },
+        "move": 15,
+        "start_move": 15,
+        "current": 473373,
+        "turns_warriors": {
+          "32": 473373,
+          "33": 477718,
+          "34": 473373,
+          "35": 462342,
+          "36": 477718,
+          "37": 473373,
+          "38": 473373,
+          "39": 462342,
+          "40": 477718,
+          "41": 473373
+        },
+        "poolTime": {
+          "left": 114
+        },
+        "m": [
+          "462342=31.67;473373=87.71;tspell=Błyskawiczny atak;skillId=204",
+          "462342=31.67;473373=84.41;-poison_lowdmg_per=10;+dmg=900;+acdmg=11;+wound;-dmg=478",
+          "473373=84.81;0;heal=59",
+          "473373=83.01;0;-poison_lowdmg_per=10;wound=261"
+        ],
+        "mi": [
+          68,
+          69,
+          70,
+          71
+        ]
+      },
+      "messages": [
+        "462342=31.67;473373=87.71;tspell=Błyskawiczny atak;skillId=204",
+        "462342=31.67;473373=84.41;-poison_lowdmg_per=10;+dmg=900;+acdmg=11;+wound;-dmg=478",
+        "473373=84.81;0;heal=59",
+        "473373=83.01;0;-poison_lowdmg_per=10;wound=261"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 4945,
+            "hpp": 31.67
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 763,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12689,
+            "hpp": 87.71
+          },
+          "mana": 0,
+          "energy": 105,
+          "ac": {
+            "cur": 499,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 197,
+          "energy": 147,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 4945,
+            "hpp": 31.67
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 763,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12009,
+            "hpp": 83.01
+          },
+          "mana": 0,
+          "energy": 105,
+          "ac": {
+            "cur": 488,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 197,
+          "energy": 147,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 15,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 110
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 5727,
+              "hpp": 36.68
+            },
+            "y": 4,
+            "ac": {
+              "cur": 723,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 72,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12428,
+              "hpp": 85.91
+            },
+            "mana": 0,
+            "energy": 111,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 488,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 65,
+            "focus": 0,
+            "cooldowns": [
+              [
+                85,
+                2
+              ],
+              [
+                264,
+                4
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 2,
+            "id": 473373
+          },
+          "477718": {
+            "poolTime": {
+              "left": 111
+            },
+            "hp": {
+              "max": 13313,
+              "cur": 13313,
+              "hpp": 100
+            },
+            "mana": 211,
+            "energy": 154,
+            "mana0": 230,
+            "energy0": 158,
+            "fast": 1,
+            "ac": {
+              "cur": 397,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 12,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 38,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 0,
+            "id": 477718
+          }
+        },
+        "move": 0,
+        "current": 462342,
+        "turns_warriors": {
+          "35": 462342,
+          "36": 477718,
+          "37": 473373,
+          "38": 473373,
+          "39": 462342,
+          "40": 477718,
+          "41": 473373,
+          "42": 477718,
+          "43": 462342,
+          "44": 473373
+        },
+        "m": [
+          "473373=83.01;462342=27.76;+dmgd=1194;+acdmg=11;+legbon_holytouch;+taken_dmg=179;-dmgd=427;-dmga=184",
+          "477718=100.00;0;legbon_holytouch_heal=0",
+          "477718=100.00;462342=44.00;+pierce;+dmgd=810;+dmgc=690;+acdmg=18;+taken_dmg=226;legbon_lastheal=4068,Gracz 1(44.00%);-dmgd=705;-dmgc=600;-dmga=226",
+          "473373=83.40;0;heal=56",
+          "473373=87.71;0;legbon_holytouch_heal=624",
+          "473373=85.91;0;-poison_lowdmg_per=10;wound=261",
+          "473373=85.91;462342=38.41;+crit;+dmgd=1665;+acdmg=11;-legbon_critred=25;+taken_dmg=250;-dmgd=617;-dmga=257",
+          "462342=38.86;0;heal=71",
+          "462342=36.68;0;poison=341,16"
+        ],
+        "mi": [
+          72,
+          73,
+          74,
+          75,
+          76,
+          77,
+          78,
+          79,
+          80
+        ]
+      },
+      "messages": [
+        "473373=83.01;462342=27.76;+dmgd=1194;+acdmg=11;+legbon_holytouch;+taken_dmg=179;-dmgd=427;-dmga=184",
+        "477718=100.00;0;legbon_holytouch_heal=0",
+        "477718=100.00;462342=44.00;+pierce;+dmgd=810;+dmgc=690;+acdmg=18;+taken_dmg=226;legbon_lastheal=4068,Gracz 1(44.00%);-dmgd=705;-dmgc=600;-dmga=226",
+        "473373=83.40;0;heal=56",
+        "473373=87.71;0;legbon_holytouch_heal=624",
+        "473373=85.91;0;-poison_lowdmg_per=10;wound=261",
+        "473373=85.91;462342=38.41;+crit;+dmgd=1665;+acdmg=11;-legbon_critred=25;+taken_dmg=250;-dmgd=617;-dmga=257",
+        "462342=38.86;0;heal=71",
+        "462342=36.68;0;poison=341,16"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 4945,
+            "hpp": 31.67
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 763,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12009,
+            "hpp": 83.01
+          },
+          "mana": 0,
+          "energy": 105,
+          "ac": {
+            "cur": 488,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 197,
+          "energy": 147,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 5727,
+            "hpp": 36.68
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 723,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12428,
+            "hpp": 85.91
+          },
+          "mana": 0,
+          "energy": 111,
+          "ac": {
+            "cur": 488,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 211,
+          "energy": 154,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 16,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 107
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 3396,
+              "hpp": 21.75
+            },
+            "y": 4,
+            "ac": {
+              "cur": 694,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 72,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12428,
+              "hpp": 85.91
+            },
+            "mana": 0,
+            "energy": 114,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 477,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 65,
+            "focus": 0,
+            "cooldowns": [
+              [
+                85,
+                1
+              ],
+              [
+                264,
+                3
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 3,
+            "id": 473373
+          },
+          "477718": {
+            "poolTime": {
+              "left": 111
+            },
+            "hp": {
+              "max": 13313,
+              "cur": 13313,
+              "hpp": 100
+            },
+            "mana": 225,
+            "energy": 158,
+            "mana0": 230,
+            "energy0": 158,
+            "fast": 1,
+            "ac": {
+              "cur": 397,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 12,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 38,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 0,
+            "id": 477718
+          }
+        },
+        "move": 0,
+        "current": 462342,
+        "turns_warriors": {
+          "38": 462342,
+          "39": 473373,
+          "40": 477718,
+          "41": 473373,
+          "42": 477718,
+          "43": 462342,
+          "44": 473373,
+          "45": 477718,
+          "46": 473373,
+          "47": 462342
+        },
+        "m": [
+          "462342=36.68;473373=85.91;tspell=Błyskawiczny atak;skillId=204",
+          "462342=36.68;473373=82.77;-poison_lowdmg_per=10;+dmg=865;+acdmg=11;-dmg=454",
+          "477718=100.00;0;legbon_holytouch_heal=0",
+          "477718=100.00;462342=31.92;+dmgd=856;+dmgc=690;+acdmg=18;+taken_dmg=232;-dmgd=208;-dmgc=303;-dmga=232",
+          "473373=83.13;0;heal=52",
+          "473373=87.71;0;legbon_holytouch_heal=663",
+          "473373=85.91;0;-poison_lowdmg_per=10;wound=261",
+          "473373=85.91;462342=23.52;+crit;+pierce;+dmgd=1627;+acdmg=11;-legbon_critred=25;+taken_dmg=244;-dmgd=1061;-dmga=251",
+          "462342=23.93;0;heal=65",
+          "462342=21.75;0;poison=341,16"
+        ],
+        "mi": [
+          81,
+          82,
+          83,
+          84,
+          85,
+          86,
+          87,
+          88,
+          89,
+          90
+        ]
+      },
+      "messages": [
+        "462342=36.68;473373=85.91;tspell=Błyskawiczny atak;skillId=204",
+        "462342=36.68;473373=82.77;-poison_lowdmg_per=10;+dmg=865;+acdmg=11;-dmg=454",
+        "477718=100.00;0;legbon_holytouch_heal=0",
+        "477718=100.00;462342=31.92;+dmgd=856;+dmgc=690;+acdmg=18;+taken_dmg=232;-dmgd=208;-dmgc=303;-dmga=232",
+        "473373=83.13;0;heal=52",
+        "473373=87.71;0;legbon_holytouch_heal=663",
+        "473373=85.91;0;-poison_lowdmg_per=10;wound=261",
+        "473373=85.91;462342=23.52;+crit;+pierce;+dmgd=1627;+acdmg=11;-legbon_critred=25;+taken_dmg=244;-dmgd=1061;-dmga=251",
+        "462342=23.93;0;heal=65",
+        "462342=21.75;0;poison=341,16"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 5727,
+            "hpp": 36.68
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 723,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12428,
+            "hpp": 85.91
+          },
+          "mana": 0,
+          "energy": 111,
+          "ac": {
+            "cur": 488,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 211,
+          "energy": 154,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 3396,
+            "hpp": 21.75
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 694,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12428,
+            "hpp": 85.91
+          },
+          "mana": 0,
+          "energy": 114,
+          "ac": {
+            "cur": 477,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 225,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 17,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 106
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 3396,
+              "hpp": 21.75
+            },
+            "y": 4,
+            "ac": {
+              "cur": 694,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 40,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12428,
+              "hpp": 85.91
+            },
+            "mana": 0,
+            "energy": 114,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 477,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 65,
+            "focus": 462342,
+            "cooldowns": [
+              [
+                85,
+                1
+              ],
+              [
+                264,
+                3
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 3,
+            "id": 473373
+          },
+          "477718": {
+            "poolTime": {
+              "left": 111
+            },
+            "hp": {
+              "max": 13313,
+              "cur": 13313,
+              "hpp": 100
+            },
+            "mana": 225,
+            "energy": 158,
+            "mana0": 230,
+            "energy0": 158,
+            "fast": 1,
+            "ac": {
+              "cur": 397,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 12,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 38,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 462342,
+            "id": 477718
+          }
+        },
+        "move": 15,
+        "start_move": 15,
+        "current": 473373,
+        "turns_warriors": {
+          "39": 473373,
+          "40": 477718,
+          "41": 473373,
+          "42": 477718,
+          "43": 462342,
+          "44": 473373,
+          "45": 477718,
+          "46": 462342,
+          "47": 473373,
+          "48": 477718
+        },
+        "poolTime": {
+          "left": 114
+        },
+        "m": [
+          "462342=21.75;473373=85.91;tspell=Wyzywający okrzyk;skillId=188;shout=Gracz 3, Gracz 2;active_decblock_per-enemies=10;alllowdmg=5",
+          "473373=86.24;0;heal=49",
+          "473373=87.71;0;legbon_holytouch_heal=212",
+          "473373=85.91;0;-poison_lowdmg_per=10;wound=261"
+        ],
+        "mi": [
+          91,
+          92,
+          93,
+          94
+        ]
+      },
+      "messages": [
+        "462342=21.75;473373=85.91;tspell=Wyzywający okrzyk;skillId=188;shout=Gracz 3, Gracz 2;active_decblock_per-enemies=10;alllowdmg=5",
+        "473373=86.24;0;heal=49",
+        "473373=87.71;0;legbon_holytouch_heal=212",
+        "473373=85.91;0;-poison_lowdmg_per=10;wound=261"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 3396,
+            "hpp": 21.75
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 694,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12428,
+            "hpp": 85.91
+          },
+          "mana": 0,
+          "energy": 114,
+          "ac": {
+            "cur": 477,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 225,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 3396,
+            "hpp": 21.75
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 694,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12428,
+            "hpp": 85.91
+          },
+          "mana": 0,
+          "energy": 114,
+          "ac": {
+            "cur": 477,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 225,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 18,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 106
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 3116,
+              "hpp": 19.96
+            },
+            "y": 4,
+            "ac": {
+              "cur": 683,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 40,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12428,
+              "hpp": 85.91
+            },
+            "mana": 0,
+            "energy": 117,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 477,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 65,
+            "focus": 462342,
+            "cooldowns": [
+              [
+                85,
+                0
+              ],
+              [
+                264,
+                2
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 3,
+            "id": 473373
+          }
+        },
+        "move": 0,
+        "current": 477718,
+        "turns_warriors": {
+          "40": 477718,
+          "41": 473373,
+          "42": 473373,
+          "43": 477718,
+          "44": 462342,
+          "45": 473373,
+          "46": 477718,
+          "47": 462342,
+          "48": 473373,
+          "49": 477718
+        },
+        "m": [
+          "473373=85.91;462342=19.96;+pierce;+fastarrow;+dmgd=1014;+acdmg=11;-blok=304;+taken_dmg=152;-dmgd=124;-dmga=156"
+        ],
+        "mi": [
+          95
+        ]
+      },
+      "messages": [
+        "473373=85.91;462342=19.96;+pierce;+fastarrow;+dmgd=1014;+acdmg=11;-blok=304;+taken_dmg=152;-dmgd=124;-dmga=156"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 3396,
+            "hpp": 21.75
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 694,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12428,
+            "hpp": 85.91
+          },
+          "mana": 0,
+          "energy": 114,
+          "ac": {
+            "cur": 477,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 225,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 3116,
+            "hpp": 19.96
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 683,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12428,
+            "hpp": 85.91
+          },
+          "mana": 0,
+          "energy": 117,
+          "ac": {
+            "cur": 477,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 225,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 19,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 106
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 946,
+              "hpp": 6.06
+            },
+            "y": 4,
+            "ac": {
+              "cur": 625,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 40,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 12254,
+              "hpp": 84.7
+            },
+            "mana": 0,
+            "energy": 145,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 477,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 32,
+            "focus": 0,
+            "cooldowns": [
+              [
+                85,
+                5
+              ],
+              [
+                264,
+                0
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 473373
+          },
+          "477718": {
+            "poolTime": {
+              "left": 111
+            },
+            "hp": {
+              "max": 13313,
+              "cur": 13313,
+              "hpp": 100
+            },
+            "mana": 230,
+            "energy": 147,
+            "mana0": 230,
+            "energy0": 158,
+            "fast": 1,
+            "ac": {
+              "cur": 397,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 12,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 38,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 462342,
+            "id": 477718
+          }
+        },
+        "move": 0,
+        "current": 462342,
+        "turns_warriors": {
+          "44": 462342,
+          "45": 473373,
+          "46": 477718,
+          "47": 462342,
+          "48": 473373,
+          "49": 477718,
+          "50": 473373,
+          "51": 462342,
+          "52": 477718,
+          "53": 473373
+        },
+        "m": [
+          "477718=100.00;462342=19.96;tspell=Podwójne trafienie;skillId=239",
+          "477718=100.00;462342=16.66;+pierce;+dmgd=701;+dmgc=545;+acdmg=18;-pierceb;+taken_dmg=187;-dmgd=126;-dmgc=202;-dmga=187",
+          "477718=100.00;462342=13.35;+dmgd=685;+dmgc=545;-legbon_glare;+acdmg=18;+legbon_holytouch;+taken_dmg=185;-dmgd=124;-dmgc=208;-dmga=185",
+          "473373=86.22;0;heal=45",
+          "473373=84.41;0;-poison_lowdmg_per=10;wound=261",
+          "473373=84.41;462342=10.01;+pierce;+dmgd=1014;+acdmg=11;-pierceb;+taken_dmg=152;-dmgd=365;-dmga=156",
+          "473373=84.70;0;heal=42",
+          "473373=84.70;462342=10.01;tspell=Błyskawiczny strzał;skillId=85;energy=-22;combo-max=3",
+          "473373=84.70;462342=7.86;+dmgd=1060;+acdmg=11;-blok=318;+taken_dmg=159;-dmgd=173;-dmga=163",
+          "477718=100.00;0;legbon_holytouch_heal=0",
+          "0;0;txt=Gracz 3 - utrata tury",
+          "462342=8.24;0;heal=60",
+          "462342=6.06;0;poison=341,16"
+        ],
+        "mi": [
+          96,
+          97,
+          98,
+          99,
+          100,
+          101,
+          102,
+          103,
+          104,
+          105,
+          106,
+          107,
+          108
+        ]
+      },
+      "messages": [
+        "477718=100.00;462342=19.96;tspell=Podwójne trafienie;skillId=239",
+        "477718=100.00;462342=16.66;+pierce;+dmgd=701;+dmgc=545;+acdmg=18;-pierceb;+taken_dmg=187;-dmgd=126;-dmgc=202;-dmga=187",
+        "477718=100.00;462342=13.35;+dmgd=685;+dmgc=545;-legbon_glare;+acdmg=18;+legbon_holytouch;+taken_dmg=185;-dmgd=124;-dmgc=208;-dmga=185",
+        "473373=86.22;0;heal=45",
+        "473373=84.41;0;-poison_lowdmg_per=10;wound=261",
+        "473373=84.41;462342=10.01;+pierce;+dmgd=1014;+acdmg=11;-pierceb;+taken_dmg=152;-dmgd=365;-dmga=156",
+        "473373=84.70;0;heal=42",
+        "473373=84.70;462342=10.01;tspell=Błyskawiczny strzał;skillId=85;energy=-22;combo-max=3",
+        "473373=84.70;462342=7.86;+dmgd=1060;+acdmg=11;-blok=318;+taken_dmg=159;-dmgd=173;-dmga=163",
+        "477718=100.00;0;legbon_holytouch_heal=0",
+        "0;0;txt=Gracz 3 - utrata tury",
+        "462342=8.24;0;heal=60",
+        "462342=6.06;0;poison=341,16"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 3116,
+            "hpp": 19.96
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 683,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12428,
+            "hpp": 85.91
+          },
+          "mana": 0,
+          "energy": 117,
+          "ac": {
+            "cur": 477,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 225,
+          "energy": 158,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 946,
+            "hpp": 6.06
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 625,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12254,
+            "hpp": 84.7
+          },
+          "mana": 0,
+          "energy": 145,
+          "ac": {
+            "cur": 477,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 230,
+          "energy": 147,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 20,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 105
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 86,
+              "hpp": 0.55
+            },
+            "y": 4,
+            "ac": {
+              "cur": 614,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 40,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 10749,
+              "hpp": 74.3
+            },
+            "mana": 0,
+            "energy": 148,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 466,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 65,
+            "focus": 0,
+            "cooldowns": [
+              [
+                85,
+                4
+              ],
+              [
+                264,
+                0
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 473373
+          },
+          "477718": {
+            "poolTime": {
+              "left": 111
+            },
+            "hp": {
+              "max": 13313,
+              "cur": 13313,
+              "hpp": 100
+            },
+            "mana": 169,
+            "energy": 154,
+            "mana0": 230,
+            "energy0": 158,
+            "fast": 1,
+            "ac": {
+              "cur": 397,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 12,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 38,
+              "bonus": 0
+            },
+            "buffs": 64,
+            "focus": 462342,
+            "id": 477718
+          }
+        },
+        "move": 0,
+        "current": 462342,
+        "turns_warriors": {
+          "47": 462342,
+          "48": 473373,
+          "49": 477718,
+          "50": 473373,
+          "51": 462342,
+          "52": 477718,
+          "53": 473373,
+          "54": 477718,
+          "55": 473373,
+          "56": 462342
+        },
+        "m": [
+          "462342=6.06;473373=78.87;tspell=Zdruzgotanie;skillId=39;-poison_lowdmg_per=10;+oth_dmg=844,a,Gracz 2(78.87%);combo-max=3",
+          "462342=6.06;473373=75.84;-poison_lowdmg_per=10;+dmg=839;+acdmg=11;+wound;-dmg=438",
+          "473373=76.10;0;heal=38",
+          "473373=74.30;0;-poison_lowdmg_per=10;wound=261",
+          "473373=74.30;462342=2.39;+dmgd=1055;+acdmg=11;+taken_dmg=158;-dmgd=411;-dmga=162",
+          "477718=100.00;0;legbon_holytouch_heal=0",
+          "477718=100.00;477718=100.00;tspell=Podwójny dech;skillId=89;aura-sa_per=20",
+          "462342=2.73;0;heal=54",
+          "462342=0.55;0;poison=341,16"
+        ],
+        "mi": [
+          109,
+          110,
+          111,
+          112,
+          113,
+          114,
+          115,
+          116,
+          117
+        ]
+      },
+      "messages": [
+        "462342=6.06;473373=78.87;tspell=Zdruzgotanie;skillId=39;-poison_lowdmg_per=10;+oth_dmg=844,a,Gracz 2(78.87%);combo-max=3",
+        "462342=6.06;473373=75.84;-poison_lowdmg_per=10;+dmg=839;+acdmg=11;+wound;-dmg=438",
+        "473373=76.10;0;heal=38",
+        "473373=74.30;0;-poison_lowdmg_per=10;wound=261",
+        "473373=74.30;462342=2.39;+dmgd=1055;+acdmg=11;+taken_dmg=158;-dmgd=411;-dmga=162",
+        "477718=100.00;0;legbon_holytouch_heal=0",
+        "477718=100.00;477718=100.00;tspell=Podwójny dech;skillId=89;aura-sa_per=20",
+        "462342=2.73;0;heal=54",
+        "462342=0.55;0;poison=341,16"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 946,
+            "hpp": 6.06
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 625,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 12254,
+            "hpp": 84.7
+          },
+          "mana": 0,
+          "energy": 145,
+          "ac": {
+            "cur": 477,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 230,
+          "energy": 147,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 86,
+            "hpp": 0.55
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 614,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 10749,
+            "hpp": 74.3
+          },
+          "mana": 0,
+          "energy": 148,
+          "ac": {
+            "cur": 466,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 154,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 21,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 104
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 273,
+              "hpp": 1.75
+            },
+            "y": 4,
+            "ac": {
+              "cur": 614,
+              "bonus": 373
+            },
+            "resfire": {
+              "cur": 8,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 9,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 16,
+              "bonus": 0
+            },
+            "buffs": 40,
+            "focus": 0,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 10523,
+              "hpp": 72.74
+            },
+            "mana": 0,
+            "energy": 148,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 466,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 65,
+            "focus": 0,
+            "cooldowns": [
+              [
+                85,
+                4
+              ],
+              [
+                264,
+                0
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 473373
+          }
+        },
+        "move": 15,
+        "start_move": 15,
+        "current": 473373,
+        "turns_warriors": {
+          "48": 473373,
+          "49": 477718,
+          "50": 473373,
+          "51": 462342,
+          "52": 477718,
+          "53": 473373,
+          "54": 477718,
+          "55": 473373,
+          "56": 462342,
+          "57": 477718
+        },
+        "poolTime": {
+          "left": 114
+        },
+        "m": [
+          "462342=1.75;462342=1.75;tspell=Osłona tarczą;skillId=206;active_block_per=11;heal_target=187;combo-max=1",
+          "473373=74.54;0;heal=35",
+          "473373=72.74;0;-poison_lowdmg_per=10;wound=261"
+        ],
+        "mi": [
+          118,
+          119,
+          120
+        ]
+      },
+      "messages": [
+        "462342=1.75;462342=1.75;tspell=Osłona tarczą;skillId=206;active_block_per=11;heal_target=187;combo-max=1",
+        "473373=74.54;0;heal=35",
+        "473373=72.74;0;-poison_lowdmg_per=10;wound=261"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 86,
+            "hpp": 0.55
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 614,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 10749,
+            "hpp": 74.3
+          },
+          "mana": 0,
+          "energy": 148,
+          "ac": {
+            "cur": 466,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 154,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 273,
+            "hpp": 1.75
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 614,
+            "bonus": 373
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 10523,
+            "hpp": 72.74
+          },
+          "mana": 0,
+          "energy": 148,
+          "ac": {
+            "cur": 466,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 154,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 22,
+      "payload": {
+        "w": {
+          "462342": {
+            "poolTime": {
+              "left": 104
+            },
+            "hp": {
+              "max": 15615,
+              "cur": 0,
+              "hpp": 0
+            },
+            "y": 4,
+            "id": 462342
+          },
+          "473373": {
+            "poolTime": {
+              "left": 114
+            },
+            "hp": {
+              "max": 14467,
+              "cur": 10523,
+              "hpp": 72.74
+            },
+            "mana": 0,
+            "energy": 150,
+            "mana0": 0,
+            "energy0": 150,
+            "fast": 1,
+            "ac": {
+              "cur": 466,
+              "bonus": 0
+            },
+            "resfire": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 7,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 5,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 65,
+            "focus": 0,
+            "cooldowns": [
+              [
+                85,
+                3
+              ],
+              [
+                264,
+                0
+              ]
+            ],
+            "doublecastcost": [],
+            "combo": 2,
+            "id": 473373
+          }
+        },
+        "move": -1,
+        "endBattle": 1,
+        "m": [
+          "473373=72.74;462342=0.00;+crit;+pierce;+dmgd=1552;+acdmg=11;-pierceb;+legbon_holytouch;-legbon_critred=25;+taken_dmg=233;-dmgd=417;-dmga=239",
+          "0;0;winner=Gracz 2, Gracz 3",
+          "0;0;loser=Gracz 1"
+        ],
+        "mi": [
+          121,
+          122,
+          123
+        ]
+      },
+      "messages": [
+        "473373=72.74;462342=0.00;+crit;+pierce;+dmgd=1552;+acdmg=11;-pierceb;+legbon_holytouch;-legbon_critred=25;+taken_dmg=233;-dmgd=417;-dmga=239",
+        "0;0;winner=Gracz 2, Gracz 3",
+        "0;0;loser=Gracz 1"
+      ],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 273,
+            "hpp": 1.75
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 614,
+            "bonus": 373
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 10523,
+            "hpp": 72.74
+          },
+          "mana": 0,
+          "energy": 148,
+          "ac": {
+            "cur": 466,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 154,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 614,
+            "bonus": 373
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 10523,
+            "hpp": 72.74
+          },
+          "mana": 0,
+          "energy": 150,
+          "ac": {
+            "cur": 466,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 154,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    },
+    {
+      "index": 23,
+      "payload": {
+        "move": -1,
+        "endBattle": 1
+      },
+      "messages": [],
+      "combatantsBefore": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 614,
+            "bonus": 373
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 10523,
+            "hpp": 72.74
+          },
+          "mana": 0,
+          "energy": 150,
+          "ac": {
+            "cur": 466,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 154,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 462342,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 64,
+          "hp": {
+            "max": 15615,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 614,
+            "bonus": 373
+          }
+        },
+        {
+          "id": 473373,
+          "name": "Gracz 2",
+          "team": 2,
+          "prof": "h",
+          "lvl": 70,
+          "hp": {
+            "max": 14467,
+            "cur": 10523,
+            "hpp": 72.74
+          },
+          "mana": 0,
+          "energy": 150,
+          "ac": {
+            "cur": 466,
+            "bonus": 0
+          }
+        },
+        {
+          "id": 477718,
+          "name": "Gracz 3",
+          "team": 2,
+          "prof": "t",
+          "lvl": 70,
+          "hp": {
+            "max": 13313,
+            "cur": 13313,
+            "hpp": 100
+          },
+          "mana": 169,
+          "energy": 154,
+          "ac": {
+            "cur": 397,
+            "bonus": 0
+          }
+        }
+      ]
+    }
+  ],
+  "namesSubstituted": 174,
+  "descriptionsRemoved": 5
+}

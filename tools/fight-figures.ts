@@ -1,6 +1,6 @@
 /**
  * What a recording adds up to, per combatant, as a terminal table: `develop:tools/fight-figures.ts`
- * at `RECORDINGS_REVISION`, written line for line, so `tools/develop-reports.ts` can hold the two
+ * at `DEVELOP_REVISION`, written line for line, so `tools/develop-reports.ts` can hold the two
  * branches to one text (`docs/design.md` §12). The material and the add-on's reading of it are
  * `tools/recorded-material.ts`'s; what is this file's own is the text.
  *
@@ -21,6 +21,7 @@ import { getRankedOrder } from "#/src/ui/ranked-order.ts";
 import {
     formatRecordingName,
     readRecordedMaterial,
+    type RecordedMaterial,
     type ReplayedFight,
     replayRecordedMaterial,
 } from "./recorded-material.ts";
@@ -240,7 +241,11 @@ export function formatCutText(cut: FigureCut, roster: CombatantRoster | null): s
 
 /** Every recording where no path was named, the files named otherwise, as a terminal prints it. */
 export function formatRecordedFigures(paths: readonly string[]): string {
-    const material = readRecordedMaterial(paths);
+    return formatMaterialFigures(readRecordedMaterial(paths));
+}
+
+/** The whole report over material already chosen, which is how `fight:develop` narrows it. */
+export function formatMaterialFigures(material: RecordedMaterial): string {
     const replayed = replayRecordedMaterial(material);
     const lines = [`material ${material.material}`, ...replayed.flatMap(formatFigureReport)];
     assert(lines.length > replayed.length, "every recording read is reported");

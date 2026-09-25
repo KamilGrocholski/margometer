@@ -35,7 +35,7 @@ import {
     SIGNAL,
 } from "#/src/ui/panel-palette.ts";
 import { parseInteger } from "#/libs/number-text.ts";
-import { RECORDINGS_REVISION } from "#/tests/recording-revision.ts";
+import { DEVELOP_REVISION } from "#/tests/recording-sources.ts";
 import { getDeclaration, getRuleBody, RULES_IN_A_SHEET } from "#/tests/style-sheet.ts";
 
 /** WCAG AA for text at the size this panel prints figures, and for a mark that is not text. */
@@ -325,7 +325,7 @@ Deno.test("the two sides are told apart by more than a hue", () => {
  */
 Deno.test("the style sheet is the one develop ships, byte for byte", async () => {
     const develop = await readDevelopStyleSheet();
-    assertEquals(composeStyleSheet(), develop, `the sheet develop @ ${RECORDINGS_REVISION} ships`);
+    assertEquals(composeStyleSheet(), develop, `the sheet develop @ ${DEVELOP_REVISION} ships`);
 });
 
 /** `develop`'s modules written out of git into a directory of their own, and the sheet asked for. */
@@ -333,10 +333,10 @@ async function readDevelopStyleSheet(): Promise<string> {
     const root = Deno.makeTempDirSync({ prefix: "margometer-develop-sheet-" });
     for (const path of DEVELOP_SHEET_FILES) {
         const shown = new Deno.Command("git", {
-            args: ["show", `${RECORDINGS_REVISION}:${path}`],
+            args: ["show", `${DEVELOP_REVISION}:${path}`],
             stdout: "piped",
         }).outputSync();
-        assert(shown.success, `develop:${path} is there at ${RECORDINGS_REVISION}`);
+        assert(shown.success, `develop:${path} is there at ${DEVELOP_REVISION}`);
         const upward = "../".repeat(path.split("/").length - 1);
         const text = new TextDecoder().decode(shown.stdout);
         const target = `${root}/${path}`;

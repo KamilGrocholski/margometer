@@ -28,8 +28,8 @@
         // The panel in a browser over any recording, stepped by hand, rebuilt and reloaded when a
         // file the bundle reads changes. The page is the one the browser suite drives.
         "preview": "deno run -A tools/preview-server.ts",
-        // How a recording the add-on wrote becomes material: redacted, and written under
-        // `dist/intake/` for a person to move into `develop:captures/`.
+        // How a recording the add-on wrote becomes material: redacted, and written into
+        // `captures/` for a person to read and commit.
         "capture:intake": "deno run -A tools/capture-intake.ts",
         // The version this tree declares, and the section `CHANGELOG.md` carries for it, as the
         // body of its release. A workflow runs it, and so can a hand before a tag.
@@ -46,6 +46,8 @@
         "singleQuote": false,
         "useTabs": false,
         "exclude": [
+            // Evidence. Formatting a recording is editing it (`captures/AGENTS.md`).
+            "captures/",
             // Fights nobody fought, and output nobody hand-writes.
             "fabricated/",
             "dist/",
@@ -89,5 +91,5 @@
     // `.claude/` holds the worktrees Claude Code gives its subagents, each a whole copy of the tree
     // inside this one: an argument-less `deno check` walked them, and their `#/` resolved against
     // this root, so a change here reddened the gate with errors from a copy nobody was gating.
-    "exclude": ["dist/", ".cache/", "fabricated/", "node_modules/", ".claude/"]
+    "exclude": ["captures/", "dist/", ".cache/", "fabricated/", "node_modules/", ".claude/"]
 }

@@ -1,6 +1,6 @@
 /**
  * How much of the protocol the decoder reads, counted rather than remembered:
- * `develop:tools/decoding-status.ts` at `RECORDINGS_REVISION`, written line for line so
+ * `develop:tools/decoding-status.ts` at `DEVELOP_REVISION`, written line for line so
  * `deno task fight:develop` holds the two to one text. Named files are what makes it worth
  * running before an intake: a fresh recording is asked whether taking it in is worth starting.
  * The material and the add-on's reading of it are `tools/recorded-material.ts`'s.
@@ -142,7 +142,11 @@ function formatStatusTallyLines(tally: Tally): string[] {
 
 /** Every recording where no path was named, the files named otherwise, as a terminal prints it. */
 export function formatDecodingStatus(paths: readonly string[]): string {
-    const material = readRecordedMaterial(paths);
+    return formatMaterialStatus(readRecordedMaterial(paths));
+}
+
+/** The whole report over material already chosen, which is how `fight:develop` narrows it. */
+export function formatMaterialStatus(material: RecordedMaterial): string {
     const lines = formatStatusReport(material, replayRecordedMaterial(material));
     assert(lines.length > 0, "a report says something");
     return `${lines.join("\n")}\n`;

@@ -1023,7 +1023,10 @@ a mark.
 
 ## 11. Recorded material and the file format
 
-- **The recordings are `develop:captures/`**, and this branch reads them without changing them.
+- **The recordings are `captures/`**, brought over byte for byte from `develop` @ `fa1dcce` and read
+  off the tree by `tests/recorded-fights.ts`. `tools/capture-intake.ts` admits a new one there, and
+  `docs/captured-fights.md` names every one, held by
+  `tests/repository/captured-fight-register.test.ts`.
 - **The file format stays `formatVersion` 4.** `encodeFightFile` writes the fields `develop`'s
   `composeCaptureText` writes. A name changing in code (`combatantsBefore` becomes `snapshotBefore`
   in `PayloadRecord`) never reaches a key in the file, because the keys are spelled once, in the

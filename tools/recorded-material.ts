@@ -1,6 +1,6 @@
 /**
  * What a tool reports on, and each fight in it read the add-on's own way. No path is every
- * recording at `RECORDINGS_REVISION`; a path is a file on disk, so a fresh recording can be asked
+ * recording under `captures/`; a path is any file on disk, so a fresh recording can be asked
  * about before an intake takes it. A file is read by the tests' reader, which spells the format
  * by `FILE_FIELD`, and a fight by `replayFightPayloads`, the runtime's chain, on the tables the
  * add-on composes at its start: nothing here decodes or tallies on its own.
@@ -19,7 +19,7 @@ import {
     readRecordedFights,
     type RecordedFight,
 } from "#/tests/recorded-fights.ts";
-import { RECORDINGS_DIRECTORY } from "#/tests/recording-revision.ts";
+import { RECORDINGS_DIRECTORY } from "#/tests/recording-sources.ts";
 import { RecordingReadError } from "./margometer-tool-error.ts";
 
 export interface RecordedMaterial {

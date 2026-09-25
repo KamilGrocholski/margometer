@@ -9,7 +9,6 @@ import { formatCutText, formatFigureReport, formatRecordedFigures } from "#/tool
 import { RecordingReadError } from "#/tools/margometer-tool-error.ts";
 import { replayRecordedMaterial } from "#/tools/recorded-material.ts";
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
-import { RECORDINGS_REVISION } from "#/tests/recording-revision.ts";
 
 /** Four calls, one fighter against three boars, and an outcome: the shortest there is to read. */
 const SHORT = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
@@ -53,16 +52,10 @@ Deno.test("an id in a cut is named through the roster, and a key that is no id i
 });
 
 Deno.test("a file on disk is reported under its path, and one that is not there is refused", () => {
-    const path = Deno.makeTempFileSync({ suffix: ".json" });
-    const shown = new Deno.Command("git", {
-        args: ["show", `${RECORDINGS_REVISION}:${SHORT}`],
-        stdout: "piped",
-    }).outputSync();
-    Deno.writeFileSync(path, shown.stdout);
-    const text = formatRecordedFigures([path]);
-    Deno.removeSync(path);
-    assert(text.startsWith(`material ${path}\n\n=== `), "the material is the path it was handed");
+    const text = formatRecordedFigures([SHORT]);
+    assert(text.startsWith(`material ${SHORT}\n\n=== `), "the material is the path it was handed");
     assertStrictEquals(text.split("\n=== ").length, 2, "and one file is one report");
-    const error = assertThrows(() => formatRecordedFigures([path]), RecordingReadError);
+    const missing = `${SHORT}.missing`;
+    const error = assertThrows(() => formatRecordedFigures([missing]), RecordingReadError);
     assertStrictEquals(error.name, "MargoMeterTool/RecordingRead");
 });

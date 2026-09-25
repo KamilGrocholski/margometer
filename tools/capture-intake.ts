@@ -1,8 +1,7 @@
 /**
  * How a recording the add-on wrote becomes material: its report dropped, every player's name
- * replaced, the game's ability prose taken out, and a file named for the day, world, fight, build
- * and version it states. This branch carries no `captures/` (`docs/design.md` §11), so the file is
- * written under `dist/intake/`, and moving it into `develop:captures/` is a person's step.
+ * replaced, the game's ability prose taken out, and a file in `captures/` named for the day, world,
+ * fight, build and version it states. Committing it is a person's step, after reading it.
  *
  * ⚠️ **Neither redaction is complete.** Names are known only where a combatant id carries them,
  * so a nickname belonging to nobody in the roster walks through untouched: the run ends by
@@ -24,6 +23,7 @@ import {
     readRecordedFights,
     type RecordedFight,
 } from "#/tests/recorded-fights.ts";
+import { RECORDINGS_DIRECTORY } from "#/tests/recording-sources.ts";
 import { CaptureIntakeError } from "./margometer-tool-error.ts";
 
 export interface Pseudonymisation {
@@ -64,7 +64,7 @@ interface MappingTask {
  * The game's keys only intake reads, spelled once (N13): who is a monster, and the ability list
  * whose prose goes. Nothing in `src/` reads either.
  */
-const INTAKE_KEYS = { nonPlayer: "npc", abilities: "skills" } as const;
+export const INTAKE_KEYS = { nonPlayer: "npc", abilities: "skills" } as const;
 /** Written by this tool and by nothing else, which is why they are spelled here. */
 const SUBSTITUTED_COUNT = "namesSubstituted";
 const REMOVED_COUNT = "descriptionsRemoved";
@@ -104,7 +104,6 @@ const OFFERED_MAXIMUM = 256;
 const ADMITTED_MAXIMUM = 4096;
 const CALLS_MAXIMUM = 100_000;
 const DAY_SHAPE = "dddd-dd-dd";
-const INTAKE_DIRECTORY = "dist/intake";
 const RECORDING_SUFFIX = ".json";
 /**
  * What replaces an ability description. Visible on purpose: a blank would read as "the game sent
@@ -576,12 +575,12 @@ export function writeIntake(source: string, slug: string): string {
     const recording = composeRecordingInEnglish(parsed.value);
     requireCallsCarried(recording);
     requireSnapshotsCarried(source, recording);
-    const target = `${INTAKE_DIRECTORY}/${composeIntakeName(recording, slug)}`;
+    const target = `${RECORDINGS_DIRECTORY}${composeIntakeName(recording, slug)}`;
+    // Material is never overwritten: a recording already here is evidence a test stands on.
     const standing = callForeign(() => Deno.statSync(target));
     if (standing.ok) throw new CaptureIntakeError(`${target} already exists — nothing overwritten`);
     const intake = composeIntake(recording);
     requireRecordingIsNew(source, intake.recording, readRecordedFights());
-    Deno.mkdirSync(INTAKE_DIRECTORY, { recursive: true });
     Deno.writeTextFileSync(target, intake.text);
     console.log(`wrote ${target}`);
     console.log(
@@ -594,7 +593,7 @@ export function writeIntake(source: string, slug: string): string {
     console.log("");
     console.log("Still yours, and no test closes it: read `txt=`, `shout=` and `loser=` in the");
     console.log("messages with your eyes. A nickname tied to no combatant id walks through.");
-    console.log("Then move the file into develop's captures/ and commit it there.");
+    console.log("Then run `deno task fight:decoding` over it, and commit it.");
     return target;
 }
 

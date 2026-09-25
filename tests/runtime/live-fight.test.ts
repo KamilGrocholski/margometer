@@ -85,11 +85,7 @@ Deno.test("every recording played through the wrap is the fight, the file and th
 
 /** The recording's own snapshots after each call, which the fake engine moves its warriors to. */
 function readRecordedAfter(fight: RecordedFight): WarriorSnapshot[] {
-    const text = new Deno.Command("git", {
-        args: ["show", `fa1dcce:${fight.path}`],
-        stdout: "piped",
-    }).outputSync().stdout;
-    const document = JSON.parse(new TextDecoder().decode(text));
+    const document = JSON.parse(Deno.readTextFileSync(fight.path));
     return document.calls.map((call: { combatantsAfter?: WarriorSnapshot | null }) =>
         call.combatantsAfter ?? []
     );

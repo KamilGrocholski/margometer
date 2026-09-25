@@ -1,0 +1,886 @@
+{
+  "formatVersion": 4,
+  "addOnVersion": "0.17.0",
+  "capturedAt": "2026-09-16T12:31:37.906Z",
+  "world": "luvia",
+  "gameBuild": "Bb28FQty",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64; rv:155.0) Gecko/20100101 Firefox/155.0",
+  "droppedCalls": 43,
+  "isTruncated": false,
+  "calls": [
+    {
+      "index": 0,
+      "payload": {
+        "init": "1",
+        "auto": "0",
+        "battleground": "dd3.jpg",
+        "skills_disabled": [
+          14
+        ],
+        "skills_combo_max": [],
+        "skills": [
+          "-1",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "-2",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "",
+          "239",
+          "Podwójne trafienie",
+          "5",
+          "9",
+          "4",
+          "(description from the game — removed, NOTICE.md)",
+          "reqp=t;reqw=dis;lvl=25",
+          "1/10",
+          "energy=25;lowdmg_self=16;add_attacks=1;cooldown=3;combo-skill=1;agi=0.2",
+          "",
+          "14",
+          "Lodowa strzała",
+          "5",
+          "9",
+          "2",
+          "(description from the game — removed, NOTICE.md)",
+          "reqp=t;reqw=dis,frost;lvl=25",
+          "1/10",
+          "slowfreeze_per=45@2;freeze=10;frostbon=0.3;combo-skill=1;mana=22",
+          "",
+          "89",
+          "Podwójny dech",
+          "25",
+          "10",
+          "5",
+          "(description from the game — removed, NOTICE.md)",
+          "reqp=t;lvl=35",
+          "10/10",
+          "aura-sa_per=20@8;mana=75;cooldown=6",
+          "",
+          "248",
+          "Kojące ochłodzenie",
+          "25",
+          "11",
+          "5",
+          "(description from the game — removed, NOTICE.md)",
+          "reqp=t;lvl=50",
+          "1/10",
+          "heal_per=23;cooldown=8;mana=83*cplvl",
+          ""
+        ],
+        "w": {
+          "1009": {
+            "originalId": 1009,
+            "name": "Gracz 1",
+            "lvl": 302,
+            "oplvl": 300,
+            "prof": "w",
+            "gender": "m",
+            "npc": 0,
+            "hp": {
+              "max": 120998,
+              "cur": 120998,
+              "hpp": 100
+            },
+            "team": 1,
+            "y": 3,
+            "icon": "/noob/wm.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "ac": {
+              "cur": 12455,
+              "bonus": 2491
+            },
+            "resfire": {
+              "cur": 5,
+              "bonus": 15
+            },
+            "resfrost": {
+              "cur": 0,
+              "bonus": 15
+            },
+            "reslight": {
+              "cur": 0,
+              "bonus": 15
+            },
+            "act": {
+              "cur": 44,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "id": 1009
+          },
+          "1239": {
+            "originalId": 1239,
+            "name": "Gracz 2",
+            "lvl": 300,
+            "oplvl": 300,
+            "prof": "p",
+            "gender": "m",
+            "npc": 0,
+            "hp": {
+              "max": 97444,
+              "cur": 97444,
+              "hpp": 100
+            },
+            "team": 1,
+            "y": 2,
+            "icon": "/paid/slowianin1.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "ac": {
+              "cur": 9743,
+              "bonus": 5650
+            },
+            "resfire": {
+              "cur": 48,
+              "bonus": 7
+            },
+            "resfrost": {
+              "cur": 10,
+              "bonus": 7
+            },
+            "reslight": {
+              "cur": 34,
+              "bonus": 7
+            },
+            "act": {
+              "cur": 40,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "id": 1239
+          },
+          "2841": {
+            "originalId": 2841,
+            "name": "Gracz 3",
+            "lvl": 303,
+            "oplvl": 300,
+            "prof": "m",
+            "gender": "m",
+            "npc": 0,
+            "hp": {
+              "max": 77024,
+              "cur": 71973,
+              "hpp": 93.44
+            },
+            "team": 1,
+            "y": 1,
+            "icon": "/paid/mm.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "ac": {
+              "cur": 3221,
+              "bonus": 644
+            },
+            "resfire": {
+              "cur": 53,
+              "bonus": 15
+            },
+            "resfrost": {
+              "cur": 14,
+              "bonus": 15
+            },
+            "reslight": {
+              "cur": 12,
+              "bonus": 15
+            },
+            "act": {
+              "cur": 41,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "id": 2841
+          },
+          "13915": {
+            "originalId": 13915,
+            "name": "Gracz 4",
+            "lvl": 300,
+            "oplvl": 300,
+            "prof": "h",
+            "gender": "m",
+            "npc": 0,
+            "hp": {
+              "max": 80389,
+              "cur": 80389,
+              "hpp": 100
+            },
+            "team": 1,
+            "y": 0,
+            "icon": "/paid/pk.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "ac": {
+              "cur": 5237,
+              "bonus": 1047
+            },
+            "resfire": {
+              "cur": 21,
+              "bonus": 15
+            },
+            "resfrost": {
+              "cur": 10,
+              "bonus": 15
+            },
+            "reslight": {
+              "cur": 21,
+              "bonus": 15
+            },
+            "act": {
+              "cur": 77,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "id": 13915
+          },
+          "14954": {
+            "originalId": 14954,
+            "name": "Gracz 5",
+            "lvl": 301,
+            "oplvl": 300,
+            "prof": "m",
+            "gender": "m",
+            "npc": 0,
+            "hp": {
+              "max": 76476,
+              "cur": 76476,
+              "hpp": 100
+            },
+            "team": 1,
+            "y": 1,
+            "icon": "/kuf/her_xxxiv_mysia_k3.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "ac": {
+              "cur": 2856,
+              "bonus": 571
+            },
+            "resfire": {
+              "cur": 43,
+              "bonus": 15
+            },
+            "resfrost": {
+              "cur": 26,
+              "bonus": 15
+            },
+            "reslight": {
+              "cur": 46,
+              "bonus": 15
+            },
+            "act": {
+              "cur": 6,
+              "bonus": 0
+            },
+            "buffs": 0,
+            "focus": 0,
+            "id": 14954
+          },
+          "54115": {
+            "originalId": 54115,
+            "name": "Gracz 6",
+            "lvl": 83,
+            "oplvl": 83,
+            "prof": "t",
+            "gender": "m",
+            "npc": 0,
+            "hp": {
+              "max": 14166,
+              "cur": 0,
+              "hpp": 0
+            },
+            "team": 2,
+            "y": 5,
+            "icon": "/kuf/uni_xxxiv_ork_m2.gif",
+            "poolTime": {
+              "left": 120
+            },
+            "mana": 237,
+            "energy": 146,
+            "mana0": 237,
+            "energy0": 146,
+            "fast": 0,
+            "ac": {
+              "cur": 272,
+              "bonus": 0,
+              "destroyed": 1
+            },
+            "resfire": {
+              "cur": 3,
+              "bonus": 0
+            },
+            "resfrost": {
+              "cur": 18,
+              "bonus": 0
+            },
+            "reslight": {
+              "cur": 3,
+              "bonus": 0
+            },
+            "act": {
+              "cur": 25,
+              "bonus": 0
+            },
+            "buffs": 40,
+            "focus": 1009,
+            "cooldowns": [],
+            "doublecastcost": [],
+            "combo": 0,
+            "id": 54115
+          }
+        },
+        "myteam": 2,
+        "move": -1,
+        "endBattle": 1,
+        "m": [
+          "14954=100.00;0;heal_per-enemies=-15",
+          "2841=92.79;0;heal_per-enemies=-15",
+          "1239=100.00;0;hp_per-allies=10",
+          "13915=100.00;0;poison_lowdmg_per-enemies=10",
+          "0;0;txt=Pobrano 1% złota od Graczy z listem gończym, na rzecz nagrody dla zwycięzcy.",
+          "13915=100.00;54115=97.53;tspell=Piętno bestii;skillId=264;+spell-taken_dmg-all",
+          "1239=100.00;1239=100.00;tspell=Aura ochrony;skillId=76;aura-ac_per=20;aura-resall=15",
+          "1009=100.00;0;step",
+          "14954=100.00;54115=97.53;tspell=Szadź;skillId=123;allslow_per=14",
+          "2841=93.44;54115=97.53;tspell=Szadź;skillId=123;allslow_per=14",
+          "13915=100.00;54115=97.53;tspell=Błyskawiczny strzał;skillId=85",
+          "13915=100.00;54115=24.38;+dmgd=9313;+acdmg=171;+taken_dmg=1397;-dmgd=8897;-dmga=1466",
+          "1239=100.00;1239=100.00;tspell=Tarcza słońca;skillId=92;sunshield_per",
+          "1009=100.00;54115=24.38;tspell=Wyzywający okrzyk;skillId=188;shout=Gracz 6;active_decblock_per-enemies=10;alllowdmg=5",
+          "13915=100.00;54115=24.38;tspell=Podwójny strzał;skillId=97",
+          "13915=100.00;54115=0.00;+crit;+critslow_per=8;+actdmg=1;+fastarrow;+dmgd=12410;+acdmg=100;+acdmg_destroyed;+taken_dmg=1862;-dmgd=12104;-dmga=1955",
+          "0;0;txt=Gracz 4 - atak w martwego przeciwnika.",
+          "0;0;winner=Gracz 5, Gracz 1, Gracz 2, Gracz 4, Gracz 3",
+          "0;0;loser=Gracz 6"
+        ],
+        "mi": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18
+        ]
+      },
+      "messages": [
+        "14954=100.00;0;heal_per-enemies=-15",
+        "2841=92.79;0;heal_per-enemies=-15",
+        "1239=100.00;0;hp_per-allies=10",
+        "13915=100.00;0;poison_lowdmg_per-enemies=10",
+        "0;0;txt=Pobrano 1% złota od Graczy z listem gończym, na rzecz nagrody dla zwycięzcy.",
+        "13915=100.00;54115=97.53;tspell=Piętno bestii;skillId=264;+spell-taken_dmg-all",
+        "1239=100.00;1239=100.00;tspell=Aura ochrony;skillId=76;aura-ac_per=20;aura-resall=15",
+        "1009=100.00;0;step",
+        "14954=100.00;54115=97.53;tspell=Szadź;skillId=123;allslow_per=14",
+        "2841=93.44;54115=97.53;tspell=Szadź;skillId=123;allslow_per=14",
+        "13915=100.00;54115=97.53;tspell=Błyskawiczny strzał;skillId=85",
+        "13915=100.00;54115=24.38;+dmgd=9313;+acdmg=171;+taken_dmg=1397;-dmgd=8897;-dmga=1466",
+        "1239=100.00;1239=100.00;tspell=Tarcza słońca;skillId=92;sunshield_per",
+        "1009=100.00;54115=24.38;tspell=Wyzywający okrzyk;skillId=188;shout=Gracz 6;active_decblock_per-enemies=10;alllowdmg=5",
+        "13915=100.00;54115=24.38;tspell=Podwójny strzał;skillId=97",
+        "13915=100.00;54115=0.00;+crit;+critslow_per=8;+actdmg=1;+fastarrow;+dmgd=12410;+acdmg=100;+acdmg_destroyed;+taken_dmg=1862;-dmgd=12104;-dmga=1955",
+        "0;0;txt=Gracz 4 - atak w martwego przeciwnika.",
+        "0;0;winner=Gracz 5, Gracz 1, Gracz 2, Gracz 4, Gracz 3",
+        "0;0;loser=Gracz 6"
+      ],
+      "combatantsBefore": [],
+      "combatantsAfter": [
+        {
+          "id": 1009,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 302,
+          "hp": {
+            "max": 120998,
+            "cur": 120998,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 12455,
+            "bonus": 2491
+          }
+        },
+        {
+          "id": 1239,
+          "name": "Gracz 2",
+          "team": 1,
+          "prof": "p",
+          "lvl": 300,
+          "hp": {
+            "max": 97444,
+            "cur": 97444,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 9743,
+            "bonus": 5650
+          }
+        },
+        {
+          "id": 2841,
+          "name": "Gracz 3",
+          "team": 1,
+          "prof": "m",
+          "lvl": 303,
+          "hp": {
+            "max": 77024,
+            "cur": 71973,
+            "hpp": 93.44
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 3221,
+            "bonus": 644
+          }
+        },
+        {
+          "id": 13915,
+          "name": "Gracz 4",
+          "team": 1,
+          "prof": "h",
+          "lvl": 300,
+          "hp": {
+            "max": 80389,
+            "cur": 80389,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 5237,
+            "bonus": 1047
+          }
+        },
+        {
+          "id": 14954,
+          "name": "Gracz 5",
+          "team": 1,
+          "prof": "m",
+          "lvl": 301,
+          "hp": {
+            "max": 76476,
+            "cur": 76476,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 2856,
+            "bonus": 571
+          }
+        },
+        {
+          "id": 54115,
+          "name": "Gracz 6",
+          "team": 2,
+          "prof": "t",
+          "lvl": 83,
+          "hp": {
+            "max": 14166,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": 237,
+          "energy": 146,
+          "ac": {
+            "cur": 272,
+            "bonus": 0,
+            "destroyed": 1
+          }
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "payload": {
+        "move": -1,
+        "endBattle": 1
+      },
+      "messages": [],
+      "combatantsBefore": [
+        {
+          "id": 1009,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 302,
+          "hp": {
+            "max": 120998,
+            "cur": 120998,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 12455,
+            "bonus": 2491
+          }
+        },
+        {
+          "id": 1239,
+          "name": "Gracz 2",
+          "team": 1,
+          "prof": "p",
+          "lvl": 300,
+          "hp": {
+            "max": 97444,
+            "cur": 97444,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 9743,
+            "bonus": 5650
+          }
+        },
+        {
+          "id": 2841,
+          "name": "Gracz 3",
+          "team": 1,
+          "prof": "m",
+          "lvl": 303,
+          "hp": {
+            "max": 77024,
+            "cur": 71973,
+            "hpp": 93.44
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 3221,
+            "bonus": 644
+          }
+        },
+        {
+          "id": 13915,
+          "name": "Gracz 4",
+          "team": 1,
+          "prof": "h",
+          "lvl": 300,
+          "hp": {
+            "max": 80389,
+            "cur": 80389,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 5237,
+            "bonus": 1047
+          }
+        },
+        {
+          "id": 14954,
+          "name": "Gracz 5",
+          "team": 1,
+          "prof": "m",
+          "lvl": 301,
+          "hp": {
+            "max": 76476,
+            "cur": 76476,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 2856,
+            "bonus": 571
+          }
+        },
+        {
+          "id": 54115,
+          "name": "Gracz 6",
+          "team": 2,
+          "prof": "t",
+          "lvl": 83,
+          "hp": {
+            "max": 14166,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": 237,
+          "energy": 146,
+          "ac": {
+            "cur": 272,
+            "bonus": 0,
+            "destroyed": 1
+          }
+        }
+      ],
+      "combatantsAfter": [
+        {
+          "id": 1009,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 302,
+          "hp": {
+            "max": 120998,
+            "cur": 120998,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 12455,
+            "bonus": 2491
+          }
+        },
+        {
+          "id": 1239,
+          "name": "Gracz 2",
+          "team": 1,
+          "prof": "p",
+          "lvl": 300,
+          "hp": {
+            "max": 97444,
+            "cur": 97444,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 9743,
+            "bonus": 5650
+          }
+        },
+        {
+          "id": 2841,
+          "name": "Gracz 3",
+          "team": 1,
+          "prof": "m",
+          "lvl": 303,
+          "hp": {
+            "max": 77024,
+            "cur": 71973,
+            "hpp": 93.44
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 3221,
+            "bonus": 644
+          }
+        },
+        {
+          "id": 13915,
+          "name": "Gracz 4",
+          "team": 1,
+          "prof": "h",
+          "lvl": 300,
+          "hp": {
+            "max": 80389,
+            "cur": 80389,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 5237,
+            "bonus": 1047
+          }
+        },
+        {
+          "id": 14954,
+          "name": "Gracz 5",
+          "team": 1,
+          "prof": "m",
+          "lvl": 301,
+          "hp": {
+            "max": 76476,
+            "cur": 76476,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 2856,
+            "bonus": 571
+          }
+        },
+        {
+          "id": 54115,
+          "name": "Gracz 6",
+          "team": 2,
+          "prof": "t",
+          "lvl": 83,
+          "hp": {
+            "max": 14166,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": 237,
+          "energy": 146,
+          "ac": {
+            "cur": 272,
+            "bonus": 0,
+            "destroyed": 1
+          }
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "payload": {
+        "move": -1,
+        "endBattle": 1,
+        "close": 1
+      },
+      "messages": [],
+      "combatantsBefore": [
+        {
+          "id": 1009,
+          "name": "Gracz 1",
+          "team": 1,
+          "prof": "w",
+          "lvl": 302,
+          "hp": {
+            "max": 120998,
+            "cur": 120998,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 12455,
+            "bonus": 2491
+          }
+        },
+        {
+          "id": 1239,
+          "name": "Gracz 2",
+          "team": 1,
+          "prof": "p",
+          "lvl": 300,
+          "hp": {
+            "max": 97444,
+            "cur": 97444,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 9743,
+            "bonus": 5650
+          }
+        },
+        {
+          "id": 2841,
+          "name": "Gracz 3",
+          "team": 1,
+          "prof": "m",
+          "lvl": 303,
+          "hp": {
+            "max": 77024,
+            "cur": 71973,
+            "hpp": 93.44
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 3221,
+            "bonus": 644
+          }
+        },
+        {
+          "id": 13915,
+          "name": "Gracz 4",
+          "team": 1,
+          "prof": "h",
+          "lvl": 300,
+          "hp": {
+            "max": 80389,
+            "cur": 80389,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 5237,
+            "bonus": 1047
+          }
+        },
+        {
+          "id": 14954,
+          "name": "Gracz 5",
+          "team": 1,
+          "prof": "m",
+          "lvl": 301,
+          "hp": {
+            "max": 76476,
+            "cur": 76476,
+            "hpp": 100
+          },
+          "mana": null,
+          "energy": null,
+          "ac": {
+            "cur": 2856,
+            "bonus": 571
+          }
+        },
+        {
+          "id": 54115,
+          "name": "Gracz 6",
+          "team": 2,
+          "prof": "t",
+          "lvl": 83,
+          "hp": {
+            "max": 14166,
+            "cur": 0,
+            "hpp": 0
+          },
+          "mana": 237,
+          "energy": 146,
+          "ac": {
+            "cur": 272,
+            "bonus": 0,
+            "destroyed": 1
+          }
+        }
+      ],
+      "combatantsAfter": []
+    }
+  ],
+  "namesSubstituted": 46,
+  "descriptionsRemoved": 4
+}

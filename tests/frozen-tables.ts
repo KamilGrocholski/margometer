@@ -7,7 +7,7 @@ import { assert } from "@std/assert";
 import type { StatedSkills } from "#/src/core/aura-standing.ts";
 import type { DecoderTables } from "#/src/core/fight-decoder.ts";
 import { composeRuntimeTables } from "#/src/userscript-entry.ts";
-import { RECORDINGS_REVISION } from "./recording-revision.ts";
+import { DEVELOP_REVISION } from "./recording-sources.ts";
 
 /** The entry's own composition, so a test reads the tables the add-on reads, composed once. */
 const TABLES = composeRuntimeTables();
@@ -20,10 +20,10 @@ export const STATED_SKILLS: StatedSkills = TABLES.tooltip.statedSkills;
  */
 export async function readFrozenModule(name: string): Promise<Record<string, unknown>> {
     const shown = new Deno.Command("git", {
-        args: ["show", `${RECORDINGS_REVISION}:frozen/${name}.ts`],
+        args: ["show", `${DEVELOP_REVISION}:frozen/${name}.ts`],
         stdout: "piped",
     }).outputSync();
-    assert(shown.success, `develop:frozen/${name}.ts is there at ${RECORDINGS_REVISION}`);
+    assert(shown.success, `develop:frozen/${name}.ts is there at ${DEVELOP_REVISION}`);
     const text = new TextDecoder().decode(shown.stdout);
     return await import(`data:application/typescript,${encodeURIComponent(text)}`);
 }

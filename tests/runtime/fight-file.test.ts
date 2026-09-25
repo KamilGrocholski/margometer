@@ -31,7 +31,6 @@ import {
 } from "#/src/runtime/fight-file.ts";
 import { BLOWS_GRANTED } from "#/tests/frozen-tables.ts";
 import { readRecordedFights, replayRecordedFight } from "#/tests/recorded-fights.ts";
-import { RECORDINGS_REVISION } from "#/tests/recording-revision.ts";
 
 /**
  * The newest envelope. `formatVersion` does not identify the shape (every recording of
@@ -80,10 +79,7 @@ function readFile(text: string): UnknownRecord {
 }
 
 function readRecordingText(path: string): string {
-    const args = ["show", `${RECORDINGS_REVISION}:${path}`];
-    const output = new Deno.Command("git", { args, stdout: "piped" }).outputSync();
-    assert(output.success, `${path} is a recording at ${RECORDINGS_REVISION}`);
-    return new TextDecoder().decode(output.stdout);
+    return Deno.readTextFileSync(path);
 }
 
 function writeFile(calls: FileCalls, subject: FileSubject | null, around = SURROUNDINGS) {
