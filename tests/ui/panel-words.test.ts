@@ -35,6 +35,7 @@ import {
     formatFigure,
     formatGrammarRefusedSuspicion,
     formatJoinedInProgressSuspicion,
+    formatKeptUnread,
     formatLostMessageSuspicion,
     formatNoParameterRowSuspicion,
     formatNoParameterSuspicion,
@@ -1450,6 +1451,15 @@ Deno.test("a whole number is written as it is, and anything else degrades, never
 Deno.test("a panel waiting for a game says what it cannot see", () => {
     assertEquals(formatDefect(PANEL_DEFECT_KIND.engine, null, 1), "Nie widać walki w grze.");
     assertEquals(formatDefect(PANEL_DEFECT_KIND.engine, null, 3), "Nie widać walki w grze (3×).");
+});
+
+Deno.test("a kept fight that will not read is placed by what the shelf knows of it", () => {
+    const at = { day: 13, month: 9, hour: 21, minute: 5 };
+    const time = getWordsForShelfTime(at, false);
+    assertEquals(formatKeptUnread(at, "Grota (34, 12)"), `${time} · Grota (34, 12)`, "both");
+    assertEquals(formatKeptUnread(at, null), time, "a place unstated is left out, not guessed");
+    assertEquals(formatKeptUnread(null, "Grota"), "Grota", "and so is a moment unread");
+    assertEquals(formatKeptUnread(null, null), "", "which leaves nothing to say at all");
 });
 
 function getUnmistakableKeys(): string[] {

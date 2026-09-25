@@ -81,7 +81,7 @@ function presentOpenedHalfNamedDrill(
 /** A person or a key, and never both: the way back closes the key first, so one of them is null. */
 function lookupHalfNamedOpened(screen: ScreenState): HalfNamedOpened | null {
     assert(screen.openUnnamedEnd !== null, "a pinned row's rung is asked of an open pinned row");
-    if (screen.openRowId !== null) return null;
+    assert(screen.openRowId === null, "a person's row and a pinned row are never open at once");
     if (screen.openPart !== null) {
         if (screen.openPart.kind !== OPENED_PART.element) return null;
         return { kind: HALF_NAMED_OPENED.element, element: screen.openPart.element };

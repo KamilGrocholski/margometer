@@ -27,6 +27,8 @@ import {
     DEFECT_MARK,
     EVERY_SLOT_PINNED_ANSWER,
     formatDefect,
+    formatKeptUnread,
+    formatPlace,
     getWordsForTurnState,
     PANEL_DEFECT_KIND,
     PANEL_WORDS,
@@ -772,6 +774,32 @@ Deno.test("a panel reloaded between fights opens on the shelf rather than on not
     assert(countRows(findList(host)) > 0, "it draws the newest fight it kept");
     openShelfScreen(again);
     assertEquals(getTextsByClass(host, CLASS.rowSize), ["10×1"], "which opens onto the fight kept");
+});
+
+/**
+ * The newest kept fight is what a reload between fights stands on, and one that no longer reads
+ * (a version later, say) is named for what it is: never "there has been no fight", which the
+ * shelf itself would contradict. When and where come off the shelf, and no outcome is claimed.
+ */
+Deno.test("a reload onto a kept fight that no longer reads says so, and when and where it was", () => {
+    const over = new Array(MESSAGES_MAXIMUM + 1).fill("0;0;txt=c");
+    const place = { mapName: "Grota", x: 34, y: 12 };
+    for (const [stated, where] of [[place, formatPlace("Grota", 34, 12)], [null, null]] as const) {
+        const world = initRuntimeWorld(composeBattlePage(), (built) => {
+            const fights = [{ openedAt: 1, payloads: [{ init: 1, m: over }], place: stated }];
+            const shelf = {
+                version: 3,
+                fights: fights.map((one) => ({ ...one, isPinned: false })),
+            };
+            built.getShelf("local").set(STORE_KEY.fights, JSON.stringify(shelf));
+            return {};
+        });
+        const moment = world.ports.clock.readMoment(1);
+        assertEquals(getTextsByClass(world.getHost(), CLASS.empty), [
+            PANEL_WORDS.keptUnread,
+            formatKeptUnread(moment, where),
+        ], `${where}: the fight is named, not denied`);
+    }
 });
 
 /** A row is opened by the game's own id, and a party keeps its ids from one fight to the next. */

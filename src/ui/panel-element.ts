@@ -46,6 +46,7 @@ import {
     type DrillReading,
     type ElementCut,
     type ElementRow,
+    type FightMoment,
     getEndForPinned,
     getPartOfSide,
     HALF_NAMED_OPENED,
@@ -109,6 +110,7 @@ import {
     formatCounter,
     formatDefect,
     formatFigure,
+    formatKeptUnread,
     formatShelfSize,
     formatSideCounts,
     formatTurnOrdinal,
@@ -295,6 +297,13 @@ export interface WaitingReading {
     hasFightToSave: boolean;
     /** A fight arrived and could not be turned into a screen. Never "there has been no fight". */
     isFightUnread: boolean;
+    /** The kept fight the panel stands on, where it no longer reads: when and where it was. */
+    keptUnread: KeptUnread | null;
+}
+
+export interface KeptUnread {
+    at: FightMoment | null;
+    place: string | null;
 }
 
 export interface ShownScreen {
@@ -2565,7 +2574,7 @@ function renderPanelWaiting(
 ): void {
     renderPanelFolded(document, regions, redraw);
     if (waiting.isCollapsed) return;
-    drawing.draw(WAITING_LIST_NAME, () => renderWaitingList(document, waiting.isFightUnread));
+    drawing.draw(WAITING_LIST_NAME, () => renderWaitingList(document, waiting));
     regions.defects = redraw(
         regions.defects,
         PANEL_REGION.defects,
@@ -2573,10 +2582,17 @@ function renderPanelWaiting(
     );
 }
 
-function renderWaitingList(document: PanelDocument, isFightUnread: boolean): PanelElement {
+function renderWaitingList(document: PanelDocument, waiting: WaitingReading): PanelElement {
     const list = renderList(document, ROWS_WAITING);
     list.className = `${CLASS.list} ${CLASS.listWaiting}`;
-    const said = isFightUnread ? PANEL_WORDS.fightUnread : PANEL_WORDS.noFightYet;
+    const kept = waiting.keptUnread;
+    if (kept !== null) {
+        list.append(renderEmpty(document, PANEL_WORDS.keptUnread));
+        const when = formatKeptUnread(kept.at, kept.place);
+        if (when.length > 0) list.append(renderEmpty(document, when));
+        return list;
+    }
+    const said = waiting.isFightUnread ? PANEL_WORDS.fightUnread : PANEL_WORDS.noFightYet;
     list.append(renderEmpty(document, said));
     return list;
 }

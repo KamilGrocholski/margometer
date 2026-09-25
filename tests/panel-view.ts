@@ -20,6 +20,7 @@ export const NOTHING_WAITING: WaitingReading = {
     defects: [],
     hasFightToSave: false,
     isFightUnread: false,
+    keptUnread: null,
 };
 
 export function initTestView(

@@ -146,6 +146,8 @@ export const PANEL_WORDS = {
     noFightYet: "Nie było jeszcze walki.",
     // Never "no fight yet": there was one, and it is this panel that could not show it.
     fightUnread: "Nie da się pokazać tej walki.",
+    // Never "no fight yet" either: the shelf holds this one, and it is the one that would not read.
+    keptUnread: "Nie da się odczytać zapisanej walki.",
     noSides: "brak składu",
     fights: "Walki",
     backFromFights: "wróć",
@@ -1224,6 +1226,12 @@ export function getWordsForStorage(choice: StorageChoice): string {
  *
  * The place is what pays for the width, on every row (`develop:DESIGN.md`, `develop ADR 0084`).
  */
+/** When and where a kept fight that would not read was fought: what the shelf row would say. */
+export function formatKeptUnread(at: FightMoment | null, place: string | null): string {
+    const parts = [getWordsForShelfTime(at, false), place ?? ""];
+    return parts.filter((part) => part.length > 0).join(" · ");
+}
+
 export function getWordsForShelfTime(at: FightMoment | null, isLive: boolean): string {
     if (isLive) return LIVE_FIGHT_TIME;
     if (at === null) return "";

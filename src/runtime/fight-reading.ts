@@ -86,11 +86,7 @@ export function lookupStandingFight(
     fights: readonly KeptFight[],
     lookupReading: (fight: KeptFight) => KeptReading | null,
 ): StandingFight | null {
-    assert(fights.length <= KEPT_MAXIMUM, "a shelf walked is inside its stated bound");
-    const chosen = openFightId === null
-        ? undefined
-        : fights.find((one) => one.openedAt === openFightId);
-    const kept = chosen ?? (live === null ? lookupNewestFight(fights) : undefined);
+    const kept = lookupStandingKept(live, openFightId, fights);
     if (kept !== undefined) {
         const reading = lookupReading(kept);
         if (reading === null) return null;
@@ -98,6 +94,22 @@ export function lookupStandingFight(
     }
     if (live === null) return null;
     return { kept: null, reading: live };
+}
+
+/**
+ * Which kept fight the panel stands on, read or not: the one chosen, or the newest where no fight
+ * is going on. Undefined where the panel stands on the live fight, or on nothing.
+ */
+export function lookupStandingKept(
+    live: FightReading | null,
+    openFightId: number | null,
+    fights: readonly KeptFight[],
+): KeptFight | undefined {
+    assert(fights.length <= KEPT_MAXIMUM, "a shelf walked is inside its stated bound");
+    const chosen = openFightId === null
+        ? undefined
+        : fights.find((one) => one.openedAt === openFightId);
+    return chosen ?? (live === null ? lookupNewestFight(fights) : undefined);
 }
 
 function lookupNewestFight(fights: readonly KeptFight[]): KeptFight | undefined {

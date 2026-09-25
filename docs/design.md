@@ -973,6 +973,7 @@ listener ─ reads a PanelIntent off data-* (isOneOf; unknown → gesture-droppe
 3. the ledger as it stands → the panel's defects, drawn this frame
 4. tallyFightFigures → verifyFightFigures → presentScreen → render → undrawn → "region" defects
    nothing to stand on → renderWaiting; a broken invariant → a "reading" defect, unread
+   a kept fight stood on that no longer reads → renderWaiting, saying so, and when and where
 5. BrokenInvariant in any step → that step's defect; the rest of the frame goes on
 6. the first frame mounts the panel
 ```

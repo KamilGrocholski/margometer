@@ -22,6 +22,7 @@ import { DEFECT_KIND, type DefectLedger } from "./defect-ledger.ts";
 import {
     type FightReading,
     lookupStandingFight,
+    lookupStandingKept,
     type StandingFight,
     tallyFightReading,
 } from "./fight-reading.ts";
@@ -97,6 +98,7 @@ export function renderFrame(parts: FrameParts): void {
         defects: getPanelDefects(parts.defects),
         hasFightToSave,
         isFightUnread: true,
+        keptUnread: null,
     };
     assert(waiting.defects.length > 0, "a panel that could not be drawn says why");
     addUndrawn(parts.defects, parts.view.renderWaiting(waiting));
@@ -172,13 +174,26 @@ function renderFramePanel(
         keeper.lookupReading,
     );
     if (standing === null) {
+        // A kept fight chosen and still no standing is a fight that no longer reads, and the
+        // reader is told which one rather than that there has been none.
+        const unread = lookupStandingKept(liveReading, screen.openFightId, keeper.getFights());
+        const keptUnread = unread === undefined ? null : {
+            at: parts.clock.readMoment(unread.openedAt),
+            place: formatFightPlace(unread.place),
+        };
         const waiting = { isCollapsed: screen.isCollapsed, defects: said, hasFightToSave };
-        addUndrawn(parts.defects, parts.view.renderWaiting({ ...waiting, isFightUnread: false }));
+        const drawn = parts.view.renderWaiting({ ...waiting, isFightUnread: false, keptUnread });
+        addUndrawn(parts.defects, drawn);
         return;
     }
     assert(standing.reading.view.payloadsApplied > 0, "a fight stood on was read from something");
     const shown = presentFrameScreen(parts, standing, liveReading, said, hasFightToSave);
     addUndrawn(parts.defects, parts.view.render(shown));
+}
+
+function formatFightPlace(place: FightPlace | null): string | null {
+    if (place === null) return null;
+    return formatPlace(place.mapName, place.x, place.y);
 }
 
 function presentFrameScreen(
@@ -310,11 +325,6 @@ function presentShelfSizes(view: FightView): number[] {
     assert(sizes.every((count) => count > 0), "a side on the shelf holds somebody");
     assert(sizes.reduce((sum, count) => sum + count, 0) === combatants.length, "everybody, once");
     return sizes;
-}
-
-function formatFightPlace(place: FightPlace | null): string | null {
-    if (place === null) return null;
-    return formatPlace(place.mapName, place.x, place.y);
 }
 
 function presentOutcome(reading: FightReading): OutcomeResult | null {
