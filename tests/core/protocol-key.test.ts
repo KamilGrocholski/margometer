@@ -22,6 +22,7 @@ Deno.test("the family rule reads a marker, and the sign says which half", () => 
     assertEquals(getKeyReading("+dmg"), { kind: KEY_FAMILY.damage, half: "raw" }, "the plain one");
     assertStrictEquals(getKeyReading("+dm"), null, "a marker cut short is no marker");
     assertStrictEquals(getKeyReading("dmg"), null, "and one at the wrong place is none either");
+    assertStrictEquals(getKeyReading("*dmgf"), null, "and one under neither sign is unread");
 });
 
 Deno.test("the pair with no marker is read by name", () => {

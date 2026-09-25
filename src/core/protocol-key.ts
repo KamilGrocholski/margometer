@@ -66,7 +66,11 @@ export type KeyReading =
 export const KEY_REACH = { castersSide: "casters-side", otherSide: "other-side" } as const;
 export type KeyReach = VocabularyWord<typeof KEY_REACH>;
 
-/** The client's default branch reads characters 1 to 3 of a key: `+` is raw, the rest applied. */
+/**
+ * The client's default branch reads characters 1 to 3 of a key: `+` is raw, the rest applied. Only
+ * `-` is read as applied here: no recording in `captures/` states a marker under any other sign,
+ * 2026-09-25, and a key nobody has met stays unread rather than guessed at.
+ */
 const DAMAGE_MARKER = "dmg";
 const DAMAGE_MARKER_AT = 1;
 export const RAW_SIGN = "+";
@@ -332,7 +336,11 @@ export function getKeyReading(key: string): KeyReading | null {
     if (listed !== undefined) return listed;
     const marker = key.slice(DAMAGE_MARKER_AT, DAMAGE_MARKER_AT + DAMAGE_MARKER.length);
     if (marker !== DAMAGE_MARKER) return null;
-    const half: DamageHalf = key.startsWith(RAW_SIGN) ? DAMAGE_HALF.raw : DAMAGE_HALF.applied;
+    const sign = key.slice(0, DAMAGE_MARKER_AT);
+    let half: DamageHalf;
+    if (sign === RAW_SIGN) half = DAMAGE_HALF.raw;
+    else if (sign === APPLIED_SIGN) half = DAMAGE_HALF.applied;
+    else return null;
     assert(!KEY_READING_BY_KEY.has(key), "a key read by the family rule is in no list");
     return { kind: KEY_FAMILY.damage, half };
 }

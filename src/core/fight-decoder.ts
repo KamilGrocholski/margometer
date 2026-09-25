@@ -430,8 +430,10 @@ function addFigure(
 function getTokenFromKey(key: string): string {
     let token: string;
     if (key.startsWith(RAW_SIGN)) token = key.slice(RAW_SIGN.length);
-    else if (key.startsWith(APPLIED_SIGN)) token = key.slice(APPLIED_SIGN.length);
-    else token = key;
+    else {
+        assert(key.startsWith(APPLIED_SIGN), "a figure's key carries one of the two signs");
+        token = key.slice(APPLIED_SIGN.length);
+    }
     assert(token.length > 0, "a figure carries the client's own token");
     assert(key.endsWith(token), "a token is the key's own tail");
     return token;
