@@ -5,20 +5,19 @@
 
 import { assert, assertEquals, assertStrictEquals, assertThrows } from "@std/assert";
 import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
-import {
-    formatCutText,
-    formatFigureReport,
-    formatRecordedFigures,
-    formatRecordingName,
-} from "#/tools/fight-figures.ts";
+import { formatCutText, formatFigureReport, formatRecordedFigures } from "#/tools/fight-figures.ts";
 import { RecordingReadError } from "#/tools/margometer-tool-error.ts";
+import { replayRecordedMaterial } from "#/tools/recorded-material.ts";
 import { lookupRecordedFight } from "#/tests/recorded-fights.ts";
+import { RECORDINGS_REVISION } from "#/tests/recording-revision.ts";
 
 /** Four calls, one fighter against three boars, and an outcome: the shortest there is to read. */
 const SHORT = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.json";
 
 Deno.test("a recording's report is headed by it and says what the reading could not do", () => {
-    const lines = formatFigureReport(lookupRecordedFight(SHORT));
+    const material = { material: SHORT, fights: [lookupRecordedFight(SHORT)] };
+    const [replayed] = replayRecordedMaterial(material);
+    const lines = formatFigureReport(replayed!);
     assertStrictEquals(lines[0], "", "a report opens on a blank line, as develop's does");
     assertStrictEquals(lines[1], "=== 2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none ===");
     assertStrictEquals(lines[2], "  payloads 4   reader's side 1   over");
@@ -53,19 +52,17 @@ Deno.test("an id in a cut is named through the roster, and a key that is no id i
     assertStrictEquals(formatCutText(cut, null), "7 3  dmg 2  8 1", "and no roster asks none");
 });
 
-Deno.test("a heading is the file's name without its directory or suffix", () => {
-    assertStrictEquals(formatRecordingName("captures/one-fight.json"), "one-fight");
-    assertStrictEquals(formatRecordingName("one-fight.json"), "one-fight");
-    assertStrictEquals(formatRecordingName("captures/notes.txt"), "notes.txt");
-});
-
-Deno.test("a path that is no recording is refused by name, and one that is, is reported", () => {
-    const error = assertThrows(
-        () => formatRecordedFigures(["captures/no-such-fight.json"]),
-        RecordingReadError,
-    );
+Deno.test("a file on disk is reported under its path, and one that is not there is refused", () => {
+    const path = Deno.makeTempFileSync({ suffix: ".json" });
+    const shown = new Deno.Command("git", {
+        args: ["show", `${RECORDINGS_REVISION}:${SHORT}`],
+        stdout: "piped",
+    }).outputSync();
+    Deno.writeFileSync(path, shown.stdout);
+    const text = formatRecordedFigures([path]);
+    Deno.removeSync(path);
+    assert(text.startsWith(`material ${path}\n\n=== `), "the material is the path it was handed");
+    assertStrictEquals(text.split("\n=== ").length, 2, "and one file is one report");
+    const error = assertThrows(() => formatRecordedFigures([path]), RecordingReadError);
     assertStrictEquals(error.name, "MargoMeterTool/RecordingRead");
-    const text = formatRecordedFigures([SHORT]);
-    assert(text.startsWith(`material ${SHORT}\n\n=== `), "the material is the path it was handed");
-    assertStrictEquals(text.split("\n=== ").length, 2, "and one recording is one report");
 });

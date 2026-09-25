@@ -39,6 +39,11 @@ export interface RecordedFight {
     messages: readonly string[];
     /** Off the snapshots, first sighting kept. Two recordings hold no snapshot, and so nobody. */
     combatants: readonly Combatant[];
+    /**
+     * Whether any call states a cast read off the engine, as `develop`'s intake asks it: `[]` is a
+     * reading that found nobody and counts, where a missing list does not (`develop ADR 0053`).
+     */
+    hasSnapshot: boolean;
     /** Every snapshot's health, as the client itself stated all three figures. */
     healthReadings: readonly RecordedHealth[];
 }
@@ -104,13 +109,15 @@ function readGitText(args: string[]): string {
     return new TextDecoder().decode(output.stdout);
 }
 
-function readRecordedFight(path: string, document: unknown): RecordedFight {
+/** A recording's parsed text, wherever it was read from. Its shape is asserted, not trusted. */
+export function readRecordedFight(path: string, document: unknown): RecordedFight {
     const calls = readRecordedField(document, FILE_FIELD.calls, path);
     assert(Array.isArray(calls), `${path} lists the calls the engine made`);
     const payloads: string[][] = [];
     const updates: unknown[] = [];
     const byId = new Map<number, Combatant>();
     const healthReadings: RecordedHealth[] = [];
+    let hasSnapshot = false;
     for (const call of calls) {
         const carried = readRecordedField(call, FILE_FIELD.messages, path);
         assert(Array.isArray(carried), `${path} states the messages a call carried`);
@@ -121,8 +128,11 @@ function readRecordedFight(path: string, document: unknown): RecordedFight {
         }
         payloads.push(messages);
         updates.push(readRecordedField(call, FILE_FIELD.payload, path));
+        const before = readRecordedField(call, FILE_FIELD.combatantsBefore, path);
         const after = readRecordedField(call, FILE_FIELD.combatantsAfter, path);
+        if (Array.isArray(before)) hasSnapshot = true;
         if (!Array.isArray(after)) continue;
+        hasSnapshot = true;
         for (const snapshot of after) {
             const combatant = readRecordedCombatant(snapshot, path);
             healthReadings.push(readRecordedHealth(snapshot, path));
@@ -132,7 +142,8 @@ function readRecordedFight(path: string, document: unknown): RecordedFight {
         }
     }
     const combatants = [...byId.values()];
-    return { path, updates, payloads, messages: payloads.flat(), combatants, healthReadings };
+    const messages = payloads.flat();
+    return { path, updates, payloads, messages, combatants, healthReadings, hasSnapshot };
 }
 
 function readRecordedField(record: unknown, key: string, path: string): unknown {

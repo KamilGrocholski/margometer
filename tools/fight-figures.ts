@@ -1,16 +1,15 @@
 /**
  * What a recording adds up to, per combatant, as a terminal table: `develop:tools/fight-figures.ts`
- * at `RECORDINGS_REVISION`, written line for line, so `tools/develop-figures.ts` can hold the two
- * branches to one text (`docs/design.md` §12). The fight is read by `replayFightPayloads`, the
- * runtime's own chain, and a path names a recording at that revision.
+ * at `RECORDINGS_REVISION`, written line for line, so `tools/develop-reports.ts` can hold the two
+ * branches to one text (`docs/design.md` §12). The material and the add-on's reading of it are
+ * `tools/recorded-material.ts`'s; what is this file's own is the text.
  *
- *     deno task fight:figures [captures/<recording>.json …]
+ *     deno task fight:figures [recording.json …]
  */
 
 import { assert, assertStrictEquals } from "@std/assert";
 import { formatInteger, parseInteger } from "#/libs/number-text.ts";
 import { type CombatantRoster, COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
-import { SESSION_OPTIONS } from "#/src/core/fight-session.ts";
 import {
     type CombatantFigures,
     countUnreadMessages,
@@ -18,18 +17,18 @@ import {
     type FigureCut,
     type SkillFigures,
 } from "#/src/core/fight-statistics.ts";
-import { replayFightPayloads } from "#/src/runtime/fight-reading.ts";
 import { getRankedOrder } from "#/src/ui/ranked-order.ts";
-import { composeRuntimeTables } from "#/src/userscript-entry.ts";
-import { readRecordedFights, type RecordedFight } from "#/tests/recorded-fights.ts";
-import { RECORDINGS_DIRECTORY, RECORDINGS_REVISION } from "#/tests/recording-revision.ts";
-import { RecordingReadError } from "./margometer-tool-error.ts";
+import {
+    formatRecordingName,
+    readRecordedMaterial,
+    type ReplayedFight,
+    replayRecordedMaterial,
+} from "./recorded-material.ts";
 
 /** As many members as the widest cut a card draws: the kinds, the defences, the procs. */
 const CUT_PARTS_MAXIMUM = 64;
 /** What one combatant's own skills are kept inside, as `develop` bounds them. */
 const SKILLS_MAXIMUM = 256;
-const RECORDINGS_MAXIMUM = 1_000;
 const NAME_WIDTH = 26;
 const NUMBER_WIDTH = 10;
 /** Past the longest caption below, so the column of figures is a column. */
@@ -38,29 +37,16 @@ const COUNT_WIDTH = 6;
 /** What a cut with nothing in it says, so an empty line is never read as a missing one. */
 const NOTHING = "—";
 const HEADINGS = ["raw(blow)", "applied", "taken", "prevented", "restored", "given"];
-const RECORDING_SUFFIX = ".json";
-const PATH_SEPARATOR = "/";
 const DETAIL_INDENT = "      ";
-/** The add-on's own tables, composed as its start composes them rather than a second time here. */
-const DECODER_TABLES = composeRuntimeTables().decoder;
 
 /** The lines `develop` prints for one recording, from the blank line over its heading down. */
-export function formatFigureReport(fight: RecordedFight): string[] {
-    const replayed = replayFightPayloads(fight.updates, DECODER_TABLES, SESSION_OPTIONS);
-    if (!replayed.ok) {
-        throw new RecordingReadError(
-            `${fight.path}: the add-on refused a call, ${replayed.error.kind}`,
-        );
-    }
-    if (replayed.value === null) {
-        throw new RecordingReadError(`${fight.path} carries no payload the add-on would read`);
-    }
-    const { view, figures } = replayed.value;
+export function formatFigureReport(replayed: ReplayedFight): string[] {
+    const { view, figures } = replayed.reading;
     const statistics = figures.statistics;
     const side = view.readerSide;
     const lines = [
         "",
-        `=== ${formatRecordingName(fight.path)} ===`,
+        `=== ${formatRecordingName(replayed.fight.path)} ===`,
         `  payloads ${formatInteger(view.payloadsApplied)}` +
         `   reader's side ${side === null ? "(the client never said)" : formatInteger(side)}` +
         `   ${view.isOver ? "over" : "still going"}` +
@@ -252,36 +238,12 @@ export function formatCutText(cut: FigureCut, roster: CombatantRoster | null): s
     return written.join("  ");
 }
 
-/** The heading a report stands under: the file's own name, the directory and suffix off. */
-export function formatRecordingName(path: string): string {
-    assert(path.length > 0, "a recording is named by its path");
-    const last = path.split(PATH_SEPARATOR).at(-1) ?? path;
-    const name = last.endsWith(RECORDING_SUFFIX)
-        ? last.slice(0, last.length - RECORDING_SUFFIX.length)
-        : last;
-    assert(name.length > 0, "and answers under a name that says something");
-    return name;
-}
-
-/**
- * Every recording where no path was named, the named ones otherwise, as the whole text a terminal
- * prints. A path is one under `captures/` at the revision, and one that is not there is refused.
- */
+/** Every recording where no path was named, the files named otherwise, as a terminal prints it. */
 export function formatRecordedFigures(paths: readonly string[]): string {
-    const fights = readRecordedFights();
-    assert(fights.length <= RECORDINGS_MAXIMUM, "the recordings stay inside their stated bound");
-    const chosen = paths.length === 0 ? fights : paths.map((path) => {
-        const found = fights.find((fight) => fight.path === path);
-        if (found === undefined) {
-            throw new RecordingReadError(
-                `${path} is no recording under ${RECORDINGS_DIRECTORY} at ${RECORDINGS_REVISION}`,
-            );
-        }
-        return found;
-    });
-    const material = paths.length === 0 ? RECORDINGS_DIRECTORY : paths.join(" ");
-    const lines = [`material ${material}`, ...chosen.flatMap(formatFigureReport)];
-    assert(lines.length > chosen.length, "every recording chosen is reported");
+    const material = readRecordedMaterial(paths);
+    const replayed = replayRecordedMaterial(material);
+    const lines = [`material ${material.material}`, ...replayed.flatMap(formatFigureReport)];
+    assert(lines.length > replayed.length, "every recording read is reported");
     return `${lines.join("\n")}\n`;
 }
 

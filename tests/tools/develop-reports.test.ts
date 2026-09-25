@@ -1,14 +1,15 @@
 /**
- * Two figures reports held recording by recording, on texts written here. Reading `develop`'s own
- * tree is left to `deno task fight:develop`, because it runs another branch's program.
+ * Two reports held section by section, or as one text, on texts written here. Reading `develop`'s
+ * own tree is left to `deno task fight:develop`, because it runs another branch's program.
  */
 
 import { assertEquals, AssertionError, assertStrictEquals, assertThrows } from "@std/assert";
 import {
-    compareFigureReports,
+    compareReportSections,
+    compareWholeReports,
     formatComparison,
     indexReportSections,
-} from "#/tools/develop-figures.ts";
+} from "#/tools/develop-reports.ts";
 
 const REPORT = [
     "material captures/",
@@ -36,57 +37,66 @@ Deno.test("a report is cut at its headings, above the first and trailing blanks 
 });
 
 Deno.test("two alike reports agree on every recording, and differ on none", () => {
-    const comparison = compareFigureReports(REPORT, REPORT);
+    const comparison = compareReportSections(REPORT, REPORT);
     assertEquals(comparison.agreedNames, ["one", "two"]);
     assertEquals(comparison.differences, []);
-    assertEquals(formatComparison(comparison), ["2 recordings agree, 0 differ"]);
+    assertEquals(formatComparison("figures", comparison), ["figures: 2 agree, 0 differ"]);
 });
 
 Deno.test("one figure changed is one difference, at the line it stands on", () => {
     const changed = REPORT.replace("Gracz 1        99", "Gracz 1       100");
-    const comparison = compareFigureReports(REPORT, changed);
+    const comparison = compareReportSections(REPORT, changed);
     assertEquals(comparison.agreedNames, ["two"]);
     assertStrictEquals(comparison.differences.length, 1);
     assertStrictEquals(comparison.differences[0]!.name, "one");
     assertStrictEquals(comparison.differences[0]!.lineIndex, 1, "the line under the payloads");
-    assertEquals(formatComparison(comparison), [
+    assertEquals(formatComparison("figures", comparison), [
         "≠ one, line 2 of its report",
         "      payloads 4",
         "  -     Gracz 1        99",
         "  +     Gracz 1       100",
-        "1 recordings agree, 1 differ",
+        "figures: 1 agree, 1 differ",
     ]);
 });
 
 Deno.test("a report one line longer differs where the shorter one ends", () => {
     const longer = REPORT.replace("  payloads 2", "  payloads 2\n  still going");
-    const difference = compareFigureReports(REPORT, longer).differences[0]!;
+    const difference = compareReportSections(REPORT, longer).differences[0]!;
     assertStrictEquals(difference.name, "two");
     assertStrictEquals(difference.lineIndex, 1);
-    assertEquals(formatComparison({ agreedNames: [], differences: [difference] }).slice(-3, -1), [
-        "  - (develop's report ends)",
-        "  +   still going",
-    ]);
+    const shown = formatComparison("figures", { agreedNames: [], differences: [difference] });
+    assertEquals(shown.slice(-3, -1), ["  - (develop's report ends)", "  +   still going"]);
 });
 
 Deno.test("a recording one side reports and the other does not is a difference", () => {
     const onlyOne = REPORT.slice(0, REPORT.indexOf("=== two ==="));
-    const comparison = compareFigureReports(REPORT, onlyOne);
+    const comparison = compareReportSections(REPORT, onlyOne);
     assertEquals(comparison.agreedNames, ["one"]);
     assertStrictEquals(comparison.differences[0]!.rewriteLines, null);
-    assertEquals(formatComparison(comparison).slice(0, 2), [
+    assertEquals(formatComparison("figures", comparison).slice(0, 2), [
         "≠ two",
-        "  this branch prints no report for it",
+        "  this branch prints nothing for it",
     ]);
-    const reversed = compareFigureReports(onlyOne, REPORT).differences[0]!;
+    const reversed = compareReportSections(onlyOne, REPORT).differences[0]!;
     assertStrictEquals(reversed.developLines, null, "and the same held the other way round");
 });
 
 Deno.test("no recording on one side against one on the other is a difference, not agreement", () => {
     const one = "=== one ===\n  payloads 1\n";
-    const none = compareFigureReports("material captures/\n", one);
+    const none = compareReportSections("material captures/\n", one);
     assertEquals(none.agreedNames, []);
     assertStrictEquals(none.differences.length, 1);
-    const both = compareFigureReports("material captures/\n", "material captures/\n");
-    assertEquals(formatComparison(both), ["0 recordings agree, 0 differ"]);
+    const both = compareReportSections("material captures/\n", "material captures/\n");
+    assertEquals(formatComparison("figures", both), ["figures: 0 agree, 0 differ"]);
+});
+
+Deno.test("a whole report is one section, its trailing blanks aside", () => {
+    const status = "recordings   35\nmessages   13862\n\n";
+    const agreed = compareWholeReports("decoding", status, "recordings   35\nmessages   13862\n");
+    assertEquals(agreed.agreedNames, ["decoding"], "a printer's last newline is not a line");
+    const changed = compareWholeReports("decoding", status, status.replace("13862", "13861"));
+    assertStrictEquals(changed.differences[0]!.name, "decoding");
+    assertStrictEquals(changed.differences[0]!.lineIndex, 1);
+    const empty = compareWholeReports("decoding", "", status);
+    assertStrictEquals(empty.differences[0]!.lineIndex, 0, "an empty report differs at once");
 });
