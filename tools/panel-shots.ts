@@ -142,20 +142,12 @@ export async function writePanelShots(version: string): Promise<PanelShotRecord>
     const fight = lookupRecordedFight(LANDING_RECORDING);
     const bundle = (await readUserscriptFiles(version)).script;
     const staging = await Deno.makeTempDir({ prefix: "margometer-shots-" });
-    const browser = await launchShotBrowser();
+    const browser = await launchShotBrowser(null);
     const taken: TakenShot[] = [];
     try {
         for (const shot of composePanelShots()) {
             const entry = lookupShotEntry(shot.moment, fight.updates.length);
-            const html = composePanelPage({
-                calls: fight.updates,
-                fedThrough: entry,
-                engine: "before",
-                doesLoadTwice: false,
-                place: "Podgląd",
-                userscriptName: USERSCRIPT_NAME,
-                beforeBundle: `<script>${composeWindowsSeeded()}</script>\n`,
-            });
+            const html = composeShotPage(fight.updates, entry);
             await writeShot(browser, html, bundle, shot, `${staging}/${shot.name}`);
             taken.push({ name: shot.name, entry });
         }
@@ -168,6 +160,54 @@ export async function writePanelShots(version: string): Promise<PanelShotRecord>
         await browser.close();
         await Deno.remove(staging, { recursive: true });
     }
+}
+
+/** The commit the set comes from, or a refusal: a set over uncommitted work names no build. */
+function readShotCommit(): string {
+    const carried = readGitText(["status", "--porcelain", "--", "src"]);
+    if (carried.length > 0) {
+        throw new PanelShotError(`src/ carries what no commit holds:\n${carried}`);
+    }
+    const commit = readGitText(["rev-parse", "HEAD"]);
+    assert(!commit.includes("\n"), "a set names one commit");
+    return commit;
+}
+
+function readGitText(args: readonly string[]): string {
+    const asked = new Deno.Command("git", { args: [...args], stderr: "piped" }).outputSync();
+    if (!asked.success) throw new PanelShotError(`git would not answer ${args.join(" ")}`);
+    return new TextDecoder().decode(asked.stdout).trim();
+}
+
+/** Everything the set names, and nothing else: a leftover picture must not look current. */
+async function moveShotsIn(staging: string, record: PanelShotRecord): Promise<void> {
+    assert(record.shots.length > 0, "a set that is moved in has pictures in it");
+    const kept = new Set<string>([...record.shots.map((shot) => shot.name), SIDECAR_NAME]);
+    for (const held of Deno.readDirSync(SHOT_DIRECTORY)) {
+        if (!kept.has(held.name)) await Deno.remove(`${SHOT_DIRECTORY}/${held.name}`);
+    }
+    for (const shot of record.shots) {
+        await Deno.copyFile(`${staging}/${shot.name}`, `${SHOT_DIRECTORY}/${shot.name}`);
+    }
+    const text = encodeJson(record, SIDECAR_INDENT_SPACES);
+    if (!text.ok) throw new PanelShotError("the sidecar naming the set cannot be written");
+    await Deno.writeTextFile(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`, `${text.value}\n`);
+}
+
+/** The page a picture is taken of: the fight fed through `entry`, both windows in the corner. */
+export function composeShotPage(calls: readonly unknown[], entry: number): string {
+    assert(entry <= calls.length, "a picture is of a moment the recording reaches");
+    const html = composePanelPage({
+        calls,
+        fedThrough: entry,
+        engine: "before",
+        doesLoadTwice: false,
+        place: "Podgląd",
+        userscriptName: USERSCRIPT_NAME,
+        beforeBundle: `<script>${composeWindowsSeeded()}</script>\n`,
+    });
+    assert(html.length > 0, "and it is a page");
+    return html;
 }
 
 /**
@@ -192,34 +232,22 @@ function composeWindowsSeeded(): string {
 })();`;
 }
 
-/** The Chrome the browser suite drives, or a refusal naming the variable that points at another. */
-async function launchShotBrowser(): Promise<Awaited<ReturnType<typeof launchPanelBrowser>>> {
+/**
+ * The Chrome the browser suite drives, or the one at the path asked for, else the one the variable
+ * names; or a refusal naming the variable.
+ */
+export async function launchShotBrowser(
+    asked: string | null,
+): Promise<Awaited<ReturnType<typeof launchPanelBrowser>>> {
     try {
-        return await launchPanelBrowser(Deno.env.get(BROWSER_VARIABLE) ?? null);
+        return await launchPanelBrowser(asked ?? Deno.env.get(BROWSER_VARIABLE) ?? null);
     } catch (cause) {
         throw new PanelShotError(`no Chrome to photograph with (${BROWSER_VARIABLE})`, { cause });
     }
 }
 
-/** The commit the set comes from, or a refusal: a set over uncommitted work names no build. */
-function readShotCommit(): string {
-    const carried = readGitText(["status", "--porcelain", "--", "src"]);
-    if (carried.length > 0) {
-        throw new PanelShotError(`src/ carries what no commit holds:\n${carried}`);
-    }
-    const commit = readGitText(["rev-parse", "HEAD"]);
-    assert(!commit.includes("\n"), "a set names one commit");
-    return commit;
-}
-
-function readGitText(args: readonly string[]): string {
-    const asked = new Deno.Command("git", { args: [...args], stderr: "piped" }).outputSync();
-    if (!asked.success) throw new PanelShotError(`git would not answer ${args.join(" ")}`);
-    return new TextDecoder().decode(asked.stdout).trim();
-}
-
 /** One picture: the state reached in Chrome, the frame decided here, the picture written there. */
-async function writeShot(
+export async function writeShot(
     browser: Awaited<ReturnType<typeof launchPanelBrowser>>,
     html: string,
     bundle: string,
@@ -234,21 +262,6 @@ async function writeShot(
         throw new PanelShotError(`${shot.name}: a window stands nowhere on the page`);
     }
     await writePanelPicture(page, composeShotClip(boxes, VIEWPORT.width), path);
-}
-
-/** Everything the set names, and nothing else: a leftover picture must not look current. */
-async function moveShotsIn(staging: string, record: PanelShotRecord): Promise<void> {
-    assert(record.shots.length > 0, "a set that is moved in has pictures in it");
-    const kept = new Set<string>([...record.shots.map((shot) => shot.name), SIDECAR_NAME]);
-    for (const held of Deno.readDirSync(SHOT_DIRECTORY)) {
-        if (!kept.has(held.name)) await Deno.remove(`${SHOT_DIRECTORY}/${held.name}`);
-    }
-    for (const shot of record.shots) {
-        await Deno.copyFile(`${staging}/${shot.name}`, `${SHOT_DIRECTORY}/${shot.name}`);
-    }
-    const text = encodeJson(record, SIDECAR_INDENT_SPACES);
-    if (!text.ok) throw new PanelShotError("the sidecar naming the set cannot be written");
-    await Deno.writeTextFile(`${SHOT_DIRECTORY}/${SIDECAR_NAME}`, `${text.value}\n`);
 }
 
 /**

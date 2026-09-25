@@ -22,6 +22,7 @@ export const TOOL_ERROR_CODE = {
     previewServe: "PreviewServe",
     drillReport: "DrillReport",
     cardHeight: "CardHeight",
+    givingWay: "GivingWay",
 } as const;
 export type ToolErrorCode = VocabularyWord<typeof TOOL_ERROR_CODE>;
 
@@ -144,5 +145,12 @@ export class DrillReportError extends MargoMeterToolError {
 export class CardHeightError extends MargoMeterToolError {
     constructor(reason: string, options?: ErrorOptions) {
         super(TOOL_ERROR_CODE.cardHeight, reason, options);
+    }
+}
+
+/** A panel that cannot be made to give way as asked: a region it lacks, or a guard it rewrote. */
+export class GivingWayError extends MargoMeterToolError {
+    constructor(reason: string, options?: ErrorOptions) {
+        super(TOOL_ERROR_CODE.givingWay, reason, options);
     }
 }

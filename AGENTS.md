@@ -293,6 +293,8 @@ joins it in the commit that creates the file.
   `game:help`
 - `tools/margometer-tool-error.ts` — `MargoMeterToolError`, the abstract base every tool failure
   extends
+- `tools/panel-giving-way.ts` — the panel with a region that will not draw, built from a copy of the
+  tree: `preview:giveway`, `panel:giveway`
 - `tools/panel-shots.ts` — photographs the panel in each state worth showing into `screenshots/`:
   `panel:shots`
 - `tools/preview-page.ts` — the page both previews draw: the game page, the bar, the tooltips

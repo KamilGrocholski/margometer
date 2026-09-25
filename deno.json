@@ -36,6 +36,11 @@
         "panel:drill": "deno run -A tools/drill-report.ts",
         // How tall the card a ranking row opens stands, in lines, over the recordings.
         "panel:cards": "deno run -A tools/card-height.ts",
+        // The panel with a region that will not draw, built from a copy of the tree: served beside
+        // the preview, or photographed one picture per region under `dist/giving-way/`, never
+        // into `screenshots/`.
+        "preview:giveway": "deno run -A tools/panel-giving-way.ts",
+        "panel:giveway": "deno run -A tools/panel-giving-way.ts --shots",
         // The same page as one file somebody without this repository can open, under
         // `dist/preview/`, which `.github/workflows/pages.yml` publishes with `--release`.
         "preview:site": "deno run -A tools/preview-site.ts",

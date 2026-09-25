@@ -22,7 +22,7 @@ export interface UserscriptFiles {
     metadata: string;
 }
 
-const BUNDLE_ENTRY = "src/userscript-boot.ts";
+export const BUNDLE_ENTRY = "src/userscript-boot.ts";
 const CONFIGURATION_FILE = "deno.json";
 const OUTPUT_DIRECTORY = "dist";
 /** The name the built file is served under anywhere, `dist/` included. */
@@ -55,22 +55,26 @@ export async function writeUserscript(version: string): Promise<string> {
 
 /**
  * The built text, refused where it names no version or could leave the browser. The entry is the
- * add-on's unless a caller hands another, which only a test does, to watch a refusal happen.
+ * add-on's unless a caller hands another, which only a test does, to watch a refusal happen; the
+ * tree is this one unless a caller hands a copy, which only `tools/panel-giving-way.ts` does.
  */
 export async function readUserscriptFiles(
     version: string,
     entry = BUNDLE_ENTRY,
+    root = ".",
 ): Promise<UserscriptFiles> {
     const metadata = encodeUserscriptBanner(version);
-    const stamped = requireBundleInBrowser(stampBundleVersion(await readBundle(entry), version));
+    const bundle = await readBundle(entry, root);
+    const stamped = requireBundleInBrowser(stampBundleVersion(bundle, version));
     const script = `${metadata}${stamped}`;
     assert(script.startsWith(metadata), "the banner stands over the bundle");
     return { script, metadata };
 }
 
 /** What the bundler wrote, read off a file of its own so no build churns `dist/` half-way. */
-async function readBundle(entry: string): Promise<string> {
+async function readBundle(entry: string, root: string): Promise<string> {
     assert(entry.length > 0, "a bundler is told what to read");
+    assert(root.length > 0, "and which tree to read it in");
     const output = await Deno.makeTempFile({ prefix: "margometer-", suffix: ".js" });
     assert(output.length > 0, "a bundler is told where to write");
     const bundling = new Deno.Command(Deno.execPath(), {
@@ -83,6 +87,9 @@ async function readBundle(entry: string): Promise<string> {
             output,
             entry,
         ],
+        // ⚠️ Both the configuration and the entry are read in the tree handed, so a copy's `#/`
+        // resolves into the copy: read from here, it would build this tree's panel unedited.
+        cwd: root,
         stdout: "piped",
         stderr: "piped",
     });
