@@ -39,7 +39,7 @@ import {
 } from "./panel-intent.ts";
 import { addGuardedListener } from "./panel-listener.ts";
 import { CLASS, composeStyleSheet, TIP } from "./panel-look.ts";
-import { lookupColourForProfession, SIGNAL } from "./panel-palette.ts";
+import { type Colour, formatColour, lookupColourForProfession, SIGNAL } from "./panel-palette.ts";
 import { presentCard, presentCaveatNoteLines } from "./panel-card.ts";
 import {
     type ClosingRow,
@@ -207,7 +207,7 @@ interface RowReading {
     figure: number;
     fill: number;
     shareText: string;
-    colour: string;
+    colour: Colour;
     profession: string | null;
     rank: number | null;
     uses?: number | null | undefined;
@@ -266,7 +266,7 @@ interface StandingPerson {
      * either way, because a card is read away from the row it came from.
      */
     skillName: string | null;
-    colour: string;
+    colour: Colour;
     sidePart: PanelSidePart;
     /** Null where the figure belongs to the row above rather than to this one. */
     turns: string | null;
@@ -1570,9 +1570,9 @@ function renderRow(
 function renderBars(document: PanelDocument, reading: RowReading): PanelElement[] {
     const width = formatDecimal(Math.min(reading.fill, 1) * AS_PERCENT, FILL_PLACES);
     const bar = renderElement(document, "div", CLASS.bar);
-    bar.setAttribute(STYLE_ATTRIBUTE, `width:${width}%;background:${reading.colour}`);
+    bar.setAttribute(STYLE_ATTRIBUTE, `width:${width}%;background:${formatColour(reading.colour)}`);
     const cap = renderElement(document, "div", CLASS.barCap);
-    cap.setAttribute(STYLE_ATTRIBUTE, `background:${reading.colour}`);
+    cap.setAttribute(STYLE_ATTRIBUTE, `background:${formatColour(reading.colour)}`);
     return [bar, cap];
 }
 
@@ -1589,7 +1589,7 @@ function renderSideRules(
     const rule = renderElement(document, "div", CLASS.rowSide);
     rule.setAttribute(
         STYLE_ATTRIBUTE,
-        `color:${part === SIDE_PART.reader ? SIGNAL.ours : SIGNAL.theirs}`,
+        `color:${formatColour(part === SIDE_PART.reader ? SIGNAL.ours : SIGNAL.theirs)}`,
     );
     return [rule];
 }
@@ -2722,7 +2722,7 @@ function renderStandingPerson(
     const classes = `${CLASS.row} ${CLASS.rowLeaf}${nested}${holding}`;
     const row = renderElement(document, "div", classes);
     const cap = renderElement(document, "div", CLASS.barCap);
-    cap.setAttribute(STYLE_ATTRIBUTE, `background:${person.colour}`);
+    cap.setAttribute(STYLE_ATTRIBUTE, `background:${formatColour(person.colour)}`);
     const name = renderElement(document, "span", CLASS.rowName);
     name.textContent = person.name;
     row.append(cap);
@@ -2814,7 +2814,7 @@ function renderChargedSkillRow(
 ): PanelElement {
     const row = renderElement(document, "div", `${CLASS.row} ${CLASS.rowLeaf}`);
     const cap = renderElement(document, "div", CLASS.barCap);
-    cap.setAttribute(STYLE_ATTRIBUTE, `background:${charged.colour}`);
+    cap.setAttribute(STYLE_ATTRIBUTE, `background:${formatColour(charged.colour)}`);
     const name = renderElement(document, "span", CLASS.rowName);
     name.textContent = charged.skillName;
     const value = renderElement(document, "span", `${CLASS.rowValue} ${CLASS.figure}`);
@@ -2844,7 +2844,7 @@ function renderChargedSkillPips(
     charged: StandingChargedSkill,
 ): ChargedSkillPips {
     const element = renderElement(document, "div", CLASS.standingPips);
-    element.setAttribute(STYLE_ATTRIBUTE, `color:${charged.colour}`);
+    element.setAttribute(STYLE_ATTRIBUTE, `color:${formatColour(charged.colour)}`);
     const stated = Math.min(Math.max(charged.turnsStated, 0), CHARGED_PIPS_MAXIMUM);
     const parts: PanelElement[] = [element];
     for (let turn = 0; turn < stated; turn += 1) {

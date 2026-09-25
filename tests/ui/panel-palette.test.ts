@@ -7,7 +7,12 @@
  */
 
 import { assert, assertEquals } from "@std/assert";
-import { lookupColourForProfession, PALETTE_COLOURS, SIGNAL } from "#/src/ui/panel-palette.ts";
+import {
+    formatColour,
+    lookupColourForProfession,
+    PALETTE_COLOURS,
+    SIGNAL,
+} from "#/src/ui/panel-palette.ts";
 import { getWordsForProfession, PROFESSION_WORD_BY_KEY } from "#/src/ui/panel-words.ts";
 
 /** Every profession the recordings state, measured over `develop:captures/` on 2026-08-29. */
@@ -23,14 +28,17 @@ Deno.test("a profession keeps its colour, and one the game did not state is colo
     }
     assertEquals(lookupColourForProfession(null), SIGNAL.unknown, "and none stated is colourless");
     assertEquals(lookupColourForProfession("z"), SIGNAL.unknown, "as is one nobody has a hue for");
-    const palette: readonly string[] = PALETTE_COLOURS;
-    assert(!palette.includes(SIGNAL.unknown), "which is not one of the palette, so it reads apart");
+    const palette = PALETTE_COLOURS.map(formatColour);
+    assert(
+        !palette.includes(formatColour(SIGNAL.unknown)),
+        "which is not one of the palette, so it reads apart",
+    );
 });
 
 /** The hue each letter wore on `develop` @ `fa1dcce`, which is the expectation here (**W8**). */
 Deno.test("a profession wears the hue develop drew it in", () => {
     assertEquals(
-        PROFESSIONS.map((one) => [one, lookupColourForProfession(one)]),
+        PROFESSIONS.map((one) => [one, formatColour(lookupColourForProfession(one))]),
         [
             ["w", "#c2502b"],
             ["m", "#157cd0"],

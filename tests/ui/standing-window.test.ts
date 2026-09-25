@@ -12,7 +12,7 @@ import { indexCombatantRoster } from "#/src/core/combatant-roster.ts";
 import type { TurnStatement } from "#/src/core/fight-session.ts";
 import { PANEL_WINDOW } from "#/src/ui/panel-choice.ts";
 import { PANEL_INTENT, type PanelIntent } from "#/src/ui/panel-intent.ts";
-import { lookupColourForProfession, SIGNAL } from "#/src/ui/panel-palette.ts";
+import { formatColour, lookupColourForProfession, SIGNAL } from "#/src/ui/panel-palette.ts";
 import { presentStanding, PROVOKED_MAXIMUM, type StandingTurn } from "#/src/ui/panel-standing.ts";
 import { getWordsForTurnState, PANEL_WORDS, STANDING_WORDS } from "#/src/ui/panel-words.ts";
 import {
@@ -73,12 +73,12 @@ Deno.test("whoever holds the turn is drawn as a person, hue, side and all", () =
     assertExists(row, "and they are drawn as a row");
     assertEquals(
         row.children.find((one) => one.className === "bar-cap")?.getAttribute("style"),
-        `background:${lookupColourForProfession("t")}`,
+        `background:${formatColour(lookupColourForProfession("t"))}`,
         "wearing their own profession's hue",
     );
     assertEquals(
         row.children.find((one) => one.className === "row-side")?.getAttribute("style"),
-        `color:${SIGNAL.theirs}`,
+        `color:${formatColour(SIGNAL.theirs)}`,
         "and the rule saying which side they stand on",
     );
     // **W5: zero is a boundary.** The same turn, on a fight with no seat to read from: the hue
@@ -331,8 +331,8 @@ Deno.test("a shout is drawn under whoever is holding it, and the turns are the h
                 ?.getAttribute("style")
         ),
         [
-            `background:${lookupColourForProfession("m")}`,
-            `background:${lookupColourForProfession("t")}`,
+            `background:${formatColour(lookupColourForProfession("m"))}`,
+            `background:${formatColour(lookupColourForProfession("t"))}`,
         ],
         "each wearing their own profession, holder and held alike",
     );
@@ -341,7 +341,7 @@ Deno.test("a shout is drawn under whoever is holding it, and the turns are the h
             one.children.find((part) => part.className === "row-side")
                 ?.getAttribute("style")
         ),
-        [`color:${SIGNAL.ours}`, `color:${SIGNAL.theirs}`],
+        [`color:${formatColour(SIGNAL.ours)}`, `color:${formatColour(SIGNAL.theirs)}`],
         "and their own side, which is what a shout crosses",
     );
 });

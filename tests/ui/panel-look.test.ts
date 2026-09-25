@@ -27,7 +27,15 @@ import {
     SURFACE,
     TEXT,
 } from "#/src/ui/panel-look.ts";
-import { lookupColourForProfession, PALETTE_COLOURS, SIGNAL } from "#/src/ui/panel-palette.ts";
+import {
+    type Colour,
+    formatColour,
+    lookupColourForProfession,
+    PALETTE_COLOURS,
+    SIGNAL,
+} from "#/src/ui/panel-palette.ts";
+import { parseInteger } from "#/libs/number-text.ts";
+import { RECORDINGS_REVISION } from "#/tests/recorded-fights.ts";
 import { getDeclaration, getRuleBody, RULES_IN_A_SHEET } from "#/tests/style-sheet.ts";
 
 /** WCAG AA for text at the size this panel prints figures, and for a mark that is not text. */
@@ -38,6 +46,23 @@ const PROFESSIONS = ["w", "m", "h", "t", "p", "b"];
 const LONGEST_DECLARATION = 200;
 
 const VARIABLE_OPENER = "--MargoMeter-";
+const HEX_DIGITS = "0123456789abcdef";
+const HEX_BASE = 16;
+/** A hash and six digits, which is the only hex spelling the sheet writes. */
+const HEX_COLOUR_LENGTH = 7;
+const RGB_OPENER = "rgb(";
+const RGB_CLOSER = ")";
+const CHANNEL_VALUE_MAXIMUM = 255;
+/** `develop`'s sheet and the whole of what it imports, at the revision the recordings are read at. */
+const DEVELOP_SHEET_FILES = [
+    "src/ui/panel-look.ts",
+    "libs/number-range.ts",
+    "libs/number-text.ts",
+    "libs/text-walk.ts",
+];
+const DEVELOP_ROOT_PREFIX = '"@/';
+const BLACK: Colour = [0, 0, 0];
+const WHITE: Colour = [255, 255, 255];
 const AA_GRAPHIC_RATIO = 3;
 
 /**
@@ -87,19 +112,60 @@ Deno.test("a row refuses to have its text selected, in either window", () => {
     assertStringIncludes(own, "-webkit-user-select:none", "and Safari is told in its own words");
 });
 
-Deno.test("a bar's own spelling is read back as readily as a token's", () => {
-    assertEquals(getContrastRatio("rgb(0 0 0)", "#ffffff"), 21, "the widest, written either way");
-    assertEquals(getContrastRatio("rgb(0 0)", "#ffffff"), 1, "two channels are not a colour");
-    assertEquals(getContrastRatio("rgb(0 0 300)", "#ffffff"), 1, "nor is one past a byte");
+Deno.test("a colour the sheet writes is read back in either spelling, and nothing else is", () => {
+    assertEquals(parseSheetColour("#0f161d"), [0x0f, 0x16, 0x1d], "a token's spelling");
+    assertEquals(parseSheetColour("rgb(0 0 255)"), [0, 0, 255], "and a composed one's, to a byte");
+    assertEquals(parseSheetColour("rgb(0 0 256)"), null, "but not one past a byte");
+    assertEquals(parseSheetColour("rgb(0 0)"), null, "two channels are not a colour");
+    assertEquals(parseSheetColour("white"), null, "a colour nobody wrote is not read");
+    assertEquals(parseSheetColour("#fff"), null, "and neither is a short one");
+    assertEquals(parseSheetColour("#gggggg"), null, "nor one of letters past the digits");
 });
 
-Deno.test("a ratio is read from the colours, and refuses what it cannot read", () => {
-    assertEquals(getContrastRatio("#000000", "#ffffff"), 21, "the widest there is");
-    assertEquals(getContrastRatio("#ffffff", "#ffffff"), 1, "and the narrowest");
-    assertEquals(getContrastRatio("white", "#ffffff"), 1, "a colour nobody wrote passes nothing");
-    assertEquals(getContrastRatio("#fff", "#000000"), 1, "and neither does a short one");
+/** What the sheet writes a colour as, read back: `#rrggbb`, or `rgb(r g b)` for one it composed. */
+function parseSheetColour(text: string): Colour | null {
+    if (text.startsWith(RGB_OPENER)) return parseSheetColourRgb(text);
+    if (!text.startsWith("#")) return null;
+    if (text.length !== HEX_COLOUR_LENGTH) return null;
+    const channels: number[] = [];
+    for (let at = 1; at < text.length; at += 2) {
+        const high = HEX_DIGITS.indexOf(text.charAt(at));
+        const low = HEX_DIGITS.indexOf(text.charAt(at + 1));
+        if (high === -1) return null;
+        if (low === -1) return null;
+        channels.push(high * HEX_BASE + low);
+    }
+    return composeSheetColour(channels);
+}
+
+function parseSheetColourRgb(text: string): Colour | null {
+    if (!text.endsWith(RGB_CLOSER)) return null;
+    const channels: number[] = [];
+    const inside = text.slice(RGB_OPENER.length, text.length - RGB_CLOSER.length);
+    for (const stated of inside.split(" ")) {
+        const channel = parseInteger(stated);
+        if (channel === null) return null;
+        if (channel < 0) return null;
+        if (channel > CHANNEL_VALUE_MAXIMUM) return null;
+        channels.push(channel);
+    }
+    return composeSheetColour(channels);
+}
+
+function composeSheetColour(channels: readonly number[]): Colour | null {
+    const [red, green, blue, past] = channels;
+    if (red === undefined) return null;
+    if (green === undefined) return null;
+    if (blue === undefined) return null;
+    if (past !== undefined) return null;
+    return [red, green, blue];
+}
+
+Deno.test("a ratio runs from one, for a colour on itself, to twenty-one", () => {
+    assertEquals(getContrastRatio(BLACK, WHITE), 21, "the widest there is");
+    assertEquals(getContrastRatio(WHITE, WHITE), 1, "and the narrowest");
     assert(
-        getContrastRatio("#000000", "#ffffff") > getContrastRatio(SURFACE.panel, SURFACE.raised),
+        getContrastRatio(BLACK, WHITE) > getContrastRatio(SURFACE.panel, SURFACE.raised),
         "order",
     );
 });
@@ -109,7 +175,7 @@ Deno.test("every ink the sheet paints with clears its floor over the ground it i
     const values = readSheetVariables(sheet);
     assertEquals(
         values.get("surface"),
-        SURFACE.panel,
+        formatColour(SURFACE.panel),
         "the sheet ships the surface it is read for",
     );
 
@@ -176,12 +242,12 @@ function countPairingsClearing(
     grounds: readonly string[],
     floor: number,
 ): number {
-    const ink = values.get(name);
-    assertExists(ink, `${name}: painted with, and never declared`);
+    const ink = parseSheetColour(values.get(name) ?? "");
+    assertExists(ink, `${name}: painted with, and never declared as a colour`);
     let counted = 0;
     for (const where of grounds) {
-        const ground = values.get(where);
-        assertExists(ground, `${where}: drawn on, and never declared`);
+        const ground = parseSheetColour(values.get(where) ?? "");
+        assertExists(ground, `${where}: drawn on, and never declared as a colour`);
         const ratio = getContrastRatio(ink, ground);
         assert(ratio >= floor, `${name} on ${where}: ${ratio.toFixed(2)} under ${floor}`);
         counted += 1;
@@ -191,7 +257,10 @@ function countPairingsClearing(
 
 Deno.test("text over every surface clears AA", () => {
     for (const surface of Object.values(SURFACE)) {
-        assert(getContrastRatio(TEXT.plain, surface) >= AA_TEXT_RATIO, `${surface} under a figure`);
+        assert(
+            getContrastRatio(TEXT.plain, surface) >= AA_TEXT_RATIO,
+            `${formatColour(surface)} under a figure`,
+        );
     }
     assert(getContrastRatio(TEXT.quiet, SURFACE.panel) >= AA_TEXT_RATIO, "and under a label");
     // The quiet ink over the raised surface: the strip's own label, and every caption the detail
@@ -214,27 +283,12 @@ Deno.test("a figure printed on a bar clears AA, whatever the bar was drawn for",
     for (const hue of hues) {
         const bar = composeBarColour(hue);
         const ratio = getContrastRatio(getInkForBar(hue), bar);
-        assert(ratio >= AA_TEXT_RATIO, `${hue}: ${ratio.toFixed(2)} on ${bar}`);
+        const named = `${formatColour(hue)}: ${ratio.toFixed(2)} on ${formatColour(bar)}`;
+        assert(ratio >= AA_TEXT_RATIO, named);
         lightest = Math.min(lightest, ratio);
     }
     assert(hues.length > PALETTE_COLOURS.length, "more pairings were checked than there are hues");
     assert(lightest >= AA_TEXT_RATIO, "the worst pairing the panel can draw still clears it");
-});
-
-/**
- * A hue nothing here wrote, which must not stop the panel drawing; a bar the colour of its own
- * track states its length and says nothing about whose it is, which is a degradation rather than a
- * claim — **E12**, develop ADR 0051. What it must never do is write `undefined` into a rule,
- * because a browser drops that and the element keeps whatever it inherits, with nothing saying so.
- */
-Deno.test("a bar asked for in no colour is drawn in its own track, and never in nothing", () => {
-    for (const hue of ["", "#12", "rgb(1 2)", "not a colour at all", "#gggggg"]) {
-        assertEquals(composeBarColour(hue), SURFACE.track, `${hue} is no colour, so it is no bar`);
-        assertEquals(getInkForBar(hue), TEXT.inkLight, "and its ink is the one every bar takes");
-    }
-    for (const written of [composeBarColour("#3987e5"), composeBarColour("")]) {
-        assert(!written.includes("undefined"), "no rule the panel writes carries a word for none");
-    }
 });
 
 Deno.test("the ink is computed, and at this tint every bar takes the light one", () => {
@@ -245,7 +299,7 @@ Deno.test("the ink is computed, and at this tint every bar takes the light one",
 });
 
 Deno.test("the two sides are told apart by more than a hue", () => {
-    const sides: string[] = [SIGNAL.ours, SIGNAL.theirs];
+    const sides = [formatColour(SIGNAL.ours), formatColour(SIGNAL.theirs)];
     assertEquals(new Set(sides).size, 2, "two sides, two colours");
     assert(
         getContrastRatio(SIGNAL.suspect, SURFACE.panel) >= AA_MARK_RATIO,
@@ -257,8 +311,46 @@ Deno.test("the two sides are told apart by more than a hue", () => {
         getContrastRatio(SIGNAL.caveat, TEXT.quiet) > getContrastRatio(TEXT.quiet, TEXT.quiet),
         "and off the label it stands beside, which is what a caveat mark is read against",
     );
-    assertEquals(SIGNAL.unknown, "#9299a0", "unknown is desaturated: the absence of a category");
+    assertEquals(
+        formatColour(SIGNAL.unknown),
+        "#9299a0",
+        "unknown is desaturated: the absence of a category",
+    );
 });
+
+/**
+ * The sheet is `develop`'s, to the byte (**W8**): every token, every colour and every rule. A
+ * token written in another spelling here has to write the same text, and a value that moved is a
+ * finding in one of the two.
+ */
+Deno.test("the style sheet is the one develop ships, byte for byte", async () => {
+    const develop = await readDevelopStyleSheet();
+    assertEquals(composeStyleSheet(), develop, `the sheet develop @ ${RECORDINGS_REVISION} ships`);
+});
+
+/** `develop`'s modules written out of git into a directory of their own, and the sheet asked for. */
+async function readDevelopStyleSheet(): Promise<string> {
+    const root = Deno.makeTempDirSync({ prefix: "margometer-develop-sheet-" });
+    for (const path of DEVELOP_SHEET_FILES) {
+        const shown = new Deno.Command("git", {
+            args: ["show", `${RECORDINGS_REVISION}:${path}`],
+            stdout: "piped",
+        }).outputSync();
+        assert(shown.success, `develop:${path} is there at ${RECORDINGS_REVISION}`);
+        const upward = "../".repeat(path.split("/").length - 1);
+        const text = new TextDecoder().decode(shown.stdout);
+        const target = `${root}/${path}`;
+        Deno.mkdirSync(target.slice(0, target.lastIndexOf("/")), { recursive: true });
+        Deno.writeTextFileSync(target, text.replaceAll(DEVELOP_ROOT_PREFIX, `"./${upward}`));
+    }
+    const module = await import(`file://${root}/${DEVELOP_SHEET_FILES[0]}`);
+    Deno.removeSync(root, { recursive: true });
+    const compose = module.composeStyleSheet;
+    assert(typeof compose === "function", "develop's sheet module composes a sheet");
+    const sheet = compose();
+    assert(typeof sheet === "string", "and what it composes is text");
+    return sheet;
+}
 
 Deno.test("the sheet shuts the game out, and every class it selects is one the panel wears", () => {
     const sheet = composeStyleSheet();
@@ -278,12 +370,17 @@ Deno.test("a value is written once, and every rule spends it by name", () => {
     // declarations spend tokens like any other rule, so one occurrence is the whole allowance.
     const twice: string[] = [];
     const signals = [SIGNAL.suspect, SIGNAL.caveat, SIGNAL.defect];
-    for (const value of [...Object.values(SURFACE), ...Object.values(TEXT), ...signals]) {
+    const colours = [...Object.values(SURFACE), ...Object.values(TEXT), ...signals];
+    for (const value of colours.map(formatColour)) {
         const written = sheet.split(value).length - 1;
         if (written > 1) twice.push(`${value} written ${written} times`);
     }
     assertEquals(twice, [], "a value the sheet writes more than once");
-    assertStringIncludes(sheet, SURFACE.panel, "and the values it does write are the tokens");
+    assertStringIncludes(
+        sheet,
+        formatColour(SURFACE.panel),
+        "and the values it does write are the tokens",
+    );
     assertStringIncludes(sheet, "var(--MargoMeter-", "which a rule reaches by our own name");
     assert(sheet.split("var(--MargoMeter-").length > 10, "and reaches by name many times over");
 });

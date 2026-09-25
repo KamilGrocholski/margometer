@@ -16,7 +16,7 @@ import {
 } from "#/src/core/charged-skill.ts";
 import { type CombatantRoster, COMBATANTS_MAXIMUM } from "#/src/core/combatant-roster.ts";
 import type { TurnStatement } from "#/src/core/fight-session.ts";
-import { lookupColourForProfession, SIGNAL } from "./panel-palette.ts";
+import { type Colour, lookupColourForProfession, SIGNAL } from "./panel-palette.ts";
 import { getPartOfSide, type PanelSidePart } from "./panel-reading.ts";
 import { PANEL_WORDS } from "./panel-words.ts";
 
@@ -28,7 +28,7 @@ import { PANEL_WORDS } from "./panel-words.ts";
 export interface StandingProvoked {
     provokedId: number;
     name: string;
-    colour: string;
+    colour: Colour;
     sidePart: PanelSidePart;
     turnsElapsed: number;
     turnsStated: number;
@@ -48,7 +48,7 @@ export interface StandingProvocation {
     casterName: string;
     skillId: number;
     skillName: string;
-    casterColour: string;
+    casterColour: Colour;
     casterSidePart: PanelSidePart;
     provoked: StandingProvoked[];
 }
@@ -69,7 +69,7 @@ export interface StandingChargedSkill {
     turnsElapsed: number;
     turnsStated: number;
     state: ChargedSkillState;
-    colour: string;
+    colour: Colour;
     sidePart: PanelSidePart;
 }
 
@@ -95,7 +95,7 @@ export interface StandingTurn {
 /** Whoever the game is numbering a turn for: a person, so drawn as one wherever they stand. */
 export interface StandingHolder {
     name: string;
-    colour: string;
+    colour: Colour;
     sidePart: PanelSidePart;
 }
 
@@ -267,7 +267,7 @@ function presentStandingChargedSkill(
  * are drawn quiet, so the row reads as something that has stopped happening without the colour
  * having to carry that by itself (**The Colour Never Alone Rule**).
  */
-function getColourForCharge(state: ChargedSkillState, profession: string | null): string {
+function getColourForCharge(state: ChargedSkillState, profession: string | null): Colour {
     if (state !== CHARGED_SKILL_STATE.charging) return SIGNAL.unknown;
     return lookupColourForProfession(profession);
 }

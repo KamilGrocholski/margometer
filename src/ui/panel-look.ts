@@ -8,30 +8,20 @@
  */
 
 import { clamp } from "#/libs/number-range.ts";
-import { parseInteger } from "#/libs/number-text.ts";
-import { SIGNAL } from "./panel-palette.ts";
-
-/**
- * ⚠️ **Three, held by the compiler rather than by a check.** Everything here writes its answers
- * straight into a rule, and a list one short puts the word `undefined` inside `rgb(…)` — which a
- * browser drops, leaving the element on whatever it inherits with nothing saying so. A guard at
- * each writer was the first answer and it was dead code: nothing could reach it.
- * `develop ADR 0051`.
- */
-type ColourChannels = readonly [number, number, number];
+import { type Colour, formatColour, SIGNAL } from "./panel-palette.ts";
 
 export const SURFACE = {
-    panel: "#0f161d",
-    raised: "#171e25",
-    track: "#1b232a",
-    border: "#232b33",
+    panel: [0x0f, 0x16, 0x1d],
+    raised: [0x17, 0x1e, 0x25],
+    track: [0x1b, 0x23, 0x2a],
+    border: [0x23, 0x2b, 0x33],
 } as const;
 
 export const TEXT = {
-    plain: "#e3e7ea",
-    quiet: "#979fa8",
-    inkDark: "#0d1319",
-    inkLight: "#ffffff",
+    plain: [0xe3, 0xe7, 0xea],
+    quiet: [0x97, 0x9f, 0xa8],
+    inkDark: [0x0d, 0x13, 0x19],
+    inkLight: [0xff, 0xff, 0xff],
 } as const;
 
 /**
@@ -222,16 +212,8 @@ const BAR_TINT = 0.55;
  * this is not a colour anybody sees — it is the opaque end of a gradient, named because a raw hex
  * in a rule is a bug and an exception nobody can see the edge of is how the next one gets written.
  */
-const MASK_INK = "#000000";
+const MASK_INK: Colour = [0x00, 0x00, 0x00];
 const HEADING_TINT = 0.85;
-const HEX_DIGITS = "0123456789abcdef";
-const HEX_BASE = 16;
-const HEX_DIGITS_PER_CHANNEL = 2;
-/** A hash and six digits, which is the only hex spelling this panel writes or reads. */
-const HEX_COLOUR_LENGTH = 7;
-const RGB_OPENER = "rgb(";
-const RGB_CLOSER = ")";
-const CHANNELS_IN_A_COLOUR = 3;
 const CHANNEL_VALUE_MAXIMUM = 255;
 /** The sRGB transfer function and the channel weights, as WCAG states them. */
 const LUMINANCE_WEIGHTS = [0.2126, 0.7152, 0.0722];
@@ -240,9 +222,6 @@ const LOW_SLOPE = 12.92;
 const CHANNEL_OFFSET = 0.055;
 const CHANNEL_EXPONENT = 2.4;
 const LUMINANCE_OFFSET = 0.05;
-
-const INK_DARK_CHANNELS: ColourChannels = [0x0d, 0x13, 0x19];
-const INK_LIGHT_CHANNELS: ColourChannels = [0xff, 0xff, 0xff];
 
 const VARIABLE_PREFIX = "--MargoMeter-";
 const ROWS_BY_DEFAULT = 11;
@@ -264,81 +243,24 @@ const FONT_TITLE = `${FONT_SIZE_PIXELS}px/${LINE_HEIGHT_TITLE_PIXELS}px ${FONT_S
 const NO_SELECTION = "-webkit-user-select:none;user-select:none;";
 
 /**
- * One where a colour could not be read, so an unreadable pairing never passes for a good one.
  * **No production caller**: this and the two bar readings below are what hold `develop:DESIGN.md`'s
  * contrast floor, measured by `tests/ui/panel-look.test.ts` over the tokens and the palette.
  */
-export function getContrastRatio(one: string, other: string): number {
-    const first = parseColourChannels(one);
-    const second = parseColourChannels(other);
-    if (first === null || second === null) return 1;
-    return getContrastFromChannels(first, second);
+export function getContrastRatio(one: Colour, other: Colour): number {
+    const bright = Math.max(getLuminance(one), getLuminance(other));
+    const dim = Math.min(getLuminance(one), getLuminance(other));
+    return (bright + LUMINANCE_OFFSET) / (dim + LUMINANCE_OFFSET);
 }
 
-/** Null for anything that is neither spelling, because a colour nobody wrote is not a colour. */
-function parseColourChannels(colour: string): ColourChannels | null {
-    if (colour.startsWith(RGB_OPENER)) return parseRgbChannels(colour);
-    if (!colour.startsWith("#")) return null;
-    if (colour.length !== HEX_COLOUR_LENGTH) return null;
-    const channels: number[] = [];
-    for (let at = 1; at < colour.length; at += HEX_DIGITS_PER_CHANNEL) {
-        const high = parseHexDigit(colour.charAt(at));
-        const low = parseHexDigit(colour.charAt(at + 1));
-        if (high === null || low === null) return null;
-        channels.push(high * HEX_BASE + low);
-    }
-    return composeChannels(channels);
-}
-
-/** The other spelling, because a bar is composed as one and its ink is read back off it. */
-function parseRgbChannels(colour: string): ColourChannels | null {
-    if (!colour.startsWith(RGB_OPENER)) return null;
-    if (!colour.endsWith(RGB_CLOSER)) return null;
-    const channels: number[] = [];
-    const inside = colour.slice(RGB_OPENER.length, colour.length - RGB_CLOSER.length);
-    for (const stated of inside.split(" ")) {
-        const channel = parseInteger(stated);
-        if (channel === null) return null;
-        if (channel < 0) return null;
-        if (channel > CHANNEL_VALUE_MAXIMUM) return null;
-        channels.push(channel);
-    }
-    return composeChannels(channels);
-}
-
-/** The one place a list becomes three channels, so no writer downstream has to ask again. */
-function composeChannels(read: readonly number[]): ColourChannels | null {
-    if (read.length !== CHANNELS_IN_A_COLOUR) return null;
-    const [red, green, blue] = read;
-    if (red === undefined) return null;
-    if (green === undefined) return null;
-    if (blue === undefined) return null;
-    return [red, green, blue];
-}
-
-function parseHexDigit(character: string): number | null {
-    const at = HEX_DIGITS.indexOf(character.toLowerCase());
-    if (at === -1) return null;
-    return at;
-}
-
-function getContrastFromChannels(one: ColourChannels, other: ColourChannels): number {
-    const bright = Math.max(getLuminanceFromChannels(one), getLuminanceFromChannels(other));
-    const dim = Math.min(getLuminanceFromChannels(one), getLuminanceFromChannels(other));
-    const ratio = (bright + LUMINANCE_OFFSET) / (dim + LUMINANCE_OFFSET);
-    return ratio;
-}
-
-function getLuminanceFromChannels(channels: ColourChannels): number {
+function getLuminance(colour: Colour): number {
     let luminance = 0;
-    for (const [at, channel] of channels.entries()) {
+    for (const [at, channel] of colour.entries()) {
         const share = channel / CHANNEL_VALUE_MAXIMUM;
         const linear = share <= LOW_CHANNEL
             ? share / LOW_SLOPE
             : ((share + CHANNEL_OFFSET) / (1 + CHANNEL_OFFSET)) ** CHANNEL_EXPONENT;
         luminance += linear * (LUMINANCE_WEIGHTS[at] ?? 0);
     }
-
     return luminance;
 }
 
@@ -351,39 +273,28 @@ function getLuminanceFromChannels(channels: ColourChannels): number {
  * bar *would* take, which is the pair `develop:DESIGN.md` names as the proof that the tint keeps
  * every hue readable — see its text tokens, which own that decision.
  */
-export function composeBarColour(hue: string): string {
-    return composeRgbText(composeBarChannels(hue));
+export function composeBarColour(hue: Colour): Colour {
+    return composeColourOver(hue, SURFACE.track, BAR_TINT);
 }
 
-/** A colour nothing could be read from is the track, which is a colour and not a dropped rule. */
-function composeRgbText(channels: ColourChannels | null): string {
-    if (channels === null) return SURFACE.track;
-    const [red, green, blue] = channels;
-    return `rgb(${red} ${green} ${blue})`;
+/** One colour over another at an alpha, in sRGB because that is what the browser does here. */
+function composeColourOver(top: Colour, bottom: Colour, alpha: number): Colour {
+    const share = clamp(alpha, 0, 1);
+    return [
+        composeColourOverChannel(top[0], bottom[0], share),
+        composeColourOverChannel(top[1], bottom[1], share),
+        composeColourOverChannel(top[2], bottom[2], share),
+    ];
 }
 
-/** Null for a hue that is not a colour this file wrote, which is the caller's to answer for. */
-function composeBarChannels(hue: string): ColourChannels | null {
-    const chosen = parseColourChannels(hue);
-    const track = parseColourChannels(SURFACE.track);
-    if (chosen === null) return null;
-    if (track === null) return null;
-    return composeChannels(
-        chosen.map((channel, at) =>
-            Math.round((track[at] ?? 0) * (1 - BAR_TINT) + channel * BAR_TINT)
-        ),
-    );
+function composeColourOverChannel(above: number, below: number, share: number): number {
+    return Math.round(share * above + (1 - share) * below);
 }
 
-export function getInkForBar(hue: string): string {
-    const mixed = composeBarChannels(hue);
-    if (mixed === null) return TEXT.inkLight;
-    return getInkForChannels(mixed);
-}
-
-function getInkForChannels(channels: ColourChannels): string {
-    const onDark = getContrastFromChannels(channels, INK_DARK_CHANNELS);
-    const onLight = getContrastFromChannels(channels, INK_LIGHT_CHANNELS);
+export function getInkForBar(hue: Colour): Colour {
+    const bar = composeBarColour(hue);
+    const onDark = getContrastRatio(bar, TEXT.inkDark);
+    const onLight = getContrastRatio(bar, TEXT.inkLight);
     if (onDark >= onLight) return TEXT.inkDark;
     return TEXT.inkLight;
 }
@@ -482,20 +393,23 @@ function composeFrameRules(): string {
 
 function composeVariables(): string {
     const stated = [
-        composeVariable("surface", SURFACE.panel),
-        composeVariable("raised", SURFACE.raised),
-        composeVariable("track", SURFACE.track),
-        composeVariable("border", SURFACE.border),
-        composeVariable("text", TEXT.plain),
-        composeVariable("quiet", TEXT.quiet),
-        composeVariable("suspect", SIGNAL.suspect),
-        composeVariable("caveat", SIGNAL.caveat),
-        composeVariable("defect", SIGNAL.defect),
-        composeVariable("ours", SIGNAL.ours),
-        composeVariable("theirs", SIGNAL.theirs),
-        composeVariable("nobody", SIGNAL.unknown),
-        composeVariable("heading", composeColourOver(TEXT.quiet, SURFACE.panel, HEADING_TINT)),
-        composeVariable("mask", MASK_INK),
+        composeVariable("surface", formatColour(SURFACE.panel)),
+        composeVariable("raised", formatColour(SURFACE.raised)),
+        composeVariable("track", formatColour(SURFACE.track)),
+        composeVariable("border", formatColour(SURFACE.border)),
+        composeVariable("text", formatColour(TEXT.plain)),
+        composeVariable("quiet", formatColour(TEXT.quiet)),
+        composeVariable("suspect", formatColour(SIGNAL.suspect)),
+        composeVariable("caveat", formatColour(SIGNAL.caveat)),
+        composeVariable("defect", formatColour(SIGNAL.defect)),
+        composeVariable("ours", formatColour(SIGNAL.ours)),
+        composeVariable("theirs", formatColour(SIGNAL.theirs)),
+        composeVariable("nobody", formatColour(SIGNAL.unknown)),
+        composeVariable(
+            "heading",
+            formatRgbColour(composeColourOver(TEXT.quiet, SURFACE.panel, HEADING_TINT)),
+        ),
+        composeVariable("mask", formatColour(MASK_INK)),
         composeVariable("bar-tint", `${BAR_TINT}`),
         composeVariable("half", `${SPACE_PIXELS.half}px`),
         composeVariable("small", `${SPACE_PIXELS.small}px`),
@@ -513,17 +427,9 @@ function composeVariable(name: string, value: string): string {
     return `${VARIABLE_PREFIX}${name}:${value};`;
 }
 
-/** One colour over another at an alpha, in sRGB because that is what the browser does here. */
-function composeColourOver(top: string, bottom: string, alpha: number): string {
-    const above = parseColourChannels(top);
-    const below = parseColourChannels(bottom);
-    // Nothing to lay over anything: what is underneath stands, which is a colour and not a rule
-    // the browser will drop.
-    if (above === null) return bottom;
-    if (below === null) return bottom;
-    const share = clamp(alpha, 0, 1);
-    const mixed = above.map((one, at) => Math.round(share * one + (1 - share) * (below[at] ?? 0)));
-    return composeRgbText(composeChannels(mixed));
+/** The other spelling a rule takes, kept for the one colour this sheet composes rather than states. */
+function formatRgbColour(colour: Colour): string {
+    return `rgb(${colour[0]} ${colour[1]} ${colour[2]})`;
 }
 
 function composeRegionRules(): string {

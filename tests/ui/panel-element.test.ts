@@ -34,7 +34,7 @@ import {
     UNNAMED_END,
 } from "#/src/ui/panel-reading.ts";
 import { CLASS, composeStyleSheet } from "#/src/ui/panel-look.ts";
-import { lookupColourForProfession, SIGNAL } from "#/src/ui/panel-palette.ts";
+import { formatColour, lookupColourForProfession, SIGNAL } from "#/src/ui/panel-palette.ts";
 import {
     getNounForMetric,
     getWordsForMetric,
@@ -1122,7 +1122,7 @@ Deno.test("a ranking row says which side it stands on, on the edge opposite the 
         assertExists(row, "a row drawn is a row the reading holds");
         const rule = drawn.children.find((one) => one.className === "row-side");
         assertExists(rule, "every row the roster places wears one");
-        const ink = row.side === readerSide ? SIGNAL.ours : SIGNAL.theirs;
+        const ink = formatColour(row.side === readerSide ? SIGNAL.ours : SIGNAL.theirs);
         assertEquals(rule.attributes.get("style"), `color:${ink}`, "in the ink for that side");
         // The mark goes on every part of a row and not the row alone: a listener reads what was
         // pressed off the node under the hand, so a rule that swallowed a press would be a row
@@ -1168,7 +1168,7 @@ Deno.test("a ranking row's bar is its profession's, and colourless without one",
     for (const [at, drawn] of rows.entries()) {
         const row = reading.rows[at];
         assertExists(row, "a row drawn is a row the reading holds");
-        const hue = lookupColourForProfession(row.profession);
+        const hue = formatColour(lookupColourForProfession(row.profession));
         const bar = drawn.children.find((one) => one.className === "bar");
         const drawnBar = bar?.attributes.get("style") ?? "";
         assertStringIncludes(
@@ -1182,7 +1182,7 @@ Deno.test("a ranking row's bar is its profession's, and colourless without one",
         const cap = drawn.children.find((one) => one.className === "bar-cap");
         assert((cap?.attributes.get("style") ?? "").includes(hue), "and the cap is the full hue");
     }
-    const nobody = lookupColourForProfession(null);
+    const nobody = formatColour(lookupColourForProfession(null));
     const colourless = rows.filter((one) =>
         (one.children.find((part) => part.className === "bar")?.attributes.get("style") ?? "")
             .includes(nobody)
@@ -1225,7 +1225,7 @@ Deno.test("a kind's row carries a bar of its own, measured against its own cut",
     // Colourless, like every row that names no combatant: the hue on this panel says who.
     assertStringIncludes(
         style,
-        lookupColourForProfession(null),
+        formatColour(lookupColourForProfession(null)),
         "in the colour of no category at all",
     );
     assertStringIncludes(style, "width:100.0%", "and the length its share of the cut states");
