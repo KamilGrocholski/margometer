@@ -66,7 +66,7 @@ const BOAR = "captures/2026-08-04-tempest-lowca-vs-odyncze-1785244275300-none.js
 const UNNARRATED = "captures/2026-08-06-tempest-grupa-vs-hildur-1785244275300-none.json";
 /**
  * The five variants the client spells are `+stun2` and four suffixed by element, beside the plain
- * `+stun` (`develop:docs/protocol-keys.md`).
+ * `+stun` (`docs/protocol-keys.md`).
  */
 const STUN_OPENER = "+stun";
 let gradesHeld: TurnGrade[] | null = null;

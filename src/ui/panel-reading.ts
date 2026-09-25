@@ -99,7 +99,7 @@ export interface RowDetail {
      * Whether a lost turn was heard **anywhere in this fight**, which is what says the figure above
      * is a measurement rather than a reading that found nothing. The announcement is read by the
      * shape of a sentence, so a world wording it otherwise yields nought for everybody
-     * (`develop:docs/turns-taken.md`), and a nought drawn there would be **E10**'s substitute for a
+     * (`docs/turns-taken.md`), and a nought drawn there would be **E10**'s substitute for a
      * read that never worked. A combatant of their own lost turn carries it true.
      * `develop ADR 0110`.
      */

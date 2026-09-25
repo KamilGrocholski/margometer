@@ -186,7 +186,7 @@ function presentCardSubLine(label: string, figure: number): TipLine[] {
 function presentCardCounterLines(detail: RowDetail): TipLine[] {
     const lines: TipLine[] = [];
     // First, because a turn is what the counts below happened inside of: the blows and the
-    // announcements are what one was spent on (`develop:docs/turns-taken.md`).
+    // announcements are what one was spent on (`docs/turns-taken.md`).
     if (detail.turnsTaken > 0) lines.push(presentCardTurnLine(detail));
     if (detail.blowsStruck > 0) {
         lines.push({
@@ -216,7 +216,7 @@ function presentCardCounterLines(detail: RowDetail): TipLine[] {
  * The turns a combatant took, with the ones they lost beside them **wherever that reading was heard
  * at all**. Where the fight carries no lost turn on anybody, the second half is unread rather than
  * nought — the announcement is read by the shape of a sentence and a world wording it otherwise
- * yields nothing for everybody (`develop:docs/turns-taken.md`) — so the line states the one figure
+ * yields nothing for everybody (`docs/turns-taken.md`) — so the line states the one figure
  * it has. `develop ADR 0110`.
  */
 function presentCardTurnLine(detail: RowDetail): TipLine {

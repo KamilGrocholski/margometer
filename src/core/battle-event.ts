@@ -1,7 +1,7 @@
 /**
  * What the decoder produces and everything above it reads: the data contract `docs/design.md` §1
  * carries over from `develop`, where `develop ADR 0008` records it. What each key means is
- * `develop:docs/protocol-keys.md`.
+ * `docs/protocol-keys.md`.
  */
 
 import type { VocabularyWord } from "#/libs/vocabulary.ts";

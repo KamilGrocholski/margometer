@@ -55,9 +55,8 @@ Neither suppression is counted here any more. Both were, under a grading that re
 in three; the register below reaches all of them, and what stands in place of those two figures is
 its list of the boundaries where a suppression failing open is what a disagreement would look like.
 
-`step` and `prepare` are `develop:docs/protocol-keys.md`'s to explain. The help documents the first
-and says nothing of the second, so what `prepare` costs a combatant is measured here rather than
-cited.
+`step` and `prepare` are `docs/protocol-keys.md`'s to explain. The help documents the first and says
+nothing of the second, so what `prepare` costs a combatant is measured here rather than cited.
 
 ## What the game states, and where it can be checked
 

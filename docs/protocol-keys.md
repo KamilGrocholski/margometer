@@ -2108,7 +2108,7 @@ layer and fired on the damage layer. Production build `Bb28FQty` composes it and
 `sunshield` on one case, into `msg_sunshield %name%` — a name and no `%val%` anywhere in it (read
 2026-09-16). The published table gives the effect five turns on skill 92
 (`frozen/skill-durations.ts`); that skill reaches its caster alone, so it is not one of the casts
-`develop:docs/auras-standing.md` follows. The one occurrence is on
+`docs/auras-standing.md` follows. The one occurrence is on
 `captures/2026-09-16-luvia-tropiciel-vs-grupa-Bb28FQty-0.17.0.json`, announced at the caster
 themselves in both slots of its message.
 
@@ -2277,8 +2277,8 @@ with the table's own comment
 `# shout to ilość przeciwników (randomowych) których zmusza się do
 ataku na siebie` (read
 2026-09-08). So one key has two readings — names on the wire, a count in the table — and only the
-first is drawn: **develop ADR 0064** removed the arithmetic the count fed.
-`develop:docs/auras-standing.md` carries what follows.
+first is drawn: **develop ADR 0064** removed the arithmetic the count fed. `docs/auras-standing.md`
+carries what follows.
 
 **The value is a list of names**, separated by a comma and a space — the grammar `winner` above
 uses, and the one the panel reads the provoked off (**develop ADR 0064**).
@@ -2304,7 +2304,7 @@ keys beside it**, and neither shape is the other's: over every recording, `Wyzyw
 (`skillId=188`) announces it beside `active_decblock_per-enemies` and `alllowdmg`, and
 `Prowokujący okrzyk` (`skillId=25`) beside `aura-adddmg2_per-meele` and neither of those two. The
 split is re-earnable without opening a recording — the three keys' own `_Shape:_` lines come to this
-one's — and `develop:docs/auras-standing.md` holds it against the material.
+one's — and `docs/auras-standing.md` holds it against the material.
 
 ### `surpass_bonus_total` — decoded
 
@@ -2475,7 +2475,7 @@ searched, since `allies` says whom the effect reaches rather than what it is
 ⚠️ **A turn is not found in any key of these, or of any other** — measured over every recording on
 2026-08-19, against every key the client branches on (`frozen/protocol-keys.ts`). It is not in a
 message at all: the game numbers turns in the payload's envelope, which this register does not
-cover, and `develop:docs/turns-taken.md` is where that reading lives. What a key can say is that its
+cover, and `docs/turns-taken.md` is where that reading lives. What a key can say is that its
 combatant spent a turn, which two of them below do.
 
 ### `step` — decoded
@@ -2503,8 +2503,8 @@ display text, so no example of one appears here.
 
 Counted as a turn its combatant took, but **only where it stands alone**: where the same combatant
 acted in the message before it, the preparation rides that turn rather than being one. The help
-documents no such mechanic, so unlike `step` this is measured and not cited —
-`develop:docs/turns-taken.md` carries both shapes and what each costs (**develop ADR 0048**).
+documents no such mechanic, so unlike `step` this is measured and not cited — `docs/turns-taken.md`
+carries both shapes and what each costs (**develop ADR 0048**).
 
 _Shape:_ 345 occurrences; alone in its message; text
 
@@ -2524,7 +2524,7 @@ One thing is **read** from it and still nothing kept: whether the line announces
 spent on nothing. It is told by shape and never by its words — the text opens with a combatant's own
 name and the separator the game puts after it, and the game's other lines about a combatant end in a
 full stop. The decoder resolves the name against the roster and passes on an id (**develop ADR
-0049**); `develop:docs/turns-taken.md` carries what that comes to.
+0049**); `docs/turns-taken.md` carries what that comes to.
 
 _Shape:_ 438 occurrences; alone in its message; text
 

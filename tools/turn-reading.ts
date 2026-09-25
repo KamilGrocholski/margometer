@@ -87,7 +87,7 @@ export interface DisputedReading {
 
 /**
  * What one key stands behind. `messages` counts the messages it arrived on, which is not the
- * occurrence count `develop:docs/protocol-keys.md` keeps: a message may carry a key twice.
+ * occurrence count `docs/protocol-keys.md` keeps: a message may carry a key twice.
  */
 export interface KeyTally {
     key: string;

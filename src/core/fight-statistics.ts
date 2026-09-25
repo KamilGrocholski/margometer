@@ -99,7 +99,7 @@ export interface CombatantFigures {
     skills: ReadonlyMap<string, SkillFigures>;
     blowsStruck: number;
     blowsWithoutSkill: number;
-    /** Graded against the game's numbering: `develop:docs/turns-taken.md`, `develop ADR 0048`. */
+    /** Graded against the game's numbering: `docs/turns-taken.md`, `develop ADR 0048`. */
     turnsTaken: number;
     /** Turns granted and spent on nothing, which the game announces itself (`develop ADR 0049`). */
     turnsLost: number;

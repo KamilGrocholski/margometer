@@ -1,6 +1,6 @@
 /**
  * What a protocol key means: the one owner of it (`docs/design.md` §6.2). The families are the
- * client's own and each is cited in `develop:docs/protocol-keys.md`. Nothing is read because it
+ * client's own and each is cited in `docs/protocol-keys.md`. Nothing is read because it
  * looks like a number.
  *
  * `null` is a key with no meaning yet, which the decoder leaves unread and names.
@@ -94,7 +94,7 @@ export const LASTHEAL_KEY = "legbon_lastheal";
 export const HEALING_REDUCER_KEY = "lowheal_per-enemies";
 /** The key an announcement carries when it provokes: its value names the provoked. */
 export const PROVOCATION_KEY = "shout";
-/** Keys stating a figure for a status a mask witnesses (`develop:docs/auras-standing.md`). */
+/** Keys stating a figure for a status a mask witnesses (`docs/auras-standing.md`). */
 export const SLOW_ALL_KEY = "allslow_per";
 export const HASTE_AURA_KEY = "aura-sa_per";
 /** Between the names in a value that carries several: `winner`, `loser` and `shout` all use it. */
@@ -112,7 +112,7 @@ const CRITICAL_OF_KEY = "+of_crit";
 export const CRITICAL_PROC_KEYS: readonly string[] = [CRITICAL_KEY, CRITICAL_OF_KEY];
 /**
  * The keys whose giver is the one healed, on the published help's word rather than on the
- * grammar: each entry's `_Cause:_` in `develop:docs/protocol-keys.md` reads *the subject's own*.
+ * grammar: each entry's `_Cause:_` in `docs/protocol-keys.md` reads *the subject's own*.
  * Being stated at one end is not what puts a key here. `[ASK]` before a fourth joins the list.
  */
 export const SELF_SOURCED_HEALING_KEYS: readonly string[] = [
@@ -132,7 +132,7 @@ const DESTROYED_KEYS = [
     "+resdmgf",
     "+resdmgl",
     // One letter from `+acdmg`, and a different pool: that empties armour in points, this a
-    // poison resistance in percentage points (`develop:docs/protocol-keys.md`).
+    // poison resistance in percentage points (`docs/protocol-keys.md`).
     "+actdmg",
     "+abdest_per",
     "+abmdest_per",
@@ -275,10 +275,10 @@ const VALUELESS_DECLARATION_KEYS = [
     "sunshield_per",
 ];
 
-/** Cited in `develop:docs/auras-standing.md`, which cites the register, which cites the help. */
+/** Cited in `docs/auras-standing.md`, which cites the register, which cites the help. */
 const REACH_BY_KEY: ReadonlyMap<string, KeyReach> = new Map<string, KeyReach>([
     // The `all` says everybody and not which side. The register: _a reduction to the damage dealt
-    // by everyone on the opposing side_ (`develop:docs/protocol-keys.md`).
+    // by everyone on the opposing side_ (`docs/protocol-keys.md`).
     ["alllowdmg", KEY_REACH.otherSide],
     ["+spell-taken_dmg-all", KEY_REACH.otherSide],
     [HEALING_REDUCER_KEY, KEY_REACH.otherSide],

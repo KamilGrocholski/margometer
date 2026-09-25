@@ -197,7 +197,7 @@ number of anything against one opponent rather than another, and on `damageTaken
 announcement was somebody else's, so a count read off the reader's own row would be their own swings
 under somebody else's heading. **On the healing screens nothing closes at all**: health that moved
 outside an announcement still moved under a key the game named, so the section lists those keys as
-`source` rows. `DESIGN.md` owns that rule; `develop:docs/protocol-keys.md` owns what each key means.
+`source` rows. `DESIGN.md` owns that rule; `docs/protocol-keys.md` owns what each key means.
 
 ## An announcement is kept on the row that made it
 

@@ -132,8 +132,8 @@ drawn, and the tooltip is where it is drawn.
 
 **The published help states whose turns for ten of its keys, and six of them are ours.** Each row is
 a clause counted in `frozen/help-phrases.ts` and cited by that key's entry in
-`develop:docs/protocol-keys.md`, so the reading is re-earned rather than remembered (article
-`view,372`, read 2026-09-15).
+`docs/protocol-keys.md`, so the reading is re-earned rather than remembered (article `view,372`,
+read 2026-09-15).
 
 | clause                                   | keys it stands under                                                                                       | whose turns   |
 | ---------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------- |
@@ -201,9 +201,9 @@ two skills (`develop ADR 0112` carries what that reading came to):
 | `poisoned` | `poison1, of_poison1`  | five turns of the bearer, extended by each further hit |
 | `wound`    | `wound1, of_wound1`    | five turns, its own extension capped at the same five  |
 
-⚠️ **`wound` is Głęboka rana and `deep_wound` is not.** `develop:docs/protocol-keys.md`'s `wound`
-entry is what joins that bit to the attribute the help dates; nothing joins `deep_wound`, so it is
-dated by neither source and the table above leaves it out.
+⚠️ **`wound` is Głęboka rana and `deep_wound` is not.** `docs/protocol-keys.md`'s `wound` entry is
+what joins that bit to the attribute the help dates; nothing joins `deep_wound`, so it is dated by
+neither source and the table above leaves it out.
 
 ⚠️ **The refresh above is why `own` is the right column to read them against, and 38 is not.**
 Trucizna carries `Nadpisywanie: NIE` in the help's own table — _kolejne zaaplikowanie obrażeń tylko
@@ -229,8 +229,8 @@ What follows is what the game does, written down so the reading is not taken twi
 
 **Almost every key carries its figure on the wire.** Measured over `captures/` 2026-09-11: every key
 below states an amount on the announcement except `+spell-taken_dmg-all`, which states none on any
-occurrence there is — the count is its `_Shape:_` line in `develop:docs/protocol-keys.md`, re-earned
-on every run. The client's own branch for it is `end-game-without-percent`, so the game shows no
+occurrence there is — the count is its `_Shape:_` line in `docs/protocol-keys.md`, re-earned on
+every run. The client's own branch for it is `end-game-without-percent`, so the game shows no
 percentage there either (`develop ADR 0063`).
 
 **Three different units, and they are not interchangeable.** The help's effect dictionary gives each
@@ -359,10 +359,10 @@ to ten at level 10 — and the table carries the game's own comment beside skill
 is what holds whatever the caster's level is.
 
 **The value names every provoked character**, separated by a comma and a space — the grammar
-`winner` and `loser` use, and `develop:docs/protocol-keys.md` has it at `winner`. So the panel reads
-them rather than inferring them from the count: `captures/2026-09-09-tempest-duet-vs-wojownik-…`
-carries `shout=Gracz 3, Gracz 2`, both of the opposing side, on a skill the earlier reading would
-have expanded to the same two by arithmetic and would have got wrong the moment a side ran past the
+`winner` and `loser` use, and `docs/protocol-keys.md` has it at `winner`. So the panel reads them
+rather than inferring them from the count: `captures/2026-09-09-tempest-duet-vs-wojownik-…` carries
+`shout=Gracz 3, Gracz 2`, both of the opposing side, on a skill the earlier reading would have
+expanded to the same two by arithmetic and would have got wrong the moment a side ran past the
 count. `develop ADR 0064`, superseding `develop ADR 0063` in part.
 
 ⚠️ **The shout is dated by its own row and never by the skill's longest.** `Wyzywający okrzyk` runs

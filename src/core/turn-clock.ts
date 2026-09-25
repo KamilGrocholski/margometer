@@ -3,7 +3,7 @@
  * carried statuses and the standings all count turns on this one clock.
  *
  * Four things open a turn, two of them the game's own default actions; the two that look like a
- * turn and are not are measured exceptions. `develop:docs/turns-taken.md` names all six.
+ * turn and are not are measured exceptions. `docs/turns-taken.md` names all six.
  */
 
 import { assert } from "@std/assert/assert";

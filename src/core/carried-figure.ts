@@ -62,7 +62,7 @@ export const HASTE_BIT_NAME = "speed_up";
 
 /**
  * Which key moves which status, by the name the client registers the bit under. No other bit has a
- * key that states a figure for it (`develop:docs/auras-standing.md`).
+ * key that states a figure for it (`docs/auras-standing.md`).
  */
 const KEY_BY_BIT_NAME: ReadonlyMap<string, string> = new Map([
     [SLOW_BIT_NAME, SLOW_ALL_KEY],

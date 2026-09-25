@@ -325,7 +325,7 @@ export const CARD_WORDS = {
     /**
      * **It says what the protocol stated, not what this reader summed.** `surowe z ciosów` named a
      * scope, and the scope was not true: `-dmga` — *obrażenia nieuchronne* — never carries a
-     * `+dmga` half, because nothing reduces it (`develop:docs/protocol-keys.md`), so the figure
+     * `+dmga` half, because nothing reduces it (`docs/protocol-keys.md`), so the figure
      * sits below the blows' own applied total on 5 of the 113 rows stating one, measured over
      * `captures/` on 2026-09-14. Worded as what was **stated** it claims nothing about
      * coverage, which is the register the rest of this file's sentences are written in (**L3**).
@@ -349,7 +349,7 @@ export const CARD_WORDS = {
     /**
      * A heading each, because the two runs stand together and half the keys under them belong to
      * the other end: `+legbon_curse` fires when its holder attacks and `-legbon_cleanse` when its
-     * holder is hit (`develop:docs/protocol-keys.md`). `develop ADR 0032`.
+     * holder is hit (`docs/protocol-keys.md`). `develop ADR 0032`.
      */
     striking: "W ciosach zadanych",
     struck: "W ciosach przyjętych",
@@ -414,10 +414,10 @@ export const DEFENCE_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.e
  * What fired beside a blow, in the player's words. Ours, and short: these sit in a column beside a
  * count, so each is the mechanic's name and not a sentence about it.
  *
- * **Not every key in `BLOW_END_BY_PROC_KEY` has a word here**, and `CLIENT_ID_BY_UNWORDED_KEY`
+ * **Not every key in `PROC_END_BY_KEY` has a word here**, and `CLIENT_ID_BY_UNWORDED_KEY`
  * below names the ones that do not and says why. The six keys sharing `ogłuszenie` are one event
  * the client spells two ways — `+stun`, and the five variants of the monster statistic — which is
- * what `+stun2-d`'s entry in `develop:docs/protocol-keys.md` says outright.
+ * what `+stun2-d`'s entry in `docs/protocol-keys.md` says outright.
  *
  * **Keyed with the sign**, for the reason `DEFENCE_WORD_BY_KEY` above states: `+wound` is a wound
  * a blow announced and `wound` is one ticking afterwards, and they are different rows on different
@@ -514,7 +514,7 @@ export const CLIENT_ID_BY_UNWORDED_KEY: ReadonlyMap<string, string> = new Map(Ob
 /**
  * What a blow destroyed on whoever took it: the statistic, and **the unit its figure is in**.
  * `+acdmg` counts points of armour and `+resdmg` percentage points of resistance
- * (`develop:docs/protocol-keys.md`), so a column of bare numbers under one heading is a column a
+ * (`docs/protocol-keys.md`), so a column of bare numbers under one heading is a column a
  * reader will add up and get a number that means nothing.
  *
  * The unit rides the figure rather than the name because the name shares its column with three
@@ -524,7 +524,7 @@ export const DESTROYED_WORD_BY_KEY: ReadonlyMap<string, { name: string; unit: st
     Object.entries({
         acdmg: { name: "pancerz", unit: "pkt" },
         // The one pair here that empties the same pool in the same unit, so the names say which
-        // took it rather than what it was (`develop:docs/protocol-keys.md`).
+        // took it rather than what it was (`docs/protocol-keys.md`).
         critpierce: { name: "pancerz z przebicia", unit: "pkt" },
         resdmg: { name: "odporność", unit: "p.p." },
         // The element rides after a colon rather than after "na", which the bound decides:
@@ -534,7 +534,7 @@ export const DESTROYED_WORD_BY_KEY: ReadonlyMap<string, { name: string; unit: st
         resdmgc: { name: "odporność: zimno", unit: "p.p." },
         resdmgl: { name: "odporność: błyskawice", unit: "p.p." },
         // `acdmg` opening this table is one letter away and is armour in points, not this
-        // (`develop:docs/protocol-keys.md`).
+        // (`docs/protocol-keys.md`).
         actdmg: { name: "odporność: trucizna", unit: "p.p." },
         // The article's own words, as the defence line above already draws them — one pool, one
         // spelling on both surfaces (`develop ADR 0077`, **N13**).
@@ -590,7 +590,7 @@ export const ELEMENT_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.e
  * The key health moved under, in the player's words. Ours, like the damage kinds beside it and for
  * the reason `develop ADR 0011` gives: the client words most of these as sentences with holes in
  * them, which is not a phrase a column can take. How often each is stated is
- * `develop:docs/protocol-keys.md`'s, key by key.
+ * `docs/protocol-keys.md`'s, key by key.
  */
 export const HEALTH_SOURCE_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
     heal: "przywracanie życia",
@@ -617,7 +617,7 @@ export const COUNTED_NOUNS = {
  * ticking afterwards and `dmgp` is the damage a blow of that element lands, so one label over
  * both would be two quantities under one word — a wrong number that looks right. The same split
  * holds for `fire` against `dmgf` and `light` against `dmgl`. How much each takes and over how
- * many movements is `develop:docs/protocol-keys.md`'s, key by key.
+ * many movements is `docs/protocol-keys.md`'s, key by key.
  */
 export const HEALTH_LOSS_WORD_BY_KEY: ReadonlyMap<string, string> = new Map(Object.entries({
     poison: "zatrucie",

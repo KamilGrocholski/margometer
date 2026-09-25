@@ -10,7 +10,6 @@ import { FROZEN_BUFF_BITS } from "#/frozen/buff-bits.ts";
 import { FROZEN_HELP_PHRASES } from "#/frozen/help-phrases.ts";
 import { type BitRow, replayLightingRows, tallyBitRows } from "#/tools/aura-lifetime.ts";
 import { readRecordedMaterial, replayMaterialSteps } from "#/tools/recorded-material.ts";
-import { DEVELOP_REVISION } from "#/tests/recording-sources.ts";
 import { parseTableInteger, parseTableRows } from "#/tests/register-table.ts";
 
 interface ClauseRow {
@@ -111,7 +110,7 @@ Deno.test("the register names the statuses the client registers, in the client's
 Deno.test("every clause the document cites is counted, and cited by the keys it names", () => {
     const clauses = parseClauseRows(Deno.readTextFileSync(REGISTER_PATH));
     assert(clauses.length > 0, "the document states which clause dates which key");
-    const register = readDevelopText(KEY_REGISTER_PATH);
+    const register = Deno.readTextFileSync(KEY_REGISTER_PATH);
     const counts = new Map<string, number>(Object.entries(FROZEN_HELP_PHRASES.counts));
     for (const row of clauses) {
         const counted = counts.get(row.clause);
@@ -135,15 +134,6 @@ function parseClauseRows(text: string): ClauseRow[] {
         rows.push({ clause, keys: keys.filter((one) => one.length > 0) });
     }
     return rows;
-}
-
-function readDevelopText(path: string): string {
-    const shown = new Deno.Command("git", {
-        args: ["show", `${DEVELOP_REVISION}:${path}`],
-        stdout: "piped",
-    }).outputSync();
-    assert(shown.success, `develop:${path} is there at ${DEVELOP_REVISION}`);
-    return new TextDecoder().decode(shown.stdout);
 }
 
 /**

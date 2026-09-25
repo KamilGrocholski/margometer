@@ -58,11 +58,11 @@ distinction that is about **how damage is reported** rather than about turns:
 | an `+oth_dmg` figure        | damage to a combatant by name | that combatant acted  | rides its turn   |
 | a `heal` or `poison` figure | health moving on somebody     | nobody acted          | opens a turn     |
 
-The first two are one combatant striking. `develop:docs/protocol-keys.md` owns what each key means,
-and it is the protocol's own split: a blow aimed at the message's target carries the first, and
-damage that landed on somebody the message names carries the second — whose cause that register
-reads off the message actor, which is why the two now answer alike. Reading the second as nobody's
-action opened 33 turns across the corpus, 16 of them where the game's own numbering could see it.
+The first two are one combatant striking. `docs/protocol-keys.md` owns what each key means, and it
+is the protocol's own split: a blow aimed at the message's target carries the first, and damage that
+landed on somebody the message names carries the second — whose cause that register reads off the
+message actor, which is why the two now answer alike. Reading the second as nobody's action opened
+33 turns across the corpus, 16 of them where the game's own numbering could see it.
 
 The third row is where the suppression stops, and it is load-bearing: health moving on a combatant
 is not that combatant acting, so a preparation after one opens a turn. The corpus stands 159
@@ -126,10 +126,9 @@ pairs — raw beside applied — so taking either away leaves the other and the 
 What opens a turn there is that the message carries a figure at all, which is a property of no
 single key. Those turns are the `attack` row of the table above and appear in no `adds` cell.
 
-**`messages` is not `develop:docs/protocol-keys.md`'s occurrence count**, and the two disagree
-wherever a message carries the same key more than once — an attack naming several combatants states
-its reduction against each of them. That register counts the occurrences; this one counts the
-messages.
+**`messages` is not `docs/protocol-keys.md`'s occurrence count**, and the two disagree wherever a
+message carries the same key more than once — an attack naming several combatants states its
+reduction against each of them. That register counts the occurrences; this one counts the messages.
 
 | key                           | messages | opened | adds | lost |
 | ----------------------------- | -------- | ------ | ---- | ---- |
@@ -244,10 +243,9 @@ messages.
   message, because the rule reads events and not keys: by the time it answers, which key produced
   the event it is looking at is gone.
 - **Whether a heal stated by name ends its caster's turn.** That event carries no actor slot to read
-  — the key states who was healed and never who did it (`develop:docs/protocol-keys.md`,
-  `legbon_lastheal`) — so it clears the standing as a tick of poison does, and one preparation in
-  the corpus opens a turn behind one. It sits in
-  `2026-08-23-tempest-grupa-vs-hildur-1786514810315-none`, which agrees with the game's numbering at
-  every boundary it states, so nothing there says the turn is wrong.
+  — the key states who was healed and never who did it (`docs/protocol-keys.md`, `legbon_lastheal`)
+  — so it clears the standing as a tick of poison does, and one preparation in the corpus opens a
+  turn behind one. It sits in `2026-08-23-tempest-grupa-vs-hildur-1786514810315-none`, which agrees
+  with the game's numbering at every boundary it states, so nothing there says the turn is wrong.
 - **Anything about a fight nobody recorded.** Every row is a claim about `captures/` and about
   nothing else (**V4**).

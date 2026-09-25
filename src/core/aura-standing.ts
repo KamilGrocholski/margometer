@@ -343,7 +343,7 @@ function replayFightStandingsOnSides(walk: AuraWalk): AuraStanding[] {
 /**
  * Whom a shout is holding, one row per character, and only the shout that holds them now. **Counted
  * on the held character's own turns**: over `captures/` the provoked strike whoever shouted
- * on their first three turns and fall back on the fourth (`develop:docs/auras-standing.md`).
+ * on their first three turns and fall back on the fourth (`docs/auras-standing.md`).
  */
 function replayFightStandingsProvoked(walk: AuraWalk): ProvocationStanding[] {
     const found: ProvocationStanding[] = [];
