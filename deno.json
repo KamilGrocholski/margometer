@@ -50,5 +50,8 @@
         "allowUnreachableCode": false,
         "allowUnusedLabels": false
     },
-    "exclude": ["dist/", ".cache/", "fabricated/", "node_modules/"]
+    // `.claude/` holds the worktrees Claude Code gives its subagents, each a whole copy of the tree
+    // inside this one: an argument-less `deno check` walked them, and their `#/` resolved against
+    // this root, so a change here reddened the gate with errors from a copy nobody was gating.
+    "exclude": ["dist/", ".cache/", "fabricated/", "node_modules/", ".claude/"]
 }
