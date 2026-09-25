@@ -19,6 +19,8 @@ import { readPayloadEnvelope } from "@/src/game/payload-envelope.ts";
 import type { WarriorSnapshot } from "@/src/game/warrior-snapshot.ts";
 import { DEFECT_KIND, initDefectLedger } from "@/src/runtime/defect-ledger.ts";
 import { initLiveFight, type LiveFightOptions } from "@/src/runtime/live-fight.ts";
+import { initShelfKeeper } from "@/src/runtime/shelf-keeper.ts";
+import { STORAGE_CHOICE } from "@/src/ui/panel-choice.ts";
 import { BLOWS_GRANTED } from "@/tests/frozen-tables.ts";
 import {
     readRecordedFights,
@@ -48,28 +50,50 @@ function composeGame(after: readonly WarriorSnapshot[]): FakeGame {
     return { page: { Engine: { battle } }, after };
 }
 
-function composeOptions(game: FakeGame, overrides: Partial<LiveFightOptions> = {}) {
+/** A clock standing at one moment, which is the moment every fight here opens at. */
+const STILL_CLOCK = {
+    readNowMilliseconds: () => OPENED_AT,
+    readMoment: () => null,
+    readTimestampText: () => ok("2026-09-25T10:00:00.000Z"),
+};
+
+function composeOptions(
+    game: FakeGame,
+    overrides: Partial<LiveFightOptions> = {},
+    shelfStore: KeyValueStore = initMemoryStore(),
+) {
     const lines: string[] = [];
     const stale = { count: 0 };
+    const opened = { count: 0 };
     const place: PlacePort = { readPlace: () => ok(PLACE) };
     const build: BuildPort = { readBuildId: () => ok("Bb28FQty") };
-    const store = initMemoryStore();
+    const defects = initDefectLedger({ writeBrandedLine: (kind) => lines.push(kind) });
+    const keeper = initShelfKeeper({
+        settings: initMemoryStore(),
+        initShelfStore: () => shelfStore,
+        choice: STORAGE_CHOICE.local,
+        tables: BLOWS_GRANTED,
+        sessionOptions: SESSION_OPTIONS,
+        defects,
+    });
     const options: LiveFightOptions = {
         engine: initPageEngine(game.page),
-        clock: { readNowMilliseconds: () => OPENED_AT },
+        clock: STILL_CLOCK,
         place,
         build,
         tables: BLOWS_GRANTED,
         sessionOptions: SESSION_OPTIONS,
-        defects: initDefectLedger({ writeBrandedLine: (kind) => lines.push(kind) }),
-        readShelfStore: () => store,
-        shelf: { fights: [] },
+        defects,
+        keepFight: (fight) => keeper.keep(fight),
+        onFightOpened: () => {
+            opened.count += 1;
+        },
         markStale: () => {
             stale.count += 1;
         },
         ...overrides,
     };
-    return { options, lines, stale, store };
+    return { options, lines, stale, keeper, opened };
 }
 
 function playInto(game: FakeGame, options: LiveFightOptions, payloads: readonly unknown[]) {
@@ -101,7 +125,7 @@ Deno.test("every recording played through the wrap is the fight, the file and th
     for (const fight of readRecordedFights()) {
         const after = readRecordedAfter(fight);
         const game = composeGame(after);
-        const { options, lines, stale } = composeOptions(game);
+        const { options, lines, stale, keeper, opened } = composeOptions(game);
         const { live } = playInto(game, options, fight.updates);
         const view = getFightView(live.session);
         const expected = getFightView(replayRecordedFight(fight));
@@ -122,13 +146,14 @@ Deno.test("every recording played through the wrap is the fight, the file and th
             if (record.value.isEnd) keptCalls ??= capture.calls.map((one) => one.payload);
         });
         assertEquals(live.capture, capture, `${fight.path}: the file holds what was captured`);
-        assertStrictEquals(live.shelf.fights.length, 1, `${fight.path}: the fight is kept once`);
-        const kept = live.shelf.fights[0];
+        assertStrictEquals(keeper.getFights().length, 1, `${fight.path}: the fight is kept once`);
+        const kept = keeper.getFights()[0];
         assertExists(kept, `${fight.path}: and stands on the shelf`);
         assertEquals(kept.payloads, keptCalls, `${fight.path}: its calls, up to the end`);
         assertEquals([kept.openedAt, kept.place, kept.gameBuild], [OPENED_AT, PLACE, "Bb28FQty"]);
         assertEquals(lines, [], `${fight.path}: and nothing went wrong on the way`);
         assertStrictEquals(stale.count, fight.updates.length, "each call asks for a frame");
+        assertStrictEquals(opened.count, 1, `${fight.path}: and the fight opened once`);
         fights += 1;
     }
     assert(fights > 0, "the recordings were there to play");
@@ -145,19 +170,25 @@ Deno.test("a call the envelope refuses is a defect, and the file still keeps the
 
 Deno.test("a fight is kept once, whatever arrives after its end", () => {
     const game = composeGame([[], [], []]);
-    const { options } = composeOptions(game);
+    const { options, keeper } = composeOptions(game);
     const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
-    const { live } = playInto(game, options, [{ init: 1 }, end, { m: ["0;0;txt=a"] }]);
-    assertStrictEquals(live.shelf.fights.length, 1, "one fight, one row");
-    assert(live.shelfAnswer?.ok === true, "and the shelf said it was written");
+    playInto(game, options, [{ init: 1 }, end, { m: ["0;0;txt=a"] }]);
+    assertStrictEquals(keeper.getFights().length, 1, "one fight, one row");
+    assert(!keeper.getAnswers().hasStoreRefused, "and the shelf said it was written");
 });
 
 Deno.test("a shelf the store refuses is the shelf's answer, and the fight still reads", () => {
     const game = composeGame([[], []]);
-    const refusing: KeyValueStore = initPageStore(null);
-    const { options, lines } = composeOptions(game, { readShelfStore: () => refusing });
+    const refusing: KeyValueStore = initPageStore({
+        getItem: () => null,
+        setItem: () => {
+            throw new Error("a browser out of room");
+        },
+        removeItem: () => {},
+    });
+    const { options, lines, keeper } = composeOptions(game, {}, refusing);
     const { live } = playInto(game, options, [{ init: 1 }, { endBattle: 1 }]);
-    assertEquals(live.shelfAnswer, err({ kind: "store-unavailable" }), "the answer is the store's");
+    assert(keeper.getAnswers().hasStoreRefused, "the answer is the store's");
     assertEquals(lines, [], "which is an answer and not a defect");
     assert(getFightView(live.session)?.isOver === true, "and the fight is over all the same");
 });
@@ -192,12 +223,13 @@ Deno.test("a step of ours that breaks costs that step, and the call goes on", ()
 
 Deno.test("a second fight opening on the same listener starts its file and its row anew", () => {
     const game = composeGame([[], [], [], []]);
-    const { options } = composeOptions(game);
+    const { options, keeper, opened } = composeOptions(game);
     const end = { endBattle: 1, m: ["0;0;winner=Gracz 1"] };
     const { live } = playInto(game, options, [{ init: 1 }, end, { init: 1, m: ["0;0;txt=b"] }]);
     assertStrictEquals(live.capture.calls.length, 1, "the file holds the fight that opened");
     assertStrictEquals(getFightView(live.session)?.payloadsApplied, 1, "and so does the session");
-    assertStrictEquals(live.shelf.fights.length, 1, "while the first stays on the shelf");
+    assertStrictEquals(keeper.getFights().length, 1, "while the first stays on the shelf");
+    assertStrictEquals(opened.count, 2, "and each opening was said");
 });
 
 Deno.test("a payload past a bound the session states is a defect, and the fight stands", () => {

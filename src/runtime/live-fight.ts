@@ -18,7 +18,6 @@ import {
     type SessionOptions,
 } from "@/src/core/fight-session.ts";
 import type { DecoderTables } from "@/src/core/fight-decoder.ts";
-import type { KeyValueStore } from "@/src/game/browser-store.ts";
 import type { EngineBattle, EnginePort, PayloadListener } from "@/src/game/engine-battle.ts";
 import type { PlacePort } from "@/src/game/engine-place.ts";
 import { type CaptureStanding, NO_CAPTURE, prepareCapture } from "@/src/game/fight-capture.ts";
@@ -29,12 +28,7 @@ import { PAGE_READ_FAILURE, type PageReadFailure } from "@/src/game/page-reading
 import { readPayloadEnvelope } from "@/src/game/payload-envelope.ts";
 import { WARRIOR_FAILURE, type WarriorSnapshot } from "@/src/game/warrior-snapshot.ts";
 import { DEFECT_KIND, type DefectKind, type DefectLedger } from "@/src/runtime/defect-ledger.ts";
-import {
-    keepFight,
-    type ShelfContents,
-    type ShelfFailure,
-    type ShelfWritten,
-} from "@/src/runtime/shelf.ts";
+import type { KeptFight } from "@/src/runtime/shelf.ts";
 
 export interface LiveFightOptions {
     engine: EnginePort;
@@ -44,9 +38,10 @@ export interface LiveFightOptions {
     tables: DecoderTables;
     sessionOptions: SessionOptions;
     defects: DefectLedger;
-    /** The store the reader chose for the shelf, which a later choice may change. */
-    readShelfStore: () => KeyValueStore;
-    shelf: ShelfContents;
+    /** Once, on the call that ends a fight: a fight put on the shelf twice is two fights. */
+    keepFight: (fight: KeptFight) => void;
+    /** On the payload that opens a fight, once its moment and its place are read. */
+    onFightOpened: () => void;
     /** Asks for one frame; later marks before it arrives do nothing. */
     markStale: () => void;
 }
@@ -58,9 +53,6 @@ export interface LiveFight {
     /** Read once, on the payload that opens a fight: the hero does not move while one is on. */
     place: FightPlace | null;
     openedAt: number;
-    shelf: ShelfContents;
-    /** What the last write of the shelf came to, which the shelf's answer row states. */
-    shelfAnswer: Result<ShelfWritten, ShelfFailure> | null;
     /** Read once: the game builds its battle while its engine starts, and never again. */
     battle: EngineBattle | null;
 }
@@ -75,8 +67,6 @@ export function initLiveFight(options: LiveFightOptions): {
         snapshotBefore: null,
         place: null,
         openedAt: 0,
-        shelf: options.shelf,
-        shelfAnswer: null,
         battle: null,
     };
     const listener: PayloadListener = {
@@ -104,7 +94,7 @@ function guard<Value>(
 ): Value {
     const ran = runGuarded(step);
     if (ran.ok) return ran.value;
-    options.defects.add({ kind, failure: ran.error });
+    options.defects.add({ kind, region: null, failure: ran.error });
     return fallback;
 }
 
@@ -112,7 +102,7 @@ function readPayload(live: LiveFight, options: LiveFightOptions, payload: unknow
     const record = guard(options, DEFECT_KIND.reading, null, () => {
         const read = readPayloadEnvelope(payload);
         if (read.ok) return read.value;
-        options.defects.add({ kind: DEFECT_KIND.reading, failure: read.error });
+        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read.error });
         return null;
     });
     const after = guard(options, DEFECT_KIND.file, null, () => readSnapshot(live, options));
@@ -145,7 +135,7 @@ function commitRecord(
 ): PayloadCommitted | null {
     const prepared = preparePayload(live.session, record, options.tables);
     if (!prepared.ok) {
-        options.defects.add({ kind: DEFECT_KIND.reading, failure: prepared.error });
+        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: prepared.error });
         return null;
     }
     return commitPayload(live.session, prepared.value);
@@ -159,7 +149,7 @@ function readSnapshot(live: LiveFight, options: LiveFightOptions): WarriorSnapsh
     if (live.battle === null) {
         const battle = options.engine.readBattle();
         if (!battle.ok) {
-            options.defects.add({ kind: DEFECT_KIND.file, failure: battle.error });
+            options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: battle.error });
             return null;
         }
         live.battle = battle.value;
@@ -167,13 +157,14 @@ function readSnapshot(live: LiveFight, options: LiveFightOptions): WarriorSnapsh
     const read = live.battle.readWarriors();
     if (read.ok) return read.value;
     if (read.error.kind === WARRIOR_FAILURE.warriorsAbsent) return [];
-    options.defects.add({ kind: DEFECT_KIND.file, failure: read.error });
+    options.defects.add({ kind: DEFECT_KIND.file, region: null, failure: read.error });
     return null;
 }
 
 function openFight(live: LiveFight, options: LiveFightOptions): void {
     live.openedAt = options.clock.readNowMilliseconds();
     live.place = readPageValue(options, options.place.readPlace());
+    options.onFightOpened();
 }
 
 /** Once, on the call that ends it: a fight put on the shelf twice is two fights. */
@@ -186,9 +177,7 @@ function keepClosedFight(live: LiveFight, options: LiveFightOptions): void {
         gameBuild: readPageValue(options, options.build.readBuildId()),
         isPinned: false,
     };
-    const kept = keepFight(options.readShelfStore(), live.shelf, fight);
-    live.shelfAnswer = kept;
-    if (kept.ok) live.shelf = kept.value.contents;
+    options.keepFight(fight);
 }
 
 /** Absent is shown as unknown and is no defect; a page that threw while asked is one. */
@@ -198,7 +187,7 @@ function readPageValue<Value>(
 ): Value | null {
     if (read.ok) return read.value;
     if (read.error.kind !== PAGE_READ_FAILURE.absent) {
-        options.defects.add({ kind: DEFECT_KIND.reading, failure: read.error });
+        options.defects.add({ kind: DEFECT_KIND.reading, region: null, failure: read.error });
     }
     return null;
 }

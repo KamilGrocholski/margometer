@@ -86,11 +86,9 @@ export function initPageEngine(page: unknown): EnginePort {
             const engines = callForeign(() => readPageEngines(page));
             if (!engines.ok) return engines;
             if (engines.value.length === 0) return err({ kind: ENGINE_FAILURE.engineAbsent });
-            for (const engine of engines.value) {
-                const battle = engine[BATTLE_FIELD];
-                if (isWritableRecord(battle)) return ok(initBattle(battle));
-            }
-            return err({ kind: ENGINE_FAILURE.battleAbsent });
+            const battle = lookupEngineBattle(engines.value);
+            if (battle === null) return err({ kind: ENGINE_FAILURE.battleAbsent });
+            return ok(initBattle(battle));
         },
     };
 }
@@ -102,6 +100,19 @@ export function readPageEngines(page: unknown): Record<string, unknown>[] {
     const stated = page[ENGINE_CALL_FIELD];
     if (typeof stated === "function") found.push(Reflect.apply(stated, page, []));
     return found.filter(isWritableRecord);
+}
+
+/** The battle a page's game holds, or null; a call into the page may throw, and it is theirs. */
+export function readPageBattle(page: unknown): Record<string, unknown> | null {
+    return lookupEngineBattle(readPageEngines(page));
+}
+
+function lookupEngineBattle(engines: readonly Record<string, unknown>[]) {
+    for (const engine of engines) {
+        const battle = engine[BATTLE_FIELD];
+        if (isWritableRecord(battle)) return battle;
+    }
+    return null;
 }
 
 /** The battle is written to once, by the wrap, which `isRecord`'s read-only reading refuses. */

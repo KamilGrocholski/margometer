@@ -167,6 +167,23 @@ export function removeKeptFight(
 }
 
 /**
+ * The whole shelf into another store, as a reader moving it asks: the fights go first, and the
+ * store they came from is emptied by `deleteShelf` only once they stand in the new one.
+ */
+export function writeShelfContents(
+    store: KeyValueStore,
+    shelf: ShelfContents,
+): Result<ShelfWritten, ShelfFailure> {
+    assert(shelf.fights.length <= KEPT_MAXIMUM, "a shelf moved is inside its stated bound");
+    return writeShelf(store, shelf, shelf.fights);
+}
+
+/** The key the shelf is under, gone: a reader who moved it wants nothing left behind. */
+export function deleteShelf(store: KeyValueStore): Result<void, StoreFailure> {
+    return store.remove(SHELF_KEY);
+}
+
+/**
  * The shelf written, and what of it went down. The rotation keeps the newest and everything the
  * reader pinned; a refusal drops the oldest unpinned fight and offers the rest again, once per
  * fight it holds at most.
@@ -208,7 +225,7 @@ function writeShelfDropped(
 }
 
 /** What a full shelf keeps: the newest, and everything the reader pinned. */
-function rotateShelf(fights: readonly KeptFight[]): KeptFight[] {
+export function rotateShelf(fights: readonly KeptFight[]): KeptFight[] {
     let held = [...fights];
     for (let dropped = 0; dropped < fights.length; dropped += 1) {
         if (held.length <= KEPT_MAXIMUM) break;

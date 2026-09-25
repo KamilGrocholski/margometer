@@ -1738,7 +1738,7 @@ function isLevelOpen(shown: ShownScreen): boolean {
 /** What the panel could not do, as the runtime counted it: one line per kind, worded here. */
 export interface PanelDefect {
     kind: PanelDefectKind;
-    /** The region the first of them left undrawn, where the kind is a region's. */
+    /** The region this row of the kind left undrawn, and null where the kind is none's. */
     region: PanelRegion | null;
     count: number;
 }
@@ -2274,18 +2274,25 @@ function renderStep(report: UndrawnReport, region: PanelRegion, step: () => void
     if (!ran.ok) report.add(region, ran.error.cause);
 }
 
+/**
+ * The region, or the sentence saying it was not drawn, or null where the document would not make
+ * even that: the region standing is then what stays (`AGENTS.md` E12).
+ */
 function renderRegion(
     document: PanelDocument,
     region: PanelRegion,
     render: () => PanelElement,
     report: UndrawnReport,
-): PanelElement {
+): PanelElement | null {
     const rendered = runGuarded(render);
     if (rendered.ok) return rendered.value;
     report.add(region, rendered.error.cause);
-    const undrawn = renderElement(document, "div", CLASS.undrawn);
-    undrawn.textContent = formatUndrawn(region);
-    return undrawn;
+    const undrawn = callForeign(() => {
+        const mark = renderElement(document, "div", CLASS.undrawn);
+        mark.textContent = formatUndrawn(region);
+        return mark;
+    });
+    return undrawn.ok ? undrawn.value : null;
 }
 
 function renderRegionInPlace(
@@ -2296,6 +2303,7 @@ function renderRegionInPlace(
     report: UndrawnReport,
 ): PanelElement {
     const next = renderRegion(document, region, render, report);
+    if (next === null) return standing;
     // The document's own call, and a region's to lose rather than the whole draw's: what stands
     // is the region as it was, which a reader has already read once.
     const replaced = callForeign(() => standing.replaceWith(next));
@@ -2736,6 +2744,7 @@ function initListDrawing(
     let isRegionKept = false;
     const draw = (name: string, render: () => PanelElement): void => {
         const next = renderRegion(document, PANEL_REGION.list, render, report);
+        if (next === null) return;
         // The same list, drawn again: a payload landing is not a reason to take the region the
         // reader is turning away from them. Another list is the region replaced, so the place
         // kept under its own name is what they land on.

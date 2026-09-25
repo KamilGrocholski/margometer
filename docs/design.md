@@ -213,10 +213,20 @@ over the page and a simulated one (§12), which is what earns it an interface (`
 // Time and the frame
 export interface Clock {
     readNowMilliseconds(): number;
+    /** The reader's own day and time, or null where the page's `Date` will not read one. */
+    readMoment(atMilliseconds: number): PageMoment | null;
+    /** The moment as a file states it, in the page's own ISO 8601. */
+    readTimestampText(atMilliseconds: number): Result<string, ForeignFailure>;
 }
-/** The page's `requestAnimationFrame`. A hidden tab gets no frames, and nobody is looking at it. */
+/**
+ * The page's `requestAnimationFrame`. A hidden tab gets no frames, and nobody is looking at it. The
+ * step is guarded where it is handed over (E10), as the interval's is.
+ */
 export interface FrameScheduler {
-    requestFrame(step: () => void): Result<FrameHandle, ForeignFailure>;
+    requestFrame(
+        step: () => void,
+        onStepFailure: (failure: BrokenInvariant) => void,
+    ): Result<FrameHandle, ForeignFailure>;
 }
 export interface FrameHandle {
     cancel(): void;
@@ -267,7 +277,8 @@ export interface PlacePort {
     readPlace(): Result<FightPlace, PageReadFailure>;
 }
 export interface DictionaryPort {
-    readLabel(labelId: string): Result<string, PageReadFailure>;
+    /** The category is the client's own filing: a status is filed under `buff`. */
+    readLabel(labelId: string, category?: string): Result<string, PageReadFailure>;
 }
 export interface BuildPort {
     readBuildId(): Result<string, PageReadFailure>;
@@ -276,20 +287,21 @@ export type PageReadFailure =
     | { kind: "page-reading-absent"; reading: "place" | "label" | "build" }
     | ForeignFailure;
 
-// The one write into the game: rows of its tooltip
+// The one write into the game: rows of its tooltip, every fighter the page draws at once
 export interface TooltipPort {
+    /**
+     * An empty list takes the block off. The writer remembers the block it left on each fighter
+     * and forgets a fighter the page no longer draws, so a rebuilt tooltip takes it once again.
+     */
     writeRows(
-        combatantId: number,
-        rows: readonly TooltipRow[],
-    ): Result<TooltipWritten, TooltipFailure>;
+        rowsByCombatantId: ReadonlyMap<number, readonly string[]>,
+    ): Result<TooltipWritten, ForeignFailure>;
 }
+/** A client that renamed a method throws nothing, so the count is the only sign of it. */
 export interface TooltipWritten {
-    rowsWritten: number;
+    written: number;
+    asked: number;
 }
-export type TooltipFailure =
-    | { kind: "tooltip-target-absent"; combatantId: number }
-    | { kind: "tooltip-rows-exceeded"; rows: number; maximum: number }
-    | ForeignFailure;
 
 // Browser storage
 export interface KeyValueStore {
@@ -311,9 +323,20 @@ export type StoreFailure =
     | { kind: "store-refused"; cause: unknown } // a quota refusal is an answer
     | { kind: "store-value-too-long"; length: number; maximum: number };
 
+// Where a recording was taken, beyond the fight
+export interface SurroundingsPort {
+    readWorld(): string; // the host's first label, or `unknown`, never ""
+    readUserAgent(): string | null;
+}
+
 // A file and the console
 export interface FileSink {
-    writeFile(name: string, text: string): Result<void, FileFailure>;
+    /** The address is released on the browser's clock, so its failure arrives later, apart. */
+    writeFile(
+        name: string,
+        text: string,
+        onLateFailure: (failure: ForeignFailure) => void,
+    ): Result<void, FileFailure>;
 }
 export type FileFailure = { kind: "file-api-absent" } | ForeignFailure;
 /** Once per kind. */
@@ -643,6 +666,7 @@ export interface Defect {
     region: PanelRegion | null;
     failure: RuntimeFailure;
 }
+/** One row per kind and region, as the panel words them; the console hears a kind once. */
 export interface DefectLedger {
     add(defect: Defect): void;
     getCounts(): readonly DefectCount[];
@@ -651,6 +675,7 @@ export interface DefectCount {
     kind: DefectKind;
     region: PanelRegion | null;
     count: number;
+    first: RuntimeFailure;
 }
 
 // Settings: field by field; a failure falls back to the default and leaves a defect
@@ -729,46 +754,53 @@ export function encodeFightFile(
 ): Result<FightFile, FileEncodingFailure>;
 export type FileEncodingFailure = { kind: "export-unserializable"; cause: unknown };
 /** Which fight the file is of is the intent's question, and its refusal is the runtime's. */
-export type ExportFailure = { kind: "no-fight-on-screen" } | FileEncodingFailure;
+export type ExportFailure = { kind: "no-fight-on-screen" } | FileEncodingFailure | FileFailure;
+
+// The shelf as the running add-on holds it: the fights, the store, and what the store answered
+export interface ShelfKeeper {
+    getFights(): readonly KeptFight[];
+    getChoice(): StorageChoice;
+    getAnswers(): ShelfAnswers; // every slot pinned, refused, room made, choice refused
+    lookupReading(fight: KeptFight): KeptReading | null; // replayed once, a refusal included
+    keep(fight: KeptFight): void;
+    pin(openedAt: number): void; // a toggle, as develop's pin is
+    choose(choice: StorageChoice): void; // fights first, the answer second, the old place last
+}
 
 // A payload and an intent change state at once; drawing waits for one frame
 export interface Runtime {
-    onPayload(record: PayloadRecord): void; // the game's stack: prepare → commit → markStale
-    onIntent(intent: PanelIntent): void; // a listener: executeIntent → markStale
-    onFrame(): FrameReport; // the only drawing
+    onIntent(intent: PanelIntent): void; // a listener: executeRuntimeIntent → markStale
+    deinit(): Result<void, EngineFailure>; // stops looking, takes the wrap off, cancels the frame
 }
-/** One intent, as TigerBeetle's state machine executes one operation. */
-export function executeIntent(
-    runtime: Runtime,
-    intent: PanelIntent,
-): Result<IntentExecuted, RuntimeFailure>;
-/** The first mark asks for a frame; later marks before it arrives do nothing. One flag. */
-export function markStale(runtime: Runtime): void;
-export interface FrameReport {
-    hasRendered: boolean;
-    defectsAdded: number;
+export function initRuntime(ports: RuntimePorts, options: RuntimeOptions): Runtime;
+export interface RuntimeOptions {
+    version: string;
+    tables: { decoder: DecoderTables; tooltip: TooltipTables };
+    sessionOptions: SessionOptions;
 }
-export function initRuntime(
-    ports: RuntimePorts,
-    tables: FrozenTables,
-): Result<Runtime, BootFailure>;
-/** Takes the wrap off, cancels the frame asked for, removes the listeners. */
-export function deinitRuntime(runtime: Runtime): Result<void, EngineFailure>;
+/**
+ * One intent, as a state machine executes one operation. A failure leaves its mark where the step
+ * that met it knows which one; the answer is whether the panel needs a frame.
+ */
+export function executeRuntimeIntent(parts: IntentParts, intent: PanelIntent): boolean;
 export interface RuntimePorts {
     clock: Clock;
     frames: FrameScheduler;
+    interval: IntervalScheduler;
     engine: EnginePort;
     place: PlacePort;
     dictionary: DictionaryPort;
     build: BuildPort;
+    surroundings: SurroundingsPort;
     tooltip: TooltipPort;
-    store: KeyValueStore;
-    initStore(choice: StorageChoice): KeyValueStore;
+    settings: KeyValueStore;
+    initShelfStore(choice: StorageChoice): KeyValueStore; // never refusing: memory at worst
     file: FileSink;
     console: ConsolePort;
-    panel: PanelView;
+    document: PanelDocument; // the runtime makes the view, which is handed its own callbacks
+    mountPanel(panel: PanelElement): Result<void, ForeignFailure>;
+    readViewport(): PanelViewport | null;
 }
-export type BootFailure = { kind: "window-unusable"; missing: string } | ForeignFailure;
 
 // Every failure meets a fate, and the compiler holds the table complete
 export type RuntimeFailure =
@@ -778,10 +810,9 @@ export type RuntimeFailure =
     | StoreFailure
     | ShelfFailure
     | SettingFailure
-    | ExportFailure
-    | TooltipFailure
-    | RenderFailure
-    | GestureFailure
+    | ExportFailure // no fight on screen, a file that will not encode, a sink that refused
+    | FrameFailure // two counts of one figure came out different
+    | ViewFailure // RenderFailure, GestureFailure, PlacementFailure
     | ForeignFailure
     | BrokenInvariant;
 export const FAILURE_FATE = {
@@ -869,8 +900,8 @@ The intents are `develop`'s presses, one for one: `pin` toggles, as `develop`'s 
 no state, and there is no `remove-kept`, because `develop` has no such press. A press is read off
 one `data-*` mark per control (`PANEL_MARK`), never a class; a mark stating a value nothing of ours
 writes is `IntentFailure` `mark-unknown`, which the listener reports as a dropped gesture. A
-`PanelDefect` the panel states is `{ kind, region, count }`: which defect, the region the first of
-its kind left undrawn (null where the kind is not a region's), and how often it happened.
+`PanelDefect` the panel states is `{ kind, region, count }`, one per row of the ledger: a kind
+leaving two regions undrawn is two lines, each naming its region (null where a kind is none's).
 
 The UI returns `Result` and `RenderReport` and neither throws nor asserts. An exception out of the
 DOM is caught by `callForeign` or `runGuarded` inside its region. A listener reads an intent from
@@ -885,18 +916,22 @@ literals stand in the variants here only so the document reads; §7 shows the bu
 ### 10.1 Start
 
 ```
-window ─ readUserscriptWindow ─▶ Result<Ports, BootFailure>
+window ─ readUserscriptWindow ─▶ Result<Ports, BootFailure>     (the entry, step 7)
    err → one console line → stand down
-initRuntime(ports)
-   ─▶ readSetting × 5         err → the default, and a "kept" defect
-   ─▶ openShelf               err → an empty shelf, and a shelf answer
-   ─▶ panel mount             err → a "mount" defect
-   ─▶ markStale               the first frame
+initRuntime(ports, options)
+   ─▶ readStorageChoice, readWindowFold × 2    err → the default, and a "kept" defect
+   ─▶ openShelf               err → an empty shelf, and a "kept" defect
+   ─▶ initPanelView           readWindowPosition × 2: err → the sheet's corner, a "kept" defect
    ─▶ look for the engine every 250 ms, at most 240 times
-        another-reader              → stand down, one console line
-        method-absent, abandoned    → the panel waits, one console line
-        found                       → engine.wrap(listener)
+        another-reader              → stand down, one console line, no panel
+        method-absent, abandoned    → an "engine" defect, markStale: the panel waits
+        a look that threw           → one console line; the looking goes on
+        found                       → engine.wrap(listener), markStale
+the first frame draws and mounts   err → a "mount" defect, tried again at the next frame
 ```
+
+No frame is asked for before the wrap is on or the game is given up on, so the panel goes up at the
+first frame, as `develop` puts it up when the wrap goes on.
 
 ### 10.2 The game's stack: `updateData`
 
@@ -908,7 +943,8 @@ onPayload(payload) ─ runGuarded:
    readWarriorSnapshot     after the original → snapshotAfter | null
    prepareCapture          → the capture standing, committed with the session's payload
    preparePayload          ok  → commitPayload → unread counted (suspect)
-                                 hasClosed → keepFight → ShelfWritten | ShelfFailure
+                                 hasOpened → the moment and the place, the screen reset
+                                 hasClosed → ShelfKeeper.keep → the shelf's answers
                            err → a bound the options state: a "reading" defect
                            assertion → a "reading" defect; the session untouched
    markStale               the first mark asks for a frame
@@ -918,24 +954,30 @@ end: no DOM; cost bounded by the message count; a JSON copy only of a call thinn
 ### 10.3 A gesture: `onIntent`, under `runGuarded` in the listener
 
 ```
-listener ─ composes a PanelIntent from data-* (isOneOf; unknown → gesture-dropped)
-   executeIntent: settings, shelf, file → Result → its fate from FAILURE_FATES
-   markStale
+listener ─ reads a PanelIntent off data-* (isOneOf; unknown → gesture-dropped)
+   executeRuntimeIntent: the screen moves; the keeper pins and moves the shelf; a fold is
+      written; a move is written and asks for no frame; a save writes the file or a "file" defect
+   true → markStale
 ```
 
 ### 10.4 The frame: `onFrame`, every step under `runGuarded`
 
 ```
-1. tallyFightFigures (memo) → verifyFightFigures → presentScreen → render → RenderReport
-2. replayFightStandings → presentStanding → renderStanding
-3. tooltip.writeRows per combatant → err → a "region" defect
-4. BrokenInvariant in any step → that step's defect; the rest of the frame goes on
+1. replayFightStandings → presentTooltipRows → tooltip.writeRows → err → a "region" defect
+2. replayFightStandings → presentStanding → renderStanding → undrawn → "region" defects
+3. the ledger as it stands → the panel's defects, drawn this frame
+4. tallyFightFigures → verifyFightFigures → presentScreen → render → undrawn → "region" defects
+   nothing to stand on → renderWaiting; a broken invariant → a "reading" defect, unread
+5. BrokenInvariant in any step → that step's defect; the rest of the frame goes on
+6. the first frame mounts the panel
 ```
 
 How many calls fall into one frame the recordings do not say, because they carry no time. What is
-certain is that there are no more drawings than frames, where `develop` draws once per call. Where
-`requestFrame` answers `err`, `markStale` draws at once, as `develop` does, and leaves a "region"
-defect once, because no failure goes without a mark.
+certain is that there are no more drawings than frames, where `develop` draws once per call. The
+figures are tallied again each frame rather than held: a kept fight's are held by the keeper, and a
+live one's change with every call a frame covers. Where `requestFrame` answers `err`, `markStale`
+draws at once, as `develop` does, and leaves a "region" defect once, because no failure goes without
+a mark.
 
 ### 10.5 The failure map
 
@@ -948,12 +990,16 @@ defect once, because no failure goes without a mark.
 | `BrokenInvariant`                               | `defect` of its step   | as above; one console line per kind                    |
 | `hasFiguresDisagreed` (data, not a failure)     | `defect` "figures"     | as above                                               |
 | `StoreFailure` on choosing a store              | `fallback-with-defect` | memory; the storage strip says it was refused          |
-| `ShelfFailure`                                  | `shelf-answer`         | the shelf's answer row                                 |
+| `ShelfFailure` on a write                       | `shelf-answer`         | the shelf's answer row                                 |
+| `ShelfFailure` unreadable, version unknown      | `fallback-with-defect` | an empty shelf; a "kept" defect                        |
+| `ShelfFailure` fight already kept               | `defect` "keeping"     | the fight is not kept twice                            |
 | `SettingFailure`                                | `fallback-with-defect` | the default position or fold; a "kept" defect          |
 | `RenderFailure`                                 | `defect` "region"      | an undrawn mark where the region stands                |
 | `GestureFailure`                                | `defect` "gesture"     | nothing happened, marked once                          |
+| `PlacementFailure`                              | `fallback-with-defect` | the sheet's corner; a "mount" defect                   |
 | `ExportFailure`, `FileFailure`                  | `defect` "file"        | as above                                               |
-| `TooltipFailure`                                | `defect` "region"      | the game's tooltip without our rows                    |
+| a tooltip write that threw                      | `defect` "region"      | the game's tooltip without our rows                    |
+| a setting write refused                         | none                   | the reader's choice stands; the next visit is poorer   |
 | `PageReadFailure`                               | `shown-as-unknown`     | no place line; our word instead of the game's          |
 | `EngineFailure` another-reader, `BootFailure`   | `stand-down`           | no panel, one console line                             |
 | `EngineFailure` search-abandoned, method-absent | `defect` "engine"      | the panel waits, one console line                      |
@@ -990,9 +1036,11 @@ This branch starts empty, so the order is what makes each step testable on the l
 2. `core/` grammar and decoder, carried over from `develop` with its tests, returning `Result`.
 3. `core/` session (`preparePayload`, `commitPayload`), figures, standings.
 4. `game/`: the envelope, warriors and capture readers.
-5. `runtime/`: defects, settings, shelf, file, `markStale`, `FAILURE_FATES`. Each port of §5 arrives
-   with the runtime piece that consumes it (`AGENTS.md` C9), in `game/` where it reads the page.
-6. `ui/`: `present…`, `PanelView`, intents.
+5. `runtime/`: defects, settings, shelf, file, `FAILURE_FATES`. Each port of §5 arrives with the
+   runtime piece that consumes it (`AGENTS.md` C9), in `game/` where it reads the page.
+6. `ui/`: `present…`, `PanelView`, intents; then the runtime joining them: `initRuntime`, the
+   keeper, the frame, the tooltip and the file, with the dictionary, tooltip, frame, clock,
+   surroundings and file ports.
 7. The entry, and the userscript build.
 8. The simulator:
 
