@@ -471,5 +471,8 @@ that has stopped finding its subject; only the second catches one that finds too
 | `tests/repository/redacted-names.test.ts`          | `captures/AGENTS.md`      |
 | `tests/repository/captured-fight-register.test.ts` | `docs/captured-fights.md` |
 | `tests/repository/cited-paths.test.ts`             | C3, C15                   |
+| `tests/repository/broad-catches.test.ts`           | E4                        |
+| `tests/repository/handed-callbacks.test.ts`        | E10                       |
+| `tests/repository/type-assertions.test.ts`         | C13                       |
 | `deno check --config project/browser-lib.json`     | the browser floor         |
 | `requireBundleInBrowser` in the build              | Never: the network        |

@@ -30,6 +30,12 @@ export interface AstNode {
     init?: AstNode | null;
     property?: AstNode;
     superClass?: AstNode | null;
+    callee?: AstNode;
+    arguments?: AstNode[];
+    params?: AstNode[];
+    typeAnnotation?: AstNode | null;
+    typeName?: AstNode;
+    parent?: AstNode;
 }
 type AstVisitor = Record<string, (node: AstNode) => void>;
 interface AstComment {
@@ -134,6 +140,26 @@ export function readAstNodes(file: SourceFile, kinds: readonly string[]): AstNod
         file.text,
     );
     return found;
+}
+
+/** The innermost of the functions given that a node stands in, or null at a module's top level. */
+export function lookupEnclosingFunction(
+    functions: readonly AstNode[],
+    node: AstNode,
+): AstNode | null {
+    let found: AstNode | null = null;
+    for (const candidate of functions) {
+        if (candidate.range[0] > node.range[0]) continue;
+        if (candidate.range[1] < node.range[1]) continue;
+        if (isSameRange(candidate, node)) continue;
+        if (found === null || candidate.range[0] >= found.range[0]) found = candidate;
+    }
+    return found;
+}
+
+function isSameRange(one: AstNode, other: AstNode): boolean {
+    if (one.range[0] !== other.range[0]) return false;
+    return one.range[1] === other.range[1];
 }
 
 /** The text of every comment in a file, without its marks, in the order the file states them. */
