@@ -18,11 +18,10 @@ import {
     composePanelPage,
     type EnginePresence,
     GAME_SCRIPT_NAME,
-    PAGE_ORIGIN,
+    type PanelPageOptions,
     PLACE_NAME,
-    readRecordedCalls,
-    waitForFrame,
-} from "./panel-page.ts";
+} from "./game-page.ts";
+import { PAGE_ORIGIN, readRecordedCalls, waitForFrame } from "./panel-page.ts";
 
 export { expect };
 
@@ -139,13 +138,17 @@ export const test = base.extend<PanelFixtures & PanelOptions, PanelWorkerFixture
             : fedThrough === "none"
             ? 0
             : fedThrough;
-        const html = composePanelPage({
+        const options: PanelPageOptions = {
             calls,
             fedThrough: through,
             engine,
             doesLoadTwice,
             place,
-        });
+            userscriptName: USERSCRIPT_NAME,
+        };
+        expect(calls.length, "a page replays a fight there is something of").toBeGreaterThan(0);
+        expect(through, "and stops somewhere inside it").toBeLessThanOrEqual(calls.length);
+        const html = composePanelPage(options);
         await setPageServed(page, built.script, html);
         if (doesFakeClock) await page.clock.install();
         await page.goto(`${PAGE_ORIGIN}/`);
@@ -153,13 +156,7 @@ export const test = base.extend<PanelFixtures & PanelOptions, PanelWorkerFixture
         // spec is about; every other test starts on a panel that has already drawn.
         if (engine === "before") await page.waitForSelector(HOST_SELECTOR);
         await use(composePanelHandle(page, built.version, async () => {
-            const empty = composePanelPage({
-                calls,
-                fedThrough: 0,
-                engine,
-                doesLoadTwice,
-                place,
-            });
+            const empty = composePanelPage({ ...options, fedThrough: 0 });
             await setPageServed(page, built.script, empty);
         }));
     },

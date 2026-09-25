@@ -7,7 +7,7 @@
  * than recursive (**S1**) and bounded (**S2**). **`develop ADR 0047`.**
  */
 
-import { PROBE_NAME } from "./panel-page.ts";
+import { PROBE_NAME } from "./game-page.ts";
 
 /** Everything the crawl counted, and everything it caught. */
 export interface CrawlReport {

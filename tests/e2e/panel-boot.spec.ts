@@ -7,7 +7,8 @@
  */
 
 import { expect, HOST_SELECTOR, test } from "./panel-fixture.ts";
-import { ENGINE_ANSWER, waitForFrame } from "./panel-page.ts";
+import { ENGINE_ANSWER } from "./game-page.ts";
+import { waitForFrame } from "./panel-page.ts";
 
 /** The line every failure of the add-on's own is branded with, in the one console it holds. */
 const FAILURE_LINE = "MargoMeter/Panel";

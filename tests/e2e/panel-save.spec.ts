@@ -9,7 +9,8 @@
 
 import { readFileSync } from "node:fs";
 import { expect, type PanelHandle, test } from "./panel-fixture.ts";
-import { GAME_BUILD, PAGE_WORLD } from "./panel-page.ts";
+import { GAME_BUILD } from "./game-page.ts";
+import { PAGE_WORLD } from "./panel-page.ts";
 
 /** The envelope's own field names, as `src/game/fight-capture.ts` writes them. */
 const ENVELOPE = [
