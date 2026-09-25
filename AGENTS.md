@@ -1,10 +1,11 @@
 # AI agent instructions
 
-This branch, `rewrite/2026-09`, is MargoMeter written again from nothing. Its rules are `develop`'s
-at `fa1dcce`, rewritten for the design round of 2026-09-24, and its architecture is
-[`docs/design.md`](docs/design.md)'s. A rule carried over from `develop` keeps its evidence in
-`develop`'s decision records, cited as `develop ADR NNNN`. This branch's own are `docs/adr/`,
-numbered from 0001 and cited as `ADR NNNN`, and a decision that changes a rule here writes one.
+This is MargoMeter as written again from nothing on `rewrite/2026-09`, which replaced `develop` @
+`fa1dcce` on 2026-09-25. Its rules are `develop`'s at that commit, rewritten for the design round of
+2026-09-24, and its architecture is [`docs/design.md`](docs/design.md)'s. A rule carried over from
+`develop` keeps its evidence in `develop`'s decision records, cited as `develop ADR NNNN`. This
+tree's own are `docs/adr/`, numbered from 0001 and cited as `ADR NNNN`, and a decision that changes
+a rule here writes one.
 
 These instructions apply to every directory unless a closer `AGENTS.md` overrides a rule for its
 subtree.
@@ -25,7 +26,7 @@ canonical documents: **every rule has one owning document**, and the others poin
 restated in different words is worse than one restated verbatim, because the two drift without ever
 looking different. Before deleting a restatement, **read the owner and confirm it says the thing**.
 
-The documents this branch carries:
+The documents this tree carries:
 
 - [`docs/design.md`](docs/design.md) — layers, ports, types, the process, the failure map, the
   boundaries, the file format, the build order.
@@ -384,8 +385,8 @@ TypeScript idiom, with the naming rules stated here.
 - **W6.** A test that parses another program's output holds a **transcript**, never a typed sample.
 - **W7.** Read back the result of a scripted edit, and read back the **whole unit** — the sentence,
   the rule, the paragraph — never only the line that changed.
-- **W8.** Never update a golden expectation merely to make a behaviour change pass. On this branch
-  the figures `develop` @ `fa1dcce` draws for a recording are the expectation, and a difference is a
+- **W8.** Never update a golden expectation merely to make a behaviour change pass. The figures
+  `develop` @ `fa1dcce` draws for a recording it held are the expectation, and a difference is a
   finding in one of the two (`docs/design.md` §12).
 - **W9.** A change under `src/` is not done until the end-to-end suite is green as well, from the
   commit that brings the suite. `develop ADR 0047`.
@@ -402,10 +403,16 @@ TypeScript idiom, with the naming rules stated here.
 - **G3.** The body is the primary record of reasoning, with no length limit: numbers rather than
   adjectives, what decided it, the rejected alternatives, what you broke and what lit up, and what
   stays open.
-- **G4.** Every commit leaves the gate green on its own, once there is a gate.
-- **G5.** Work on the rewrite lands on `rewrite/2026-09`. Nothing here moves `develop` or `main`;
-  how the rewrite reaches them is the maintainer's decision.
-- **G6.** Never bypass a hook.
+- **G4.** `TODO.md` is committed on its own, as `todo: …` — no scope, nothing else in the commit.
+- **G5.** Every commit leaves the gate green on its own, including when one change is split across
+  several.
+- **G6.** Work lands on `develop`; `main` is the latest release, advanced only at a release and only
+  by fast-forward.
+- **G7.** A release goes out in three takts, and the wait is between the second and the third:
+  `develop`, then `main` once that push's `check` run is **green**, then the tag. Branch protection
+  refuses `main` while the run is going, and that refusal is cheap — the tag going out first is not.
+  `docs/releasing.md` is every step.
+- **G8.** Never bypass a hook.
 
 ## Ask first
 
@@ -413,7 +420,7 @@ TypeScript idiom, with the naming rules stated here.
   file format, the storage keys.
 - Deleting or skipping a test, including "it's obsolete".
 - Adding a dependency.
-- Touching anything under `captures/`, on any branch.
+- Touching anything under `captures/` but through `deno task capture:intake`, on any branch.
 - Turning off a compiler flag, a lint rule, or a guard to pass.
 - Adding a file nothing uses yet.
 - Adding a construct that raises the browser floor.
@@ -429,10 +436,10 @@ TypeScript idiom, with the naming rules stated here.
 - **Invent data the log does not carry.** Unknown is allowed, a guessed name is not.
 - **Comment the obvious.**
 - **Leave a number in prose that a machine could compute.**
-- **Write to `TODO.md`** — the maintainer's hand-kept list — by any tool, on any branch. On this
-  branch no wall stands in front of it yet: no permission list, no formatter exclusion. The rule
-  binds without them, and a tool that walks the tree and writes gets the exclusion **before** its
-  first run.
+- **Write to `TODO.md`** — the maintainer's hand-kept list — by any tool, on any branch. Two walls
+  stand in front of it, `.claude/settings.json`'s deny list and the formatter's exclusion in
+  `deno.json`, and both are narrower than the rule: a tool that walks the tree and writes gets its
+  own exclusion **before** its first run.
 
 ## Guard register
 

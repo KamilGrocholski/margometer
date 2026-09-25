@@ -9,3 +9,7 @@ node_modules/
 
 # Fights nobody fought, composed for one machine. Never material, and never in git.
 fabricated/
+
+# Session machinery, not project content.
+.claude/scheduled_tasks.lock
+.claude/worktrees/
